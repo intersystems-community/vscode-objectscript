@@ -1,6 +1,6 @@
-# intersystems-cos README
+# cos-vscode README
 
-This is the README for your extension "intersystems-cos". After writing up a brief description, we recommend including the following sections.
+This is the README for your extension "cos-vscode". After writing up a brief description, we recommend including the following sections.
 
 ## Features
 
