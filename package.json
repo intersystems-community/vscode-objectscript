@@ -1,0 +1,26 @@
+{
+    "name": "doublefint-cos",
+    "displayName": "doublefint-cos",
+    "description": "",
+    "version": "0.0.1",
+    "publisher": "doublefint",
+    "engines": {
+        "vscode": "^1.5.0"
+    },
+    "categories": [
+        "Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "cos",
+            "aliases": ["CacheObjectScript", "cos"],
+            "extensions": [".cls"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "cos",
+            "scopeName": "source.cos",
+            "path": "./syntaxes/cos.tmLanguage.json"
+        }]
+    }
+}

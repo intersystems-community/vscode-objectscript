@@ -1,0 +1,591 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "CacheObjectScript",
+  "scopeName": "source.cos",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#directives"
+    },
+    {
+      "include": "#statements"
+    },
+    {
+      "include": "text.xml"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.character.cos",
+          "begin": "\\s*\\/\\/\\/",
+          "end": "$",
+          "patterns": [
+            {
+              "include": "text.xml"
+            }
+          ]
+        },
+        {
+          "name": "comment.line.double-slash.cos",
+          "begin": "\\s*\\/\\/",
+          "end": "$",
+          "patterns": [
+            {
+              "include": "text.xml"
+            }
+          ]
+        },
+        {
+          "name": "comment.line.number.cos",
+          "begin": "\\s*#;",
+          "end": "$",
+          "patterns": [
+            {
+              "include": "text.xml"
+            }
+          ]
+        },
+        {
+          "name": "comment.block.documentation.cos",
+          "begin": "\\/\\*",
+          "end": "\\*\\/",
+          "patterns": [
+            {
+              "include": "text.xml"
+            }
+          ]
+        },
+        {
+          "name": "comment.line.semicolon.cos",
+          "begin": ";",
+          "end": "$",
+          "patterns": [
+            {
+              "include": "text.xml"
+            }
+          ]
+        }
+      ]
+    },
+    "directives": {
+      "patterns": [
+        {
+          "include": "#include-directives"
+        },
+        {
+          "include": "#define-directives"
+        }
+      ]
+    },
+    "include-directives": {
+      "begin": "\\s*(?i)(#?include)\\s*",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.other.include.cos"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "include": "#dotted-attrs"
+        }
+      ]
+    },
+    "define-directives": {
+      "patterns": [
+        {
+          "begin": "^\\s*(?i)(#define)\\s*",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.other.define.cos"
+            }
+          },
+          "end": "$",
+          "patterns": [
+            {
+              "match": "[a-zA-Z0-9%\\(\\)+\\-*=]+",
+              "name": "constant.other.macros.cos"
+            }
+          ]
+        },
+        {
+          "begin": "^\\s*(?i)(#ifdef)\\s*(\\w+)",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.other.ifdef.cos"
+            },
+            "2": {
+              "name": "constant.other.ifdef.cos"
+            }
+          },
+          "end": "$"
+        },
+        {
+          "match": "^\\s*(?i)(#else|#endif)",
+          "captures": {
+            "1": {
+              "name": "keyword.other.else-endif.cos"
+            }
+          }
+        },
+        {
+          "begin": "^\\s*(?i)(#dim)\\s*([\\w,]+)",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.other.dim.cos"
+            },
+            "2": {
+              "name": "variable.other.cos"
+            }
+          },
+          "end": "$",
+          "patterns": [
+            {
+              "match": "=\\s*(\\w+)",
+              "name": "entity.name.variable.equals.cos"
+            },
+            {
+              "match": "(?i)\\b(as)\\b\\s*\\b(list|array)\\b\\s*\\b(of)\\b\\s*\\b(\\w+)\\b",
+              "captures": {
+                "1": {
+                  "name": "keyword.operator.as.cos"
+                },
+                "2": {
+                  "name": "entity.name.variable.list-array.cos"
+                },
+                "3": {
+                  "name": "keyword.operator.of.cos"
+                },
+                "4": {
+                  "name": "entity.name.variable.cos"
+                }
+              }
+            },
+            {
+              "match": "(?i)\\b(as)\\b\\s*\\b(\\w+)\\b",
+              "captures": {
+                "1": {
+                  "name": "keyword.operator.as.cos"
+                },
+                "2": {
+                  "name" : "entity.name.variable.cos"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "dotted-attrs": {
+      "match": "((%|\\w|\\.|#)+)",
+      "captures": {
+        "1": {
+          "name": "variable.language.cos"
+        }
+      }
+    },
+    "statements": {
+      "patterns": [
+        {
+          "include": "#properties"
+        },
+        {
+          "include": "#parameters"
+        },
+        {
+          "include": "#indices"
+        },
+        {
+          "include": "#fks"
+        },
+        {
+          "include": "#classes"
+        },
+        {
+          "include": "#methods"
+        },
+        {
+          "include": "#xml-data"
+        },
+        {
+          "include": "#keywords"
+        },
+        {
+          "include": "#variables"
+        }
+      ]
+    },
+    "properties": {
+      "begin": "^\\s*(?i)(Property)\\s+(\\w+)",
+      "beginCaptures": {
+        "1": {
+          "name": "entity.name.type.property.cos"
+        },
+        "2": {
+          "name": "variable.other.cos"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "include": "#as-keywords"
+        },
+        {
+          "include": "#dotted-attrs"
+        }
+      ]
+    },
+    "parameters": {
+      "begin": "^\\s*(?i)(Parameter)\\s+(\\w+)",
+      "beginCaptures": {
+        "1": {
+          "name": "entity.name.type.property.cos"
+        },
+        "2": {
+          "name": "variable.other.cos"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "include": "#as-keywords"
+        },
+        {
+          "include": "#dotted-attrs"
+        }
+      ]
+    },
+    "indices": {
+      "begin": "^\\s*(?i)(Index)\\s+(\\w+)",
+      "beginCaptures": {
+        "1": {
+          "name": "entity.name.type.property.cos"
+        },
+        "2": {
+          "name": "variable.other.cos"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "match": "\\b(?i)(ON)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.on.cos"
+            }
+          }
+        },
+        {
+          "include": "#dotted-attrs"
+        }
+      ]
+    },
+    "fks": {
+      "begin": "^\\s*(?i)(Relationship)\\s+(\\w+)",
+      "beginCaptures": {
+        "1": {
+          "name": "entity.name.type.property.cos"
+        },
+        "2": {
+          "name": "variable.other.cos"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "include": "#as-keywords"
+        },
+        {
+          "include": "#dotted-attrs"
+        }
+      ]
+    },
+    "as-keywords": {
+      "match": "\\b(?i)(As)\\b",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.as.cos"
+        }
+      }
+    },
+    "classes": {
+      "begin": "^\\s*(?i)(Class)\\s+(\\w+)",
+      "beginCaptures": {
+        "1": {
+          "name": "entity.name.type.property.cos"
+        },
+        "2": {
+          "name": "variable.other.cos"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "match": "\\b(?i)(Extends)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.extends.cos"
+            }
+          }
+        },
+        {
+          "include": "#dotted-attrs"
+        },
+        {
+          "begin": "\\{",
+          "end": "\\}",
+          "patterns": [
+            {
+              "include": "#statements"
+            }
+          ]
+        }
+      ]
+    },
+    "methods": {
+      "begin": "^\\s*(?i)(Method|ClassMethod|ClientMethod)\\s+(\\w+)",
+      "beginCaptures": {
+        "1": {
+          "name": "entity.name.type.property.cos"
+        },
+        "2": {
+          "name": "variable.other.cos"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "include": "#method-params"
+        },
+        {
+          "include": "#as-keywords"
+        },
+        {
+          "include": "#dotted-attrs"
+        },
+        {
+          "begin": "\\{",
+          "end": "\\}",
+          "patterns": [
+            {
+              "include": "#statements"
+            }
+          ]
+        }
+      ]
+    },
+    "method-params": {
+      "begin": "\\(",
+      "end": "\\)",
+      "patterns": [
+        {
+          "match": "(\\w+)\\s*(As)\\s*((\\w|%|\\.)+)\\s*=\\s*([\\w\\{\\}\\$]+)",
+          "captures": {
+            "1": {
+              "name": "variable.parameter.method-param.cos"
+            },
+            "2": {
+              "name": "keyword.operator.as-method-param.cos"
+            },
+            "3": {
+              "name": "storage.type.method.cos"
+            },
+            "5": {
+              "name": "entity.name.variable.equals.cos"
+            }
+          }
+        },
+        {
+          "match": "(\\w+)\\s*(As)\\s*((\\w|%|\\.)+)",
+          "captures": {
+            "1": {
+              "name": "variable.parameter.method-param.cos"
+            },
+            "2": {
+              "name": "keyword.operator.as-method-param.cos"
+            },
+            "3": {
+              "name": "storage.type.method.cos"
+            }
+          }
+        },
+        {
+          "match": "(\\w+)",
+          "captures": {
+            "1": {
+              "name": "variable.parameter.method-param.cos"
+            }
+          }
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "include": "#action-keywords"
+        },
+        {
+          "include": "#control-keywords"
+        },
+        {
+          "include": "#system-functions"
+        },
+        {
+          "include": "#keyword-operator-logical"
+        },
+        {
+          "include": "#sql-keyword"
+        },
+        {
+          "include": "#class-keyword"
+        }
+      ]
+    },
+    "keyword-operator-logical": {
+      "match": "(&&|&|!|'|\\|\\|)",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.logical.cos"
+        }
+      }
+    },
+    "action-keywords": {
+      "match": "(?i)\\b(SET|S|DO|D|KILL|K|GOTO|G|READ|R|WRITE|W|OPEN|O|USE|U|CLOSE|C|CONTINUE|FOR|F|HALT|HANG|H|JOB|J|LOCK|L|MERGE|M|NEW|N|QUIT|Q|RETURN|RET|TSTART|TS|TCOMMIT|TC|TROLLBACK|TR|THROW|VIEW|V|XECUTE|X|ZKILL|ZK|ZNSPACE|ZN|ZTRAP|ZWRITE|ZW|ZZDUMP|ZZWRITE)\\b",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.action.cos"
+        }
+      }
+    },
+    "control-keywords": {
+      "match": "(?i)\\b(if|i|while|for|f|try|catch|else|e|elseif)\\b",
+      "captures": {
+        "1": {
+          "name": "keyword.control.cos"
+        }
+      }
+    },
+    "system-functions": {
+      "match": "\\.%\\w+",
+      "name": "entity.name.function.system.cos"
+    },
+    "sql-keyword": {
+      "begin": "(&sql)\\(",
+      "beginCaptures": {
+        "1": {
+          "name": "entity.name.function.sql.cos"
+        }
+      },
+      "end": "\\)",
+      "patterns": [
+        {
+          "include": "#expressions"
+        }
+      ]
+    },
+    "class-keyword": {
+      "match": "(##class)\\(((%|\\w|\\.|#)+)\\)",
+      "captures": {
+        "1": {
+          "name": "entity.name.class.reference.cos"
+        },
+        "2": {
+          "name": "variable.parameter.function-argument.cos"
+        }
+      }
+    },
+    "function-exec": {
+      "match": "\\)\\.(\\w+)",
+      "captures": {
+        "1": {
+          "name": "entity.name.function.ordinary.cos"
+        }
+      },
+      "comment": "TODO: doesn't work"
+    },
+    "variables": {
+      "patterns": [
+        {
+          "match": "\\.\\.\\w+",
+          "name": "variable.other.property.cos"
+        },
+        {
+          "match": "\\.\\.#\\w+",
+          "name": "variable.other.parameter.cos"
+        },
+        {
+          "match": "\\^\\w+",
+          "name": "variable.other.global.cos"
+        },
+        {
+          "match": "\\$\\w+(\\.\\w+)*",
+          "name": "variable.other.system.cos"
+        },
+        {
+          "match": "\\$\\$\\$\\w+",
+          "name": "variable.other.macros.cos"
+        },
+        {
+          "include": "#strings"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "begin": "(\")",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.string.begin.cos"
+            }
+          },
+          "end": "(\")",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.string.end.cos"
+            }
+          },
+          "name": "string.quoted.double.cos"
+        }
+      ]
+    },
+    "xml-data": {
+      "patterns": [
+        {
+          "match": "^\\s*(?i)(XData|Storage)\\s+(\\w+)",
+          "captures": {
+            "1": {
+              "name": "storage.type.xdata.cos"
+            },
+            "2": {
+              "name": "variable.other.cos"
+            }
+          }
+        }
+      ]
+    },
+    "expressions": {
+      "patterns": [
+        {
+          "begin": "\\(",
+          "end": "\\)",
+          "patterns": [
+            {
+              "include": "#expressions"
+            }
+          ]
+        },
+        {
+          "include": "source.sql"
+        },
+        {
+          "include": "source.js"
+        }
+      ]
+    }
+  }
+}
