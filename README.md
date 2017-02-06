@@ -16,6 +16,9 @@ For example if there is an image subfolder under your extension project workspac
 
 If you have any requirements or dependencies, add a section describing those and how to install and configure them.
 
+## Installation
+Download or clone the repo, unpack and copy folder to your $HOME/.vscode/extensions/ on Mac and Linux or the %USERPROFILE%\.vscode\extensions folder on Windows devices.
+
 ## Extension Settings
 
 Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
