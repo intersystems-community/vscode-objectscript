@@ -6,7 +6,4 @@ Initial [Caché](http://www.intersystems.com/our-products/cache/cache-overview/)
 ![example](images/screenshot.png)
 
 ## Notes
-
-Now COS support based on https://github.com/RustamIbragimov/atom-language-cos
-
-
+Language support based on https://github.com/RustamIbragimov/atom-language-cos
