@@ -1,5 +1,5 @@
 # vscode-COS
-Initial [Caché](http://www.intersystems.com/our-products/cache/cache-overview/) ObjectScript ( COS ) language support for Visual Studio Code
+Initial [Cache](http://www.intersystems.com/our-products/cache/cache-overview/) ObjectScript ( COS ) language support for Visual Studio Code
 
 ## Features
 
