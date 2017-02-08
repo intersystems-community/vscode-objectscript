@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-  "name": "CacheObjectScript",
+  "name": "cachéobjectscript",
   "scopeName": "source.cos",
   "patterns": [
     {

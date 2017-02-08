@@ -1,24 +1,22 @@
 {
-    "name": "doublefint-cos",
-    "displayName": "doublefint-cos",
-    "description": "",
+    "name": "vscode-cos",
+    "displayName": "Caché ObjectScript",
+    "description": "Caché ObjectScript language support for Visual Studio Code",
     "version": "0.0.1",
+    "icon": "images/logo.png",
+    "categories": [ "Languages" ],
+    "repository": { "type": "git", "url": "https://github.com/doublefint/vscode-cos.git" },
     "publisher": "doublefint",
-    "engines": {
-        "vscode": "^1.5.0"
-    },
-    "categories": [
-        "Languages"
-    ],
+    "engines": { "vscode": "^1.5.0" },
     "contributes": {
         "languages": [{
-            "id": "cos",
-            "aliases": ["CacheObjectScript", "cos"],
-            "extensions": [".cls"],
+            "id": "cachéobjectscript",
+            "aliases": ["Caché ObjectScript", "COS"],
+            "extensions": [".cls","*.rtn","*.mac","*.int","*.inc"],
             "configuration": "./language-configuration.json"
         }],
         "grammars": [{
-            "language": "cos",
+            "language": "cachéobjectscript",
             "scopeName": "source.cos",
             "path": "./syntaxes/cos.tmLanguage.json"
         }]
