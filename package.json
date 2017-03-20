@@ -1,24 +1,78 @@
 {
-    "name": "vscode-cos",
-    "displayName": "Caché ObjectScript",
-    "description": "Caché ObjectScript language support for Visual Studio Code",
-    "version": "0.0.2",
-    "icon": "images/logo.png",
-    "categories": [ "Languages" ],
-    "repository": { "type": "git", "url": "https://github.com/doublefint/vscode-cos.git" },
-    "publisher": "doublefint",
-    "engines": { "vscode": "^1.5.0" },
-    "contributes": {
-        "languages": [{
-            "id": "cachéobjectscript",
-            "aliases": ["Caché ObjectScript", "COS"],
-            "extensions": [".cls","*.rtn","*.mac","*.int","*.inc"],
-            "configuration": "./language-configuration.json"
-        }],
-        "grammars": [{
-            "language": "cachéobjectscript",
-            "scopeName": "source.cos",
-            "path": "./syntaxes/cos.tmLanguage.json"
-        }]
+  "name": "vscode-cos",
+  "displayName": "Caché ObjectScript",
+  "description": "Caché ObjectScript language support for Visual Studio Code",
+  "version": "0.0.3",
+  "icon": "images/logo.png",
+  "categories": [
+    "Languages",
+    "Other"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/doublefint/vscode-cos.git"
+  },
+  "publisher": "doublefint",
+  "engines": {
+    "vscode": "^1.5.0"
+  },
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./cos",
+  "contributes": {
+    "languages": [
+      {
+        "id": "cachéobjectscript",
+        "aliases": [
+          "Caché ObjectScript",
+          "COS"
+        ],
+        "extensions": [
+          ".cls"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "cachéobjectscript",
+        "scopeName": "source.cos",
+        "path": "syntaxes/cos.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "category": "cos",
+        "command": "cos.export",
+        "title": "export sources"
+      }
+    ],
+    "configuration": {
+      "title": "cos",
+      "type": "object",
+      "properties": {
+        "cos.conn": {
+          "description": "connection to cos server",
+          "type": "object",
+          "default": {
+            "label": "LOCAL",
+            "host": "127.0.0.1",
+            "port": 57772,
+            "username": "_SYSTEM",
+            "password": "SYS",
+            "path": "/api/atelier/",
+            "version": "v1",
+            "ns": "SAMPLES"
+          }
+        }
+      }
     }
+  },
+  "devDependencies": {
+    "vscode": "^1.0.3"
+  },
+  "dependencies": {
+    "cos-api4node": "^1.1.0"
+  }
 }
