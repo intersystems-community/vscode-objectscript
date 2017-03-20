@@ -31,7 +31,7 @@ const activate = context => {
     
     api.headServer( ( err ) => {
 
-        if ( !!err ) return log( 'connect FAIL ' + JSON.stringify( err ) )
+        if ( !!err ) return log( 'connect FAIL' )
         log( 'connected ' + JSON.stringify( conn ) )
         bar.set( conn )
 
