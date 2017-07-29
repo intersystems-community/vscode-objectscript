@@ -1,0 +1,139 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "cachéobjectscriptinclude",
+  "scopeName": "source.cosinc",
+  "patterns": [
+   
+    { "include": "#include" },
+    { "include": "#define" },
+    { "include": "#def1arg" },
+    { "include": "#ifdef" },
+    { "include": "#comment-line" }
+       
+  ],
+
+  "repository": {
+    
+    "include": {
+      "patterns": [
+        { "begin": "^\\s*(\\#\\s*(?:(?i)include))\\s+([a-zA-Z%][a-zA-Z0-9]*)", "end": "(?=$)",
+            "beginCaptures": {
+              "1": {"name":"keyword.other.cos"},
+              "2": { "name": "entity.name.cos" }
+            }
+        }
+      ]
+
+    },
+
+    "define": {
+      "patterns": [
+        {
+          "name": "meta.preprocessor.cos",
+          "begin": "^\\s*(\\#\\s*(?:(?i)define))\\s+((?<id>[a-zA-Z%][a-zA-Z0-9]*))(?:(\\()(\\s*\\g<id>\\s*((,)\\s*\\g<id>\\s*)*)(\\)))?",
+          "beginCaptures": {
+
+            "1": { "name": "keyword.control.cos" },
+            "2": { "name": "entity.name.cos" },
+            "4": { "name": "punctuation.definition.cos" },
+            "5": { "name": "variable.parameter.cos" },
+				    "7": { "name": "punctuation.definition.cos" }
+
+          },
+          "end": "(?<!\\#\\#continue)\\n",
+          
+          "patterns":[
+             
+            { "include": "#comment-line" },
+            { "include": "#continue" },
+            { "include": "#digits" },
+            { "include": "#macros" }
+               
+          ]
+        }        
+      ]
+    },
+
+    "def1arg": {
+      "patterns": [
+        {
+          "name": "meta.preprocessor.cos",
+          "begin": "^\\s*(\\#\\s*(?:(?i)def1arg))\\s+((?<id>[a-zA-Z%][a-zA-Z0-9]*))(?:(\\()(\\s*\\g<id>\\s*)(\\)))",
+          "beginCaptures": {
+
+            "1": { "name": "keyword.control.cos" },
+            "2": { "name": "entity.name.cos" },
+            "4": { "name": "punctuation.definition.cos" },
+            "5": { "name": "variable.parameter.cos" },
+				    "6": { "name": "punctuation.definition.cos" }
+
+          },
+          "end": "(?<!\\#\\#continue)\\n",
+          
+          "patterns":[
+             
+            { "include": "#comment-line" },
+            { "include": "#continue" },
+            { "include": "#digits" },
+            { "include": "#macros" }
+         
+          ]
+        }        
+      ]
+    },
+
+    "ifdef": {
+      "patterns": [ 
+        {
+          "name": "meta.preprocessor.cos",
+          "begin": "^\\s*(#\\s*(?i)(?:if|ifdef|ifndef|elif|else|undef|endif))\\b",
+          "beginCaptures": { "1": { "name": "keyword.control.cos" } },
+          "end": "(?=(?:;|//|/\\*))|$",
+          "patterns": [
+            { "include": "#digits" },
+            { "include": "#comment-line" }
+          ]
+
+        }
+        
+      ]
+		},
+
+    "continue": {
+      "patterns": [
+        { "match": "(\\s+\\#\\#(?i)(continue)\\s*)", "name": "keyword.control.cos" }
+      ]
+    },
+
+    "digits": {
+      "patterns":[
+        { "match": "\\b((([0-9]+\\.?[0-9]*)|(\\.[0-9]+))((e|E)(\\+|-)?[0-9]+)?)\\b",
+          "name": "constant.numeric.cos"	
+        }
+      ]
+    },
+
+    "macros": {
+      "patterns": [
+        { "match": "\\$\\$\\$[a-zA-Z]([a-zA-Z0-9])*", "name":"support.constant" }
+      ]
+    },
+
+    "comment-line": {
+      "patterns": [
+        { "match": "^///.*$", "name": "comment.line.cos" },
+        { "match": "\\s+//.*$", "name": "comment.line.cos" },
+        { "match": "\\s+;.*$", "name": "comment.line.cos" },
+        { "match": "^\\s*#;.*$", "name": "comment.line.cos" },
+        { "name": "comment.block.cos", "begin": "/\\*", "end": "\\*/",
+					"beginCaptures": { "0": { "name": "punctuation.definition.cos" } },
+					"endCaptures": { "0": { "name": "punctuation.definition.cos" } }
+				}
+      ]
+
+    }
+  
+
+
+  }
+}

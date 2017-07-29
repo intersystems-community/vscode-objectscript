@@ -2,7 +2,7 @@
   "name": "vscode-cos",
   "displayName": "Caché ObjectScript",
   "description": "Caché ObjectScript language support for Visual Studio Code",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "icon": "images/logo.png",
   "categories": [
     "Languages",
@@ -24,21 +24,28 @@
     "languages": [
       {
         "id": "cachéobjectscript",
-        "aliases": [
-          "Caché ObjectScript",
-          "COS"
-        ],
-        "extensions": [
-          ".cls"
-        ],
+        "aliases": [ "COS" ],
+        "extensions": [ ".cls" ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "cachéobjectscriptinclude",
+        "aliases": [ "COS.INC" ],
+        "extensions": [ ".inc" ],
         "configuration": "./language-configuration.json"
       }
+
     ],
     "grammars": [
       {
         "language": "cachéobjectscript",
         "scopeName": "source.cos",
         "path": "syntaxes/cos.tmLanguage.json"
+      },
+      {
+        "language": "cachéobjectscriptinclude",
+        "scopeName": "source.cosinc",
+        "path": "syntaxes/cosinc.tmLanguage.json"
       }
     ],
     "commands": [
