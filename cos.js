@@ -31,8 +31,15 @@ const activate = context => {
     
     api.headServer( ( err ) => {
 
-        if ( !!err ) return log( 'connect FAIL' )
-        log( 'connected ' + JSON.stringify( conn ) )
+        const connectionParameters = JSON.stringify( 
+            Object.assign({}, conn, {
+                password: "***"
+            }),
+            null,
+            4
+        );
+        if ( !!err ) return log( 'Connection FAILED: ' + connectionParameters )
+        log( 'Connected ' + connectionParameters )
         bar.set( conn )
 
     })
