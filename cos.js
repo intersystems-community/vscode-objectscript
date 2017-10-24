@@ -1,9 +1,11 @@
-
 const vscode = require('vscode')
 const workspace = vscode.workspace
 const window = vscode.window
 const API = require('cos-api4node') 
 const fs = require('fs')
+const pkg = require('./package.json')
+
+const COS_LANG_IDS = pkg[ 'contributes' ][ 'languages' ].map( lang => lang.id )
 
 const createBar = () => {
     
@@ -23,7 +25,10 @@ const activate = context => {
     
     const output = window.createOutputChannel( 'cos' )
     
-    const log = msg => output.appendLine( msg )
+    const log = msg => { 
+        output.appendLine( msg ) 
+        return true 
+    }
     
     const conn = workspace.getConfiguration( 'cos' ).get( 'conn' )
     
@@ -31,12 +36,118 @@ const activate = context => {
     
     api.headServer( ( err ) => {
 
-        if ( !!err ) return log( 'connect FAIL' )
-        log( 'connected ' + JSON.stringify( conn ) )
+        const connectionParameters = JSON.stringify( 
+            Object.assign({}, conn, {
+                password: "***"
+            }),
+            null,
+            4
+        );
+        if ( !!err ) return log( 'Connection FAILED: ' + connectionParameters )
+        log( 'Connected ' + connectionParameters )
         bar.set( conn )
 
     })
+
+    /**
+     * Import and compile current file.
+     */
+    const cosCompile = () => {
+
+        if ( !window.activeTextEditor )
+            return log( 'No active editor, open one at first' )
+
+        const openedDoc = window.activeTextEditor.document
+
+        if ( !openedDoc )
+            return log( 'Open a Caché ObjectScript file first.' )
+
+        const fileName = openedDoc.fileName;
+
+        if ( !fileName || COS_LANG_IDS.indexOf(openedDoc.languageId) === -1 )
+            return log( `Document ${ fileName } cannot be compiled in Caché (type ${ openedDoc.languageId } unsupported)` )
+
+        log( `Saving ${ fileName }...` )
+
+        let cacheDocName;
+        const fileBody = openedDoc.getText()
+        const isClass = /\.cls$/i.test( fileName )
+        const content = fileBody.split( /\r?\n/g )
+
+        if ( isClass ) {
+            // Caché class files can be placed hierarchically (e.g. /src/Package/Class.cls),
+            // so we pick the class name from the class definition itself
+            cacheDocName = (fileBody.replace( /\/\/[^\r\n]*\r?\n/g, '' ).match( /Class ([^\s]+)/i ) || [])[ 1 ] || ""
+            const nameParts = cacheDocName.split( /\./g ).filter(s => !!s)
+            if ( nameParts.length < 2 )
+                return log( `Unable to detect class name in source code of ${ fileName }.\n`
+                    + `Is it a valid Caché ObjectScript class?` )
+            const matchingFileName = ( fileName.match(/[^\\\/]+$/) || [] )[ 0 ]
+            if ( ( cacheDocName.toLowerCase() + '.cls' ).indexOf(matchingFileName.toLowerCase()) === -1 )
+                return log( `You tried to compile class named "${ cacheDocName }" in file "${ matchingFileName }".\n`
+                    + `Did you forget to rename the file/class to correspond to each other?` )
+            cacheDocName += '.cls'
+        } else {
+            // routine: cacheDocName = actual filename
+            cacheDocName = ( fileName.match( /[\\\/]([^\\\/]+)$/ ) || [] )[ 1 ] || ""
+        }
+
+        const anyErrors = (err, res, keyword) => {
+
+            if ( err )
+                return log( `Unable to ${ keyword } ${ cacheDocName }: ${ err.code ? err.code + ' ' + err.message : err  }` )
+        
+            if ( !res || !res.status || !(res.status.errors instanceof Array) )
+                return log( `Unknown response from Atelier API while trying to ${ 
+                    keyword } ${ cacheDocName }: ${ res }` )
+
+            if ( res.result && res.result.status )
+                return log( res.result.status )
+
+            if ( res.status.errors.length !== 0 )
+                return log( `Unable to ${ keyword } ${ cacheDocName }: ${ res.status.errors.summary }\n\n${ 
+                    res.console }\n\n${ res.status.errors.join('\n') }` )
+
+            return false;
+
+        }
+
+        const consoleOutput = (output, defaultOutput = "") => {
+            
+            let out = output instanceof Array
+                ? output.join( '\n' ) 
+                : ( output || defaultOutput ) + '';
+            out = out.replace( /^[\s\r\n]+/, '' );
+
+            if ( out ) {
+                log( out )
+            }
+
+        }
+
+        api.putDoc( cacheDocName, { enc: false, content }, { ignoreConflict: true }, ( err, res ) => {
+            
+            if ( anyErrors( err, res, 'save' ) )
+                return;
+
+            consoleOutput( res.console )
+
+            api.compile( cacheDocName, ( err, res ) => {
+
+                if ( anyErrors( err, res, 'compile' ) )
+                    return;
+
+                consoleOutput( res.console || "Done." )
+
+            } )
+
+        } )
+
+    }
     
+    /**
+     * Export all classes/routines in a namespace to working directory.
+     */
     const cosExport = () => {
 
         const exportDoc = ( doc, cb ) => {
@@ -64,7 +175,7 @@ const activate = context => {
 
         const load = ( doc, cb )  => {
            
-            const loaded = ( err, data ) => { 
+            const loaded = ( err, json ) => { 
                 
                 if ( !!err ) {
                     
@@ -75,7 +186,6 @@ const activate = context => {
 
                 }
 
-                const json = JSON.parse( data )
                 const content = json.result
                 exportDoc( content, cb )
 
@@ -96,18 +206,17 @@ const activate = context => {
        }
 
 
-       const onGetDocs = ( err, data ) => {
+       const onGetDocs = ( err, json ) => {
             
-            if ( err ) return log( 'getDocs ERROR')
+            if ( err ) return log( 'getDocs ERROR' )
             
-            const json = JSON.parse( data )
             const list = json.result.content
             log( '' )
             log( 'list: ' + list.length )
             const docs = list.filter( doc => ( doc.cat !== 'CSP' ) && ( doc.name.substring( 0, 1 ) !== '%' ) && ( doc.name.substring( 0, 12 ) !== 'INFORMATION.' ) ) 
             log( 'without % and CSP and INFORMATION: ' + docs.length )
             log( '' )
-            exportDocs( docs, ()=>{
+            exportDocs( docs, () => {
                 log( '' )
                 log( 'Export completed.' )
             })
@@ -119,8 +228,10 @@ const activate = context => {
     }
 
     // command 'cos.server' defined in statusBar
-    const cmd = vscode.commands.registerCommand( 'cos.export', cosExport )
-    context.subscriptions.push( cmd )
+    context.subscriptions.push(
+        vscode.commands.registerCommand( 'cos.export', cosExport ),
+        vscode.commands.registerCommand( 'cos.compile', cosCompile )
+    )
     
 }
 
