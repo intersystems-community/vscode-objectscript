@@ -1,4 +1,3 @@
-
 const vscode = require('vscode')
 const workspace = vscode.workspace
 const window = vscode.window
@@ -71,7 +70,7 @@ const activate = context => {
 
         const load = ( doc, cb )  => {
            
-            const loaded = ( err, data ) => { 
+            const loaded = ( err, json ) => { 
                 
                 if ( !!err ) {
                     
@@ -82,7 +81,6 @@ const activate = context => {
 
                 }
 
-                const json = JSON.parse( data )
                 const content = json.result
                 exportDoc( content, cb )
 
@@ -103,11 +101,10 @@ const activate = context => {
        }
 
 
-       const onGetDocs = ( err, data ) => {
+       const onGetDocs = ( err, json ) => {
             
             if ( err ) return log( 'getDocs ERROR')
             
-            const json = JSON.parse( data )
             const list = json.result.content
             log( '' )
             log( 'list: ' + list.length )
