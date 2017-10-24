@@ -60,12 +60,12 @@
     ],
     "commands": [
       {
-        "category": "cos",
+        "category": "COS",
         "command": "cos.export",
         "title": "Export sources"
       },
       {
-        "category": "cos",
+        "category": "COS",
         "command": "cos.compile",
         "title": "Import and compile current file"
       }
