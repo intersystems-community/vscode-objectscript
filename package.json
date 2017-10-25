@@ -2,7 +2,7 @@
   "name": "vscode-cos",
   "displayName": "Caché ObjectScript",
   "description": "Caché ObjectScript language support for Visual Studio Code",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "icon": "images/logo.png",
   "categories": [
     "Languages",
@@ -14,7 +14,10 @@
   },
   "publisher": "doublefint",
   "contributors": [
-    { "name": "Nikita Savchenko", "email": "me@nikita.tk" }
+    {
+      "name": "Nikita Savchenko",
+      "email": "me@nikita.tk"
+    }
   ],
   "engines": {
     "vscode": "^1.5.0"
@@ -72,10 +75,10 @@
     ],
     "keybindings": [
       {
-				"command": "cos.compile",
-				"key": "Ctrl+F7",
-				"mac": "Cmd+F7"
-			}
+        "command": "cos.compile",
+        "key": "Ctrl+F7",
+        "mac": "Cmd+F7"
+      }
     ],
     "configuration": {
       "title": "cos",
