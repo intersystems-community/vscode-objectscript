@@ -13,7 +13,8 @@ Configure connection
 To be able to use many plugin features, you need to configure the connection to Caché server first.
 
 - Find a 'cos.conn' section in workspace settings (File - Preferences - Settings)
-- change settings according to your Caché instance and reload VSCode ( as temporary solution ) 
+- Change settings according to your Caché instance and reload VSCode ( as temporary solution )
+- You will see Caché-related output in "Output" while switched to "cos" channel (right drop-down menu on top of the output window) 
 
 Features
 --------
