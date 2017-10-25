@@ -73,23 +73,49 @@ const activate = context => {
         const fileBody = openedDoc.getText()
         const isClass = /\.cls$/i.test( fileName )
         const content = fileBody.split( /\r?\n/g )
+        const matchingFileName = ( fileName.match(/[^\\\/]+$/) || [] )[ 0 ] || ''
+        const matchingName = matchingFileName.replace( /\.[^.]+$/, '' )
 
         if ( isClass ) {
+
             // Caché class files can be placed hierarchically (e.g. /src/Package/Class.cls),
             // so we pick the class name from the class definition itself
-            cacheDocName = (fileBody.replace( /\/\/[^\r\n]*\r?\n/g, '' ).match( /Class ([^\s]+)/i ) || [])[ 1 ] || ""
+            cacheDocName = (fileBody.replace( /\/\/[^\r\n]*\r?\n/g, '' ).match( /Class ([^\s]+)/i ) || [])[ 1 ] || ''
             const nameParts = cacheDocName.split( /\./g ).filter(s => !!s)
             if ( nameParts.length < 2 )
                 return log( `Unable to detect class name in source code of ${ fileName }.\n`
                     + `Is it a valid Caché ObjectScript class?` )
-            const matchingFileName = ( fileName.match(/[^\\\/]+$/) || [] )[ 0 ]
-            if ( ( cacheDocName.toLowerCase() + '.cls' ).indexOf(matchingFileName.toLowerCase()) === -1 )
-                return log( `You tried to compile class named "${ cacheDocName }" in file "${ matchingFileName }".\n`
-                    + `Did you forget to rename the file/class to correspond to each other?` )
+            if ( ( cacheDocName.toLowerCase() + '.cls' ).indexOf( matchingFileName.toLowerCase() ) === -1 )
+                return log(
+                    `You tried to compile class named "${ cacheDocName }" in file "${ matchingFileName }".\n`
+                    + `Did you forget to rename the file/class to correspond to each other?`
+                )
             cacheDocName += '.cls'
+
         } else {
-            // routine: cacheDocName = actual filename
-            cacheDocName = ( fileName.match( /[\\\/]([^\\\/]+)$/ ) || [] )[ 1 ] || ""
+
+            // routine: routine name must be declared in a routine
+            const cleanup = fileBody.replace( /\/\/[^\r\n]*\r?\n/g, '' )
+	        cacheDocName = ( cleanup.match( /routine ([^\s]+)/i ) || [] )[ 1 ] || ''
+	        if ( !cacheDocName )
+		        return log(
+		            `Unable to detect routine name in source code of ${ matchingFileName }.\n`
+			        + `Is it a valid Caché ObjectScript routine? Did you forget to define a routine`
+                    + ` name in the file on the first line? Routine code example: \n\n`
+                    + `ROUTINE ${ matchingName } [Type=MAC]`
+                    + `\n    write "routine code here"\n    quit`
+                )
+            const rtnType = ( cleanup.match( /routine\s+[^\s]+\s+\[.*type=([a-z]{3,})/i ) || [] )[ 1 ] || 'MAC'
+            if ( ( ( cacheDocName + '.' + rtnType ).toLowerCase() ).indexOf( matchingFileName.toLowerCase() ) === -1 )
+                return log(
+	                `You tried to compile routine named "${ cacheDocName }" (.${ rtnType }) in file "${ 
+                        matchingFileName }".\nDid you forget to rename the file/routine to correspond to each other? `
+                    + `Routine code example: \n\n`
+                    + `ROUTINE ${ matchingName } [Type=${ rtnType }]`
+                    + `\n    write "routine code here"\n    quit`
+                )
+            cacheDocName += '.' + rtnType
+
         }
 
         const anyErrors = (err, res, keyword) => {
