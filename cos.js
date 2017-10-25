@@ -73,7 +73,7 @@ const activate = context => {
         const fileBody = openedDoc.getText()
         const isClass = /\.cls$/i.test( fileName )
         const content = fileBody.split( /\r?\n/g )
-	    const matchingFileName = ( fileName.match(/[^\\\/]+$/) || [] )[ 0 ] || ''
+        const matchingFileName = ( fileName.match(/[^\\\/]+$/) || [] )[ 0 ] || ''
         const matchingName = matchingFileName.replace( /\.[^.]+$/, '' )
 
         if ( isClass ) {
