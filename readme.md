@@ -25,6 +25,9 @@ Features
 Notes
 -----
 
+[Visual Stidio Marketplace](https://marketplace.visualstudio.com/items?itemName=doublefint.vscode-cos)
+
 For Caché instance with maximum security level, add '%Development' role for '/api/atelier/' web-application ( [More]( https://community.intersystems.com/post/using-atelier-rest-api) )
 
 Language support based on https://github.com/RustamIbragimov/atom-language-cos
+
