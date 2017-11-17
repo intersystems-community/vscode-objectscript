@@ -1,3 +1,5 @@
+[![Known Vulnerabilities](https://snyk.io/test/github/doublefint/vscode-cos/badge.svg)](https://snyk.io/test/github/doublefint/vscode-cos)
+
 # vscode-cos
 
 Initial [Cache](http://www.intersystems.com/our-products/cache/cache-overview/) ObjectScript ( COS ) language support for Visual Studio Code
