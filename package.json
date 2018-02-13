@@ -29,7 +29,7 @@
   "contributes": {
     "languages": [
       {
-        "id": "cachéobjectscript",
+        "id": "cacheobjectscript",
         "aliases": [
           "COS"
         ],
@@ -40,7 +40,7 @@
         "configuration": "./language-configuration.json"
       },
       {
-        "id": "cachéobjectscriptinclude",
+        "id": "cacheobjectscriptinclude",
         "aliases": [
           "COS.INC"
         ],
@@ -52,12 +52,12 @@
     ],
     "grammars": [
       {
-        "language": "cachéobjectscript",
+        "language": "cacheobjectscript",
         "scopeName": "source.cos",
         "path": "syntaxes/cos.tmLanguage.json"
       },
       {
-        "language": "cachéobjectscriptinclude",
+        "language": "cacheobjectscriptinclude",
         "scopeName": "source.cosinc",
         "path": "syntaxes/cosinc.tmLanguage.json"
       }
@@ -82,26 +82,64 @@
       }
     ],
     "configuration": {
-      "title": "cos",
+      "title": "CacheObjectScript Configuration",
       "type": "object",
       "properties": {
         "cos.conn": {
-          "description": "connection to cos server",
           "type": "object",
-          "default": {
-            "label": "LOCAL",
-            "host": "127.0.0.1",
-            "port": 57772,
-            "username": "_SYSTEM",
-            "password": "SYS",
-            "path": "/api/atelier/",
-            "version": "v1",
-            "ns": "SAMPLES",
-            "https": false
-          }
+          "description": "Server Access"
+        },
+        "cos.conn.label": {
+          "description": "Server Name",
+          "type": "string",
+          "default": "LOCAL"
+        },
+        "cos.conn.host": {
+          "description": "Hostname",
+          "format": "hostname",
+          "type": "string",
+          "default": "127.0.0.1"
+        },
+        "cos.conn.port": {
+          "description": "Port number",
+          "type": "number",
+          "default": 57772
+        },
+        "cos.conn.username": {
+          "description": "Username",
+          "type": "string",
+          "default": "_SYSTEM"
+        },
+        "cos.conn.password": {
+          "description": "User's Password",
+          "type": "string",
+          "default": "SYS"
+        },
+        "cos.conn.path": {
+          "description": "API Atelier path",
+          "type": "string",
+          "default": "/api/atelier/"
+        },
+        "cos.conn.version": {
+          "description": "API Atelier Version",
+          "type": "string",
+          "default": "v1"
+        },
+        "cos.conn.ns": {
+          "description": "Server Namespace",
+          "type": "string",
+          "default": "SAMPLES"
+        },
+        "cos.conn.https": {
+          "description": "Use SSL to access to API",
+          "type": "boolean",
+          "default": false
         }
       }
     }
+  },
+  "scripts": {
+    "postinstall": "node ./node_modules/vscode/bin/install"
   },
   "devDependencies": {
     "vscode": "^1.0.3"
