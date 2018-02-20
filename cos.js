@@ -31,7 +31,9 @@ const activate = context => {
     }
     
     const conn = workspace.getConfiguration( 'cos' ).get( 'conn' )
-    
+    const limitations = workspace.getConfiguration( 'cos' ).get( 'limitations' )
+    const { category, generated, filter } = limitations
+
     const api = API( conn )
     
     api.headServer( ( err ) => {
@@ -271,7 +273,7 @@ const activate = context => {
 
         }
 
-        api.getDocNames( { generated: 0 }, onGetDocs )
+        api.getDocNames( {'category': category, 'generated': generated, 'filter': filter }, onGetDocs )
 
     }
 
