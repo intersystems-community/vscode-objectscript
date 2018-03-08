@@ -134,6 +134,25 @@
           "description": "Use SSL to access to API",
           "type": "boolean",
           "default": false
+        },
+        "cos.limitations": {
+          "type": "object",
+          "description": "Limitations to load only the necessary stuff "
+        },
+        "cos.limitations.generated": {
+          "description": "Specifies that generated source code files should be included",
+          "type": "boolean",
+          "default": 0
+        },
+        "cos.limitations.filter": {
+          "description": "SQL filter that can be used to match the names",
+          "type": "string",
+          "default": ""
+        },
+        "cos.limitations.category": {
+          "description": "Specifies a category: CLS = class; RTN = routine; CSP = csp file; OTH = other. Default is *.",
+          "type": "string",
+          "default": "*"
         }
       }
     }

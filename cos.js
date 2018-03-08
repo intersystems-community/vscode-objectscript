@@ -31,7 +31,9 @@ const activate = context => {
     }
     
     const conn = workspace.getConfiguration( 'cos' ).get( 'conn' )
-    
+    const limitations = workspace.getConfiguration( 'cos' ).get( 'limitations' )
+    const { category, generated, filter } = limitations
+
     const api = API( conn )
     
     api.headServer( ( err ) => {
@@ -185,10 +187,21 @@ const activate = context => {
                 return cb()
             }
 
-            let exportDir = root + '/src/' 
-            if ( !fs.existsSync( exportDir ) ) fs.mkdirSync( exportDir )
-            exportDir += doc.cat + '/'
-            if ( !fs.existsSync( exportDir ) ) fs.mkdirSync( exportDir )
+            let exportDir = root + 'src/' + doc.cat + '/'
+
+            if (doc.cat == "CLS") {
+
+              let oldFilePath = doc.name.split(".");
+              let dirElements = oldFilePath.length-2;
+              let newFileName = oldFilePath.slice(dirElements,dirElements+2).toString().replace(/,/g ,".");
+              let newFilePath = oldFilePath.slice(0,dirElements).toString().replace(/,/g ,"/") + "/";
+
+              exportDir += newFilePath;
+              doc.name = newFileName;
+
+            }
+
+            if ( !fs.existsSync( exportDir ) ) mkdirSyncP(exportDir)
 
             const filepath = exportDir + doc.name
             fs.writeFileSync( filepath, doc.content.join('\n') )
@@ -197,6 +210,18 @@ const activate = context => {
             log( doc.name + ' -> ' + filepath )
             cb( null, {} )
 
+        }
+
+        const mkdirSyncP = (pathToFile) => {
+          if (!fs.existsSync(pathToFile)) {
+            let dirName = "";
+            let filePathSplit = pathToFile.split('/');
+            for (let index = 0; index < filePathSplit.length; index++) {
+                dirName += filePathSplit[index]+'/';
+                if (!fs.existsSync(dirName))
+                    fs.mkdirSync(dirName);
+            }
+          }
         }
 
         const load = ( doc, cb )  => {
@@ -231,15 +256,14 @@ const activate = context => {
            })
        }
 
-
        const onGetDocs = ( err, json ) => {
-            
+
             if ( err ) return log( 'getDocs ERROR' )
             
             const list = json.result.content
             log( '' )
             log( 'list: ' + list.length )
-            const docs = list.filter( doc => ( doc.cat !== 'CSP' ) && ( doc.name.substring( 0, 1 ) !== '%' ) && ( doc.name.substring( 0, 12 ) !== 'INFORMATION.' ) ) 
+            const docs = list.filter( doc => ( doc.cat !== 'CSP' ) && ( doc.name.substring( 0, 1 ) !== '%' ) && ( doc.name.substring( 0, 12 ) !== 'INFORMATION.' ) )
             log( 'without % and CSP and INFORMATION: ' + docs.length )
             log( '' )
             exportDocs( docs, () => {
@@ -249,7 +273,7 @@ const activate = context => {
 
         }
 
-        api.getDocNames( { generated: 0 }, onGetDocs )
+        api.getDocNames( {'category': category, 'generated': generated, 'filter': filter }, onGetDocs )
 
     }
 
