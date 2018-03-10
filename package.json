@@ -2,7 +2,7 @@
   "name": "vscode-cos",
   "displayName": "Caché ObjectScript",
   "description": "Caché ObjectScript language support for Visual Studio Code",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "icon": "images/logo.png",
   "categories": [
     "Languages",
@@ -20,12 +20,12 @@
     }
   ],
   "engines": {
-    "vscode": "^1.5.0"
+    "vscode": "^1.21.0"
   },
   "activationEvents": [
     "*"
   ],
-  "main": "./cos",
+  "main": "./extension",
   "contributes": {
     "languages": [
       {
@@ -72,6 +72,11 @@
         "category": "COS",
         "command": "cos.compile",
         "title": "Import and compile current file"
+      },
+      {
+        "category": "COS",
+        "command": "cos.test",
+        "title": "test connection"
       }
     ],
     "keybindings": [
@@ -135,22 +140,32 @@
           "type": "boolean",
           "default": false
         },
-        "cos.limitations": {
+        "cos.export": {
           "type": "object",
-          "description": "Limitations to load only the necessary stuff "
+          "description": "Export only the necessary stuff "
         },
-        "cos.limitations.generated": {
-          "description": "Specifies that generated source code files should be included",
+        "cos.export.folder": {
+          "description": "folder for source code",
+          "type": "string",
+          "default": "src"
+        },
+        "cos.export.atelier": {
+          "description": "export source code as Atelier it does ( packages to subfolders )",
           "type": "boolean",
-          "default": 0
+          "default": false
         },
-        "cos.limitations.filter": {
+        "cos.export.generated": {
+          "description": "Specifies that generated source code files should be exported",
+          "type": "boolean",
+          "default": false
+        },
+        "cos.export.filter": {
           "description": "SQL filter that can be used to match the names",
           "type": "string",
           "default": ""
         },
-        "cos.limitations.category": {
-          "description": "Specifies a category: CLS = class; RTN = routine; CSP = csp file; OTH = other. Default is *.",
+        "cos.export.category": {
+          "description": "Specifies a category: CLS = classes; RTN = routines; CSP = csp files; OTH = other. Default is *",
           "type": "string",
           "default": "*"
         }
@@ -158,11 +173,13 @@
     }
   },
   "scripts": {
-    "postinstall": "node ./node_modules/vscode/bin/install"
+    "postinstall": "node ./node_modules/vscode/bin/install",
+    "test": "tape ./test/*.js"
   },
   "devDependencies": {
-    "eslint": "^4.17.0",
-    "vscode": "^1.1.0"
+    "eslint": "^4.18.2",
+    "tape": "^4.9.0",
+    "vscode": "^1.1.12"
   },
   "dependencies": {
     "cos-api4node": "^2.1.1"
