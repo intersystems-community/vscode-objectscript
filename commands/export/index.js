@@ -1,6 +1,5 @@
 const fs = require('fs')
 const path = require('path')
-
 //export 'mypkg.subpkg.name.cls' as /mypkg/subpkg/name.cls
 const asAtelier = require('./doc-to-file-as-atelier')
 const mkdir = require('./mkdir-p-sync') // mkdir -p 'path/to/file'
@@ -30,7 +29,7 @@ const ExportDoc = ( doc, next ) => ({ error, data }) => {
 
     // atelier: 'mypkg.subpkg.myclass.cls' => 'mypkg/subpkg/myclass.cls'
     const filename = doc2file( doc.name )
-    const fullname = [ root, folder, doc.cat, filename ].join('/')
+    const fullname = [ root, folder, doc.cat, filename ].join( path.sep )
     const folders = path.dirname( fullname )
 
     if ( !fs.existsSync( folders ) ) mkdir( folders )
@@ -42,7 +41,7 @@ const ExportDoc = ( doc, next ) => ({ error, data }) => {
 
 const doclist = ( { error, data } ) => {
 
-    if ( error ) return log( `DOCLIST: ${ JSON.stringify(error) }` )
+    if ( error ) return log( `DOCLIST: ${ JSON.stringify( error ) }` )
     const list = data.result.content
     log(`Documents on server: ${ list.length }` )
 
@@ -55,13 +54,15 @@ const doclist = ( { error, data } ) => {
 
     const next = () => {
         let doc = filtered.shift()
-        if ( !doc ) return
+        if ( !doc ) {
+            log( 'Export completed.\n' )
+            return
+        }
         let cb = ExportDoc( doc, next )
         api.getDoc( encodeURI( doc.name ), ( error, data ) => cb( { error, data } ) )
     }
     next()
 
-    log( 'Export completed.\n' )
 
 }
 
@@ -85,9 +86,9 @@ module.exports = environment => {
             return 
         }
   
-        log( 'Load list of documents...' )
+        log( '\nLoad documents list ...' )
         api.getDocNames( 
-            { category, generated, filter }, //list options
+            { category, generated, filter }, //doclist options
             ( error, data ) => doclist( { error, data } ) //callback wrapper
         )
 

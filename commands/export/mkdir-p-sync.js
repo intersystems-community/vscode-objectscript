@@ -1,10 +1,11 @@
 const fs = require( 'fs' )
+const path = require( 'path' ), sep = path.sep
 // work like linux 'mkdir -p' command
-module.exports = path => {
+module.exports = dirpath => {
 
-    path.split( '/' ).reduce( ( currentPath, folder ) => {
+    dirpath.split( sep ).reduce( ( currentPath, folder ) => {
 
-        currentPath += folder + '/'
+        currentPath += folder + sep
 
         if ( !fs.existsSync( currentPath ) ){
             fs.mkdirSync( currentPath )
