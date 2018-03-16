@@ -1,18 +1,19 @@
 # Change Log
 
-## 0.2.2
+## [0.2.2]
 ### Added
 - Option 'conn.export.folder'
 - Option 'conn.export.atelier'
 - Export files as Atelier 
+
 ### Changed
 - Configuration syntax
 
-## 0.2.1
+## [0.2.1]
 ### Fixed
 - API encoding
 
-## 0.2.0
+## [0.2.0]
 ### Added
 - Allow https
 
