@@ -72,11 +72,6 @@
         "category": "COS",
         "command": "cos.compile",
         "title": "Import and compile current file"
-      },
-      {
-        "category": "COS",
-        "command": "cos.test",
-        "title": "test connection"
       }
     ],
     "keybindings": [

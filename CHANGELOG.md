@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.2.3]
+### Fixed
+- Remove unused command
+
 ## [0.2.2]
 ### Added
 - Option 'conn.export.folder'
