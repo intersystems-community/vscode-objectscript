@@ -22,7 +22,7 @@ let doc2file = docname => docname
 const ExportDoc = ( doc, next ) => ({ error, data }) => {
 
     if ( error ){
-        log( `GETDOC ${ doc.name }: ${ JSON.stringify( error ) }\n` )
+        log( `${ JSON.stringify( error ) }\n` )
         return
     }
     const { content, status } = data.result 
@@ -35,9 +35,10 @@ const ExportDoc = ( doc, next ) => ({ error, data }) => {
     if ( !fs.existsSync( folders ) ) mkdir( folders )
     fs.writeFileSync( fullname, ( content || [] ).join( '\n' ) )
     log( `${ doc.name } -> ${ fullname }. ${ status } ` )
-    next()
+    if ( next && ( typeof next === 'function')) next()
 
 }
+
 
 const doclist = ( { error, data } ) => {
 
@@ -69,29 +70,29 @@ const doclist = ( { error, data } ) => {
 /**
  * Export all classes/routines in a namespace to working directory.
 */
-module.exports = environment => {
+module.exports = env => {
 
     //reassign module variables
-    ( { api, log, options } = environment ); 
+    ( { api, log, options } = env ); //env - environment
     ( { root, folder, atelier } = options );
     if ( atelier ) doc2file = doc => asAtelier( doc )
 
     // doclist options 
     const { category, generated, filter } = options;
-
-    return () => {
+    const exportAll = () => {
 
         if ( !root ){
             log( `COS.EXPORT: Open folder before export - Ctrl+K, Ctrl+O` ) 
             return 
         }
-  
+
         log( '\nLoad documents list ...' )
         api.getDocNames( 
             { category, generated, filter }, //doclist options
             ( error, data ) => doclist( { error, data } ) //callback wrapper
         )
-
     }
+
+    return { exportAll, ExportDoc }
 
 }

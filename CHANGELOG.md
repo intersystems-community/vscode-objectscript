@@ -1,5 +1,10 @@
 # Change Log
 
+## [3.1.0]
+### Added
+- Export after compile
+
+
 ## [0.2.3]
 ### Fixed
 - Remove unused command
