@@ -177,6 +177,6 @@
         "vscode": "^1.1.12"
     },
     "dependencies": {
-        "cos-api4node": "^2.1.2"
+        "cos-api4node": "^2.1.4"
     }
 }
