@@ -2,7 +2,7 @@
     "name": "vscode-cos",
     "displayName": "Caché ObjectScript",
     "description": "Caché ObjectScript language support for Visual Studio Code",
-    "version": "0.3.1",
+    "version": "0.3.2",
     "icon": "images/logo.png",
     "categories": [
         "Languages",
