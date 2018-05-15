@@ -10,37 +10,50 @@ const CmdExport = require( './commands/export' )
 const { CurrentDoc }= require( './commands/currentdoc' ) 
 const IsApiError = require( './is-api-error' ) 
 
-
-
 const activate = context => {
 
     const log = LOG( window )
-    const options = workspace.getConfiguration( 'cos' )
-    const conn = options.get( 'conn' )
-    conn.toString = function(){
-        return JSON.stringify( 
-            Object.assign( {}, conn, {
-                password: "***" //hide passw 
-            }),
-            null, //replacer
-            4 //space
-        )
+
+    const Config = workspace => {
+
+        let options = null; 
+        const init = () =>{ options = workspace.getConfiguration( 'cos' ) }
+        init()
+
+        return {
+
+            init, 
+            conn: () => {
+                const _conn = options.get( 'conn' )
+                _conn.toString = () => JSON.stringify( Object.assign( {}, _conn, { password: '***' } ), null, 4 )  
+                return _conn
+            },
+            export: () => {
+                const root = workspace.rootPath
+                return  Object.assign( {}, options.get( 'export' ), { root } )
+            }
+        }
     }
 
-    const api = API( conn )
+    const config = Config( workspace )
+    let api = API( config.conn() )
+    let { exportAll, ExportDoc } = CmdExport({ api, log, options: config.export })
+
+    workspace.onDidChangeConfiguration( ()=>{
+
+        config.init()
+        api = API( config.conn() )
+        ( { exportAll, ExportDoc } = CmdExport({ api, log, options: config.export }) )
+
+    }  , null, context.subscriptions ) //reload config on event
 
     api.headServer( err => {
-
-        if ( err ) return log( 'Connection FAILED: ' + conn )
+        const conn = config.conn()
+        if ( err ) return log( 'Connection FAILED: ' + conn, err )
         log( 'Connected ' + conn )
         panel.set( conn )
-
     })
 
-    const exportTo = options.get( 'export' )
-    exportTo.root = workspace.rootPath
-
-    const { exportAll, ExportDoc } = CmdExport({ api, log, options: exportTo })
     const currentDoc = CurrentDoc({ window, languages, log })
 
     const Save = ({ name, log }) => ( err, data ) => {
@@ -99,8 +112,8 @@ const activate = context => {
     }
 
     context.subscriptions.push(
-        vscode.commands.registerCommand( 'cos.compile', importCompileExport ),  
-        vscode.commands.registerCommand( 'cos.export', exportAll )
+        vscode.commands.registerCommand( 'cos.compile', importCompileExport ),
+        vscode.commands.registerCommand( 'cos.export', () => exportAll() )
     )
 
 }

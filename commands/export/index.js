@@ -25,6 +25,7 @@ const ExportDoc = ( doc, next ) => ({ error, data }) => {
         log( `${ JSON.stringify( error ) }\n` )
         return
     }
+
     const { content, status } = data.result 
 
     // atelier: 'mypkg.subpkg.myclass.cls' => 'mypkg/subpkg/myclass.cls'
@@ -73,12 +74,15 @@ const doclist = ( { error, data } ) => {
 module.exports = env => {
 
     //reassign module variables
-    ( { api, log, options } = env ); //env - environment
-    ( { root, folder, atelier } = options );
-    if ( atelier ) doc2file = doc => asAtelier( doc )
+    const init = () => {
 
-    // doclist options 
-    const { category, generated, filter } = options;
+        ( { api, log, options } = env ); //env - environment
+        ( { root, folder, atelier, category, generated, filter } = options() );
+        doc2file = atelier ? doc => asAtelier( doc ) : doc => doc
+
+    }
+    init()
+
     const exportAll = () => {
 
         if ( !root ){
@@ -86,10 +90,14 @@ module.exports = env => {
             return 
         }
 
+        init()
+
         log( '\nLoad documents list ...' )
         api.getDocNames( 
+
             { category, generated, filter }, //doclist options
             ( error, data ) => doclist( { error, data } ) //callback wrapper
+
         )
     }
 
