@@ -1,14 +1,16 @@
 # Change Log
 
+## [0.3.3]
+### Added
+- Update settings dynamically
+
 ## [0.3.2]
 ### Fixed
 - Use fixed version of cos-api4node
 
-
 ## [0.3.1]
 ### Added
 - Export after compile
-
 
 ## [0.2.3]
 ### Fixed
