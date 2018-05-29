@@ -1,4 +1,4 @@
-module.exports = ({ name, action, log }) => ({ err, data }) => {
+module.exports = ( name, action, log ) => ({ err, data }) => {
 
     const { result, status, console } = data
 
@@ -21,7 +21,7 @@ module.exports = ({ name, action, log }) => ({ err, data }) => {
     if ( status.errors.length !== 0 ){
         log( `${ name } ${ action }:` )
         console.forEach( line => log( line ) )
-        return true 
+        return true
     }
 
     return false
