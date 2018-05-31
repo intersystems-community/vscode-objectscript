@@ -64,7 +64,8 @@ const CurrentDoc = env => () => {
     return {
         name: codename,
         content: code.split( /\r?\n/g ), // get code lines array
-        error: ''
+        error: '',
+        fileName: fullname
     }
     
 }
