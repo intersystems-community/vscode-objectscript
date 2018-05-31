@@ -1,4 +1,4 @@
-module.exports = ( name, action, log ) => ({ err, data }) => {
+module.exports = ( name, action, log ) => ({ err, data = {} }) => {
 
     const { result, status, console } = data
 
