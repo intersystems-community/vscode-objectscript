@@ -35,24 +35,27 @@ const activate = context => {
         }
     }
 
+    let api
+    const Connect = ( conn ) => {
+      api = API( conn )
+      api.headServer( err => {
+          const conn = config.conn()
+          if ( err ) return log( 'Connection FAILED: ' + conn, err )
+          log( 'Connected ' + conn )
+          panel.set( conn )
+      })
+    }
+
     const config = Config( workspace )
-    let api = API( config.conn() )
+    Connect( config.conn() )
     let { exportAll, ExportDoc } = CmdExport({ api, log, options: config.export })
 
     workspace.onDidChangeConfiguration( ()=>{
-
         config.init()
-        api = API( config.conn() )
+        Connect( config.conn() )
         ( { exportAll, ExportDoc } = CmdExport({ api, log, options: config.export }) )
 
     }  , null, context.subscriptions ) //reload config on event
-
-    api.headServer( err => {
-        const conn = config.conn()
-        if ( err ) return log( 'Connection FAILED: ' + conn, err )
-        log( 'Connected ' + conn )
-        panel.set( conn )
-    })
 
     const currentDoc = CurrentDoc({ window, languages, log })
 
