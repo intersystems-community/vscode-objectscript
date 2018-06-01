@@ -18,7 +18,7 @@ const CurrentDoc = env => () => {
         log = data => console.log( 'cos.compile:', JSON.stringify( data ) )
     }
     */
-    const { window, languages, log } = env 
+    const { window, languages, log } = env
     const editor = window.activeTextEditor
     if ( !editor ) return {
         error: 'No active editor, open one at first'
@@ -39,14 +39,15 @@ const CurrentDoc = env => () => {
     }
 
     let file = ( fullname.match( /[^\\\/]+$/ ) || [] )[ 0 ] || '' //only filename without folders
-    let code = doc.getText().replace( /\/\/[^\r\n]*\r?\n/g, '' ) // normalize EOL?
+    let code = doc.getText()
+    let ncode = code.replace( /\/\/[^\r\n]*\r?\n/g, '' ) // normalize EOL?
     let name, ext, codename //server side name
 
     const cdnm = ({name,ext})=>[name, ext].join('.')
 
     if ( /\.cls$/i.test( fullname ) ) { // is class?
 
-        ( { name, ext } = clsRegexName( code ) )
+        ( { name, ext } = clsRegexName( ncode ) )
         codename = cdnm({ name, ext })
         if ( !clsCheckNames( { code: codename, file, log } ) ) return {
             error: 'check names'
@@ -54,7 +55,7 @@ const CurrentDoc = env => () => {
 
     } else { // routines
 
-        ( { name, ext } = rtnRegexName( code ) )
+        ( { name, ext } = rtnRegexName( ncode ) )
         codename = cdnm({ name, ext })
         if ( !rtnCheckNames( { code: codename, file, log } ) ) return {
             error: 'check names'
@@ -66,7 +67,7 @@ const CurrentDoc = env => () => {
         content: code.split( /\r?\n/g ), // get code lines array
         error: ''
     }
-    
+
 }
 
 module.exports = { CurrentDoc }
