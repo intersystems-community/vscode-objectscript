@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.4]
+### Added
+- Reconnect after change settings
+
 ## [0.3.3]
 ### Added
 - Update settings dynamically
