@@ -2,13 +2,13 @@ const vscode = require('vscode')
 const { workspace, window } = vscode
 const http = require('http')
 
-const API = require('cos-api4node') 
+const API = require('cos-api4node')
 const LOG = require( './log' )
 const languages = require('./package.json')[ 'contributes' ][ 'languages' ].map( lang => lang.id )
 const panel = require( './status-bar-panel' )
 const CmdExport = require( './commands/export' )
-const { CurrentDoc }= require( './commands/currentdoc' ) 
-const IsApiError = require( './is-api-error' ) 
+const { CurrentDoc }= require( './commands/currentdoc' )
+const IsApiError = require( './is-api-error' )
 
 const activate = context => {
 
@@ -16,16 +16,16 @@ const activate = context => {
 
     const Config = workspace => {
 
-        let options = null; 
+        let options = null;
         const init = () =>{ options = workspace.getConfiguration( 'cos' ) }
         init()
 
         return {
 
-            init, 
+            init,
             conn: () => {
                 const _conn = options.get( 'conn' )
-                _conn.toString = () => JSON.stringify( Object.assign( {}, _conn, { password: '***' } ), null, 4 )  
+                _conn.toString = () => JSON.stringify( Object.assign( {}, _conn, { password: '***' } ), null, 4 )
                 return _conn
             },
             export: () => {
@@ -56,19 +56,19 @@ const activate = context => {
 
     const currentDoc = CurrentDoc({ window, languages, log })
 
-    const Save = ({ name, log }) => ( err, data ) => {
+    const Save = ({ name, log, fileName }) => ( err, data ) => {
 
         // IsApiError, ExportDoc - global
         const isGetDocError = IsApiError( name, 'getDoc', log )
         if ( isGetDocError({ err, data }) ) return
 
         const completed = () => log( 'Completed.' )
-        const exportDoc = ExportDoc( { name, cat: data.result.cat }, completed )
+        const exportDoc = ExportDoc( { name, cat: data.result.cat, fileName }, completed )
 
         exportDoc( { err, data } )
     }
 
-    const Export = ( { api, name, log } ) => ( err, data ) => { 
+    const Export = ( { api, name, log, fileName } ) => ( err, data ) => {
         // IsApiError, Save - from upper scope
         const isCompileError = IsApiError( name, 'compile', log )
         if ( isCompileError({ err, data }) ) return;
@@ -77,17 +77,17 @@ const activate = context => {
         // so, just export again
         data.console.forEach( ci => log( ci ) ) //output compilation log
         //log( ` Export ${ name }` )
-        const save = Save( { name, log } )
+        const save = Save( { name, log, fileName } )
         api.getDoc( name, save )
     }
 
-    const Compile = ( { api, name, log } ) => ( err, data ) => {
+    const Compile = ( { api, name, log, fileName } ) => ( err, data ) => {
 
         // IsApiError, Export
         const isImportError = IsApiError( name, 'import', log )
         if ( isImportError({ err, data }) ) return;
 
-        const exportCurrent = Export( { api, name, log } )
+        const exportCurrent = Export( { api, name, log, fileName } )
         //log( `Compile ${ name }` )
         api.compile( name, exportCurrent )
 
@@ -98,15 +98,15 @@ const activate = context => {
     const importCompileExport = () => {
 
         // api, Compile, log
-        const { name, content, error } = currentDoc()
+        const { name, content, error, fileName } = currentDoc()
         if ( error ) return log( error )
 
-        const compile = Compile({ api, name, log } )
+        const compile = Compile({ api, name, log, fileName } )
         //log( ` Import ${ name }` )
-        api.putDoc( name, 
-                { enc: false, content }, 
-                { ignoreConflict: true }, 
-            compile 
+        api.putDoc( name,
+                { enc: false, content },
+                { ignoreConflict: true },
+            compile
         )
 
     }

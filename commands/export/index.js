@@ -7,18 +7,18 @@ const mkdir = require('./mkdir-p-sync') // mkdir -p 'path/to/file'
 // see module.exports
 let api = {
     getDocNames: ( opts, cb ) => cb( null, {} ),
-    getDoc: ( docname, cb ) => cb( null, {} ) 
+    getDoc: ( docname, cb ) => cb( null, {} )
 }
 
 // see module.exports
-let log = (...msg) => console.log('cos.export:', ...msg ) 
+let log = (...msg) => console.log('cos.export:', ...msg )
 // export options
 let root = '.'
 let folder = 'src'
 let atelier = false
-let doc2file = docname => docname 
+let doc2file = docname => docname
 
-// Export one document 
+// Export one document
 const ExportDoc = ( doc, next ) => ({ error, data }) => {
 
     if ( error ){
@@ -26,11 +26,11 @@ const ExportDoc = ( doc, next ) => ({ error, data }) => {
         return
     }
 
-    const { content, status } = data.result 
+    const { content, status } = data.result
 
     // atelier: 'mypkg.subpkg.myclass.cls' => 'mypkg/subpkg/myclass.cls'
     const filename = doc2file( doc.name )
-    const fullname = [ root, folder, doc.cat, filename ].join( path.sep )
+    const fullname = doc.fileName || ([ root, folder, doc.cat, filename ].join( path.sep ))
     const folders = path.dirname( fullname )
 
     if ( !fs.existsSync( folders ) ) mkdir( folders )
@@ -86,14 +86,14 @@ module.exports = env => {
     const exportAll = () => {
 
         if ( !root ){
-            log( `COS.EXPORT: Open folder before export - Ctrl+K, Ctrl+O` ) 
-            return 
+            log( `COS.EXPORT: Open folder before export - Ctrl+K, Ctrl+O` )
+            return
         }
 
         init()
 
         log( '\nLoad documents list ...' )
-        api.getDocNames( 
+        api.getDocNames(
 
             { category, generated, filter }, //doclist options
             ( error, data ) => doclist( { error, data } ) //callback wrapper
