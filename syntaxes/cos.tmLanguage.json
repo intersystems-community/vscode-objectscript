@@ -98,7 +98,7 @@
     "define-directives": {
       "patterns": [
         {
-          "begin": "^\\s*(?i)(#define)\\s*",
+          "begin": "^\\s*(?i)(#\\s*define)\\s+",
           "beginCaptures": {
             "1": {
               "name": "keyword.other.define.cos"
@@ -180,7 +180,7 @@
         }
       ]
     },
-    "dotted-attrs": {
+    "dotted-attrs": { "comment": "WTF?",
       "match": "((%|\\w|\\.|#)+)",
       "captures": {
         "1": {
@@ -190,43 +190,28 @@
     },
     "statements": {
       "patterns": [
-        {
-          "include": "#properties"
-        },
-        {
-          "include": "#parameters"
-        },
-        {
-          "include": "#indices"
-        },
-        {
-          "include": "#fks"
-        },
-        {
-          "include": "#classes"
-        },
-        {
-          "include": "#methods"
-        },
-        {
-          "include": "#xml-data"
-        },
-        {
-          "include": "#keywords"
-        },
-        {
-          "include": "#variables"
-        }
+        { "include": "#properties" },
+        { "include": "#parameters" },
+        { "include": "#indices"},
+        { "include": "#relationship" },
+        { "include": "#foreignkey" },
+        { "include": "#classes" },
+        { "include": "#methods" },
+        { "include": "#class-query" },
+        { "include": "#xml-data" },
+        { "include": "#keywords" },
+        { "include": "#variables" }
+        
       ]
     },
     "properties": {
       "begin": "^\\s*(?i)(Property)\\s+(\\w+)",
       "beginCaptures": {
         "1": {
-          "name": "entity.name.type.property.cos"
+          "name": "storage.type.cos"
         },
         "2": {
-          "name": "variable.other.cos"
+          "name": "entity.name.cos"
         }
       },
       "end": "$",
@@ -243,10 +228,10 @@
       "begin": "^\\s*(?i)(Parameter)\\s+(\\w+)",
       "beginCaptures": {
         "1": {
-          "name": "entity.name.type.property.cos"
+          "name": "storage.type.cos"
         },
         "2": {
-          "name": "variable.other.cos"
+          "name": "entity.name.cos"
         }
       },
       "end": "$",
@@ -263,10 +248,10 @@
       "begin": "^\\s*(?i)(Index)\\s+(\\w+)",
       "beginCaptures": {
         "1": {
-          "name": "entity.name.type.property.cos"
+          "name": "storage.type.cos"
         },
         "2": {
-          "name": "variable.other.cos"
+          "name": "entity.name.cos"
         }
       },
       "end": "$",
@@ -284,14 +269,14 @@
         }
       ]
     },
-    "fks": {
+    "relationship": {
       "begin": "^\\s*(?i)(Relationship)\\s+(\\w+)",
       "beginCaptures": {
         "1": {
-          "name": "entity.name.type.property.cos"
+          "name": "storage.type.cos"
         },
         "2": {
-          "name": "variable.other.cos"
+          "name": "entity.name.cos"
         }
       },
       "end": "$",
@@ -304,6 +289,50 @@
         }
       ]
     },
+    "foreignkey": {
+      "begin": "^\\s*(?i)(ForeignKey)\\s+(\\w+)",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.cos"
+        },
+        "2": {
+          "name": "entity.name.cos"
+        }
+      },
+      "end": ";\\s*$",
+      "patterns": [ 
+        { "comment": "FK props \"ForeignKey TestKey(Propeties)\"",
+          "begin": "\\(", "end":"\\)",
+          "patterns": [
+          
+            { 
+              "match": "(\\w+)",
+              "captures": {
+                "1": { "name": "variable.parameter.cos" }
+              }
+            }
+          ]
+        },
+        { "comment": "FK references",
+          "begin": "(?i)(References)\\s+(\\w+)\\s*\\(", "end": "\\)",
+          "beginCaptures": {
+            "1": { "name": "storage.type.cos" },
+            "2": { "name": "entity.name.cos" }
+          }, 
+          "patterns": [
+            { 
+              "match": "(\\w+)",
+              "captures": {
+                "1": { "name": "variable.parameter.cos" }
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+
+
     "as-keywords": {
       "match": "\\b(?i)(As)\\b",
       "captures": {
@@ -313,13 +342,13 @@
       }
     },
     "classes": {
-      "begin": "^\\s*(?i)(Class)\\s+(\\w+)",
+      "begin": "^\\s*(?i)(Class)\\s+([%|A-Za-z][A-Za-z0-9.]+)",
       "beginCaptures": {
         "1": {
-          "name": "entity.name.type.property.cos"
+          "name": "storage.type.cos"
         },
         "2": {
-          "name": "variable.other.cos"
+          "name": "entity.name.cos"
         }
       },
       "end": "$",
@@ -336,44 +365,62 @@
           "include": "#dotted-attrs"
         },
         {
-          "begin": "\\{",
-          "end": "\\}",
+          "begin": "\\{", "end": "\\}",
           "patterns": [
-            {
-              "include": "#statements"
-            }
+            { "include": "#class-content" }
           ]
         }
       ]
     },
+    "class-content": {
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#properties" },
+        { "include": "#parameters" },
+        { "include": "#indices" },
+        { "include": "#relationship" },
+        { "include": "#foreignkey" },
+        { "include": "#methods" },
+        { "include": "#class-query" },
+        { "include": "#xml-data" },
+        { "include": "#keywords" },
+        { "include": "#variables" }
+      ]
+    },
+
     "methods": {
       "begin": "^\\s*(?i)(Method|ClassMethod|ClientMethod)\\s+(\\w+)",
       "beginCaptures": {
         "1": {
-          "name": "entity.name.type.property.cos"
+          "name": "storage.type.cos"
         },
         "2": {
-          "name": "variable.other.cos"
+          "name": "entity.name.cos"
         }
       },
       "end": "$",
       "patterns": [
-        {
-          "include": "#method-params"
-        },
-        {
-          "include": "#as-keywords"
-        },
-        {
-          "include": "#dotted-attrs"
-        },
-        {
-          "begin": "\\{",
-          "end": "\\}",
-          "patterns": [
+        { "include": "#method-params" },
+        { "include": "#as-keywords" },
+        { "include": "#dotted-attrs" },
+        { "comment": "method options [SqlProc, etc...]", 
+          "begin": "\\[", "end": "\\]",
+          "patterns":[
             {
-              "include": "#statements"
+              "match": "(\\w+)",
+              "captures": {
+                "1": { "name": "variable.other.cos" }
+              }
             }
+          ]
+        },
+        { "comment": "method body",
+          "begin": "\\{", "end": "\\}",
+          "patterns": [ 
+            { "include": "comments" },
+            { "include": "#keywords" },
+            { "include": "#variables" }
+    
           ]
         }
       ]
@@ -423,6 +470,65 @@
         }
       ]
     },
+
+    "class-query": {
+      "comment": "query definition line",
+      "begin": "^\\s*(?i)(Query)\\s+([%A-Za-z0-9.]+)", "end": "}",
+      "beginCaptures": {
+        "1": { "name": "storage.type.cos" },
+        "2": { "name": "entity.name.cos" }
+      },
+      "patterns": [
+        { "comment": "query arguments \"(id as %String)\"",
+          "begin": "\\(", "end": "\\)",
+          "patterns":[
+
+            { "comment": "query-argument. just name ",
+              "match": "(\\w+)",
+              "captures": {
+                "1": { "name": "variable.parameter.cos" }
+              }
+            }
+
+          ]
+        },
+        { "comment": "query type \"As %SQLQuery\"",
+          "match": "\\s+(?i)(As)\\s+([%A-Za-z0-9.]+)\\s*",
+          "captures": {
+            "1": { "name": "keyword.operator.as.cos" },
+            "2": { "name": "variable.other.cos" }
+          } 
+        },
+        { "comment": "query options \"(CONTAINID = 1, EXTENT = 1)\"",
+          "begin": "\\(", "end": "\\)",
+          "patterns": [
+            {
+              "match": "(\\w+)",
+              "captures": {
+              "1": { "name": "variable.parameter.cos" }
+              }
+            }  
+          ]
+        },
+        { "comment": "query properties \"[SqlName = test, SqlProc]\"",
+          "begin": "\\[", "end": "\\]",
+          "patterns": [
+            {
+              "match": "(\\w+)",
+              "captures": {
+                "1": { "name": "variable.other.cos" }
+              }
+            }
+          ]
+        },
+        { "comment": "SQL Query block",
+          "begin": "\\{", "end": "(?=})",
+          "patterns": [{ "include": "#expressions" }] 
+        }
+
+      ]
+    },
+
     "keywords": {
       "patterns": [
         {
@@ -491,10 +597,10 @@
       "match": "(##class)\\(((%|\\w|\\.|#)+)\\)",
       "captures": {
         "1": {
-          "name": "entity.name.class.reference.cos"
+          "name": "keyword.other.cos"
         },
         "2": {
-          "name": "variable.parameter.function-argument.cos"
+          "name": "entity.name.cos"
         }
       }
     },
@@ -509,13 +615,9 @@
     },
     "variables": {
       "patterns": [
-        {
+        { "comment": "shortcut to this class members",
           "match": "\\.\\.\\w+",
-          "name": "variable.other.property.cos"
-        },
-        {
-          "match": "\\.\\.#\\w+",
-          "name": "variable.other.parameter.cos"
+          "name": "entity.name.cos"
         },
         {
           "match": "\\^\\w+",
@@ -523,11 +625,11 @@
         },
         {
           "match": "\\$\\w+(\\.\\w+)*",
-          "name": "variable.other.system.cos"
+          "name": "keyword.other.system.cos"
         },
-        {
+        { "comment": "macros \"$$$SOME\" ",
           "match": "\\$\\$\\$\\w+",
-          "name": "variable.other.macros.cos"
+          "name": "constant.other.macros.cos"
         },
         {
           "include": "#strings"
