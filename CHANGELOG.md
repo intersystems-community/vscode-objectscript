@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.3.5]
+### Added
+- Add initial syntax support for ClassQuery
+- Add initial syntax support for ForeignKey
+### Fixed
+- Corrected a bit of syntax syntax support for macros
+
 ## [0.3.4]
 ### Added
 - Reconnect after change settings
