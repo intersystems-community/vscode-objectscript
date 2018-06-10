@@ -5,7 +5,7 @@
 - Add initial syntax support for ClassQuery
 - Add initial syntax support for ForeignKey
 ### Fixed
-- Corrected a bit of syntax syntax support for macros
+- Corrected a bit syntax support for macros
 
 ## [0.3.4]
 ### Added
