@@ -163,6 +163,11 @@
                     "description": "Specifies a category: CLS = classes; RTN = routines; CSP = csp files; OTH = other. Default is *",
                     "type": "string",
                     "default": "*"
+                },
+                "cos.autoCompile": {
+                    "description": "Autocompile on save file",
+                    "type": "boolean",
+                    "default": false
                 }
             }
         }

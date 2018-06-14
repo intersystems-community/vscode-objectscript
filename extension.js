@@ -23,6 +23,7 @@ const activate = context => {
         return {
 
             init,
+            get: ( option ) => options.get( option ),
             conn: () => {
                 const _conn = options.get( 'conn' )
                 _conn.toString = () => JSON.stringify( Object.assign( {}, _conn, { password: '***' } ), null, 4 )
@@ -57,12 +58,21 @@ const activate = context => {
 
     }  , null, context.subscriptions ) //reload config on event
 
+    workspace.onDidSaveTextDocument( ( file ) => {
+        if ( !config.get( 'autoCompile' )) {
+            return
+        }
+        if (languages.includes(file.languageId)) {
+            importCompileExport();
+        }
+    })
+
     const currentDoc = CurrentDoc({ window, languages, log })
 
     const Save = ({ name, log, fileName }) => ( err, data ) => {
 
         // IsApiError, ExportDoc - global
-        const isGetDocError = IsApiError( name, 'getDoc', log )
+        const isGetDocError = IsApiError( name, 'getDoc', log, window )
         if ( isGetDocError({ err, data }) ) return
 
         const completed = () => log( 'Completed.' )
@@ -73,7 +83,7 @@ const activate = context => {
 
     const Export = ( { api, name, log, fileName } ) => ( err, data ) => {
         // IsApiError, Save - from upper scope
-        const isCompileError = IsApiError( name, 'compile', log )
+        const isCompileError = IsApiError( name, 'compile', log, window )
         if ( isCompileError({ err, data }) ) return;
         // after compilation API returns updated storage definition
         // but, currently, we don`t have any AST implementation
@@ -87,13 +97,13 @@ const activate = context => {
     const Compile = ( { api, name, log, fileName } ) => ( err, data ) => {
 
         // IsApiError, Export
-        const isImportError = IsApiError( name, 'import', log )
+        const isImportError = IsApiError( name, 'import', log, window )
         if ( isImportError({ err, data }) ) return;
 
         const exportCurrent = Export( { api, name, log, fileName } )
         //log( `Compile ${ name }` )
         api.compile( name, exportCurrent )
-
+        window.showInformationMessage( `${name}: Compile successed` )
     }
 
     // import -> compile -> export
