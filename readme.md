@@ -1,4 +1,4 @@
-[![Known Vulnerabilities](https://snyk.io/test/github/doublefint/vscode-cos/badge.svg)](https://snyk.io/test/github/doublefint/vscode-cos)
+[![Known Vulnerabilities](https://snyk.io/test/github/doublefint/vscode-cos/badge.svg)](https://snyk.io/test/github/doublefint/vscode-cos) [![Gitter](https://img.shields.io/badge/chat-on%20telegram-blue.svg)](https://t.me/joinchat/FoZ4MxJTrP8FaYs1_iFgUQ)
 
 # vscode-cos
 
