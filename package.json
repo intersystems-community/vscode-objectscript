@@ -25,7 +25,7 @@
     "activationEvents": [
         "*"
     ],
-    "main": "./extension",
+    "main": "./out/extension",
     "contributes": {
         "languages": [
             {
@@ -169,16 +169,28 @@
                     "type": "boolean",
                     "default": false
                 }
-            }
+              }
         }
     },
     "scripts": {
+        "vscode:prepublish": "tsc -p ./",
+        "build": "tsc -p ./",
+        "compile": "tsc -watch -p ./",
+        "lint": "tslint --project tsconfig.json -t verbose",
+        "lint-fix": "tslint --project tsconfig.json -t verbose --fix",
         "postinstall": "node ./node_modules/vscode/bin/install",
-        "test": "tape ./test/*.js"
+        "test": "npm run build && node ./node_modules/vscode/bin/test",
+        "all": "npm i && npm run lint && npm test"
     },
     "devDependencies": {
+        "@types/glob": "^5.0.35",
+        "@types/node": "^10.5.2",
         "eslint": "^4.18.2",
         "tape": "^4.9.0",
+        "tslint": "^5.10.0",
+        "tslint-microsoft-contrib": "^5.0.3",
+        "typescript": "^2.9.2",
+        "typings": "^2.1.1",
         "vscode": "^1.1.12"
     },
     "dependencies": {
