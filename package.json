@@ -1,199 +1,242 @@
 {
-    "name": "vscode-cos",
-    "displayName": "Caché ObjectScript",
-    "description": "Caché ObjectScript language support for Visual Studio Code",
-    "version": "0.3.5",
-    "icon": "images/logo.png",
-    "categories": [
-        "Languages",
-        "Other"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/doublefint/vscode-cos.git"
-    },
-    "publisher": "doublefint",
-    "contributors": [
-        {
-            "name": "Nikita Savchenko",
-            "email": "me@nikita.tk"
-        }
-    ],
-    "engines": {
-        "vscode": "^1.21.0"
-    },
-    "activationEvents": [
-        "*"
-    ],
-    "main": "./out/extension",
-    "contributes": {
-        "languages": [
-            {
-                "id": "cacheobjectscript",
-                "aliases": [
-                    "COS"
-                ],
-                "extensions": [
-                    ".cls",
-                    ".mac"
-                ],
-                "configuration": "./language-configuration.json"
-            },
-            {
-                "id": "cacheobjectscriptinclude",
-                "aliases": [
-                    "COS.INC"
-                ],
-                "extensions": [
-                    ".inc"
-                ],
-                "configuration": "./language-configuration.json"
-            }
-        ],
-        "grammars": [
-            {
-                "language": "cacheobjectscript",
-                "scopeName": "source.cos",
-                "path": "syntaxes/cos.tmLanguage.json"
-            },
-            {
-                "language": "cacheobjectscriptinclude",
-                "scopeName": "source.cosinc",
-                "path": "syntaxes/cosinc.tmLanguage.json"
-            }
-        ],
-        "commands": [
-            {
-                "category": "COS",
-                "command": "cos.export",
-                "title": "Export sources"
-            },
-            {
-                "category": "COS",
-                "command": "cos.compile",
-                "title": "Import and compile current file"
-            }
-        ],
-        "keybindings": [
-            {
-                "command": "cos.compile",
-                "key": "Ctrl+F7",
-                "mac": "Cmd+F7"
-            }
-        ],
-        "configuration": {
-            "title": "CacheObjectScript Configuration",
-            "type": "object",
-            "properties": {
-                "cos.conn": {
-                    "type": "object",
-                    "description": "Server Access"
-                },
-                "cos.conn.label": {
-                    "description": "Server Name",
-                    "type": "string",
-                    "default": "LOCAL"
-                },
-                "cos.conn.host": {
-                    "description": "Hostname",
-                    "format": "hostname",
-                    "type": "string",
-                    "default": "127.0.0.1"
-                },
-                "cos.conn.port": {
-                    "description": "Port number",
-                    "type": "number",
-                    "default": 57772
-                },
-                "cos.conn.username": {
-                    "description": "Username",
-                    "type": "string",
-                    "default": "_SYSTEM"
-                },
-                "cos.conn.password": {
-                    "description": "User's Password",
-                    "type": "string",
-                    "default": "SYS"
-                },
-                "cos.conn.path": {
-                    "description": "API Atelier path",
-                    "type": "string",
-                    "default": "/api/atelier/"
-                },
-                "cos.conn.version": {
-                    "description": "API Atelier Version",
-                    "type": "string",
-                    "default": "v1"
-                },
-                "cos.conn.ns": {
-                    "description": "Server Namespace",
-                    "type": "string",
-                    "default": "SAMPLES"
-                },
-                "cos.conn.https": {
-                    "description": "Use SSL to access to API",
-                    "type": "boolean",
-                    "default": false
-                },
-                "cos.export": {
-                    "type": "object",
-                    "description": "Export only the necessary stuff "
-                },
-                "cos.export.folder": {
-                    "description": "folder for source code",
-                    "type": "string",
-                    "default": "src"
-                },
-                "cos.export.atelier": {
-                    "description": "export source code as Atelier it does ( packages to subfolders )",
-                    "type": "boolean",
-                    "default": false
-                },
-                "cos.export.generated": {
-                    "description": "Specifies that generated source code files should be exported",
-                    "type": "boolean",
-                    "default": false
-                },
-                "cos.export.filter": {
-                    "description": "SQL filter that can be used to match the names",
-                    "type": "string",
-                    "default": ""
-                },
-                "cos.export.category": {
-                    "description": "Specifies a category: CLS = classes; RTN = routines; CSP = csp files; OTH = other. Default is *",
-                    "type": "string",
-                    "default": "*"
-                },
-                "cos.autoCompile": {
-                    "description": "Autocompile on save file",
-                    "type": "boolean",
-                    "default": false
-                }
-              }
-        }
-    },
-    "scripts": {
-        "vscode:prepublish": "tsc -p ./",
-        "build": "tsc -p ./",
-        "compile": "tsc -watch -p ./",
-        "lint": "tslint --project tsconfig.json -t verbose",
-        "lint-fix": "tslint --project tsconfig.json -t verbose --fix",
-        "postinstall": "node ./node_modules/vscode/bin/install",
-        "test": "npm run build && node ./node_modules/vscode/bin/test",
-        "all": "npm i && npm run lint && npm test"
-    },
-    "devDependencies": {
-        "@types/glob": "^5.0.35",
-        "@types/node": "^10.5.2",
-        "eslint": "^4.18.2",
-        "tape": "^4.9.0",
-        "tslint": "^5.10.0",
-        "tslint-microsoft-contrib": "^5.0.3",
-        "typescript": "^2.9.2",
-        "typings": "^2.1.1",
-        "vscode": "^1.1.12"
-    },
-    "dependencies": {
-        "cos-api4node": "^2.1.4"
+  "name": "vscode-cos",
+  "displayName": "Caché ObjectScript",
+  "description": "Caché ObjectScript language support for Visual Studio Code",
+  "version": "0.3.5",
+  "icon": "images/logo.png",
+  "categories": [
+    "Languages",
+    "Other"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/doublefint/vscode-cos.git"
+  },
+  "publisher": "doublefint",
+  "contributors": [
+    {
+      "name": "Nikita Savchenko",
+      "email": "me@nikita.tk"
     }
+  ],
+  "engines": {
+    "vscode": "^1.21.0"
+  },
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./out/extension",
+  "contributes": {
+    "menus": {
+      "view/title": [
+        {
+          "command": "vscode-cos.explorer.refresh",
+          "when": "view == cosExplorer",
+          "group": "navigation"
+        }
+      ]
+    },
+    "languages": [
+      {
+        "id": "cacheobjectscript",
+        "aliases": [
+          "COS"
+        ],
+        "extensions": [
+          ".cls",
+          ".mac"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "cacheobjectscriptinclude",
+        "aliases": [
+          "COS.INC"
+        ],
+        "extensions": [
+          ".inc"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "cacheobjectscript",
+        "scopeName": "source.cos",
+        "path": "syntaxes/cos.tmLanguage.json"
+      },
+      {
+        "language": "cacheobjectscriptinclude",
+        "scopeName": "source.cosinc",
+        "path": "syntaxes/cosinc.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "category": "COS",
+        "command": "cos.export",
+        "title": "Export sources"
+      },
+      {
+        "category": "COS",
+        "command": "cos.compile",
+        "title": "Import and compile current file"
+      },
+      {
+        "command": "vscode-cos.explorer.refresh",
+        "title": "Refresh Explorer",
+        "category": "COS",
+        "icon": {
+          "light": "images/light/refresh.svg",
+          "dark": "images/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "cosExplorer.openClass",
+        "title": "Open class"
+      },
+      {
+        "command": "cosExplorer.openRoutine",
+        "title": "Open routine"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "cos.compile",
+        "key": "Ctrl+F7",
+        "mac": "Cmd+F7"
+      }
+    ],
+    "configuration": {
+      "title": "CacheObjectScript Configuration",
+      "type": "object",
+      "properties": {
+        "cos.conn": {
+          "type": "object",
+          "description": "Server Access"
+        },
+        "cos.conn.label": {
+          "description": "Server Name",
+          "type": "string",
+          "default": "LOCAL"
+        },
+        "cos.conn.host": {
+          "description": "Hostname",
+          "format": "hostname",
+          "type": "string",
+          "default": "127.0.0.1"
+        },
+        "cos.conn.port": {
+          "description": "Port number",
+          "type": "number",
+          "default": 57772
+        },
+        "cos.conn.username": {
+          "description": "Username",
+          "type": "string",
+          "default": "_SYSTEM"
+        },
+        "cos.conn.password": {
+          "description": "User's Password",
+          "type": "string",
+          "default": "SYS"
+        },
+        "cos.conn.path": {
+          "description": "API Atelier path",
+          "type": "string",
+          "default": "/api/atelier/"
+        },
+        "cos.conn.version": {
+          "description": "API Atelier Version",
+          "type": "string",
+          "default": "v1"
+        },
+        "cos.conn.ns": {
+          "description": "Server Namespace",
+          "type": "string",
+          "default": "SAMPLES"
+        },
+        "cos.conn.https": {
+          "description": "Use SSL to access to API",
+          "type": "boolean",
+          "default": false
+        },
+        "cos.export": {
+          "type": "object",
+          "description": "Export only the necessary stuff "
+        },
+        "cos.export.folder": {
+          "description": "folder for source code",
+          "type": "string",
+          "default": "src"
+        },
+        "cos.export.atelier": {
+          "description": "export source code as Atelier it does ( packages to subfolders )",
+          "type": "boolean",
+          "default": false
+        },
+        "cos.export.generated": {
+          "description": "Specifies that generated source code files should be exported",
+          "type": "boolean",
+          "default": false
+        },
+        "cos.export.filter": {
+          "description": "SQL filter that can be used to match the names",
+          "type": "string",
+          "default": ""
+        },
+        "cos.export.category": {
+          "description": "Specifies a category: CLS = classes; RTN = routines; CSP = csp files; OTH = other. Default is *",
+          "type": "string",
+          "default": "*"
+        },
+        "cos.autoCompile": {
+          "description": "Autocompile on save file",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "views": {
+      "cosView": [
+        {
+          "id": "cosExplorer",
+          "name": "Explorer"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "icon": "images/InterSystems.svg",
+          "id": "cosView",
+          "title": "COS"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "tsc -p ./",
+    "build": "tsc -p ./",
+    "compile": "tsc -watch -p ./",
+    "lint": "tslint --project tsconfig.json -t verbose",
+    "lint-fix": "tslint --project tsconfig.json -t verbose --fix",
+    "postinstall": "node ./node_modules/vscode/bin/install",
+    "test": "npm run build && node ./node_modules/vscode/bin/test",
+    "all": "npm i && npm run lint && npm test"
+  },
+  "devDependencies": {
+    "@types/glob": "^5.0.35",
+    "@types/node": "^10.5.2",
+    "eslint": "^4.18.2",
+    "tape": "^4.9.0",
+    "tslint": "^5.10.0",
+    "tslint-microsoft-contrib": "^5.0.3",
+    "typescript": "^2.9.2",
+    "typings": "^2.1.1",
+    "vscode": "^1.1.12"
+  },
+  "dependencies": {
+    "cos-api4node": "^2.1.4"
+  }
 }

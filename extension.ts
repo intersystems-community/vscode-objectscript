@@ -1,6 +1,6 @@
 import vscode = require("vscode");
 const { workspace, window } = vscode;
-const http = require("http");
+import http = require("http");
 
 const API = require("cos-api4node");
 const LOG = require("./log");
@@ -9,12 +9,18 @@ const CmdExport = require("./commands/export");
 const { CurrentDoc } = require("./commands/currentdoc");
 const IsApiError = require("./is-api-error");
 
-const activate = context => {
+import { COSExplorerProvider } from './explorer/explorer';
+export var cosExplorerProvider: COSExplorerProvider;
+
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const languages = require(context.asAbsolutePath("./package.json"))[
     "contributes"
   ]["languages"].map(lang => lang.id);
 
   const log = LOG(window);
+
+  cosExplorerProvider = new COSExplorerProvider();
+  vscode.window.registerTreeDataProvider('cosExplorer', cosExplorerProvider);
 
   const Config = workspace => {
     let options = null;
@@ -52,6 +58,7 @@ const activate = context => {
       log("Connected " + conn);
       panel.set(conn);
     });
+    cosExplorerProvider.setAPI(api);
   };
 
   const config = Config(workspace);
@@ -144,8 +151,13 @@ const activate = context => {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("cos.compile", importCompileExport),
-    vscode.commands.registerCommand("cos.export", exportAll)
+    vscode.commands.registerCommand("cos.export", exportAll),
+    vscode.commands.registerCommand('vscode-cos.explorer.refresh', () => cosExplorerProvider.refresh()),
+    vscode.commands.registerCommand('cosExplorer.openClass', vscode.window.showTextDocument),
+    vscode.commands.registerCommand('cosExplorer.openRoutine', vscode.window.showTextDocument),
+
+    vscode.workspace.registerTextDocumentContentProvider('cos', cosExplorerProvider)
   );
 };
 
-module.exports = { activate, deactivate: () => {} };
+export async function deactivate() {}
