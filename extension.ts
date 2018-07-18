@@ -58,7 +58,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       log("Connected " + conn);
       panel.set(conn);
     });
-    cosExplorerProvider.setAPI(api);
+    cosExplorerProvider.setAPI(api, conn.ns);
   };
 
   const config = Config(workspace);
@@ -153,8 +153,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("cos.compile", importCompileExport),
     vscode.commands.registerCommand("cos.export", exportAll),
     vscode.commands.registerCommand('vscode-cos.explorer.refresh', () => cosExplorerProvider.refresh()),
-    vscode.commands.registerCommand('cosExplorer.openClass', vscode.window.showTextDocument),
-    vscode.commands.registerCommand('cosExplorer.openRoutine', vscode.window.showTextDocument),
+    vscode.commands.registerCommand('vscode-cos.explorer.openClass', vscode.window.showTextDocument),
+    vscode.commands.registerCommand('vscode-cos.explorer.openRoutine', vscode.window.showTextDocument),
+    vscode.commands.registerCommand('vscode-cos.explorer.showSystem', () => { }),
+    vscode.commands.registerCommand('vscode-cos.explorer.hideSystem', () => { }),
 
     vscode.workspace.registerTextDocumentContentProvider('cos', cosExplorerProvider)
   );

@@ -18,7 +18,7 @@ export class ClassNode extends NodeBase {
             collapsibleState: vscode.TreeItemCollapsibleState.None,
             contextValue: "classNode",
             command: {
-              command: 'cosExplorer.openClass',
+              command: 'vscode-cos.explorer.openClass',
               arguments: [vscode.Uri.parse(encodeURI(`cos:///${this.fullName}`))],
               title: 'Open class'
             }

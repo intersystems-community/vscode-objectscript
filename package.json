@@ -92,11 +92,11 @@
         }
       },
       {
-        "command": "cosExplorer.openClass",
+        "command": "vscode-cos.explorer.openClass",
         "title": "Open class"
       },
       {
-        "command": "cosExplorer.openRoutine",
+        "command": "vscode-cos.explorer.openRoutine",
         "title": "Open routine"
       }
     ],

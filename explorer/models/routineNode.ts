@@ -18,7 +18,7 @@ export class RoutineNode extends NodeBase {
             collapsibleState: vscode.TreeItemCollapsibleState.None,
             contextValue: "routineNode",
             command: {
-              command: 'cosExplorer.openRoutine',
+              command: 'vscode-cos.explorer.openRoutine',
               arguments: [vscode.Uri.parse(encodeURI(`cos:///${this.fullName}`))],
               title: 'Open routine'
             }
