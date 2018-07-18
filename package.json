@@ -33,6 +33,14 @@
           "command": "vscode-cos.explorer.refresh",
           "when": "view == cosExplorer",
           "group": "navigation"
+        },
+        {
+          "command": "vscode-cos.explorer.showSystem",
+          "when": "view == cosExplorer && !vscode-cos.explorer.showSystem"
+        },
+        {
+          "command": "vscode-cos.explorer.hideSystem",
+          "when": "view == cosExplorer && vscode-cos.explorer.showSystem"
         }
       ]
     },
@@ -81,6 +89,14 @@
         "category": "COS",
         "command": "cos.compile",
         "title": "Import and compile current file"
+      },
+      {
+        "command": "vscode-cos.explorer.showSystem",
+        "title": "Show system objects"
+      },
+      {
+        "command": "vscode-cos.explorer.hideSystem",
+        "title": "Hide system objects"
       },
       {
         "command": "vscode-cos.explorer.refresh",
@@ -194,6 +210,11 @@
           "description": "Autocompile on save file",
           "type": "boolean",
           "default": false
+        },
+        "cos.showExplorer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show or hide the Explorer."
         }
       }
     },
@@ -201,7 +222,8 @@
       "cosView": [
         {
           "id": "cosExplorer",
-          "name": "Explorer"
+          "name": "Explorer",
+          "when": "config.cos.showExplorer == true"
         }
       ]
     },

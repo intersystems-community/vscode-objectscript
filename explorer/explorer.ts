@@ -10,8 +10,18 @@ export class COSExplorerProvider implements vscode.TreeDataProvider<NodeBase>, v
   private _routinesNode: RootNode;
   private _api;
   private _namespace: string;
+  private _showSystem = false;
 
   constructor() {}
+
+  get showSystem(): boolean {
+    return this._showSystem;
+  }
+
+  set showSystem(value) {
+    this._showSystem = value;
+    this._onDidChangeTreeData.fire(null);
+  }
 
   setAPI(api, namespace: string): void {
     this._api = api;
@@ -55,7 +65,7 @@ export class COSExplorerProvider implements vscode.TreeDataProvider<NodeBase>, v
 
   getDocNames(category: string): Promise<any> {
     const excludeSystem =
-      this._namespace === "%SYS"
+      this._showSystem || this._namespace === "%SYS"
         ? () => true
         : ({ db }) => !["IRISLIB", "IRISSYS", "CACHELIB", "CACHESYS"].includes(db);
 
