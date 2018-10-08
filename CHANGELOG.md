@@ -1,5 +1,14 @@
 # Change Log
 
+## [0.4.0]
+### Added
+- COS explorer
+
+## [0.3.6]
+### Added
+- Option "Compile on Save"
+- Additional notification window about compilation result
+
 ## [0.3.5]
 ### Added
 - Add initial syntax support for ClassQuery
