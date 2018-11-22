@@ -9,6 +9,7 @@ const CmdExport = require('./commands/export');
 const { CurrentDoc } = require('./commands/currentdoc');
 const IsApiError = require('./is-api-error');
 
+import { ObjectScriptSymbolProvider } from './providers/ObjectScriptSymbolProvider';
 import { AtelierAPI } from './api';
 
 import { COSExplorerProvider } from './explorer/explorer';
@@ -185,8 +186,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       vscode.commands.executeCommand('setContext', 'vscode-cos.explorer.showSystem', false);
       cosExplorerProvider.showSystem = false;
     }),
-
-    vscode.workspace.registerTextDocumentContentProvider('cos', cosExplorerProvider)
+    vscode.workspace.registerTextDocumentContentProvider('cos', cosExplorerProvider),
+    vscode.languages.registerDocumentSymbolProvider(
+      {
+        language: 'cacheobjectscript'
+      },
+      new ObjectScriptSymbolProvider()
+    )
   );
 }
 
