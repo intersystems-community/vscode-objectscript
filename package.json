@@ -56,7 +56,8 @@
         ],
         "extensions": [
           ".cls",
-          ".mac"
+          ".mac",
+          ".int"
         ],
         "configuration": "./language-configuration.json"
       },
@@ -118,6 +119,11 @@
       {
         "command": "vscode-cos.explorer.openRoutine",
         "title": "Open routine"
+      },
+      {
+        "category": "COS",
+        "command": "vscode-cos.viewother",
+        "title": "View other"
       }
     ],
     "keybindings": [
@@ -125,6 +131,12 @@
         "command": "cos.compile",
         "key": "Ctrl+F7",
         "mac": "Cmd+F7"
+      },
+      {
+        "command": "vscode-cos.viewother",
+        "key": "Ctrl+Shift+V",
+        "mac": "Cmd+Shift+V",
+        "when": "editorLangId == 'cacheobjectscript'"
       }
     ],
     "configuration": {

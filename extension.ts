@@ -10,6 +10,7 @@ const { CurrentDoc } = require('./commands/currentdoc');
 const IsApiError = require('./is-api-error');
 
 import { ObjectScriptSymbolProvider } from './providers/ObjectScriptSymbolProvider';
+import { AtelierAPI } from './api';
 
 import { COSExplorerProvider } from './explorer/explorer';
 export var cosExplorerProvider: COSExplorerProvider;
@@ -45,8 +46,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   };
 
   let api;
+  let atelierApi: AtelierAPI;
   const Connect = conn => {
     api = API(conn);
+    atelierApi = new AtelierAPI(conn.host, conn.port, conn.username, conn.password, conn.ns, conn.https);
+    atelierApi
+      .serverInfo()
+      .then(info => {})
+      .catch(err => {});
     api.headServer(err => {
       const conn = config.conn();
       if (err) return log('Connection FAILED: ' + conn, err);
@@ -136,9 +143,38 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     api.putDoc(name, { enc: false, content }, { ignoreConflict: true }, compile);
   };
 
+  const viewOther = () => {
+    const { name, error } = currentDoc();
+    if (error) return log(error);
+
+    const getOthers = info => {
+      return info.result.content[0].others;
+    };
+
+    atelierApi
+      .actionIndex([name])
+      .then(info => {
+        const listOthers = getOthers(info) || [];
+        if (!listOthers.length) {
+          return;
+        }
+        if (listOthers.length === 1) {
+          window.showTextDocument(vscode.Uri.parse(encodeURI(`cos:///${listOthers[0]}`)));
+        } else {
+          window.showQuickPick(listOthers).then(item => {
+            window.showTextDocument(vscode.Uri.parse(encodeURI(`cos:///${item}`)));
+          });
+        }
+      })
+      .catch(err => {
+        log('error' + err);
+      });
+  };
+
   context.subscriptions.push(
     vscode.commands.registerCommand('cos.compile', importCompileExport),
     vscode.commands.registerCommand('cos.export', exportAll),
+    vscode.commands.registerCommand('vscode-cos.viewother', viewOther),
     vscode.commands.registerCommand('vscode-cos.explorer.refresh', () => cosExplorerProvider.refresh()),
     vscode.commands.registerCommand('vscode-cos.explorer.openClass', vscode.window.showTextDocument),
     vscode.commands.registerCommand('vscode-cos.explorer.openRoutine', vscode.window.showTextDocument),
@@ -150,7 +186,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       vscode.commands.executeCommand('setContext', 'vscode-cos.explorer.showSystem', false);
       cosExplorerProvider.showSystem = false;
     }),
-
     vscode.workspace.registerTextDocumentContentProvider('cos', cosExplorerProvider),
     vscode.languages.registerDocumentSymbolProvider(
       {
