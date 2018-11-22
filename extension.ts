@@ -1,29 +1,31 @@
-import vscode = require("vscode");
+import vscode = require('vscode');
 const { workspace, window } = vscode;
-import http = require("http");
+import http = require('http');
 
-const API = require("cos-api4node");
-const LOG = require("./log");
-const panel = require("./status-bar-panel");
-const CmdExport = require("./commands/export");
-const { CurrentDoc } = require("./commands/currentdoc");
-const IsApiError = require("./is-api-error");
+const API = require('cos-api4node');
+const LOG = require('./log');
+const panel = require('./status-bar-panel');
+const CmdExport = require('./commands/export');
+const { CurrentDoc } = require('./commands/currentdoc');
+const IsApiError = require('./is-api-error');
 
-import { COSExplorerProvider } from "./explorer/explorer";
+import { ObjectScriptSymbolProvider } from './providers/ObjectScriptSymbolProvider';
+
+import { COSExplorerProvider } from './explorer/explorer';
 export var cosExplorerProvider: COSExplorerProvider;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  const languages = require(context.asAbsolutePath("./package.json"))["contributes"]["languages"].map(lang => lang.id);
+  const languages = require(context.asAbsolutePath('./package.json'))['contributes']['languages'].map(lang => lang.id);
 
   const log = LOG(window);
 
   cosExplorerProvider = new COSExplorerProvider();
-  vscode.window.registerTreeDataProvider("cosExplorer", cosExplorerProvider);
+  vscode.window.registerTreeDataProvider('cosExplorer', cosExplorerProvider);
 
   const Config = workspace => {
     let options = null;
     const init = () => {
-      options = workspace.getConfiguration("cos");
+      options = workspace.getConfiguration('cos');
     };
     init();
 
@@ -31,13 +33,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       init,
       get: option => options.get(option),
       conn: () => {
-        const _conn = options.get("conn");
-        _conn.toString = () => JSON.stringify(Object.assign({}, _conn, { password: "***" }), null, 4);
+        const _conn = options.get('conn');
+        _conn.toString = () => JSON.stringify(Object.assign({}, _conn, { password: '***' }), null, 4);
         return _conn;
       },
       export: () => {
         const root = workspace.rootPath;
-        return Object.assign({}, options.get("export"), { root });
+        return Object.assign({}, options.get('export'), { root });
       }
     };
   };
@@ -47,8 +49,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     api = API(conn);
     api.headServer(err => {
       const conn = config.conn();
-      if (err) return log("Connection FAILED: " + conn, err);
-      log("Connected " + conn);
+      if (err) return log('Connection FAILED: ' + conn, err);
+      log('Connected ' + conn);
       panel.set(conn);
     });
     cosExplorerProvider.setAPI(api, conn.ns);
@@ -77,7 +79,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   ); //reload config on event
 
   workspace.onDidSaveTextDocument(file => {
-    if (!config.get("autoCompile")) {
+    if (!config.get('autoCompile')) {
       return;
     }
     if (languages.includes(file.languageId)) {
@@ -89,10 +91,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   const Save = ({ name, log, fileName }) => (err, data) => {
     // IsApiError, ExportDoc - global
-    const isGetDocError = IsApiError(name, "getDoc", log, window);
+    const isGetDocError = IsApiError(name, 'getDoc', log, window);
     if (isGetDocError({ err, data })) return;
 
-    const completed = () => log("Completed.");
+    const completed = () => log('Completed.');
     const exportDoc = ExportDoc({ name, cat: data.result.cat, fileName }, completed);
 
     exportDoc({ err, data });
@@ -100,7 +102,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   const Export = ({ api, name, log, fileName }) => (err, data) => {
     // IsApiError, Save - from upper scope
-    const isCompileError = IsApiError(name, "compile", log, window);
+    const isCompileError = IsApiError(name, 'compile', log, window);
     if (isCompileError({ err, data })) return;
     // after compilation API returns updated storage definition
     // but, currently, we don`t have any AST implementation
@@ -113,7 +115,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   const Compile = ({ api, name, log, fileName }) => (err, data) => {
     // IsApiError, Export
-    const isImportError = IsApiError(name, "import", log, window);
+    const isImportError = IsApiError(name, 'import', log, window);
     if (isImportError({ err, data })) return;
 
     const exportCurrent = Export({ api, name, log, fileName });
@@ -135,21 +137,27 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   };
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("cos.compile", importCompileExport),
-    vscode.commands.registerCommand("cos.export", exportAll),
-    vscode.commands.registerCommand("vscode-cos.explorer.refresh", () => cosExplorerProvider.refresh()),
-    vscode.commands.registerCommand("vscode-cos.explorer.openClass", vscode.window.showTextDocument),
-    vscode.commands.registerCommand("vscode-cos.explorer.openRoutine", vscode.window.showTextDocument),
-    vscode.commands.registerCommand("vscode-cos.explorer.showSystem", () => {
-      vscode.commands.executeCommand("setContext", "vscode-cos.explorer.showSystem", true);
+    vscode.commands.registerCommand('cos.compile', importCompileExport),
+    vscode.commands.registerCommand('cos.export', exportAll),
+    vscode.commands.registerCommand('vscode-cos.explorer.refresh', () => cosExplorerProvider.refresh()),
+    vscode.commands.registerCommand('vscode-cos.explorer.openClass', vscode.window.showTextDocument),
+    vscode.commands.registerCommand('vscode-cos.explorer.openRoutine', vscode.window.showTextDocument),
+    vscode.commands.registerCommand('vscode-cos.explorer.showSystem', () => {
+      vscode.commands.executeCommand('setContext', 'vscode-cos.explorer.showSystem', true);
       cosExplorerProvider.showSystem = true;
     }),
-    vscode.commands.registerCommand("vscode-cos.explorer.hideSystem", () => {
-      vscode.commands.executeCommand("setContext", "vscode-cos.explorer.showSystem", false);
+    vscode.commands.registerCommand('vscode-cos.explorer.hideSystem', () => {
+      vscode.commands.executeCommand('setContext', 'vscode-cos.explorer.showSystem', false);
       cosExplorerProvider.showSystem = false;
     }),
 
-    vscode.workspace.registerTextDocumentContentProvider("cos", cosExplorerProvider)
+    vscode.workspace.registerTextDocumentContentProvider('cos', cosExplorerProvider),
+    vscode.languages.registerDocumentSymbolProvider(
+      {
+        language: 'cacheobjectscript'
+      },
+      new ObjectScriptSymbolProvider()
+    )
   );
 }
 
