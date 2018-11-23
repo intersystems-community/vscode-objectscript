@@ -1,7 +1,7 @@
 import httpModule = require('http');
 import httpsModule = require('https');
 
-import { ClientResponse } from 'http';
+//import { ClientResponse } from 'http';
 
 export class AtelierAPI {
   private http;
@@ -53,7 +53,7 @@ export class AtelierAPI {
             headers,
             body
           },
-          (response: ClientResponse) => {
+          ( response: any ) => {
             if (response.statusCode < 200 || response.statusCode > 299) {
               reject(new Error('Failed to load page "' + path + '", status code: ' + response.statusCode));
             }
