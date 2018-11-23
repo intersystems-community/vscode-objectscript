@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.6.0]
+### Added
+- Add "View others files" with shortcut
+
+## [0.5.0]
+### Added
+- Show outline symbols
+
 ## [0.4.0]
 ### Added
 - COS explorer
