@@ -2,11 +2,9 @@ import vscode = require('vscode');
 const { workspace, window } = vscode;
 export const OBJECTSCRIPT_FILE_SCHEMA = 'objectscript';
 
-const panel = require('./status-bar-panel');
-
 import { viewOthers } from './commands/viewOthers';
 import { importAndCompile } from './commands/compile';
-import { exportAll } from './commands/export';
+import { exportAll, exportExplorerItem } from './commands/export';
 
 import { ObjectScriptClassSymbolProvider } from './providers/ObjectScriptClassSymbolProvider';
 import { ObjectScriptRoutineSymbolProvider } from './providers/ObjectScriptRoutineSymbolProvider';
@@ -59,13 +57,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('vscode-objectscript.output', () => {
       outputChannel.show();
     }),
-    vscode.commands.registerCommand('vscode-objectscript.compile', importAndCompile),
+    vscode.commands.registerCommand('vscode-objectscript.compile', () => importAndCompile(false)),
     vscode.commands.registerCommand('vscode-objectscript.compileWithFlags', () => importAndCompile(true)),
     vscode.commands.registerCommand('vscode-objectscript.export', exportAll),
     vscode.commands.registerCommand('vscode-objectscript.viewOthers', viewOthers),
     vscode.commands.registerCommand('vscode-objectscript.explorer.refresh', () => explorerProvider.refresh()),
     vscode.commands.registerCommand('vscode-objectscript.explorer.openClass', vscode.window.showTextDocument),
     vscode.commands.registerCommand('vscode-objectscript.explorer.openRoutine', vscode.window.showTextDocument),
+    vscode.commands.registerCommand('vscode-objectscript.explorer.export', exportExplorerItem),
     vscode.commands.registerCommand('vscode-objectscript.explorer.showSystem', () => {
       vscode.commands.executeCommand('setContext', 'vscode-objectscript.explorer.showSystem', true);
       explorerProvider.showSystem = true;

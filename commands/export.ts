@@ -3,6 +3,9 @@ import fs = require('fs');
 import path = require('path');
 import { AtelierAPI } from '../api';
 import { outputChannel, mkdirSyncRecursive } from '../utils';
+import { PackageNode } from '../explorer/models/packageNode';
+import { ClassNode } from '../explorer/models/classesNode';
+import { RoutineNode } from '../explorer/models/routineNode';
 
 const api = new AtelierAPI();
 
@@ -64,4 +67,9 @@ export async function exportAll(): Promise<any> {
   return api.getDocNames({ category, generated, filter }).then(data => {
     return exportList(files(data));
   });
+}
+
+export async function exportExplorerItem(node: PackageNode | ClassNode | RoutineNode): Promise<any> {
+  const items = node instanceof PackageNode ? node.getClasses() : [node.fullName];
+  return exportList(items);
 }

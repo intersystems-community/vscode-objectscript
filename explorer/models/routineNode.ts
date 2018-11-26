@@ -3,6 +3,7 @@ import { NodeBase } from './nodeBase';
 import { OBJECTSCRIPT_FILE_SCHEMA } from '../../extension';
 
 export class RoutineNode extends NodeBase {
+  public static readonly contextValue: string = 'routineNode';
   constructor(public readonly label: string, public readonly fullName: string) {
     super(label);
   }

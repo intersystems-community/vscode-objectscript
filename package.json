@@ -44,6 +44,7 @@
   "main": "./out/extension",
   "contributes": {
     "menus": {
+      "commandPalette": [],
       "view/title": [
         {
           "command": "vscode-objectscript.explorer.refresh",
@@ -57,6 +58,20 @@
         {
           "command": "vscode-objectscript.explorer.hideSystem",
           "when": "view == ObjectScriptExplorer && vscode-objectscript.explorer.showSystem"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "vscode-objectscript.explorer.export",
+          "when": "view == ObjectScriptExplorer && viewItem == packageNode"
+        },
+        {
+          "command": "vscode-objectscript.explorer.export",
+          "when": "view == ObjectScriptExplorer && viewItem == classNode"
+        },
+        {
+          "command": "vscode-objectscript.explorer.export",
+          "when": "view == ObjectScriptExplorer && viewItem == routineNode"
         }
       ],
       "touchBar": [
@@ -135,11 +150,18 @@
       },
       {
         "command": "vscode-objectscript.explorer.showSystem",
-        "title": "Show system objects"
+        "title": "Show system objects",
+        "category": "ObjecScript"
       },
       {
         "command": "vscode-objectscript.explorer.hideSystem",
-        "title": "Hide system objects"
+        "title": "Hide system objects",
+        "category": "ObjecScript"
+      },
+      {
+        "command": "vscode-objectscript.explorer.export",
+        "title": "Export",
+        "category": "ObjecScript"
       },
       {
         "command": "vscode-objectscript.explorer.refresh",
@@ -149,14 +171,6 @@
           "light": "images/light/refresh.svg",
           "dark": "images/dark/refresh.svg"
         }
-      },
-      {
-        "command": "vscode-objectscript.explorer.openClass",
-        "title": "Open class"
-      },
-      {
-        "command": "vscode-objectscript.explorer.openRoutine",
-        "title": "Open routine"
       },
       {
         "category": "ObjectScript",
