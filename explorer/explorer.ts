@@ -1,18 +1,27 @@
-import * as vscode from "vscode";
-import { NodeBase } from "./models/nodeBase";
-import { RootNode } from "./models/rootNode";
+import * as vscode from 'vscode';
+import { NodeBase } from './models/nodeBase';
+import { RootNode } from './models/rootNode';
+import { AtelierAPI } from './../api';
 
-export class COSExplorerProvider implements vscode.TreeDataProvider<NodeBase>, vscode.TextDocumentContentProvider {
+import { config } from '../extension';
+
+export class ObjectScriptExplorerProvider
+  implements vscode.TreeDataProvider<NodeBase>, vscode.TextDocumentContentProvider {
   onDidChange?: vscode.Event<vscode.Uri>;
   private _onDidChangeTreeData: vscode.EventEmitter<NodeBase> = new vscode.EventEmitter<NodeBase>();
   readonly onDidChangeTreeData: vscode.Event<NodeBase> = this._onDidChangeTreeData.event;
   private _classesNode: RootNode;
   private _routinesNode: RootNode;
-  private _api;
-  private _namespace: string;
+  private _api: AtelierAPI;
   private _showSystem = false;
 
-  constructor() {}
+  private get _namespace(): string {
+    return config().conn.ns;
+  }
+
+  constructor() {
+    this._api = new AtelierAPI();
+  }
 
   get showSystem(): boolean {
     return this._showSystem;
@@ -20,12 +29,6 @@ export class COSExplorerProvider implements vscode.TreeDataProvider<NodeBase>, v
 
   set showSystem(value) {
     this._showSystem = value;
-    this._onDidChangeTreeData.fire(null);
-  }
-
-  setAPI(api, namespace: string): void {
-    this._api = api;
-    this._namespace = namespace;
     this._onDidChangeTreeData.fire(null);
   }
 
@@ -50,13 +53,13 @@ export class COSExplorerProvider implements vscode.TreeDataProvider<NodeBase>, v
     let node: RootNode;
     let data: any;
 
-    data = await this.getDocNames("CLS");
-    node = new RootNode("Classes", "classesRootNode", this._onDidChangeTreeData, data);
+    data = await this.getDocNames('CLS');
+    node = new RootNode('Classes', 'classesRootNode', this._onDidChangeTreeData, data);
     this._classesNode = node;
     rootNodes.push(node);
 
-    data = await this.getDocNames("RTN");
-    node = new RootNode("Routines", "routinesRootNode", this._onDidChangeTreeData, data);
+    data = await this.getDocNames('RTN');
+    node = new RootNode('Routines', 'routinesRootNode', this._onDidChangeTreeData, data);
     this._routinesNode = node;
     rootNodes.push(node);
 
@@ -65,38 +68,24 @@ export class COSExplorerProvider implements vscode.TreeDataProvider<NodeBase>, v
 
   getDocNames(category: string): Promise<any> {
     const excludeSystem =
-      this._showSystem || this._namespace === "%SYS"
+      this._showSystem || this._namespace === '%SYS'
         ? () => true
-        : ({ db }) => !["IRISLIB", "IRISSYS", "CACHELIB", "CACHESYS"].includes(db);
+        : ({ db }) => !['IRISLIB', 'IRISSYS', 'CACHELIB', 'CACHESYS'].includes(db);
 
-    return new Promise((resolve, reject) => {
-      this._api.getDocNames(
-        {
-          category
-        },
-        (error, data) => {
-          if (error) {
-            reject(error);
-          } else {
-            let content = data.result.content;
-            content = content.filter(excludeSystem);
-            resolve(content);
-          }
-        }
-      );
-    });
+    return this._api
+      .getDocNames({
+        category
+      })
+      .then(data => {
+        let content = data.result.content;
+        return content.filter(excludeSystem);
+      });
   }
 
   provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
-    let fileName = uri.path.split("/")[1];
-    return new Promise((resolve, reject) => {
-      this._api.getDoc(fileName, (error, data) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(data.result.content.join("\n"));
-        }
-      });
+    let fileName = uri.path.split('/')[1];
+    return this._api.getDoc(fileName).then(data => {
+      return data.result.content.join('\n');
     });
   }
 }

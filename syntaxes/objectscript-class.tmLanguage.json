@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-  "name": "cachéobjectscript",
-  "scopeName": "source.cos",
+  "name": "objectscriptclass",
+  "scopeName": "source.objectscript-class",
   "patterns": [
     {
       "include": "#comments"
@@ -172,7 +172,7 @@
                   "name": "keyword.operator.as.cos"
                 },
                 "2": {
-                  "name" : "entity.name.variable.cos"
+                  "name": "entity.name.variable.cos"
                 }
               }
             }
@@ -180,7 +180,8 @@
         }
       ]
     },
-    "dotted-attrs": { "comment": "WTF?",
+    "dotted-attrs": {
+      "comment": "WTF?",
       "match": "((%|\\w|\\.|#)+)",
       "captures": {
         "1": {
@@ -192,7 +193,7 @@
       "patterns": [
         { "include": "#properties" },
         { "include": "#parameters" },
-        { "include": "#indices"},
+        { "include": "#indices" },
         { "include": "#relationship" },
         { "include": "#foreignkey" },
         { "include": "#classes" },
@@ -201,7 +202,6 @@
         { "include": "#xml-data" },
         { "include": "#keywords" },
         { "include": "#variables" }
-        
       ]
     },
     "properties": {
@@ -300,11 +300,13 @@
         }
       },
       "end": ";\\s*$",
-      "patterns": [ 
-        { "comment": "FK props \"ForeignKey TestKey(Propeties)\"",
-          "begin": "\\(", "end":"\\)",
+      "patterns": [
+        {
+          "comment": "FK props \"ForeignKey TestKey(Propeties)\"",
+          "begin": "\\(",
+          "end": "\\)",
           "patterns": [
-            { 
+            {
               "match": "(\\w+)",
               "captures": {
                 "1": { "name": "variable.parameter.cos" }
@@ -312,14 +314,16 @@
             }
           ]
         },
-        { "comment": "FK references",
-          "begin": "(?i)(References)\\s+(\\w+)\\s*\\(", "end": "\\)",
+        {
+          "comment": "FK references",
+          "begin": "(?i)(References)\\s+(\\w+)\\s*\\(",
+          "end": "\\)",
           "beginCaptures": {
             "1": { "name": "storage.type.cos" },
             "2": { "name": "entity.name.cos" }
-          }, 
+          },
           "patterns": [
-            { 
+            {
               "match": "(\\w+)",
               "captures": {
                 "1": { "name": "variable.parameter.cos" }
@@ -327,10 +331,12 @@
             }
           ]
         },
-        { "comment": "FK options",
-          "begin": "\\[", "end": "\\]",
+        {
+          "comment": "FK options",
+          "begin": "\\[",
+          "end": "\\]",
           "patterns": [
-            { 
+            {
               "match": "(\\w+)",
               "captures": {
                 "1": { "name": "variable.parameter.cos" }
@@ -338,12 +344,8 @@
             }
           ]
         }
-
-
       ]
     },
-
-
 
     "as-keywords": {
       "match": "\\b(?i)(As)\\b",
@@ -377,10 +379,9 @@
           "include": "#dotted-attrs"
         },
         {
-          "begin": "\\{", "end": "\\}",
-          "patterns": [
-            { "include": "#class-content" }
-          ]
+          "begin": "\\{",
+          "end": "\\}",
+          "patterns": [{ "include": "#class-content" }]
         }
       ]
     },
@@ -415,9 +416,11 @@
         { "include": "#method-params" },
         { "include": "#as-keywords" },
         { "include": "#dotted-attrs" },
-        { "comment": "method options [SqlProc, etc...]", 
-          "begin": "\\[", "end": "\\]",
-          "patterns":[
+        {
+          "comment": "method options [SqlProc, etc...]",
+          "begin": "\\[",
+          "end": "\\]",
+          "patterns": [
             {
               "match": "(\\w+)",
               "captures": {
@@ -426,14 +429,11 @@
             }
           ]
         },
-        { "comment": "method body",
-          "begin": "\\{", "end": "\\}",
-          "patterns": [ 
-            { "include": "comments" },
-            { "include": "#keywords" },
-            { "include": "#variables" }
-    
-          ]
+        {
+          "comment": "method body",
+          "begin": "\\{",
+          "end": "\\}",
+          "patterns": [{ "include": "comments" }, { "include": "#keywords" }, { "include": "#variables" }]
         }
       ]
     },
@@ -485,45 +485,52 @@
 
     "class-query": {
       "comment": "query definition line",
-      "begin": "^\\s*(?i)(Query)\\s+([%A-Za-z0-9.]+)", "end": "}",
+      "begin": "^\\s*(?i)(Query)\\s+([%A-Za-z0-9.]+)",
+      "end": "}",
       "beginCaptures": {
         "1": { "name": "storage.type.cos" },
         "2": { "name": "entity.name.cos" }
       },
       "patterns": [
-        { "comment": "query arguments \"(id as %String)\"",
-          "begin": "\\(", "end": "\\)",
-          "patterns":[
-
-            { "comment": "query-argument. just name ",
+        {
+          "comment": "query arguments \"(id as %String)\"",
+          "begin": "\\(",
+          "end": "\\)",
+          "patterns": [
+            {
+              "comment": "query-argument. just name ",
               "match": "(\\w+)",
               "captures": {
                 "1": { "name": "variable.parameter.cos" }
               }
             }
-
           ]
         },
-        { "comment": "query type \"As %SQLQuery\"",
+        {
+          "comment": "query type \"As %SQLQuery\"",
           "match": "\\s+(?i)(As)\\s+([%A-Za-z0-9.]+)\\s*",
           "captures": {
             "1": { "name": "keyword.operator.as.cos" },
             "2": { "name": "variable.other.cos" }
-          } 
+          }
         },
-        { "comment": "query options \"(CONTAINID = 1, EXTENT = 1)\"",
-          "begin": "\\(", "end": "\\)",
+        {
+          "comment": "query options \"(CONTAINID = 1, EXTENT = 1)\"",
+          "begin": "\\(",
+          "end": "\\)",
           "patterns": [
             {
               "match": "(\\w+)",
               "captures": {
-              "1": { "name": "variable.parameter.cos" }
+                "1": { "name": "variable.parameter.cos" }
               }
-            }  
+            }
           ]
         },
-        { "comment": "query properties \"[SqlName = test, SqlProc]\"",
-          "begin": "\\[", "end": "\\]",
+        {
+          "comment": "query properties \"[SqlName = test, SqlProc]\"",
+          "begin": "\\[",
+          "end": "\\]",
           "patterns": [
             {
               "match": "(\\w+)",
@@ -533,11 +540,7 @@
             }
           ]
         },
-        { "comment": "SQL Query block",
-          "begin": "\\{", "end": "(?=})",
-          "patterns": [{ "include": "#expressions" }] 
-        }
-
+        { "comment": "SQL Query block", "begin": "\\{", "end": "(?=})", "patterns": [{ "include": "#expressions" }] }
       ]
     },
 
@@ -627,10 +630,7 @@
     },
     "variables": {
       "patterns": [
-        { "comment": "shortcut to this class members",
-          "match": "\\.\\.\\w+",
-          "name": "entity.name.cos"
-        },
+        { "comment": "shortcut to this class members", "match": "\\.\\.\\w+", "name": "entity.name.cos" },
         {
           "match": "\\^\\w+",
           "name": "variable.other.global.cos"
@@ -639,10 +639,7 @@
           "match": "\\$\\w+(\\.\\w+)*",
           "name": "keyword.other.system.cos"
         },
-        { "comment": "macros \"$$$SOME\" ",
-          "match": "\\$\\$\\$\\w+",
-          "name": "constant.other.macros.cos"
-        },
+        { "comment": "macros \"$$$SOME\" ", "match": "\\$\\$\\$\\w+", "name": "constant.other.macros.cos" },
         {
           "include": "#strings"
         }

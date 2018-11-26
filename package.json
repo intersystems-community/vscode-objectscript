@@ -1,16 +1,16 @@
 {
   "name": "vscode-cos",
-  "displayName": "Caché ObjectScript",
-  "description": "Caché ObjectScript language support for Visual Studio Code",
+  "displayName": "InterSystems ObjectScript",
+  "description": "InterSystems ObjectScript language support for Visual Studio Code",
   "version": "0.6.1",
   "icon": "images/logo.png",
   "categories": [
-    "Languages",
+    "Programming Languages",
     "Other"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/doublefint/vscode-cos.git"
+    "url": "https://github.com/doublefint/vscode-objectscript.git"
   },
   "publisher": "doublefint",
   "contributors": [
@@ -24,47 +24,75 @@
     }
   ],
   "engines": {
-    "vscode": "^1.21.0"
+    "vscode": "^1.29.0"
   },
   "activationEvents": [
-    "*"
+    "onCommand:vscode-objectscript.export",
+    "onCommand:vscode-objectscript.compile",
+    "onCommand:vscode-objectscript.viewOthers",
+    "onCommand:vscode-objectscript.explorer.refresh",
+    "onCommand:vscode-objectscript.explorer.openClass",
+    "onCommand:vscode-objectscript.explorer.openRoutine",
+    "onCommand:vscode-objectscript.explorer.hideSystem",
+    "onLanguage:objectscript-class",
+    "onLanguage:objectscript-routine",
+    "onLanguage:objectscript-include",
+    "onView:ObjectScriptExplorer",
+    "onFileSystem:objectscript",
+    "onDebugInitialConfigurations"
   ],
   "main": "./out/extension",
   "contributes": {
     "menus": {
       "view/title": [
         {
-          "command": "vscode-cos.explorer.refresh",
-          "when": "view == cosExplorer",
+          "command": "vscode-objectscript.explorer.refresh",
+          "when": "view == ObjectScriptExplorer",
           "group": "navigation"
         },
         {
-          "command": "vscode-cos.explorer.showSystem",
-          "when": "view == cosExplorer && !vscode-cos.explorer.showSystem"
+          "command": "vscode-objectscript.explorer.showSystem",
+          "when": "view == ObjectScriptExplorer && !vscode-objectscript.explorer.showSystem"
         },
         {
-          "command": "vscode-cos.explorer.hideSystem",
-          "when": "view == cosExplorer && vscode-cos.explorer.showSystem"
+          "command": "vscode-objectscript.explorer.hideSystem",
+          "when": "view == ObjectScriptExplorer && vscode-objectscript.explorer.showSystem"
+        }
+      ],
+      "touchBar": [
+        {
+          "command": "vscode-objectscript.compile",
+          "group": "ObjectScript",
+          "when": "editorLangId =~ /^objectscript-/"
         }
       ]
     },
     "languages": [
       {
-        "id": "cacheobjectscript",
+        "id": "objectscript-class",
         "aliases": [
-          "COS"
+          "ObjectScript Class"
         ],
         "extensions": [
-          ".cls",
+          ".cls"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "objectscript-routine",
+        "aliases": [
+          "ObjectScript Routine"
+        ],
+        "extensions": [
           ".mac",
           ".int"
         ],
         "configuration": "./language-configuration.json"
       },
       {
-        "id": "cacheobjectscriptinclude",
+        "id": "objectscript-include",
         "aliases": [
-          "COS.INC"
+          "ObjectScript Include"
         ],
         "extensions": [
           ".inc"
@@ -74,172 +102,188 @@
     ],
     "grammars": [
       {
-        "language": "cacheobjectscript",
-        "scopeName": "source.cos",
-        "path": "syntaxes/cos.tmLanguage.json"
+        "language": "objectscript-class",
+        "scopeName": "source.objectscript-class",
+        "path": "syntaxes/objectscript-class.tmLanguage.json"
       },
       {
-        "language": "cacheobjectscriptinclude",
-        "scopeName": "source.cosinc",
-        "path": "syntaxes/cosinc.tmLanguage.json"
+        "language": "objectscript-routine",
+        "scopeName": "source.objectscript",
+        "path": "syntaxes/objectscript.tmLanguage.json"
+      },
+      {
+        "language": "objectscript-include",
+        "scopeName": "source.objectscript-include",
+        "path": "syntaxes/objectscript-include.tmLanguage.json"
       }
     ],
     "commands": [
       {
-        "category": "COS",
-        "command": "cos.export",
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.export",
         "title": "Export sources"
       },
       {
-        "category": "COS",
-        "command": "cos.compile",
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.compile",
         "title": "Import and compile current file"
       },
       {
-        "command": "vscode-cos.explorer.showSystem",
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.compileWithFlags",
+        "title": "Import and compile current file with specified flags"
+      },
+      {
+        "command": "vscode-objectscript.explorer.showSystem",
         "title": "Show system objects"
       },
       {
-        "command": "vscode-cos.explorer.hideSystem",
+        "command": "vscode-objectscript.explorer.hideSystem",
         "title": "Hide system objects"
       },
       {
-        "command": "vscode-cos.explorer.refresh",
+        "command": "vscode-objectscript.explorer.refresh",
         "title": "Refresh Explorer",
-        "category": "COS",
+        "category": "ObjectScript",
         "icon": {
           "light": "images/light/refresh.svg",
           "dark": "images/dark/refresh.svg"
         }
       },
       {
-        "command": "vscode-cos.explorer.openClass",
+        "command": "vscode-objectscript.explorer.openClass",
         "title": "Open class"
       },
       {
-        "command": "vscode-cos.explorer.openRoutine",
+        "command": "vscode-objectscript.explorer.openRoutine",
         "title": "Open routine"
       },
       {
-        "category": "COS",
-        "command": "vscode-cos.viewother",
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.viewOthers",
         "title": "View other"
       }
     ],
     "keybindings": [
       {
-        "command": "cos.compile",
+        "command": "vscode-objectscript.compile",
         "key": "Ctrl+F7",
-        "mac": "Cmd+F7"
+        "mac": "Cmd+F7",
+        "when": "editorLangId =~ /^objectscript-/"
       },
       {
-        "command": "vscode-cos.viewother",
+        "command": "vscode-objectscript.viewOthers",
         "key": "Ctrl+Shift+V",
         "mac": "Cmd+Shift+V",
-        "when": "editorLangId == 'cacheobjectscript'"
+        "when": "editorLangId =~ /^objectscript-/"
       }
     ],
     "configuration": {
-      "title": "CacheObjectScript Configuration",
+      "title": "InterSystems ObjectScript Configuration",
       "type": "object",
       "properties": {
-        "cos.conn": {
+        "objectscript.conn": {
           "type": "object",
           "description": "Server Access"
         },
-        "cos.conn.label": {
+        "objectscript.conn.label": {
           "description": "Server Name",
           "type": "string",
           "default": "LOCAL"
         },
-        "cos.conn.host": {
+        "objectscript.conn.host": {
           "description": "Hostname",
           "format": "hostname",
           "type": "string",
           "default": "127.0.0.1"
         },
-        "cos.conn.port": {
+        "objectscript.conn.port": {
           "description": "Port number",
           "type": "number",
           "default": 57772
         },
-        "cos.conn.username": {
+        "objectscript.conn.username": {
           "description": "Username",
           "type": "string",
           "default": "_SYSTEM"
         },
-        "cos.conn.password": {
+        "objectscript.conn.password": {
           "description": "User's Password",
           "type": "string",
           "default": "SYS"
         },
-        "cos.conn.path": {
+        "objectscript.conn.path": {
           "description": "API Atelier path",
           "type": "string",
           "default": "/api/atelier/"
         },
-        "cos.conn.version": {
+        "objectscript.conn.version": {
           "description": "API Atelier Version",
           "type": "string",
           "default": "v1"
         },
-        "cos.conn.ns": {
+        "objectscript.conn.ns": {
           "description": "Server Namespace",
           "type": "string",
           "default": "SAMPLES"
         },
-        "cos.conn.https": {
+        "objectscript.conn.https": {
           "description": "Use SSL to access to API",
           "type": "boolean",
           "default": false
         },
-        "cos.export": {
+        "objectscript.export": {
           "type": "object",
           "description": "Export only the necessary stuff "
         },
-        "cos.export.folder": {
+        "objectscript.export.folder": {
           "description": "folder for source code",
           "type": "string",
           "default": "src"
         },
-        "cos.export.atelier": {
+        "objectscript.export.atelier": {
           "description": "export source code as Atelier it does ( packages to subfolders )",
           "type": "boolean",
-          "default": false
+          "default": true
         },
-        "cos.export.generated": {
+        "objectscript.export.generated": {
           "description": "Specifies that generated source code files should be exported",
           "type": "boolean",
           "default": false
         },
-        "cos.export.filter": {
+        "objectscript.export.filter": {
           "description": "SQL filter that can be used to match the names",
           "type": "string",
           "default": ""
         },
-        "cos.export.category": {
+        "objectscript.export.category": {
           "description": "Specifies a category: CLS = classes; RTN = routines; CSP = csp files; OTH = other. Default is *",
           "type": "string",
           "default": "*"
         },
-        "cos.autoCompile": {
+        "objectscript.autoCompile": {
           "description": "Autocompile on save file",
           "type": "boolean",
           "default": false
         },
-        "cos.showExplorer": {
+        "objectscript.showExplorer": {
           "type": "boolean",
           "default": true,
           "description": "Show or hide the Explorer."
+        },
+        "objectscript.compileFlags": {
+          "type": "string",
+          "default": "cuk",
+          "description": "Compilation flags."
         }
       }
     },
     "views": {
-      "cosView": [
+      "ObjectScriptView": [
         {
-          "id": "cosExplorer",
+          "id": "ObjectScriptExplorer",
           "name": "Explorer",
-          "when": "config.cos.showExplorer == true"
+          "when": "config.objectscript.showExplorer == true"
         }
       ]
     },
@@ -247,8 +291,8 @@
       "activitybar": [
         {
           "icon": "images/InterSystems.svg",
-          "id": "cosView",
-          "title": "COS"
+          "id": "ObjectScriptView",
+          "title": "ObjectScript"
         }
       ]
     }
@@ -264,17 +308,17 @@
     "all": "npm i && npm run lint && npm test"
   },
   "devDependencies": {
-    "@types/glob": "^5.0.35",
-    "@types/node": "^10.5.2",
-    "eslint": "^4.18.2",
-    "tape": "^4.9.0",
-    "tslint": "^5.10.0",
-    "tslint-microsoft-contrib": "^5.0.3",
-    "typescript": "^2.9.2",
+    "@types/glob": "^7.1.1",
+    "@types/node": "^10.12.10",
+    "eslint": "^5.9.0",
+    "tape": "^4.9.1",
+    "tslint": "^5.11.0",
+    "tslint-microsoft-contrib": "^5.2.1",
+    "typescript": "^3.1.6",
     "typings": "^2.1.1",
-    "vscode": "^1.1.12"
+    "vscode": "^1.1.21"
   },
   "dependencies": {
-    "cos-api4node": "^2.1.4"
+    "cos-api4node": "^2.1.5"
   }
 }

@@ -1,0 +1,702 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "objectscript",
+  "scopeName": "source.objectscript",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#directives"
+    },
+    {
+      "include": "#statements"
+    },
+    {
+      "include": "text.xml"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.character.cos",
+          "begin": "\\s*\\/\\/\\/",
+          "end": "$",
+          "patterns": [
+            {
+              "include": "text.xml"
+            }
+          ]
+        },
+        {
+          "name": "comment.line.double-slash.cos",
+          "begin": "\\s*\\/\\/",
+          "end": "$",
+          "patterns": [
+            {
+              "include": "text.xml"
+            }
+          ]
+        },
+        {
+          "name": "comment.line.number.cos",
+          "begin": "\\s*#;",
+          "end": "$",
+          "patterns": [
+            {
+              "include": "text.xml"
+            }
+          ]
+        },
+        {
+          "name": "comment.block.documentation.cos",
+          "begin": "\\/\\*",
+          "end": "\\*\\/",
+          "patterns": [
+            {
+              "include": "text.xml"
+            }
+          ]
+        },
+        {
+          "name": "comment.line.semicolon.cos",
+          "begin": ";",
+          "end": "$",
+          "patterns": [
+            {
+              "include": "text.xml"
+            }
+          ]
+        }
+      ]
+    },
+    "directives": {
+      "patterns": [
+        {
+          "include": "#include-directives"
+        },
+        {
+          "include": "#define-directives"
+        }
+      ]
+    },
+    "include-directives": {
+      "begin": "\\s*(?i)(#?include)\\s*",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.other.include.cos"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "include": "#dotted-attrs"
+        }
+      ]
+    },
+    "define-directives": {
+      "patterns": [
+        {
+          "begin": "^\\s*(?i)(#\\s*define)\\s+",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.other.define.cos"
+            }
+          },
+          "end": "$",
+          "patterns": [
+            {
+              "match": "[a-zA-Z0-9%\\(\\)+\\-*=]+",
+              "name": "constant.other.macros.cos"
+            }
+          ]
+        },
+        {
+          "begin": "^\\s*(?i)(#ifdef)\\s*(\\w+)",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.other.ifdef.cos"
+            },
+            "2": {
+              "name": "constant.other.ifdef.cos"
+            }
+          },
+          "end": "$"
+        },
+        {
+          "match": "^\\s*(?i)(#else|#endif)",
+          "captures": {
+            "1": {
+              "name": "keyword.other.else-endif.cos"
+            }
+          }
+        },
+        {
+          "begin": "^\\s*(?i)(#dim)\\s*([\\w,]+)",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.other.dim.cos"
+            },
+            "2": {
+              "name": "variable.other.cos"
+            }
+          },
+          "end": "$",
+          "patterns": [
+            {
+              "match": "=\\s*(\\w+)",
+              "name": "entity.name.variable.equals.cos"
+            },
+            {
+              "match": "(?i)\\b(as)\\b\\s*\\b(list|array)\\b\\s*\\b(of)\\b\\s*\\b(\\w+)\\b",
+              "captures": {
+                "1": {
+                  "name": "keyword.operator.as.cos"
+                },
+                "2": {
+                  "name": "entity.name.variable.list-array.cos"
+                },
+                "3": {
+                  "name": "keyword.operator.of.cos"
+                },
+                "4": {
+                  "name": "entity.name.variable.cos"
+                }
+              }
+            },
+            {
+              "match": "(?i)\\b(as)\\b\\s*\\b(\\w+)\\b",
+              "captures": {
+                "1": {
+                  "name": "keyword.operator.as.cos"
+                },
+                "2": {
+                  "name": "entity.name.variable.cos"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "dotted-attrs": {
+      "comment": "WTF?",
+      "match": "((%|\\w|\\.|#)+)",
+      "captures": {
+        "1": {
+          "name": "variable.language.cos"
+        }
+      }
+    },
+    "statements": {
+      "patterns": [
+        { "include": "#properties" },
+        { "include": "#parameters" },
+        { "include": "#indices" },
+        { "include": "#relationship" },
+        { "include": "#foreignkey" },
+        { "include": "#classes" },
+        { "include": "#methods" },
+        { "include": "#class-query" },
+        { "include": "#xml-data" },
+        { "include": "#keywords" },
+        { "include": "#variables" }
+      ]
+    },
+    "properties": {
+      "begin": "^\\s*(?i)(Property)\\s+(\\w+)",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.cos"
+        },
+        "2": {
+          "name": "entity.name.cos"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "include": "#as-keywords"
+        },
+        {
+          "include": "#dotted-attrs"
+        }
+      ]
+    },
+    "parameters": {
+      "begin": "^\\s*(?i)(Parameter)\\s+(\\w+)",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.cos"
+        },
+        "2": {
+          "name": "entity.name.cos"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "include": "#as-keywords"
+        },
+        {
+          "include": "#dotted-attrs"
+        }
+      ]
+    },
+    "indices": {
+      "begin": "^\\s*(?i)(Index)\\s+(\\w+)",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.cos"
+        },
+        "2": {
+          "name": "entity.name.cos"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "match": "\\b(?i)(ON)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.on.cos"
+            }
+          }
+        },
+        {
+          "include": "#dotted-attrs"
+        }
+      ]
+    },
+    "relationship": {
+      "begin": "^\\s*(?i)(Relationship)\\s+(\\w+)",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.cos"
+        },
+        "2": {
+          "name": "entity.name.cos"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "include": "#as-keywords"
+        },
+        {
+          "include": "#dotted-attrs"
+        }
+      ]
+    },
+    "foreignkey": {
+      "begin": "^\\s*(?i)(ForeignKey)\\s+(\\w+)",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.cos"
+        },
+        "2": {
+          "name": "entity.name.cos"
+        }
+      },
+      "end": ";\\s*$",
+      "patterns": [
+        {
+          "comment": "FK props \"ForeignKey TestKey(Propeties)\"",
+          "begin": "\\(",
+          "end": "\\)",
+          "patterns": [
+            {
+              "match": "(\\w+)",
+              "captures": {
+                "1": { "name": "variable.parameter.cos" }
+              }
+            }
+          ]
+        },
+        {
+          "comment": "FK references",
+          "begin": "(?i)(References)\\s+(\\w+)\\s*\\(",
+          "end": "\\)",
+          "beginCaptures": {
+            "1": { "name": "storage.type.cos" },
+            "2": { "name": "entity.name.cos" }
+          },
+          "patterns": [
+            {
+              "match": "(\\w+)",
+              "captures": {
+                "1": { "name": "variable.parameter.cos" }
+              }
+            }
+          ]
+        },
+        {
+          "comment": "FK options",
+          "begin": "\\[",
+          "end": "\\]",
+          "patterns": [
+            {
+              "match": "(\\w+)",
+              "captures": {
+                "1": { "name": "variable.parameter.cos" }
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    "as-keywords": {
+      "match": "\\b(?i)(As)\\b",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.as.cos"
+        }
+      }
+    },
+    "classes": {
+      "begin": "^\\s*(?i)(Class)\\s+([%|A-Za-z][A-Za-z0-9.]+)",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.cos"
+        },
+        "2": {
+          "name": "entity.name.cos"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "match": "\\b(?i)(Extends)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.extends.cos"
+            }
+          }
+        },
+        {
+          "include": "#dotted-attrs"
+        },
+        {
+          "begin": "\\{",
+          "end": "\\}",
+          "patterns": [{ "include": "#class-content" }]
+        }
+      ]
+    },
+    "class-content": {
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#properties" },
+        { "include": "#parameters" },
+        { "include": "#indices" },
+        { "include": "#relationship" },
+        { "include": "#foreignkey" },
+        { "include": "#methods" },
+        { "include": "#class-query" },
+        { "include": "#xml-data" },
+        { "include": "#keywords" },
+        { "include": "#variables" }
+      ]
+    },
+
+    "methods": {
+      "begin": "^\\s*(?i)(Method|ClassMethod|ClientMethod)\\s+(\\w+)",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.cos"
+        },
+        "2": {
+          "name": "entity.name.cos"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        { "include": "#method-params" },
+        { "include": "#as-keywords" },
+        { "include": "#dotted-attrs" },
+        {
+          "comment": "method options [SqlProc, etc...]",
+          "begin": "\\[",
+          "end": "\\]",
+          "patterns": [
+            {
+              "match": "(\\w+)",
+              "captures": {
+                "1": { "name": "variable.other.cos" }
+              }
+            }
+          ]
+        },
+        {
+          "comment": "method body",
+          "begin": "\\{",
+          "end": "\\}",
+          "patterns": [{ "include": "comments" }, { "include": "#keywords" }, { "include": "#variables" }]
+        }
+      ]
+    },
+    "method-params": {
+      "begin": "\\(",
+      "end": "\\)",
+      "patterns": [
+        {
+          "match": "(\\w+)\\s*(As)\\s*((\\w|%|\\.)+)\\s*=\\s*([\\w\\{\\}\\$]+)",
+          "captures": {
+            "1": {
+              "name": "variable.parameter.method-param.cos"
+            },
+            "2": {
+              "name": "keyword.operator.as-method-param.cos"
+            },
+            "3": {
+              "name": "storage.type.method.cos"
+            },
+            "5": {
+              "name": "entity.name.variable.equals.cos"
+            }
+          }
+        },
+        {
+          "match": "(\\w+)\\s*(As)\\s*((\\w|%|\\.)+)",
+          "captures": {
+            "1": {
+              "name": "variable.parameter.method-param.cos"
+            },
+            "2": {
+              "name": "keyword.operator.as-method-param.cos"
+            },
+            "3": {
+              "name": "storage.type.method.cos"
+            }
+          }
+        },
+        {
+          "match": "(\\w+)",
+          "captures": {
+            "1": {
+              "name": "variable.parameter.method-param.cos"
+            }
+          }
+        }
+      ]
+    },
+
+    "class-query": {
+      "comment": "query definition line",
+      "begin": "^\\s*(?i)(Query)\\s+([%A-Za-z0-9.]+)",
+      "end": "}",
+      "beginCaptures": {
+        "1": { "name": "storage.type.cos" },
+        "2": { "name": "entity.name.cos" }
+      },
+      "patterns": [
+        {
+          "comment": "query arguments \"(id as %String)\"",
+          "begin": "\\(",
+          "end": "\\)",
+          "patterns": [
+            {
+              "comment": "query-argument. just name ",
+              "match": "(\\w+)",
+              "captures": {
+                "1": { "name": "variable.parameter.cos" }
+              }
+            }
+          ]
+        },
+        {
+          "comment": "query type \"As %SQLQuery\"",
+          "match": "\\s+(?i)(As)\\s+([%A-Za-z0-9.]+)\\s*",
+          "captures": {
+            "1": { "name": "keyword.operator.as.cos" },
+            "2": { "name": "variable.other.cos" }
+          }
+        },
+        {
+          "comment": "query options \"(CONTAINID = 1, EXTENT = 1)\"",
+          "begin": "\\(",
+          "end": "\\)",
+          "patterns": [
+            {
+              "match": "(\\w+)",
+              "captures": {
+                "1": { "name": "variable.parameter.cos" }
+              }
+            }
+          ]
+        },
+        {
+          "comment": "query properties \"[SqlName = test, SqlProc]\"",
+          "begin": "\\[",
+          "end": "\\]",
+          "patterns": [
+            {
+              "match": "(\\w+)",
+              "captures": {
+                "1": { "name": "variable.other.cos" }
+              }
+            }
+          ]
+        },
+        { "comment": "SQL Query block", "begin": "\\{", "end": "(?=})", "patterns": [{ "include": "#expressions" }] }
+      ]
+    },
+
+    "keywords": {
+      "patterns": [
+        {
+          "include": "#action-keywords"
+        },
+        {
+          "include": "#control-keywords"
+        },
+        {
+          "include": "#system-functions"
+        },
+        {
+          "include": "#keyword-operator-logical"
+        },
+        {
+          "include": "#sql-keyword"
+        },
+        {
+          "include": "#class-keyword"
+        }
+      ]
+    },
+    "keyword-operator-logical": {
+      "match": "(&&|&|!|'|\\|\\|)",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.logical.cos"
+        }
+      }
+    },
+    "action-keywords": {
+      "match": "(?i)\\b(SET|S|DO|D|KILL|K|GOTO|G|READ|R|WRITE|W|OPEN|O|USE|U|CLOSE|C|CONTINUE|FOR|F|HALT|HANG|H|JOB|J|LOCK|L|MERGE|M|NEW|N|QUIT|Q|RETURN|RET|TSTART|TS|TCOMMIT|TC|TROLLBACK|TR|THROW|VIEW|V|XECUTE|X|ZKILL|ZK|ZNSPACE|ZN|ZTRAP|ZWRITE|ZW|ZZDUMP|ZZWRITE)\\b",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.action.cos"
+        }
+      }
+    },
+    "control-keywords": {
+      "match": "(?i)\\b(if|i|while|for|f|try|catch|else|e|elseif)\\b",
+      "captures": {
+        "1": {
+          "name": "keyword.control.cos"
+        }
+      }
+    },
+    "system-functions": {
+      "match": "\\.%\\w+",
+      "name": "entity.name.function.system.cos"
+    },
+    "sql-keyword": {
+      "begin": "(&sql)\\(",
+      "beginCaptures": {
+        "1": {
+          "name": "entity.name.function.sql.cos"
+        }
+      },
+      "end": "\\)",
+      "patterns": [
+        {
+          "include": "#expressions"
+        }
+      ]
+    },
+    "class-keyword": {
+      "match": "(##class)\\(((%|\\w|\\.|#)+)\\)",
+      "captures": {
+        "1": {
+          "name": "keyword.other.cos"
+        },
+        "2": {
+          "name": "entity.name.cos"
+        }
+      }
+    },
+    "function-exec": {
+      "match": "\\)\\.(\\w+)",
+      "captures": {
+        "1": {
+          "name": "entity.name.function.ordinary.cos"
+        }
+      },
+      "comment": "TODO: doesn't work"
+    },
+    "variables": {
+      "patterns": [
+        { "comment": "shortcut to this class members", "match": "\\.\\.\\w+", "name": "entity.name.cos" },
+        {
+          "match": "\\^\\w+",
+          "name": "variable.other.global.cos"
+        },
+        {
+          "match": "\\$\\w+(\\.\\w+)*",
+          "name": "keyword.other.system.cos"
+        },
+        { "comment": "macros \"$$$SOME\" ", "match": "\\$\\$\\$\\w+", "name": "constant.other.macros.cos" },
+        {
+          "include": "#strings"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "begin": "(\")",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.string.begin.cos"
+            }
+          },
+          "end": "(\")",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.string.end.cos"
+            }
+          },
+          "name": "string.quoted.double.cos"
+        }
+      ]
+    },
+    "xml-data": {
+      "patterns": [
+        {
+          "match": "^\\s*(?i)(XData|Storage)\\s+(\\w+)",
+          "captures": {
+            "1": {
+              "name": "storage.type.xdata.cos"
+            },
+            "2": {
+              "name": "variable.other.cos"
+            }
+          }
+        }
+      ]
+    },
+    "expressions": {
+      "patterns": [
+        {
+          "begin": "\\(",
+          "end": "\\)",
+          "patterns": [
+            {
+              "include": "#expressions"
+            }
+          ]
+        },
+        {
+          "include": "source.sql"
+        },
+        {
+          "include": "source.js"
+        }
+      ]
+    }
+  }
+}
