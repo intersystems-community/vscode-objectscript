@@ -5,8 +5,7 @@ import { AtelierAPI } from './../api';
 
 import { config } from '../extension';
 
-export class ObjectScriptExplorerProvider
-  implements vscode.TreeDataProvider<NodeBase>, vscode.TextDocumentContentProvider {
+export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<NodeBase> {
   onDidChange?: vscode.Event<vscode.Uri>;
   private _onDidChangeTreeData: vscode.EventEmitter<NodeBase> = new vscode.EventEmitter<NodeBase>();
   readonly onDidChangeTreeData: vscode.Event<NodeBase> = this._onDidChangeTreeData.event;
@@ -80,12 +79,5 @@ export class ObjectScriptExplorerProvider
         let content = data.result.content;
         return content.filter(excludeSystem);
       });
-  }
-
-  provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
-    let fileName = uri.path.split('/')[1];
-    return this._api.getDoc(fileName).then(data => {
-      return data.result.content.join('\n');
-    });
   }
 }

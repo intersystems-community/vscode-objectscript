@@ -34,9 +34,9 @@
     "onCommand:vscode-objectscript.explorer.openClass",
     "onCommand:vscode-objectscript.explorer.openRoutine",
     "onCommand:vscode-objectscript.explorer.hideSystem",
+    "onLanguage:objectscript",
     "onLanguage:objectscript-class",
-    "onLanguage:objectscript-routine",
-    "onLanguage:objectscript-include",
+    "onLanguage:objectscript-macros",
     "onView:ObjectScriptExplorer",
     "onFileSystem:objectscript",
     "onDebugInitialConfigurations"
@@ -84,19 +84,9 @@
     },
     "languages": [
       {
-        "id": "objectscript-class",
+        "id": "objectscript",
         "aliases": [
-          "ObjectScript Class"
-        ],
-        "extensions": [
-          ".cls"
-        ],
-        "configuration": "./language-configuration.json"
-      },
-      {
-        "id": "objectscript-routine",
-        "aliases": [
-          "ObjectScript Routine"
+          "ObjectScript"
         ],
         "extensions": [
           ".mac",
@@ -105,7 +95,17 @@
         "configuration": "./language-configuration.json"
       },
       {
-        "id": "objectscript-include",
+        "id": "objectscript-class",
+        "aliases": [
+          "ObjectScript Class"
+        ],
+        "extensions": [
+          ".cls"
+        ],
+        "configuration": "./language-configuration-class.json"
+      },
+      {
+        "id": "objectscript-macros",
         "aliases": [
           "ObjectScript Include"
         ],
@@ -117,19 +117,34 @@
     ],
     "grammars": [
       {
-        "language": "objectscript-class",
-        "scopeName": "source.objectscript-class",
-        "path": "syntaxes/objectscript-class.tmLanguage.json"
-      },
-      {
-        "language": "objectscript-routine",
+        "language": "objectscript",
         "scopeName": "source.objectscript",
-        "path": "syntaxes/objectscript.tmLanguage.json"
+        "path": "syntaxes/objectscript.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.sql": "sql",
+          "text.html": "html",
+          "text.js": "js"
+        }
       },
       {
-        "language": "objectscript-include",
-        "scopeName": "source.objectscript-include",
-        "path": "syntaxes/objectscript-include.tmLanguage.json"
+        "language": "objectscript-class",
+        "scopeName": "source.objectscript_class",
+        "path": "syntaxes/objectscript-class.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.sql": "sql",
+          "meta.embedded.block.objectscript": "objectscript",
+          "text.xml": "xml",
+          "text.html": "html",
+          "text.js": "js"
+        }
+      },
+      {
+        "language": "objectscript-macros",
+        "scopeName": "source.objectscript_macros",
+        "path": "syntaxes/objectscript-macros.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.preprocessor.objectscript": "source.objectscript"
+        }
       }
     ],
     "commands": [
@@ -313,13 +328,12 @@
   },
   "scripts": {
     "vscode:prepublish": "tsc -p ./",
-    "build": "tsc -p ./",
-    "compile": "tsc -watch -p ./",
+    "package": "vsce package",
+    "compile": "tsc -p ./",
+    "watch": "tsc -w -p ./tsconfig.json",
     "lint": "tslint --project tsconfig.json -t verbose",
     "lint-fix": "tslint --project tsconfig.json -t verbose --fix",
-    "postinstall": "node ./node_modules/vscode/bin/install",
-    "test": "npm run build && node ./node_modules/vscode/bin/test",
-    "all": "npm i && npm run lint && npm test"
+    "postinstall": "node ./node_modules/vscode/bin/install"
   },
   "devDependencies": {
     "@types/glob": "^7.1.1",
@@ -330,9 +344,11 @@
     "tslint-microsoft-contrib": "^5.2.1",
     "typescript": "^3.1.6",
     "typings": "^2.1.1",
+    "vsce": "^1.53.2",
     "vscode": "^1.1.21"
   },
   "dependencies": {
-    "cos-api4node": "^2.1.5"
+    "cos-api4node": "^2.1.5",
+    "vscode-languageclient": "^5.1.1"
   }
 }

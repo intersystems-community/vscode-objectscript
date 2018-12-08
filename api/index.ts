@@ -47,7 +47,7 @@ export class AtelierAPI {
           result.push(`${key}=${value}`);
         }
       });
-      return result.join('&');
+      return result.length ? '?' + result.join('&') : '';
     };
     method = method.toUpperCase();
     if (['PUT', 'POST'].includes(method)) {
@@ -57,8 +57,8 @@ export class AtelierAPI {
     const { host, port, username, password } = this.config;
     const http: any = this.config.https ? httpsModule : httpModule;
     const agent = new http.Agent({ keepAlive: true, maxSockets: 10 });
-    path = encodeURI(`/api/atelier/${path || ''}?${buildParams()}`);
-    console.log('API request', path);
+    path = encodeURI(`/api/atelier/${path || ''}${buildParams()}`);
+    console.log(`API request: ${method} ${path}`);
     return new Promise((resolve, reject) => {
       const req: httpModule.ClientRequest = http
         .request(
@@ -87,6 +87,10 @@ export class AtelierAPI {
                 const json = JSON.parse(body);
                 if (json.console) {
                   outputConsole(json.console);
+                }
+                if (json.result.status) {
+                  reject(new Error(json.result.status));
+                  return;
                 }
                 resolve(json);
               } else {

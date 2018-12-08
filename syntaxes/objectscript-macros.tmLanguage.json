@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-  "name": "objectscriptinclude",
-  "scopeName": "source.objectscript-include",
+  "name": "objectscript_macros",
+  "scopeName": "source.objectscript_macros",
   "patterns": [
     { "include": "#include" },
     { "include": "#define" },
@@ -17,8 +17,8 @@
           "begin": "^\\s*(\\#\\s*(?:(?i)include))\\s+([a-zA-Z%][a-zA-Z0-9]*)",
           "end": "(?=$)",
           "beginCaptures": {
-            "1": { "name": "keyword.other.cos" },
-            "2": { "name": "entity.name.cos" }
+            "1": { "name": "keyword.other.objectscript" },
+            "2": { "name": "entity.name.objectscript" }
           }
         }
       ]
@@ -27,22 +27,22 @@
     "define": {
       "patterns": [
         {
-          "name": "meta.preprocessor.cos",
+          "name": "meta.preprocessor.objectscript",
           "begin": "^\\s*(\\#\\s*(?:(?i)define))\\s+((?<id>[a-zA-Z%][a-zA-Z0-9]*))(?:(\\()(\\s*\\g<id>\\s*((,)\\s*\\g<id>\\s*)*)(\\)))?",
           "beginCaptures": {
-            "1": { "name": "keyword.control.cos" },
-            "2": { "name": "entity.name.cos" },
-            "4": { "name": "punctuation.definition.cos" },
-            "5": { "name": "variable.parameter.cos" },
-            "7": { "name": "punctuation.definition.cos" }
+            "1": { "name": "keyword.control.objectscript" },
+            "2": { "name": "entity.name.objectscript" },
+            "4": { "name": "punctuation.definition.objectscript" },
+            "5": { "name": "variable.parameter.objectscript" },
+            "7": { "name": "punctuation.definition.objectscript" }
           },
           "end": "(?<!\\#\\#continue)\\n",
 
           "patterns": [
             { "include": "#comment-line" },
             { "include": "#continue" },
-            { "include": "#digits" },
-            { "include": "#macros" }
+            { "include": "#macros" },
+            { "include": "source.objectscript" }
           ]
         }
       ]
@@ -51,14 +51,14 @@
     "def1arg": {
       "patterns": [
         {
-          "name": "meta.preprocessor.cos",
+          "name": "meta.preprocessor.objectscript",
           "begin": "^\\s*(\\#\\s*(?:(?i)def1arg))\\s+((?<id>[a-zA-Z%][a-zA-Z0-9]*))(?:(\\()(\\s*\\g<id>\\s*)(\\)))",
           "beginCaptures": {
-            "1": { "name": "keyword.control.cos" },
-            "2": { "name": "entity.name.cos" },
-            "4": { "name": "punctuation.definition.cos" },
-            "5": { "name": "variable.parameter.cos" },
-            "6": { "name": "punctuation.definition.cos" }
+            "1": { "name": "keyword.control.objectscript" },
+            "2": { "name": "entity.name.objectscript" },
+            "4": { "name": "punctuation.definition.objectscript" },
+            "5": { "name": "variable.parameter.objectscript" },
+            "6": { "name": "punctuation.definition.objectscript" }
           },
           "end": "(?<!\\#\\#continue)\\n",
 
@@ -66,7 +66,8 @@
             { "include": "#comment-line" },
             { "include": "#continue" },
             { "include": "#digits" },
-            { "include": "#macros" }
+            { "include": "#macros" },
+            { "include": "source.objectscript" }
           ]
         }
       ]
@@ -75,9 +76,9 @@
     "ifdef": {
       "patterns": [
         {
-          "name": "meta.preprocessor.cos",
+          "contentname": "meta.preprocessor.objectscript",
           "begin": "^\\s*(#\\s*(?i)(?:if|ifdef|ifndef|elif|else|undef|endif))\\b",
-          "beginCaptures": { "1": { "name": "keyword.control.cos" } },
+          "beginCaptures": { "1": { "name": "keyword.control.objectscript" } },
           "end": "(?=(?:;|//|/\\*))|$",
           "patterns": [{ "include": "#digits" }, { "include": "#comment-line" }]
         }
@@ -85,13 +86,7 @@
     },
 
     "continue": {
-      "patterns": [{ "match": "(\\s+\\#\\#(?i)(continue)\\s*)", "name": "keyword.control.cos" }]
-    },
-
-    "digits": {
-      "patterns": [
-        { "match": "\\b((([0-9]+\\.?[0-9]*)|(\\.[0-9]+))((e|E)(\\+|-)?[0-9]+)?)\\b", "name": "constant.numeric.cos" }
-      ]
+      "patterns": [{ "match": "(\\s+\\#\\#(?i)(continue)\\s*)", "name": "keyword.control.objectscript" }]
     },
 
     "macros": {
@@ -100,16 +95,16 @@
 
     "comment-line": {
       "patterns": [
-        { "match": "^///.*$", "name": "comment.line.cos" },
-        { "match": "\\s+//.*$", "name": "comment.line.cos" },
-        { "match": "\\s+;.*$", "name": "comment.line.cos" },
-        { "match": "^\\s*#;.*$", "name": "comment.line.cos" },
+        { "match": "^///.*$", "name": "comment.line.objectscript" },
+        { "match": "\\s+//.*$", "name": "comment.line.objectscript" },
+        { "match": "\\s+;.*$", "name": "comment.line.objectscript" },
+        { "match": "^\\s*#;.*$", "name": "comment.line.objectscript" },
         {
-          "name": "comment.block.cos",
+          "name": "comment.block.objectscript",
           "begin": "/\\*",
           "end": "\\*/",
-          "beginCaptures": { "0": { "name": "punctuation.definition.cos" } },
-          "endCaptures": { "0": { "name": "punctuation.definition.cos" } }
+          "beginCaptures": { "0": { "name": "punctuation.definition.objectscript" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.objectscript" } }
         }
       ]
     }

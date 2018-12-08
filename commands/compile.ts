@@ -19,14 +19,16 @@ async function importFile(file: CurrentFile, flags: string): Promise<any> {
       file.name,
       {
         enc: false,
-        content: file.content.split('\n')
+        content: file.content.split(/\r?\n/)
       },
       true
     )
-    .then(data => {
-      compile(file, flags);
-    })
-    .catch(console.error);
+    .then(data => compile(file, flags))
+    .catch((error: Error) => {
+      outputChannel.appendLine(error.message);
+      outputChannel.show();
+      vscode.window.showErrorMessage(error.message);
+    });
 }
 
 async function loadChanges(file: CurrentFile): Promise<any> {
@@ -40,12 +42,11 @@ async function compile(file: CurrentFile, flags: string): Promise<any> {
     .actionCompile([file.name], flags)
     .then(data => {
       if (data.status && data.status.errors && data.status.errors.length) {
-        outputChannel.show();
-        vscode.window.showErrorMessage(`${file.name}: Compile error`);
+        throw new Error(`${file.name}: Compile error`);
       } else {
         vscode.window.showInformationMessage(`${file.name}: Compile successed`);
-        return file;
       }
+      return file;
     })
     .then(loadChanges);
 }

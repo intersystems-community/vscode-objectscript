@@ -8,6 +8,7 @@ import { exportAll, exportExplorerItem } from './commands/export';
 
 import { ObjectScriptClassSymbolProvider } from './providers/ObjectScriptClassSymbolProvider';
 import { ObjectScriptRoutineSymbolProvider } from './providers/ObjectScriptRoutineSymbolProvider';
+import { DocumentContentProvider } from './providers/DocumentContentProvider';
 
 import { ObjectScriptExplorerProvider } from './explorer/explorer';
 import { outputChannel } from './utils';
@@ -73,13 +74,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       vscode.commands.executeCommand('setContext', 'vscode-objectscript.explorer.showSystem', false);
       explorerProvider.showSystem = false;
     }),
-    vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPT_FILE_SCHEMA, explorerProvider),
+    vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPT_FILE_SCHEMA, new DocumentContentProvider()),
     vscode.languages.registerDocumentSymbolProvider(
       { language: 'objectscript-class' },
       new ObjectScriptClassSymbolProvider()
     ),
     vscode.languages.registerDocumentSymbolProvider(
-      { language: 'objectscript-routine' },
+      { language: 'objectscript' },
       new ObjectScriptRoutineSymbolProvider()
     )
   );
