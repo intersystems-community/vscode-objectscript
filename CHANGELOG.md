@@ -3,6 +3,7 @@
 ## [0.7.2]
 
 - Fixed outline's regions
+- Better code folding
 
 ## [0.7.0]
 
