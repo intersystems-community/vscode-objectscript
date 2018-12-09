@@ -4,6 +4,7 @@
 
 - Fixed outline's regions
 - Better code folding
+- Go-To Definition for some cases (As, Extends, Include, ##class)
 
 ## [0.7.0]
 

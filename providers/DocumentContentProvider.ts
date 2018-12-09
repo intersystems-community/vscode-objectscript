@@ -1,6 +1,12 @@
 import * as vscode from 'vscode';
 import { AtelierAPI } from './../api';
 
+import { OBJECTSCRIPT_FILE_SCHEMA } from '../extension';
+
+export function getUri(name: string): vscode.Uri {
+  return vscode.Uri.parse(encodeURI(`${OBJECTSCRIPT_FILE_SCHEMA}:///${name}`));
+}
+
 export class DocumentContentProvider implements vscode.TextDocumentContentProvider {
   private _api: AtelierAPI;
   private onDidChangeEvent: vscode.EventEmitter<vscode.Uri> = new vscode.EventEmitter<vscode.Uri>();

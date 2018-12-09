@@ -11,6 +11,7 @@ import { ObjectScriptRoutineSymbolProvider } from './providers/ObjectScriptRouti
 import { DocumentContentProvider } from './providers/DocumentContentProvider';
 import { ObjectScriptClassFoldingRangeProvider } from './providers/ObjectScriptClassFoldingRangeProvider';
 import { ObjectScriptFoldingRangeProvider } from './providers/ObjectScriptFoldingRangeProvider';
+import { ObjectScriptDefinitionProvider } from './providers/ObjectScriptDefinitionProvider';
 
 import { ObjectScriptExplorerProvider } from './explorer/explorer';
 import { outputChannel } from './utils';
@@ -89,7 +90,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       { language: 'objectscript-class' },
       new ObjectScriptClassFoldingRangeProvider()
     ),
-    vscode.languages.registerFoldingRangeProvider({ language: 'objectscript' }, new ObjectScriptFoldingRangeProvider())
+    vscode.languages.registerFoldingRangeProvider({ language: 'objectscript' }, new ObjectScriptFoldingRangeProvider()),
+    vscode.languages.registerDefinitionProvider(
+      [{ language: 'objectscript-class' }, { language: 'objectscript' }, { language: 'objectscript-macros' }],
+      new ObjectScriptDefinitionProvider()
+    )
   );
 }
 
