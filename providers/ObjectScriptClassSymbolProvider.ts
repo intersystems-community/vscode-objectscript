@@ -13,11 +13,19 @@ export class ObjectScriptClassSymbolProvider implements vscode.DocumentSymbolPro
 
         let method = line.text.match(/^((?:Class|Client)?Method) ([^(]+)/i);
         if (method) {
+          let start = line.range.start;
+          while (i++ && i < document.lineCount) {
+            line = document.lineAt(i);
+            if (line.text.match('^}')) {
+              break;
+            }
+          }
+          let end = line.range.end;
           symbols.push({
             containerName: method[1],
-            name: method[2],
+            name: method[2].replace(/"/g, ''),
             kind: vscode.SymbolKind.Method,
-            location: new vscode.Location(document.uri, line.range)
+            location: new vscode.Location(document.uri, new vscode.Range(start, end))
           });
         }
 

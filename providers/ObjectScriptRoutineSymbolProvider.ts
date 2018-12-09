@@ -13,11 +13,20 @@ export class ObjectScriptRoutineSymbolProvider implements vscode.DocumentSymbolP
 
         let label = line.text.match(/^(\b\w+\b)/);
         if (label) {
+          let start = line.range.start;
+          while (++i && i < document.lineCount) {
+            line = document.lineAt(i);
+            if (line.text.match(/^(\b\w+\b)/)) {
+              break;
+            }
+          }
+          line = document.lineAt(--i);
+          let end = line.range.start;
           symbols.push({
             containerName: 'Label',
             name: label[1],
             kind: vscode.SymbolKind.Method,
-            location: new vscode.Location(document.uri, line.range)
+            location: new vscode.Location(document.uri, new vscode.Range(start, end))
           });
         }
       }
