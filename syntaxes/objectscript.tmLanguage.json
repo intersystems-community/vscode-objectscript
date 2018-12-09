@@ -91,7 +91,7 @@
     "commands": {
       "patterns": [
         {
-          "match": "(?i)\\b(SET|S|DO|D|KILL|K|GOTO|G|READ|R|WRITE|W|OPEN|O|USE|U|CLOSE|C|CONTINUE|FOR|F|HALT|H|HANG|JOB|J|LOCK|L|MERGE|M|NEW|N|QUIT|Q|RETURN|RET|TSTART|TS|TCOMMIT|TC|TROLLBACK|TRO|THROW|VIEW|V|XECUTE|X|ZKILL|ZL|ZNSPACE|ZN|ZTRAP|ZWRITE|ZW|ZZDUMP|ZZWRITE)\\b(?=([: ](?!=)|$))",
+          "match": "(?i)(?<=\\s)\\b(BREAK|B|SET|S|DO|D|KILL|K|GOTO|G|READ|R|WRITE|W|OPEN|O|USE|U|CLOSE|C|CONTINUE|FOR|F|HALT|H|HANG|JOB|J|LOCK|L|MERGE|M|NEW|N|QUIT|Q|RETURN|RET|TSTART|TS|TCOMMIT|TC|TROLLBACK|TRO|THROW|VIEW|V|XECUTE|X|ZKILL|ZL|ZNSPACE|ZN|ZTRAP|ZWRITE|ZW|ZZDUMP|ZZWRITE)\\b(?=( (?![=+-]|\\&|\\|)|:|$))",
           "captures": { "1": { "name": "keyword.control.objectscript" } }
         }
       ]
@@ -99,7 +99,7 @@
     "control-commands": {
       "patterns": [
         {
-          "match": "(?i)\\b(IF|I|WHILE|FOR|F|TRY|CATCH|ELSE|E|ELSEIF)\\b(?=[: ](?!=))",
+          "match": "(?i)(?<=\\s)\\b(IF|I|WHILE|FOR|F|TRY|CATCH|ELSE|E|ELSEIF)\\b(?=( (?![=+-]|\\&|\\|)|:|$))",
           "captures": { "1": { "name": "keyword.control.objectscript" } }
         }
       ]
