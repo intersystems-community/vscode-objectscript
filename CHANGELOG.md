@@ -5,6 +5,7 @@
 - Fixed outline's regions
 - Better code folding
 - Go-To Definition for some cases (As, Extends, Include, ##class)
+- Simple completion for system functions and variables, with simple description
 
 ## [0.7.0]
 

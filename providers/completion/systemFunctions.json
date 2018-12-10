@@ -1,0 +1,590 @@
+[
+  {
+    "label": "ASCII",
+    "detail": "Converts a character to a numeric code."
+  },
+  {
+    "label": "BIT",
+    "detail": "Returns and or sets the bit value of a specified position in a bitstring."
+  },
+  {
+    "label": "BITCOUNT",
+    "detail": "Returns the number of bits in a bitstring."
+  },
+  {
+    "label": "BITFIND",
+    "detail": "Returns the position of the specified bit value within a bitstring."
+  },
+  {
+    "label": "BITLOGIC",
+    "detail": "Performs bit-wise operations on bitstrings."
+  },
+  {
+    "label": "CASE",
+    "detail": "Compares expressions and returns the value of the first matching case."
+  },
+  {
+    "label": "CHAR",
+    "detail": "Converts the integer value of an expression to the corresponding ASCII or Unicode character."
+  },
+  {
+    "label": "CLASSMETHOD",
+    "detail": "Executes a named class method in the designated class."
+  },
+  {
+    "label": "CLASSNAME",
+    "detail": "Returns the name of a class."
+  },
+  {
+    "label": "COMPILE",
+    "detail": "Compiles source code, producing executable object code."
+  },
+  {
+    "label": "DATA",
+    "detail": "Checks if a variable contains data."
+  },
+  {
+    "label": "DECIMAL",
+    "detail": "Returns a number converted to a Cach&eacute; floating point value."
+  },
+  {
+    "label": "DOUBLE",
+    "detail": "Returns a number converted to a 64-bit floating-point value."
+  },
+  {
+    "label": "EXTRACT",
+    "detail": "Extracts a substring from a character string by position, or replaces a substring by position."
+  },
+  {
+    "label": "FACTOR",
+    "detail": "Converts an integer to a $BIT bitstring."
+  },
+  {
+    "label": "FIND",
+    "detail": "Finds a substring by value and returns an integer specifying its end position in the string."
+  },
+  {
+    "label": "FNUMBER",
+    "detail": "Formats a numeric value with a specified format; optionally rounds or zero fills to a specified precision."
+  },
+  {
+    "label": "GET",
+    "detail": "Returns the data value of a specified variable."
+  },
+  {
+    "label": "INCREMENT",
+    "detail": "Adds a specified increment to the numeric value of a variable."
+  },
+  {
+    "label": "INUMBER",
+    "detail": "Validates a numeric value and converts it to internal format."
+  },
+  {
+    "label": "ISOBJECT",
+    "detail": "Returns whether an expression is an object reference (OREF)."
+  },
+  {
+    "label": "ISVALIDDOUBLE",
+    "detail": "Validates a $DOUBLE numeric value and returns a boolean; optionally provides range checking."
+  },
+  {
+    "label": "ISVALIDNUM",
+    "detail": "Validates a numeric value and returns a boolean; optionally provides range checking."
+  },
+  {
+    "label": "JUSTIFY",
+    "detail": "Right-aligns an expression within a specified width, rounding to a specified number of fractional digits."
+  },
+  {
+    "label": "LENGTH",
+    "detail": "Returns the number of characters or delimited substrings in a string."
+  },
+  {
+    "label": "LIST",
+    "detail": "Returns or replaces elements in a list."
+  },
+  {
+    "label": "LISTBUILD",
+    "detail": "Builds a list of elements from the specified expressions."
+  },
+  {
+    "label": "LISTDATA",
+    "detail": "Indicates whether the specified element exists and has a data value."
+  },
+  {
+    "label": "LISTFIND",
+    "detail": "Searches a specified list for the requested value."
+  },
+  {
+    "label": "LISTFROMSTRING",
+    "detail": "Creates a list from a string."
+  },
+  {
+    "label": "LISTGET",
+    "detail": "Returns an element in a list, or a specified default value if the requested element is undefined."
+  },
+  {
+    "label": "LISTLENGTH",
+    "detail": "Returns the number of elements in a specified list."
+  },
+  {
+    "label": "LISTNEXT",
+    "detail": "Retrieves elements sequentially from a list."
+  },
+  {
+    "label": "LISTSAME",
+    "detail": "Compares two lists and returns a boolean value."
+  },
+  {
+    "label": "LISTTOSTRING",
+    "detail": "Creates a string from a list."
+  },
+  {
+    "label": "LISTUPDATE",
+    "detail": "Updates a list by optionally replacing a specified list element or sequence of elements."
+  },
+  {
+    "label": "LISTVALID",
+    "detail": "Determines if an expression is a list."
+  },
+  {
+    "label": "LOCATE",
+    "detail": "Locates the first match of a regular expression in a string."
+  },
+  {
+    "label": "MATCH",
+    "detail": "Matches a regular expression to a string."
+  },
+  {
+    "label": "METHOD",
+    "detail": "Supports calls to an instance method."
+  },
+  {
+    "label": "NAME",
+    "detail": "Returns the name value of a variable or a portion of a subscript reference."
+  },
+  {
+    "label": "NCONVERT",
+    "detail": "Converts a number to a binary value encoded in a string of 8-bit characters."
+  },
+  {
+    "label": "NEXT",
+    "detail": "Returns the value of the next subscript in a subscripted variable."
+  },
+  {
+    "label": "NORMALIZE",
+    "detail": "Validates and returns a numeric value; rounds to a specified precision."
+  },
+  {
+    "label": "NOW",
+    "detail": "Returns the local date and time with fractional seconds for the current process."
+  },
+  {
+    "label": "NUMBER",
+    "detail": "Validates and returns a numeric value; optionally provides rounding and range checking."
+  },
+  {
+    "label": "ORDER",
+    "detail": "Returns the next local variable or the subscript of a local or global variable."
+  },
+  {
+    "label": "PARAMETER",
+    "detail": "Returns the value of the specified class parameter."
+  },
+  {
+    "label": "PIECE",
+    "detail": "Returns or replaces a substring, using a delimiter."
+  },
+  {
+    "label": "PREFETCHOFF",
+    "detail": "Ends pre-fetching of globals."
+  },
+  {
+    "label": "PREFETCHON",
+    "detail": "Establishes pre-fetch for specified globals."
+  },
+  {
+    "label": "PROPERTY",
+    "detail": "Supports reference to a particular property of an instance."
+  },
+  {
+    "label": "QLENGTH",
+    "detail": "Returns the number of subscript levels in a variable."
+  },
+  {
+    "label": "QSUBSCRIPT",
+    "detail": "Returns a variable name or a subscript name."
+  },
+  {
+    "label": "QUERY",
+    "detail": "Performs a physical scan of a local or global array."
+  },
+  {
+    "label": "RANDOM",
+    "detail": "Returns a pseudo-random integer value in the specified range."
+  },
+  {
+    "label": "REPLACE",
+    "detail": "Returns a new string that consists of a string-for-string substring replacement from an input string."
+  },
+  {
+    "label": "REVERSE",
+    "detail": "Returns the characters in a string in reverse order."
+  },
+  {
+    "label": "SCONVERT",
+    "detail": "Converts a binary encoded value to a number."
+  },
+  {
+    "label": "SELECT",
+    "detail": "Returns the value associated with the first true expression."
+  },
+  {
+    "label": "SEQUENCE",
+    "detail": "Increments a global variable shared by multiple processes."
+  },
+  {
+    "label": "SORTBEGIN",
+    "detail": "Initiates a sorting mode to improve performance of multiple sets to a global."
+  },
+  {
+    "label": "SORTEND",
+    "detail": "Concludes the sorting mode initiated by $SORTBEGIN."
+  },
+  {
+    "label": "STACK",
+    "detail": "Returns information about active contexts saved on the process call stack."
+  },
+  {
+    "label": "TEXT",
+    "detail": "Returns a line of source code found at the specified location."
+  },
+  {
+    "label": "TRANSLATE",
+    "detail": "Returns a new string that consists of character-for-character replacement of a source string."
+  },
+  {
+    "label": "VIEW",
+    "detail": "Returns the contents of memory locations."
+  },
+  {
+    "label": "WASCII",
+    "detail": "Returns the numeric code corresponding to a character, recognizing surrogate pairs."
+  },
+  {
+    "label": "WCHAR",
+    "detail": "Returns the character corresponding to a numeric code, recognizing surrogate pairs."
+  },
+  {
+    "label": "WEXTRACT",
+    "detail": "Extracts a substring from a character string by position, or replaces a substring by position, recognizing surrogate pairs."
+  },
+  {
+    "label": "WFIND",
+    "detail": "Finds a substring by value and returns an integer specifying its end position in the string, recognizing surrogate pairs."
+  },
+  {
+    "label": "WISWIDE",
+    "detail": "Returns a flag indicating whether a string contains surrogate pairs."
+  },
+  {
+    "label": "WLENGTH",
+    "detail": "Returns the number of characters in a string, recognizing surrogate pairs."
+  },
+  {
+    "label": "WREVERSE",
+    "detail": "Returns the characters in a string in reverse order, recognizing surrogate pairs."
+  },
+  {
+    "label": "XECUTE",
+    "detail": "Executes a specified command line."
+  },
+  {
+    "label": "ZABS",
+    "detail": "Absolute value function."
+  },
+  {
+    "label": "ZARCCOS",
+    "detail": "Inverse (arc) cosine function."
+  },
+  {
+    "label": "ZARCSIN",
+    "detail": "Inverse (arc) sine function."
+  },
+  {
+    "label": "ZARCTAN",
+    "detail": "Inverse (arc) tangent function."
+  },
+  {
+    "label": "ZCOS",
+    "detail": "Cosine function."
+  },
+  {
+    "label": "ZCOT",
+    "detail": "Cotangent function."
+  },
+  {
+    "label": "ZCSC",
+    "detail": "Cosecant function."
+  },
+  {
+    "label": "ZDATE",
+    "detail": "Validates a date and converts it from internal format to the specified display format."
+  },
+  {
+    "label": "ZDATEH",
+    "detail": "Validates a date and converts it from display format to Cach&eacute; internal format."
+  },
+  {
+    "label": "ZDATETIME",
+    "detail": "Validates a date and time and converts it from internal format to the specified display format."
+  },
+  {
+    "label": "ZDATETIMEH",
+    "detail": "Validates a date and time and converts from display format to Cach&eacute; internal format."
+  },
+  {
+    "label": "ZEXP",
+    "detail": "Exponential function (inverse of natural logarithm)."
+  },
+  {
+    "label": "ZHEX",
+    "detail": "Converts a hexadecimal string to a decimal number and vice versa."
+  },
+  {
+    "label": "ZLN",
+    "detail": "Returns the natural logarithm of the specified number."
+  },
+  {
+    "label": "ZLOG",
+    "detail": "Returns the base 10 logarithm value of the specified positive numeric expression."
+  },
+  {
+    "label": "ZPOWER",
+    "detail": "Returns the value of a number raised to a specified power."
+  },
+  {
+    "label": "ZSEC",
+    "detail": "Returns the trigonometric secant of the specified angle value."
+  },
+  {
+    "label": "ZSIN",
+    "detail": "Returns the trigonometric sine of the specified angle value."
+  },
+  {
+    "label": "ZSQR",
+    "detail": "Returns the square root of a specified number."
+  },
+  {
+    "label": "ZTAN",
+    "detail": "Returns the trigonometric tangent of the specified angle value."
+  },
+  {
+    "label": "ZTIME",
+    "detail": "Validates a time and converts it from internal format to the specified display format."
+  },
+  {
+    "label": "ZTIMEH",
+    "detail": "Validates a time and converts it from display format to Cach&eacute; internal format."
+  },
+  {
+    "label": "ZBOOLEAN",
+    "detail": "Bitwise logical operation function."
+  },
+  {
+    "label": "ZCONVERT",
+    "detail": "String conversion function."
+  },
+  {
+    "label": "ZCRC",
+    "detail": "Checksum function."
+  },
+  {
+    "label": "ZCYC",
+    "detail": "Cyclical-redundancy check for data integrity."
+  },
+  {
+    "label": "ZDASCII",
+    "detail": "Converts an eight-byte string to a $DOUBLE floating point number."
+  },
+  {
+    "label": "ZDCHAR",
+    "detail": "Converts a $DOUBLE floating point number to an eight-byte string."
+  },
+  {
+    "label": "ZF",
+    "detail": "Invokes non-ObjectScript programs or functions from ObjectScript routines."
+  },
+  {
+    "label": "ZISWIDE",
+    "detail": "Checks whether a string contains any 16-bit wide characters."
+  },
+  {
+    "label": "ZLASCII",
+    "detail": "Converts a four-byte string to a number."
+  },
+  {
+    "label": "ZLCHAR",
+    "detail": "Converts a number to a four-byte string."
+  },
+  {
+    "label": "ZNAME",
+    "detail": "Validates the specified name string as a legal identifier."
+  },
+  {
+    "label": "ZPOSITION",
+    "detail": "Returns the number of characters in an expression that can fit within a specified field width."
+  },
+  {
+    "label": "ZQASCII",
+    "detail": "Converts an eight-byte string to a number."
+  },
+  {
+    "label": "ZQCHAR",
+    "detail": "Converts a number to an eight-byte string."
+  },
+  {
+    "label": "ZSEARCH",
+    "detail": "Returns the full file specification, pathname and filename, of a specified file."
+  },
+  {
+    "label": "ZSEEK",
+    "detail": "Establishes a new offset into the current sequential file."
+  },
+  {
+    "label": "ZSTRIP",
+    "detail": "Removes types of characters and individual characters from a specified string."
+  },
+  {
+    "label": "ZVERSION",
+    "detail": "Returns the operating system type."
+  },
+  {
+    "label": "ZWASCII",
+    "detail": "Converts a two-byte string to a number."
+  },
+  {
+    "label": "ZWCHAR",
+    "detail": "Converts a number to a two-byte string."
+  },
+  {
+    "label": "ZWIDTH",
+    "detail": "Returns the total width of the characters in an expression."
+  },
+  {
+    "label": "ZZENKAKU",
+    "detail": "Converts Japanese katakana characters from half-width to full-width."
+  },
+  {
+    "label": "CHANGE",
+    "detail": "Performs MultiValue substring replacement."
+  },
+  {
+    "label": "MV",
+    "detail": "Builds or modifies a MultiValue dynamic array."
+  },
+  {
+    "label": "MVAT",
+    "detail": "Performs MultiValue screen cursor control or sets screen display option."
+  },
+  {
+    "label": "MVFMT",
+    "detail": "Performs MultiValue formatting of a string or numeric."
+  },
+  {
+    "label": "MVFMTS",
+    "detail": "Performs MultiValue formatting of elements of a dynamic array."
+  },
+  {
+    "label": "MVICONV",
+    "detail": "Performs MultiValue external-to-internal conversion of a string."
+  },
+  {
+    "label": "MVICONVS",
+    "detail": "Performs MultiValue external-to-internal conversion of elements of a dynamic array."
+  },
+  {
+    "label": "MVINMAT",
+    "detail": "Returns the number of MultiValue array elements."
+  },
+  {
+    "label": "MVLOWER",
+    "detail": "Lowers MultiValue dynamic array delimiters to next level."
+  },
+  {
+    "label": "MVOCONV",
+    "detail": "Performs MultiValue internal-to-external conversion of a string."
+  },
+  {
+    "label": "MVOCONVS",
+    "detail": "Performs MultiValue internal-to-external conversion of elements of a dynamic array."
+  },
+  {
+    "label": "MVRAISE",
+    "detail": "Raises MultiValue dynamic array delimiters to next level."
+  },
+  {
+    "label": "MVTRANS",
+    "detail": "Reads field data from a MultiValue file."
+  },
+  {
+    "label": "ZBITAND",
+    "detail": "Bitstring function - AND."
+  },
+  {
+    "label": "ZBITCOUNT",
+    "detail": "Bitstring function - COUNT."
+  },
+  {
+    "label": "ZBITFIND",
+    "detail": "Bitstring function - FIND."
+  },
+  {
+    "label": "ZBITGET",
+    "detail": "Bitstring function - GET."
+  },
+  {
+    "label": "ZBITLEN",
+    "detail": "Bitstring function - LENGTH."
+  },
+  {
+    "label": "ZBITNOT",
+    "detail": "Bitstring function - NOT"
+  },
+  {
+    "label": "ZBITOR",
+    "detail": "Bitstring function - OR."
+  },
+  {
+    "label": "ZBITSET",
+    "detail": "Bitstring function - SET."
+  },
+  {
+    "label": "ZBITSTR",
+    "detail": "Bitstring function - STRING."
+  },
+  {
+    "label": "ZBITXOR",
+    "detail": "Bitstring function - XOR."
+  },
+  {
+    "label": "ZINCREMENT",
+    "detail": "Adds a specified increment to the existing value of a global or local variable."
+  },
+  {
+    "label": "ZNEXT",
+    "detail": "Returns a full reference to the next array node."
+  },
+  {
+    "label": "ZORDER",
+    "detail": "Returns the full reference for the next array node subscript."
+  },
+  {
+    "label": "ZPREVIOUS",
+    "detail": "Returns the previous array node subscript for the specified variable."
+  },
+  {
+    "label": "ZSORT",
+    "detail": "Returns the next subscript in the array of the specified subscripted variable."
+  }
+]

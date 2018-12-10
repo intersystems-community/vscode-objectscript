@@ -1,0 +1,182 @@
+[
+  {
+    "label": "DEVICE",
+    "detail": "Contains user-specified device status information."
+  },
+  {
+    "label": "ECODE",
+    "detail": "Contains the current error code string."
+  },
+  {
+    "label": "ESTACK",
+    "detail": "Contains the number of context frames saved on the call stack from a user-defined point."
+  },
+  {
+    "label": "ETRAP",
+    "detail": "Contains a string of ObjectScript commands to be executed when an error occurs."
+  },
+  {
+    "label": "HALT",
+    "detail": "Contains a halt trap routine call."
+  },
+  {
+    "label": "HOROLOG",
+    "detail": "Contains the local date and time for the current process."
+  },
+  {
+    "label": "IO",
+    "detail": "Contains the ID of the current input/output device."
+  },
+  {
+    "label": "JOB",
+    "detail": "Contains the ID of the current process."
+  },
+  {
+    "label": "KEY",
+    "detail": "Contains the terminator character from the most recent READ."
+  },
+  {
+    "label": "NAMESPACE",
+    "detail": "Contains the namespace for the current stack level."
+  },
+  {
+    "label": "PRINCIPAL",
+    "detail": "Contains the ID of the principal I/O device."
+  },
+  {
+    "label": "QUIT",
+    "detail": "Contains a flag indicating what kind of QUIT is required to exit the current context."
+  },
+  {
+    "label": "ROLES",
+    "detail": "Contains the roles assigned to the current process."
+  },
+  {
+    "label": "STACK",
+    "detail": "Contains the number of context frames saved on the call stack."
+  },
+  {
+    "label": "STORAGE",
+    "detail": "Contains the number of bytes available for local variable storage."
+  },
+  {
+    "label": "SYSTEM",
+    "detail": "Contains system information about system objects."
+  },
+  {
+    "label": "TEST",
+    "detail": "Contains the truth value resulting from the last command using the timeout option."
+  },
+  {
+    "label": "THIS",
+    "detail": "Contains the current class context."
+  },
+  {
+    "label": "THROWOBJ",
+    "detail": "Contains the OREF from an unsuccessful THROW."
+  },
+  {
+    "label": "TLEVEL",
+    "detail": "Contains the current nesting level for transaction processing."
+  },
+  {
+    "label": "USERNAME",
+    "detail": "Contains the username for the current process."
+  },
+  {
+    "label": "X",
+    "detail": "Contains the current horizontal position of the cursor."
+  },
+  {
+    "label": "Y",
+    "detail": "Contains the current vertical position of the cursor."
+  },
+  {
+    "label": "ZA",
+    "detail": "Contains the status of the last READ on the current device."
+  },
+  {
+    "label": "ZB",
+    "detail": "Contains status information for the current I/O device."
+  },
+  {
+    "label": "ZCHILD",
+    "detail": "Contains the ID of the last child process."
+  },
+  {
+    "label": "ZEOF",
+    "detail": "Contains flag indicating whether end-of-file has been reached."
+  },
+  {
+    "label": "ZEOS",
+    "detail": "Contains end-of-stream status when reading a compressed stream."
+  },
+  {
+    "label": "ZERROR",
+    "detail": "Contains the name and location of the last error."
+  },
+  {
+    "label": "ZHOROLOG",
+    "detail": "Contains the number of seconds elapsed since Cach&eacute; startup."
+  },
+  {
+    "label": "ZIO",
+    "detail": "Contains information about the current terminal I/O device."
+  },
+  {
+    "label": "ZJOB",
+    "detail": "Contains job status information."
+  },
+  {
+    "label": "ZMODE",
+    "detail": "Contains current I/O device OPEN parameters."
+  },
+  {
+    "label": "ZNAME",
+    "detail": "Contains the current routine name."
+  },
+  {
+    "label": "ZNSPACE",
+    "detail": "Contains the current namespace name."
+  },
+  {
+    "label": "ZORDER",
+    "detail": "Contains the value of the next global node."
+  },
+  {
+    "label": "ZPARENT",
+    "detail": "Contains the ID of the parent process of the current process."
+  },
+  {
+    "label": "ZPI",
+    "detail": "Contains the value of pi."
+  },
+  {
+    "label": "ZPOS",
+    "detail": "Contains the current file position during the reading of a sequential file."
+  },
+  {
+    "label": "ZREFERENCE",
+    "detail": "Contains the current global reference."
+  },
+  {
+    "label": "ZSTORAGE",
+    "detail": "Contains the maximum available memory for a process."
+  },
+  {
+    "label": "ZTIMESTAMP",
+    "detail": "Contains the current date and time in Coordinated Universal Time format."
+  },
+  {
+    "label": "ZTIMEZONE",
+    "detail": "Contains the time zone offset from the Greenwich meridian."
+  },
+  {
+    "label": "ZTRAP",
+    "detail": "Contains the location of the current error trap handler."
+  },
+  {
+    "label": "ZVERSION",
+    "detail": "Contains a string describing the current version of Cach&eacute;."
+  }
+]

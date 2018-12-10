@@ -12,6 +12,7 @@ import { DocumentContentProvider } from './providers/DocumentContentProvider';
 import { ObjectScriptClassFoldingRangeProvider } from './providers/ObjectScriptClassFoldingRangeProvider';
 import { ObjectScriptFoldingRangeProvider } from './providers/ObjectScriptFoldingRangeProvider';
 import { ObjectScriptDefinitionProvider } from './providers/ObjectScriptDefinitionProvider';
+import { ObjectScriptCompletionItemProvider } from './providers/ObjectScriptCompletionItemProvider';
 
 import { ObjectScriptExplorerProvider } from './explorer/explorer';
 import { outputChannel } from './utils';
@@ -78,22 +79,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       explorerProvider.showSystem = false;
     }),
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPT_FILE_SCHEMA, new DocumentContentProvider()),
-    vscode.languages.registerDocumentSymbolProvider(
-      { language: 'objectscript-class' },
-      new ObjectScriptClassSymbolProvider()
-    ),
-    vscode.languages.registerDocumentSymbolProvider(
-      { language: 'objectscript' },
-      new ObjectScriptRoutineSymbolProvider()
-    ),
-    vscode.languages.registerFoldingRangeProvider(
-      { language: 'objectscript-class' },
-      new ObjectScriptClassFoldingRangeProvider()
-    ),
-    vscode.languages.registerFoldingRangeProvider({ language: 'objectscript' }, new ObjectScriptFoldingRangeProvider()),
+    vscode.languages.registerDocumentSymbolProvider(['objectscript-class'], new ObjectScriptClassSymbolProvider()),
+    vscode.languages.registerDocumentSymbolProvider(['objectscript'], new ObjectScriptRoutineSymbolProvider()),
+    vscode.languages.registerFoldingRangeProvider(['objectscript-class'], new ObjectScriptClassFoldingRangeProvider()),
+    vscode.languages.registerFoldingRangeProvider(['objectscript'], new ObjectScriptFoldingRangeProvider()),
     vscode.languages.registerDefinitionProvider(
-      [{ language: 'objectscript-class' }, { language: 'objectscript' }, { language: 'objectscript-macros' }],
+      ['objectscript-class', 'objectscript', 'objectscript-macros'],
       new ObjectScriptDefinitionProvider()
+    ),
+    vscode.languages.registerCompletionItemProvider(
+      ['objectscript-class', 'objectscript', 'objectscript-macros'],
+      new ObjectScriptCompletionItemProvider()
     )
   );
 }

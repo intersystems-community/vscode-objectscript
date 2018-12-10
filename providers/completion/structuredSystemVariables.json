@@ -1,0 +1,18 @@
+[
+  {
+    "label": "GLOBAL",
+    "detail": "Provides information about globals."
+  },
+  {
+    "label": "JOB",
+    "detail": "Provides Caché process (job) information."
+  },
+  {
+    "label": "LOCK",
+    "detail": "Provides lock name information."
+  },
+  {
+    "label": "ROUTINE",
+    "detail": "Provides routine information."
+  }
+]
