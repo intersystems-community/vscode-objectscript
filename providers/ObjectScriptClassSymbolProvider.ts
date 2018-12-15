@@ -4,63 +4,134 @@ export class ObjectScriptClassSymbolProvider implements vscode.DocumentSymbolPro
   public provideDocumentSymbols(
     document: vscode.TextDocument,
     token: vscode.CancellationToken
-  ): Thenable<vscode.SymbolInformation[]> {
+  ): Thenable<vscode.DocumentSymbol[]> {
+    // tslint:disable-next-line:cyclomatic-complexity
     return new Promise(resolve => {
-      var symbols: vscode.SymbolInformation[] = [];
+      let classItSelf = null;
+      let symbols: vscode.DocumentSymbol[] = [];
 
-      for (var i = 0; i < document.lineCount; i++) {
-        var line = document.lineAt(i);
+      for (let i = 0; i < document.lineCount; i++) {
+        let line = document.lineAt(i);
 
-        let method = line.text.match(/^((?:Class|Client)?Method) ([^(]+)/i);
-        if (method) {
-          let start = line.range.start;
-          while (i++ && i < document.lineCount) {
-            line = document.lineAt(i);
-            if (line.text.match('^}')) {
+        let classPat = line.text.match(/^(Class) (%?\b\w+\b(?:\.\b\w+\b)+)/i);
+        if (classPat) {
+          let end = new vscode.Position(document.lineCount - 1, 0);
+          for (let j = document.lineCount - 1; j > i; j--) {
+            if (document.lineAt(j).text.startsWith('}')) {
+              end = new vscode.Position(j + 1, 0);
               break;
             }
           }
+          classItSelf = new vscode.DocumentSymbol(
+            classPat[2],
+            'Class',
+            vscode.SymbolKind.Class,
+            new vscode.Range(new vscode.Position(0, 0), end),
+            line.range
+          );
+          symbols.push(classItSelf);
+          symbols = classItSelf.children;
+        }
+
+        let start = line.range.start;
+        for (let j = i; j > 1; j--) {
+          if (!document.lineAt(j - 1).text.startsWith('/// ')) {
+            start = document.lineAt(j).range.start;
+            break;
+          }
+        }
+
+        let method = line.text.match(/^((?:Class|Client)?Method|Trigger|Query) (\b\w+\b|"[^"]+")/i);
+        if (method) {
+          let startCode = line.range.start;
           let end = line.range.end;
+          while (i++ && i < document.lineCount) {
+            if (document.lineAt(i).text.match('^{')) {
+              startCode = new vscode.Position(i + 1, 0);
+            }
+            if (document.lineAt(i).text.match('^}')) {
+              end = document.lineAt(i).range.end;
+              break;
+            }
+          }
           symbols.push({
-            containerName: method[1],
+            detail: method[1],
             name: method[2].replace(/"/g, ''),
             kind: vscode.SymbolKind.Method,
-            location: new vscode.Location(document.uri, new vscode.Range(start, end))
+            children: undefined,
+            range: new vscode.Range(start, end),
+            selectionRange: new vscode.Range(startCode, end)
           });
         }
 
-        let property = line.text.match(/^(Property|Relationship) (\b\w+\b)/i);
-        if (property) {
+        let index = line.text.match(/^(Index|ForegnKey) (\b\w+\b)/i);
+        if (index) {
           symbols.push({
-            containerName: property[1],
+            detail: index[1],
+            name: index[2],
+            kind: vscode.SymbolKind.Key,
+            children: undefined,
+            range: new vscode.Range(start, line.range.end),
+            selectionRange: line.range
+          });
+        }
+
+        let property = line.text.match(/^(Property|Relationship) (\b\w+\b|"[^"]+")/i);
+        if (property) {
+          let end = line.range.end;
+          while (i++ && i < document.lineCount) {
+            if (document.lineAt(i).text.endsWith(';')) {
+              end = document.lineAt(i).range.end;
+              break;
+            }
+          }
+          symbols.push({
+            detail: property[1],
             name: property[2],
             kind: vscode.SymbolKind.Property,
-            location: new vscode.Location(document.uri, line.range)
+            children: undefined,
+            range: new vscode.Range(start, end),
+            selectionRange: line.range
           });
         }
 
         let parameter = line.text.match(/^(Parameter) (\b\w+\b)/i);
         if (parameter) {
           symbols.push({
-            containerName: parameter[1],
+            detail: parameter[1],
             name: parameter[2],
             kind: vscode.SymbolKind.Constant,
-            location: new vscode.Location(document.uri, line.range)
+            children: undefined,
+            range: new vscode.Range(start, line.range.end),
+            selectionRange: line.range
           });
         }
 
-        let xdata = line.text.match(/^(XData) (\b\w+\b)/i);
-        if (xdata) {
+        let other = line.text.match(/^(XData|Storage) (\b\w+\b)/i);
+        if (other) {
+          let startCode = line.range.start;
+          let end = line.range.end;
+          while (i++ && i < document.lineCount) {
+            if (document.lineAt(i).text.match('^{')) {
+              startCode = new vscode.Position(i + 1, 0);
+            }
+            if (document.lineAt(i).text.match('^}')) {
+              end = document.lineAt(i).range.end;
+              break;
+            }
+          }
           symbols.push({
-            containerName: xdata[1],
-            name: xdata[2],
+            detail: other[1],
+            name: other[2],
             kind: vscode.SymbolKind.Struct,
-            location: new vscode.Location(document.uri, line.range)
+            children: undefined,
+            range: new vscode.Range(start, end),
+            selectionRange: new vscode.Range(startCode, end)
           });
         }
       }
 
-      resolve(symbols);
+      resolve([classItSelf]);
     });
   }
 }
