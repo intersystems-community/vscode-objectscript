@@ -1,590 +1,1898 @@
 [
   {
-    "label": "ASCII",
-    "detail": "Converts a character to a numeric code."
-  },
-  {
-    "label": "BIT",
-    "detail": "Returns and or sets the bit value of a specified position in a bitstring."
-  },
-  {
-    "label": "BITCOUNT",
-    "detail": "Returns the number of bits in a bitstring."
-  },
-  {
-    "label": "BITFIND",
-    "detail": "Returns the position of the specified bit value within a bitstring."
-  },
-  {
-    "label": "BITLOGIC",
-    "detail": "Performs bit-wise operations on bitstrings."
-  },
-  {
-    "label": "CASE",
-    "detail": "Compares expressions and returns the value of the first matching case."
-  },
-  {
-    "label": "CHAR",
-    "detail": "Converts the integer value of an expression to the corresponding ASCII or Unicode character."
-  },
-  {
-    "label": "CLASSMETHOD",
-    "detail": "Executes a named class method in the designated class."
-  },
-  {
-    "label": "CLASSNAME",
-    "detail": "Returns the name of a class."
-  },
-  {
-    "label": "COMPILE",
-    "detail": "Compiles source code, producing executable object code."
-  },
-  {
-    "label": "DATA",
-    "detail": "Checks if a variable contains data."
-  },
-  {
-    "label": "DECIMAL",
-    "detail": "Returns a number converted to a Cach&eacute; floating point value."
-  },
-  {
-    "label": "DOUBLE",
-    "detail": "Returns a number converted to a 64-bit floating-point value."
-  },
-  {
-    "label": "EXTRACT",
-    "detail": "Extracts a substring from a character string by position, or replaces a substring by position."
-  },
-  {
-    "label": "FACTOR",
-    "detail": "Converts an integer to a $BIT bitstring."
-  },
-  {
-    "label": "FIND",
-    "detail": "Finds a substring by value and returns an integer specifying its end position in the string."
-  },
-  {
-    "label": "FNUMBER",
-    "detail": "Formats a numeric value with a specified format; optionally rounds or zero fills to a specified precision."
-  },
-  {
-    "label": "GET",
-    "detail": "Returns the data value of a specified variable."
-  },
-  {
-    "label": "INCREMENT",
-    "detail": "Adds a specified increment to the numeric value of a variable."
-  },
-  {
-    "label": "INUMBER",
-    "detail": "Validates a numeric value and converts it to internal format."
-  },
-  {
-    "label": "ISOBJECT",
-    "detail": "Returns whether an expression is an object reference (OREF)."
-  },
-  {
-    "label": "ISVALIDDOUBLE",
-    "detail": "Validates a $DOUBLE numeric value and returns a boolean; optionally provides range checking."
-  },
-  {
-    "label": "ISVALIDNUM",
-    "detail": "Validates a numeric value and returns a boolean; optionally provides range checking."
-  },
-  {
-    "label": "JUSTIFY",
-    "detail": "Right-aligns an expression within a specified width, rounding to a specified number of fractional digits."
-  },
-  {
-    "label": "LENGTH",
-    "detail": "Returns the number of characters or delimited substrings in a string."
-  },
-  {
-    "label": "LIST",
-    "detail": "Returns or replaces elements in a list."
-  },
-  {
-    "label": "LISTBUILD",
-    "detail": "Builds a list of elements from the specified expressions."
-  },
-  {
-    "label": "LISTDATA",
-    "detail": "Indicates whether the specified element exists and has a data value."
-  },
-  {
-    "label": "LISTFIND",
-    "detail": "Searches a specified list for the requested value."
-  },
-  {
-    "label": "LISTFROMSTRING",
-    "detail": "Creates a list from a string."
-  },
-  {
-    "label": "LISTGET",
-    "detail": "Returns an element in a list, or a specified default value if the requested element is undefined."
-  },
-  {
-    "label": "LISTLENGTH",
-    "detail": "Returns the number of elements in a specified list."
-  },
-  {
-    "label": "LISTNEXT",
-    "detail": "Retrieves elements sequentially from a list."
-  },
-  {
-    "label": "LISTSAME",
-    "detail": "Compares two lists and returns a boolean value."
-  },
-  {
-    "label": "LISTTOSTRING",
-    "detail": "Creates a string from a list."
-  },
-  {
-    "label": "LISTUPDATE",
-    "detail": "Updates a list by optionally replacing a specified list element or sequence of elements."
-  },
-  {
-    "label": "LISTVALID",
-    "detail": "Determines if an expression is a list."
-  },
-  {
-    "label": "LOCATE",
-    "detail": "Locates the first match of a regular expression in a string."
-  },
-  {
-    "label": "MATCH",
-    "detail": "Matches a regular expression to a string."
-  },
-  {
-    "label": "METHOD",
-    "detail": "Supports calls to an instance method."
-  },
-  {
-    "label": "NAME",
-    "detail": "Returns the name value of a variable or a portion of a subscript reference."
-  },
-  {
-    "label": "NCONVERT",
-    "detail": "Converts a number to a binary value encoded in a string of 8-bit characters."
-  },
-  {
-    "label": "NEXT",
-    "detail": "Returns the value of the next subscript in a subscripted variable."
-  },
-  {
-    "label": "NORMALIZE",
-    "detail": "Validates and returns a numeric value; rounds to a specified precision."
-  },
-  {
-    "label": "NOW",
-    "detail": "Returns the local date and time with fractional seconds for the current process."
-  },
-  {
-    "label": "NUMBER",
-    "detail": "Validates and returns a numeric value; optionally provides rounding and range checking."
-  },
-  {
-    "label": "ORDER",
-    "detail": "Returns the next local variable or the subscript of a local or global variable."
-  },
-  {
-    "label": "PARAMETER",
-    "detail": "Returns the value of the specified class parameter."
-  },
-  {
-    "label": "PIECE",
-    "detail": "Returns or replaces a substring, using a delimiter."
-  },
-  {
-    "label": "PREFETCHOFF",
-    "detail": "Ends pre-fetching of globals."
-  },
-  {
-    "label": "PREFETCHON",
-    "detail": "Establishes pre-fetch for specified globals."
-  },
-  {
-    "label": "PROPERTY",
-    "detail": "Supports reference to a particular property of an instance."
-  },
-  {
-    "label": "QLENGTH",
-    "detail": "Returns the number of subscript levels in a variable."
-  },
-  {
-    "label": "QSUBSCRIPT",
-    "detail": "Returns a variable name or a subscript name."
-  },
-  {
-    "label": "QUERY",
-    "detail": "Performs a physical scan of a local or global array."
-  },
-  {
-    "label": "RANDOM",
-    "detail": "Returns a pseudo-random integer value in the specified range."
-  },
-  {
-    "label": "REPLACE",
-    "detail": "Returns a new string that consists of a string-for-string substring replacement from an input string."
-  },
-  {
-    "label": "REVERSE",
-    "detail": "Returns the characters in a string in reverse order."
-  },
-  {
-    "label": "SCONVERT",
-    "detail": "Converts a binary encoded value to a number."
-  },
-  {
-    "label": "SELECT",
-    "detail": "Returns the value associated with the first true expression."
-  },
-  {
-    "label": "SEQUENCE",
-    "detail": "Increments a global variable shared by multiple processes."
-  },
-  {
-    "label": "SORTBEGIN",
-    "detail": "Initiates a sorting mode to improve performance of multiple sets to a global."
-  },
-  {
-    "label": "SORTEND",
-    "detail": "Concludes the sorting mode initiated by $SORTBEGIN."
-  },
-  {
-    "label": "STACK",
-    "detail": "Returns information about active contexts saved on the process call stack."
-  },
-  {
-    "label": "TEXT",
-    "detail": "Returns a line of source code found at the specified location."
-  },
-  {
-    "label": "TRANSLATE",
-    "detail": "Returns a new string that consists of character-for-character replacement of a source string."
-  },
-  {
-    "label": "VIEW",
-    "detail": "Returns the contents of memory locations."
-  },
-  {
-    "label": "WASCII",
-    "detail": "Returns the numeric code corresponding to a character, recognizing surrogate pairs."
-  },
-  {
-    "label": "WCHAR",
-    "detail": "Returns the character corresponding to a numeric code, recognizing surrogate pairs."
-  },
-  {
-    "label": "WEXTRACT",
-    "detail": "Extracts a substring from a character string by position, or replaces a substring by position, recognizing surrogate pairs."
-  },
-  {
-    "label": "WFIND",
-    "detail": "Finds a substring by value and returns an integer specifying its end position in the string, recognizing surrogate pairs."
-  },
-  {
-    "label": "WISWIDE",
-    "detail": "Returns a flag indicating whether a string contains surrogate pairs."
-  },
-  {
-    "label": "WLENGTH",
-    "detail": "Returns the number of characters in a string, recognizing surrogate pairs."
-  },
-  {
-    "label": "WREVERSE",
-    "detail": "Returns the characters in a string in reverse order, recognizing surrogate pairs."
-  },
-  {
-    "label": "XECUTE",
-    "detail": "Executes a specified command line."
-  },
-  {
-    "label": "ZABS",
-    "detail": "Absolute value function."
-  },
-  {
-    "label": "ZARCCOS",
-    "detail": "Inverse (arc) cosine function."
-  },
-  {
-    "label": "ZARCSIN",
-    "detail": "Inverse (arc) sine function."
-  },
-  {
-    "label": "ZARCTAN",
-    "detail": "Inverse (arc) tangent function."
-  },
-  {
-    "label": "ZCOS",
-    "detail": "Cosine function."
-  },
-  {
-    "label": "ZCOT",
-    "detail": "Cotangent function."
-  },
-  {
-    "label": "ZCSC",
-    "detail": "Cosecant function."
-  },
-  {
-    "label": "ZDATE",
-    "detail": "Validates a date and converts it from internal format to the specified display format."
-  },
-  {
-    "label": "ZDATEH",
-    "detail": "Validates a date and converts it from display format to Cach&eacute; internal format."
-  },
-  {
-    "label": "ZDATETIME",
-    "detail": "Validates a date and time and converts it from internal format to the specified display format."
-  },
-  {
-    "label": "ZDATETIMEH",
-    "detail": "Validates a date and time and converts from display format to Cach&eacute; internal format."
-  },
-  {
-    "label": "ZEXP",
-    "detail": "Exponential function (inverse of natural logarithm)."
-  },
-  {
-    "label": "ZHEX",
-    "detail": "Converts a hexadecimal string to a decimal number and vice versa."
-  },
-  {
-    "label": "ZLN",
-    "detail": "Returns the natural logarithm of the specified number."
-  },
-  {
-    "label": "ZLOG",
-    "detail": "Returns the base 10 logarithm value of the specified positive numeric expression."
-  },
-  {
-    "label": "ZPOWER",
-    "detail": "Returns the value of a number raised to a specified power."
-  },
-  {
-    "label": "ZSEC",
-    "detail": "Returns the trigonometric secant of the specified angle value."
-  },
-  {
-    "label": "ZSIN",
-    "detail": "Returns the trigonometric sine of the specified angle value."
-  },
-  {
-    "label": "ZSQR",
-    "detail": "Returns the square root of a specified number."
-  },
-  {
-    "label": "ZTAN",
-    "detail": "Returns the trigonometric tangent of the specified angle value."
-  },
-  {
-    "label": "ZTIME",
-    "detail": "Validates a time and converts it from internal format to the specified display format."
-  },
-  {
-    "label": "ZTIMEH",
-    "detail": "Validates a time and converts it from display format to Cach&eacute; internal format."
-  },
-  {
-    "label": "ZBOOLEAN",
-    "detail": "Bitwise logical operation function."
-  },
-  {
-    "label": "ZCONVERT",
-    "detail": "String conversion function."
-  },
-  {
-    "label": "ZCRC",
-    "detail": "Checksum function."
-  },
-  {
-    "label": "ZCYC",
-    "detail": "Cyclical-redundancy check for data integrity."
-  },
-  {
-    "label": "ZDASCII",
-    "detail": "Converts an eight-byte string to a $DOUBLE floating point number."
-  },
-  {
-    "label": "ZDCHAR",
-    "detail": "Converts a $DOUBLE floating point number to an eight-byte string."
-  },
-  {
-    "label": "ZF",
-    "detail": "Invokes non-ObjectScript programs or functions from ObjectScript routines."
-  },
-  {
-    "label": "ZISWIDE",
-    "detail": "Checks whether a string contains any 16-bit wide characters."
-  },
-  {
-    "label": "ZLASCII",
-    "detail": "Converts a four-byte string to a number."
-  },
-  {
-    "label": "ZLCHAR",
-    "detail": "Converts a number to a four-byte string."
-  },
-  {
-    "label": "ZNAME",
-    "detail": "Validates the specified name string as a legal identifier."
-  },
-  {
-    "label": "ZPOSITION",
-    "detail": "Returns the number of characters in an expression that can fit within a specified field width."
-  },
-  {
-    "label": "ZQASCII",
-    "detail": "Converts an eight-byte string to a number."
-  },
-  {
-    "label": "ZQCHAR",
-    "detail": "Converts a number to an eight-byte string."
-  },
-  {
-    "label": "ZSEARCH",
-    "detail": "Returns the full file specification, pathname and filename, of a specified file."
-  },
-  {
-    "label": "ZSEEK",
-    "detail": "Establishes a new offset into the current sequential file."
-  },
-  {
-    "label": "ZSTRIP",
-    "detail": "Removes types of characters and individual characters from a specified string."
-  },
-  {
-    "label": "ZVERSION",
-    "detail": "Returns the operating system type."
-  },
-  {
-    "label": "ZWASCII",
-    "detail": "Converts a two-byte string to a number."
-  },
-  {
-    "label": "ZWCHAR",
-    "detail": "Converts a number to a two-byte string."
-  },
-  {
-    "label": "ZWIDTH",
-    "detail": "Returns the total width of the characters in an expression."
-  },
-  {
-    "label": "ZZENKAKU",
-    "detail": "Converts Japanese katakana characters from half-width to full-width."
-  },
-  {
-    "label": "CHANGE",
-    "detail": "Performs MultiValue substring replacement."
-  },
-  {
-    "label": "MV",
-    "detail": "Builds or modifies a MultiValue dynamic array."
-  },
-  {
-    "label": "MVAT",
-    "detail": "Performs MultiValue screen cursor control or sets screen display option."
-  },
-  {
-    "label": "MVFMT",
-    "detail": "Performs MultiValue formatting of a string or numeric."
-  },
-  {
-    "label": "MVFMTS",
-    "detail": "Performs MultiValue formatting of elements of a dynamic array."
-  },
-  {
-    "label": "MVICONV",
-    "detail": "Performs MultiValue external-to-internal conversion of a string."
-  },
-  {
-    "label": "MVICONVS",
-    "detail": "Performs MultiValue external-to-internal conversion of elements of a dynamic array."
-  },
-  {
-    "label": "MVINMAT",
-    "detail": "Returns the number of MultiValue array elements."
-  },
-  {
-    "label": "MVLOWER",
-    "detail": "Lowers MultiValue dynamic array delimiters to next level."
-  },
-  {
-    "label": "MVOCONV",
-    "detail": "Performs MultiValue internal-to-external conversion of a string."
-  },
-  {
-    "label": "MVOCONVS",
-    "detail": "Performs MultiValue internal-to-external conversion of elements of a dynamic array."
-  },
-  {
-    "label": "MVRAISE",
-    "detail": "Raises MultiValue dynamic array delimiters to next level."
-  },
-  {
-    "label": "MVTRANS",
-    "detail": "Reads field data from a MultiValue file."
-  },
-  {
-    "label": "ZBITAND",
-    "detail": "Bitstring function - AND."
-  },
-  {
-    "label": "ZBITCOUNT",
-    "detail": "Bitstring function - COUNT."
-  },
-  {
-    "label": "ZBITFIND",
-    "detail": "Bitstring function - FIND."
-  },
-  {
-    "label": "ZBITGET",
-    "detail": "Bitstring function - GET."
-  },
-  {
-    "label": "ZBITLEN",
-    "detail": "Bitstring function - LENGTH."
-  },
-  {
-    "label": "ZBITNOT",
-    "detail": "Bitstring function - NOT"
-  },
-  {
-    "label": "ZBITOR",
-    "detail": "Bitstring function - OR."
-  },
-  {
-    "label": "ZBITSET",
-    "detail": "Bitstring function - SET."
-  },
-  {
-    "label": "ZBITSTR",
-    "detail": "Bitstring function - STRING."
-  },
-  {
-    "label": "ZBITXOR",
-    "detail": "Bitstring function - XOR."
-  },
-  {
-    "label": "ZINCREMENT",
-    "detail": "Adds a specified increment to the existing value of a global or local variable."
-  },
-  {
-    "label": "ZNEXT",
-    "detail": "Returns a full reference to the next array node."
-  },
-  {
-    "label": "ZORDER",
-    "detail": "Returns the full reference for the next array node subscript."
-  },
-  {
-    "label": "ZPREVIOUS",
-    "detail": "Returns the previous array node subscript for the specified variable."
-  },
-  {
-    "label": "ZSORT",
-    "detail": "Returns the next subscript in the array of the specified subscripted variable."
+    "label":"$ASCII",
+    "alias":[
+      "$ASCII",
+      "$A"
+    ],
+    "documentation":[
+      "Converts a character to a numeric code.\n",
+      "```objectscript\n",
+      "$ASCII(expression,position)\n",
+      "$A(expression,position)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`expression`The character to be converted.`position`_Optional_ &#151; The position of a character within a character string, counting from 1. The default is 1.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fascii"
+  },
+  {
+    "label":"$BIT",
+    "alias":[
+      "$BIT"
+    ],
+    "documentation":[
+      "Returns and or sets the bit value of a specified position in a bitstring.\n",
+      "```objectscript\n",
+      "$BIT(bitstring,position)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`bitstring` An expression that evaluates to a bitstring.For `$BIT`, `bitstring` can be any expression that resolves to a bitstring, including a variable of any type, `$FACTOR`, a user-defined function, or an oref.prop, ..prop, or i%prop _instance variable_ property reference.For `SET $BIT`, `bitstring` can be a variable of any type, including an _i%Prop()_ property _instance variable_.`position`The bit position within `bitstring`.  A literal or an expression that evaluates to a positive integer. Bit positions are counted from 1.`value`The bit value to set at `position`. A literal or an expression that evaluates to the integer 0 or 1.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fbit"
+  },
+  {
+    "label":"$BITCOUNT",
+    "alias":[
+      "$BITCOUNT"
+    ],
+    "documentation":[
+      "Returns the number of bits in a bitstring.\n",
+      "```objectscript\n",
+      "$BITCOUNT(bitstring,bitvalue)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`bitstring`An expression that evaluates to a bitstring. Can be a variable of any type, `$FACTOR`, a user-defined function, or an oref.prop, ..prop, or i%prop (_instance variable_) property reference.`bitvalue`_Optional_ &#151; The value (0 or 1) to count within the bitstring.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fbitcount"
+  },
+  {
+    "label":"$BITFIND",
+    "alias":[
+      "$BITFIND"
+    ],
+    "documentation":[
+      "Returns the position of the specified bit value within a bitstring.\n",
+      "```objectscript\n",
+      "$BITFIND(bitstring,bitvalue,position,direction)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`bitstring`An expression that evaluates to a bitstring. Can be a variable of any type, `$FACTOR`, a user-defined function, or an oref.prop, ..prop, or i%prop (_instance variable_) property reference.`bitvalue`The value (0 or 1) to search for within the bitstring.`position`_Optional_ &#151; The bit position from which the search begins, specified as a positive integer. Bit positions are counted from 1 from the beginning of the bit string. Search is inclusive of this position. A `position` value of 0 is treated as specifying position 1.`direction`_Optional_ &#151; A direction flag. Available values are 1 and -1. 1 = Search forward (left to right) from the beginning of the bitstring (or from `position`) towards the end (this is the default). -1 = Search backward from the end of the bitstring (or from `position`) towards the beginning.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fbitfind"
+  },
+  {
+    "label":"$BITLOGIC",
+    "alias":[
+      "$BITLOGIC"
+    ],
+    "documentation":[
+      "Performs bit-wise operations on bitstrings.\n",
+      "```objectscript\n",
+      "$BITLOGIC(bitstring_expression,length)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`bitstring_expression`A logical expression consisting of one or more bitstring variables and the logical operators &amp;, |, ^, and ~. A bitstring can be specified as a local variable, a process-private global, a global, an object property, or the constant &quot;&quot;. The null string (&quot;&quot;) has a bitstring length of 0. A bitstring cannot be specified using a function (such as `$FACTOR`) that returns a bitstring.`length`_Optional_ &#151; The length, in bits, of the resulting bitstring. If `length` is not specified it defaults to the length of the longest bitstring in `bitstring_expression`.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fbitlogic"
+  },
+  {
+    "label":"$CASE",
+    "alias":[
+      "$CASE"
+    ],
+    "documentation":[
+      "Compares expressions and returns the value of the first matching case.\n",
+      "```objectscript\n",
+      "$CASE(target,case:value,case:value,...,:default)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`target`A literal or expression the value of which is to be matched against cases.`case`A literal or expression the value of which is to be matched with the results of the evaluation of `target`.`value`The value to be returned upon a successful match of the corresponding `case`.`default`_Optional_ &#151; The value to be returned if no `case` matches `target`.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fcase"
+  },
+  {
+    "label":"$CHAR",
+    "alias":[
+      "$CHAR",
+      "$C"
+    ],
+    "documentation":[
+      "Converts the integer value of an expression to the corresponding ASCII or Unicode character.\n",
+      "```objectscript\n",
+      "$CHAR(expression,...)\n",
+      "$C(expression,...)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`expression`The integer value to be converted.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fchar"
+  },
+  {
+    "label":"$CLASSMETHOD",
+    "alias":[
+      "$CLASSMETHOD"
+    ],
+    "documentation":[
+      "Executes a named class method in the designated class.\n",
+      "```objectscript\n",
+      "$CLASSMETHOD(classname, methodname, arg1, arg2, arg3, ... )\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`classname` _Optional_ &#151; An expression that evaluates to a string. The content of the string must match exactly the name of an existing, accessible, previously compiled class. In the case of references to InterSystems IRIS classes, the name may be either in its canonical form (_%Library.String_), or its abbreviated form (_%String_).If `classname` is omitted, the current class context is used. (You can use _$THIS_ to determine the current class context.) Note that when `classname` is omitted the placeholder comma must be specified. `methodname`An expression which evaluates to a string. The value of the string must match the name of an existing class method in the class identified by `classname`.`arg1`, `arg2`, `arg3`, ..._Optional_ &#151; A series of expressions to be substituted sequentially for the arguments to the designated method. The values of the expressions can be of any type. It is the responsibility of the implementor to make sure that the type of the supplied expressions match what the method expects, and have values within the bounds declared. (If the specified method expects no arguments then no arguments beyond the `methodname` need be given in the function invocation. If the method requires arguments, the rules that govern what must be supplied are those of the target method.)\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fclassmethod"
+  },
+  {
+    "label":"$CLASSNAME",
+    "alias":[
+      "$CLASSNAME"
+    ],
+    "documentation":[
+      "Returns the name of a class.\n",
+      "```objectscript\n",
+      "$CLASSNAME(n)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`_Optional_ &#151; An object reference (OREF) to an class instance. If omitted, the class name of the current class is returned.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fclassname"
+  },
+  {
+    "label":"$COMPILE",
+    "alias":[
+      "$COMPILE"
+    ],
+    "documentation":[
+      "Compiles source code, producing executable object code.\n",
+      "```objectscript\n",
+      "$COMPILE(source,language,errors,object) \n",
+      "```\n",
+      "Parameters:\n\n",
+      "`source`An array variable containing the source code to be compiled.`language`An integer flag specifying the programming language of the source code.`errors`A local variable that receives any errors that occur during compilation. This variable is a List structure, with one element for each error reported. Each error is itself a List structure, specifying error location and type (see below).`object`_Optional_ &#151; An array used to hold the compiled object code. `rname`_Optional_ &#151; (Second syntactic form only) a string specifying a routine name used to store the compiled object code in the ^rOBJ global.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fcompile"
+  },
+  {
+    "label":"$DATA",
+    "alias":[
+      "$DATA",
+      "$D"
+    ],
+    "documentation":[
+      "Checks if a variable contains data.\n",
+      "```objectscript\n",
+      "$DATA(variable,target)\n",
+      "$D(variable,target)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`variable`The variable whose status is to be checked. A local or global variable, subscripted or unsubscripted. The variable may be undefined. You cannot specify a simple object property reference as `variable`; you can specify a multidimensional property reference as `variable` with the syntax obj.property.`target`_Optional_ &#151; A variable into which `$DATA` returns the current value of `variable`.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fdata"
+  },
+  {
+    "label":"$DECIMAL",
+    "alias":[
+      "$DECIMAL"
+    ],
+    "documentation":[
+      "Returns a number converted to an InterSystems IRIS floating point value.\n",
+      "```objectscript\n",
+      "$DECIMAL(num,digits)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`num`The numeric value to be converted. Commonly this is an IEEE floating point number.`digits`_Optional_ &#151; An integer that specifies the number of significant digits to return. `$DECIMAL` rounds the return value to that number of digits, using the IEEE floating point rounding algorithm. Valid values are 1 through 38, and 0. If `digits` is greater than the number of digits the value is returned unchanged. If `digits` is 0, no rounding is performed on `num` unless it has more than 20 significant digits (see below for details on 0 value).\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fdecimal"
+  },
+  {
+    "label":"$DOUBLE",
+    "alias":[
+      "$DOUBLE"
+    ],
+    "documentation":[
+      "Returns a number converted to a 64-bit floating-point value.\n",
+      "```objectscript\n",
+      "$DOUBLE(num)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`num`The numeric value to be converted. You can also specify the strings &#147;NAN&#148; and &#147;INF&#148; (and their variants).\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fdouble"
+  },
+  {
+    "label":"$EXTRACT",
+    "alias":[
+      "$EXTRACT",
+      "$E"
+    ],
+    "documentation":[
+      "Extracts a substring from a character string by position, or replaces a substring by position.\n",
+      "```objectscript\n",
+      "$EXTRACT(string,from,to)\n",
+      "$E(string,from,to)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`The target string in which substrings are identified. Specify `string` as an expression that evaluates to a quoted string or a numeric value. In _SET $EXTRACT_ syntax, `string` must be a variable or a multi-dimensional property.`from`_Optional_ &#151; Specifies the starting position within the target `string`. Characters are counted from 1. Permitted values are `n` (a positive integer specifying the character count from the beginning of `string`), * (specifying the last character in `string`), and *-`n` (offset integer count of characters backwards from end of `string`). _SET $EXTRACT_ syntax also supports *+`n` (offset integer count of characters to append beyond the end of `string`). A `from` without a `to` specifies a single character. A `from` with a `to` specifies a range of characters. If `from` is not specified, it defaults to 1.`to`_Optional_ &#151; Specifies the end position (inclusive) for a range of characters. Must be used with `from`. Permitted values are `n` (a positive integer specifying the character count from the beginning of `string`), * (specifying the last character in `string`), and *-`n` (offset integer count of characters backwards from end of `string`). _SET $EXTRACT_ syntax also supports *+`n` (offset integer count of the end of a range of characters to append beyond the end of `string`).\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fextract"
+  },
+  {
+    "label":"$FACTOR",
+    "alias":[
+      "$FACTOR"
+    ],
+    "documentation":[
+      "Converts an integer to a $BIT bitstring.\n",
+      "```objectscript\n",
+      "$FACTOR(num,scale)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`num`An expression that evaluates to a number. `num` is converted to a positive integer before bitstring conversion. A negative number is converted to a positive number (its absolute value). A fractional number is rounded to an integer.`scale`_Optional_ &#151; An integer used as a power-of-ten exponent (scientific notation) multiplier for `num`. The default is 0.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_ffactor"
+  },
+  {
+    "label":"$FIND",
+    "alias":[
+      "$FIND",
+      "$F"
+    ],
+    "documentation":[
+      "Finds a substring by value and returns an integer specifying its end position in the string.\n",
+      "```objectscript\n",
+      "$FIND(string,substring,position)\n",
+      "$F(string,substring,position)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`The target string that is to be searched. It can be a variable name, a numeric value, a string literal, or any valid ObjectScript expression that resolves to a string.`substring`The substring that is to be searched for. It can be a variable name, a numeric value, a string literal, or any valid ObjectScript expression that resolves to a string.`position`_Optional _&#151; A position within the target string at which to start the search. It must be a positive integer.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_ffind"
+  },
+  {
+    "label":"$FNUMBER",
+    "alias":[
+      "$FNUMBER",
+      "$FN"
+    ],
+    "documentation":[
+      "Formats a numeric value with a specified format; optionally rounds or zero fills to a specified precision.\n",
+      "```objectscript\n",
+      "$FNUMBER(inumber,format,decimal)\n",
+      "$FN(inumber,format,decimal)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`inumber`The number to be formatted. It can be a numeric literal, a variable, or any valid ObjectScript expression that evaluates to a numeric value.`format`_Optional_ &#151; Specifies how the number is to be formatted. Specified as a quoted string consisting of zero or more format codes, in any order. Format codes are described below. Note that some format codes are incompatible and result in an error. For default formatting, with or without the `decimal` parameter, you can specify the empty string (&quot;&quot;). If omitted, defaults to the empty string (&quot;&quot;).`decimal`_Optional_ &#151; The number of fractional decimal digits to be included in the returned number. If `format` is omitted, include a placeholder comma before specifying `decimal`.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_ffnumber"
+  },
+  {
+    "label":"$GET",
+    "alias":[
+      "$GET",
+      "$G"
+    ],
+    "documentation":[
+      "Returns the data value of a specified variable.\n",
+      "```objectscript\n",
+      "$GET(variable,default)\n",
+      "$G(variable,default)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`variable`A local variable, global variable, or process-private global variable, subscripted or unsubscripted. The variable may be undefined. `variable` may be specified as a multidimensional object property with the syntax obj.property.`default`_Optional_ &#151; The value to be returned if the variable is undefined. If a variable, it must be defined.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fget"
+  },
+  {
+    "label":"$INCREMENT",
+    "alias":[
+      "$INCREMENT",
+      "$I"
+    ],
+    "documentation":[
+      "Adds a specified increment to the numeric value of a variable.\n",
+      "```objectscript\n",
+      "$INCREMENT(variable,num)\n",
+      "$I(variable,num)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`variable`The variable whose value is to be incremented. It can specify a local variable, a process-private global, or a global variable and can be either subscripted or unsubscripted. The variable need not be defined. If the variable is not defined, or is set to the null string (&quot;&quot;), `$INCREMENT` treats it as having an initial value of zero and increments accordingly. A literal value cannot be specified here. You cannot specify a simple object property reference as `variable`; you can specify a multidimensional property reference as `variable` with the syntax obj.property. `num` _Optional_ &#151; The numeric increment you want to add to `variable`. The value can be a number (integer or non-integer, positive or negative), a string containing a number, or any expression which evaluates to a number. Leading and trailing blanks and multiple signs are evaluated. A string is evaluated until the first nonnumeric character is encountered. The null string (&quot;&quot;) is evaluated as zero. If you do not specify `num` for the second argument, InterSystems IRIS defaults to incrementing `variable` by 1. \n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fincrement"
+  },
+  {
+    "label":"$INUMBER",
+    "alias":[
+      "$INUMBER",
+      "$IN"
+    ],
+    "documentation":[
+      "Validates a numeric value and converts it to internal format.\n",
+      "```objectscript\n",
+      "$INUMBER(fnumber,format,erropt)\n",
+      "$IN(fnumber,format,erropt)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`fnumber`The numeric value to be converted to the internal format. It can be a numeric or string value, a variable name, or any valid ObjectScript expression.`format`A format specification indicating which external numeric formats are valid representations of numbers. Specified as a quoted string consisting of zero or more format codes, in any order. _Format codes_ are described below. Note that some format codes are incompatible and result in an error. For default formatting, with or without the `erropt` parameter, you can specify the empty string (&quot;&quot;).`erropt`_Optional_ &#151; The expression returned if `fnumber` is considered invalid based on `format`.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_finumber"
+  },
+  {
+    "label":"$ISOBJECT",
+    "alias":[
+      "$ISOBJECT"
+    ],
+    "documentation":[
+      "Returns whether an expression is an object reference (OREF).\n",
+      "```objectscript\n",
+      "$ISOBJECT(expr)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`expr`A ObjectScript expression.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fisobject"
+  },
+  {
+    "label":"$ISVALIDDOUBLE",
+    "alias":[
+      "$ISVALIDDOUBLE"
+    ],
+    "documentation":[
+      "Validates a $DOUBLE numeric value and returns a boolean; optionally provides range checking.\n",
+      "```objectscript\n",
+      "$ISVALIDDOUBLE(num,scale,min,max)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`num`The numeric value to be validated. It can be a numeric or string value, a variable name, or any valid ObjectScript expression. If a valid number, `num` is converted to a IEEE double-precision floating point type.`scale`_Optional_ &#151; The number of significant decimal digits for `min` and `max` range comparisons.`min`_Optional_ &#151; The minimum permitted numeric value. The value you supply is converted to a IEEE double-precision floating point type. If not specified, `min` defaults to `$DOUBLE(&#147;-INF&#148;)`.`max`_Optional_ &#151; The maximum permitted numeric value. The value you supply is converted to a IEEE double-precision floating point type. If not specified, `max` defaults to `$DOUBLE(&#147;INF&#148;)`.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fisvaliddouble"
+  },
+  {
+    "label":"$ISVALIDNUM",
+    "alias":[
+      "$ISVALIDNUM"
+    ],
+    "documentation":[
+      "Validates a numeric value and returns a boolean; optionally provides range checking.\n",
+      "```objectscript\n",
+      "$ISVALIDNUM(num,scale,min,max)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`num`The numeric value to be validated. It can be a numeric or string value, a variable name, or any valid ObjectScript expression.`scale`_Optional_ &#151; The number of significant fractional digits for `min` and `max` range comparisons.`min`_Optional_ &#151; The minimum permitted numeric value.`max`_Optional_ &#151; The maximum permitted numeric value.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fisvalidnum"
+  },
+  {
+    "label":"$JUSTIFY",
+    "alias":[
+      "$JUSTIFY",
+      "$J"
+    ],
+    "documentation":[
+      "Right-aligns an expression within a specified width, rounding to a specified number of fractional digits.\n",
+      "```objectscript\n",
+      "$JUSTIFY(expression,width,decimal)\n",
+      "$J(expression,width,decimal)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`expression`The value that is to be right-aligned. It can be a numeric value, a string literal, the name of a variable, or any valid ObjectScript expression.`width`The number of characters within which `expression` is to be right-aligned. A positive integer or an expression that evaluates to a positive integer.`decimal`_Optional_ &#151; The number of fractional digits.  A positive integer or an expression that evaluates to a positive integer. InterSystems IRIS rounds or pads the number of fractional digits in `expression` to this value. If you specify `decimal`, InterSystems IRIS treats `expression` as a numeric.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fjustify"
+  },
+  {
+    "label":"$LENGTH",
+    "alias":[
+      "$LENGTH",
+      "$L"
+    ],
+    "documentation":[
+      "Returns the number of characters or delimited substrings in a string.\n",
+      "```objectscript\n",
+      "$LENGTH(expression,delimiter)\n",
+      "$L(expression,delimiter)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`expression`The target string. It can be a numeric value, a string literal, a variable name, or any valid expression that resolves to a string.`delimiter`_Optional_ &#151; A string that demarcates separate substrings in the target string. It can be a variable name, a numeric value, a string literal, or any valid expression that resolves to a string.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_flength"
+  },
+  {
+    "label":"$LIST",
+    "alias":[
+      "$LIST",
+      "$LI"
+    ],
+    "documentation":[
+      "Returns or replaces elements in a list.\n",
+      "```objectscript\n",
+      "$LIST(list,position,end) \n",
+      "$LI(list,position,end)  \n",
+      "```\n",
+      "Parameters:\n\n",
+      "`list`An expression that evaluates to a valid list. Because lists contain encoding, `list` must be created using _$LISTBUILD_ or _$LISTFROMSTRING_, or extracted from another list using `$LIST`. In _SET $LIST_ syntax, `list` must be a variable or a multi-dimensional property.`position` _Optional_ &#151; An integer code specifying the starting position in `list`. Permitted values are `n` (count from beginning of `list`), * (last element in `list`), and *-`n` (relative offset count backwards from end of `list`). _SET $LIST_ syntax also supports *+`n` (relative offset integer count of elements to append beyond the end of `list`). Thus, the first element in the list is 1, the second element is 2, the last element in the list is *, and the next-to-last element is *-1. If `position` is a fractional number, it is truncated to its integer part. If `position` is omitted, it defaults to 1.-1 may be used in older code to specify the last element in the list. This deprecated use of -1 should not be combined with *, *-`n`, or *+`n` relative offset syntax. `end`_Optional_ &#151; An integer code specifying the ending position of a sublist of `list`. Used with `position`. Uses the same values as `position`.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_flist"
+  },
+  {
+    "label":"$LISTBUILD",
+    "alias":[
+      "$LISTBUILD",
+      "$LB"
+    ],
+    "documentation":[
+      "Builds a list of elements from the specified expressions.\n",
+      "```objectscript\n",
+      "$LISTBUILD(element,...) \n",
+      "$LB(element,...)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`element`An expression that specifies a list element value. Can be a single expression or an expression in a comma-separated list of expressions. A placeholder comma can be specified for an omitted element.`var`A variable, specified as a single variable or as a variable in a comma-separated list of variables. A placeholder comma can be specified for an omitted variable. A `var` may be a variable of any type: local, process-private, or global, unsubscripted or subscripted.`list`An expression that evaluates to a valid list. Because lists contain encoding, `list` must be created using `$LISTBUILD` or _$LISTFROMSTRING_, or extracted from another list using _$LIST_.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_flistbuild"
+  },
+  {
+    "label":"$LISTDATA",
+    "alias":[
+      "$LISTDATA",
+      "$LD"
+    ],
+    "documentation":[
+      "Indicates whether the specified element exists and has a data value.\n",
+      "```objectscript\n",
+      "$LISTDATA(list,position,var)\n",
+      "$LD(list,position,var)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`list`An expression that evaluates to a valid list.`position`_Optional_ &#151; An expression interpreted as a position in the specified list. Either a positive, non-zero integer or -1.`var`_Optional_ &#151; A variable that contains the element value at the specified list position. If `$LISTDATA` returns a value of a 1, `var` is written; if `$LISTDATA` returns a value of a 0, `var` is unchanged.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_flistdata"
+  },
+  {
+    "label":"$LISTFIND",
+    "alias":[
+      "$LISTFIND",
+      "$LF"
+    ],
+    "documentation":[
+      "Searches a specified list for the requested value.\n",
+      "```objectscript\n",
+      "$LISTFIND(list,value,startafter)\n",
+      "$LF(list,value,startafter)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`list`An expression that evaluates to a valid list. A list is an encoded string containing one or more elements. A list must be created using _$LISTBUILD_ or _$LISTFROMSTRING_, or extracted from another list using `$LIST`.`value`An expression containing the desired element value.`startafter`_Optional_ &#151; An integer expression interpreted as a list position. The search starts with the element after this position; thus 0 means to start with position 1, 1 means to start with position 2. `startafter`=-1 is a valid value, but always returns no match. Only the integer portion of the `startafter` value is used.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_flistfind"
+  },
+  {
+    "label":"$LISTFROMSTRING",
+    "alias":[
+      "$LISTFROMSTRING",
+      "$LFS"
+    ],
+    "documentation":[
+      "Creates a list from a string.\n",
+      "```objectscript\n",
+      "$LISTFROMSTRING(string,delimiter)\n",
+      "$LFS(string,delimiter)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`A string to be converted into an InterSystems IRIS list. This string contains one or more elements, separated by a `delimiter`. The `delimiter` does not become part of the resulting InterSystems IRIS list.`delimiter`_Optional_ &#151; The delimiter used to separate substrings (elements) in `string`. Specify `delimiter` as a quoted string. If no `delimiter` is specified, the default is the comma (,) character.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_flistfromstring"
+  },
+  {
+    "label":"$LISTGET",
+    "alias":[
+      "$LISTGET",
+      "$LG"
+    ],
+    "documentation":[
+      "Returns an element in a list, or a specified default value if the requested element is undefined.\n",
+      "```objectscript\n",
+      "$LISTGET(list,position,default)\n",
+      "$LG(list,position,default)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`list`An expression that evaluates to a valid list.`position` _Optional_ &#151; An integer code specifying the starting position in `list`. Permitted values are `n` (count from beginning of `list`), * (last element in `list`), and *-`n` (relative offset count backwards from end of `list`). Thus, the first element in the list is 1, the second element is 2, the last element in the list is *, and the next-to-last element is *-1. If `position` is a fractional number, it is truncated to its integer part. If `position` is omitted, it defaults to 1.-1 may be used in older code to specify the last element in the list. This deprecated use of -1 should not be combined with * or *-`n` relative offset syntax. `default`_Optional_ &#151; An expression that provides the value to return if the list element has an undefined value. If `default` is omitted, it defaults to the null string (&#147;&#147;). You must specify a `position` parameter value to specify a `default` value.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_flistget"
+  },
+  {
+    "label":"$LISTLENGTH",
+    "alias":[
+      "$LISTLENGTH",
+      "$LL"
+    ],
+    "documentation":[
+      "Returns the number of elements in a specified list.\n",
+      "```objectscript\n",
+      "$LISTLENGTH(list)\n",
+      "$LL(list)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`list`Any expression that evaluates to a list. A list can be created using `$LISTBUILD` or `$LISTFROMSTRING`, or extracted from another list using `$LIST`.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_flistlength"
+  },
+  {
+    "label":"$LISTNEXT",
+    "alias":[
+      "$LISTNEXT"
+    ],
+    "documentation":[
+      "Retrieves elements sequentially from a list.\n",
+      "```objectscript\n",
+      "$LISTNEXT(list,ptr,value)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`list`Any expression that evaluates to a list.`ptr`A pointer to the next element in the list. You must specify `ptr` as a local variable initialized to 0. This value points to the beginning of `list`. InterSystems IRIS increments `ptr` using an internal address value algorithm (_not_ a predictable integer counter). Therefore, the only value you can use to set `ptr` is 0. `ptr` cannot be a global variable or a subscripted variable.`value`A local variable used to hold the data value of a list element. `value` does not have to be initialized before invoking `$LISTNEXT`. `value` cannot be a global variable or a subscripted variable.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_flistnext"
+  },
+  {
+    "label":"$LISTSAME",
+    "alias":[
+      "$LISTSAME",
+      "$LS"
+    ],
+    "documentation":[
+      "Compares two lists and returns a boolean value.\n",
+      "```objectscript\n",
+      "$LISTSAME(list1,list2)\n",
+      "$LS(list1,list2)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`list1`Any expression that evaluates to a list. A list can be created using `$LISTBUILD` or `$LISTFROMSTRING`, or extracted from another list using `$LIST`. The null string (&quot;&quot;) is also treated as a valid list.`list2`Any expression that evaluates to a list. A list can be created using `$LISTBUILD` or `$LISTFROMSTRING`, or extracted from another list using `$LIST`. The null string (&quot;&quot;) is also treated as a valid list.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_flistsame"
+  },
+  {
+    "label":"$LISTTOSTRING",
+    "alias":[
+      "$LISTTOSTRING",
+      "$LTS"
+    ],
+    "documentation":[
+      "Creates a string from a list.\n",
+      "```objectscript\n",
+      "$LISTTOSTRING(list,delimiter,flag)\n",
+      "$LTS(list,delimiter,flag)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`list`An InterSystems IRIS list, created using `$LISTBUILD` or `$LISTFROMSTRING`, or extracted from another list using `$LIST`.`delimiter`_Optional_ &#151; A delimiter used to separate substrings. Specify `delimiter` as a quoted string. If no `delimiter` is specified, the default is the comma (,) character.`flag`_Optional_ &#151; A boolean value that specifies how to handle an omitted list element. 0 issues a &lt;NULL VALUE&gt; error. 1 inserts an empty string for the element. The default is 0.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_flisttostring"
+  },
+  {
+    "label":"$LISTUPDATE",
+    "alias":[
+      "$LISTUPDATE",
+      "$LU"
+    ],
+    "documentation":[
+      "Updates a list by optionally replacing a specified list element or sequence of elements.\n",
+      "```objectscript\n",
+      "$LISTUPDATE(list,position,bool:val...)\n",
+      "$LU(list,position,bool:val...)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`list`Any expression that evaluates to a list. A list can be created using `$LISTBUILD` or `$LISTFROMSTRING`, or extracted from another list using `$LIST`. The null string (&quot;&quot;) is also treated as a valid list.`position` A positive integer specifying the position in `list` to update, counting from 1. If `position` is larger than the number of elements in `list`, `$LISTUPDATE` appends the element, padding if necessary.`bool`:_Optional_ &#151; A boolean variable specifying whether or not to update the specified `list` element. If omitted, `bool` defaults to 1, causing this element to be updated.`value`The value used to update the `list` at the specified `position`. You can specify a comma-separated list of `value` parameters or `bool`:`value` pair parameters in any combination. \n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_flistupdate"
+  },
+  {
+    "label":"$LISTVALID",
+    "alias":[
+      "$LISTVALID",
+      "$LV"
+    ],
+    "documentation":[
+      "Determines if an expression is a list.\n",
+      "```objectscript\n",
+      "$LISTVALID(exp)\n",
+      "$LV(exp)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`exp`Any valid expression.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_flistvalid"
+  },
+  {
+    "label":"$LOCATE",
+    "alias":[
+      "$LOCATE"
+    ],
+    "documentation":[
+      "Locates the first match of a regular expression in a string.\n",
+      "```objectscript\n",
+      "$LOCATE(string,regexp,start,end,val)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`The string to be matched.`regexp`A regular expression to match against `string`. A regular expression consists of one or more meta-characters, and may also contain literal characters.`start`_Optional_ &#151; An integer specifying the starting position within `string` from which to match the `regexp`. If you omit `start`, matching begins at the beginning of `string`. If you omit `start` and specify `end` and/or `val`, you must specify the place-holder comma.`end`_Optional_ &#151; `$LOCATE` assigns an integer value to this variable if the match is successful. This integer is the next character position after the matched string. InterSystems IRIS passes `end` _by reference_. This parameter must be a local variable. It cannot be an array, a global variable, or a reference to an object property.`val`_Optional_ &#151; `$LOCATE` assigns a string value to this variable if the match is successful. This string consists of the matched substring. InterSystems IRIS passes `val` _by reference_. This parameter must be a local variable. It cannot be an array, a global variable, or a reference to an object property.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_flocate"
+  },
+  {
+    "label":"$MATCH",
+    "alias":[
+      "$MATCH"
+    ],
+    "documentation":[
+      "Matches a regular expression to a string.\n",
+      "```objectscript\n",
+      "$MATCH(string,regexp)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`The string to be matched.`regexp`A regular expression to match against `string`. A regular expression consists of one or more meta-characters, and may also contain literal characters.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fmatch"
+  },
+  {
+    "label":"$METHOD",
+    "alias":[
+      "$METHOD"
+    ],
+    "documentation":[
+      "Supports calls to an instance method.\n",
+      "```objectscript\n",
+      "$METHOD(instance, methodname, arg1, arg2, arg3, ... )\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`instance`An expression that evaluates to an object reference. The value of the expression must be that of an in-memory instance of a class.`methodname`An expression that evaluates to a string. The value of the string must exactly match the name of an existing method in the instance of the class given as the first argument.`arg1`, `arg2`, `arg3`, ...A series of expressions to be substituted for the arguments to the designated method. The values of the expressions can be of any type. It is the responsibility of the implementer to make sure that the supplied expressions both match in type and have values with the bounds that the method expects. (If the specified method expects no arguments then nothing beyond `classname` and `methodname` need be used in the function invocation. If the method requires arguments, the rules that govern what must be supplied are those of the target method.)\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fmethod"
+  },
+  {
+    "label":"$NAME",
+    "alias":[
+      "$NAME",
+      "$NA"
+    ],
+    "documentation":[
+      "Returns the name value of a variable or a portion of a subscript reference.\n",
+      "```objectscript\n",
+      "$NAME(variable,integer)\n",
+      "$NA(variable,integer)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`variable`The variable whose name value is to be returned. It can specify a local or global variable, which can be either subscripted or unsubscripted. It does not need to be a defined variable. However, it may not be a defined private variable. If `variable` is a subscripted global, you can specify a _naked global reference_.`integer`_Optional_ &#151; A numeric value that specifies which portion (level) of a subscript reference to return. It can be a positive integer, the name of a variable, or an expression. When used, `variable` must be a subscripted reference.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fname"
+  },
+  {
+    "label":"$NCONVERT",
+    "alias":[
+      "$NCONVERT",
+      "$NC"
+    ],
+    "documentation":[
+      "Converts a number to a binary value encoded in a string of 8-bit characters.\n",
+      "```objectscript\n",
+      "$NCONVERT(n,format,endian)\n",
+      "$NC(n,format,endian)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`Any number, which can be specified as a value, a variable, or an expression. Additional limitations on valid values are imposed by the `format` selected.`format`One of the following format codes, specified as a quoted string: S1, S2, S4, S8, U1, U2, U4, F4, or F8.`endian`_Optional_ &#151; A boolean value, where 0 = little-endian and 1 = big-endian. The default is 0.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fnconvert"
+  },
+  {
+    "label":"$NORMALIZE",
+    "alias":[
+      "$NORMALIZE"
+    ],
+    "documentation":[
+      "Validates and returns a numeric value; rounds to a specified precision.\n",
+      "```objectscript\n",
+      "$NORMALIZE(num,scale)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`num`The numeric value to be validated. It can be a numeric or string value, a variable name, or any valid ObjectScript expression.`scale`The number of significant digits to round `num` to as the returned value. This number can be larger or smaller than the actual number of fractional digits in `num`. Permitted values are 0 (round to integer), &#150;1 (truncate to integer), and positive integers (round to specified number of fractional digits). There is no maximum `scale` value. However, the functional maximum cannot exceed the numeric precision. For standard InterSystems IRIS fractional numbers the functional `scale` maximum is 18 (minus the number of integer digits &#150; 1).\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fnormalize"
+  },
+  {
+    "label":"$NOW",
+    "alias":[
+      "$NOW"
+    ],
+    "documentation":[
+      "Returns the local date and time with fractional seconds for the current process.\n",
+      "```objectscript\n",
+      "$NOW(tzmins)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`tzmins` _Optional_ &#151; A positive or negative integer value that specifies the desired time zone offset from the Greenwich meridian, in minutes. A value of 0 corresponds to the Greenwich meridian. Positive integers correspond to time zones west of Greenwich; negative integers correspond to time zones east of Greenwich. For example, a value of 300 corresponds to United States Eastern Standard Time, 5 hours (300 minutes) west of Greenwich. The range of permitted values is -1440 through 1440; values beyond this range result in an &lt;ILLEGAL VALUE&gt; error.  If you omit `tzmins`, the `$NOW` function returns the local date and time based on the `$ZTIMEZONE` special variable value. The range of `$ZTIMEZONE` values that the `$NOW` function supports is -1440 through 1440; values beyond this range result in an &lt;ILLEGAL VALUE&gt; error. \n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fnow"
+  },
+  {
+    "label":"$NUMBER",
+    "alias":[
+      "$NUMBER",
+      "$NUM"
+    ],
+    "documentation":[
+      "Validates and returns a numeric value; optionally provides rounding and range checking.\n",
+      "```objectscript\n",
+      "$NUMBER(num,format,min,max)\n",
+      "$NUM(num,format,min,max)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`num`The numeric value to be validated and then converted to InterSystems IRIS canonical form. It can be a numeric or string value, a variable name, or any valid ObjectScript expression.`format`_Optional_ &#151; Specifies which processing options to apply to `num`. These processing options dictate primarily how to recognize and handle numbers containing decimal points.`min`_Optional_ &#151; The minimum acceptable numeric value.`max`_Optional_ &#151; The maximum acceptable numeric value.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fnumber"
+  },
+  {
+    "label":"$ORDER",
+    "alias":[
+      "$ORDER",
+      "$O"
+    ],
+    "documentation":[
+      "Returns the next local variable or the subscript of a local or global variable.\n",
+      "```objectscript\n",
+      "$ORDER(variable,direction,target)\n",
+      "$O(variable,direction,target)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`variable`A subscripted local, process-private global, or global variable. If an array, the subscript is required. You cannot specify just the array name. You can specify an unsubscripted local variable using indirection (see example below). You cannot specify a simple object property reference as `variable`; you can specify a _multidimensional property_ reference as `variable` with the syntax obj.property.`direction`_Optional_ &#151; The subscript order in which to traverse the target array. Values for subscripted variables can be: 1 = ascending subscript order (the default) or &#150;1 = descending subscript order. For unsubscripted local variables, 1 (the default) is the only permitted value.`target`_Optional_ &#151; Returns the current data value of the next or previous node of `variable`. Whether it is the next or previous depends on the setting of `direction`. You must specify a `direction` value to specify a `target`. For unsubscripted local variables, `direction` must be set to 1. If `variable` is undefined, the `target` value remains unchanged. The `target` parameter cannot be used with structured system variables (SSVNs) such as `^$ROUTINE`.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_forder"
+  },
+  {
+    "label":"$PARAMETER",
+    "alias":[
+      "$PARAMETER"
+    ],
+    "documentation":[
+      "Returns the value of the specified class parameter.\n",
+      "```objectscript\n",
+      "$PARAMETER(class,parameter)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`class`_Optional_ &#151; Either a class name or an _object reference (OREF)_ to a class instance. If omitted, uses the object reference of the current class instance. When omitted, you must specify the placeholder comma.`parameter`The name of a parameter. An expression which evaluates to a string. The value of the string must match the name of an existing parameter of the class identified by `class`.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fparameter"
+  },
+  {
+    "label":"$PIECE",
+    "alias":[
+      "$PIECE",
+      "$P"
+    ],
+    "documentation":[
+      "Returns or replaces a substring, using a delimiter.\n",
+      "```objectscript\n",
+      "$PIECE(string,delimiter,from,to)\n",
+      "$P(string,delimiter,from,to)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`The target string in which delimited substrings are identified. Specify `string` as an expression that evaluates to a quoted string or a numeric value. In _SET $PIECE_ syntax, `string` must be a variable or a multi-dimensional property.`delimiter`A delimiter used to identify substrings within `string`. Specify `delimiter` as an expression that evaluates to a quoted string containing one or more characters.`from`_Optional_ &#151; An expression that evaluates to a code specifying the location of a substring, or the beginning of a range of substrings, within `string`. Substrings are separated by a `delimiter`, and counted from 1. Permitted values are `n` (a positive integer specifying the substring count from the beginning of `string`), * (specifying the last substring in `string`), and *-`n` (offset integer count of substrings counting backwards from end of `string`). _SET $PIECE_ syntax also supports *+`n` (offset integer count of substrings to append beyond the end of `string`). Thus, the first delimited substring is 1, the second delimited substring is 2, the last delimited substring is *, and the next-to-last delimited substring is *-1. If `from` is omitted, it defaults to the first delimited substring.`to`_Optional_ &#151; An expression that evaluates to a code specifying the ending substring for a range of substrings within `string`. Must be used with `from`. Permitted values are `n` (a positive integer specifying the substring count from the beginning of `string`), * (specifying the last substring in `string`), and *-`n` (offset integer count of substrings from end of `string`). _SET $PIECE_ syntax also supports *+`n` (offset integer for a range of substrings to append beyond the end of `string`). If `to` is prior to `from` in `string`, no operation is performed and no error is generated.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fpiece"
+  },
+  {
+    "label":"$PREFETCHOFF",
+    "alias":[
+      "$PREFETCHOFF"
+    ],
+    "documentation":[
+      "Ends pre-fetching of globals.\n",
+      "```objectscript\n",
+      "$PREFETCHOFF(gref,gref2)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`gref`_Optional_ &#151; A global reference.`gref2`_Optional_ &#151; A global reference used to establish a range.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fprefetchoff"
+  },
+  {
+    "label":"$PREFETCHON",
+    "alias":[
+      "$PREFETCHON"
+    ],
+    "documentation":[
+      "Establishes pre-fetch for specified globals.\n",
+      "```objectscript\n",
+      "$PREFETCHON(gref,gref2)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`gref`A global reference.`gref2`_Optional_ &#151; A global reference used to establish a range.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fprefetchon"
+  },
+  {
+    "label":"$PROPERTY",
+    "alias":[
+      "$PROPERTY"
+    ],
+    "documentation":[
+      "Supports reference to a particular property of an instance.\n",
+      "```objectscript\n",
+      "$PROPERTY(instance, propertyname, index1, index2, index3... )\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`instance`An expression that evaluates to an _object instance reference (OREF)_. The value of the expression must be that of an in-memory instance of the desired class. `propertyname`An expression that evaluates to a string. The value of the string must match the name of an existing property defined in the class identified by `instance`.`index1`, `index2`, `index3`, ..._Optional_ &#151; If `propertyname` is a multidimensional value, then this series of expressions is treated as indices into the array represented by the property. (If the specified property is not multidimensional, the presence of extra arguments causes an error at runtime.)\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fproperty"
+  },
+  {
+    "label":"$QLENGTH",
+    "alias":[
+      "$QLENGTH",
+      "$QL"
+    ],
+    "documentation":[
+      "Returns the number of subscript levels in a variable.\n",
+      "```objectscript\n",
+      "$QLENGTH(var)\n",
+      "$QL(var)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`var`A string, or expression that evaluates to a string, that contains the name of a variable. The variable name can specify no subscripts or one or more subscripts.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fqlength"
+  },
+  {
+    "label":"$QSUBSCRIPT",
+    "alias":[
+      "$QSUBSCRIPT",
+      "$QS"
+    ],
+    "documentation":[
+      "Returns a variable name or a subscript name.\n",
+      "```objectscript\n",
+      "$QSUBSCRIPT(namevalue,intexpr)\n",
+      "$QS(namevalue,intexpr)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`namevalue`A string, or an expression that evaluates to a string, which is the name of a local variable, process-private global, or global variable, with or without subscripts.`intexpr`An integer code that specifies which name to return: variable name, subscript name, or namespace name.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fqsubscript"
+  },
+  {
+    "label":"$QUERY",
+    "alias":[
+      "$QUERY",
+      "$Q"
+    ],
+    "documentation":[
+      "Performs a physical scan of a local or global array.\n",
+      "```objectscript\n",
+      "$QUERY(reference,direction,target)\n",
+      "$Q(reference,direction,target)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`reference`A reference that evaluates to the name (and optionally subscripts) of a public local or global variable.`direction`_Optional_ &#151; The direction (forwards or backwards) to traverse the array.`target`_Optional_ &#151; Returns the current data value of the local or global variable specified in `reference`.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fquery"
+  },
+  {
+    "label":"$RANDOM",
+    "alias":[
+      "$RANDOM",
+      "$R"
+    ],
+    "documentation":[
+      "Returns a pseudo-random integer value in the specified range.\n",
+      "```objectscript\n",
+      "$RANDOM(range)\n",
+      "$R(range)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`range`A nonzero positive integer used to specify the upper bound of the range of possible random numbers.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_frandom"
+  },
+  {
+    "label":"$REPLACE",
+    "alias":[
+      "$REPLACE"
+    ],
+    "documentation":[
+      "Returns a new string that consists of a string-for-string substring replacement from an input string.\n",
+      "```objectscript\n",
+      "$REPLACE(string,oldsub,newsub,start,count,case)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`The source string. It can be a numeric value, a string literal, the name of a variable, or any valid ObjectScript expression. If `string` is an empty string (&quot;&quot;), `$REPLACE` returns an empty string.`oldsub`The substring to search for in `string`. It can be a numeric value, a string literal, the name of a variable, or any valid ObjectScript expression. If `oldsub` is an empty string (&quot;&quot;), `$REPLACE` returns `string`.`newsub`The replacement substring substituted for instances of `oldsub` in `string`. It can be a numeric value, a string literal, the name of a variable, or any valid ObjectScript expression. If `newsub` is an empty string (&quot;&quot;), `$REPLACE` returns `string` with the occurrences of `oldsub` removed.`start`_Optional_ &#151; Character count position within `string` where substring search is to begin. String characters are counted from 1. A value of 0, a negative number, a nonnumeric string or an empty string are equivalent to 1. If omitted, 1 is assumed. If `start` &gt; 1, the substring of `string` beginning with that character is returned, with substring substitutions (if any) performed. If `start` &gt; $LENGTH(`string`), `$REPLACE` returns the empty string (&quot;&quot;).`count`_Optional_ &#151; Number of substring substitutions to perform. If omitted, the default value is -1, which means perform all possible substitutions. A value of 0, a negative number other than -1, a nonnumeric string or an empty string are equivalent to 0 which means perform no substitutions. `count` must be used in conjunction with `start`.`case`_Optional_ &#151; Boolean flag indicating whether matching of `oldsub` in `string` is to be case-sensitive. 0 = case-sensitive (the default). 1 = not case-sensitive. Any nonzero number is equivalent to 1. Any nonnumeric value is equivalent to 0. Placeholder commas can be supplied when `start` or `count` are not specified.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_freplace"
+  },
+  {
+    "label":"$REVERSE",
+    "alias":[
+      "$REVERSE",
+      "$RE"
+    ],
+    "documentation":[
+      "Returns the characters in a string in reverse order.\n",
+      "```objectscript\n",
+      "$REVERSE(string)\n",
+      "$RE(string)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`A string or expression that evaluates to a string.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_freverse"
+  },
+  {
+    "label":"$SCONVERT",
+    "alias":[
+      "$SCONVERT",
+      "$SC"
+    ],
+    "documentation":[
+      "Converts a binary encoded value to a number.\n",
+      "```objectscript\n",
+      "$SCONVERT(s,format,endian,position)\n",
+      "$SC(s,format,endian,position)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`s`A string of 8-bit bytes which encode for a number. Limitations on valid values are imposed by the `format` selected.`format`One of the following format codes, specified as a quoted string: S1, S2, S4, S8, U1, U2, U4, F4, or F8.`endian`_Optional_ &#151; A boolean value, where 0 = little-endian and 1 = big-endian. The default is 0.`position`_Optional_ &#151; The character position in the string of 8-bit bytes at which to begin conversion. Character positions are counted from 1. The default value is 1. If you specify `position`, you must either specify `endian` or a placeholder comma.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fsconvert"
+  },
+  {
+    "label":"$SELECT",
+    "alias":[
+      "$SELECT",
+      "$S"
+    ],
+    "documentation":[
+      "Returns the value associated with the first true expression.\n",
+      "```objectscript\n",
+      "$SELECT(expression:value,...)\n",
+      "$S(expression:value,...)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`expression`The select test for the associated `value` parameter.`value`The value to be returned if the associated `expression` evaluates to true.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fselect"
+  },
+  {
+    "label":"$SEQUENCE",
+    "alias":[
+      "$SEQUENCE",
+      "$SEQ"
+    ],
+    "documentation":[
+      "Increments a global variable shared by multiple processes.\n",
+      "```objectscript\n",
+      "$SEQUENCE(gvar)\n",
+      "$SEQ(gvar)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`gvar`  The variable whose value is to be incremented. Commonly, `gvar` is a global variable (^gvar), either subscripted or unsubscripted. The variable need not be defined. If `gvar` is not defined, or is set to the null string (&quot;&quot;), `$SEQUENCE` treats it as having an initial value of zero and increments accordingly, returning a value of 1. You cannot specify a literal value for `gvar`. You cannot specify a simple object property reference as `gvar`; you can specify a multidimensional property reference as `gvar` with the syntax obj.property. \n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fsequence"
+  },
+  {
+    "label":"$SORTBEGIN",
+    "alias":[
+      "$SORTBEGIN"
+    ],
+    "documentation":[
+      "Initiates a sorting mode to improve performance of multiple sets to a global.\n",
+      "```objectscript\n",
+      "$SORTBEGIN(set_global)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`set_global`A global variable name.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fsortbegin"
+  },
+  {
+    "label":"$SORTEND",
+    "alias":[
+      "$SORTEND"
+    ],
+    "documentation":[
+      "Concludes the sorting mode initiated by $SORTBEGIN.\n",
+      "```objectscript\n",
+      "$SORTEND(set_global,dosort)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`set_global`_Optional_ &#151; A global variable that was specified in a corresponding `$SORTBEGIN`. If omitted, `$SORTEND` concludes all `$SORTBEGIN` operations for the current process.`dosort`_Optional_ &#151; A flag parameter. If 1, InterSystems IRIS performs the sort operation initiated by `$SORTBEGIN` and copies the sorted data into `set_global`. If 0, InterSystems IRIS terminates the sort operation without copying any data. The default is 1.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fsortend"
+  },
+  {
+    "label":"$STACK",
+    "alias":[
+      "$STACK",
+      "$ST"
+    ],
+    "documentation":[
+      "Returns information about active contexts saved on the process call stack.\n",
+      "```objectscript\n",
+      "$STACK(context_level,code_string)\n",
+      "$ST(context_level,code_string)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`context_level`An integer specifying the zero-based context level number of the context for which information is requested. Supported values include 0, positive integers, and -1.`code_string`_Optional_ &#151; A keyword string that specifies the kind of context information that is requested. supported values are &#147;PLACE&#148;, &#147;MCODE&#148;, and &#147;ECODE&#148;\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fstack"
+  },
+  {
+    "label":"$TEXT",
+    "alias":[
+      "$TEXT",
+      "$T"
+    ],
+    "documentation":[
+      "Returns a line of source code found at the specified location.\n",
+      "```objectscript\n",
+      "$TEXT(label+offset^routine)\n",
+      "$T(label+offset^routine)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`label`_Optional_ &#151; A line label in a routine. Must be a literal value; a variable cannot be used to specify `label`. Line labels are case-sensitive. If omitted, `+offset` is counted from the beginning of the routine.`+offset`_Optional_ &#151; An expression that resolves to a positive integer that identifies the line to be returned as an offset number of lines. If omitted, the line identified by `label` is returned.`^routine`_Optional_ &#151; The name of a routine that resides on disk. The system loads the routine from disk and begins execution at the first executable line of the routine. Must be a literal value; a variable cannot be used to specify `routine`. (Note that the ^ character is a separator character, not part of the routine name.) If the routine is not in the current namespace, you can specify the namespace that contains the routine using an _extended routine reference_, as follows: ^|&quot;namespace&quot;|routine. If omitted, defaults to the currently loaded routine.`@expr_atom`An expression atom that uses indirection to supply a location. Resolves to some form of label+offset^routine.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_ftext"
+  },
+  {
+    "label":"$TRANSLATE",
+    "alias":[
+      "$TRANSLATE",
+      "$TR"
+    ],
+    "documentation":[
+      "Returns a new string that consists of character-for-character replacement of a source string.\n",
+      "```objectscript\n",
+      "$TRANSLATE(string,identifier,associator)\n",
+      "$TR(string,identifier,associator)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`The source string. It can be a numeric value, a string literal, the name of a variable, or any valid ObjectScript expression.`identifier` A string consisting of one or more characters to search for in `string`. It can be a numeric value, a string literal, the name of a variable, or any valid ObjectScript expression. `associator`_Optional_ &#151; A string consisting of one or more replacement characters that correspond positionally to each character in `identifier`. It can be a numeric value, a string literal, the name of a variable, or any valid ObjectScript expression.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_ftranslate"
+  },
+  {
+    "label":"$VIEW",
+    "alias":[
+      "$VIEW",
+      "$V"
+    ],
+    "documentation":[
+      "Returns the contents of memory locations.\n",
+      "```objectscript\n",
+      "$VIEW(offset,mode,length) \n",
+      "$V(offset,mode,length)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`offset`An offset, in bytes, from a base address within the memory region specified by `mode`. Interpretation is mode-dependent (see below.)`mode`_Optional_ &#151; The memory region whose base address will be used to locate the data. Default is -1.`length`_Optional_ &#151; The length of the data to be returned, in bytes. May also contain a letter &#147;O&#148; reverse order suffix. Default is 1.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fview"
+  },
+  {
+    "label":"$WASCII",
+    "alias":[
+      "$WASCII",
+      "$WA"
+    ],
+    "documentation":[
+      "Returns the numeric code corresponding to a character, recognizing surrogate pairs.\n",
+      "```objectscript\n",
+      "$WASCII(expression,position)\n",
+      "$WA(expression,position)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`expression`The character to be converted.`position`_Optional_ &#151; The position of a character within a character string, counting from 1. The default is 1.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fwascii"
+  },
+  {
+    "label":"$WCHAR",
+    "alias":[
+      "$WCHAR",
+      "$WC"
+    ],
+    "documentation":[
+      "Returns the character corresponding to a numeric code, recognizing surrogate pairs.\n",
+      "```objectscript\n",
+      "$WCHAR(expression,...)\n",
+      "$WC(expression,...)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`expression`The integer value to be converted.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fwchar"
+  },
+  {
+    "label":"$WEXTRACT",
+    "alias":[
+      "$WEXTRACT",
+      "$WE"
+    ],
+    "documentation":[
+      "Extracts a substring from a character string by position, or replaces a substring by position, recognizing surrogate pairs.\n",
+      "```objectscript\n",
+      "$WEXTRACT(string,from,to)\n",
+      "$WE(string,from,to)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`The target string in which substrings are identified. Specify `string` as an expression that evaluates to a quoted string or a numeric value. In _SET $WEXTRACT_ syntax, `string` must be a variable or a multi-dimensional property.`from` _Optional_ &#151; The starting position within the target string. Characters are counted from 1. A surrogate pair is counted as a single character. Permitted values are `n` (a positive integer specifying the start position as a character count from the beginning of `string`), * (specifying the last character in `string`), and *-`n` (offset integer count of characters backwards from end of `string`). _SET $WEXTRACT_ syntax also supports *+`n` (offset integer count of characters to append beyond the end of `string`). If not specified, the default is 1. Different values are used for the two-parameter form $WEXTRACT(string,from), and the three-parameter form $WEXTRACT(string,from,to): Without `to`: Specifies a single character. To count from the beginning of `string`, specify an expression that evaluates to a positive integer (counting from 1); a zero (0) or negative number returns the empty string. To count from the end of `string` specify  *, or *-`n`. If `from` is omitted it defaults to 1.  With `to`: Specifies the start of a range of characters. To count from the beginning of `string`, specify an expression that evaluates to a positive integer (counting from 1). A zero (0) or negative number evaluates as 1. To count from the end of `string` specify  *, or *-`n`. `to`_Optional_ &#151; Specifies the end position (inclusive) for a range of characters. Must be used with `from`. Permitted values are `n` (a positive integer equal to or larger than `from` that specifies the end position as a character count from the beginning of `string`), * (specifying the last character in `string`), and *-`n` (offset integer count of characters backwards from end of `string`).  A surrogate pair is counted as a single character. You can specify a `to` value that is beyond the end of the string.   _SET $WEXTRACT_ syntax also supports *+`n` (offset integer count of the end of a range of characters to append beyond the end of `string`).   \n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fwextract"
+  },
+  {
+    "label":"$WFIND",
+    "alias":[
+      "$WFIND",
+      "$WF"
+    ],
+    "documentation":[
+      "Finds a substring by value and returns an integer specifying its end position in the string, recognizing surrogate pairs.\n",
+      "```objectscript\n",
+      "$WFIND(string,substring,position)\n",
+      "$WF(string,substring,position)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`The target string that is to be searched. It can be a variable name, a numeric value, a string literal, or any valid ObjectScript expression that resolves to a string.`substring`The substring that is to be searched for. It can be a variable name, a numeric value, a string literal, or any valid ObjectScript expression that resolves to a string.`position`_Optional _&#151; A position within the target string at which to start the search. It must be a positive integer.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fwfind"
+  },
+  {
+    "label":"$WISWIDE",
+    "alias":[
+      "$WISWIDE"
+    ],
+    "documentation":[
+      "Returns a flag indicating whether a string contains surrogate pairs.\n",
+      "```objectscript\n",
+      "$WISWIDE(string)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`A string or expression that evaluates to a string.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fwiswide"
+  },
+  {
+    "label":"$WLENGTH",
+    "alias":[
+      "$WLENGTH",
+      "$WL"
+    ],
+    "documentation":[
+      "Returns the number of characters in a string, recognizing surrogate pairs.\n",
+      "```objectscript\n",
+      "$WLENGTH(string)\n",
+      "$WL(string)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`A string or expression that evaluates to a string.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fwlength"
+  },
+  {
+    "label":"$WREVERSE",
+    "alias":[
+      "$WREVERSE",
+      "$WRE"
+    ],
+    "documentation":[
+      "Returns the characters in a string in reverse order, recognizing surrogate pairs.\n",
+      "```objectscript\n",
+      "$WREVERSE(string)\n",
+      "$WRE(string)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`A string or expression that evaluates to a string.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fwreverse"
+  },
+  {
+    "label":"$XECUTE",
+    "alias":[
+      "$XECUTE"
+    ],
+    "documentation":[
+      "Executes a specified command line.\n",
+      "```objectscript\n",
+      "$XECUTE(code,paramlist)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`code`An expression that resolves to a valid ObjectScript command line, specified as a quoted string. A command line can contain one or more ObjectScript commands. The final command must be an argumented _QUIT_.`paramlist`_Optional_ &#151; A list of parameters to be passed to `code`. Multiple parameters are separated by commas.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fxecute"
+  },
+  {
+    "label":"$ZABS",
+    "alias":[
+      "$ZABS"
+    ],
+    "documentation":[
+      "Absolute value function.\n",
+      "```objectscript\n",
+      "$ZABS(n)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`Any number.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzabs"
+  },
+  {
+    "label":"$ZARCCOS",
+    "alias":[
+      "$ZARCCOS"
+    ],
+    "documentation":[
+      "Inverse (arc) cosine function.\n",
+      "```objectscript\n",
+      "$ZARCCOS(n)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`A signed decimal number. \n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzarccos"
+  },
+  {
+    "label":"$ZARCSIN",
+    "alias":[
+      "$ZARCSIN"
+    ],
+    "documentation":[
+      "Inverse (arc) sine function.\n",
+      "```objectscript\n",
+      "$ZARCSIN(n)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`A signed decimal number.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzarcsin"
+  },
+  {
+    "label":"$ZARCTAN",
+    "alias":[
+      "$ZARCTAN"
+    ],
+    "documentation":[
+      "Inverse (arc) tangent function.\n",
+      "```objectscript\n",
+      "$ZARCTAN(n)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`Any positive or negative number.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzarctan"
+  },
+  {
+    "label":"$ZBOOLEAN",
+    "alias":[
+      "$ZBOOLEAN",
+      "$ZB"
+    ],
+    "documentation":[
+      "Bitwise logical operation function.\n",
+      "```objectscript\n",
+      "$ZBOOLEAN(arg1,arg2,bit_op)\n",
+      "$ZB(arg1,arg2,bit_op)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`arg1`The first argument. An integer or a string, or a variable or expression that resolve to an integer or string. All characters must have an ASCII value between 0 and 255. Cannot be a floating point number.`arg2`The second argument. An integer or a string, or a variable or expression that resolve to an integer or string. All characters must have an ASCII value between 0 and 255. Cannot be a floating point number.`bit_op`An integer indicating the operation to be performed (see table below.) Permitted values are 0 through 15, inclusive.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzboolean"
+  },
+  {
+    "label":"$ZCONVERT",
+    "alias":[
+      "$ZCONVERT",
+      "$ZCVT"
+    ],
+    "documentation":[
+      "String conversion function.\n",
+      "```objectscript\n",
+      "$ZCONVERT(string,mode,trantable,handle)\n",
+      "$ZCVT(string,mode,trantable,handle)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`The string to convert, specified as a quoted string. This string can be specified as a value, a variable, or an expression.`mode`A letter code specifying the conversion mode, either the type of case conversion or input/output encoding. Specify `mode` as a quoted string.`trantable`_Optional_ &#151; The _translation table to use_, specified as either an integer or a quoted string,`handle`_Optional_ &#151; An unsubscripted local variable that holds a string value. Used for multiple invocations of `$ZCONVERT`. The _handle parameter_ contains the remaining portion of `string` that could not be converted at the end of `$ZCONVERT`, and supplies this remaining portion to the next invocation of `$ZCONVERT`.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzconvert"
+  },
+  {
+    "label":"$ZCOS",
+    "alias":[
+      "$ZCOS"
+    ],
+    "documentation":[
+      "Cosine function.\n",
+      "```objectscript\n",
+      "$ZCOS(n)  \n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`An angle in radians ranging from Pi to 2 Pi (inclusive). Other supplied numeric values are converted to a value within this range.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzcos"
+  },
+  {
+    "label":"$ZCOT",
+    "alias":[
+      "$ZCOT"
+    ],
+    "documentation":[
+      "Cotangent function.\n",
+      "```objectscript\n",
+      "$ZCOT(n)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`An angle in radians.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzcot"
+  },
+  {
+    "label":"$ZCRC",
+    "alias":[
+      "$ZCRC"
+    ],
+    "documentation":[
+      "Checksum function.\n",
+      "```objectscript\n",
+      "$ZCRC(string,mode,expression)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`A string on which a checksum operation is performed.`mode`An integer code specifying the checksum mode to use.`expression`_Optional_ &#151; The initial &quot;seed&quot; value, specified as an integer. If omitted, defaults to zero (0).\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzcrc"
+  },
+  {
+    "label":"$ZCSC",
+    "alias":[
+      "$ZCSC"
+    ],
+    "documentation":[
+      "Cosecant function.\n",
+      "```objectscript\n",
+      "$ZCSC(n)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`An angle in radians.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzcsc"
+  },
+  {
+    "label":"$ZCYC",
+    "alias":[
+      "$ZCYC",
+      "$ZC"
+    ],
+    "documentation":[
+      "Cyclical-redundancy check for data integrity.\n",
+      "```objectscript\n",
+      "$ZCYC(string)\n",
+      "$ZC(string)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`A string.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzcyc"
+  },
+  {
+    "label":"$ZDASCII",
+    "alias":[
+      "$ZDASCII",
+      "$ZDA"
+    ],
+    "documentation":[
+      "Converts an eight-byte string to a $DOUBLE floating point number.\n",
+      "```objectscript\n",
+      "$ZDASCII(string,position)\n",
+      "$ZDA(string,position)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`A string or number. It can be a value, a variable, or an expression. It must be a minimum of eight bytes in length. A number is converted to canonical form by removing a leading plus sign, and leading and trailing zeros before it is supplied to `$ZDASCII`; the resulting canonical number must be a minimum of eight bytes in length.`position`_Optional_ &#151; A starting position in the string, expressed as a positive, non-zero integer. The default is 1. Position is counted in single bytes, _not_ eight-byte strings. There must exist at least eight bytes of `string` from the specified `position` (inclusive). A numeric `position` value is parsed as an integer by truncating decimal digits, removing leading zeros and plus signs, etc.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzdascii"
+  },
+  {
+    "label":"$ZDATE",
+    "alias":[
+      "$ZDATE",
+      "$ZD"
+    ],
+    "documentation":[
+      "Validates a date and converts it from internal format to the specified display format.\n",
+      "```objectscript\n",
+      "$ZDATE(hdate,dformat,monthlist,yearopt,startwin,endwin,mindate,maxdate,erropt,localeopt)\n",
+      "$ZD(hdate,dformat,monthlist,yearopt,startwin,endwin,mindate,maxdate,erropt,localeopt)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`hdate`An integer specifying an internal date format value. This integer represents the number of days elapsed since December 31, 1840. If `$HOROLOG` is specified for `hdate`, only the date portion of `$HOROLOG` is used. See _hdate_ below.`dformat`_Optional_ &#151; An integer code specifying the format for the returned date. See _dformat_ below.`monthlist`_Optional_ &#151; A string or the name of a variable that specifies a set of month names. This string must begin with a delimiter character, and its 12 entries must be separated by this delimiter character. See _monthlist_ below.`yearopt`_Optional_ &#151; An integer code that specifies whether to represent years as two- or four-digit values. See _yearopt_ below.`startwin` _Optional_ &#151; The start of the sliding window during which dates must be represented with two-digit years.  See _startwin_ below.`endwin` _Optional_ &#151; The end of the sliding window during which dates are represented with two-digit years. See _endwin_ below.`mindate` _Optional_ &#151; The lower limit of the range of valid dates. Specified as a `$HOROLOG` integer date count, with 0 representing December 31, 1840. Can be specified as a positive or negative integer. See _mindate_ below.`maxdate` _Optional_ &#151; The upper limit of the range of valid dates. Specified as a `$HOROLOG` integer date count. See _maxdate_ below.`erropt` _Optional_ &#151; An expression to return when `hdate` is invalid. Specifying a value for this parameter suppresses error codes associated with invalid or out of range `hdate` values.  Instead of issuing an error message, `$ZDATE` returns `erropt`. See _erropt_ below.`localeopt`_Optional_ &#151; A boolean flag that specifies which locale to use for the `dformat`, `monthlist`, `yearopt`, `mindate` and `maxdate` default values, and other date characteristics, such as the date separator character:`localeopt`=0: the current locale property settings determine these parameter defaults.`localeopt`=1: the ODBC standard locale determines these parameter defaults.`localeopt` not specified: the `dformat` value determines these parameter defaults. If `dformat`=3, ODBC defaults are used. Japanese and Islamic date `dformat`values use their own defaults. For all other `dformat` values, current locale property settings are used as defaults. See _localeopt_ below.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzdate"
+  },
+  {
+    "label":"$ZDATEH",
+    "alias":[
+      "$ZDATEH",
+      "$ZDH"
+    ],
+    "documentation":[
+      "Validates a date and converts it from display format to InterSystems IRIS internal format.\n",
+      "```objectscript\n",
+      "$ZDATEH(date,dformat,monthlist,yearopt,startwin,endwin,mindate,maxdate,erropt,localeopt)\n",
+      "$ZDH(date,dformat,monthlist,yearopt,startwin,endwin,mindate,maxdate,erropt,localeopt)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`date`An expression that evaluates to a date string in display format. `$ZDATEH` converts this date string to `$HOROLOG` format. This can be either an explicit date (specified in various formats) or the string &#147;T&#148; or &#147;t&#148;, representing the current date. The &#147;T&#148; or &#147;t&#148; string can optionally include a signed integer offset. For example &#147;T-7&#148; meaning seven days before the current date. See _date_ below.`dformat`_Optional_ &#151; An integer code that specifies a date format option for `date`. If `date` is &#147;T&#148;, `dformat` must be 5, 6, 7, 8, 9, or 15. See _dformat_ below.`monthlist`_Optional_ &#151; A string or the name of a variable that specifies a set of month names. This string must begin with a delimiter character, and its 12 entries must be separated by this delimiter character. See _monthlist_ below.`yearopt`_Optional_ &#151; An integer code that specifies whether to represent years as two- or four-digit values. See _yearopt_ below.`startwin`_Optional_ &#151; The start of the sliding window during which dates must be represented with two-digit years. See _startwin_ below.`endwin`_Optional_ &#151; The end of the sliding window during which dates are represented with two-digit years. See _endwin_ below.`mindate`_Optional_ &#151; The lower limit of the range of valid `date` dates. Specified as a `$HOROLOG` integer date count, with 0 representing December 31, 1840. Can be specified as a positive or negative integer. See _mindate_ below.`maxdate`_Optional_ &#151; The upper limit of the range of valid dates. Specified as a `$HOROLOG` integer date count. See _maxdate_ below.`erropt`_Optional_ &#151; An expression to return when `date` is invalid. Specifying a value for this parameter suppresses error codes associated with invalid or out of range `date` values. Instead of issuing an error message, `$ZDATEH` returns `erropt`. See _erropt_ below.`localeopt`_Optional_ &#151; A boolean flag that specifies which locale to use for the `dformat`, `monthlist`, `yearopt`, `mindate` and `maxdate` default values, and other date characteristics, such as the date separator character:`localeopt`=0: the current locale property settings determine these parameter defaults.`localeopt`=1: the ODBC standard locale determines these parameter defaults.`localeopt` not specified: the `dformat` value determines these parameter defaults. If `dformat`=3, ODBC defaults are used. Japanese and Islamic date `dformat`values use their own defaults. For all other `dformat` values, current locale property settings are used as defaults. See _localeopt_ below.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzdateh"
+  },
+  {
+    "label":"$ZDATETIME",
+    "alias":[
+      "$ZDATETIME",
+      "$ZDT"
+    ],
+    "documentation":[
+      "Validates a date and time and converts it from internal format to the specified display format.\n",
+      "```objectscript\n",
+      "$ZDATETIME(hdatetime,dformat,tformat,precision,monthlist,yearopt,startwin,endwin,mindate,maxdate,erropt,localeopt)\n",
+      "$ZDT(hdatetime,dformat,tformat,precision,monthlist,yearopt,startwin,endwin,mindate,maxdate,erropt,localeopt)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`hdatetime`The date and time value, specified in internal date and time format. See _hdatetime_ below.`dformat`_Optional_ &#151; An integer code specifying the format for the returned date value. See _dformat_ below.`tformat`_Optional_ &#151; An integer code specifying the format for the returned time value. See _tformat_ below.`precision`_Optional_ &#151; An integer specifying the number of decimal places of precision (fractional seconds) for the returned time value. See _precision_ below.`monthlist`_Optional_ &#151; A string or the name of a variable that specifies a set of month names. This string must begin with a delimiter character, and its 12 entries must be separated by this delimiter character. See _monthlist_ below.`yearopt`_Optional_ &#151; An integer code that specifies whether to represent years as two- or four-digit values. See _yearopt_ below.`startwin`_Optional_ &#151; The start of the sliding window during which dates are represented with two-digit years. See _startwin_ below.`endwin`_Optional_ &#151; The end of the sliding window during which dates are represented with two-digit years. See _endwin_ below.`mindate`_Optional_ &#151; The lower limit of the range of valid dates. Specified as a `$HOROLOG` integer date count, with 0 representing December 31, 1840. Can be specified as a positive or negative integer. See _mindate_ below.`maxdate`_Optional_ &#151; The upper limit of the range of valid dates, specified as an integer `$HOROLOG` date count. See _maxdate_ below.`erropt`_Optional_ &#151; An expression to return when `hdatetime` is invalid. Specifying a value for this parameter suppresses error codes associated with invalid or out of range `hdatetime` values. Instead of issuing an error message, `$ZDATETIME` returns `erropt`. See _erropt_ below.`localeopt`_Optional_ &#151; A boolean flag that specifies which locale to use for the `dformat`, `tformat`, `monthlist`, `yearopt`, `mindate` and `maxdate` default values, and other date and time characteristics:`localeopt`=0: the current locale property settings determine these parameter defaults.`localeopt`=1: the ODBC standard locale determines these parameter defaults.`localeopt` not specified: the `dformat` value determines these parameter defaults. If `dformat`=3, ODBC defaults are used; otherwise current locale property settings are used. See _localeopt_ below.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzdatetime"
+  },
+  {
+    "label":"$ZDATETIMEH",
+    "alias":[
+      "$ZDATETIMEH",
+      "$ZDTH"
+    ],
+    "documentation":[
+      "Validates a date and time and converts from display format to InterSystems IRIS internal format.\n",
+      "```objectscript\n",
+      "$ZDATETIMEH(datetime,dformat,tformat,monthlist,yearopt,startwin,endwin,mindate,maxdate,erropt,localeopt)\n",
+      "$ZDTH(datetime,dformat,tformat,monthlist,yearopt,startwin,endwin,mindate,maxdate,erropt,localeopt)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`datetime`The date and time input value. A date/time string specified in display format. `$ZDATETIMEH` converts this date/time string to `$HOROLOG` format. The `datetime` value can be either an explicit date and time (specified in various formats), an explicit date (specified in various formats) with the time value defaulting to 0, or the string &#147;T&#148; or &#147;t&#148;, representing the current date, with the time value either specified or defaulting to 0. The &#147;T&#148; or &#147;t&#148; string can optionally include a signed integer offset.  See _datetime_ below.`dformat`_Optional_ &#151; An integer code specifying the date format for the date portion of `datetime`. If `datetime` is &#147;T&#148;, `dformat` must be 5, 6, 7, 8, 9, or 15. See _dformat_ below.`tformat`_Optional_ &#151;  An integer code specifying the time format for the time portion of `datetime`. See _tformat_ below.`monthlist`_Optional_ &#151; A string or the name of a variable that specifies a set of month names. This string must begin with a delimiter character, and its 12 entries must be separated by this delimiter character. See _monthlist_ below.`yearopt`_Optional_ &#151; An integer code that specifies whether to represent years as two- or four-digit values. See _yearopt_ below.`startwin`_Optional_ &#151; The start of the sliding window during which dates must be represented with two-digit years. See _startwin_ below.`endwin`_Optional_ &#151; The end of the sliding window during which dates are represented with two-digit years. See _endwin_ below.`mindate`_Optional_ &#151; The lower limit of the range of valid dates. Specified as a `$HOROLOG` integer date count, with 0 representing December 31, 1840. Can be specified as a positive or negative integer. See _mindate_ below.`maxdate`_Optional_ &#151; The upper limit of the range of valid dates. Specified as a `$HOROLOG` integer date count. See _maxdate_ below.`erropt`_Optional_ &#151; An expression to return when `datetime` is invalid. Specifying a value for this parameter suppresses error codes associated with invalid or out of range `datetime` values. Instead of issuing an error message, `$ZDATETIMEH` returns `erropt`. See _erropt_ below.`localeopt`_Optional_ &#151; A boolean flag that specifies which locale to use for the `dformat`, `tformat`, `monthlist`, `yearopt`, `mindate` and `maxdate` default values, and other date and time characteristics, such as the DateSeparator character:`localeopt`=0: the current locale property settings determine these parameter defaults.`localeopt`=1: the ODBC standard locale determines these parameter defaults.`localeopt` not specified: the `dformat` value determines these parameter defaults. If `dformat`=3, ODBC defaults are used. Japanese and Islamic date `dformat`values use their own defaults. For all other `dformat` values, current locale property settings are used as defaults. See _localeopt_ below._Optional_ &#151; A boolean flag that specifies which locale to use. When 0, the current locale determines the date separator, time separator, and the other characters, strings, and options used to format dates and times. When 1, the ODBC locale determines these characters, strings, and options. The default is 0, unless `dformat`=3, in which case the default is 1. See below.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzdatetimeh"
+  },
+  {
+    "label":"$ZDCHAR",
+    "alias":[
+      "$ZDCHAR",
+      "$ZDC"
+    ],
+    "documentation":[
+      "Converts a $DOUBLE floating point number to an eight-byte string.\n",
+      "```objectscript\n",
+      "$ZDCHAR(n)\n",
+      "$ZDC(n)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`An IEEE-format floating point number. It can be specified as a value, a variable, or an expression.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzdchar"
+  },
+  {
+    "label":"$ZEXP",
+    "alias":[
+      "$ZEXP"
+    ],
+    "documentation":[
+      "Exponential function (inverse of natural logarithm).\n",
+      "```objectscript\n",
+      "$ZEXP(n)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`A number of any type. A number larger than 335.6 results in a &lt;MAXNUMBER&gt; error. A number smaller than -295.4 returns 0.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzexp"
+  },
+  {
+    "label":"$ZF",
+    "alias":[
+      "$ZF"
+    ],
+    "documentation":[
+      "Invokes non-ObjectScript programs or functions from ObjectScript routines.\n",
+      "```objectscript\n",
+      "$ZF(&quot;function_name&quot;,args)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`function_name`The name of the function you want to call.`args`_Optional_ &#151; A set of argument values passed to the function.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzf"
+  },
+  {
+    "label":"$ZHEX",
+    "alias":[
+      "$ZHEX",
+      "$ZH"
+    ],
+    "documentation":[
+      "Converts a hexadecimal string to a decimal number and vice versa.\n",
+      "```objectscript\n",
+      "$ZHEX(num)\n",
+      "$ZH(num)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`num`An expression that evaluates to a numeric value be converted, either a quoted string or an integer (signed or unsigned).\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzhex"
+  },
+  {
+    "label":"$ZISWIDE",
+    "alias":[
+      "$ZISWIDE"
+    ],
+    "documentation":[
+      "Checks whether a string contains any 16-bit wide characters.\n",
+      "```objectscript\n",
+      "$ZISWIDE(string)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`A string of one or more characters, enclosed in quotation marks.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fziswide"
+  },
+  {
+    "label":"$ZLASCII",
+    "alias":[
+      "$ZLASCII",
+      "$ZLA"
+    ],
+    "documentation":[
+      "Converts a four-byte string to a number.\n",
+      "```objectscript\n",
+      "$ZLASCII(string,position)\n",
+      "$ZLA(string,position)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`A string that can be specified as a value, a variable, or an expression. It must be a minimum of four bytes in length.`position`_Optional_ &#151; A starting position in the string. The default is 1.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzlascii"
+  },
+  {
+    "label":"$ZLCHAR",
+    "alias":[
+      "$ZLCHAR",
+      "$ZLC"
+    ],
+    "documentation":[
+      "Converts a number to a four-byte string.\n",
+      "```objectscript\n",
+      "$ZLCHAR(n)\n",
+      "$ZLC(n)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`A positive integer in the range 0 through 4294967295. It can be specified as a value, a variable, or an expression.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzlchar"
+  },
+  {
+    "label":"$ZLN",
+    "alias":[
+      "$ZLN"
+    ],
+    "documentation":[
+      "Returns the natural logarithm of the specified number.\n",
+      "```objectscript\n",
+      "$ZLN(n)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`Any positive nonzero number, which can be specified as a value, a variable, or an expression.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzln"
+  },
+  {
+    "label":"$ZLOG",
+    "alias":[
+      "$ZLOG"
+    ],
+    "documentation":[
+      "Returns the base 10 logarithm value of the specified positive numeric expression.\n",
+      "```objectscript\n",
+      "$ZLOG(n)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`Any positive, nonzero number, which can be specified as a value, a variable, or an expression.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzlog"
+  },
+  {
+    "label":"$ZNAME",
+    "alias":[
+      "$ZNAME"
+    ],
+    "documentation":[
+      "Validates the specified name string as a legal identifier.\n",
+      "```objectscript\n",
+      "$ZNAME(string,type,lang)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`The name to evaluate, specified as a quoted string.`type`_Optional_ &#151; An integer code specifying the type of name validation to perform. Valid values are 0 through 6. The default is 0.`lang`_Optional_ &#151; An integer code specifying the language mode to use when validating `string`. Valid values are 0 through 12. The default is to use the current language mode.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzname"
+  },
+  {
+    "label":"$ZPOSITION",
+    "alias":[
+      "$ZPOSITION"
+    ],
+    "documentation":[
+      "Returns the number of characters in an expression that can fit within a specified field width.\n",
+      "```objectscript\n",
+      "$ZPOSITION(expression,field,pitch)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`expression`A string expression.`field`An integer expression that specifies field width.`pitch`_Optional_ &#151; A numeric expression that specifies the pitch value to use for full-width characters. The default is 2. Other permissible values are 1, 1.25, and 1.5.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzposition"
+  },
+  {
+    "label":"$ZPOWER",
+    "alias":[
+      "$ZPOWER"
+    ],
+    "documentation":[
+      "Returns the value of a number raised to a specified power.\n",
+      "```objectscript\n",
+      "$ZPOWER(num,exponent)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`num`The number to be raised to a power.`exponent`The exponent.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzpower"
+  },
+  {
+    "label":"$ZQASCII",
+    "alias":[
+      "$ZQASCII",
+      "$ZQA"
+    ],
+    "documentation":[
+      "Converts an eight-byte string to a number.\n",
+      "```objectscript\n",
+      "$ZQASCII(string,position)\n",
+      "$ZQA(string,position)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`A string. It can be a value, a variable, or an expression. It must be a minimum of eight bytes in length.`position`_Optional_ &#151; A starting position in the string, expressed as a positive integer. The default is 1. Position is counted in single bytes, _not_ eight-byte strings. The `position` cannot be the last byte in the string, or beyond the end of the string. A numeric `position` value is parsed as an integer by truncating decimal digits, removing leading zeros and plus signs, etc.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzqascii"
+  },
+  {
+    "label":"$ZQCHAR",
+    "alias":[
+      "$ZQCHAR",
+      "$ZQC"
+    ],
+    "documentation":[
+      "Converts a number to an eight-byte string.\n",
+      "```objectscript\n",
+      "$ZQCHAR(n)\n",
+      "$ZQC(n)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`An integer in the range -9223372036854775808 through 9223372036854775807. It can be specified as a value, a variable, or an expression.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzqchar"
+  },
+  {
+    "label":"$ZSEARCH",
+    "alias":[
+      "$ZSEARCH",
+      "$ZSE"
+    ],
+    "documentation":[
+      "Returns the full file specification, pathname and filename, of a specified file.\n",
+      "```objectscript\n",
+      "$ZSEARCH(target)\n",
+      "$ZSE(target)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`target`A filename, a pathname, or a null string. May contain one or more * or ? wildcard characters.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzsearch"
+  },
+  {
+    "label":"$ZSEC",
+    "alias":[
+      "$ZSEC"
+    ],
+    "documentation":[
+      "Returns the trigonometric secant of the specified angle value.\n",
+      "```objectscript\n",
+      "$ZSEC(n)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`Angle in radians ranging from 0 to 2 Pi. It can be specified as a value, a variable, or an expression.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzsec"
+  },
+  {
+    "label":"$ZSEEK",
+    "alias":[
+      "$ZSEEK"
+    ],
+    "documentation":[
+      "Establishes a new offset into the current sequential file.\n",
+      "```objectscript\n",
+      "$ZSEEK(offset,mode)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`offset`The offset into the current file.`mode`_Optional_ &#151; An integer value that determines the relative position of the offset. The default is 0.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzseek"
+  },
+  {
+    "label":"$ZSIN",
+    "alias":[
+      "$ZSIN"
+    ],
+    "documentation":[
+      "Returns the trigonometric sine of the specified angle value.\n",
+      "```objectscript\n",
+      "$ZSIN(n)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`Angle in radians ranging from Pi to 2 Pi (inclusive). Other supplied numeric values are converted to a value within this range.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzsin"
+  },
+  {
+    "label":"$ZSQR",
+    "alias":[
+      "$ZSQR"
+    ],
+    "documentation":[
+      "Returns the square root of a specified number.\n",
+      "```objectscript\n",
+      "$ZSQR(n)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`Any positive number, or zero. (The null string and nonnumeric string values are treated as a zero.) Can be specified as a value, a variable, or an expression.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzsqr"
+  },
+  {
+    "label":"$ZSTRIP",
+    "alias":[
+      "$ZSTRIP"
+    ],
+    "documentation":[
+      "Removes types of characters and individual characters from a specified string.\n",
+      "```objectscript\n",
+      "$ZSTRIP(string,action,remchar,keepchar)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`The string to be stripped.`action`What to strip from `string`. An `action` consists of an action code followed by a one or more mask codes. The mask code is optional when specifying `remchar`. An `action` is specified as a quoted string.`remchar`_Optional_ &#151; A string of specific character values to remove. If `action` does not contain a mask code, `remchar` lists the characters to remove. If `action` contains a mask code, `remchar` lists additional characters to remove that are not covered by the `action` parameter&rsquo;s mask code.`keepchar`_Optional_ &#151; A string of specific character values to _not_ remove that are designated for removal by the `action` parameter&rsquo;s mask code. A mask code must be specified to specify `keepchar`.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzstrip"
+  },
+  {
+    "label":"$ZTAN",
+    "alias":[
+      "$ZTAN"
+    ],
+    "documentation":[
+      "Returns the trigonometric tangent of the specified angle value.\n",
+      "```objectscript\n",
+      "$ZTAN(n)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`An angle in radians ranging from Pi to 2 Pi (inclusive). Other supplied numeric values are converted to a value within this range.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fztan"
+  },
+  {
+    "label":"$ZTIME",
+    "alias":[
+      "$ZTIME",
+      "$ZT"
+    ],
+    "documentation":[
+      "Validates a time and converts it from internal format to the specified display format.\n",
+      "```objectscript\n",
+      "$ZTIME(htime,tformat,precision,erropt,localeopt)\n",
+      "$ZT(htime,tformat,precision,erropt,localeopt)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`htime`The internal system time that can be specified as a numeric value, the name of a variable, or as an expression.`tformat`_Optional_ &#151; An integer value that specifies the format in which you want to return the time value.`precision`_Optional_ &#151; A numeric value that specifies the number of decimal places of precision in which you want to express the time. If omitted, fractional seconds are truncated.`erropt`_Optional_ &#151; The expression returned if the `htime` parameter is considered invalid.`localeopt`_Optional_ &#151; A boolean flag that specifies which locale to use. When 0, the current locale determines the time separator, and the other characters, strings, and options used to format times. When 1, the ODBC locale determines these characters, strings, and options. The ODBC locale cannot be changed; it is used to format date and time strings that are portable between InterSystems IRIS processes that have made different National Language Support (NLS) choices. The default is 0.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fztime"
+  },
+  {
+    "label":"$ZTIMEH",
+    "alias":[
+      "$ZTIMEH",
+      "$ZTH"
+    ],
+    "documentation":[
+      "Validates a time and converts it from display format to InterSystems IRIS internal format.\n",
+      "```objectscript\n",
+      "$ZTIMEH(time,tformat,erropt,localeopt)\n",
+      "$ZTH(time,tformat,erropt,localeopt)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`time`The time value to be converted.`tformat`_Optional_ &#151; A numeric value that specifies the time format from which you are converting.`erropt`_Optional_ &#151; The expression returned if the `time` parameter is considered invalid.`localeopt`_Optional_ &#151; A boolean flag that specifies which locale to use. When 0, the current locale determines the time separator, and the other characters, strings, and options used to format times. When 1, the ODBC locale determines these characters, strings, and options. The ODBC locale cannot be changed; it is used to format date and time strings that are portable between InterSystems IRIS processes that have made different National Language Support (NLS) choices. The default is 0.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fztimeh"
+  },
+  {
+    "label":"$ZVERSION",
+    "alias":[
+      "$ZVERSION"
+    ],
+    "documentation":[
+      "Returns the operating system type.\n",
+      "```objectscript\n",
+      "$ZVERSION(1)\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzversion"
+  },
+  {
+    "label":"$ZWASCII",
+    "alias":[
+      "$ZWASCII",
+      "$ZWA"
+    ],
+    "documentation":[
+      "Converts a two-byte string to a number.\n",
+      "```objectscript\n",
+      "$ZWASCII(string,position)\n",
+      "$ZWA(string,position)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`string`A string. It can be a value, a variable, or an expression. It must be a minimum of two bytes in length.`position`_Optional_ &#151; A starting position in the string, expressed as a positive integer. The default is 1. Position is counted in single bytes, _not_ two-byte strings. The `position` cannot be the last byte in the string, or beyond the end of the string. A numeric `position` value is parsed as an integer by truncating decimal digits, removing leading zeros and plus signs, etc.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzwascii"
+  },
+  {
+    "label":"$ZWCHAR",
+    "alias":[
+      "$ZWCHAR",
+      "$ZWC"
+    ],
+    "documentation":[
+      "Converts a number to a two-byte string.\n",
+      "```objectscript\n",
+      "$ZWCHAR(n)\n",
+      "$ZWC(n)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`n`A positive integer in the range 0 through 65535. It can be specified as a value, a variable, or an expression.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzwchar"
+  },
+  {
+    "label":"$ZWIDTH",
+    "alias":[
+      "$ZWIDTH"
+    ],
+    "documentation":[
+      "Returns the total width of the characters in an expression.\n",
+      "```objectscript\n",
+      "$ZWIDTH(expression,pitch)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`expression`A string expression`pitch`_Optional_ &#151; The numeric pitch value to use for full-width characters. The default is 2. Other permissible values are 1, 1.25, and 1.5. (These values with any number of trailing zeros are permissible.) All other `pitch` values result in a &lt;FUNCTION&gt; error.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzwidth"
+  },
+  {
+    "label":"$ZZENKAKU",
+    "alias":[
+      "$ZZENKAKU"
+    ],
+    "documentation":[
+      "Converts Japanese katakana characters from half-width to full-width.\n",
+      "```objectscript\n",
+      "$ZZENKAKU(expression,flag1,flag2)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`expression`A string containing half-width characters. These characters may be katakana characters, Roman alphabet letters, or numbers.`flag1`_Optional_ &#151; A boolean flag to indicate whether to convert half-with katakana to full-width hiragana (0) or full-width katakana (1).`flag2`_Optional_ &#151; A boolean flag to indicate whether voiced sound processing is required (1) or not required (0).\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzzenkaku"
   }
 ]

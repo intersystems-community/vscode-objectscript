@@ -1,18 +1,70 @@
 [
   {
-    "label": "GLOBAL",
-    "detail": "Provides information about globals."
+    "label":"^$GLOBAL",
+    "alias":[
+      "^$GLOBAL",
+      "^$G"
+    ],
+    "documentation":[
+      "Provides information about globals.\n",
+      "```objectscript\n",
+      "^$|nspace|GLOBAL(global_name)\n",
+      "^$|nspace|G(global_name)\n",
+      "```\n",
+      "Parameters:\n\n",
+      " |`nspace`| or[`nspace`]  _Optional_ &#151; An _extended SSVN reference_, either an explicit namespace name or an implied namespace. Must evaluate to a quoted string, which is enclosed in either square brackets ([&quot;nspace&quot;]) or vertical bars (|&quot;nspace&quot;|). Namespace names are not case-sensitive; they are stored and displayed in uppercase letters. You may also specify ^$GLOBAL as a _process-private global_ as either ^||$GLOBAL or ^|&quot;^&quot;|$GLOBAL. `global_name`An expression that evaluates to a string containing an unsubscripted global name.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_sglobal"
   },
   {
-    "label": "JOB",
-    "detail": "Provides Caché process (job) information."
+    "label":"^$JOB",
+    "alias":[
+      "^$JOB",
+      "^$J"
+    ],
+    "documentation":[
+      "Provides InterSystems IRIS process (job) information.\n",
+      "```objectscript\n",
+      "^$JOB(job_number)\n",
+      "^$J(job_number)\n",
+      "```\n",
+      "Parameters:\n\n",
+      "`job_number`The system-specific job number created when you enter the ObjectScript command. Every active InterSystems IRIS process has a unique job number. Logging in to the system initiates a job. On UNIX&reg; systems, the job number is the pid of the child process started when InterSystems IRIS was invoked. `job_number` must be specified as an integer; hexadecimal values are not supported.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_sjob"
   },
   {
-    "label": "LOCK",
-    "detail": "Provides lock name information."
+    "label":"^$LOCK",
+    "alias":[
+      "^$LOCK",
+      "^$L"
+    ],
+    "documentation":[
+      "Provides lock name information.\n",
+      "```objectscript\n",
+      "^$|nspace|LOCK(lock_name,info_type,pid)\n",
+      " ^$|nspace|L(lock_name,info_type,pid)\n",
+      "```\n",
+      "Parameters:\n\n",
+      " |`nspace`| or[`nspace`] _Optional_ &#151; An _extended SSVN reference_, either an explicit namespace name or an implied namespace. Must evaluate to a quoted string, which is enclosed in either square brackets ([&quot;nspace&quot;]) or vertical bars (|&quot;nspace&quot;|). Namespace names are not case-sensitive; they are stored and displayed in uppercase letters.`lock_name`An expression that evaluates to a string containing a lock variable name, either subscripted or unsubscripted. If a literal, must be specified as a quoted string.`info_type`_Optional_ &#151; A keyword specifying what type of information about `lock_name` to return. Must be specified as a quoted string. The available options are &quot;OWNER&quot;, &quot;FLAGS&quot;, &quot;MODE&quot;, and &quot;COUNTS&quot;.`pid`_Optional_ &#151; For use with the &quot;COUNTS&#148; keyword. An integer that specifies the process ID of the owner of the lock. If specified, at most one list element is returned for &quot;COUNTS&#148;. If omitted (or specified as 0), a list element is returned for each owner holding the specified lock. `pid` has no effect on the other `info_type` keywords.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_slock"
   },
   {
-    "label": "ROUTINE",
-    "detail": "Provides routine information."
+    "label":"^$ROUTINE",
+    "alias":[
+      "^$ROUTINE",
+      "^$R"
+    ],
+    "documentation":[
+      "Provides routine information.\n",
+      "```objectscript\n",
+      "^$|nspace|ROUTINE(routine_name)\n",
+      "^$|nspace|R(routine_name)\n",
+      "```\n",
+      "Parameters:\n\n",
+      " |`nspace`| or[`nspace`] _Optional_ &#151; An _extended SSVN reference_, either an explicit namespace name or an implied namespace. Must evaluate to a quoted string, which is enclosed in either square brackets ([&quot;nspace&quot;]) or vertical bars (|&quot;nspace&quot;|). Namespace names are not case-sensitive; they are stored and displayed in uppercase letters.`routine_name`An expression that evaluates to a string containing the name of a routine.\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_sroutine"
   }
 ]

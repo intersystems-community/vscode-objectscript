@@ -13,6 +13,7 @@ import { ObjectScriptClassFoldingRangeProvider } from './providers/ObjectScriptC
 import { ObjectScriptFoldingRangeProvider } from './providers/ObjectScriptFoldingRangeProvider';
 import { ObjectScriptDefinitionProvider } from './providers/ObjectScriptDefinitionProvider';
 import { ObjectScriptCompletionItemProvider } from './providers/ObjectScriptCompletionItemProvider';
+import { ObjectScriptHoverProvider } from './providers/ObjectScriptHoverProvider';
 
 import { ObjectScriptExplorerProvider } from './explorer/explorer';
 import { outputChannel } from './utils';
@@ -89,7 +90,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ),
     vscode.languages.registerCompletionItemProvider(
       ['objectscript-class', 'objectscript', 'objectscript-macros'],
-      new ObjectScriptCompletionItemProvider()
+      new ObjectScriptCompletionItemProvider(),
+      '$',
+      '^',
+      '.'
+    ),
+    vscode.languages.registerHoverProvider(
+      ['objectscript-class', 'objectscript', 'objectscript-macros'],
+      new ObjectScriptHoverProvider()
     )
   );
 }

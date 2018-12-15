@@ -9,7 +9,7 @@
         { "include": "#documentation" },
         { "include": "#comments" },
         {
-          "match": "^(\\Include\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*(?:\\.[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)*)",
+          "match": "(?i)^(\\Include\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*(?:\\.[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)*)",
           "captures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
@@ -17,7 +17,7 @@
           }
         },
         {
-          "match": "^(\\bClass\\b)(\\s)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*(?:\\.[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)*)",
+          "match": "(?i)^(\\bClass\\b)(\\s)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*(?:\\.[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)*)",
           "captures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
@@ -25,7 +25,7 @@
           }
         },
         {
-          "match": "^(\\bExtends\\b)(\\s)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*(?:\\.[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)*)",
+          "match": "(?i)(\\bExtends\\b)(\\s)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*(?:\\.[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)*)",
           "captures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
@@ -100,7 +100,7 @@
           }
         },
         {
-          "begin": "^(\\bProperty\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
+          "begin": "(?i)^(\\bProperty\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
           "beginCaptures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
@@ -111,7 +111,7 @@
           "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
         },
         {
-          "match": "^(\\bRelationship\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
+          "match": "(?i)^(\\bRelationship\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
           "captures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
@@ -119,7 +119,7 @@
           }
         },
         {
-          "begin": "^(\\b(?:Class|Client)?Method\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
+          "begin": "(?i)^(\\b(?:Class|Client)?Method\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
           "beginCaptures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
@@ -130,7 +130,7 @@
           "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
         },
         {
-          "begin": "^(\\Query\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
+          "begin": "(?i)^(\\Query\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
           "beginCaptures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
@@ -141,7 +141,7 @@
           "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
         },
         {
-          "match": "^(\\Trigger\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
+          "match": "(?i)^(\\Trigger\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
           "captures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
@@ -149,7 +149,7 @@
           }
         },
         {
-          "begin": "^(\\XData\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
+          "begin": "(?i)^(\\XData\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
           "beginCaptures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
@@ -160,7 +160,7 @@
           "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
         },
         {
-          "begin": "^(\\Storage\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
+          "begin": "(?i)^(\\Storage\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
           "beginCaptures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },

@@ -1,182 +1,636 @@
 [
   {
-    "label": "DEVICE",
-    "detail": "Contains user-specified device status information."
+    "label":"$DEVICE",
+    "alias":[
+      "$DEVICE",
+      "$D"
+    ],
+    "documentation":[
+      "Contains user-specified device status information.\n",
+      "```objectscript\n",
+      "$DEVICE\n",
+      "$D  \n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vdevice"
   },
   {
-    "label": "ECODE",
-    "detail": "Contains the current error code string."
+    "label":"$ECODE",
+    "alias":[
+      "$ECODE",
+      "$EC"
+    ],
+    "documentation":[
+      "Contains the current error code string.\n",
+      "```objectscript\n",
+      "$ECODE\n",
+      "$EC\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vecode"
   },
   {
-    "label": "ESTACK",
-    "detail": "Contains the number of context frames saved on the call stack from a user-defined point."
+    "label":"$ESTACK",
+    "alias":[
+      "$ESTACK",
+      "$ES"
+    ],
+    "documentation":[
+      "Contains the number of context frames saved on the call stack from a user-defined point.\n",
+      "```objectscript\n",
+      "$ESTACK\n",
+      "$ES\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vestack"
   },
   {
-    "label": "ETRAP",
-    "detail": "Contains a string of ObjectScript commands to be executed when an error occurs."
+    "label":"$HALT",
+    "alias":[
+      "$HALT"
+    ],
+    "documentation":[
+      "Contains a halt trap routine call.\n",
+      "```objectscript\n",
+      "$HALT\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vhalt"
   },
   {
-    "label": "HALT",
-    "detail": "Contains a halt trap routine call."
+    "label":"$HOROLOG",
+    "alias":[
+      "$HOROLOG",
+      "$H"
+    ],
+    "documentation":[
+      "Contains the local date and time for the current process.\n",
+      "```objectscript\n",
+      "$HOROLOG\n",
+      "$H\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vhorolog"
   },
   {
-    "label": "HOROLOG",
-    "detail": "Contains the local date and time for the current process."
+    "label":"$IO",
+    "alias":[
+      "$IO",
+      "$I"
+    ],
+    "documentation":[
+      "Contains the ID of the current input/output device.\n",
+      "```objectscript\n",
+      "$IO\n",
+      "$I\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vio"
   },
   {
-    "label": "IO",
-    "detail": "Contains the ID of the current input/output device."
+    "label":"$JOB",
+    "alias":[
+      "$JOB",
+      "$J"
+    ],
+    "documentation":[
+      "Contains the ID of the current process.\n",
+      "```objectscript\n",
+      "$JOB\n",
+      "$J\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vjob"
   },
   {
-    "label": "JOB",
-    "detail": "Contains the ID of the current process."
+    "label":"$KEY",
+    "alias":[
+      "$KEY",
+      "$K"
+    ],
+    "documentation":[
+      "Contains the terminator character from the most recent READ.\n",
+      "```objectscript\n",
+      "$KEY\n",
+      "$K\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vkey"
   },
   {
-    "label": "KEY",
-    "detail": "Contains the terminator character from the most recent READ."
+    "label":"$NAMESPACE",
+    "alias":[
+      "$NAMESPACE",
+      "$NAMESPACE=namespace"
+    ],
+    "documentation":[
+      "Contains the namespace for the current stack level.\n",
+      "```objectscript\n",
+      "$NAMESPACE\n",
+      "SET $NAMESPACE=namespace\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vnamespace"
   },
   {
-    "label": "NAMESPACE",
-    "detail": "Contains the namespace for the current stack level."
+    "label":"$PRINCIPAL",
+    "alias":[
+      "$PRINCIPAL",
+      "$P"
+    ],
+    "documentation":[
+      "Contains the ID of the principal I/O device.\n",
+      "```objectscript\n",
+      "$PRINCIPAL\n",
+      "$P\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vprincipal"
   },
   {
-    "label": "PRINCIPAL",
-    "detail": "Contains the ID of the principal I/O device."
+    "label":"$QUIT",
+    "alias":[
+      "$QUIT",
+      "$Q"
+    ],
+    "documentation":[
+      "Contains a flag indicating\nwhat kind of QUIT is required to exit the current context.\n",
+      "```objectscript\n",
+      "$QUIT\n",
+      "$Q\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vquit"
   },
   {
-    "label": "QUIT",
-    "detail": "Contains a flag indicating what kind of QUIT is required to exit the current context."
+    "label":"$ROLES",
+    "alias":[
+      "$ROLES"
+    ],
+    "documentation":[
+      "Contains the roles assigned to the current process.\n",
+      "```objectscript\n",
+      "$ROLES\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vroles"
   },
   {
-    "label": "ROLES",
-    "detail": "Contains the roles assigned to the current process."
+    "label":"$STACK",
+    "alias":[
+      "$STACK",
+      "$ST"
+    ],
+    "documentation":[
+      "Contains the number of context frames saved on the call stack.\n",
+      "```objectscript\n",
+      "$STACK\n",
+      "$ST\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vstack"
   },
   {
-    "label": "STACK",
-    "detail": "Contains the number of context frames saved on the call stack."
+    "label":"$STORAGE",
+    "alias":[
+      "$STORAGE",
+      "$S"
+    ],
+    "documentation":[
+      "Contains the number of bytes available for local variable storage.\n",
+      "```objectscript\n",
+      "$STORAGE\n",
+      "$S\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vstorage"
   },
   {
-    "label": "STORAGE",
-    "detail": "Contains the number of bytes available for local variable storage."
+    "label":"$SYSTEM",
+    "alias":[
+      "$SYSTEM",
+      "$SY",
+      "$SYSTEM.class.method"
+    ],
+    "documentation":[
+      "Contains system information about system objects.\n",
+      "```objectscript\n",
+      "$SYSTEM \n",
+      "$SY  \n",
+      "$SYSTEM.class.method()\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vsystem"
   },
   {
-    "label": "SYSTEM",
-    "detail": "Contains system information about system objects."
+    "label":"$TEST",
+    "alias":[
+      "$TEST",
+      "$T"
+    ],
+    "documentation":[
+      "Contains the truth value resulting from the last command using the timeout option.\n",
+      "```objectscript\n",
+      "$TEST\n",
+      "$T\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vtest"
   },
   {
-    "label": "TEST",
-    "detail": "Contains the truth value resulting from the last command using the timeout option."
+    "label":"$THIS",
+    "alias":[
+      "$THIS"
+    ],
+    "documentation":[
+      "Contains the current class context.\n",
+      "```objectscript\n",
+      "$THIS\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vthis"
   },
   {
-    "label": "THIS",
-    "detail": "Contains the current class context."
+    "label":"$THROWOBJ",
+    "alias":[
+      "$THROWOBJ"
+    ],
+    "documentation":[
+      "Contains the OREF from an unsuccessful THROW.\n",
+      "```objectscript\n",
+      "$THROWOBJ\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vthrowobj"
   },
   {
-    "label": "THROWOBJ",
-    "detail": "Contains the OREF from an unsuccessful THROW."
+    "label":"$TLEVEL",
+    "alias":[
+      "$TLEVEL",
+      "$TL"
+    ],
+    "documentation":[
+      "Contains the current nesting level for transaction processing.\n",
+      "```objectscript\n",
+      "$TLEVEL\n",
+      "$TL\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vtlevel"
   },
   {
-    "label": "TLEVEL",
-    "detail": "Contains the current nesting level for transaction processing."
+    "label":"$USERNAME",
+    "alias":[
+      "$USERNAME"
+    ],
+    "documentation":[
+      "Contains the username for the current process.\n",
+      "```objectscript\n",
+      "$USERNAME\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vusername"
   },
   {
-    "label": "USERNAME",
-    "detail": "Contains the username for the current process."
+    "label":"$X",
+    "alias":[
+      "$X"
+    ],
+    "documentation":[
+      "Contains the current horizontal position of the cursor.\n",
+      "```objectscript\n",
+      "$X\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vx"
   },
   {
-    "label": "X",
-    "detail": "Contains the current horizontal position of the cursor."
+    "label":"$Y",
+    "alias":[
+      "$Y"
+    ],
+    "documentation":[
+      "Contains the current vertical position of the cursor.\n",
+      "```objectscript\n",
+      "$Y\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vy"
   },
   {
-    "label": "Y",
-    "detail": "Contains the current vertical position of the cursor."
+    "label":"$ZA",
+    "alias":[
+      "$ZA"
+    ],
+    "documentation":[
+      "Contains the status of the last READ on the current device.\n",
+      "```objectscript\n",
+      "$ZA\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vza"
   },
   {
-    "label": "ZA",
-    "detail": "Contains the status of the last READ on the current device."
+    "label":"$ZB",
+    "alias":[
+      "$ZB"
+    ],
+    "documentation":[
+      "Contains status information for the current I/O device.\n",
+      "```objectscript\n",
+      "$ZB\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vzb"
   },
   {
-    "label": "ZB",
-    "detail": "Contains status information for the current I/O device."
+    "label":"$ZCHILD",
+    "alias":[
+      "$ZCHILD",
+      "$ZC"
+    ],
+    "documentation":[
+      "Contains the ID of the last child process.\n",
+      "```objectscript\n",
+      "$ZCHILD\n",
+      "$ZC \n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vzchild"
   },
   {
-    "label": "ZCHILD",
-    "detail": "Contains the ID of the last child process."
+    "label":"$ZEOF",
+    "alias":[
+      "$ZEOF"
+    ],
+    "documentation":[
+      "Contains flag indicating whether end-of-file has been reached.\n",
+      "```objectscript\n",
+      "$ZEOF\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vzeof"
   },
   {
-    "label": "ZEOF",
-    "detail": "Contains flag indicating whether end-of-file has been reached."
+    "label":"$ZEOS",
+    "alias":[
+      "$ZEOS"
+    ],
+    "documentation":[
+      "Contains end-of-stream status when reading a compressed stream.\n",
+      "```objectscript\n",
+      "$ZEOS\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vzeos"
   },
   {
-    "label": "ZEOS",
-    "detail": "Contains end-of-stream status when reading a compressed stream."
+    "label":"$ZERROR",
+    "alias":[
+      "$ZERROR",
+      "$ZE"
+    ],
+    "documentation":[
+      "Contains the name and location of the last error.\n",
+      "```objectscript\n",
+      "$ZERROR \n",
+      "$ZE \n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vzerror"
   },
   {
-    "label": "ZERROR",
-    "detail": "Contains the name and location of the last error."
+    "label":"$ZHOROLOG",
+    "alias":[
+      "$ZHOROLOG",
+      "$ZH"
+    ],
+    "documentation":[
+      "Contains the number of seconds elapsed since InterSystems IRIS startup.\n",
+      "```objectscript\n",
+      "$ZHOROLOG\n",
+      "$ZH\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vzhorolog"
   },
   {
-    "label": "ZHOROLOG",
-    "detail": "Contains the number of seconds elapsed since Cach&eacute; startup."
+    "label":"$ZIO",
+    "alias":[
+      "$ZIO",
+      "$ZI"
+    ],
+    "documentation":[
+      "Contains information about the current terminal I/O device.\n",
+      "```objectscript\n",
+      "$ZIO\n",
+      "$ZI\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vzio"
   },
   {
-    "label": "ZIO",
-    "detail": "Contains information about the current terminal I/O device."
+    "label":"$ZJOB",
+    "alias":[
+      "$ZJOB",
+      "$ZJ"
+    ],
+    "documentation":[
+      "Contains job status information.\n",
+      "```objectscript\n",
+      "$ZJOB\n",
+      "$ZJ\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vzjob"
   },
   {
-    "label": "ZJOB",
-    "detail": "Contains job status information."
+    "label":"$ZMODE",
+    "alias":[
+      "$ZMODE",
+      "$ZM"
+    ],
+    "documentation":[
+      "Contains current I/O device OPEN parameters.\n",
+      "```objectscript\n",
+      "$ZMODE\n",
+      "$ZM\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vzmode"
   },
   {
-    "label": "ZMODE",
-    "detail": "Contains current I/O device OPEN parameters."
+    "label":"$ZNAME",
+    "alias":[
+      "$ZNAME",
+      "$ZN"
+    ],
+    "documentation":[
+      "Contains the current routine name.\n",
+      "```objectscript\n",
+      "$ZNAME\n",
+      "$ZN\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vzname"
   },
   {
-    "label": "ZNAME",
-    "detail": "Contains the current routine name."
+    "label":"$ZNSPACE",
+    "alias":[
+      "$ZNSPACE"
+    ],
+    "documentation":[
+      "Contains the current namespace name.\n",
+      "```objectscript\n",
+      "$ZNSPACE\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vznspace"
   },
   {
-    "label": "ZNSPACE",
-    "detail": "Contains the current namespace name."
+    "label":"$ZORDER",
+    "alias":[
+      "$ZORDER",
+      "$ZO"
+    ],
+    "documentation":[
+      "Contains the value of the next global node.\n",
+      "```objectscript\n",
+      "$ZORDER\n",
+      "$ZO\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vzorder"
   },
   {
-    "label": "ZORDER",
-    "detail": "Contains the value of the next global node."
+    "label":"$ZPARENT",
+    "alias":[
+      "$ZPARENT",
+      "$ZP"
+    ],
+    "documentation":[
+      "Contains the ID of the\nparent process of the current process.\n",
+      "```objectscript\n",
+      "$ZPARENT\n",
+      "$ZP\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vzparent"
   },
   {
-    "label": "ZPARENT",
-    "detail": "Contains the ID of the parent process of the current process."
+    "label":"$ZPI",
+    "alias":[
+      "$ZPI"
+    ],
+    "documentation":[
+      "Contains the value of pi.\n",
+      "```objectscript\n",
+      "$ZPI  \n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vzpi"
   },
   {
-    "label": "ZPI",
-    "detail": "Contains the value of pi."
+    "label":"$ZPOS",
+    "alias":[
+      "$ZPOS"
+    ],
+    "documentation":[
+      "Contains the current file position during the reading of a sequential file.\n",
+      "```objectscript\n",
+      "$ZPOS\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vzpos"
   },
   {
-    "label": "ZPOS",
-    "detail": "Contains the current file position during the reading of a sequential file."
+    "label":"$ZREFERENCE",
+    "alias":[
+      "$ZREFERENCE",
+      "$ZR"
+    ],
+    "documentation":[
+      "Contains the current global reference.\n",
+      "```objectscript\n",
+      "$ZREFERENCE\n",
+      "$ZR\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vzreference"
   },
   {
-    "label": "ZREFERENCE",
-    "detail": "Contains the current global reference."
+    "label":"$ZSTORAGE",
+    "alias":[
+      "$ZSTORAGE",
+      "$ZS"
+    ],
+    "documentation":[
+      "Contains the maximum available memory for a process.\n",
+      "```objectscript\n",
+      "$ZSTORAGE\n",
+      "$ZS\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vzstorage"
   },
   {
-    "label": "ZSTORAGE",
-    "detail": "Contains the maximum available memory for a process."
+    "label":"$ZTIMESTAMP",
+    "alias":[
+      "$ZTIMESTAMP",
+      "$ZTS"
+    ],
+    "documentation":[
+      "Contains the current date and time in Coordinated Universal Time format.\n",
+      "```objectscript\n",
+      "$ZTIMESTAMP\n",
+      "$ZTS\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vztimestamp"
   },
   {
-    "label": "ZTIMESTAMP",
-    "detail": "Contains the current date and time in Coordinated Universal Time format."
+    "label":"$ZTIMEZONE",
+    "alias":[
+      "$ZTIMEZONE",
+      "$ZTZ"
+    ],
+    "documentation":[
+      "Contains the time zone offset from the Greenwich meridian.\n",
+      "```objectscript\n",
+      "$ZTIMEZONE\n",
+      "$ZTZ\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vztimezone"
   },
   {
-    "label": "ZTIMEZONE",
-    "detail": "Contains the time zone offset from the Greenwich meridian."
+    "label":"$ZTRAP",
+    "alias":[
+      "$ZTRAP",
+      "$ZT"
+    ],
+    "documentation":[
+      "Contains the location of the current error trap handler.\n",
+      "```objectscript\n",
+      "$ZTRAP \n",
+      "$ZT\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vztrap"
   },
   {
-    "label": "ZTRAP",
-    "detail": "Contains the location of the current error trap handler."
-  },
-  {
-    "label": "ZVERSION",
-    "detail": "Contains a string describing the current version of Cach&eacute;."
+    "label":"$ZVERSION",
+    "alias":[
+      "$ZVERSION",
+      "$ZV"
+    ],
+    "documentation":[
+      "Contains a string describing the current version of InterSystems IRIS.\n",
+      "```objectscript\n",
+      "$ZVERSION \n",
+      "$ZV\n",
+      "```\n"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vzversion"
   }
 ]
