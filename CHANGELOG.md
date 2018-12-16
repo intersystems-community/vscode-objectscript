@@ -1,5 +1,10 @@
 # Change Log
 
+## [0.7.4]
+
+- Outline improvements
+- Hover on system functions with documentation
+
 ## [0.7.2]
 
 - Fixed outline's regions

@@ -58,7 +58,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
       pos += part.length;
     }
 
-    if (lineText.match(/^#Include %?\b[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*\b/i)) {
+    if (lineText.match(/^#?Include %?\b[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*\b/i)) {
       let [, name] = lineText.split(' ');
       let start = lineText.indexOf(' ') + 1;
       let end = start + name.length;

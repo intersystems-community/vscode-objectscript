@@ -1,12 +1,16 @@
 {
-  "name": "vscode-cos",
+  "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "0.7.3",
+  "version": "0.7.5",
   "icon": "images/logo.png",
   "categories": [
     "Programming Languages",
     "Other"
+  ],
+  "keywords": [
+    "objectscript",
+    "intersystems"
   ],
   "repository": {
     "type": "git",
@@ -48,7 +52,16 @@
   "main": "./out/extension",
   "contributes": {
     "menus": {
-      "commandPalette": [],
+      "commandPalette": [
+        {
+          "command": "vscode-objectscript.touchBar.compile",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.touchBar.viewOthers",
+          "when": "false"
+        }
+      ],
       "view/title": [
         {
           "command": "vscode-objectscript.explorer.refresh",
@@ -78,11 +91,26 @@
           "when": "view == ObjectScriptExplorer && viewItem == routineNode"
         }
       ],
-      "touchBar": [
+      "editor/context": [
+        {
+          "command": "vscode-objectscript.viewOthers",
+          "when": "editorLangId =~ /^objectscript/"
+        },
         {
           "command": "vscode-objectscript.compile",
-          "group": "ObjectScript",
-          "when": "editorLangId =~ /^objectscript-/"
+          "when": "editorLangId =~ /^objectscript/"
+        }
+      ],
+      "touchBar": [
+        {
+          "command": "vscode-objectscript.touchBar.compile",
+          "group": "objectscript.compile",
+          "when": "editorLangId =~ /^objectscript/"
+        },
+        {
+          "command": "vscode-objectscript.touchBar.viewOthers",
+          "group": "objectscript.viewOthers",
+          "when": "editorLangId =~ /^objectscript/"
         }
       ]
     },
@@ -195,6 +223,14 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.viewOthers",
         "title": "View other"
+      },
+      {
+        "command": "vscode-objectscript.touchBar.compile",
+        "title": "➾¹₀⁰₁¹₀"
+      },
+      {
+        "command": "vscode-objectscript.touchBar.viewOthers",
+        "title": "↹"
       }
     ],
     "keybindings": [
@@ -202,13 +238,13 @@
         "command": "vscode-objectscript.compile",
         "key": "Ctrl+F7",
         "mac": "Cmd+F7",
-        "when": "editorLangId =~ /^objectscript-/"
+        "when": "editorLangId =~ /^objectscript/"
       },
       {
         "command": "vscode-objectscript.viewOthers",
         "key": "Ctrl+Shift+V",
         "mac": "Cmd+Shift+V",
-        "when": "editorLangId =~ /^objectscript-/"
+        "when": "editorLangId =~ /^objectscript/"
       }
     ],
     "configuration": {
@@ -351,8 +387,5 @@
     "vsce": "^1.53.2",
     "vscode": "^1.1.26"
   },
-  "dependencies": {
-    "cos-api4node": "^2.1.5",
-    "vscode-languageclient": "^5.2.1"
-  }
+  "dependencies": {}
 }

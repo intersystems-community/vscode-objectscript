@@ -24,11 +24,13 @@ export class ObjectScriptClassFoldingRangeProvider implements vscode.FoldingRang
           }
         }
         const end = i;
-        ranges.push({
-          start,
-          end,
-          kind: vscode.FoldingRangeKind.Comment
-        });
+        if (end - start > 3) {
+          ranges.push({
+            start,
+            end,
+            kind: vscode.FoldingRangeKind.Comment
+          });
+        }
         continue;
       }
       if (line.text.match('^{') && !prevLine.text.match(/^\bClass\b/i)) {

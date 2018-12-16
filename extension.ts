@@ -64,9 +64,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       outputChannel.show();
     }),
     vscode.commands.registerCommand('vscode-objectscript.compile', () => importAndCompile(false)),
+    vscode.commands.registerCommand('vscode-objectscript.touchBar.compile', () => importAndCompile(false)),
     vscode.commands.registerCommand('vscode-objectscript.compileWithFlags', () => importAndCompile(true)),
     vscode.commands.registerCommand('vscode-objectscript.export', exportAll),
     vscode.commands.registerCommand('vscode-objectscript.viewOthers', viewOthers),
+    vscode.commands.registerCommand('vscode-objectscript.touchBar.viewOthers', viewOthers),
     vscode.commands.registerCommand('vscode-objectscript.explorer.refresh', () => explorerProvider.refresh()),
     vscode.commands.registerCommand('vscode-objectscript.explorer.openClass', vscode.window.showTextDocument),
     vscode.commands.registerCommand('vscode-objectscript.explorer.openRoutine', vscode.window.showTextDocument),
