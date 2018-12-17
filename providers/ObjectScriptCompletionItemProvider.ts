@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 
+import commands = require('./completion/commands.json');
 import systemFunctions = require('./completion/systemFunctions.json');
 import systemVariables = require('./completion/systemVariables.json');
 import structuredSystemVariables = require('./completion/structuredSystemVariables.json');
@@ -10,6 +11,41 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
     position: vscode.Position,
     token: vscode.CancellationToken,
     context: vscode.CompletionContext
+  ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
+    return this.dollarsComplete(document, position) || this.commands(document, position);
+  }
+
+  commands(
+    document: vscode.TextDocument,
+    position: vscode.Position
+  ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
+    let word = document.getWordRangeAtPosition(position);
+    let line = document.getText(
+      new vscode.Range(new vscode.Position(word.start.line, 0), new vscode.Position(word.end.line, word.end.character))
+    );
+
+    if (line.match(/\s+\b[a-z]+\b/i)) {
+      let search = line.trim().toUpperCase();
+      let items = commands
+        .filter(el => el.label.startsWith(search) || el.alias.findIndex(el2 => el2.startsWith(search)) >= 0)
+        .map(el => ({
+          ...el,
+          kind: vscode.CompletionItemKind.Keyword,
+          preselect: el.alias.includes(search),
+          documentation: new vscode.MarkdownString(el.documentation.join('')),
+          insertText: el.insertText ? new vscode.SnippetString(el.insertText) : el.label
+        }));
+      return {
+        isIncomplete: items.length > 0,
+        items
+      };
+    }
+    return null;
+  }
+
+  dollarsComplete(
+    document: vscode.TextDocument,
+    position: vscode.Position
   ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
     let word = document.getWordRangeAtPosition(position);
     let line = document.getText(
@@ -61,7 +97,6 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       .map(el => {
         return {
           ...el,
-          label: el.label,
           kind: vscode.CompletionItemKind.Function,
           insertText: new vscode.SnippetString(el.label.replace('$', '\\$') + '($0' + (open ? '' : ')')),
           preselect: el.alias.includes(search),

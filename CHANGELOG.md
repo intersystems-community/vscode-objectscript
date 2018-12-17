@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.7.6]
+
+- Completion for ObjectScript Commands
+
 ## [0.7.4]
 
 - Outline improvements
