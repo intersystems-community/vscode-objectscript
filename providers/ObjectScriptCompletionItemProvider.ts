@@ -12,7 +12,37 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
     token: vscode.CancellationToken,
     context: vscode.CompletionContext
   ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
-    return this.dollarsComplete(document, position) || this.commands(document, position);
+    if (context.triggerCharacter === '#') return this.macro(document, position, token, context);
+    return (
+      this.dollarsComplete(document, position) ||
+      this.commands(document, position) ||
+      this.macro(document, position, token, context)
+    );
+  }
+
+  macro(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+    token: vscode.CancellationToken,
+    context: vscode.CompletionContext
+  ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
+    let line = document.getText(new vscode.Range(new vscode.Position(position.line, 0), position));
+    let range = new vscode.Range(new vscode.Position(position.line, line.indexOf('#')), position);
+    if (!context.triggerCharacter && !line.match(/#+\b\w+\b$/)) {
+      return null;
+    }
+    return [
+      {
+        label: '##class()',
+        insertText: new vscode.SnippetString('##class($0)'),
+        range
+      },
+      {
+        label: '##super()',
+        insertText: new vscode.SnippetString('##super($0)'),
+        range
+      }
+    ];
   }
 
   commands(
@@ -24,7 +54,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       new vscode.Range(new vscode.Position(word.start.line, 0), new vscode.Position(word.end.line, word.end.character))
     );
 
-    if (line.match(/\s+\b[a-z]+\b/i)) {
+    if (line.match(/^\s+\b[a-z]+\b$/i)) {
       let search = line.trim().toUpperCase();
       let items = commands
         .filter(el => el.label.startsWith(search) || el.alias.findIndex(el2 => el2.startsWith(search)) >= 0)
@@ -33,7 +63,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
           kind: vscode.CompletionItemKind.Keyword,
           preselect: el.alias.includes(search),
           documentation: new vscode.MarkdownString(el.documentation.join('')),
-          insertText: el.insertText ? new vscode.SnippetString(el.insertText) : el.label
+          insertText: new vscode.SnippetString(el.insertText || `${el.label} $0`)
         }));
       return {
         isIncomplete: items.length > 0,
@@ -60,12 +90,9 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       if (dollars === '$') {
         let range = new vscode.Range(
           new vscode.Position(word.start.line, word.start.character - 1),
-          new vscode.Position(word.end.line, word.end.character + (textAfter.startsWith('(') ? 1 : 0))
+          new vscode.Position(word.end.line, word.end.character)
         );
-        let items = [
-          ...this.listSystemFunctions(search, textAfter.startsWith('(')),
-          ...this.listSystemVariables(search)
-        ];
+        let items = [...this.listSystemFunctions(search, textAfter.length > 0), ...this.listSystemVariables(search)];
         return {
           isIncomplete: items.length > 1,
           items: items.map(el => {
@@ -78,9 +105,9 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       } else if (dollars === '^$') {
         let range = new vscode.Range(
           new vscode.Position(word.start.line, word.start.character - 2),
-          new vscode.Position(word.end.line, word.end.character + (textAfter.startsWith('(') ? 1 : 0))
+          new vscode.Position(word.end.line, word.end.character)
         );
-        return this.listStructuredSystemVariables(search, textAfter.startsWith('(')).map(el => {
+        return this.listStructuredSystemVariables(search, textAfter.length > 0).map(el => {
           return {
             ...el,
             range

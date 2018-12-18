@@ -14,6 +14,7 @@ import { ObjectScriptFoldingRangeProvider } from './providers/ObjectScriptFoldin
 import { ObjectScriptDefinitionProvider } from './providers/ObjectScriptDefinitionProvider';
 import { ObjectScriptCompletionItemProvider } from './providers/ObjectScriptCompletionItemProvider';
 import { ObjectScriptHoverProvider } from './providers/ObjectScriptHoverProvider';
+import { DocumentFormattingEditProvider } from './providers/DocumentFormattingEditProvider';
 
 import { ObjectScriptExplorerProvider } from './explorer/explorer';
 import { outputChannel } from './utils';
@@ -95,11 +96,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       new ObjectScriptCompletionItemProvider(),
       '$',
       '^',
-      '.'
+      '.',
+      '#'
     ),
     vscode.languages.registerHoverProvider(
       ['objectscript-class', 'objectscript', 'objectscript-macros'],
       new ObjectScriptHoverProvider()
+    ),
+    vscode.languages.registerDocumentFormattingEditProvider(
+      ['objectscript-class', 'objectscript', 'objectscript-macros'],
+      new DocumentFormattingEditProvider()
     )
   );
 }

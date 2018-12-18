@@ -12,7 +12,7 @@
       "B:pc flag\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`extend`_Optional_ � A letter code indicating the kind of breakpoints to enable or disable, specified as a quoted string. Valid values are listed in _BREAK Extended Arguments_. Cannot be used with the `flag` argument.`flag`_Optional_ � An integer flag that specifies interrupt behavior. The `flag` value can be quoted or unquoted. Valid values are: 0 and 4 which disable CTRL-C interrupts, and 1 and 5 which enable CTRL-C interrupts. The default is determined by context (see _BREAK flag_ for details). Cannot be used with the `extend` argument. \n"
+      "`pc` _Optional_ - A postconditional expression. `extend` _Optional_ - A letter code indicating the kind of breakpoints to enable or disable, specified as a quoted string. Valid values are listed in _BREAK Extended Arguments_. Cannot be used with the `flag` argument. `flag` _Optional_ - An integer flag that specifies interrupt behavior. The `flag` value can be quoted or unquoted. Valid values are: 0 and 4 which disable CTRL-C interrupts, and 1 and 5 which enable CTRL-C interrupts. The default is determined by context (see _BREAK flag_ for details). Cannot be used with the `extend` argument. \n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cbreak"
   },
@@ -28,7 +28,7 @@
       "}\n",
       "```\n",
       "Arguments:\n\n",
-      "`exceptionvar`_Optional_ � An exception variable. Specified as a local variable, with or without subscripts, that receives a reference to an InterSystems IRIS Object (an OREF). This argument can, optionally, be enclosed with parentheses.\n"
+      "`exceptionvar` _Optional_ - An exception variable. Specified as a local variable, with or without subscripts, that receives a reference to an InterSystems IRIS Object (an OREF). This argument can, optionally, be enclosed with parentheses.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_ccatch"
   },
@@ -42,7 +42,7 @@
       "C:pc closearg,... \n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`device`The device to be closed. `parameters`_Optional_ � One or more parameters used to set characteristics of the device. A single parameter may be specified as a quoted string: CLOSE device:\"D\". Multiple parameters must be specified enclosed by parentheses and separated by colons.\n"
+      "`pc` _Optional_ - A postconditional expression. `device`The device to be closed. `parameters` _Optional_ - One or more parameters used to set characteristics of the device. A single parameter may be specified as a quoted string: CLOSE device:\"D\". Multiple parameters must be specified enclosed by parentheses and separated by colons.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cclose"
   },
@@ -55,7 +55,7 @@
       "CONTINUE:pc\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.\n"
+      "`pc` _Optional_ - A postconditional expression.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_ccontinue"
   },
@@ -69,7 +69,7 @@
       "D:pc doargument,...\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`entryref`The name of the routine to be called.`param`_Optional_ � Parameter values to be passed to the called routine.\n"
+      "`pc` _Optional_ - A postconditional expression. `entryref`The name of the routine to be called. `param` _Optional_ - Parameter values to be passed to the called routine.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cdo"
   },
@@ -84,7 +84,7 @@
       "\n",
       "```\n",
       "Arguments:\n\n",
-      "`code`A block of ObjectScript commands enclosed in curly braces.`expression`A boolean test condition expression, or a comma-separated list of boolean test condition expressions.\n"
+      "`code`A block of ObjectScript commands enclosed in curly braces. `expression`A boolean test condition expression, or a comma-separated list of boolean test condition expressions.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cdowhile",
     "insertText": "DO {\n\t$0\n} WHILE $1"
@@ -122,7 +122,7 @@
       "\n",
       "```\n",
       "Arguments:\n\n",
-      "`var`_Optional_ � A local variable or instance variable initialized by the `FOR` command. Commonly, this a numeric counter that is incremented each time the `code` block is executed. `expr`_Optional_ � The value assigned to `var` before executing the `code` block. Can be a single value or a comma-separated list of values.`start`_Optional_ � The numeric value assigned to `var` before the first execution of the `code` block. Used with `increment` and (optionally) `end` to govern multiple iterations of the _FOR_ loop.`increment`_Optional_ � The numeric value used to increment (or decrement) `var` after each iteration of the _FOR_ loop.`end`_Optional_ � The numeric value used to terminate the _FOR_ loop. Looping ends when `var` is incremented to a value equal to or greater than `end`.`code`A block of ObjectScript commands enclosed in curly braces.\n"
+      "`var` _Optional_ - A local variable or instance variable initialized by the `FOR` command. Commonly, this a numeric counter that is incremented each time the `code` block is executed. `expr` _Optional_ - The value assigned to `var` before executing the `code` block. Can be a single value or a comma-separated list of values. `start` _Optional_ - The numeric value assigned to `var` before the first execution of the `code` block. Used with `increment` and (optionally) `end` to govern multiple iterations of the _FOR_ loop. `increment` _Optional_ - The numeric value used to increment (or decrement) `var` after each iteration of the _FOR_ loop. `end` _Optional_ - The numeric value used to terminate the _FOR_ loop. Looping ends when `var` is incremented to a value equal to or greater than `end`. `code`A block of ObjectScript commands enclosed in curly braces.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cfor",
     "insertText": "FOR $1 {\n\t$0\n}\n"
@@ -140,7 +140,7 @@
       "G:pc goargument,...\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`location`_Optional_ � The point to which control will be transferred.\n"
+      "`pc` _Optional_ - A postconditional expression. `location` _Optional_ - The point to which control will be transferred.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cgoto"
   },
@@ -154,7 +154,7 @@
       "H:pc\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.\n"
+      "`pc` _Optional_ - A postconditional expression.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_chalt"
   },
@@ -168,7 +168,7 @@
       "H:pc hangarg\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`hangtime`The amount of time to wait, in seconds. An expression that resolves to a positive numeric value, or a comma-separated list of numeric expressions.\n"
+      "`pc` _Optional_ - A postconditional expression. `hangtime`The amount of time to wait, in seconds. An expression that resolves to a positive numeric value, or a comma-separated list of numeric expressions.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_chang"
   },
@@ -190,7 +190,7 @@
       "\n",
       "```\n",
       "Arguments:\n\n",
-      "`expression1`A boolean test condition for the `IF` clause. A single condition or a comma-separated list of conditions.`expression2`A boolean test condition for an `ELSEIF` clause. A single condition or a comma-separated list of conditions.`code`A block of ObjectScript commands enclosed in curly braces.\n"
+      "`expression1`A boolean test condition for the `IF` clause. A single condition or a comma-separated list of conditions. `expression2`A boolean test condition for an `ELSEIF` clause. A single condition or a comma-separated list of conditions. `code`A block of ObjectScript commands enclosed in curly braces.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cif",
     "insertText": "IF $1 {\n\t$0\n}\n"
@@ -205,7 +205,7 @@
       "J:pc jobargument,...\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`routine`The routine to be executed by the process created by _JOB_.`routine-params`_Optional_ � A comma-separated list of parameters to pass to the routine. These parameters can be values, expressions, or existing local variable names. If specified, the enclosing parentheses are required. Routine parameters can only be passed to local jobs. `className`.`methodName`(`args`) ..`methodName`(`args`) The class method to be executed by the process created by _JOB_. The `className` cannot be $SYSTEM; it can be %SYSTEM. If you specify .. in place of `className`, JOB uses the current class context (the _$THIS_ class). A comma-separated list of `args` arguments is optional; the enclosing parentheses are required. Omitted arguments are not permitted. For further details on using _$CLASSMETHOD_, refer to the section _Dynamically Accessing Objects_ in the �Object-specific ObjectScript Features� chapter of Defining and Using Classes.`process-params`_Optional_ � A colon-separated list of positional parameters used to set various elements in the job?s environment. The `process-params` list is enclosed in parentheses and the parenthesized list preceded by a colon. All `process-params` are optional; the parentheses are required. To indicate a positional parameter is missing, its colon must be present, though trailing colons may be omitted. The `process-params` argument can only be specified for local jobs.`timeout`_Optional_ � The number of seconds to wait for the jobbed process to start. Fractional seconds are truncated to the integer portion. The preceding colon is required. The `timeout` argument can only be specified for local jobs. If omitted, InterSystems IRIS waits indefinitely.`joblocation` _Optional_ � An explicit or implied namespace used to specify the system and directory on which to run a local or remote job. An implied namespace is a directory path preceded by two caret characters: \"^^`dir`\". Enclose `joblocation` in either square brackets or vertical bars.You cannot specify a `joblocation` when jobbing a class method. If `joblocation` specifies a remote system, you cannot specify `routine-params`, `process-params`, or `timeout`.If `joblocation` specifies a local job, you cannot specify the first process parameter (`nspace`) because this would conflict with the `joblocation` parameter. Therefore, only the second, third, and fourth process parameters can be specified, and the missing `nspace` parameter must be indicated by a colon. \n"
+      "`pc` _Optional_ - A postconditional expression. `routine`The routine to be executed by the process created by _JOB_. `routine-params` _Optional_ - A comma-separated list of parameters to pass to the routine. These parameters can be values, expressions, or existing local variable names. If specified, the enclosing parentheses are required. Routine parameters can only be passed to local jobs. `className`. `methodName`(`args`) .. `methodName`(`args`) The class method to be executed by the process created by _JOB_. The `className` cannot be $SYSTEM; it can be %SYSTEM. If you specify .. in place of `className`, JOB uses the current class context (the _$THIS_ class). A comma-separated list of `args` arguments is optional; the enclosing parentheses are required. Omitted arguments are not permitted. For further details on using _$CLASSMETHOD_, refer to the section _Dynamically Accessing Objects_ in the -Object-specific ObjectScript Features- chapter of Defining and Using Classes. `process-params` _Optional_ - A colon-separated list of positional parameters used to set various elements in the job?s environment. The `process-params` list is enclosed in parentheses and the parenthesized list preceded by a colon. All `process-params` are optional; the parentheses are required. To indicate a positional parameter is missing, its colon must be present, though trailing colons may be omitted. The `process-params` argument can only be specified for local jobs. `timeout` _Optional_ - The number of seconds to wait for the jobbed process to start. Fractional seconds are truncated to the integer portion. The preceding colon is required. The `timeout` argument can only be specified for local jobs. If omitted, InterSystems IRIS waits indefinitely. `joblocation` _Optional_ - An explicit or implied namespace used to specify the system and directory on which to run a local or remote job. An implied namespace is a directory path preceded by two caret characters: \"^^`dir`\". Enclose `joblocation` in either square brackets or vertical bars.You cannot specify a `joblocation` when jobbing a class method. If `joblocation` specifies a remote system, you cannot specify `routine-params`, `process-params`, or `timeout`.If `joblocation` specifies a local job, you cannot specify the first process parameter (`nspace`) because this would conflict with the `joblocation` parameter. Therefore, only the second, third, and fourth process parameters can be specified, and the missing `nspace` parameter must be indicated by a colon. \n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cjob"
   },
@@ -219,7 +219,7 @@
       "K:pc killargument,...\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`variable`_Optional_ � A variable name or comma-separated list of variable names. Without parentheses: the variable(s) to be deleted. With parentheses: the variable(s) to be kept.\n"
+      "`pc` _Optional_ - A postconditional expression. `variable` _Optional_ - A variable name or comma-separated list of variable names. Without parentheses: the variable(s) to be deleted. With parentheses: the variable(s) to be kept.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_ckill"
   },
@@ -239,7 +239,7 @@
       "L:pc +(lockname#locktype,...):timeout,... \n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression. +� _Optional_ � The _lock operation indicator_ (a + character, � character, or no character) to apply or remove a lock. A + (plus sign) applies the specified lock(s) without unlocking any prior locks. This can be used to apply an _incremental lock_. A � (minus sign) unlocks (or decrements) a lock. If you omit the lock operation indicator (no character), InterSystems IRIS unlocks all prior locks and applies the specified lock(s).`lockname`A _lock name_ associated with the resource(s) to be locked or unlocked. Must be a valid identifier, following the same naming conventions as local variables or globals.#`locktype`_Optional_ � A _letter code_ specifying the type of lock to lock or unlock, specified in quotation marks. Available values are �S� (shared lock), �E� (escalating lock), �I� (immediate unlock), and �D� (deferred unlock). When specifying, the preceding # symbol is mandatory. For example, #\"S\". You can specify more than one letter code.  For example, #\"SEI\". �S� and �E� are specified for both locking and unlocking operations; �I� and �D� are only specified for unlocking operations. If omitted, the lock type defaults to an exclusive lock (non-S) that does not escalate (non-E) and that always defers releasing an unlocked lock to the end of the current transaction (non-I / non-D).:`timeout`_Optional_ � The time to wait before the attempted lock operation times out. Can be specified with or without the optional #`locktype`. When specifying, the preceding : symbol is mandatory. For example, LOCK ^a(1):10 or LOCK ^a(1)#\"E\":10. Specify _timeout_ as an integer number of seconds. A value of 0 means to make one attempt, then time out. Fractional seconds are truncated to the integer portion. If omitted, InterSystems IRIS waits indefinitely.\n"
+      "`pc` _Optional_ - A postconditional expression. +- _Optional_ - The _lock operation indicator_ (a + character, - character, or no character) to apply or remove a lock. A + (plus sign) applies the specified lock(s) without unlocking any prior locks. This can be used to apply an _incremental lock_. A - (minus sign) unlocks (or decrements) a lock. If you omit the lock operation indicator (no character), InterSystems IRIS unlocks all prior locks and applies the specified lock(s). `lockname`A _lock name_ associated with the resource(s) to be locked or unlocked. Must be a valid identifier, following the same naming conventions as local variables or globals.#`locktype` _Optional_ - A _letter code_ specifying the type of lock to lock or unlock, specified in quotation marks. Available values are -S- (shared lock), -E- (escalating lock), -I- (immediate unlock), and -D- (deferred unlock). When specifying, the preceding # symbol is mandatory. For example, #\"S\". You can specify more than one letter code.  For example, #\"SEI\". -S- and -E- are specified for both locking and unlocking operations; -I- and -D- are only specified for unlocking operations. If omitted, the lock type defaults to an exclusive lock (non-S) that does not escalate (non-E) and that always defers releasing an unlocked lock to the end of the current transaction (non-I / non-D).:`timeout` _Optional_ - The time to wait before the attempted lock operation times out. Can be specified with or without the optional #`locktype`. When specifying, the preceding : symbol is mandatory. For example, LOCK ^a(1):10 or LOCK ^a(1)#\"E\":10. Specify _timeout_ as an integer number of seconds. A value of 0 means to make one attempt, then time out. Fractional seconds are truncated to the integer portion. If omitted, InterSystems IRIS waits indefinitely.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_clock"
   },
@@ -253,7 +253,7 @@
       "M:pc mergeargument,...\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`destination` and `source`Local variables, process-private globals, or globals to be merged. If specified as a class property, the `source` variable must be a multidimensional (subscripted) variable.\n"
+      "`pc` _Optional_ - A postconditional expression. `destination` and `source`Local variables, process-private globals, or globals to be merged. If specified as a class property, the `source` variable must be a multidimensional (subscripted) variable.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cmerge"
   },
@@ -267,7 +267,7 @@
       "N:pc newargument,...\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`variable`_Optional_ � Name of variable(s) to be added to the existing local variable environment. The effect of a _NEW_ on existing local variables depends on whether `variable` is enclosed in parentheses (exclusive _NEW_) or is not enclosed in parentheses (inclusive _NEW_). A `variable` must be a valid _local variable name_, but does not have to be a defined variable; specifying an undefined variable neither issues an error nor defines the variable.\n"
+      "`pc` _Optional_ - A postconditional expression. `variable` _Optional_ - Name of variable(s) to be added to the existing local variable environment. The effect of a _NEW_ on existing local variables depends on whether `variable` is enclosed in parentheses (exclusive _NEW_) or is not enclosed in parentheses (inclusive _NEW_). A `variable` must be a valid _local variable name_, but does not have to be a defined variable; specifying an undefined variable neither issues an error nor defines the variable.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cnew"
   },
@@ -281,7 +281,7 @@
       "O:pc device:(parameters):timeout:\"mnespace\",...\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`device`The device to be opened, specified by a device ID or a device alias. A device ID can be an integer (a device number), a device name, or the pathname of a sequential file. If a string, it must be enclosed with quotation marks. The maximum length of `device` is 256 characters.`parameters`_Optional_ � The list of parameters used to set device characteristics. The parameter list is enclosed in parentheses, and the parameters in the list are separated by colons. Parameters can either be positional (specified in a fixed order in the parameter list) or keyword (specified in any order). A mix of positional and keyword parameters is permitted. The individual parameters and their positions and keywords are highly device-dependent.`timeout`_Optional_ � The number of seconds to wait for the request to succeed, specified as an integer. Fractional seconds are truncated to the integer portion. If omitted, InterSystems IRIS waits indefinitely.`mnespace`_Optional_ � The name of the mnemonic space that contains the control mnemonics to use with this device, specified as a quoted string.\n"
+      "`pc` _Optional_ - A postconditional expression. `device`The device to be opened, specified by a device ID or a device alias. A device ID can be an integer (a device number), a device name, or the pathname of a sequential file. If a string, it must be enclosed with quotation marks. The maximum length of `device` is 256 characters. `parameters` _Optional_ - The list of parameters used to set device characteristics. The parameter list is enclosed in parentheses, and the parameters in the list are separated by colons. Parameters can either be positional (specified in a fixed order in the parameter list) or keyword (specified in any order). A mix of positional and keyword parameters is permitted. The individual parameters and their positions and keywords are highly device-dependent. `timeout` _Optional_ - The number of seconds to wait for the request to succeed, specified as an integer. Fractional seconds are truncated to the integer portion. If omitted, InterSystems IRIS waits indefinitely. `mnespace` _Optional_ - The name of the mnemonic space that contains the control mnemonics to use with this device, specified as a quoted string.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_copen"
   },
@@ -298,7 +298,7 @@
       "Q n\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`expression`_Optional_ � A value to return to the invoking routine; a valid expression.`n`_Optional_ � _Programmer Mode prompt only_: The number of program levels to clear; an expression that resolves to a positive integer.\n"
+      "`pc` _Optional_ - A postconditional expression. `expression` _Optional_ - A value to return to the invoking routine; a valid expression. `n` _Optional_ - _Programmer Mode prompt only_: The number of program levels to clear; an expression that resolves to a positive integer.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cquit"
   },
@@ -312,7 +312,7 @@
       "R:pc readargument,...\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`fchar`_Optional_ � One or more format control characters. Permitted characters are !, #, ?, and /.`prompt`_Optional_ � A string literal that provides a prompt or message for user input. Enclose in quotation marks.`variable`The variable to receive the input data. Can be a local variable, a process-private global, or a global. May be unsubscripted or subscripted.`length`_Optional_ � The number of characters to accept, specified as an integer, or an expression or variable that evaluates to an integer. The preceding # symbol is mandatory.`timeout`_Optional_ � The number of seconds to wait for the request to succeed, specified as an integer. Fractional seconds are truncated to the integer portion. The preceding colon (:) is mandatory. If omitted, InterSystems IRIS waits indefinitely.\n"
+      "`pc` _Optional_ - A postconditional expression. `fchar` _Optional_ - One or more format control characters. Permitted characters are !, #, ?, and /. `prompt` _Optional_ - A string literal that provides a prompt or message for user input. Enclose in quotation marks. `variable`The variable to receive the input data. Can be a local variable, a process-private global, or a global. May be unsubscripted or subscripted. `length` _Optional_ - The number of characters to accept, specified as an integer, or an expression or variable that evaluates to an integer. The preceding # symbol is mandatory. `timeout` _Optional_ - The number of seconds to wait for the request to succeed, specified as an integer. Fractional seconds are truncated to the integer portion. The preceding colon (:) is mandatory. If omitted, InterSystems IRIS waits indefinitely.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cread"
   },
@@ -326,7 +326,7 @@
       "RET:pc expression\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`expression`_Optional_ � An ObjectScript expression.\n"
+      "`pc` _Optional_ - A postconditional expression. `expression` _Optional_ - An ObjectScript expression.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_creturn"
   },
@@ -340,7 +340,7 @@
       "S:pc setargument,...  \n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`variable`The variable to set to the corresponding `value`. `variable` can be a local variable, a process-private global, a global, an object property, or a special variable. (Not all special variables can be set by an application; see documentation of individual special variables.)`variable-list`A comma-separated list, enclosed in parentheses, that consists of one or more `variable` arguments. All of the `variable` arguments in `variable-list` are assigned the same `value`.`value`A literal value, or any valid ObjectScript expression that evaluates to a value. Can be a JSON object or JSON array.\n"
+      "`pc` _Optional_ - A postconditional expression. `variable`The variable to set to the corresponding `value`. `variable` can be a local variable, a process-private global, a global, an object property, or a special variable. (Not all special variables can be set by an application; see documentation of individual special variables.)`variable-list`A comma-separated list, enclosed in parentheses, that consists of one or more `variable` arguments. All of the `variable` arguments in `variable-list` are assigned the same `value`. `value`A literal value, or any valid ObjectScript expression that evaluates to a value. Can be a JSON object or JSON array.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cset"
   },
@@ -354,7 +354,7 @@
       "TC:pc\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.\n"
+      "`pc` _Optional_ - A postconditional expression.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_ctcommit"
   },
@@ -367,7 +367,7 @@
       "THROW oref\n",
       "```\n",
       "Arguments:\n\n",
-      "`oref`_Optional_ � An object reference (OREF) that is thrown to an exception handler.  Optional, but highly recommended.\n"
+      "`oref` _Optional_ - An object reference (OREF) that is thrown to an exception handler.  Optional, but highly recommended.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cthrow"
   },
@@ -385,7 +385,7 @@
       "\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.1_Optional_ � The integer 1. Rolls back one level of nesting. Must be specified as a literal.\n"
+      "`pc` _Optional_ - A postconditional expression.1_Optional_ - The integer 1. Rolls back one level of nesting. Must be specified as a literal.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_ctrollback"
   },
@@ -413,7 +413,7 @@
       "TS:pc\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.\n"
+      "`pc` _Optional_ - A postconditional expression.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_ctstart"
   },
@@ -427,7 +427,7 @@
       "U:pc useargument,...\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`device`The device to be selected as the current device, specified by a device ID or a device alias. A device ID can be an integer (a device number), a device name, or the pathname of a sequential file. If a string, it must be enclosed with quotation marks.`parameters`_Optional_ � The list of parameters used to set device characteristics. The parameter list is enclosed in parentheses, and the parameters in the list are separated by colons. Parameters can either be positional (specified in a fixed order in the parameter list) or keyword (specified in any order). A mix of positional and keyword parameters is permitted. The individual parameters and their positions and keywords are highly device-dependent.`mnespace`_Optional_ � The name of the mnemonic space that contains the control mnemonics to use with this device, specified as a quoted string.\n"
+      "`pc` _Optional_ - A postconditional expression. `device`The device to be selected as the current device, specified by a device ID or a device alias. A device ID can be an integer (a device number), a device name, or the pathname of a sequential file. If a string, it must be enclosed with quotation marks. `parameters` _Optional_ - The list of parameters used to set device characteristics. The parameter list is enclosed in parentheses, and the parameters in the list are separated by colons. Parameters can either be positional (specified in a fixed order in the parameter list) or keyword (specified in any order). A mix of positional and keyword parameters is permitted. The individual parameters and their positions and keywords are highly device-dependent. `mnespace` _Optional_ - The name of the mnemonic space that contains the control mnemonics to use with this device, specified as a quoted string.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cuse"
   },
@@ -441,7 +441,7 @@
       "V:pc viewargument\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`block`A block location, specified as an integer.`offset`An offset, in bytes, from a base address within the memory region specified by _mode_.`mode`The memory region whose base address will be used to calculate the data to be modified.`length`The length of the data to be modified.`newvalue`The replacement value to be stored at the memory location.\n"
+      "`pc` _Optional_ - A postconditional expression. `block`A block location, specified as an integer. `offset`An offset, in bytes, from a base address within the memory region specified by _mode_. `mode`The memory region whose base address will be used to calculate the data to be modified. `length`The length of the data to be modified. `newvalue`The replacement value to be stored at the memory location.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cview"
   },
@@ -456,7 +456,7 @@
       "}\n",
       "```\n",
       "Arguments:\n\n",
-      "`expression`A test condition. You can specify one or more comma-separated test conditions, all of which must be TRUE for execution of the code block.`code`A block of ObjectScript commands enclosed in curly braces.\n"
+      "`expression`A test condition. You can specify one or more comma-separated test conditions, all of which must be TRUE for execution of the code block. `code`A block of ObjectScript commands enclosed in curly braces.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cwhile",
     "insertText": "WHILE $1 {\n\t$0\n}\n"
@@ -471,7 +471,7 @@
       "W:pc writeargument,...\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`expression`_Optional_ � The value to write to the output device. Any valid ObjectScript expression, including literals, variables, object methods, and object properties that evaluates to either a numeric or a quoted string.`f`_Optional_ � One or more _format control characters_ that position the output on the target device. Format control characters include !, #, ?, and /.*`integer`_Optional_ � An _integer code representing a character_ to write to the output device. For ASCII, integers in the range 0 to 255; for Unicode, integers in the range 0 to 65534. Any valid ObjectScript expression that evaluates to an integer in the appropriate range. The asterisk is mandatory.*-`integer`_Optional_ � A negative integer code specifying a _device control operation_. The asterisk is mandatory.\n"
+      "`pc` _Optional_ - A postconditional expression. `expression` _Optional_ - The value to write to the output device. Any valid ObjectScript expression, including literals, variables, object methods, and object properties that evaluates to either a numeric or a quoted string. `f` _Optional_ - One or more _format control characters_ that position the output on the target device. Format control characters include !, #, ?, and /.*`integer` _Optional_ - An _integer code representing a character_ to write to the output device. For ASCII, integers in the range 0 to 255; for Unicode, integers in the range 0 to 65534. Any valid ObjectScript expression that evaluates to an integer in the appropriate range. The asterisk is mandatory.*-`integer` _Optional_ - A negative integer code specifying a _device control operation_. The asterisk is mandatory.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cwrite"
   },
@@ -485,7 +485,7 @@
       "X:pc xecutearg,...\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`cmdline`An expression that resolves to a command line consisting of one or more valid ObjectScript commands. Note that the `cmdline` or (`fparams`) `cmdline` must be specified as a quoted string.`fparams`_Optional_ � A formal parameters list, specified as a comma-separated list enclosed in parentheses. Formal parameters are variables use by `cmdline`, the values of which are supplied by passing `params`. Note that the `fparams` are the first item within the quoted code string.`params`_Optional_ � A parameters list, specified as a comma-separated list. These are the parameters passed to `fparams`. If `params` are specified, an equal or greater number of `fparams` must be specified.\n"
+      "`pc` _Optional_ - A postconditional expression. `cmdline`An expression that resolves to a command line consisting of one or more valid ObjectScript commands. Note that the `cmdline` or (`fparams`) `cmdline` must be specified as a quoted string. `fparams` _Optional_ - A formal parameters list, specified as a comma-separated list enclosed in parentheses. Formal parameters are variables use by `cmdline`, the values of which are supplied by passing `params`. Note that the `fparams` are the first item within the quoted code string. `params` _Optional_ - A parameters list, specified as a comma-separated list. These are the parameters passed to `fparams`. If `params` are specified, an equal or greater number of `fparams` must be specified.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cxecute"
   },
@@ -499,7 +499,7 @@
       "ZK:pc array-node,...\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`array-node`A local variable, a process-private global, or a global that is an array node, or a comma-separated list of local, process-private global, or global array nodes.\n"
+      "`pc` _Optional_ - A postconditional expression. `array-node`A local variable, a process-private global, or a global that is an array node, or a comma-separated list of local, process-private global, or global array nodes.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_czkill"
   },
@@ -513,7 +513,7 @@
       "ZN:pc nspace\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`nspace`A string expression that evaluates to the name of an existing namespace.\n"
+      "`pc` _Optional_ - A postconditional expression. `nspace`A string expression that evaluates to the name of an existing namespace.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cznspace"
   },
@@ -529,7 +529,7 @@
       "ZTRAP:pc $ZE\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`ztraparg`_Optional_ � An error code string. An error code string is specified as a string literal or an expression that evaluates to a string; only the first four characters of the string are used.$ZERRORThe special variable `$ZERROR`, which can be abbreviated `$ZE`.\n"
+      "`pc` _Optional_ - A postconditional expression. `ztraparg` _Optional_ - An error code string. An error code string is specified as a string literal or an expression that evaluates to a string; only the first four characters of the string are used.$ZERRORThe special variable `$ZERROR`, which can be abbreviated `$ZE`.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_cztrap"
   },
@@ -543,7 +543,7 @@
       "ZW:pc expression,...\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`expression`_Optional_ � A variable or expression to display, or a comma-separated list of variables and/or expressions to display. A comma-separated list can contain any combination of variables and expressions.\n"
+      "`pc` _Optional_ - A postconditional expression. `expression` _Optional_ - A variable or expression to display, or a comma-separated list of variables and/or expressions to display. A comma-separated list can contain any combination of variables and expressions.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_czwrite"
   },
@@ -556,7 +556,7 @@
       "ZZDUMP:pc expression,...\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression. `expression`The data to be displayed in hexadecimal dump format. You can specify a number, a string (enclosed in quotation marks), or a variable that resolves to one of these. You can specify a single `expression`, or a comma-separated list of expressions.\n"
+      "`pc` _Optional_ - A postconditional expression. `expression`The data to be displayed in hexadecimal dump format. You can specify a number, a string (enclosed in quotation marks), or a variable that resolves to one of these. You can specify a single `expression`, or a comma-separated list of expressions.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_czzdump"
   },
@@ -569,7 +569,7 @@
       "ZZWRITE:pc expression,...\n",
       "```\n",
       "Arguments:\n\n",
-      "`pc`_Optional_ � A postconditional expression.`expression` A variable or expression to display, or a comma-separated list of variables and/or expressions to display. A comma-separated list can contain any combination of variables and expressions.\n"
+      "`pc` _Optional_ - A postconditional expression. `expression` A variable or expression to display, or a comma-separated list of variables and/or expressions to display. A comma-separated list can contain any combination of variables and expressions.\n"
     ],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_czzwrite"
   }

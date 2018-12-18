@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 
+import commands = require('./completion/commands.json');
 import systemFunctions = require('./completion/systemFunctions.json');
 import systemVariables = require('./completion/systemVariables.json');
 import structuredSystemVariables = require('./completion/structuredSystemVariables.json');
@@ -10,6 +11,10 @@ export class ObjectScriptHoverProvider implements vscode.HoverProvider {
     position: vscode.Position,
     token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.Hover> {
+    return this.dollars(document, position) || this.commands(document, position);
+  }
+
+  dollars(document: vscode.TextDocument, position: vscode.Position): vscode.ProviderResult<vscode.Hover> {
     let word = document.getWordRangeAtPosition(position);
     let text = document.getText(
       new vscode.Range(new vscode.Position(position.line, 0), new vscode.Position(position.line, word.end.character))
@@ -36,6 +41,24 @@ export class ObjectScriptHoverProvider implements vscode.HoverProvider {
     }
 
     return null;
+  }
+
+  commands(document: vscode.TextDocument, position: vscode.Position): vscode.ProviderResult<vscode.Hover> {
+    let word = document.getWordRangeAtPosition(position);
+    let text = document.getText(
+      new vscode.Range(new vscode.Position(position.line, 0), new vscode.Position(position.line, word.end.character))
+    );
+    let commandMatch = text.match(/^\s+\b[a-z]+\b$/i);
+    if (commandMatch) {
+      let search = text.trim().toUpperCase();
+      let command = commands.find(el => el.label === search || el.alias.includes(search));
+      if (search) {
+        return {
+          range: word,
+          contents: [command.documentation.join(''), this.documentationLink(command.link)]
+        };
+      }
+    }
   }
 
   documentationLink(link): string | null {

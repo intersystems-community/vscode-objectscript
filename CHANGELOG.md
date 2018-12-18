@@ -1,8 +1,10 @@
 # Change Log
 
-## [0.7.6]
+## [0.7.7]
 
 - Completion for ObjectScript Commands
+- Hover documentation for ObjectScript commands
+- Text formatter for ObjectScript commands
 
 ## [0.7.4]
 
