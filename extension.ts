@@ -20,6 +20,7 @@ import { ObjectScriptExplorerProvider } from './explorer/explorer';
 import { outputChannel } from './utils';
 import { AtelierAPI } from './api';
 export var explorerProvider: ObjectScriptExplorerProvider;
+export var documentContentProvider: DocumentContentProvider;
 
 export const config = () => {
   return vscode.workspace.getConfiguration('objectscript');
@@ -30,6 +31,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const api = new AtelierAPI();
 
   explorerProvider = new ObjectScriptExplorerProvider();
+  documentContentProvider = new DocumentContentProvider();
+
   vscode.window.registerTreeDataProvider('ObjectScriptExplorer', explorerProvider);
 
   const panel = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
@@ -43,6 +46,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       .serverInfo()
       .then(info => {
         panel.text = `${conn.label}:${conn.ns} - Connected`;
+        explorerProvider.refresh();
       })
       .catch(error => {
         panel.text = `${conn.label}:${conn.ns} - ERROR`;
@@ -82,7 +86,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       vscode.commands.executeCommand('setContext', 'vscode-objectscript.explorer.showSystem', false);
       explorerProvider.showSystem = false;
     }),
-    vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPT_FILE_SCHEMA, new DocumentContentProvider()),
+    vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPT_FILE_SCHEMA, documentContentProvider),
     vscode.languages.registerDocumentSymbolProvider(['objectscript-class'], new ObjectScriptClassSymbolProvider()),
     vscode.languages.registerDocumentSymbolProvider(['objectscript'], new ObjectScriptRoutineSymbolProvider()),
     vscode.languages.registerFoldingRangeProvider(['objectscript-class'], new ObjectScriptClassFoldingRangeProvider()),

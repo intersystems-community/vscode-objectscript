@@ -79,10 +79,12 @@ export class ObjectScriptClassSymbolProvider implements vscode.DocumentSymbolPro
         let property = line.text.match(/^(Property|Relationship) (\b\w+\b|"[^"]+")/i);
         if (property) {
           let end = line.range.end;
-          while (i++ && i < document.lineCount) {
-            if (document.lineAt(i).text.endsWith(';')) {
-              end = document.lineAt(i).range.end;
-              break;
+          if (!line.text.endsWith(';')) {
+            while (i++ && i < document.lineCount) {
+              if (document.lineAt(i).text.endsWith(';')) {
+                end = document.lineAt(i).range.end;
+                break;
+              }
             }
           }
           symbols.push({

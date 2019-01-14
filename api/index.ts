@@ -53,6 +53,7 @@ export class AtelierAPI {
     if (['PUT', 'POST'].includes(method)) {
       headers['Content-Type'] = 'application/json';
     }
+    headers['Cache-Control'] = 'no-cache';
 
     const { host, port, username, password } = this.config;
     const http: any = this.config.https ? httpsModule : httpModule;

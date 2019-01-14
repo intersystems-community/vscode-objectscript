@@ -26,7 +26,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     return this.onDidChangeEvent.event;
   }
 
-  public update(uri: vscode.Uri, message: string): void {
+  public update(uri: vscode.Uri, message?: string): void {
     this.onDidChangeEvent.fire(uri);
   }
 }

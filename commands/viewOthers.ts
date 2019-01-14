@@ -10,6 +10,11 @@ export async function viewOthers(): Promise<void> {
     return;
   }
 
+  const open = item => {
+    const uri = vscode.Uri.parse(encodeURI(`${OBJECTSCRIPT_FILE_SCHEMA}:///${item}`));
+    vscode.window.showTextDocument(uri);
+  };
+
   const getOthers = info => {
     return info.result.content[0].others;
   };
@@ -21,10 +26,10 @@ export async function viewOthers(): Promise<void> {
         return;
       }
       if (listOthers.length === 1) {
-        vscode.window.showTextDocument(vscode.Uri.parse(encodeURI(`${OBJECTSCRIPT_FILE_SCHEMA}:///${listOthers[0]}`)));
+        open(listOthers[0]);
       } else {
         vscode.window.showQuickPick(listOthers).then(item => {
-          vscode.window.showTextDocument(vscode.Uri.parse(encodeURI(`${OBJECTSCRIPT_FILE_SCHEMA}:///${item}`)));
+          open(item);
         });
       }
     })

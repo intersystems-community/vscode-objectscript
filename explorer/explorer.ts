@@ -32,6 +32,8 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
   }
 
   refresh(): void {
+    this._api = new AtelierAPI();
+    this._onDidChangeTreeData.fire(null);
     this._onDidChangeTreeData.fire(this._classesNode);
     this._onDidChangeTreeData.fire(this._routinesNode);
   }

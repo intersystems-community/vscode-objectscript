@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "0.7.7",
+  "version": "0.7.8",
   "icon": "images/logo.png",
   "categories": [
     "Programming Languages",
@@ -16,6 +16,8 @@
     "type": "git",
     "url": "https://github.com/daimor/vscode-objectscript"
   },
+  "license": "MIT",
+  "preview": true,
   "publisher": "daimor",
   "contributors": [
     {
@@ -383,7 +385,6 @@
     "tslint": "^5.11.0",
     "tslint-microsoft-contrib": "^5.2.1",
     "typescript": "^3.2.2",
-    "typings": "^2.1.1",
     "vsce": "^1.53.2",
     "vscode": "^1.1.26"
   },
