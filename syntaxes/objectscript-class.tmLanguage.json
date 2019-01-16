@@ -65,7 +65,7 @@
         { "include": "#documentation" },
         { "include": "#comments" },
         {
-          "begin": "(^\\bIndex\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
+          "begin": "(?i)(^\\bIndex\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
           "beginCaptures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
@@ -76,7 +76,7 @@
           "endCaptures": { "1": { "name": "whitespace.objectscript_class" } }
         },
         {
-          "match": "^(\\bForeignKey\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
+          "match": "(?i)^(\\bForeignKey\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
           "captures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
@@ -84,19 +84,22 @@
           }
         },
         {
-          "match": "^(\\Parameter\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
-          "captures": {
+          "begin": "(?i)^(\\bParameter\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
+          "beginCaptures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "meta.parameter.type.variable.objectscript_class" }
-          }
+            "3": { "name": "entity.other.attribute-name.objectscript_class" }
+          },
+          "patterns": [{ "include": "#parameter" }],
+          "end": "(;)",
+          "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
         },
         {
-          "match": "^(\\Projection\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
+          "match": "(?i)^(\\Projection\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
           "captures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "identifier.objectscript_class" }
+            "3": { "name": "entity.other.attribute-name.objectscript_class" }
           }
         },
         {
@@ -134,19 +137,22 @@
           "beginCaptures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "identifier.objectscript_class" }
+            "3": { "name": "entity.name.function.objectscript_class" }
           },
           "patterns": [{ "include": "#query" }],
           "end": "^(\\})$",
           "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
         },
         {
-          "match": "(?i)^(\\Trigger\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
-          "captures": {
+          "begin": "(?i)^(\\bTrigger\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
+          "beginCaptures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "identifier.objectscript_class" }
-          }
+            "3": { "name": "entity.name.function.objectscript_class" }
+          },
+          "patterns": [{ "include": "#trigger" }],
+          "end": "^(\\})$",
+          "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
         },
         {
           "begin": "(?i)^(\\XData\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
@@ -250,8 +256,19 @@
       ]
     },
     "property": { "patterns": [{ "include": "#as" }, { "include": "#params" }] },
+    "parameter": { "patterns": [{ "include": "#as" }, { "include": "#parameter_value" }] },
+    "parameter_value": {
+      "patterns": [
+        {
+          "include": "source.objectscript#constants"
+        }
+      ]
+    },
     "query": {
       "patterns": [{ "include": "#formal_spec" }, { "include": "#as" }, { "include": "#params" }, { "include": "#sql" }]
+    },
+    "trigger": {
+      "patterns": [{ "include": "#params" }, { "include": "#code" }]
     },
     "sql": {
       "patterns": [
