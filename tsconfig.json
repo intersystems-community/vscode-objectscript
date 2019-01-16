@@ -4,7 +4,7 @@
     "module": "commonjs",
     "target": "es6",
     "outDir": "out",
-    "lib": ["es7"],
+    "lib": ["esnext"],
     "sourceMap": true,
     "rootDir": "."
   },

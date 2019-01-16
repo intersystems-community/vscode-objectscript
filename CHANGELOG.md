@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.7.9]
+
+- Automatically Preview XML files as UDL, (disabled by default)
+
 ## [0.7.7]
 
 - Completion for ObjectScript Commands

@@ -1,6 +1,7 @@
 import vscode = require('vscode');
 const { workspace, window } = vscode;
 export const OBJECTSCRIPT_FILE_SCHEMA = 'objectscript';
+export const OBJECTSCRIPTXML_FILE_SCHEMA = 'objectscriptxml';
 
 import { viewOthers } from './commands/viewOthers';
 import { importAndCompile } from './commands/compile';
@@ -8,16 +9,17 @@ import { exportAll, exportExplorerItem } from './commands/export';
 
 import { ObjectScriptClassSymbolProvider } from './providers/ObjectScriptClassSymbolProvider';
 import { ObjectScriptRoutineSymbolProvider } from './providers/ObjectScriptRoutineSymbolProvider';
-import { DocumentContentProvider } from './providers/DocumentContentProvider';
 import { ObjectScriptClassFoldingRangeProvider } from './providers/ObjectScriptClassFoldingRangeProvider';
 import { ObjectScriptFoldingRangeProvider } from './providers/ObjectScriptFoldingRangeProvider';
 import { ObjectScriptDefinitionProvider } from './providers/ObjectScriptDefinitionProvider';
 import { ObjectScriptCompletionItemProvider } from './providers/ObjectScriptCompletionItemProvider';
 import { ObjectScriptHoverProvider } from './providers/ObjectScriptHoverProvider';
 import { DocumentFormattingEditProvider } from './providers/DocumentFormattingEditProvider';
+import { DocumentContentProvider } from './providers/DocumentContentProvider';
+import { XmlContentProvider } from './providers/XmlContentProvider';
 
 import { ObjectScriptExplorerProvider } from './explorer/explorer';
-import { outputChannel } from './utils';
+import { outputChannel, outputConsole } from './utils';
 import { AtelierAPI } from './api';
 export var explorerProvider: ObjectScriptExplorerProvider;
 export var documentContentProvider: DocumentContentProvider;
@@ -26,12 +28,23 @@ export const config = () => {
   return vscode.workspace.getConfiguration('objectscript');
 };
 
+export function getXmlUri(uri: vscode.Uri): vscode.Uri {
+  if (uri.scheme === OBJECTSCRIPTXML_FILE_SCHEMA) {
+    return uri;
+  }
+  return uri.with({
+    scheme: OBJECTSCRIPTXML_FILE_SCHEMA,
+    path: uri.path
+  });
+}
+
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const languages = require(context.asAbsolutePath('./package.json'))['contributes']['languages'].map(lang => lang.id);
   const api = new AtelierAPI();
 
   explorerProvider = new ObjectScriptExplorerProvider();
   documentContentProvider = new DocumentContentProvider();
+  const xmlContentProvider = new XmlContentProvider();
 
   vscode.window.registerTreeDataProvider('ObjectScriptExplorer', explorerProvider);
 
@@ -64,6 +77,35 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.executeCommand('vscode-objectscript.compile');
   });
 
+  vscode.window.onDidChangeActiveTextEditor((textEditor: vscode.TextEditor) => {
+    if (vscode.window.activeTextEditor) {
+      let uri = textEditor.document.uri;
+      if (config().get('autoPreviewXML') && uri.scheme === 'file' && uri.fsPath.toLowerCase().endsWith('xml')) {
+        let line = textEditor.document.lineAt(1).text;
+        if (line.match(/<Export generator="(Cache|IRIS)"/)) {
+          line = textEditor.document.lineAt(2).text;
+          let className = line.match('Class name="([^"]+)"');
+          let fileName = '';
+          if (className) {
+            fileName = className[1] + '.cls';
+          }
+          if (fileName !== '') {
+            let previewUri = vscode.Uri.file(fileName).with({
+              scheme: OBJECTSCRIPTXML_FILE_SCHEMA,
+              fragment: uri.fsPath
+            });
+            xmlContentProvider.update(previewUri);
+            vscode.window.showTextDocument(previewUri, {
+              viewColumn: Math.max(vscode.ViewColumn.Active, 2),
+              preserveFocus: true,
+              preview: true
+            });
+          }
+        }
+      }
+    }
+  });
+
   context.subscriptions.push(
     vscode.commands.registerCommand('vscode-objectscript.output', () => {
       outputChannel.show();
@@ -87,6 +129,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       explorerProvider.showSystem = false;
     }),
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPT_FILE_SCHEMA, documentContentProvider),
+    vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPTXML_FILE_SCHEMA, xmlContentProvider),
     vscode.languages.registerDocumentSymbolProvider(['objectscript-class'], new ObjectScriptClassSymbolProvider()),
     vscode.languages.registerDocumentSymbolProvider(['objectscript'], new ObjectScriptRoutineSymbolProvider()),
     vscode.languages.registerFoldingRangeProvider(['objectscript-class'], new ObjectScriptClassFoldingRangeProvider()),

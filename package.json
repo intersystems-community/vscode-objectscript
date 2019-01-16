@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "0.7.8",
+  "version": "0.7.9",
   "icon": "images/logo.png",
   "categories": [
     "Programming Languages",
@@ -47,6 +47,7 @@
     "onLanguage:objectscript",
     "onLanguage:objectscript-class",
     "onLanguage:objectscript-macros",
+    "onLanguage:xml",
     "onView:ObjectScriptExplorer",
     "onFileSystem:objectscript",
     "onDebugInitialConfigurations"
@@ -346,6 +347,11 @@
           "type": "string",
           "default": "cuk",
           "description": "Compilation flags."
+        },
+        "objectscript.autoPreviewXML": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically Preview XML Export files as UDL"
         }
       }
     },

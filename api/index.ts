@@ -28,8 +28,9 @@ export class AtelierAPI {
     });
   }
 
-  request(method: string, path?: string, params?: any, body?: any): Promise<any> {
-    const headers = {
+  request(method: string, path?: string, params?: any, headers?: any, body?: any): Promise<any> {
+    headers = {
+      ...headers,
       Accept: 'application/json',
       Cookie: this.cookies
     };
@@ -50,7 +51,7 @@ export class AtelierAPI {
       return result.length ? '?' + result.join('&') : '';
     };
     method = method.toUpperCase();
-    if (['PUT', 'POST'].includes(method)) {
+    if (['PUT', 'POST'].includes(method) && !headers['Content-Type']) {
       headers['Content-Type'] = 'application/json';
     }
     headers['Cache-Control'] = 'no-cache';
@@ -60,6 +61,11 @@ export class AtelierAPI {
     const agent = new http.Agent({ keepAlive: true, maxSockets: 10 });
     path = encodeURI(`/api/atelier/${path || ''}${buildParams()}`);
     console.log(`API request: ${method} ${path}`);
+
+    if (headers['Content-Type'] && headers['Content-Type'].includes('json')) {
+      body = JSON.stringify(body);
+    }
+
     return new Promise((resolve, reject) => {
       const req: httpModule.ClientRequest = http
         .request(
@@ -104,7 +110,7 @@ export class AtelierAPI {
           reject(error);
         });
       if (['PUT', 'POST'].includes(method)) {
-        req.write(JSON.stringify(body));
+        req.write(body);
       }
       req.end();
     }).catch(error => {
@@ -146,14 +152,18 @@ export class AtelierAPI {
 
   putDoc(name: string, data: { enc: boolean; content: string[] }, ignoreConflict?: boolean): Promise<any> {
     let params = { ignoreConflict };
-    return this.request('PUT', `v2/${this.ns}/doc/${name}`, params, data);
+    return this.request('PUT', `v2/${this.ns}/doc/${name}`, params, {}, data);
   }
 
   actionIndex(docs: string[]): Promise<any> {
-    return this.request('POST', `v2/${this.ns}/action/index`, {}, docs);
+    return this.request('POST', `v2/${this.ns}/action/index`, {}, {}, docs);
   }
 
   actionCompile(docs: string[], flags?: string, source = false): Promise<any> {
-    return this.request('POST', `v2/${this.ns}/action/compile`, { flags, source }, docs);
+    return this.request('POST', `v2/${this.ns}/action/compile`, { flags, source }, {}, docs);
+  }
+
+  cvtXmlUdl(source: string): Promise<any> {
+    return this.request('POST', `v3/${this.ns}/cvt/xml/doc`, {}, { 'Content-Type': 'application/xml' }, source);
   }
 }
