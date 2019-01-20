@@ -2,7 +2,8 @@
 
 ## [0.7.9]
 
-- Automatically Preview XML files as UDL, (disabled by default)
+- Automatically Preview XML files as UDL, (disabled by default, setting `objectscript.autoPreviewXML`)
+- Fixed highlighting for XData with css in style tag
 
 ## [0.7.7]
 
@@ -25,7 +26,7 @@
 ## [0.7.0]
 
 - big rewrite of plugin's code, to typescript
-- `COS` renamed `ObjectScript`, affected configuration, language, commands etc.
+- `COS` renamed to `ObjectScript`, affected configuration, language, commands etc.
 - Export added in context menu on items in Server Explorer
 - Improvements in Syntax highlighting
 - Language `ObjectScript Class` class was added, now used just for classes

@@ -33,10 +33,10 @@
           }
         },
         {
-          "begin": "(\\{)",
+          "begin": "({)",
           "beginCaptures": { "1": { "name": "punctuation.objectscript_class" } },
           "patterns": [{ "include": "#class" }],
-          "end": "(\\})",
+          "end": "(})",
           "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
         }
       ]
@@ -129,7 +129,7 @@
             "3": { "name": "entity.name.function.objectscript_class" }
           },
           "patterns": [{ "include": "#method" }],
-          "end": "^(\\})$",
+          "end": "^(})$",
           "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
         },
         {
@@ -140,7 +140,7 @@
             "3": { "name": "entity.name.function.objectscript_class" }
           },
           "patterns": [{ "include": "#query" }],
-          "end": "^(\\})$",
+          "end": "^(})$",
           "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
         },
         {
@@ -151,7 +151,7 @@
             "3": { "name": "entity.name.function.objectscript_class" }
           },
           "patterns": [{ "include": "#trigger" }],
-          "end": "^(\\})$",
+          "end": "^(})$",
           "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
         },
         {
@@ -162,7 +162,7 @@
             "3": { "name": "identifier.objectscript_class" }
           },
           "patterns": [{ "include": "#xdata" }],
-          "end": "^(\\})$",
+          "end": "^(})$",
           "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
         },
         {
@@ -173,7 +173,7 @@
             "3": { "name": "identifier.objectscript_class" }
           },
           "patterns": [{ "include": "#storage" }],
-          "end": "^(\\})$",
+          "end": "^(})$",
           "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
         }
       ]
@@ -181,11 +181,11 @@
     "code": {
       "patterns": [
         {
-          "begin": "^(\\{)",
+          "begin": "^({)",
           "beginCaptures": { "1": { "name": "punctuation.objectscript_class" } },
           "patterns": [{ "include": "source.objectscript" }],
           "contentName": "meta.embedded.block.objectscript",
-          "end": "^(?=\\})",
+          "end": "^(?=})",
           "endCaptures": []
         }
       ]
@@ -273,25 +273,38 @@
     "sql": {
       "patterns": [
         {
-          "begin": "^(\\{)",
+          "begin": "^({)",
           "beginCaptures": { "1": { "name": "punctuation.objectscript_class" } },
           "patterns": [{ "include": "source.sql" }],
           "contentName": "meta.embedded.block.sql",
-          "end": "^(?=\\})",
+          "end": "^(?=})",
           "endCaptures": []
         }
       ]
     },
     "storage": { "patterns": [{ "include": "#params" }, { "include": "#xml" }] },
-    "xdata": { "patterns": [{ "include": "#params" }, { "include": "#xml" }] },
+    "xdata": { "patterns": [{ "include": "#params" }, { "include": "#xdataStyle" }] },
+    "xdataStyle": {
+      "begin": "^({)",
+      "beginCaptures": { "1": { "name": "punctuation.objectscript_class" } },
+      "end": "^(?=})",
+      "patterns": [
+        {
+          "include": "text.xml"
+        },
+        {
+          "include": "source.css"
+        }
+      ]
+    },
     "xml": {
       "patterns": [
         {
-          "begin": "^(\\{)",
+          "begin": "^({)",
           "beginCaptures": { "1": { "name": "punctuation.objectscript_class" } },
           "patterns": [{ "include": "text.xml" }],
           "contentName": "text.xml",
-          "end": "^(?=\\})",
+          "end": "^(?=})",
           "endCaptures": []
         }
       ]
