@@ -4,6 +4,7 @@
 
 - Automatically Preview XML files as UDL, (disabled by default, setting `objectscript.autoPreviewXML`)
 - Fixed highlighting for XData with css in style tag
+- Show percent-member in outline
 
 ## [0.7.7]
 

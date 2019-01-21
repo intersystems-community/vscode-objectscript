@@ -41,7 +41,7 @@ export class ObjectScriptClassSymbolProvider implements vscode.DocumentSymbolPro
           }
         }
 
-        let method = line.text.match(/^((?:Class|Client)?Method|Trigger|Query) (\b\w+\b|"[^"]+")/i);
+        let method = line.text.match(/^((?:Class|Client)?Method|Trigger|Query) (%?\b\w+\b|"[^"]+")/i);
         if (method) {
           let startCode = line.range.start;
           let end = line.range.end;
@@ -64,7 +64,7 @@ export class ObjectScriptClassSymbolProvider implements vscode.DocumentSymbolPro
           });
         }
 
-        let index = line.text.match(/^(Index|ForegnKey) (\b\w+\b)/i);
+        let index = line.text.match(/^(Index|ForegnKey) (%?\b\w+\b)/i);
         if (index) {
           symbols.push({
             detail: index[1],
@@ -76,7 +76,7 @@ export class ObjectScriptClassSymbolProvider implements vscode.DocumentSymbolPro
           });
         }
 
-        let property = line.text.match(/^(Property|Relationship) (\b\w+\b|"[^"]+")/i);
+        let property = line.text.match(/^(Property|Relationship) (%?\b\w+\b|"[^"]+")/i);
         if (property) {
           let end = line.range.end;
           if (!line.text.endsWith(';')) {
@@ -97,7 +97,7 @@ export class ObjectScriptClassSymbolProvider implements vscode.DocumentSymbolPro
           });
         }
 
-        let parameter = line.text.match(/^(Parameter) (\b\w+\b)/i);
+        let parameter = line.text.match(/^(Parameter) (%?\b\w+\b)/i);
         if (parameter) {
           symbols.push({
             detail: parameter[1],
@@ -109,7 +109,7 @@ export class ObjectScriptClassSymbolProvider implements vscode.DocumentSymbolPro
           });
         }
 
-        let other = line.text.match(/^(XData|Storage) (\b\w+\b)/i);
+        let other = line.text.match(/^(XData|Storage) (%?\b\w+\b)/i);
         if (other) {
           let startCode = line.range.start;
           let end = line.range.end;
