@@ -1,10 +1,16 @@
 import * as vscode from 'vscode';
 import { NodeBase } from './nodeBase';
-import { OBJECTSCRIPT_FILE_SCHEMA } from '../../extension';
+import { DocumentContentProvider } from '../../providers/DocumentContentProvider';
+import { outputChannel } from '../../utils';
 
 export class ClassNode extends NodeBase {
   public static readonly contextValue: string = 'classNode';
-  constructor(public readonly label: string, public readonly fullName: string) {
+  constructor(
+    public readonly label: string,
+    public readonly fullName: string,
+    private _workspaceFolder: string,
+    private _namespace: string
+  ) {
     super(label);
   }
 
@@ -17,7 +23,7 @@ export class ClassNode extends NodeBase {
       contextValue: 'classNode',
       command: {
         command: 'vscode-objectscript.explorer.openClass',
-        arguments: [vscode.Uri.parse(encodeURI(`${OBJECTSCRIPT_FILE_SCHEMA}:///${this.fullName}`))],
+        arguments: [DocumentContentProvider.getUri(this.fullName, this._workspaceFolder, this._namespace)],
         title: 'Open class'
       }
       // iconPath: {

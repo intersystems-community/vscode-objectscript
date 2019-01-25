@@ -4,7 +4,12 @@ import { ClassNode } from './classesNode';
 
 export class PackageNode extends NodeBase {
   public static readonly contextValue: string = 'packageNode';
-  constructor(public readonly label: string, private readonly _items) {
+  constructor(
+    public readonly label: string,
+    private readonly _items,
+    private readonly _workspaceFolder: string,
+    private _namespace: string
+  ) {
     super(label);
   }
 
@@ -24,7 +29,9 @@ export class PackageNode extends NodeBase {
 
   async getChildren(element): Promise<NodeBase[]> {
     return this._items.map(({ name, fullName, nodes }) =>
-      nodes.length ? new PackageNode(name, nodes) : new ClassNode(name, fullName)
+      nodes.length
+        ? new PackageNode(name, nodes, this._workspaceFolder, this._namespace)
+        : new ClassNode(name, fullName, this._workspaceFolder, this._namespace)
     );
   }
 

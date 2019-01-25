@@ -4,7 +4,7 @@ import { XmlContentProvider } from '../providers/XmlContentProvider';
 
 export async function xml2doc(context: vscode.ExtensionContext, textEditor: vscode.TextEditor): Promise<void> {
   const xmlContentProvider: XmlContentProvider = context.workspaceState.get('xmlContentProvider');
-  if (!config().conn.active) {
+  if (!config('conn').active) {
     return;
   }
 

@@ -8,8 +8,6 @@ import { ClassNode } from '../explorer/models/classesNode';
 import { RoutineNode } from '../explorer/models/routineNode';
 import { config } from '../extension';
 
-const api = new AtelierAPI();
-
 const filesFilter = (file: any) => {
   if (file.cat === 'CSP' || file.name.startsWith('%') || file.name.startsWith('INFORMATION.')) {
     return false;
@@ -30,9 +28,10 @@ const getFileName = (folder: string, name: string, split: boolean): string => {
 };
 
 export async function exportFile(name: string, fileName: string): Promise<any> {
-  if (!config().conn.active) {
+  if (!config('conn').active) {
     return;
   }
+  const api = new AtelierAPI();
   const log = status => outputChannel.appendLine(`export "${name}" as "${fileName}" - ${status}`);
   const folders = path.dirname(fileName);
   return mkdirSyncRecursive(folders)
@@ -65,9 +64,10 @@ export async function exportList(files: string[]): Promise<any> {
 }
 
 export async function exportAll(): Promise<any> {
-  if (!config().conn.active) {
+  if (!config('conn').active) {
     return;
   }
+  const api = new AtelierAPI();
   outputChannel.show(true);
   const { category, generated, filter } = config().get('export');
   const files = data => data.result.content.filter(filesFilter).map(file => file.name);
@@ -77,7 +77,7 @@ export async function exportAll(): Promise<any> {
 }
 
 export async function exportExplorerItem(node: PackageNode | ClassNode | RoutineNode): Promise<any> {
-  if (!config().conn.active) {
+  if (!config('conn').active) {
     return;
   }
   const items = node instanceof PackageNode ? node.getClasses() : [node.fullName];

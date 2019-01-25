@@ -1,21 +1,26 @@
 import * as httpModule from 'http';
 import * as httpsModule from 'https';
 import * as vscode from 'vscode';
-import { outputConsole } from '../utils';
-import { config } from '../extension';
+import { outputConsole, outputChannel } from '../utils';
+import { config, currentWorkspaceFolder } from '../extension';
+import { type } from 'os';
 
 export class AtelierAPI {
   private cookies: string[] = [];
-
-  private get config(): any {
-    return config().get('conn');
-  }
+  private _config: any;
+  private _namespace: string;
 
   private get ns(): string {
-    return this.config.ns;
+    return this._namespace || this._config.ns;
   }
 
-  constructor() {}
+  constructor() {
+    this.setConnection(currentWorkspaceFolder());
+  }
+
+  setNamespace(namespace: string) {
+    this._namespace = namespace;
+  }
 
   updateCookies(cookies: string[]) {
     cookies.forEach(cookie => {
@@ -29,8 +34,13 @@ export class AtelierAPI {
     });
   }
 
+  setConnection(workspaceFolderName: string) {
+    let conn = config('conn', workspaceFolderName);
+    this._config = conn;
+  }
+
   request(method: string, path?: string, params?: any, headers?: any, body?: any): Promise<any> {
-    if (!config().conn.active) {
+    if (!this._config.active) {
       return Promise.reject();
     }
     headers = {
@@ -60,8 +70,8 @@ export class AtelierAPI {
     }
     headers['Cache-Control'] = 'no-cache';
 
-    const { host, port, username, password } = this.config;
-    const http: any = this.config.https ? httpsModule : httpModule;
+    const { host, port, username, password } = this._config;
+    const http: any = this._config.https ? httpsModule : httpModule;
     const agent = new http.Agent({ keepAlive: true, maxSockets: 10 });
     path = encodeURI(`/api/atelier/${path || ''}${buildParams()}`);
     console.log(`API request: ${method} ${path}`);

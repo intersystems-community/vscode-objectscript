@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { outputChannel } from '../utils';
-import { getUri } from './DocumentContentProvider';
+import { DocumentContentProvider } from './DocumentContentProvider';
 
 export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider {
   provideDefinition(
@@ -135,7 +135,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
         new vscode.Position(position.line, end)
       ),
       targetRange: new vscode.Range(firstLinePos, firstLinePos),
-      targetUri: getUri(name)
+      targetUri: DocumentContentProvider.getUri(name)
     };
   }
 
@@ -147,7 +147,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
         new vscode.Position(position.line, end)
       ),
       targetRange: new vscode.Range(firstLinePos, firstLinePos),
-      targetUri: getUri(name)
+      targetUri: DocumentContentProvider.getUri(name)
     };
   }
 }

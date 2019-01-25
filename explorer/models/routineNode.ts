@@ -1,10 +1,15 @@
 import * as vscode from 'vscode';
 import { NodeBase } from './nodeBase';
-import { OBJECTSCRIPT_FILE_SCHEMA } from '../../extension';
+import { DocumentContentProvider } from '../../providers/DocumentContentProvider';
 
 export class RoutineNode extends NodeBase {
   public static readonly contextValue: string = 'routineNode';
-  constructor(public readonly label: string, public readonly fullName: string) {
+  constructor(
+    public readonly label: string,
+    public readonly fullName: string,
+    private _workspaceFolder: string,
+    private _namespace: string
+  ) {
     super(label);
   }
 
@@ -17,7 +22,7 @@ export class RoutineNode extends NodeBase {
       contextValue: 'routineNode',
       command: {
         command: 'vscode-objectscript.explorer.openRoutine',
-        arguments: [vscode.Uri.parse(encodeURI(`${OBJECTSCRIPT_FILE_SCHEMA}:///${this.fullName}`))],
+        arguments: [DocumentContentProvider.getUri(this.fullName, this._workspaceFolder, this._namespace)],
         title: 'Open routine'
       }
       // iconPath: {

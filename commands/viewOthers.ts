@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { OBJECTSCRIPT_FILE_SCHEMA, config } from '../extension';
 import { AtelierAPI } from '../api';
 import { currentFile } from '../utils';
+import { DocumentContentProvider } from '../providers/DocumentContentProvider';
 
 export async function viewOthers(): Promise<void> {
   const api = new AtelierAPI();
@@ -9,26 +10,12 @@ export async function viewOthers(): Promise<void> {
   if (!file) {
     return;
   }
-  if (!config().conn.active) {
+  if (!config('conn').active) {
     return;
   }
 
   const open = item => {
-    let uri = vscode.Uri.file(item).with({
-      scheme: OBJECTSCRIPT_FILE_SCHEMA
-    });
-    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 1) {
-      if (file.uri.scheme === 'file') {
-        const workspaceFolder = vscode.workspace.getWorkspaceFolder(file.uri);
-        uri = uri.with({
-          authority: workspaceFolder.name
-        });
-      } else {
-        uri = uri.with({
-          authority: file.uri.authority
-        });
-      }
-    }
+    let uri = DocumentContentProvider.getUri(item);
     vscode.window.showTextDocument(uri);
   };
 

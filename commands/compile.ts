@@ -2,9 +2,8 @@ import vscode = require('vscode');
 import fs = require('fs');
 import { AtelierAPI } from '../api';
 import { currentFile, CurrentFile, outputChannel } from '../utils';
-import { OBJECTSCRIPT_FILE_SCHEMA, documentContentProvider, config } from '../extension';
-
-const api = new AtelierAPI();
+import { documentContentProvider, config } from '../extension';
+import { DocumentContentProvider } from '../providers/DocumentContentProvider';
 
 async function compileFlags(): Promise<string> {
   const defaultFlags = config().compileFlags;
@@ -15,6 +14,7 @@ async function compileFlags(): Promise<string> {
 }
 
 async function importFile(file: CurrentFile, flags: string): Promise<any> {
+  const api = new AtelierAPI();
   return api
     .putDoc(
       file.name,
@@ -34,12 +34,13 @@ async function importFile(file: CurrentFile, flags: string): Promise<any> {
 
 function updateOthers(others: string[]) {
   others.forEach(item => {
-    const uri = vscode.Uri.parse(encodeURI(`${OBJECTSCRIPT_FILE_SCHEMA}:///${item}`));
+    const uri = DocumentContentProvider.getUri(item);
     documentContentProvider.update(uri);
   });
 }
 
 async function loadChanges(file: CurrentFile): Promise<any> {
+  const api = new AtelierAPI();
   return api.getDoc(file.name).then(data => {
     fs.writeFileSync(file.fileName, (data.result.content || []).join('\n'));
     api
@@ -50,6 +51,7 @@ async function loadChanges(file: CurrentFile): Promise<any> {
 }
 
 async function compile(file: CurrentFile, flags: string): Promise<any> {
+  const api = new AtelierAPI();
   return api
     .actionCompile([file.name], flags)
     .then(data => {
@@ -68,7 +70,7 @@ export async function importAndCompile(askFLags = false): Promise<any> {
   if (!file) {
     return;
   }
-  if (!config().conn.active) {
+  if (!config('conn').active) {
     return;
   }
   const defaultFlags = config().compileFlags;

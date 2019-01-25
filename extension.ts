@@ -24,24 +24,21 @@ import { outputChannel, outputConsole } from './utils';
 import { AtelierAPI } from './api';
 export var explorerProvider: ObjectScriptExplorerProvider;
 export var documentContentProvider: DocumentContentProvider;
+export var workspaceState: vscode.Memento;
 
-export const config = () => {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor || !vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length < 2) {
-    return vscode.workspace.getConfiguration('objectscript');
-  }
-  let resource = editor.document.uri;
-  if (resource.scheme === 'file') {
-    return vscode.workspace.getConfiguration('objectscript', resource);
-  }
-  if (resource.scheme.startsWith('objectscript')) {
-    const workspaceFolderName = resource.authority;
-    if (!workspaceFolderName || workspaceFolderName === '') {
-      return vscode.workspace.getConfiguration('objectscript');
-    } else {
+export const config = (config?: string, workspaceFolderName?: string): any => {
+  workspaceFolderName = workspaceFolderName || currentWorkspaceFolder();
+
+  if (['conn'].includes(config)) {
+    if (workspaceFolderName !== '') {
       const workspaceFolder = vscode.workspace.workspaceFolders.find(el => el.name === workspaceFolderName);
-      return vscode.workspace.getConfiguration('objectscript', workspaceFolder.uri);
+      return vscode.workspace.getConfiguration('objectscript', workspaceFolder.uri).get(config);
+    } else {
+      return vscode.workspace.getConfiguration('objectscript', null).get(config);
     }
+  }
+  if (config && config !== '') {
+    return vscode.workspace.getConfiguration('objectscript').get(config);
   }
   return vscode.workspace.getConfiguration('objectscript');
 };
@@ -56,9 +53,23 @@ export function getXmlUri(uri: vscode.Uri): vscode.Uri {
   });
 }
 
+export function currentWorkspaceFolder(): string {
+  let workspaceFolder;
+  if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document) {
+    const uri = vscode.window.activeTextEditor.document.uri;
+    if (uri.scheme === 'file') {
+      workspaceFolder = vscode.workspace.getWorkspaceFolder(uri).name;
+    } else if (uri.scheme.startsWith('objectscript')) {
+      workspaceFolder = uri.authority;
+    }
+  }
+  return workspaceFolder || workspaceState.get<string>('workspaceFolder');
+}
+
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const languages = require(context.asAbsolutePath('./package.json'))['contributes']['languages'].map(lang => lang.id);
-  const api = new AtelierAPI();
+  workspaceState = context.workspaceState;
+  workspaceState.update('workspaceFolder', '');
 
   explorerProvider = new ObjectScriptExplorerProvider();
   documentContentProvider = new DocumentContentProvider();
@@ -72,13 +83,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   panel.tooltip = 'Open output';
   panel.show();
   const checkConnection = () => {
-    const conn = config().conn;
+    const conn = config('conn');
     vscode.commands.executeCommand('setContext', 'vscode-objectscript.connectActive', conn.active);
     if (!conn.active) {
       panel.text = '';
       return;
     }
     panel.text = `${conn.label}:${conn.ns}`;
+    const api = new AtelierAPI();
     api
       .serverInfo()
       .then(info => {
@@ -95,21 +107,27 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   });
 
   workspace.onDidSaveTextDocument(file => {
-    if (!config().get('autoCompile') || !languages.includes(file.languageId)) {
+    if (!config('autoCompile') || !languages.includes(file.languageId)) {
       return;
     }
     vscode.commands.executeCommand('vscode-objectscript.compile');
   });
 
   vscode.window.onDidChangeActiveTextEditor((textEditor: vscode.TextEditor) => {
-    if (config().get('autoPreviewXML')) {
+    if (config('autoPreviewXML')) {
       xml2doc(context, textEditor);
     }
   });
 
   context.subscriptions.push(
     window.onDidChangeActiveTextEditor(e => {
-      checkConnection();
+      if (workspace.workspaceFolders && workspace.workspaceFolders.length > 1) {
+        let workspaceFolder = currentWorkspaceFolder();
+        if (workspaceFolder && workspaceFolder !== workspaceState.get<string>('workspaceFolder')) {
+          workspaceState.update('workspaceFolder', workspaceFolder);
+          checkConnection();
+        }
+      }
     }),
 
     vscode.commands.registerCommand('vscode-objectscript.output', () => {

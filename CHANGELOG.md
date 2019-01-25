@@ -7,7 +7,8 @@
 - Preview XML As UDL by command from Command Palette and from Context Menu
 - Fixed highlighting for XData with css in style tag
 - Show percent-member in outline
-- Multi-root workspace supported now, for different connections.
+- Multi-root workspace supported now, for different connections
+- Multi-root workspace also for server explorer
 
 ## [0.7.7]
 
