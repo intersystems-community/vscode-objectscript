@@ -3,6 +3,7 @@
 ## [0.7.9]
 
 - Automatically Preview XML files as UDL, (disabled by default, setting `objectscript.autoPreviewXML`)
+- Preview XML As UDL by command from Command Palette and from Context Menu
 - Fixed highlighting for XData with css in style tag
 - Show percent-member in outline
 

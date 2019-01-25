@@ -6,6 +6,7 @@ export const OBJECTSCRIPTXML_FILE_SCHEMA = 'objectscriptxml';
 import { viewOthers } from './commands/viewOthers';
 import { importAndCompile } from './commands/compile';
 import { exportAll, exportExplorerItem } from './commands/export';
+import { xml2doc } from './commands/xml2doc';
 
 import { ObjectScriptClassSymbolProvider } from './providers/ObjectScriptClassSymbolProvider';
 import { ObjectScriptRoutineSymbolProvider } from './providers/ObjectScriptRoutineSymbolProvider';
@@ -45,6 +46,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   explorerProvider = new ObjectScriptExplorerProvider();
   documentContentProvider = new DocumentContentProvider();
   const xmlContentProvider = new XmlContentProvider();
+  context.workspaceState.update('xmlContentProvider', xmlContentProvider);
 
   vscode.window.registerTreeDataProvider('ObjectScriptExplorer', explorerProvider);
 
@@ -78,33 +80,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   });
 
   vscode.window.onDidChangeActiveTextEditor((textEditor: vscode.TextEditor) => {
-    if (vscode.window.activeTextEditor) {
-      let uri = textEditor.document.uri;
-      if (config().get('autoPreviewXML') && uri.scheme === 'file' && uri.fsPath.toLowerCase().endsWith('xml')) {
-        let line = textEditor.document.lineAt(1).text;
-        if (line.match(/<Export generator="(Cache|IRIS)"/)) {
-          line = textEditor.document.lineAt(2).text;
-          let className = line.match('Class name="([^"]+)"');
-          let fileName = '';
-          if (className) {
-            fileName = className[1] + '.cls';
+    if (config().get('autoPreviewXML')) {
+      xml2doc(context, textEditor);
           }
-          if (fileName !== '') {
-            let previewUri = vscode.Uri.file(fileName).with({
-              scheme: OBJECTSCRIPTXML_FILE_SCHEMA,
-              fragment: uri.fsPath
             });
-            xmlContentProvider.update(previewUri);
-            vscode.window.showTextDocument(previewUri, {
-              viewColumn: Math.max(vscode.ViewColumn.Active, 2),
-              preserveFocus: true,
-              preview: true
-            });
-          }
-        }
-      }
-    }
-  });
 
   context.subscriptions.push(
     vscode.commands.registerCommand('vscode-objectscript.output', () => {
@@ -128,6 +107,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       vscode.commands.executeCommand('setContext', 'vscode-objectscript.explorer.showSystem', false);
       explorerProvider.showSystem = false;
     }),
+    vscode.commands.registerCommand('vscode-objectscript.previewXml', (...args) => {
+      xml2doc(context, window.activeTextEditor);
+    }),
+
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPT_FILE_SCHEMA, documentContentProvider),
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPTXML_FILE_SCHEMA, xmlContentProvider),
     vscode.languages.registerDocumentSymbolProvider(['objectscript-class'], new ObjectScriptClassSymbolProvider()),

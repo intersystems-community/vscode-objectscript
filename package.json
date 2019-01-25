@@ -40,6 +40,7 @@
     "onCommand:vscode-objectscript.export",
     "onCommand:vscode-objectscript.compile",
     "onCommand:vscode-objectscript.viewOthers",
+    "onCommand:vscode-objectscript.previewXml",
     "onCommand:vscode-objectscript.explorer.refresh",
     "onCommand:vscode-objectscript.explorer.openClass",
     "onCommand:vscode-objectscript.explorer.openRoutine",
@@ -102,6 +103,10 @@
         {
           "command": "vscode-objectscript.compile",
           "when": "editorLangId =~ /^objectscript/"
+        },
+        {
+          "command": "vscode-objectscript.previewXml",
+          "when": "editorLangId =~ /^xml/"
         }
       ],
       "touchBar": [
@@ -192,6 +197,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.compile",
         "title": "Import and compile current file"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.previewXml",
+        "title": "Preview XML as UDL"
       },
       {
         "category": "ObjectScript",
