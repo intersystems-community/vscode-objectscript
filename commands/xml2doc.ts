@@ -1,9 +1,12 @@
 import * as vscode from 'vscode';
-import { OBJECTSCRIPTXML_FILE_SCHEMA } from '../extension';
+import { OBJECTSCRIPTXML_FILE_SCHEMA, config } from '../extension';
 import { XmlContentProvider } from '../providers/XmlContentProvider';
 
 export async function xml2doc(context: vscode.ExtensionContext, textEditor: vscode.TextEditor): Promise<void> {
   const xmlContentProvider: XmlContentProvider = context.workspaceState.get('xmlContentProvider');
+  if (!config().conn.active) {
+    return;
+  }
 
   let uri = textEditor.document.uri;
   if (uri.scheme === 'file' && uri.fsPath.toLowerCase().endsWith('xml')) {

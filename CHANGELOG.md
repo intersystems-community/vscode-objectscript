@@ -2,10 +2,12 @@
 
 ## [0.7.9]
 
+- IMPORTANT: **Connection disabled by default, now**. Set `"objectscript.conn.active": true` to enable it
 - Automatically Preview XML files as UDL, (disabled by default, setting `objectscript.autoPreviewXML`)
 - Preview XML As UDL by command from Command Palette and from Context Menu
 - Fixed highlighting for XData with css in style tag
 - Show percent-member in outline
+- Multi-root workspace supported now, for different connections.
 
 ## [0.7.7]
 

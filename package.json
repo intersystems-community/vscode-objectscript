@@ -64,6 +64,26 @@
         {
           "command": "vscode-objectscript.touchBar.viewOthers",
           "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.export",
+          "when": "vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.compile",
+          "when": "vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.compileWithFlags",
+          "when": "vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.viewOthers",
+          "when": "vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.previewXml",
+          "when": "vscode-objectscript.connectActive"
         }
       ],
       "view/title": [
@@ -98,11 +118,11 @@
       "editor/context": [
         {
           "command": "vscode-objectscript.viewOthers",
-          "when": "editorLangId =~ /^objectscript/"
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.compile",
-          "when": "editorLangId =~ /^objectscript/"
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.previewXml",
@@ -113,12 +133,12 @@
         {
           "command": "vscode-objectscript.touchBar.compile",
           "group": "objectscript.compile",
-          "when": "editorLangId =~ /^objectscript/"
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.touchBar.viewOthers",
           "group": "objectscript.viewOthers",
-          "when": "editorLangId =~ /^objectscript/"
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         }
       ]
     },
@@ -266,7 +286,13 @@
       "properties": {
         "objectscript.conn": {
           "type": "object",
-          "description": "Server Access"
+          "description": "Server Access",
+          "scope": "resource"
+        },
+        "objectscript.conn.active": {
+          "description": "Active",
+          "type": "boolean",
+          "default": false
         },
         "objectscript.conn.label": {
           "description": "Server Name",
@@ -294,20 +320,10 @@
           "type": "string",
           "default": "SYS"
         },
-        "objectscript.conn.path": {
-          "description": "API Atelier path",
-          "type": "string",
-          "default": "/api/atelier/"
-        },
-        "objectscript.conn.version": {
-          "description": "API Atelier Version",
-          "type": "string",
-          "default": "v1"
-        },
         "objectscript.conn.ns": {
           "description": "Server Namespace",
           "type": "string",
-          "default": "SAMPLES"
+          "default": "USER"
         },
         "objectscript.conn.https": {
           "description": "Use SSL to access to API",

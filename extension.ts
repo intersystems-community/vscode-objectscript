@@ -26,6 +26,23 @@ export var explorerProvider: ObjectScriptExplorerProvider;
 export var documentContentProvider: DocumentContentProvider;
 
 export const config = () => {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor || !vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length < 2) {
+    return vscode.workspace.getConfiguration('objectscript');
+  }
+  let resource = editor.document.uri;
+  if (resource.scheme === 'file') {
+    return vscode.workspace.getConfiguration('objectscript', resource);
+  }
+  if (resource.scheme.startsWith('objectscript')) {
+    const workspaceFolderName = resource.authority;
+    if (!workspaceFolderName || workspaceFolderName === '') {
+      return vscode.workspace.getConfiguration('objectscript');
+    } else {
+      const workspaceFolder = vscode.workspace.workspaceFolders.find(el => el.name === workspaceFolderName);
+      return vscode.workspace.getConfiguration('objectscript', workspaceFolder.uri);
+    }
+  }
   return vscode.workspace.getConfiguration('objectscript');
 };
 
@@ -56,6 +73,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   panel.show();
   const checkConnection = () => {
     const conn = config().conn;
+    vscode.commands.executeCommand('setContext', 'vscode-objectscript.connectActive', conn.active);
+    if (!conn.active) {
+      panel.text = '';
+      return;
+    }
     panel.text = `${conn.label}:${conn.ns}`;
     api
       .serverInfo()
@@ -82,12 +104,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   vscode.window.onDidChangeActiveTextEditor((textEditor: vscode.TextEditor) => {
     if (config().get('autoPreviewXML')) {
       xml2doc(context, textEditor);
-          }
-            });
+    }
+  });
 
   context.subscriptions.push(
+    window.onDidChangeActiveTextEditor(e => {
+      checkConnection();
+    }),
+
     vscode.commands.registerCommand('vscode-objectscript.output', () => {
-      outputChannel.show();
+      outputChannel.show(true);
     }),
     vscode.commands.registerCommand('vscode-objectscript.compile', () => importAndCompile(false)),
     vscode.commands.registerCommand('vscode-objectscript.touchBar.compile', () => importAndCompile(false)),

@@ -6,6 +6,7 @@ import { outputChannel, mkdirSyncRecursive } from '../utils';
 import { PackageNode } from '../explorer/models/packageNode';
 import { ClassNode } from '../explorer/models/classesNode';
 import { RoutineNode } from '../explorer/models/routineNode';
+import { config } from '../extension';
 
 const api = new AtelierAPI();
 
@@ -29,6 +30,9 @@ const getFileName = (folder: string, name: string, split: boolean): string => {
 };
 
 export async function exportFile(name: string, fileName: string): Promise<any> {
+  if (!config().conn.active) {
+    return;
+  }
   const log = status => outputChannel.appendLine(`export "${name}" as "${fileName}" - ${status}`);
   const folders = path.dirname(fileName);
   return mkdirSyncRecursive(folders)
@@ -51,7 +55,7 @@ export async function exportList(files: string[]): Promise<any> {
   if (!files || !files.length) {
     vscode.window.showWarningMessage('Nothing to export');
   }
-  const { atelier, folder } = vscode.workspace.getConfiguration('objectscript').get('export');
+  const { atelier, folder } = config().get('export');
 
   return Promise.all(
     files.map(file => {
@@ -61,8 +65,11 @@ export async function exportList(files: string[]): Promise<any> {
 }
 
 export async function exportAll(): Promise<any> {
-  outputChannel.show();
-  const { category, generated, filter } = vscode.workspace.getConfiguration('objectscript').get('export');
+  if (!config().conn.active) {
+    return;
+  }
+  outputChannel.show(true);
+  const { category, generated, filter } = config().get('export');
   const files = data => data.result.content.filter(filesFilter).map(file => file.name);
   return api.getDocNames({ category, generated, filter }).then(data => {
     return exportList(files(data));
@@ -70,6 +77,9 @@ export async function exportAll(): Promise<any> {
 }
 
 export async function exportExplorerItem(node: PackageNode | ClassNode | RoutineNode): Promise<any> {
+  if (!config().conn.active) {
+    return;
+  }
   const items = node instanceof PackageNode ? node.getClasses() : [node.fullName];
   return exportList(items);
 }

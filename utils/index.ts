@@ -14,6 +14,7 @@ export interface CurrentFile {
   name: string;
   fileName: string;
   content: string;
+  uri: vscode.Uri;
 }
 
 export function currentFile(): CurrentFile {
@@ -21,6 +22,7 @@ export function currentFile(): CurrentFile {
   if (!document || !document.fileName || !document.languageId || !document.languageId.startsWith('objectscript')) {
     return null;
   }
+  const uri = document.uri;
   const fileName = document.fileName;
   const content = document.getText();
   const fileExt = fileName.match(/\.(\w+)$/)[1].toLowerCase();
@@ -43,7 +45,8 @@ export function currentFile(): CurrentFile {
   return {
     name,
     fileName,
-    content
+    content,
+    uri
   };
 }
 

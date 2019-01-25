@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { OBJECTSCRIPT_FILE_SCHEMA } from '../extension';
+import { OBJECTSCRIPT_FILE_SCHEMA, config } from '../extension';
 import { AtelierAPI } from '../api';
 import { currentFile } from '../utils';
 
@@ -9,9 +9,26 @@ export async function viewOthers(): Promise<void> {
   if (!file) {
     return;
   }
+  if (!config().conn.active) {
+    return;
+  }
 
   const open = item => {
-    const uri = vscode.Uri.parse(encodeURI(`${OBJECTSCRIPT_FILE_SCHEMA}:///${item}`));
+    let uri = vscode.Uri.file(item).with({
+      scheme: OBJECTSCRIPT_FILE_SCHEMA
+    });
+    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 1) {
+      if (file.uri.scheme === 'file') {
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(file.uri);
+        uri = uri.with({
+          authority: workspaceFolder.name
+        });
+      } else {
+        uri = uri.with({
+          authority: file.uri.authority
+        });
+      }
+    }
     vscode.window.showTextDocument(uri);
   };
 

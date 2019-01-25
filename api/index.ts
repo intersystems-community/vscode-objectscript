@@ -2,12 +2,13 @@ import * as httpModule from 'http';
 import * as httpsModule from 'https';
 import * as vscode from 'vscode';
 import { outputConsole } from '../utils';
+import { config } from '../extension';
 
 export class AtelierAPI {
   private cookies: string[] = [];
 
   private get config(): any {
-    return vscode.workspace.getConfiguration('objectscript').get('conn');
+    return config().get('conn');
   }
 
   private get ns(): string {
@@ -29,6 +30,9 @@ export class AtelierAPI {
   }
 
   request(method: string, path?: string, params?: any, headers?: any, body?: any): Promise<any> {
+    if (!config().conn.active) {
+      return Promise.reject();
+    }
     headers = {
       ...headers,
       Accept: 'application/json',

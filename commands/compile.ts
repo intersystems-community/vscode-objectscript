@@ -2,12 +2,12 @@ import vscode = require('vscode');
 import fs = require('fs');
 import { AtelierAPI } from '../api';
 import { currentFile, CurrentFile, outputChannel } from '../utils';
-import { OBJECTSCRIPT_FILE_SCHEMA, documentContentProvider } from '../extension';
+import { OBJECTSCRIPT_FILE_SCHEMA, documentContentProvider, config } from '../extension';
 
-const defaultFlags: string = vscode.workspace.getConfiguration('objectscript').get('compileFlags');
 const api = new AtelierAPI();
 
 async function compileFlags(): Promise<string> {
+  const defaultFlags = config().compileFlags;
   return vscode.window.showInputBox({
     prompt: 'Compilation flags',
     value: defaultFlags
@@ -27,7 +27,7 @@ async function importFile(file: CurrentFile, flags: string): Promise<any> {
     .then(data => compile(file, flags))
     .catch((error: Error) => {
       outputChannel.appendLine(error.message);
-      outputChannel.show();
+      outputChannel.show(true);
       vscode.window.showErrorMessage(error.message);
     });
 }
@@ -68,6 +68,10 @@ export async function importAndCompile(askFLags = false): Promise<any> {
   if (!file) {
     return;
   }
+  if (!config().conn.active) {
+    return;
+  }
+  const defaultFlags = config().compileFlags;
   const flags = askFLags ? await compileFlags() : defaultFlags;
   return importFile(file, flags).catch(error => {
     console.error(error);
