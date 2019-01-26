@@ -1,16 +1,31 @@
 import * as vscode from 'vscode';
 import { AtelierAPI } from './../api';
+import * as glob from 'glob';
+import * as url from 'url';
 
-import { OBJECTSCRIPT_FILE_SCHEMA, workspaceState, currentWorkspaceFolder } from '../extension';
-const url = require('url');
+import { OBJECTSCRIPT_FILE_SCHEMA } from '../extension';
+import { currentWorkspaceFolder, workspaceFolderUri } from '../utils';
 
 export class DocumentContentProvider implements vscode.TextDocumentContentProvider {
   private onDidChangeEvent: vscode.EventEmitter<vscode.Uri> = new vscode.EventEmitter<vscode.Uri>();
 
   constructor() {}
 
+  static findAsFile(name: string, workspaceFolder: string) {
+    let fileName = name.split('.');
+    let fileExt = fileName.pop().toLowerCase();
+    let root = workspaceFolderUri(workspaceFolder).path;
+    let pattern = `/**/{${fileName.join('.')},${fileName.join('/')}}.${fileExt}`;
+    let found = glob.sync(pattern, { root, nodir: true });
+    return found.length ? found.pop() : null;
+  }
+
   public static getUri(name: string, workspaceFolder?: string, namespace?: string): vscode.Uri {
     workspaceFolder = workspaceFolder && workspaceFolder !== '' ? workspaceFolder : currentWorkspaceFolder();
+    let found = this.findAsFile(name, workspaceFolder);
+    if (found) {
+      return vscode.Uri.file(found);
+    }
     let uri = vscode.Uri.file(name).with({
       scheme: OBJECTSCRIPT_FILE_SCHEMA
     });
@@ -35,7 +50,8 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     let query = url.parse(decodeURIComponent(uri.toString()), true).query;
     if (query) {
       if (query.ns && query.ns !== '') {
-        api.setNamespace(query.ns);
+        let namespace = query.ns.toString();
+        api.setNamespace(namespace);
       }
     }
     api.setConnection(uri.authority);

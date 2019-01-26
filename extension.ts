@@ -20,7 +20,7 @@ import { DocumentContentProvider } from './providers/DocumentContentProvider';
 import { XmlContentProvider } from './providers/XmlContentProvider';
 
 import { ObjectScriptExplorerProvider } from './explorer/explorer';
-import { outputChannel, outputConsole } from './utils';
+import { outputChannel, currentWorkspaceFolder } from './utils';
 import { AtelierAPI } from './api';
 export var explorerProvider: ObjectScriptExplorerProvider;
 export var documentContentProvider: DocumentContentProvider;
@@ -51,19 +51,6 @@ export function getXmlUri(uri: vscode.Uri): vscode.Uri {
     scheme: OBJECTSCRIPTXML_FILE_SCHEMA,
     path: uri.path
   });
-}
-
-export function currentWorkspaceFolder(): string {
-  let workspaceFolder;
-  if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document) {
-    const uri = vscode.window.activeTextEditor.document.uri;
-    if (uri.scheme === 'file') {
-      workspaceFolder = vscode.workspace.getWorkspaceFolder(uri).name;
-    } else if (uri.scheme.startsWith('objectscript')) {
-      workspaceFolder = uri.authority;
-    }
-  }
-  return workspaceFolder || workspaceState.get<string>('workspaceFolder');
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {

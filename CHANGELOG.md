@@ -9,6 +9,7 @@
 - Show percent-member in outline
 - Multi-root workspace supported now, for different connections
 - Multi-root workspace also for server explorer
+- Go to definition now goes to real file if such presented, or opens from the server
 
 ## [0.7.7]
 

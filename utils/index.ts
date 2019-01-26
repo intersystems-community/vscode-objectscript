@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import fs = require('fs');
 import path = require('path');
+import { workspaceState } from '../extension';
 
 export const outputChannel = vscode.window.createOutputChannel('ObjectScript');
 
@@ -68,4 +69,21 @@ export async function mkdirSyncRecursive(dirpath: string): Promise<string> {
       reject(error);
     }
   });
+}
+
+export function currentWorkspaceFolder(): string {
+  let workspaceFolder;
+  if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document) {
+    const uri = vscode.window.activeTextEditor.document.uri;
+    if (uri.scheme === 'file') {
+      workspaceFolder = vscode.workspace.getWorkspaceFolder(uri).name;
+    } else if (uri.scheme.startsWith('objectscript')) {
+      workspaceFolder = uri.authority;
+    }
+  }
+  return workspaceFolder || workspaceState.get<string>('workspaceFolder');
+}
+
+export function workspaceFolderUri(workspaceFolder: string): vscode.Uri {
+  return vscode.workspace.workspaceFolders.find(el => el.name === workspaceFolder).uri;
 }

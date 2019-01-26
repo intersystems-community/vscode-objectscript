@@ -1,9 +1,7 @@
 import * as httpModule from 'http';
 import * as httpsModule from 'https';
-import * as vscode from 'vscode';
-import { outputConsole, outputChannel } from '../utils';
-import { config, currentWorkspaceFolder } from '../extension';
-import { type } from 'os';
+import { outputConsole, currentWorkspaceFolder } from '../utils';
+import { config } from '../extension';
 
 export class AtelierAPI {
   private cookies: string[] = [];

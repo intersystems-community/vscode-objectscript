@@ -420,5 +420,7 @@
     "vsce": "^1.53.2",
     "vscode": "^1.1.26"
   },
-  "dependencies": {}
+  "dependencies": {
+    "glob": "^7.1.3"
+  }
 }
