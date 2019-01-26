@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { outputChannel } from '../utils';
 import { DocumentContentProvider } from './DocumentContentProvider';
 
 export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider {

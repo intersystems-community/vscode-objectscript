@@ -12,7 +12,6 @@ export class WorkspaceNode extends NodeBase {
   constructor(
     public readonly label: string,
     public eventEmitter: vscode.EventEmitter<NodeBase>,
-    private _uri: vscode.Uri,
     private _showSystem: boolean = false
   ) {
     super(label);

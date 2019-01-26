@@ -2,7 +2,7 @@
   "compilerOptions": {
     "noImplicitAny": false,
     "noImplicitReturns": false,
-    "noUnusedLocals": false,
+    "noUnusedLocals": true,
     "noUnusedParameters": false,
     "experimentalDecorators": true,
     "resolveJsonModule": true

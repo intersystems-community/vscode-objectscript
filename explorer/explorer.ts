@@ -1,10 +1,7 @@
 import * as vscode from 'vscode';
 import { NodeBase } from './models/nodeBase';
-import { RootNode } from './models/rootNode';
-import { AtelierAPI } from './../api';
 
-import { config, workspaceState } from '../extension';
-import { outputChannel } from '../utils';
+import { config } from '../extension';
 import { WorkspaceNode } from './models/workspaceNode';
 
 export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<NodeBase> {
@@ -47,11 +44,11 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
     workspaceFolders.forEach(workspaceFolder => {
       let conn: any = config('conn', workspaceFolder.name);
       if (conn.active) {
-        node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData, workspaceFolder.uri);
+        node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData);
         rootNodes.push(node);
 
         if (this.showSystem) {
-          node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData, workspaceFolder.uri, true);
+          node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData, true);
           rootNodes.push(node);
         }
       }

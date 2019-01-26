@@ -1,9 +1,6 @@
 import * as vscode from 'vscode';
 import { AtelierAPI } from './../api';
 
-import { OBJECTSCRIPTXML_FILE_SCHEMA } from '../extension';
-import { TextDecoder } from 'util';
-
 export class XmlContentProvider implements vscode.TextDocumentContentProvider {
   private _api: AtelierAPI;
   private onDidChangeEvent: vscode.EventEmitter<vscode.Uri> = new vscode.EventEmitter<vscode.Uri>();

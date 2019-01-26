@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { NodeBase } from './nodeBase';
 import { DocumentContentProvider } from '../../providers/DocumentContentProvider';
-import { outputChannel } from '../../utils';
 
 export class ClassNode extends NodeBase {
   public static readonly contextValue: string = 'classNode';

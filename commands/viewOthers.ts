@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { OBJECTSCRIPT_FILE_SCHEMA, config } from '../extension';
+import { config } from '../extension';
 import { AtelierAPI } from '../api';
 import { currentFile } from '../utils';
 import { DocumentContentProvider } from '../providers/DocumentContentProvider';
