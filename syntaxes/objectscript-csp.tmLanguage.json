@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "objectscript-csp",
+  "scopeName": "source.objectscript_csp",
+  "patterns": [
+    {
+      "include": "#inline-html"
+    }
+  ],
+  "repository": {
+    "inline-html": {
+      "name": "meta.embedded.inline.html",
+      "patterns": [
+        {
+          "include": "text.html.basic"
+        }
+      ]
+    }
+  }
+}

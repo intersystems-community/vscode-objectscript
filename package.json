@@ -173,6 +173,15 @@
           ".inc"
         ],
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "objectscript-csp",
+        "aliases": [
+          "ObjectScript CSP"
+        ],
+        "extensions": [
+          "csp"
+        ]
       }
     ],
     "grammars": [
@@ -205,6 +214,11 @@
         "embeddedLanguages": {
           "meta.preprocessor.objectscript": "source.objectscript"
         }
+      },
+      {
+        "language": "objectscript-csp",
+        "scopeName": "source.objectscript_csp",
+        "path": "syntaxes/objectscript-csp.tmLanguage.json"
       }
     ],
     "commands": [

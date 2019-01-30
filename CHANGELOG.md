@@ -10,6 +10,7 @@
 - Multi-root workspace supported now, for different connections
 - Multi-root workspace also for server explorer
 - Go to definition now goes to real file if such presented, or opens from the server
+- Basic syntax highlighting for CSP files, only as HTML
 
 ## [0.7.7]
 
