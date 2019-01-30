@@ -1,4 +1,11 @@
 [![Known Vulnerabilities](https://snyk.io/test/github/daimor/vscode-objectscript/badge.svg)](https://snyk.io/test/github/daimor/vscode-objectscript)
+[![Gitter](https://badges.gitter.im/daimor/vscode-objectscript.svg)](https://gitter.im/daimor/vscode-objectscript?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Liberpay](https://img.shields.io/liberapay/receives/daimor.svg?logo=liberapay)](https://liberapay.com/daimor/donate)
+[![](https://img.shields.io/visual-studio-marketplace/i/daimor.vscode-objectscript.svg)](https://marketplace.visualstudio.com/items?itemName=daimor.vscode-objectscript)
+
+[![](https://img.shields.io/badge/InterSystems-IRIS-blue.svg)](https://www.intersystems.com/products/intersystems-iris/)
+[![](https://img.shields.io/badge/InterSystems-Caché-blue.svg)](https://www.intersystems.com/products/cache/)
+[![](https://img.shields.io/badge/InterSystems-Ensemble-blue.svg)](https://www.intersystems.com/products/ensemble/)
 
 # vscode-objectscript
 
