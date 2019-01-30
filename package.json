@@ -91,14 +91,6 @@
           "command": "vscode-objectscript.explorer.refresh",
           "when": "view == ObjectScriptExplorer",
           "group": "navigation"
-        },
-        {
-          "command": "vscode-objectscript.explorer.showSystem",
-          "when": "view == ObjectScriptExplorer && !vscode-objectscript.explorer.showSystem"
-        },
-        {
-          "command": "vscode-objectscript.explorer.hideSystem",
-          "when": "view == ObjectScriptExplorer && vscode-objectscript.explorer.showSystem"
         }
       ],
       "view/item/context": [
@@ -113,6 +105,14 @@
         {
           "command": "vscode-objectscript.explorer.export",
           "when": "view == ObjectScriptExplorer && viewItem == routineNode"
+        },
+        {
+          "command": "vscode-objectscript.explorer.showSystem",
+          "when": "view == ObjectScriptExplorer && viewItem == serverNode"
+        },
+        {
+          "command": "vscode-objectscript.explorer.hideSystem",
+          "when": "view == ObjectScriptExplorer && viewItem == serverNodeSystem"
         }
       ],
       "editor/context": [

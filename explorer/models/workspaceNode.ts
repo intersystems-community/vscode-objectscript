@@ -8,6 +8,7 @@ import { config } from '../../extension';
 export class WorkspaceNode extends NodeBase {
   private _conn: any;
   private _namespace: string;
+  showSystem: boolean;
 
   constructor(
     public readonly label: string,
@@ -26,6 +27,7 @@ export class WorkspaceNode extends NodeBase {
   getTreeItem(): vscode.TreeItem {
     return {
       label: `${this.label}${this._showSystem ? ' - System' : ''}`,
+      contextValue: `serverNode${this._showSystem ? 'System' : ''}`,
       collapsibleState: vscode.TreeItemCollapsibleState.Expanded
     };
   }

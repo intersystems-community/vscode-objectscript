@@ -9,6 +9,7 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
   private _onDidChangeTreeData: vscode.EventEmitter<NodeBase> = new vscode.EventEmitter<NodeBase>();
   readonly onDidChangeTreeData: vscode.Event<NodeBase> = this._onDidChangeTreeData.event;
   private _showSystem = false;
+  private _showSystem4Workspace: boolean[] = [];
 
   constructor() {}
 
@@ -18,6 +19,11 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
 
   set showSystem(value) {
     this._showSystem = value;
+    this._onDidChangeTreeData.fire(null);
+  }
+
+  showSystem4Workspace(workspaceFolder: string, value: boolean) {
+    this._showSystem4Workspace[workspaceFolder] = value;
     this._onDidChangeTreeData.fire(null);
   }
 
@@ -47,7 +53,7 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
         node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData);
         rootNodes.push(node);
 
-        if (this.showSystem) {
+        if (this.showSystem || this._showSystem4Workspace[workspaceFolder.name]) {
           node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData, true);
           rootNodes.push(node);
         }

@@ -22,6 +22,7 @@ import { XmlContentProvider } from './providers/XmlContentProvider';
 import { ObjectScriptExplorerProvider } from './explorer/explorer';
 import { outputChannel, currentWorkspaceFolder } from './utils';
 import { AtelierAPI } from './api';
+import { WorkspaceNode } from './explorer/models/workspaceNode';
 export var explorerProvider: ObjectScriptExplorerProvider;
 export var documentContentProvider: DocumentContentProvider;
 export var workspaceState: vscode.Memento;
@@ -31,7 +32,9 @@ export const config = (config?: string, workspaceFolderName?: string): any => {
 
   if (['conn'].includes(config)) {
     if (workspaceFolderName !== '') {
-      const workspaceFolder = vscode.workspace.workspaceFolders.find(el => el.name === workspaceFolderName);
+      const workspaceFolder = vscode.workspace.workspaceFolders.find(
+        el => el.name.toLowerCase() === workspaceFolderName.toLowerCase()
+      );
       return vscode.workspace.getConfiguration('objectscript', workspaceFolder.uri).get(config);
     } else {
       return vscode.workspace.getConfiguration('objectscript', null).get(config);
@@ -130,13 +133,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('vscode-objectscript.explorer.openClass', vscode.window.showTextDocument),
     vscode.commands.registerCommand('vscode-objectscript.explorer.openRoutine', vscode.window.showTextDocument),
     vscode.commands.registerCommand('vscode-objectscript.explorer.export', exportExplorerItem),
-    vscode.commands.registerCommand('vscode-objectscript.explorer.showSystem', () => {
-      vscode.commands.executeCommand('setContext', 'vscode-objectscript.explorer.showSystem', true);
-      explorerProvider.showSystem = true;
+    vscode.commands.registerCommand('vscode-objectscript.explorer.showSystem', (workspaceNode?: WorkspaceNode) => {
+      if (workspaceNode) {
+        explorerProvider.showSystem4Workspace(workspaceNode.label, true);
+      } else {
+        vscode.commands.executeCommand('setContext', 'vscode-objectscript.explorer.showSystem', true);
+        explorerProvider.showSystem = true;
+      }
     }),
-    vscode.commands.registerCommand('vscode-objectscript.explorer.hideSystem', () => {
-      vscode.commands.executeCommand('setContext', 'vscode-objectscript.explorer.showSystem', false);
-      explorerProvider.showSystem = false;
+    vscode.commands.registerCommand('vscode-objectscript.explorer.hideSystem', (workspaceNode?) => {
+      if (workspaceNode) {
+        explorerProvider.showSystem4Workspace(workspaceNode.label, false);
+      } else {
+        vscode.commands.executeCommand('setContext', 'vscode-objectscript.explorer.showSystem', false);
+        explorerProvider.showSystem = false;
+      }
     }),
     vscode.commands.registerCommand('vscode-objectscript.previewXml', (...args) => {
       xml2doc(context, window.activeTextEditor);
