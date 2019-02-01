@@ -6,7 +6,8 @@
   "icon": "images/logo.png",
   "categories": [
     "Programming Languages",
-    "Other"
+    "Other",
+    "Snippets"
   ],
   "keywords": [
     "objectscript",
@@ -219,6 +220,12 @@
         "language": "objectscript-csp",
         "scopeName": "source.objectscript_csp",
         "path": "syntaxes/objectscript-csp.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "objectscript-class",
+        "path": "./snippets/objectscript-class.json"
       }
     ],
     "commands": [

@@ -11,6 +11,7 @@
 - Multi-root workspace also for server explorer
 - Go to definition now goes to real file if such presented, or opens from the server
 - Basic syntax highlighting for CSP files, only as HTML
+- Added some snippets for class
 
 ## [0.7.7]
 

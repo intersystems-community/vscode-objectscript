@@ -1,0 +1,30 @@
+{
+  "Class Definition without super": {
+    "prefix": "Class",
+    "body": ["Class $1", "{", "$0", "}"]
+  },
+  "Class Definition with super": {
+    "prefix": "Class",
+    "body": ["Class $1 Extends ${2:%Persistent}", "{", "$0", "}"]
+  },
+  "ClassMethod definition": {
+    "prefix": "ClassMethod",
+    "body": ["ClassMethod $1($2) As ${3:%Status}", "{", "\t$0", "}"]
+  },
+  "Method definition": {
+    "prefix": "Method",
+    "body": ["Method $1($2) As ${3:%Status}", "{", "\t$0", "}"]
+  },
+  "Property": {
+    "prefix": "property",
+    "body": "Property $1 As ${2:%String};"
+  },
+  "Parameter": {
+    "prefix": "Parameter",
+    "body": "Parameter $1 = \"$0\";"
+  },
+  "Index": {
+    "prefix": "Index",
+    "body": "Index $1 On ${2:Name};"
+  }
+}
