@@ -5,7 +5,6 @@ import { currentFile } from '../utils';
 import { DocumentContentProvider } from '../providers/DocumentContentProvider';
 
 export async function viewOthers(): Promise<void> {
-  const api = new AtelierAPI();
   const file = currentFile();
   if (!file) {
     return;
@@ -22,6 +21,7 @@ export async function viewOthers(): Promise<void> {
   const getOthers = info => {
     return info.result.content[0].others;
   };
+  const api = new AtelierAPI();
   return api
     .actionIndex([file.name])
     .then(info => {
