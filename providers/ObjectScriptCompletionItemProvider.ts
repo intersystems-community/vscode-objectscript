@@ -4,6 +4,7 @@ import commands = require('./completion/commands.json');
 import systemFunctions = require('./completion/systemFunctions.json');
 import systemVariables = require('./completion/systemVariables.json');
 import structuredSystemVariables = require('./completion/structuredSystemVariables.json');
+import { ClassDefinition } from '../utils/classDefinition.js';
 
 export class ObjectScriptCompletionItemProvider implements vscode.CompletionItemProvider {
   provideCompletionItems(
@@ -12,7 +13,10 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
     token: vscode.CancellationToken,
     context: vscode.CompletionContext
   ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
-    if (context.triggerCharacter === '#') return this.macro(document, position, token, context);
+    if (context.triggerKind === vscode.CompletionTriggerKind.TriggerCharacter) {
+      if (context.triggerCharacter === '#') return this.macro(document, position, token, context);
+      if (context.triggerCharacter === '.') return this.entities(document, position, token, context);
+    }
     return (
       this.dollarsComplete(document, position) ||
       this.commands(document, position) ||
@@ -53,8 +57,8 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
     document: vscode.TextDocument,
     position: vscode.Position
   ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
-    let word = document.getWordRangeAtPosition(position, /\ +\b\w+[\w\d]*\b/);
-    let line = document.getText(word);
+    let word = document.getWordRangeAtPosition(position, /\s+\b\w+[\w\d]*\b/);
+    let line = word ? document.getText(word) : '';
 
     if (line.match(/^\s+\b[a-z]+\b$/i)) {
       let search = line.trim().toUpperCase();
@@ -67,8 +71,11 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
           documentation: new vscode.MarkdownString(el.documentation.join('')),
           insertText: new vscode.SnippetString(el.insertText || `${el.label} $0`)
         }));
+      if (!items.length) {
+        return null;
+      }
       return {
-        isIncomplete: items.length > 0,
+        // isIncomplete: items.length > 0,
         items
       };
     }
@@ -174,6 +181,34 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
           label: '%ROWCOUNT'
         }
       ].map(el => ({ ...el, kind, range }));
+    }
+    return null;
+  }
+
+  entities(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+    token: vscode.CancellationToken,
+    context: vscode.CompletionContext
+  ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
+    let range = document.getWordRangeAtPosition(position, /%?\b\w+[\w\d]*\b/) || new vscode.Range(position, position);
+    let textBefore = document.getText(new vscode.Range(new vscode.Position(position.line, 0), range.start));
+
+    let classRef = textBefore.match(/##class\(([^)]+)\)\.$/i);
+    if (classRef) {
+      let [, className] = classRef;
+      let classDef = new ClassDefinition(className);
+      return classDef.methods('class').then(methods => {
+        let completion = [
+          ...methods.map(el => ({
+            label: el.name,
+            documentation: el.desc.length ? new vscode.MarkdownString(el.desc.join('')) : null,
+            kind: vscode.CompletionItemKind.Method,
+            insertText: new vscode.SnippetString(`${el.name}($0)`)
+          }))
+        ];
+        return completion;
+      });
     }
     return null;
   }
