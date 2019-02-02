@@ -4,6 +4,7 @@
   "scopeName": "source.objectscript_macros",
   "patterns": [
     { "include": "#include" },
+    { "include": "#dim" },
     { "include": "#define" },
     { "include": "#def1arg" },
     { "include": "#ifdef" },
@@ -23,7 +24,22 @@
         }
       ]
     },
-
+    "dim": {
+      "patterns": [
+        {
+          "name": "meta.preprocessor.objectscript",
+          "match": "^\\s*(\\#\\s*(?:(?i)dim))\\s+((?<id>[a-zA-Z%][a-zA-Z0-9]*))(?:\\s*(,)\\s*((\\g<id>)*))*(?:\\s+((?i)As)(?:\\s(\\g<id>(?:\\.\\g<id>)*)))?",
+          "captures": {
+            "1": { "name": "keyword.control.objectscript" },
+            "2": { "name": "variable.name" },
+            "4": { "name": "punctuation.definition.objectscript" },
+            "5": { "name": "variable.name" },
+            "7": { "name": "keyword.control.objectscript" },
+            "8": { "name": "entity.name.class.objectscript" }
+          }
+        }
+      ]
+    },
     "define": {
       "patterns": [
         {
