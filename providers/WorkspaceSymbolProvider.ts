@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { AtelierAPI } from '../api';
-import { outputChannel } from '../utils';
 import { DocumentContentProvider } from './DocumentContentProvider';
 import { ClassDefinition } from '../utils/classDefinition';
 

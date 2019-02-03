@@ -12,7 +12,10 @@
 - Go to definition now goes to real file if such presented, or opens from the server
 - Basic syntax highlighting for CSP files, only as HTML
 - Added some snippets for class
-- View subclasses for current class
+- View subclasses for current class, available in command palette
+- Go To any class/method in the workspace including server (by Cmd+T/Ctrl+T)
+- some small fixes in the highlighting, and selecting words/variables
+- Intellisense. Show list of methods for ##class(SomeClass)
 
 ## [0.7.7]
 
