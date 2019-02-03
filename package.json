@@ -167,7 +167,7 @@
         "extensions": [
           ".cls"
         ],
-        "configuration": "./language-configuration-class.json"
+        "configuration": "./language-configuration-class.jsonc"
       },
       {
         "id": "objectscript-macros",

@@ -24,6 +24,7 @@ import { ObjectScriptExplorerProvider } from './explorer/explorer';
 import { outputChannel, currentWorkspaceFolder } from './utils';
 import { AtelierAPI } from './api';
 import { WorkspaceNode } from './explorer/models/workspaceNode';
+import { WorkspaceSymbolProvider } from './providers/WorkspaceSymbolProvider';
 export var explorerProvider: ObjectScriptExplorerProvider;
 export var documentContentProvider: DocumentContentProvider;
 export var workspaceState: vscode.Memento;
@@ -180,7 +181,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.languages.registerDocumentFormattingEditProvider(
       ['objectscript-class', 'objectscript', 'objectscript-macros'],
       new DocumentFormattingEditProvider()
-    )
+    ),
+    vscode.languages.registerWorkspaceSymbolProvider(new WorkspaceSymbolProvider())
   );
 }
 
