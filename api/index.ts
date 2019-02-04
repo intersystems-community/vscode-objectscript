@@ -37,7 +37,7 @@ export class AtelierAPI {
     this._config = conn;
   }
 
-  request(method: string, path?: string, params?: any, headers?: any, body?: any): Promise<any> {
+  async request(method: string, path?: string, body?: any, params?: any, headers?: any): Promise<any> {
     if (!this._config.active) {
       return Promise.reject();
     }
@@ -146,7 +146,7 @@ export class AtelierAPI {
     type?: string;
     filter?: string;
   }): Promise<any> {
-    return this.request('GET', `v3/${this.ns}/docnames/${category}/${type}`, {
+    return this.request('GET', `v3/${this.ns}/docnames/${category}/${type}`, null, {
       filter,
       generated
     });
@@ -164,35 +164,45 @@ export class AtelierAPI {
 
   putDoc(name: string, data: { enc: boolean; content: string[] }, ignoreConflict?: boolean): Promise<any> {
     let params = { ignoreConflict };
-    return this.request('PUT', `v3/${this.ns}/doc/${name}`, params, {}, data);
+    return this.request('PUT', `v3/${this.ns}/doc/${name}`, data, params);
   }
 
   actionIndex(docs: string[]): Promise<any> {
-    return this.request('POST', `v3/${this.ns}/action/index`, {}, {}, docs);
+    return this.request('POST', `v3/${this.ns}/action/index`, docs);
   }
 
   actionSearch(params: { query: string; files?: string; sys?: boolean; gen?: boolean; max?: number }): Promise<any> {
-    return this.request('GET', `v3/${this.ns}/action/search`, params, {});
+    return this.request('GET', `v3/${this.ns}/action/search`, null, params);
   }
 
   actionQuery(query: string, parameters: string[]): Promise<any> {
-    return this.request(
-      'POST',
-      `v3/${this.ns}/action/query`,
-      {},
-      {},
-      {
-        query,
-        parameters
-      }
-    );
+    return this.request('POST', `v3/${this.ns}/action/query`, {
+      query,
+      parameters
+    });
   }
 
   actionCompile(docs: string[], flags?: string, source = false): Promise<any> {
-    return this.request('POST', `v3/${this.ns}/action/compile`, { flags, source }, {}, docs);
+    return this.request('POST', `v3/${this.ns}/action/compile`, docs, { flags, source });
   }
 
   cvtXmlUdl(source: string): Promise<any> {
-    return this.request('POST', `v3/${this.ns}/cvt/xml/doc`, {}, { 'Content-Type': 'application/xml' }, source);
+    return this.request('POST', `v3/${this.ns}/cvt/xml/doc`, source, {}, { 'Content-Type': 'application/xml' });
+  }
+
+  getmacrodefinition(docname: string, macroname: string, includes: string[]) {
+    return this.request('POST', `v3/${this.ns}/action/getmacrodefinition`, {
+      docname,
+      macroname,
+      includes
+    });
+  }
+
+  getmacrolocation(docname: string, macroname: string, includes: string[]) {
+    return this.request('POST', `v3/${this.ns}/action/getmacrolocation`, {
+      docname,
+      macroname,
+      includes
+    });
   }
 }

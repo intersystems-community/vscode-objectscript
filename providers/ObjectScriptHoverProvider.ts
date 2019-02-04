@@ -4,6 +4,9 @@ import commands = require('./completion/commands.json');
 import systemFunctions = require('./completion/systemFunctions.json');
 import systemVariables = require('./completion/systemVariables.json');
 import structuredSystemVariables = require('./completion/structuredSystemVariables.json');
+import { currentFile } from '../utils/index.js';
+import { AtelierAPI } from '../api/index.js';
+import { ClassDefinition } from '../utils/classDefinition.js';
 
 export class ObjectScriptHoverProvider implements vscode.HoverProvider {
   provideHover(
@@ -19,21 +22,25 @@ export class ObjectScriptHoverProvider implements vscode.HoverProvider {
     let text = document.getText(
       new vscode.Range(new vscode.Position(position.line, 0), new vscode.Position(position.line, word.end.character))
     );
+    let file = currentFile();
 
     let dollarsMatch = text.match(/(\^?\$+)(\b\w+\b)$/);
     if (dollarsMatch) {
-      let [search, dollars] = dollarsMatch;
+      let range = document.getWordRangeAtPosition(position, /\^?\$+\b\w+\b$/);
+      let [search, dollars, value] = dollarsMatch;
       search = search.toUpperCase();
-      if (dollars === '$' || dollars === '^$') {
+      if (dollars === '$$$') {
+        return this.macro(file.name, value).then(contents => ({
+          range,
+          contents: [contents.join('')]
+        }));
+      } else if (dollars === '$' || dollars === '^$') {
         let found = systemFunctions.find(el => el.label === search || el.alias.includes(search));
         found = found || systemVariables.find(el => el.label === search || el.alias.includes(search));
         found = found || structuredSystemVariables.find(el => el.label === search || el.alias.includes(search));
         if (found) {
           return {
-            range: new vscode.Range(
-              new vscode.Position(word.start.line, word.start.character - dollars.length),
-              new vscode.Position(word.end.line, word.end.character)
-            ),
+            range,
             contents: [found.documentation.join(''), this.documentationLink(found.link)]
           };
         }
@@ -41,6 +48,21 @@ export class ObjectScriptHoverProvider implements vscode.HoverProvider {
     }
 
     return null;
+  }
+
+  async macro(fileName: string, macro: string): Promise<string[]> {
+    const api = new AtelierAPI();
+    let includes = [];
+    if (fileName.toLowerCase().endsWith('cls')) {
+      let classDefinition = new ClassDefinition(fileName);
+      includes = await classDefinition.includeCode();
+    }
+    return api
+      .getmacrodefinition(fileName, macro, includes)
+      .then(data =>
+        data.result.content.definition.map((line: string) => (line.match(/^\s*#def/) ? line : `#define ${line}`))
+      )
+      .then(data => ['```objectscript\n', ...data, '\n```']);
   }
 
   commands(document: vscode.TextDocument, position: vscode.Position): vscode.ProviderResult<vscode.Hover> {

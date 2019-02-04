@@ -25,7 +25,7 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
       return result.map(el => {
         let item;
         let [className, method] = el.ID.split('||');
-        let uri = DocumentContentProvider.getUri(ClassDefinition.normalizeClassName(className));
+        let uri = DocumentContentProvider.getUri(ClassDefinition.normalizeClassName(className, true));
         if (method) {
           item = {
             name: method,

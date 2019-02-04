@@ -1,5 +1,8 @@
 import * as vscode from 'vscode';
 import { DocumentContentProvider } from './DocumentContentProvider';
+import { AtelierAPI } from '../api';
+import { ClassDefinition } from '../utils/classDefinition';
+import { currentFile } from '../utils';
 
 export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider {
   provideDefinition(
@@ -9,6 +12,16 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
   ): vscode.ProviderResult<vscode.Location | vscode.Location[] | vscode.DefinitionLink[]> {
     let lineText = document.lineAt(position.line).text;
 
+    let macroRange = document.getWordRangeAtPosition(position, /\${3}\b\w+\b/);
+    let macroText = macroRange ? document.getText(macroRange) : '';
+    let macroMatch = macroText.match(/^\${3}(\b\w+\b)$/);
+    if (macroMatch) {
+      let fileName = currentFile().name;
+      let [, macro] = macroMatch;
+      return this.macro(fileName, macro).then(
+        data => new vscode.Location(DocumentContentProvider.getUri(data.document), new vscode.Position(data.line, 0))
+      );
+    }
     let asClass = /(\b(?:Of|As|Extends)\b %?\b[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*\b(?! of))/i;
     let parts = lineText.split(asClass);
     let pos = 0;
@@ -148,5 +161,15 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
       targetRange: new vscode.Range(firstLinePos, firstLinePos),
       targetUri: DocumentContentProvider.getUri(name)
     };
+  }
+
+  async macro(fileName: string, macro: string): Promise<{ document: string; line: number }> {
+    const api = new AtelierAPI();
+    let includes = [];
+    if (fileName.toLowerCase().endsWith('cls')) {
+      let classDefinition = new ClassDefinition(fileName);
+      includes = await classDefinition.includeCode();
+    }
+    return api.getmacrolocation(fileName, macro, includes).then(data => data.result.content);
   }
 }
