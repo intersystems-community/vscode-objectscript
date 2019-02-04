@@ -26,7 +26,7 @@ export async function subclass(): Promise<void> {
   return api
     .actionQuery('CALL %Dictionary.ClassDefinitionQuery_SubclassOf(?)', [className])
     .then(data => {
-      const list = data.result.content || [];
+      const list = data.result.content.slice(0, 100) || [];
       if (!list.length) {
         return;
       }

@@ -10,7 +10,7 @@ export class ClassDefinition {
   constructor(className: string) {
     if (className.endsWith('.cls')) {
       className = className.replace(/\.cls$/i, '');
-  }
+    }
     this._className = ClassDefinition.normalizeClassName(className, false);
     this._classFileName = ClassDefinition.normalizeClassName(className, true);
   }
@@ -31,6 +31,20 @@ export class ClassDefinition {
       return methods.filter(filterScope);
     };
     return api.actionIndex([this._classFileName]).then(data => getMethods(data.result.content));
+  }
+
+  async super(): Promise<string[]> {
+    const api = new AtelierAPI();
+    let sql = `SELECT PrimarySuper FROM %Dictionary.CompiledClass WHERE Name = ?`;
+    return api
+      .actionQuery(sql, [this._className])
+      .then(data =>
+        data.result.content.reduce(
+          (list: string[], el: { PrimarySuper: string }) =>
+            list.concat(el.PrimarySuper.split('~').filter(el => el.length)),
+          []
+        )
+      );
   }
 
   async includeCode(): Promise<string[]> {

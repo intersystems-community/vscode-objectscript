@@ -8,6 +8,7 @@ import { importAndCompile } from './commands/compile';
 import { exportAll, exportExplorerItem } from './commands/export';
 import { xml2doc } from './commands/xml2doc';
 import { subclass } from './commands/subclass';
+import { superclass } from './commands/superclass';
 
 import { ObjectScriptClassSymbolProvider } from './providers/ObjectScriptClassSymbolProvider';
 import { ObjectScriptRoutineSymbolProvider } from './providers/ObjectScriptRoutineSymbolProvider';
@@ -131,6 +132,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('vscode-objectscript.export', exportAll),
     vscode.commands.registerCommand('vscode-objectscript.viewOthers', viewOthers),
     vscode.commands.registerCommand('vscode-objectscript.subclass', subclass),
+    vscode.commands.registerCommand('vscode-objectscript.superclass', superclass),
     vscode.commands.registerCommand('vscode-objectscript.touchBar.viewOthers', viewOthers),
     vscode.commands.registerCommand('vscode-objectscript.explorer.refresh', () => explorerProvider.refresh()),
     vscode.commands.registerCommand('vscode-objectscript.explorer.openClass', vscode.window.showTextDocument),

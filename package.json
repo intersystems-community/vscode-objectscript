@@ -87,6 +87,10 @@
           "when": "vscode-objectscript.connectActive"
         },
         {
+          "command": "vscode-objectscript.superclass",
+          "when": "vscode-objectscript.connectActive"
+        },
+        {
           "command": "vscode-objectscript.previewXml",
           "when": "vscode-objectscript.connectActive"
         }
@@ -285,7 +289,12 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.subclass",
-        "title": "View subclasses"
+        "title": "Go to Subclass..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.superclass",
+        "title": "Go to Super class..."
       },
       {
         "command": "vscode-objectscript.touchBar.compile",
