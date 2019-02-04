@@ -12,14 +12,16 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
   ): vscode.ProviderResult<vscode.Location | vscode.Location[] | vscode.DefinitionLink[]> {
     let lineText = document.lineAt(position.line).text;
 
-    let macroRange = document.getWordRangeAtPosition(position, /\${3}\b\w+\b/);
+    let macroRange = document.getWordRangeAtPosition(position);
     let macroText = macroRange ? document.getText(macroRange) : '';
     let macroMatch = macroText.match(/^\${3}(\b\w+\b)$/);
     if (macroMatch) {
       let fileName = currentFile().name;
       let [, macro] = macroMatch;
-      return this.macro(fileName, macro).then(
-        data => new vscode.Location(DocumentContentProvider.getUri(data.document), new vscode.Position(data.line, 0))
+      return this.macro(fileName, macro).then(data =>
+        data && data.document.length
+          ? new vscode.Location(DocumentContentProvider.getUri(data.document), new vscode.Position(data.line, 0))
+          : null
       );
     }
     let asClass = /(\b(?:Of|As|Extends)\b %?\b[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*\b(?! of))/i;

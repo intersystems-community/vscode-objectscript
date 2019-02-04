@@ -112,6 +112,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }
   });
 
+  const wordPattern = /(\"(?:[^\"]|\"\")*\")|((\${1,3}|[irm]?%|\^|#)?[^`~!\@@#\%\^\&*()-\=+[{\]\}\|\;\:\'\"\,.\<>\/\?_\s]+)/;
+
   context.subscriptions.push(
     window.onDidChangeActiveTextEditor(e => {
       if (workspace.workspaceFolders && workspace.workspaceFolders.length > 1) {
@@ -160,6 +162,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPT_FILE_SCHEMA, documentContentProvider),
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPTXML_FILE_SCHEMA, xmlContentProvider),
+    vscode.languages.setLanguageConfiguration('objectscript-class', {
+      wordPattern
+    }),
+    vscode.languages.setLanguageConfiguration('objectscript', {
+      wordPattern
+    }),
+    vscode.languages.setLanguageConfiguration('objectscript-macros', {
+      wordPattern
+    }),
     vscode.languages.registerDocumentSymbolProvider(['objectscript-class'], new ObjectScriptClassSymbolProvider()),
     vscode.languages.registerDocumentSymbolProvider(['objectscript'], new ObjectScriptRoutineSymbolProvider()),
     vscode.languages.registerFoldingRangeProvider(['objectscript-class'], new ObjectScriptClassFoldingRangeProvider()),

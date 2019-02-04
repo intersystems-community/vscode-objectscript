@@ -53,9 +53,11 @@ export class ObjectScriptHoverProvider implements vscode.HoverProvider {
   async macro(fileName: string, macro: string): Promise<string[]> {
     const api = new AtelierAPI();
     let includes = [];
-    if (fileName.toLowerCase().endsWith('cls')) {
+    if (fileName.toLowerCase().endsWith('.cls')) {
       let classDefinition = new ClassDefinition(fileName);
       includes = await classDefinition.includeCode();
+    } else if (fileName.toLowerCase().endsWith('.inc')) {
+      includes.push(fileName.replace(/\.inc$/i, ''));
     }
     return api
       .getmacrodefinition(fileName, macro, includes)

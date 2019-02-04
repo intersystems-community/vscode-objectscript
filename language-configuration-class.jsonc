@@ -17,6 +17,5 @@
       "start": "^((Class|Client)?Method|Query|XData|Storage|Trigger)",
       "end": "^}"
     }
-  },
-  "wordPattern": "(\"(?:[^\"]|\"\")*\")|((\\${1,3}|[irm]?%|\\^|#)?\\b\\w+[\\d\\w]*\\b)"
+  }
 }
