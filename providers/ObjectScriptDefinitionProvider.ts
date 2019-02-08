@@ -11,6 +11,14 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.Location | vscode.Location[] | vscode.DefinitionLink[]> {
     let lineText = document.lineAt(position.line).text;
+    let file = currentFile();
+
+    let selfRef = document.getWordRangeAtPosition(position, /\.\.%?[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*/);
+    if (selfRef) {
+      let selfEntity = document.getText(selfRef).substr(2);
+      let classDefinition = new ClassDefinition(file.name);
+      return classDefinition.getPosition(selfEntity, document);
+    }
 
     let macroRange = document.getWordRangeAtPosition(position);
     let macroText = macroRange ? document.getText(macroRange) : '';

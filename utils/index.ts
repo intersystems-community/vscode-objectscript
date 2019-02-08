@@ -87,3 +87,10 @@ export function currentWorkspaceFolder(): string {
 export function workspaceFolderUri(workspaceFolder: string): vscode.Uri {
   return vscode.workspace.workspaceFolders.find(el => el.name.toLowerCase() === workspaceFolder.toLowerCase()).uri;
 }
+
+export function onlyUnique(value: any, index: number, self: any) {
+  if (value && value.name) {
+    return self.findIndex(el => el.name === value.name) === index;
+  }
+  return self.indexOf(value) === index;
+}

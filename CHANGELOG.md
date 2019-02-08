@@ -18,6 +18,7 @@
 - some small fixes in the highlighting, and selecting words/variables
 - Intellisense. Show list of methods for ##class(SomeClass)
 - Go to macros definition
+- Go to definition for methods and properties for self object like `..Name`, `..SomeMethod()`
 
 ## [0.7.7]
 
