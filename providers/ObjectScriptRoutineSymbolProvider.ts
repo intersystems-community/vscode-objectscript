@@ -11,12 +11,12 @@ export class ObjectScriptRoutineSymbolProvider implements vscode.DocumentSymbolP
       for (var i = 0; i < document.lineCount; i++) {
         var line = document.lineAt(i);
 
-        let label = line.text.match(/^(\b\w+\b)/);
+        let label = line.text.match(/^(%?\b\w+\b)/);
         if (label) {
           let start = line.range.start;
           while (++i && i < document.lineCount) {
             line = document.lineAt(i);
-            if (line.text.match(/^(\b\w+\b)/)) {
+            if (line.text.match(/^(%?\b\w+\b)/)) {
               break;
             }
           }
