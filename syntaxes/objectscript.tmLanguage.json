@@ -166,7 +166,15 @@
           }
         },
         {
-          "match": "(?:i|r)%[a-zA-Z0-9]+",
+          "match": "%[a-zA-Z0-9]+",
+          "name": "entity.other.attribute-name"
+        },
+        {
+          "match": "[i|r]%[a-zA-Z0-9]+",
+          "name": "entity.other.attribute-name"
+        },
+        {
+          "match": "[i|r]%\"[^\".]\"",
           "name": "entity.other.attribute-name"
         },
         {

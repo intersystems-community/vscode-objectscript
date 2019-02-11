@@ -33,6 +33,26 @@
           }
         },
         {
+          "begin": "(?i)(\\bExtends\\b)(\\s+)(\\()",
+          "beginCaptures": {
+            "1": { "name": "keyword.objectscript_class" },
+            "2": { "name": "whitespace.objectscript_class" },
+            "3": { "name": "punctuation.objectscript_class" }
+          },
+          "patterns": [
+            {
+              "match": "(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*(?:\\.[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)*)",
+              "captures": {
+                "1": { "name": "entity.name.class.objectscript_class" }
+              }
+            }
+          ],
+          "end": "(\\))",
+          "endCaptures": {
+            "1": { "name": "punctuation.objectscript_class" }
+          }
+        },
+        {
           "begin": "({)",
           "beginCaptures": { "1": { "name": "punctuation.objectscript_class" } },
           "patterns": [{ "include": "#class" }],
@@ -44,7 +64,7 @@
     "as": {
       "patterns": [
         {
-          "match": "(\\bAs\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*(?:\\.[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)*)",
+          "match": "(?i)(\\bAs\\b(?:\\slist of)?)(\\s+)(%?[a-z][0-9a-z]*(?:_[0-9a-z]+)*(?:\\.[a-z][0-9a-z]*(?:_[0-9a-z]+)*)*)",
           "captures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
@@ -103,7 +123,7 @@
           }
         },
         {
-          "begin": "(?i)^(\\bProperty\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
+          "begin": "(?i)^(\\bProperty\\b)(\\s+)((?:%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)|(?:\"[^\".]+\"))",
           "beginCaptures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
@@ -114,7 +134,7 @@
           "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
         },
         {
-          "match": "(?i)^(\\bRelationship\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
+          "match": "(?i)^(\\bRelationship\\b)(\\s+)((?:%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)|(?:\"[^\".]+\"))",
           "captures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
@@ -122,7 +142,7 @@
           }
         },
         {
-          "begin": "(?i)^(\\b(?:Class|Client)?Method\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
+          "begin": "(?i)^(\\b(?:Class|Client)?Method\\b)(\\s+)((?:%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)|(?:\"[^\".]+\"))",
           "beginCaptures": {
             "1": { "name": "keyword.objectscript_class" },
             "2": { "name": "whitespace.objectscript_class" },
@@ -220,7 +240,15 @@
           "beginCaptures": { "1": { "name": "punctuation.objectscript_class" } },
           "contentName": "text.objectscript_class",
           "end": "(\\))",
-          "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
+          "endCaptures": { "1": { "name": "punctuation.objectscript_class" } },
+          "patterns": [
+            { "include": "#as" },
+            {
+              "match": "[a-zA-Z][a-zA-Z0-9]*",
+              "name": "variable.name.objectscrip"
+            },
+            { "include": "source.objectscript#constants" }
+          ]
         }
       ]
     },
