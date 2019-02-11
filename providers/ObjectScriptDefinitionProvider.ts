@@ -18,11 +18,21 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
       return fromClassRef;
     }
 
-    let selfRef = document.getWordRangeAtPosition(position, /\.\.%?[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*/);
+    let selfRef = document.getWordRangeAtPosition(position, /\.\.#?%?[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*/);
     if (selfRef) {
       let selfEntity = document.getText(selfRef).substr(2);
+      let range = new vscode.Range(position.line, selfRef.start.character + 2, position.line, selfRef.end.character);
       let classDefinition = new ClassDefinition(file.name);
-      return classDefinition.getPosition(selfEntity, document);
+      return classDefinition.getMemberLocations(selfEntity).then(
+        (locations): vscode.DefinitionLink[] =>
+          locations.map(
+            (location): vscode.DefinitionLink => ({
+              originSelectionRange: range,
+              targetUri: location.uri,
+              targetRange: location.range
+            })
+          )
+      );
     }
 
     let macroRange = document.getWordRangeAtPosition(position);
@@ -117,7 +127,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
         ];
       } else {
         let classDefinition = new ClassDefinition(className);
-        return classDefinition.getPosition(entity);
+        return classDefinition.getMemberLocations(entity);
       }
     }
 
