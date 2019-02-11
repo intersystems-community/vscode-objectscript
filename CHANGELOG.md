@@ -19,6 +19,7 @@
 - Intellisense. Show list of methods for ##class(SomeClass)
 - Go to macros definition
 - Go to definition for methods and properties for self object like `..Name`, `..SomeMethod()`
+- Added completion for class parameters
 
 ## [0.7.7]
 
