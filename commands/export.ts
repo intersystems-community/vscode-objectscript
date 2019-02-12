@@ -41,8 +41,56 @@ export async function exportFile(name: string, fileName: string): Promise<any> {
           throw new Error('Something wrong happened');
         }
         const content = data.result.content;
-        fs.writeFileSync(fileName, (content || []).join('\n'));
-        log('Success');
+        const { noStorage, dontExportIfNoChanges } = config().get('export');
+
+        const promise = new Promise((resolve, reject) => {
+          if(noStorage) {
+            // get only the storage xml for the doc.
+            api.getDoc(name + '?storageOnly=1').then(storageData => {
+              if (!storageData || !storageData.result) {
+                reject(new Error('Something wrong happened fetching the storage data'));
+              }
+              const storageContent = storageData.result.content;
+              
+              if (storageContent.length>1 && storageContent[0]) {
+                const storageContentString = storageContent.join("\n");
+                const contentString = content.join("\n");
+                
+                // find and replace the docs storage section with ''
+                resolve({'found': contentString.indexOf(storageContentString) >= 0,  'content': contentString.replace(storageContentString, '')});
+              } else {
+                resolve({'found': false});
+              }
+            });
+          }else{
+            resolve({'found': false});
+          }
+        });
+
+        promise.then((res:any) => {
+          let joinedContent = (content || []).join("\n").toString('utf8');
+          let isSkipped = '';
+      
+          if(res.found) {
+            joinedContent = res.content.toString('utf8');
+          }
+      
+          if (dontExportIfNoChanges && fs.existsSync(fileName)) {
+            const existingContent = fs.readFileSync(fileName, "utf8");
+            // stringify to harmonise the text encoding.
+            if (JSON.stringify(joinedContent) != JSON.stringify(existingContent)) {
+              fs.writeFileSync(fileName, joinedContent);
+            } else {
+              isSkipped = ' => skipped - no changes.';
+            }
+          } else {
+            fs.writeFileSync(fileName, joinedContent);
+          }
+          
+          log(`Success ${isSkipped}`);
+        }).catch(error => {
+          throw error;
+        });
       });
     })
     .catch(error => {

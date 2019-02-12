@@ -417,6 +417,16 @@
           "type": "boolean",
           "default": false,
           "description": "Automatically Preview XML Export files as UDL"
+        },
+        "objectscript.export.noStorage": {
+          "description": "Strip the storage xml on export.  (Useful for multiple systems)",
+          "type": "boolean",
+          "default": false
+        },
+        "objectscript.export.dontExportIfNoChanges": {
+          "description": "Don't update the local file on export if the content is identical to the server code",
+          "type": "boolean",
+          "default": false
         }
       }
     },
