@@ -2,10 +2,12 @@ import * as vscode from 'vscode';
 import { AtelierAPI } from '../api';
 import { onlyUnique } from '.';
 import { DocumentContentProvider } from '../providers/DocumentContentProvider';
+import { workspaceState } from '../extension';
 
 export class ClassDefinition {
   private _className: string;
   private _classFileName: string;
+
   public static normalizeClassName(className, withExtension = false): string {
     return className.replace(/^%(\b\w+\b)$/, '%Library.$1') + (withExtension ? '.cls' : '');
   }
@@ -18,8 +20,28 @@ export class ClassDefinition {
     this._classFileName = ClassDefinition.normalizeClassName(className, true);
   }
 
+  get uri(): vscode.Uri {
+    return DocumentContentProvider.getUri(this._classFileName);
+  }
+
+  async getDocument(): Promise<vscode.TextDocument> {
+    return vscode.workspace.openTextDocument(this.uri);
+  }
+
+  store(kind: string, data: any): any {
+    workspaceState.update(`${this._classFileName}|${kind}`, data);
+    return data;
+  }
+
+  load(kind: string): any {
+    return workspaceState.get(`${this._classFileName}|${kind}`);
+  }
+
   async methods(scope: 'any' | 'class' | 'instance' = 'any'): Promise<any[]> {
-    let methods = [];
+    let methods = this.load('methods-' + scope) || [];
+    if (methods.length) {
+      return Promise.resolve(methods);
+    }
     let filterScope = method => scope === 'any' || method.scope === scope;
     const api = new AtelierAPI();
     const getMethods = content => {
@@ -31,16 +53,22 @@ export class ClassDefinition {
       if (extend.length) {
         return api.actionIndex(extend).then(data => getMethods(data.result.content));
       }
-      return methods
-        .filter(filterScope)
-        .filter(onlyUnique)
-        .sort();
+      return this.store(
+        'methods-' + scope,
+        methods
+          .filter(filterScope)
+          .filter(onlyUnique)
+          .sort()
+      );
     };
     return api.actionIndex([this._classFileName]).then(data => getMethods(data.result.content));
   }
 
   async properties(): Promise<any[]> {
-    let properties = [];
+    let properties = this.load('properties') || [];
+    if (properties.length) {
+      return Promise.resolve(properties);
+    }
     const api = new AtelierAPI();
     const getProperties = content => {
       let extend = [];
@@ -51,26 +79,59 @@ export class ClassDefinition {
       if (extend.length) {
         return api.actionIndex(extend).then(data => getProperties(data.result.content));
       }
-      return properties.filter(onlyUnique).sort();
+      return this.store('properties', properties.filter(onlyUnique).sort());
     };
     return api.actionIndex([this._classFileName]).then(data => getProperties(data.result.content));
   }
 
+  async parameters(): Promise<any[]> {
+    let parameters = this.load('parameters') || [];
+    if (parameters.length) {
+      return Promise.resolve(parameters);
+    }
+    const api = new AtelierAPI();
+    const getParameters = content => {
+      let extend = [];
+      content.forEach(el => {
+        parameters.push(...el.content.parameters);
+        extend.push(...el.content.super.map(extendName => ClassDefinition.normalizeClassName(extendName, true)));
+      });
+      if (extend.length) {
+        return api.actionIndex(extend).then(data => getParameters(data.result.content));
+      }
+      return this.store('parameters', parameters.filter(onlyUnique).sort());
+    };
+    return api.actionIndex([this._classFileName]).then(data => getParameters(data.result.content));
+  }
+
   async super(): Promise<string[]> {
+    let superList = this.load('super');
+    if (superList) {
+      return Promise.resolve(superList);
+    }
     const api = new AtelierAPI();
     let sql = `SELECT PrimarySuper FROM %Dictionary.CompiledClass WHERE Name = ?`;
-    return api.actionQuery(sql, [this._className]).then(
-      data =>
-        data.result.content.reduce(
-          (list: string[], el: { PrimarySuper: string }) =>
-            list.concat(el.PrimarySuper.split('~').filter(el => el.length)),
-          []
-        )
-      // .filter(name => !['%Library.Base', '%Library.SystemBase'].includes(name))
-    );
+    return api
+      .actionQuery(sql, [this._className])
+      .then(
+        data =>
+          data.result.content
+            .reduce(
+              (list: string[], el: { PrimarySuper: string }) =>
+                list.concat(el.PrimarySuper.split('~').filter(el => el.length)),
+              []
+            )
+            .filter((name: string) => name !== this._className)
+        // .filter(name => !['%Library.Base', '%Library.SystemBase'].includes(name))
+      )
+      .then(data => this.store('super', data));
   }
 
   async includeCode(): Promise<string[]> {
+    let includeCode = this.load('includeCode');
+    if (includeCode) {
+      return Promise.resolve(includeCode);
+    }
     const api = new AtelierAPI();
     let sql = `SELECT LIST(IncludeCode) List FROM %Dictionary.CompiledClass WHERE Name %INLIST (
       SELECT $LISTFROMSTRING(PrimarySuper, '~') FROM %Dictionary.CompiledClass WHERE Name = ?)`;
@@ -82,51 +143,36 @@ export class ClassDefinition {
           (list: string[], el: { List: string }) => list.concat(el.List.split(',')),
           defaultIncludes
         )
-      );
+      )
+      .then(data => this.store('includeCode', data));
   }
 
-  async getPosition(name: string, document: vscode.TextDocument): Promise<vscode.Location[]> {
-    let pattern = `((Class)?Method|Property|RelationShip) ${name}(?!\w)`;
-    let foundLine;
-    if (document) {
+  async getMemberLocation(name: string): Promise<vscode.Location> {
+    let pattern;
+    if (name.startsWith('#')) {
+      pattern = `(Parameter) ${name.substr(1)}(?!\w)`;
+    } else {
+      pattern = `((Class)?Method|Property|RelationShip) ${name}(?!\w)`;
+    }
+    return this.getDocument().then(document => {
       for (let i = 0; i < document.lineCount; i++) {
         let line = document.lineAt(i);
         if (line.text.match(pattern)) {
-          foundLine = i;
-          break;
+          return new vscode.Location(this.uri, new vscode.Position(i, 0));
         }
       }
-    }
-    let result: vscode.Location[] = [];
-    if (foundLine) {
-      result.push({
-        uri: DocumentContentProvider.getUri(this._classFileName),
-        range: new vscode.Range(foundLine, 0, foundLine, 0)
-      });
-    }
+      return;
+    });
+  }
+
+  async getMemberLocations(name: string): Promise<vscode.Location[]> {
     let extendList = await this.super();
-    let api = new AtelierAPI();
-    let docs = [];
-    extendList.forEach(async docName => {
-      docName = ClassDefinition.normalizeClassName(docName, true);
-      docs.push(api.getDoc(docName));
-    });
-    return Promise.all(docs).then((docs: any[]) => {
-      for (let doc of docs) {
-        if (doc && doc.result.content) {
-          let docName = doc.result.name;
-          let content = doc.result.content;
-          for (let line of content.keys()) {
-            if (content[line].match(pattern)) {
-              result.push({
-                uri: DocumentContentProvider.getUri(docName),
-                range: new vscode.Range(line, 0, line, 0)
-              });
-            }
-          }
-        }
-      }
-      return result;
-    });
+    return Promise.all([
+      await this.getMemberLocation(name),
+      ...extendList.map(async docName => {
+        let classDef = new ClassDefinition(docName);
+        return classDef.getMemberLocation(name);
+      })
+    ]).then(data => data.filter(el => el != null));
   }
 }

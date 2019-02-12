@@ -13,11 +13,26 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     let lineText = document.lineAt(position.line).text;
     let file = currentFile();
 
-    let selfRef = document.getWordRangeAtPosition(position, /\.\.%?[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*/);
+    let fromClassRef = this.classRef(document, position);
+    if (fromClassRef) {
+      return fromClassRef;
+    }
+
+    let selfRef = document.getWordRangeAtPosition(position, /\.\.#?%?[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*/);
     if (selfRef) {
       let selfEntity = document.getText(selfRef).substr(2);
+      let range = new vscode.Range(position.line, selfRef.start.character + 2, position.line, selfRef.end.character);
       let classDefinition = new ClassDefinition(file.name);
-      return classDefinition.getPosition(selfEntity, document);
+      return classDefinition.getMemberLocations(selfEntity).then(
+        (locations): vscode.DefinitionLink[] =>
+          locations.map(
+            (location): vscode.DefinitionLink => ({
+              originSelectionRange: range,
+              targetUri: location.uri,
+              targetRange: location.range
+            })
+          )
+      );
     }
 
     let macroRange = document.getWordRangeAtPosition(position);
@@ -39,24 +54,8 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
       if (part.match(asClass)) {
         let [keyword, name] = part.split(' ');
         let start = pos + keyword.length + 1;
-        let end = pos + part.length;
-        if (this.isValid(position, start, end)) {
-          return [this.makeClassDefinition(position, start, end, this.normalizeClassName(document, name))];
-        }
-      }
-      pos += part.length;
-    }
-
-    let classRef = /(##class\([^)]+\))/i;
-    parts = lineText.split(classRef);
-    pos = 0;
-    for (let part of parts) {
-      if (part.match(classRef)) {
-        let [, name] = /##class\(([^)]+)\)/i.exec(part);
-        let start = pos + 8;
-        let end = pos + part.length - 1;
-        if (this.isValid(position, start, end)) {
-          return [this.makeClassDefinition(position, start, end, this.normalizeClassName(document, name))];
+        if (this.isValid(position, start, name.length)) {
+          return [this.makeClassDefinition(position, start, name.length, this.normalizeClassName(document, name))];
         }
       }
       pos += part.length;
@@ -67,15 +66,16 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     pos = 0;
     for (let part of parts) {
       if (part.match(asClassList)) {
-        let listClasses = /\(([^)]+)\)/.exec(part)[1].split(',');
-        for (let name of listClasses) {
-          name = name.trim();
-          let start = pos + part.indexOf(name);
-          let end = start + name.length;
-          if (this.isValid(position, start, end)) {
-            return [this.makeClassDefinition(position, start, end, this.normalizeClassName(document, name))];
-          }
-        }
+        let listClasses = /\(([^)]+)\)/.exec(part)[1].split(/\s*,\s*/);
+        return listClasses
+          .map(name => {
+            name = name.trim();
+            let start = pos + part.indexOf(name);
+            if (this.isValid(position, start, name.length)) {
+              return this.makeClassDefinition(position, start, name.length, this.normalizeClassName(document, name));
+            }
+          })
+          .filter(el => el != null);
       }
       pos += part.length;
     }
@@ -83,9 +83,10 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     if (lineText.match(/^#?(?:Include|IncludeGenerator) %?\b[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*\b/i)) {
       let [, name] = lineText.split(' ');
       let start = lineText.indexOf(' ') + 1;
-      let end = start + name.length;
-      if (this.isValid(position, start, end)) {
-        return [this.makeRoutineDefinition(position, start, end, this.normalizeRoutineName(document, name, 'inc'))];
+      if (this.isValid(position, start, name.length)) {
+        return [
+          this.makeRoutineDefinition(position, start, name.length, this.normalizeRoutineName(document, name, 'inc'))
+        ];
       }
     }
 
@@ -98,9 +99,10 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
         for (let name of listRoutines) {
           name = name.trim();
           let start = pos + part.indexOf(name);
-          let end = start + name.length;
-          if (this.isValid(position, start, end)) {
-            return [this.makeRoutineDefinition(position, start, end, this.normalizeRoutineName(document, name, 'inc'))];
+          if (this.isValid(position, start, name.length)) {
+            return [
+              this.makeRoutineDefinition(position, start, name.length, this.normalizeRoutineName(document, name, 'inc'))
+            ];
           }
         }
       }
@@ -110,8 +112,30 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     return [];
   }
 
-  isValid(position: vscode.Position, start: number, end: number): boolean {
-    return position.character >= start && position.character <= end;
+  classRef(
+    document: vscode.TextDocument,
+    position: vscode.Position
+  ): vscode.ProviderResult<vscode.Location | vscode.Location[] | vscode.DefinitionLink[]> {
+    let classRef = /##class\(([^)]+)\)(?:\\$this)?\.(#?%?[a-zA-Z][a-zA-Z0-9]*)/i;
+    let classRefRange = document.getWordRangeAtPosition(position, classRef);
+    if (classRefRange) {
+      let [, className, entity] = document.getText(classRefRange).match(classRef);
+      let start = classRefRange.start.character + 8;
+      if (this.isValid(position, start, className.length)) {
+        return [
+          this.makeClassDefinition(position, start, className.length, this.normalizeClassName(document, className))
+        ];
+      } else {
+        let classDefinition = new ClassDefinition(className);
+        return classDefinition.getMemberLocations(entity);
+      }
+    }
+
+    return null;
+  }
+
+  isValid(position: vscode.Position, start: number, length: number): boolean {
+    return position.character >= start && position.character <= start + length;
   }
 
   normalizeClassName(document: vscode.TextDocument, name: string): string {
@@ -149,24 +173,24 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     return '';
   }
 
-  makeClassDefinition(position: vscode.Position, start: number, end: number, name: string): vscode.DefinitionLink {
+  makeClassDefinition(position: vscode.Position, start: number, length: number, name: string): vscode.DefinitionLink {
     let firstLinePos = new vscode.Position(0, 0);
     return {
       originSelectionRange: new vscode.Range(
         new vscode.Position(position.line, start),
-        new vscode.Position(position.line, end)
+        new vscode.Position(position.line, start + length)
       ),
       targetRange: new vscode.Range(firstLinePos, firstLinePos),
       targetUri: DocumentContentProvider.getUri(name)
     };
   }
 
-  makeRoutineDefinition(position: vscode.Position, start: number, end: number, name: string): vscode.DefinitionLink {
+  makeRoutineDefinition(position: vscode.Position, start: number, length: number, name: string): vscode.DefinitionLink {
     let firstLinePos = new vscode.Position(0, 0);
     return {
       originSelectionRange: new vscode.Range(
         new vscode.Position(position.line, start),
-        new vscode.Position(position.line, end)
+        new vscode.Position(position.line, start + length)
       ),
       targetRange: new vscode.Range(firstLinePos, firstLinePos),
       targetUri: DocumentContentProvider.getUri(name)

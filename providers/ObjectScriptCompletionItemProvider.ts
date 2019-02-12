@@ -15,12 +15,14 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
     context: vscode.CompletionContext
   ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
     if (context.triggerKind === vscode.CompletionTriggerKind.TriggerCharacter) {
-      if (context.triggerCharacter === '#') return this.macro(document, position, token, context);
+      if (context.triggerCharacter === '#')
+        return this.macro(document, position, token, context) || this.entities(document, position, token, context);
       if (context.triggerCharacter === '.') return this.entities(document, position, token, context);
     }
     return (
       this.dollarsComplete(document, position) ||
       this.commands(document, position) ||
+      this.entities(document, position, token, context) ||
       this.macro(document, position, token, context) ||
       this.constants(document, position, token, context)
     );
@@ -195,12 +197,21 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
     let range = document.getWordRangeAtPosition(position, /%?\b\w+[\w\d]*\b/) || new vscode.Range(position, position);
     let textBefore = document.getText(new vscode.Range(new vscode.Position(position.line, 0), range.start));
     let curFile = currentFile();
+    let searchText = document.getText(range);
 
     const method = el => ({
       label: el.name,
       documentation: el.desc.length ? new vscode.MarkdownString(el.desc.join('')) : null,
       kind: vscode.CompletionItemKind.Method,
       insertText: new vscode.SnippetString(`${el.name}($0)`)
+    });
+
+    const parameter = el => ({
+      label: `${el.name}`,
+      documentation: el.desc.length ? new vscode.MarkdownString(el.desc.join('')) : null,
+      kind: vscode.CompletionItemKind.Constant,
+      range,
+      insertText: new vscode.SnippetString(`${el.name}`)
     });
 
     const property = el => ({
@@ -210,20 +221,28 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       insertText: new vscode.SnippetString(`${el.name}`)
     });
 
-    let classRef = textBefore.match(/##class\(([^)]+)\)\.$/i);
+    const search = el => el.name.startsWith(searchText);
+
+    let classRef = textBefore.match(/##class\(([^)]+)\)\.#?$/i);
     if (classRef) {
       let [, className] = classRef;
       let classDef = new ClassDefinition(className);
-      return classDef.methods('class').then(data => data.map(method));
+      if (textBefore.endsWith('#')) {
+        return classDef.parameters().then(data => data.filter(search).map(parameter));
+      }
+      return classDef.methods('class').then(data => data.filter(search).map(method));
     }
 
     if (curFile.fileName.endsWith('cls')) {
-      let selfRef = textBefore.match(/(?<!\.)\.\.$/i);
+      let selfRef = textBefore.match(/(?<!\.)\.\.#?$/i);
       if (selfRef) {
         let classDef = new ClassDefinition(curFile.name);
+        if (textBefore.endsWith('#')) {
+          return classDef.parameters().then(data => data.filter(search).map(parameter));
+        }
         return Promise.all([classDef.methods(), classDef.properties()]).then(data => {
           let [methods, properties] = data;
-          return [...methods.map(method), ...properties.map(property)];
+          return [...methods.filter(search).map(method), ...properties.filter(search).map(property)];
         });
       }
     }
