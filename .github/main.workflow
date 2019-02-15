@@ -9,19 +9,19 @@ action "Build" {
 }
 
 action "Lint" {
-  needs = "Build"
+  needs = ["Build"]
   uses = "actions/npm@master"
   args = "run lint"
 }
 
 action "Test" {
-  needs = "Build"
+  needs = ["Build"]
   uses = "actions/npm@master"
-  args = "run test"
+  args = "test"
 }
 
 action "Package" {
-  needs = "Test"
+  needs = ["Test", "Lint"]
   uses = "actions/npm@master"
   args = "run package"
 }
