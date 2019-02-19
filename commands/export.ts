@@ -7,6 +7,11 @@ import { PackageNode } from '../explorer/models/packageNode';
 import { ClassNode } from '../explorer/models/classesNode';
 import { RoutineNode } from '../explorer/models/routineNode';
 import { config } from '../extension';
+import Bottleneck from 'bottleneck';
+
+const limiter = new Bottleneck({
+  maxConcurrent: 1
+});
 
 const filesFilter = (file: any) => {
   if (file.cat === 'CSP' || file.name.startsWith('%') || file.name.startsWith('INFORMATION.')) {
@@ -103,12 +108,19 @@ export async function exportList(files: string[]): Promise<any> {
     vscode.window.showWarningMessage('Nothing to export');
   }
   const { atelier, folder } = config().get('export');
-
+  /*
   return Promise.all(
     files.map(file => {
       exportFile(file, getFileName(folder, file, atelier));
     })
   );
+  */
+ const results = [];
+  for(let i=0;i<files.length;i++) {
+    const result = await limiter.schedule(() => exportFile(files[i], getFileName(folder, files[i], atelier)));
+    results.push(result);
+  }
+  return results;
 }
 
 export async function exportAll(): Promise<any> {

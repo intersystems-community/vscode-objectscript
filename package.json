@@ -1,8 +1,8 @@
 {
-  "name": "vscode-objectscript",
+  "name": "vscode-objectscript-pcs",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "0.7.9",
+  "version": "0.7.10",
   "icon": "images/logo.png",
   "categories": [
     "Programming Languages",
@@ -470,6 +470,7 @@
     "vscode": "^1.1.26"
   },
   "dependencies": {
+    "bottleneck": "^2.16.2",
     "glob": "^7.1.3"
   }
 }
