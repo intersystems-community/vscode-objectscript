@@ -1,6 +1,6 @@
 workflow "Build, Lint and Package" {
   on = "push"
-  resolves = ["Package", "Lint"]
+  resolves = ["Package"]
 }
 
 action "Build" {
@@ -9,13 +9,19 @@ action "Build" {
 }
 
 action "Lint" {
-  needs = "Build"
+  needs = ["Build"]
   uses = "actions/npm@master"
-  args = "lint"
+  args = "run lint"
+}
+
+action "Test" {
+  needs = ["Build"]
+  uses = "actions/npm@master"
+  args = "test"
 }
 
 action "Package" {
-  needs = "Build"
+  needs = ["Test", "Lint"]
   uses = "actions/npm@master"
-  args = "package"
+  args = "run package"
 }
