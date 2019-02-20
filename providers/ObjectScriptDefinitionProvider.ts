@@ -18,7 +18,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
       return fromClassRef;
     }
 
-    let selfRef = document.getWordRangeAtPosition(position, /\.\.#?%?[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*/);
+    let selfRef = document.getWordRangeAtPosition(position, /\.\.#?%?[a-zA-Z][a-zA-Z0-9]+/);
     if (selfRef) {
       let selfEntity = document.getText(selfRef).substr(2);
       let range = new vscode.Range(position.line, selfRef.start.character + 2, position.line, selfRef.end.character);

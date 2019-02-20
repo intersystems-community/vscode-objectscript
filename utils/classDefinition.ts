@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
+const Cache = require('vscode-cache');
 import { AtelierAPI } from '../api';
 import { onlyUnique } from '.';
 import { DocumentContentProvider } from '../providers/DocumentContentProvider';
-import { workspaceState } from '../extension';
+import { extensionContext } from '../extension';
 
 export class ClassDefinition {
   private _className: string;
   private _classFileName: string;
+  private _cache;
 
   public static normalizeClassName(className, withExtension = false): string {
     return className.replace(/^%(\b\w+\b)$/, '%Library.$1') + (withExtension ? '.cls' : '');
@@ -18,6 +20,7 @@ export class ClassDefinition {
     }
     this._className = ClassDefinition.normalizeClassName(className, false);
     this._classFileName = ClassDefinition.normalizeClassName(className, true);
+    this._cache = new Cache(extensionContext, this._classFileName);
   }
 
   get uri(): vscode.Uri {
@@ -29,12 +32,11 @@ export class ClassDefinition {
   }
 
   store(kind: string, data: any): any {
-    workspaceState.update(`${this._classFileName}|${kind}`, data);
-    return data;
+    return this._cache.put(kind, data, 36000).then(() => data);
   }
 
   load(kind: string): any {
-    return workspaceState.get(`${this._classFileName}|${kind}`);
+    return this._cache.get(kind);
   }
 
   async methods(scope: 'any' | 'class' | 'instance' = 'any'): Promise<any[]> {
@@ -110,7 +112,8 @@ export class ClassDefinition {
       return Promise.resolve(superList);
     }
     const api = new AtelierAPI();
-    let sql = `SELECT PrimarySuper FROM %Dictionary.CompiledClass WHERE Name = ?`;
+    let sql = `SELECT PrimarySuper FROM %Dictionary.CompiledClass
+    WHERE Name %inlist (SELECT $LISTFROMSTRING(Super, ',') FROM %Dictionary.CompiledClass WHERE Name = ?)`;
     return api
       .actionQuery(sql, [this._className])
       .then(
@@ -150,9 +153,9 @@ export class ClassDefinition {
   async getMemberLocation(name: string): Promise<vscode.Location> {
     let pattern;
     if (name.startsWith('#')) {
-      pattern = `(Parameter) ${name.substr(1)}(?!\w)`;
+      pattern = `(Parameter) ${name.substr(1)}(?=[( ;])`;
     } else {
-      pattern = `((Class)?Method|Property|RelationShip) ${name}(?!\w)`;
+      pattern = `((Class)?Method|Property|RelationShip) ${name}(?=[( ])`;
     }
     return this.getDocument().then(document => {
       for (let i = 0; i < document.lineCount; i++) {
