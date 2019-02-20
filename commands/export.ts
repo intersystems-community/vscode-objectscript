@@ -9,10 +9,6 @@ import { RoutineNode } from '../explorer/models/routineNode';
 import { config } from '../extension';
 import Bottleneck from 'bottleneck';
 
-const limiter = new Bottleneck({
-  maxConcurrent: 1
-});
-
 const filesFilter = (file: any) => {
   if (file.cat === 'CSP' || file.name.startsWith('%') || file.name.startsWith('INFORMATION.')) {
     return false;
@@ -107,14 +103,24 @@ export async function exportList(files: string[]): Promise<any> {
   if (!files || !files.length) {
     vscode.window.showWarningMessage('Nothing to export');
   }
-  const { atelier, folder } = config().get('export');
+  const { atelier, folder, maxConcurrentConnections } = config().get('export');
 
-  const results = [];
-  for(let i=0;i<files.length;i++) {
-    const result = await limiter.schedule(() => exportFile(files[i], getFileName(folder, files[i], atelier)));
-    results.push(result);
+  if (maxConcurrentConnections > 0) {
+    const limiter = new Bottleneck({
+      maxConcurrent: maxConcurrentConnections
+    });
+    const results = [];
+    for (let i=0;i<files.length;i++) {
+      const result = await limiter.schedule(() => exportFile(files[i], getFileName(folder, files[i], atelier)));
+      results.push(result);
+    }
+    return results;
   }
-  return results;
+  return Promise.all(
+    files.map(file => {
+      exportFile(file, getFileName(folder, file, atelier));
+    })
+  );
 }
 
 export async function exportAll(): Promise<any> {

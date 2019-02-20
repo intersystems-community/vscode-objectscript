@@ -427,6 +427,11 @@
           "description": "Don't update the local file on export if the content is identical to the server code",
           "type": "boolean",
           "default": false
+        },
+        "objectscript.export.maxConcurrentConnections": {
+          "description": "Max Export Connections (0 = Unlimited)",
+          "type": "number",
+          "default": 0
         }
       }
     },
