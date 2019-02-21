@@ -88,14 +88,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const api = new AtelierAPI();
     api
       .serverInfo()
-      .then(info => {
+      .then(async info => {
         panel.text = `${conn.label}:${conn.ns} - Connected`;
         if (info && info.result && info.result.content && info.result.content.api > 0) {
-          api.setApiVersion(info.result.content.api);
+          let apiVersion = info.result.content.api;
+          await vscode.workspace.getConfiguration().update('objectscript.conn.version', apiVersion);
         }
         explorerProvider.refresh();
       })
-      .catch(error => {
+      .catch((error: Error) => {
+        outputChannel.appendLine(error.message);
         panel.text = `${conn.label}:${conn.ns} - ERROR`;
       });
   };

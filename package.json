@@ -364,6 +364,13 @@
           "type": "string",
           "default": "USER"
         },
+        "objectscript.conn.version": {
+          "description": "API Version number",
+          "type": "number",
+          "default": 3,
+          "readOnly": true,
+          "deprecationMessage": "This value loads from server"
+        },
         "objectscript.conn.https": {
           "description": "Use SSL to access to API",
           "type": "boolean",

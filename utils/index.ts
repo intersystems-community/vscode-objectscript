@@ -76,7 +76,9 @@ export function currentWorkspaceFolder(): string {
   if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document) {
     const uri = vscode.window.activeTextEditor.document.uri;
     if (uri.scheme === 'file') {
-      workspaceFolder = vscode.workspace.getWorkspaceFolder(uri).name;
+      if (vscode.workspace.getWorkspaceFolder(uri)) {
+        workspaceFolder = vscode.workspace.getWorkspaceFolder(uri).name;
+      }
     } else if (uri.scheme.startsWith('objectscript')) {
       workspaceFolder = uri.authority;
     }
