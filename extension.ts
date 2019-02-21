@@ -90,6 +90,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       .serverInfo()
       .then(info => {
         panel.text = `${conn.label}:${conn.ns} - Connected`;
+        if (info && info.result && info.result.content && info.result.content.api > 0) {
+          api.setApiVersion(info.result.content.api);
+        }
         explorerProvider.refresh();
       })
       .catch(error => {
