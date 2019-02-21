@@ -29,6 +29,7 @@ import { WorkspaceSymbolProvider } from './providers/WorkspaceSymbolProvider';
 export var explorerProvider: ObjectScriptExplorerProvider;
 export var documentContentProvider: DocumentContentProvider;
 export var workspaceState: vscode.Memento;
+export var extensionContext: vscode.ExtensionContext;
 
 export const config = (config?: string, workspaceFolderName?: string): any => {
   workspaceFolderName = workspaceFolderName || currentWorkspaceFolder();
@@ -62,6 +63,7 @@ export function getXmlUri(uri: vscode.Uri): vscode.Uri {
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const languages = require(context.asAbsolutePath('./package.json'))['contributes']['languages'].map(lang => lang.id);
   workspaceState = context.workspaceState;
+  extensionContext = context;
   workspaceState.update('workspaceFolder', '');
 
   explorerProvider = new ObjectScriptExplorerProvider();

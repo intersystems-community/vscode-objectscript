@@ -7,9 +7,14 @@ export class AtelierAPI {
   private cookies: string[] = [];
   private _config: any;
   private _namespace: string;
+  private _apiVersion: string;
 
   private get ns(): string {
     return this._namespace || this._config.ns;
+  }
+
+  private get apiVersion(): string {
+    return this._apiVersion || this._config.apiVersion;
   }
 
   constructor() {
@@ -18,6 +23,10 @@ export class AtelierAPI {
 
   setNamespace(namespace: string) {
     this._namespace = namespace;
+  }
+
+  setApiVersion(apiVersion: string) {
+    this._apiVersion = apiVersion;
   }
 
   updateCookies(cookies: string[]) {
@@ -146,7 +155,7 @@ export class AtelierAPI {
     type?: string;
     filter?: string;
   }): Promise<any> {
-    return this.request('GET', `v3/${this.ns}/docnames/${category}/${type}`, null, {
+    return this.request('GET', `${this.apiVersion}/${this.ns}/docnames/${category}/${type}`, null, {
       filter,
       generated
     });
@@ -159,39 +168,39 @@ export class AtelierAPI {
         format
       };
     }
-    return this.request('GET', `v3/${this.ns}/doc/${name}`, params);
+    return this.request('GET', `${this.apiVersion}/${this.ns}/doc/${name}`, params);
   }
 
   putDoc(name: string, data: { enc: boolean; content: string[] }, ignoreConflict?: boolean): Promise<any> {
     let params = { ignoreConflict };
-    return this.request('PUT', `v3/${this.ns}/doc/${name}`, data, params);
+    return this.request('PUT', `${this.apiVersion}/${this.ns}/doc/${name}`, data, params);
   }
 
   actionIndex(docs: string[]): Promise<any> {
-    return this.request('POST', `v3/${this.ns}/action/index`, docs);
+    return this.request('POST', `${this.apiVersion}/${this.ns}/action/index`, docs);
   }
 
   actionSearch(params: { query: string; files?: string; sys?: boolean; gen?: boolean; max?: number }): Promise<any> {
-    return this.request('GET', `v3/${this.ns}/action/search`, null, params);
+    return this.request('GET', `${this.apiVersion}/${this.ns}/action/search`, null, params);
   }
 
   actionQuery(query: string, parameters: string[]): Promise<any> {
-    return this.request('POST', `v3/${this.ns}/action/query`, {
+    return this.request('POST', `${this.apiVersion}/${this.ns}/action/query`, {
       query,
       parameters
     });
   }
 
   actionCompile(docs: string[], flags?: string, source = false): Promise<any> {
-    return this.request('POST', `v3/${this.ns}/action/compile`, docs, { flags, source });
+    return this.request('POST', `${this.apiVersion}/${this.ns}/action/compile`, docs, { flags, source });
   }
 
   cvtXmlUdl(source: string): Promise<any> {
-    return this.request('POST', `v3/${this.ns}/cvt/xml/doc`, source, {}, { 'Content-Type': 'application/xml' });
+    return this.request('POST', `${this.apiVersion}/${this.ns}/cvt/xml/doc`, source, {}, { 'Content-Type': 'application/xml' });
   }
 
   getmacrodefinition(docname: string, macroname: string, includes: string[]) {
-    return this.request('POST', `v3/${this.ns}/action/getmacrodefinition`, {
+    return this.request('POST', `${this.apiVersion}/${this.ns}/action/getmacrodefinition`, {
       docname,
       macroname,
       includes
@@ -199,7 +208,7 @@ export class AtelierAPI {
   }
 
   getmacrolocation(docname: string, macroname: string, includes: string[]) {
-    return this.request('POST', `v3/${this.ns}/action/getmacrolocation`, {
+    return this.request('POST', `${this.apiVersion}/${this.ns}/action/getmacrolocation`, {
       docname,
       macroname,
       includes

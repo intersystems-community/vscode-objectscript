@@ -369,6 +369,19 @@
           "type": "boolean",
           "default": false
         },
+        "objectscript.conn.apiVersion": {
+          "description": "Version of the API to use.",
+          "type": "string",
+          "enum": [
+						"v2",
+						"v3"
+					],
+					"enumDescriptions": [
+						"Use v2 api",
+						"Use v3 api"
+					],
+          "default": "v3"
+        },
         "objectscript.export": {
           "type": "object",
           "description": "Export only the necessary stuff "
