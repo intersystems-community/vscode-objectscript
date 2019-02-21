@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.7.10]
+
+- New logo
+- Fixed backward compatibility with previous versions of Atelier API
+- Fixed issue with license usage, due to loosing cookies
+- Some other small fixes
+
 ## [0.7.9]
 
 - IMPORTANT: **Connection disabled by default, now**. Set `"objectscript.conn.active": true` to enable it
