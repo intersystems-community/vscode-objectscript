@@ -29,12 +29,10 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     let uri = vscode.Uri.file(name).with({
       scheme: OBJECTSCRIPT_FILE_SCHEMA
     });
-    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 1) {
-      if (workspaceFolder && workspaceFolder !== '') {
-        uri = uri.with({
-          authority: workspaceFolder
-        });
-      }
+    if (workspaceFolder && workspaceFolder !== '') {
+      uri = uri.with({
+        authority: workspaceFolder
+      });
     }
     if (namespace && namespace !== '') {
       uri = uri.with({

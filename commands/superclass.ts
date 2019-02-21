@@ -14,7 +14,7 @@ export async function superclass(): Promise<void> {
   }
 
   const open = item => {
-    let uri = DocumentContentProvider.getUri(item + '.cls');
+    let uri = DocumentContentProvider.getUri(ClassDefinition.normalizeClassName(item, true));
     vscode.window.showTextDocument(uri);
   };
 

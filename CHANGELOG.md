@@ -20,6 +20,7 @@
 - Go to macros definition
 - Go to definition for methods and properties for self object like `..Name`, `..SomeMethod()`
 - Added completion for class parameters
+- Export without storage
 
 ## [0.7.7]
 

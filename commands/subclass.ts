@@ -3,6 +3,7 @@ import { config } from '../extension';
 import { AtelierAPI } from '../api';
 import { currentFile } from '../utils';
 import { DocumentContentProvider } from '../providers/DocumentContentProvider';
+import { ClassDefinition } from '../utils/classDefinition';
 
 export async function subclass(): Promise<void> {
   const file = currentFile();
@@ -18,7 +19,7 @@ export async function subclass(): Promise<void> {
   }
 
   const open = item => {
-    let uri = DocumentContentProvider.getUri(item + '.cls');
+    let uri = DocumentContentProvider.getUri(ClassDefinition.normalizeClassName(item, true));
     vscode.window.showTextDocument(uri);
   };
 
