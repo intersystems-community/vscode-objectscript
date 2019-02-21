@@ -1,14 +1,15 @@
 import * as httpModule from 'http';
 import * as httpsModule from 'https';
 import { outputConsole, currentWorkspaceFolder } from '../utils';
-import { config } from '../extension';
+const Cache = require('vscode-cache');
+import { config, extensionContext } from '../extension';
 
 const DEFAULT_API_VERSION: number = 3;
 
 export class AtelierAPI {
-  private cookies: string[] = [];
   private _config: any;
   private _namespace: string;
+  private _cache;
 
   private get ns(): string {
     return this._namespace || this._config.ns;
@@ -20,22 +21,30 @@ export class AtelierAPI {
 
   constructor() {
     this.setConnection(currentWorkspaceFolder());
+    const { name, host, port } = this._config;
+    this._cache = new Cache(extensionContext, `API:${name}:${host}:${port}`);
   }
 
   setNamespace(namespace: string) {
     this._namespace = namespace;
   }
 
-  updateCookies(cookies: string[]) {
-    cookies.forEach(cookie => {
+  get cookies(): string[] {
+    return this._cache.get('cookies', []);
+  }
+
+  updateCookies(newCookies: string[]) {
+    let cookies = this._cache.get('cookies', []);
+    newCookies.forEach(cookie => {
       let [cookieName] = cookie.split('=');
-      let index = this.cookies.findIndex(el => el.startsWith(cookieName));
-      if (index) {
-        this.cookies[index] = cookie;
+      let index = cookies.findIndex(el => el.startsWith(cookieName));
+      if (index >= 0) {
+        cookies[index] = cookie;
       } else {
-        this.cookies.push(cookie);
+        cookies.push(cookie);
       }
     });
+    this._cache.put('cookies', cookies);
   }
 
   setConnection(workspaceFolderName: string) {
