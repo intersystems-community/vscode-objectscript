@@ -29,6 +29,7 @@ import { WorkspaceSymbolProvider } from './providers/WorkspaceSymbolProvider';
 export var explorerProvider: ObjectScriptExplorerProvider;
 export var documentContentProvider: DocumentContentProvider;
 export var workspaceState: vscode.Memento;
+export var extensionContext: vscode.ExtensionContext;
 
 export const config = (config?: string, workspaceFolderName?: string): any => {
   workspaceFolderName = workspaceFolderName || currentWorkspaceFolder();
@@ -62,6 +63,7 @@ export function getXmlUri(uri: vscode.Uri): vscode.Uri {
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const languages = require(context.asAbsolutePath('./package.json'))['contributes']['languages'].map(lang => lang.id);
   workspaceState = context.workspaceState;
+  extensionContext = context;
   workspaceState.update('workspaceFolder', '');
 
   explorerProvider = new ObjectScriptExplorerProvider();
@@ -88,6 +90,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       .serverInfo()
       .then(info => {
         panel.text = `${conn.label}:${conn.ns} - Connected`;
+        if (info && info.result && info.result.content && info.result.content.api > 0) {
+          api.setApiVersion(info.result.content.api);
+        }
         explorerProvider.refresh();
       })
       .catch(error => {

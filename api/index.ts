@@ -3,13 +3,20 @@ import * as httpsModule from 'https';
 import { outputConsole, currentWorkspaceFolder } from '../utils';
 import { config } from '../extension';
 
+const DEFAULT_API_VERSION: number = 3;
+
 export class AtelierAPI {
   private cookies: string[] = [];
   private _config: any;
   private _namespace: string;
+  private static _apiVersion: number;
 
   private get ns(): string {
     return this._namespace || this._config.ns;
+  }
+
+  private get apiVersion(): number {
+    return AtelierAPI._apiVersion || DEFAULT_API_VERSION;
   }
 
   constructor() {
@@ -18,6 +25,10 @@ export class AtelierAPI {
 
   setNamespace(namespace: string) {
     this._namespace = namespace;
+  }
+
+  setApiVersion(apiVersion: number) {
+    AtelierAPI._apiVersion = apiVersion;
   }
 
   updateCookies(cookies: string[]) {
@@ -134,7 +145,7 @@ export class AtelierAPI {
   serverInfo(): Promise<any> {
     return this.request('GET');
   }
-
+  // api v1+
   getDocNames({
     generated = false,
     category = '*',
@@ -146,12 +157,12 @@ export class AtelierAPI {
     type?: string;
     filter?: string;
   }): Promise<any> {
-    return this.request('GET', `v3/${this.ns}/docnames/${category}/${type}`, null, {
+    return this.request('GET', `v${this.apiVersion}/${this.ns}/docnames/${category}/${type}`, null, {
       filter,
       generated
     });
   }
-
+  // api v1+
   getDoc(name: string, format?: string): Promise<any> {
     let params = {};
     if (format) {
@@ -159,50 +170,56 @@ export class AtelierAPI {
         format
       };
     }
-    return this.request('GET', `v3/${this.ns}/doc/${name}`, params);
+    return this.request('GET', `v${this.apiVersion}/${this.ns}/doc/${name}`, params);
   }
-
+  // v1+
   putDoc(name: string, data: { enc: boolean; content: string[] }, ignoreConflict?: boolean): Promise<any> {
     let params = { ignoreConflict };
-    return this.request('PUT', `v3/${this.ns}/doc/${name}`, data, params);
+    return this.request('PUT', `v${this.apiVersion}/${this.ns}/doc/${name}`, data, params);
   }
-
+  // v1+
   actionIndex(docs: string[]): Promise<any> {
-    return this.request('POST', `v3/${this.ns}/action/index`, docs);
+    return this.request('POST', `v${this.apiVersion}/${this.ns}/action/index`, docs);
   }
-
+  // v2+
   actionSearch(params: { query: string; files?: string; sys?: boolean; gen?: boolean; max?: number }): Promise<any> {
-    return this.request('GET', `v3/${this.ns}/action/search`, null, params);
+    return this.apiVersion >= 2 ? 
+      this.request('GET', `v${this.apiVersion}/${this.ns}/action/search`, null, params) : 
+      Promise.reject(`Method 'search' not supported by API version ${this.apiVersion}`);
   }
-
+  // v1+
   actionQuery(query: string, parameters: string[]): Promise<any> {
-    return this.request('POST', `v3/${this.ns}/action/query`, {
+    return this.request('POST', `v${this.apiVersion}/${this.ns}/action/query`, {
       query,
       parameters
     });
   }
-
+  // v1+
   actionCompile(docs: string[], flags?: string, source = false): Promise<any> {
-    return this.request('POST', `v3/${this.ns}/action/compile`, docs, { flags, source });
+    return this.request('POST', `v${this.apiVersion}/${this.ns}/action/compile`, docs, { flags, source });
   }
 
   cvtXmlUdl(source: string): Promise<any> {
-    return this.request('POST', `v3/${this.ns}/cvt/xml/doc`, source, {}, { 'Content-Type': 'application/xml' });
+    return this.request('POST', `v${this.apiVersion}/${this.ns}/cvt/xml/doc`, source, {}, { 'Content-Type': 'application/xml' });
   }
-
+  // v2+
   getmacrodefinition(docname: string, macroname: string, includes: string[]) {
-    return this.request('POST', `v3/${this.ns}/action/getmacrodefinition`, {
-      docname,
-      macroname,
-      includes
-    });
+    return this.apiVersion >= 2 ? 
+      this.request('POST', `v${this.apiVersion}/${this.ns}/action/getmacrodefinition`, {
+        docname,
+        macroname,
+        includes
+      }) :
+      Promise.reject(`Method 'getmacrodefinition' not supported by API version ${this.apiVersion}`);
   }
-
+  // v2+
   getmacrolocation(docname: string, macroname: string, includes: string[]) {
-    return this.request('POST', `v3/${this.ns}/action/getmacrolocation`, {
-      docname,
-      macroname,
-      includes
-    });
+    return this.apiVersion >= 2 ? 
+      this.request('POST', `v${this.apiVersion}/${this.ns}/action/getmacrolocation`, {
+        docname,
+        macroname,
+        includes
+      }) :
+      Promise.reject(`Method 'getmacrolocation' not supported by API version ${this.apiVersion}`);
   }
 }
