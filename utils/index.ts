@@ -96,3 +96,7 @@ export function onlyUnique(value: any, index: number, self: any) {
   }
   return self.indexOf(value) === index;
 }
+
+export function notNull(el: any) {
+  return el !== null;
+}

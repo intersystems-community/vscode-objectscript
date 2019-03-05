@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import fs = require('fs');
 import path = require('path');
 import { AtelierAPI } from '../api';
-import { outputChannel, mkdirSyncRecursive, currentWorkspaceFolder } from '../utils';
+import { outputChannel, mkdirSyncRecursive, currentWorkspaceFolder, notNull } from '../utils';
 import { PackageNode } from '../explorer/models/packageNode';
 import { ClassNode } from '../explorer/models/classesNode';
 import { RoutineNode } from '../explorer/models/routineNode';
@@ -16,16 +16,22 @@ const filesFilter = (file: any) => {
   return true;
 };
 
-const getFileName = (folder: string, name: string, split: boolean): string => {
+const getFileName = (folder: string, name: string, split: boolean, addCategory: boolean): string => {
   let fileNameArray: string[] = name.split('.');
   let fileExt = fileNameArray.pop().toLowerCase();
   const root = [vscode.workspace.rootPath, currentWorkspaceFolder()].join(path.sep);
-  const cat = fileExt === 'cls' ? 'CLS' : ['int', 'mac', 'inc'].includes(fileExt) ? 'RTN' : 'OTH';
+  const cat = addCategory
+    ? fileExt === 'cls'
+      ? 'CLS'
+      : ['int', 'mac', 'inc'].includes(fileExt)
+      ? 'RTN'
+      : 'OTH'
+    : null;
   if (split) {
-    let fileName = [root, folder, cat, ...fileNameArray].join(path.sep);
+    let fileName = [root, folder, cat, ...fileNameArray].filter(notNull).join(path.sep);
     return [fileName, fileExt].join('.');
   }
-  return [root, folder, cat, name].join(path.sep);
+  return [root, folder, cat, name].filter(notNull).join(path.sep);
 };
 
 export async function exportFile(name: string, fileName: string): Promise<any> {
@@ -42,7 +48,7 @@ export async function exportFile(name: string, fileName: string): Promise<any> {
           throw new Error('Something wrong happened');
         }
         const content = data.result.content;
-        const { noStorage, dontExportIfNoChanges } = config().get('export');
+        const { noStorage, dontExportIfNoChanges } = config('export');
 
         const promise = new Promise((resolve, reject) => {
           if (noStorage) {
@@ -108,7 +114,7 @@ export async function exportList(files: string[]): Promise<any> {
   if (!files || !files.length) {
     vscode.window.showWarningMessage('Nothing to export');
   }
-  const { atelier, folder, maxConcurrentConnections } = config().get('export');
+  const { atelier, folder, maxConcurrentConnections, addCategory } = config('export');
 
   if (maxConcurrentConnections > 0) {
     const limiter = new Bottleneck({
@@ -116,14 +122,16 @@ export async function exportList(files: string[]): Promise<any> {
     });
     const results = [];
     for (let i = 0; i < files.length; i++) {
-      const result = await limiter.schedule(() => exportFile(files[i], getFileName(folder, files[i], atelier)));
+      const result = await limiter.schedule(() =>
+        exportFile(files[i], getFileName(folder, files[i], atelier, addCategory))
+      );
       results.push(result);
     }
     return results;
   }
   return Promise.all(
     files.map(file => {
-      exportFile(file, getFileName(folder, file, atelier));
+      exportFile(file, getFileName(folder, file, atelier, addCategory));
     })
   );
 }
@@ -134,7 +142,7 @@ export async function exportAll(): Promise<any> {
   }
   const api = new AtelierAPI();
   outputChannel.show(true);
-  const { category, generated, filter } = config().get('export');
+  const { category, generated, filter } = config('export');
   const files = data => data.result.content.filter(filesFilter).map(file => file.name);
   return api.getDocNames({ category, generated, filter }).then(data => {
     return exportList(files(data));

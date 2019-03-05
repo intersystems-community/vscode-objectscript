@@ -386,6 +386,11 @@
           "type": "string",
           "default": "src"
         },
+        "objectscript.export.addCategory": {
+          "description": "add category folder to the export path",
+          "type": "boolean",
+          "default": false
+        },
         "objectscript.export.atelier": {
           "description": "export source code as Atelier it does ( packages to subfolders )",
           "type": "boolean",

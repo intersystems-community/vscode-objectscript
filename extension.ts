@@ -34,7 +34,7 @@ export var extensionContext: vscode.ExtensionContext;
 export const config = (config?: string, workspaceFolderName?: string): any => {
   workspaceFolderName = workspaceFolderName || currentWorkspaceFolder();
 
-  if (['conn'].includes(config)) {
+  if (['conn', 'export'].includes(config)) {
     if (workspaceFolderName !== '') {
       const workspaceFolder = vscode.workspace.workspaceFolders.find(
         el => el.name.toLowerCase() === workspaceFolderName.toLowerCase()

@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.7.11]
+
+- added export setting "objectscript.export.addCategory" if enabled uses previous behavior, adds category folder to export folder, disabled by default
+
 ## [0.7.10]
 
 - New logo
