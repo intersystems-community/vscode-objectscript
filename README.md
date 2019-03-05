@@ -22,16 +22,31 @@
 ## Installation
 
 Install [Visual Studio Code](https://code.visualstudio.com/) first.
+
 Open VSCode. Go to extensions and search for "ObjectScript" like it is shown on the attached screenshot and install it.
 Or install from ObjectScript extension page on [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=daimor.vscode-objectscript)
+![installation](https://raw.githubusercontent.com/daimor/vscode-objectscript/master/images/installation.gif)
 
 ## Configure connection
 
 To be able to use many plugin features, you need to configure the connection to Caché server first.
 
-- Find a 'objectscript.conn' section in workspace settings (File - Preferences - Settings)
-- Change settings according to your Caché instance and reload VSCode ( as temporary solution )
-- You will see Caché-related output in "Output" while switched to "ObjectScript" channel (right drop-down menu on top of the output window)
+- Find a 'objectscript.conn' section in workspace settings (File - Preferences - Settings), do not forget to set `active` to `true`
+  `port` should follow to web port of instance (usually by default, 57772 for Caché/Ensemble, 52773 for IRIS)
+  ```JSON
+  "objectscript.conn": {
+    "active": true,
+    "label": "LOCAL",
+    "host": "127.0.0.1",
+    "port": 52773,
+    "username": "user",
+    "password": "password",
+    "ns": "USER",
+    "https": false
+  }
+  ```
+- Change settings according to your Caché/IRIS instance
+- You will see related output in "Output" while switched to "ObjectScript" channel (right drop-down menu on top of the output window)
 
 ## Notes
 
