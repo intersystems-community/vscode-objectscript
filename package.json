@@ -378,7 +378,8 @@
         },
         "objectscript.export": {
           "type": "object",
-          "description": "Export only the necessary stuff "
+          "description": "Export only the necessary stuff ",
+          "scope": "resource"
         },
         "objectscript.export.folder": {
           "description": "folder for source code",
@@ -408,7 +409,8 @@
         "objectscript.autoCompile": {
           "description": "Autocompile on save file",
           "type": "boolean",
-          "default": false
+          "default": false,
+          "scope": "resource"
         },
         "objectscript.showExplorer": {
           "type": "boolean",
