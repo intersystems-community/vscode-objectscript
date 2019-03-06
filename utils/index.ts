@@ -86,7 +86,7 @@ export function currentWorkspaceFolder(): string {
   return workspaceFolder || workspaceState.get<string>('workspaceFolder');
 }
 
-export function workspaceFolderUri(workspaceFolder: string): vscode.Uri {
+export function workspaceFolderUri(workspaceFolder: string = currentWorkspaceFolder()): vscode.Uri {
   return vscode.workspace.workspaceFolders.find(el => el.name.toLowerCase() === workspaceFolder.toLowerCase()).uri;
 }
 
