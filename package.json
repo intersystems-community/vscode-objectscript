@@ -67,10 +67,6 @@
           "when": "false"
         },
         {
-          "command": "vscode-objectscript.export",
-          "when": "vscode-objectscript.connectActive"
-        },
-        {
           "command": "vscode-objectscript.compile",
           "when": "vscode-objectscript.connectActive"
         },
@@ -93,6 +89,22 @@
         {
           "command": "vscode-objectscript.previewXml",
           "when": "vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.explorer.export",
+          "when": "true"
+        },
+        {
+          "command": "vscode-objectscript.explorer.refresh",
+          "when": "true"
+        },
+        {
+          "command": "vscode-objectscript.explorer.showSystem",
+          "when": "true"
+        },
+        {
+          "command": "vscode-objectscript.explorer.hideSystem",
+          "when": "true"
         }
       ],
       "view/title": [

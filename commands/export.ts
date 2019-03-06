@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import fs = require('fs');
 import path = require('path');
 import { AtelierAPI } from '../api';
-import { outputChannel, mkdirSyncRecursive, notNull, workspaceFolderUri, currentWorkspaceFolder } from '../utils';
+import { outputChannel, mkdirSyncRecursive, notNull, workspaceFolderUri } from '../utils';
 import { PackageNode } from '../explorer/models/packageNode';
 import { ClassNode } from '../explorer/models/classesNode';
 import { RoutineNode } from '../explorer/models/routineNode';
@@ -137,12 +137,22 @@ export async function exportList(files: string[], workspaceFolder: string): Prom
   );
 }
 
-export async function exportAll(): Promise<any> {
-  const workspaceFolder = currentWorkspaceFolder();
+export async function exportAll(workspaceFolder?: string): Promise<any> {
+  if (!workspaceFolder) {
+    let list = vscode.workspace.workspaceFolders
+      .filter(folder => config('conn', folder.name).active)
+      .map(el => el.name);
+    if (list.length > 1) {
+      return vscode.window.showQuickPick(list).then(exportAll);
+    } else {
+      workspaceFolder = list.pop();
+    }
+  }
   if (!config('conn', workspaceFolder).active) {
     return;
   }
   const api = new AtelierAPI();
+  api.setConnection(workspaceFolder);
   outputChannel.show(true);
   const { category, generated, filter } = config('export', workspaceFolder);
   const files = data => data.result.content.filter(filesFilter).map(file => file.name);
