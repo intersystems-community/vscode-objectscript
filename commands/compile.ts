@@ -24,7 +24,7 @@ async function importFile(file: CurrentFile, flags: string): Promise<any> {
       },
       true
     )
-    .then(data => compile(file, flags))
+    .then(() => compile(file, flags))
     .catch((error: Error) => {
       outputChannel.appendLine(error.message);
       outputChannel.show(true);
@@ -73,9 +73,42 @@ export async function importAndCompile(askFLags = false): Promise<any> {
   if (!config('conn').active) {
     return;
   }
+
   const defaultFlags = config().compileFlags;
   const flags = askFLags ? await compileFlags() : defaultFlags;
   return importFile(file, flags).catch(error => {
     console.error(error);
+  });
+}
+
+// Compiles all files types in the namespace
+export async function namespaceCompile(askFLags = false): Promise<any> {
+  const api = new AtelierAPI();
+  const fileTypes = ["*.CLS", "*.MAC", "*.INC", "*.BAS"]
+  if (!config('conn').active) {
+    throw new Error(`No Active Connection`);
+  }
+  const defaultFlags = config().compileFlags;
+  const flags = askFLags ? await compileFlags() : defaultFlags;
+  if (flags === undefined) {
+    // User cancelled
+    return;
+  }
+  vscode.window.withProgress({
+    location: vscode.ProgressLocation.Notification,
+    title: `Compiling Namespace: ${api.ns}`,
+    cancellable: false
+  }, async () => {
+    const data = await api
+      .actionCompile(fileTypes, flags);
+    if (data.status && data.status.errors && data.status.errors.length) {
+      console.error(data.status.summary);
+      throw new Error(`Compiling Namespace: ${api.ns} Error`);
+    }
+    else {
+      vscode.window.showInformationMessage(`Compiling Namespace: ${api.ns} Success`);
+    }
+    const file = currentFile();
+    return loadChanges(file);
   });
 }
