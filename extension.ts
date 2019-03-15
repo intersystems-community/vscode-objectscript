@@ -4,7 +4,7 @@ export const OBJECTSCRIPT_FILE_SCHEMA = 'objectscript';
 export const OBJECTSCRIPTXML_FILE_SCHEMA = 'objectscriptxml';
 
 import { viewOthers } from './commands/viewOthers';
-import { importAndCompile } from './commands/compile';
+import { importAndCompile, namespaceCompile } from './commands/compile';
 import { exportAll, exportExplorerItem } from './commands/export';
 import { xml2doc } from './commands/xml2doc';
 import { subclass } from './commands/subclass';
@@ -138,6 +138,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('vscode-objectscript.compile', () => importAndCompile(false)),
     vscode.commands.registerCommand('vscode-objectscript.touchBar.compile', () => importAndCompile(false)),
     vscode.commands.registerCommand('vscode-objectscript.compileWithFlags', () => importAndCompile(true)),
+    vscode.commands.registerCommand('vscode-objectscript.compileAll', () => namespaceCompile(false)),
+    vscode.commands.registerCommand('vscode-objectscript.compileAllWithFlags', () => namespaceCompile(true)),
     vscode.commands.registerCommand('vscode-objectscript.export', exportAll),
     vscode.commands.registerCommand('vscode-objectscript.viewOthers', viewOthers),
     vscode.commands.registerCommand('vscode-objectscript.subclass', subclass),

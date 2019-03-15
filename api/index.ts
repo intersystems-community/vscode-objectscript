@@ -11,7 +11,7 @@ export class AtelierAPI {
   private _namespace: string;
   private _cache;
 
-  private get ns(): string {
+  public get ns(): string {
     return this._namespace || this._config.ns;
   }
 

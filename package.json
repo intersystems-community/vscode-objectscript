@@ -75,6 +75,14 @@
           "when": "vscode-objectscript.connectActive"
         },
         {
+          "command": "vscode-objectscript.compileAll",
+          "when": "vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.compileAllWithFlags",
+          "when": "vscode-objectscript.connectActive"
+        },
+        {
           "command": "vscode-objectscript.viewOthers",
           "when": "vscode-objectscript.connectActive"
         },
@@ -270,6 +278,16 @@
         "title": "Import and compile current file with specified flags"
       },
       {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.compileAll",
+        "title": "Compile all namespace files"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.compileAllWithFlags",
+        "title": "Compile all namespace files with specified flags"
+      },
+      {
         "command": "vscode-objectscript.explorer.showSystem",
         "title": "Show system objects",
         "category": "ObjecScript"
@@ -322,6 +340,12 @@
         "command": "vscode-objectscript.compile",
         "key": "Ctrl+F7",
         "mac": "Cmd+F7",
+        "when": "editorLangId =~ /^objectscript/"
+      },
+      {
+        "command": "vscode-objectscript.compileAll",
+        "key": "Ctrl+Shift+F7",
+        "mac": "Cmd+Shift+F7",
         "when": "editorLangId =~ /^objectscript/"
       },
       {
