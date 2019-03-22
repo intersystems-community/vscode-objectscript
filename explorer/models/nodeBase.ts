@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 
 export class NodeBase {
   readonly label: string;
+  public readonly fullName: string;
 
   protected constructor(label: string) {
     this.label = label;

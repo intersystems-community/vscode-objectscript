@@ -125,6 +125,14 @@
       "view/item/context": [
         {
           "command": "vscode-objectscript.explorer.export",
+          "when": "view == ObjectScriptExplorer && viewItem == classesRootNode"
+        },
+        {
+          "command": "vscode-objectscript.explorer.export",
+          "when": "view == ObjectScriptExplorer && viewItem == routinesRootNode"
+        },
+        {
+          "command": "vscode-objectscript.explorer.export",
           "when": "view == ObjectScriptExplorer && viewItem == packageNode"
         },
         {

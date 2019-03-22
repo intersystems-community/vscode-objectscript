@@ -8,6 +8,7 @@ import { ClassNode } from '../explorer/models/classesNode';
 import { RoutineNode } from '../explorer/models/routineNode';
 import { config } from '../extension';
 import Bottleneck from 'bottleneck';
+import { RootNode } from '../explorer/models/rootNode';
 
 const filesFilter = (file: any) => {
   if (file.cat === 'CSP' || file.name.startsWith('%') || file.name.startsWith('INFORMATION.')) {
@@ -33,9 +34,9 @@ const getFileName = (folder: string, name: string, split: boolean, addCategory: 
   return [folder, cat, name].filter(notNull).join(path.sep);
 };
 
-export async function exportFile(workspaceFolder: string, name: string, fileName: string): Promise<any> {
+export async function exportFile(workspaceFolder: string, name: string, fileName: string): Promise<void> {
   if (!config('conn', workspaceFolder).active) {
-    return;
+    return Promise.reject('Connection not active');
   }
   const api = new AtelierAPI();
   api.setConnection(workspaceFolder);
@@ -77,7 +78,7 @@ export async function exportFile(workspaceFolder: string, name: string, fileName
           }
         });
 
-        promise
+        return promise
           .then((res: any) => {
             let joinedContent = (content || []).join('\n').toString('utf8');
             let isSkipped = '';
@@ -107,6 +108,7 @@ export async function exportFile(workspaceFolder: string, name: string, fileName
     })
     .catch(error => {
       log('ERROR: ' + error);
+      throw error;
     });
 }
 
@@ -131,10 +133,26 @@ export async function exportList(files: string[], workspaceFolder: string): Prom
     return results;
   }
   return Promise.all(
-    files.map(file => {
-      exportFile(workspaceFolder, file, getFileName(root, file, atelier, addCategory));
-    })
-  );
+    files.map(file =>
+      exportFile(workspaceFolder, file, getFileName(root, file, atelier, addCategory))
+        .then(() => ({
+          file,
+          result: true,
+          error: ''
+        }))
+        .catch(error => ({
+          file,
+          result: false,
+          error
+        }))
+    )
+  ).then(files => {
+    outputChannel.appendLine(`Exported items: ${files.filter(el => el.result).length}`);
+    const failed = files.filter(el => !el.result).map(el => `${el.file} - ${el.error}`);
+    if (files.find(el => !el.result)) {
+      outputChannel.appendLine(`Items failed to export: \n${failed.join('\n')}`);
+    }
+  });
 }
 
 export async function exportAll(workspaceFolder?: string): Promise<any> {
@@ -161,10 +179,20 @@ export async function exportAll(workspaceFolder?: string): Promise<any> {
   });
 }
 
-export async function exportExplorerItem(node: PackageNode | ClassNode | RoutineNode): Promise<any> {
+export async function exportExplorerItem(node: RootNode | PackageNode | ClassNode | RoutineNode): Promise<any> {
   if (!config('conn', node.workspaceFolder).active) {
     return;
   }
-  const items = node instanceof PackageNode ? node.getClasses() : [node.fullName];
-  return exportList(items, node.workspaceFolder);
+  const workspaceFolder = node.workspaceFolder;
+  const nodes = node instanceof RootNode ? node.getChildren(node) : Promise.resolve([node]);
+  return nodes
+    .then(nodes =>
+      nodes.reduce(
+        (list, subNode) => list.concat(subNode instanceof PackageNode ? subNode.getClasses() : [subNode.fullName]),
+        []
+      )
+    )
+    .then(items => {
+      return exportList(items, workspaceFolder);
+    });
 }

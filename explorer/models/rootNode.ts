@@ -16,6 +16,10 @@ export class RootNode extends NodeBase {
     super(label);
   }
 
+  get workspaceFolder(): string {
+    return this._workspaceFolder;
+  }
+
   getTreeItem(): vscode.TreeItem {
     return {
       label: this.label,
