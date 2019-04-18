@@ -9,6 +9,7 @@ import { exportAll, exportExplorerItem } from './commands/export';
 import { xml2doc } from './commands/xml2doc';
 import { subclass } from './commands/subclass';
 import { superclass } from './commands/superclass';
+import { serverActions } from './commands/serverActions';
 
 import { ObjectScriptClassSymbolProvider } from './providers/ObjectScriptClassSymbolProvider';
 import { ObjectScriptRoutineSymbolProvider } from './providers/ObjectScriptRoutineSymbolProvider';
@@ -35,7 +36,7 @@ export const config = (config?: string, workspaceFolderName?: string): any => {
   workspaceFolderName = workspaceFolderName || currentWorkspaceFolder();
 
   if (['conn', 'export'].includes(config)) {
-    if (workspaceFolderName !== '') {
+    if (workspaceFolderName && workspaceFolderName !== '') {
       const workspaceFolder = vscode.workspace.workspaceFolders.find(
         el => el.name.toLowerCase() === workspaceFolderName.toLowerCase()
       );
@@ -74,31 +75,30 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   vscode.window.registerTreeDataProvider('ObjectScriptExplorer', explorerProvider);
 
   const panel = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
-  panel.command = 'vscode-objectscript.output';
-  panel.tooltip = 'Open output';
+  panel.command = 'vscode-objectscript.serverActions';
   panel.show();
   const checkConnection = () => {
     const conn = config('conn');
+    const connInfo = `${conn.host}:${conn.port}/${conn.ns}/`;
+    panel.text = connInfo;
+    panel.tooltip = '';
     vscode.commands.executeCommand('setContext', 'vscode-objectscript.connectActive', conn.active);
     if (!conn.active) {
-      panel.text = '';
+      panel.text = `${connInfo} - Disabled`;
       return;
     }
-    panel.text = `${conn.label}:${conn.ns}`;
+    panel.text = `${connInfo}`;
     const api = new AtelierAPI();
     api
       .serverInfo()
       .then(async info => {
-        panel.text = `${conn.label}:${conn.ns} - Connected`;
-        if (info && info.result && info.result.content && info.result.content.api > 0) {
-          let apiVersion = info.result.content.api;
-          await vscode.workspace.getConfiguration().update('objectscript.conn.version', apiVersion);
-        }
+        panel.text = `${connInfo} - Connected`;
         explorerProvider.refresh();
       })
       .catch((error: Error) => {
         outputChannel.appendLine(error.message);
-        panel.text = `${conn.label}:${conn.ns} - ERROR`;
+        panel.text = `${connInfo} - ERROR`;
+        panel.tooltip = error.message;
       });
   };
   checkConnection();
@@ -144,6 +144,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('vscode-objectscript.viewOthers', viewOthers),
     vscode.commands.registerCommand('vscode-objectscript.subclass', subclass),
     vscode.commands.registerCommand('vscode-objectscript.superclass', superclass),
+    vscode.commands.registerCommand('vscode-objectscript.serverActions', serverActions),
     vscode.commands.registerCommand('vscode-objectscript.touchBar.viewOthers', viewOthers),
     vscode.commands.registerCommand('vscode-objectscript.explorer.refresh', () => explorerProvider.refresh()),
     vscode.commands.registerCommand('vscode-objectscript.explorer.openClass', vscode.window.showTextDocument),

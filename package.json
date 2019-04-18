@@ -35,9 +35,10 @@
     }
   ],
   "engines": {
-    "vscode": "^1.29.0"
+    "vscode": "^1.31.0"
   },
   "activationEvents": [
+    "workspaceContains:*.cls",
     "onCommand:vscode-objectscript.export",
     "onCommand:vscode-objectscript.compile",
     "onCommand:vscode-objectscript.viewOthers",
@@ -341,6 +342,11 @@
       {
         "command": "vscode-objectscript.touchBar.viewOthers",
         "title": "↹"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.serverActions",
+        "title": "Show server actions"
       }
     ],
     "keybindings": [
@@ -532,7 +538,7 @@
     "tslint-microsoft-contrib": "^5.2.1",
     "typescript": "^3.2.2",
     "vsce": "^1.57.0",
-    "vscode": "^1.1.26",
+    "vscode": "^1.1.33",
     "extend": "^3.0.2"
   },
   "dependencies": {

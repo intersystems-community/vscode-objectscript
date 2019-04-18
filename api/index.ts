@@ -2,7 +2,7 @@ import * as httpModule from 'http';
 import * as httpsModule from 'https';
 import { outputConsole, currentWorkspaceFolder } from '../utils';
 const Cache = require('vscode-cache');
-import { config, extensionContext } from '../extension';
+import { config, extensionContext, workspaceState } from '../extension';
 
 const DEFAULT_API_VERSION: number = 3;
 
@@ -16,7 +16,7 @@ export class AtelierAPI {
   }
 
   private get apiVersion(): number {
-    return this._config.version || DEFAULT_API_VERSION;
+    return workspaceState.get(currentWorkspaceFolder() + ':apiVersion', DEFAULT_API_VERSION);
   }
 
   constructor() {
@@ -159,7 +159,12 @@ export class AtelierAPI {
   }
 
   serverInfo(): Promise<any> {
-    return this.request(0, 'GET');
+    return this.request(0, 'GET').then(info => {
+      if (info && info.result && info.result.content && info.result.content.api > 0) {
+        let apiVersion = info.result.content.api;
+        return workspaceState.update(currentWorkspaceFolder() + ':apiVersion', apiVersion);
+      }
+    });
   }
   // api v1+
   getDocNames({
