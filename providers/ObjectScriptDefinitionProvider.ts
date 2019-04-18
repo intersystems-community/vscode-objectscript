@@ -80,9 +80,12 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
       pos += part.length;
     }
 
-    if (lineText.match(/^#?(?:Include|IncludeGenerator) %?\b[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*\b/i)) {
-      let [, name] = lineText.split(' ');
-      let start = lineText.indexOf(' ') + 1;
+    let includeMatch = lineText.match(
+      /^\s*#?(?:Include|IncludeGenerator) (%?\b[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*\b)/i
+    );
+    if (includeMatch) {
+      let [, name] = includeMatch;
+      let start = lineText.indexOf(name);
       if (this.isValid(position, start, name.length)) {
         return [
           this.makeRoutineDefinition(position, start, name.length, this.normalizeRoutineName(document, name, 'inc'))
