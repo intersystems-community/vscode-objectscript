@@ -96,9 +96,13 @@ export class AtelierAPI {
     }
     headers['Cache-Control'] = 'no-cache';
 
-    const { host, port, username, password } = this._config;
+    const { host, port, username, password, https } = this._config;
     const http: any = this._config.https ? httpsModule : httpModule;
-    const agent = new http.Agent({ keepAlive: true, maxSockets: 10 });
+    const agent = new http.Agent({
+      keepAlive: true,
+      maxSockets: 10,
+      rejectUnauthorized: https && config('http.proxyStrictSSL')
+    });
     path = encodeURI(`/api/atelier/${path || ''}${buildParams()}`);
 
     if (headers['Content-Type'] && headers['Content-Type'].includes('json')) {
