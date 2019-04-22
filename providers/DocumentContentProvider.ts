@@ -12,7 +12,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
   constructor() {}
 
   static findAsFile(name: string, workspaceFolder: string) {
-    let fileName = name.split('.');
+    let fileName = name.replace(/^%/, '[%_]').split('.');
     let fileExt = fileName.pop().toLowerCase();
     let root = workspaceFolderUri(workspaceFolder).path;
     let pattern = `/**/{${fileName.join('.')},${fileName.join('/')}}.${fileExt}`;

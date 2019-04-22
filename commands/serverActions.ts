@@ -23,7 +23,7 @@ export async function serverActions(): Promise<void> {
         {
           id: 'openClassReference',
           label: 'Open class reference',
-          detail: portalUrl
+          detail: classRef
         }
       ],
       {
@@ -37,9 +37,11 @@ export async function serverActions(): Promise<void> {
         }
         case 'openPortal': {
           vscode.env.openExternal(vscode.Uri.parse(portalUrl));
+          break;
         }
         case 'openClassReference': {
           vscode.env.openExternal(vscode.Uri.parse(classRef));
+          break;
         }
       }
     });
