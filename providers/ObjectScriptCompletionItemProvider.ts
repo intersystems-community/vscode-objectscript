@@ -25,14 +25,17 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
         return this.entities(document, position, token, context);
       }
     }
-    return (
+    let completions = (
+      this.classes(document, position, token, context) ||
       this.dollarsComplete(document, position) ||
       this.commands(document, position) ||
       this.entities(document, position, token, context) ||
       this.macro(document, position, token, context) ||
       this.constants(document, position, token, context) ||
-      this.system(document, position, token, context)
+      null
     );
+
+    return completions;
   }
 
   macro(
@@ -257,6 +260,71 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
     return null;
   }
 
+  classes(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+    token: vscode.CancellationToken,
+    context: vscode.CompletionContext
+  ) {
+    let pattern = /##class\(([^)]*)\)/i
+    let range = document.getWordRangeAtPosition(position, pattern);
+    let text = range ? document.getText(range) : '';
+    let [, className] = range ? text.match(pattern) : '';
+    if (!range) {
+      let pattern = /(\b(?:Of|As|Extends)\b (%?\b[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*\b)(?! of))/i
+      range = document.getWordRangeAtPosition(position, pattern);
+      text = range ? document.getText(range) : '';
+      className = text.split(' ').pop();
+    }
+    if (range) {
+      let percent = (className.startsWith('%'));
+      let library = (percent && className.indexOf('.') < 0);
+      className = (className || '');
+      let searchName = className.replace(/(^%|")/, '').toLowerCase();
+
+      const filterClass = (name) => {
+        let ok = false
+        if (percent) {
+          if (library) {
+            ok = ok || name.startsWith('%library.' + searchName);
+          }
+          ok = ok || name.startsWith('%' + searchName);
+        }
+        ok = ok || name.startsWith(searchName);
+        return ok
+      }
+
+      const insertText = (name) => {
+        if (className.indexOf('.') < 0) {
+          return name;
+        }
+        let pos = className.lastIndexOf('.')
+        let part = className.substr(0, pos);
+        if (name.indexOf(part) == 0) {
+          return name.substr(pos + 1);
+        }
+        return name;
+      }
+
+      const api = new AtelierAPI();
+      return api.getDocNames({ category: 'CLS', filter: className }).then(data => {
+        return data.result.content
+          .map(el => el.name)
+          .filter(el => filterClass(el.toLowerCase()))
+          .map(el => el.split('.').slice(0, -1).join('.'))
+          .filter(onlyUnique)
+          .map(el => ({
+            label: el,
+            kind: vscode.CompletionItemKind.Class,
+            insertText: new vscode.SnippetString(insertText(el)),
+            range: document.getWordRangeAtPosition(position, /\(%?\b[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*\b\)/)
+          }));
+      });
+    }
+
+    return null;
+  }
+
   system(
     document: vscode.TextDocument,
     position: vscode.Position,
@@ -265,7 +333,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
   ) {
     let range = document.getWordRangeAtPosition(position, /\$system(\.\b\w+\b)?(\.\b\w+\b)?\./i);
     let text = range ? document.getText(range) : '';
-    let [, className, method] = text.match(/\$system(\.\b\w+\b)?(\.\b\w+\b)?\./i);
+    let [, className] = text.match(/\$system(\.\b\w+\b)?(\.\b\w+\b)?\./i);
 
     const api = new AtelierAPI();
     if (!className) {
@@ -293,6 +361,5 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
           }));
       });
     }
-    return null;
   }
 }
