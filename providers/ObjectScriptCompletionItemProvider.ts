@@ -5,7 +5,8 @@ import systemFunctions = require('./completion/systemFunctions.json');
 import systemVariables = require('./completion/systemVariables.json');
 import structuredSystemVariables = require('./completion/structuredSystemVariables.json');
 import { ClassDefinition } from '../utils/classDefinition.js';
-import { currentFile } from '../utils/index.js';
+import { currentFile, onlyUnique } from '../utils/index.js';
+import { AtelierAPI } from '../api/index.js';
 
 export class ObjectScriptCompletionItemProvider implements vscode.CompletionItemProvider {
   provideCompletionItems(
@@ -17,14 +18,20 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
     if (context.triggerKind === vscode.CompletionTriggerKind.TriggerCharacter) {
       if (context.triggerCharacter === '#')
         return this.macro(document, position, token, context) || this.entities(document, position, token, context);
-      if (context.triggerCharacter === '.') return this.entities(document, position, token, context);
+      if (context.triggerCharacter === '.') {
+        if (document.getWordRangeAtPosition(position, /\$system(\.\b\w+\b)?\./i)) {
+          return this.system(document, position, token, context);
+        }
+        return this.entities(document, position, token, context);
+      }
     }
     return (
       this.dollarsComplete(document, position) ||
       this.commands(document, position) ||
       this.entities(document, position, token, context) ||
       this.macro(document, position, token, context) ||
-      this.constants(document, position, token, context)
+      this.constants(document, position, token, context) ||
+      this.system(document, position, token, context)
     );
   }
 
@@ -247,6 +254,45 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       }
     }
 
+    return null;
+  }
+
+  system(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+    token: vscode.CancellationToken,
+    context: vscode.CompletionContext
+  ) {
+    let range = document.getWordRangeAtPosition(position, /\$system(\.\b\w+\b)?(\.\b\w+\b)?\./i);
+    let text = range ? document.getText(range) : '';
+    let [, className, method] = text.match(/\$system(\.\b\w+\b)?(\.\b\w+\b)?\./i);
+
+    const api = new AtelierAPI();
+    if (!className) {
+      return api.getDocNames({ category: 'CLS', filter: '%SYSTEM.' }).then(data => {
+        return data.result.content
+          .map(el => el.name)
+          .filter(el => el.startsWith('%SYSTEM.'))
+          .map(el => el.split('.')[1])
+          .filter(onlyUnique)
+          .map(el => ({
+            label: el,
+            kind: vscode.CompletionItemKind.Class
+          }));
+      });
+    } else {
+      return api.actionIndex([`%SYSTEM${className}.cls`]).then(data => {
+        return data.result.content.pop().content.methods
+          .filter(el => !el.private)
+          .filter(el => !el.internal)
+          .map(el => ({
+            label: el.name,
+            kind: vscode.CompletionItemKind.Method,
+            insertText: new vscode.SnippetString(`${el.name}($0)`),
+            documentation: el.desc.length ? new vscode.MarkdownString(el.desc.join('')) : null,
+          }));
+      });
+    }
     return null;
   }
 }
