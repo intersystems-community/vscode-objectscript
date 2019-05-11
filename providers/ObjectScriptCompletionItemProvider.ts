@@ -22,7 +22,11 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
         if (document.getWordRangeAtPosition(position, /\$system(\.\b\w+\b)?\./i)) {
           return this.system(document, position, token, context);
         }
-        return this.entities(document, position, token, context);
+        return (
+          this.classes(document, position, token, context) ||
+          this.entities(document, position, token, context) ||
+          null
+        );
       }
     }
     let completions = (
@@ -54,6 +58,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
         {
           label: '##class()',
           insertText: new vscode.SnippetString('##class($0)'),
+          command: { title: '', command: 'editor.action.triggerSuggest' },
           range
         },
         {
@@ -265,59 +270,97 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
     position: vscode.Position,
     token: vscode.CancellationToken,
     context: vscode.CompletionContext
-  ) {
+  ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
+    let curFile = currentFile();
     let pattern = /##class\(([^)]*)\)/i
     let range = document.getWordRangeAtPosition(position, pattern);
     let text = range ? document.getText(range) : '';
     let [, className] = range ? text.match(pattern) : '';
     if (!range) {
-      let pattern = /(\b(?:Of|As|Extends)\b (%?\b[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*\b)(?! of))/i
+      pattern = /(\b(?:Of|As)\b (%?\b[a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z][a-zA-Z0-9]+)*\b\.?)?(?! of))/i
       range = document.getWordRangeAtPosition(position, pattern);
       text = range ? document.getText(range) : '';
       className = text.split(' ').pop();
+    }
+    pattern = /(?:(Extends |CompileAfter *=|DependsOn *=|PropertyClass *=) *\(? *)((%?[a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z][a-zA-Z0-9]*)*)(, *%?[a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z][a-zA-Z0-9]*)*|, *)*.?)?/i
+    if ((!range)
+      // && (!document.getWordRangeAtPosition(position, /\bExtends\b\s*/i))
+      && document.getWordRangeAtPosition(position, pattern)) {
+      range = document.getWordRangeAtPosition(position, /%?[a-zA-Z][a-zA-Z0-9.]*/) || new vscode.Range(position, position);
+      text = document.getText(range);
+      className = text.split(/\s|\(/).pop();
     }
     if (range) {
       let percent = (className.startsWith('%'));
       let library = (percent && className.indexOf('.') < 0);
       className = (className || '');
       let searchName = className.replace(/(^%|")/, '').toLowerCase();
+      let part = className.split('.').length;
+      let params = [];
 
-      const filterClass = (name) => {
-        let ok = false
-        if (percent) {
-          if (library) {
-            ok = ok || name.startsWith('%library.' + searchName);
-          }
-          ok = ok || name.startsWith('%' + searchName);
-        }
-        ok = ok || name.startsWith(searchName);
-        return ok
+      let sql = '';
+      /// Classes from the current class's package
+      if (part === 1 && curFile.fileName.endsWith('cls')) {
+        let packageName = curFile.name.split('.').slice(0, -2).join('.');
+        let className = curFile.name.split('.').slice(0, -1).join('.');
+        let part = packageName.split('.').length + 1;
+        sql += `
+        SELECT
+        DISTINCT
+          $Piece(Name, '.', ${part}) PartName,
+          0 AsPackage,
+          0 Priority
+        FROM %Dictionary.ClassDefinition
+        WHERE Hidden=0
+          AND Name %STARTSWITH ?
+          AND Name <> ?
+          AND $Length(Name, '.') = ${part}
+        `
+        params.push(packageName + '.');
+        params.push(className);
+        sql += '\nUNION ALL\n';
       }
 
-      const insertText = (name) => {
-        if (className.indexOf('.') < 0) {
-          return name;
-        }
-        let pos = className.lastIndexOf('.')
-        let part = className.substr(0, pos);
-        if (name.indexOf(part) == 0) {
-          return name.substr(pos + 1);
-        }
-        return name;
+      sql += `
+        SELECT
+          DISTINCT
+            $Piece(Name, '.', ${part}) PartName,
+            CASE
+              WHEN GREATEST($Length(Name,'.'),${part}) > ${part} THEN 1
+              ELSE 0
+            END AsPackage,
+            2 Priority
+        FROM %Dictionary.ClassDefinition
+        WHERE Hidden=0
+          AND LOWER(Name) %STARTSWITH ?`
+      params.push(className.toLowerCase());
+
+      /// %Library.* classes when entered %*
+      if (library) {
+        sql += `
+          UNION ALL
+          SELECT
+            STRING('%', $PIECE(Name,'.',2)) PartName ,
+            0 AsPackage,
+            1 Priority
+          FROM %Dictionary.ClassDefinition
+          WHERE Hidden=0
+            AND LOWER(Name) %STARTSWITH ?
+        `
+        params.push(`%library.${searchName}`);
       }
+      sql += ' ORDER BY PartName,AsPackage DESC';
 
       const api = new AtelierAPI();
-      return api.getDocNames({ category: 'CLS', filter: className }).then(data => {
+      return api.actionQuery(sql, params).then(data => {
         return data.result.content
-          .map(el => el.name)
-          .filter(el => filterClass(el.toLowerCase()))
-          .map(el => el.split('.').slice(0, -1).join('.'))
-          .filter(onlyUnique)
           .map(el => ({
-            label: el,
-            kind: vscode.CompletionItemKind.Class,
-            insertText: new vscode.SnippetString(insertText(el)),
-            range: document.getWordRangeAtPosition(position, /\(%?\b[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*\b\)/)
+            label: el.PartName,
+            sortText: el.Priority + el.PartName + (el.AsPackage ? '0' : '1'),
+            kind: el.AsPackage ? vscode.CompletionItemKind.Folder : vscode.CompletionItemKind.Class,
+            insertText: new vscode.SnippetString(el.PartName + (el.AsPackage ? '.' : '')),
+            command: el.AsPackage ? { title: '', command: 'editor.action.triggerSuggest' } : null,
+            range: document.getWordRangeAtPosition(position, /%?\b[a-zA-Z][a-zA-Z0-9]*\b/)
           }));
       });
     }
@@ -345,7 +388,9 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
           .filter(onlyUnique)
           .map(el => ({
             label: el,
-            kind: vscode.CompletionItemKind.Class
+            kind: vscode.CompletionItemKind.Class,
+            insertText: el + '.',
+            command: { title: '', command: 'editor.action.triggerSuggest' }
           }));
       });
     } else {
