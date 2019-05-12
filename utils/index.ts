@@ -18,8 +18,8 @@ export interface CurrentFile {
   uri: vscode.Uri;
 }
 
-export function currentFile(): CurrentFile {
-  const document = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.document : null;
+export function currentFile(document?: vscode.TextDocument): CurrentFile {
+  document = document || (vscode.window.activeTextEditor.document ? vscode.window.activeTextEditor.document : null);
   if (!document || !document.fileName || !document.languageId || !document.languageId.startsWith('objectscript')) {
     return null;
   }

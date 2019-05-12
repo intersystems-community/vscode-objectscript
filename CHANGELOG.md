@@ -6,6 +6,7 @@
 - added Server actions menu, by clicking on server info from status bar. Open Management portal, Class Reference and toggle connection.
 - Class Suggestion in ##class, Extends, As, CompileAfter, DependsOn, PropertyClass
 - \$SYSTEM suggestion by Classes from %SYSTEM
+- Import and compile folder or file by context menu in File explorer
 
 ## [0.7.10]
 

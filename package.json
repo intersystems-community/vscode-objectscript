@@ -178,6 +178,12 @@
           "group": "objectscript.viewOthers",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         }
+      ],
+      "explorer/context": [
+        {
+          "command": "vscode-objectscript.compileFolder",
+          "when": "vscode-objectscript.connectActive"
+        }
       ]
     },
     "languages": [
@@ -347,6 +353,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.serverActions",
         "title": "Show server actions"
+      },
+      {
+        "category": "ObjectScsript",
+        "command": "vscode-objectscript.compileFolder",
+        "title": "Import and compile"
       }
     ],
     "keybindings": [
@@ -465,6 +476,7 @@
           "description": "Autocompile on save file",
           "type": "boolean",
           "default": false,
+          "deprecationMessage": "Always enabled, now, when connection is active",
           "scope": "resource"
         },
         "objectscript.showExplorer": {
