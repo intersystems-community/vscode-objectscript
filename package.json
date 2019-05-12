@@ -104,6 +104,10 @@
           "when": "true"
         },
         {
+          "command": "vscode-objectscript.explorer.delete",
+          "when": "false"
+        },
+        {
           "command": "vscode-objectscript.explorer.refresh",
           "when": "true"
         },
@@ -126,23 +130,15 @@
       "view/item/context": [
         {
           "command": "vscode-objectscript.explorer.export",
-          "when": "view == ObjectScriptExplorer && viewItem == classesRootNode"
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
         },
         {
           "command": "vscode-objectscript.explorer.export",
-          "when": "view == ObjectScriptExplorer && viewItem == routinesRootNode"
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataRootNode:/"
         },
         {
-          "command": "vscode-objectscript.explorer.export",
-          "when": "view == ObjectScriptExplorer && viewItem == packageNode"
-        },
-        {
-          "command": "vscode-objectscript.explorer.export",
-          "when": "view == ObjectScriptExplorer && viewItem == classNode"
-        },
-        {
-          "command": "vscode-objectscript.explorer.export",
-          "when": "view == ObjectScriptExplorer && viewItem == routineNode"
+          "command": "vscode-objectscript.explorer.delete",
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
         },
         {
           "command": "vscode-objectscript.explorer.showSystem",
@@ -315,6 +311,11 @@
       {
         "command": "vscode-objectscript.explorer.export",
         "title": "Export",
+        "category": "ObjecScript"
+      },
+      {
+        "command": "vscode-objectscript.explorer.delete",
+        "title": "Delete",
         "category": "ObjecScript"
       },
       {

@@ -10,6 +10,7 @@ import { xml2doc } from './commands/xml2doc';
 import { subclass } from './commands/subclass';
 import { superclass } from './commands/superclass';
 import { serverActions } from './commands/serverActions';
+import { deleteItem } from './commands/delete';
 
 import { ObjectScriptClassSymbolProvider } from './providers/ObjectScriptClassSymbolProvider';
 import { ObjectScriptRoutineSymbolProvider } from './providers/ObjectScriptRoutineSymbolProvider';
@@ -151,6 +152,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('vscode-objectscript.explorer.openClass', vscode.window.showTextDocument),
     vscode.commands.registerCommand('vscode-objectscript.explorer.openRoutine', vscode.window.showTextDocument),
     vscode.commands.registerCommand('vscode-objectscript.explorer.export', exportExplorerItem),
+    vscode.commands.registerCommand('vscode-objectscript.explorer.delete', deleteItem),
     vscode.commands.registerCommand('vscode-objectscript.explorer.showSystem', (workspaceNode?: WorkspaceNode) => {
       if (workspaceNode) {
         explorerProvider.showSystem4Workspace(workspaceNode.label, true);

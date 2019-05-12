@@ -39,11 +39,11 @@ export class WorkspaceNode extends NodeBase {
     let workspaceFolder = element.label;
 
     data = await this.getDocNames('CLS');
-    node = new RootNode('Classes', 'classesRootNode', this.eventEmitter, data, workspaceFolder, this._namespace);
+    node = new RootNode('Classes', 'dataRootNode:classesRootNode', this.eventEmitter, data, workspaceFolder, this._namespace);
     children.push(node);
 
     data = await this.getDocNames('RTN');
-    node = new RootNode('Routines', 'routinesRootNode', this.eventEmitter, data, workspaceFolder, this._namespace);
+    node = new RootNode('Routines', 'dataRootNode:routinesRootNode', this.eventEmitter, data, workspaceFolder, this._namespace);
     children.push(node);
 
     return children;

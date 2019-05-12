@@ -197,6 +197,10 @@ export class AtelierAPI {
     }
     return this.request(1, 'GET', `${this.ns}/doc/${name}`, params);
   }
+  // api v1+
+  deleteDoc(name: string): Promise<any> {
+    return this.request(1, 'DELETE', `${this.ns}/doc/${name}`);
+  }
   // v1+
   putDoc(name: string, data: { enc: boolean; content: string[] }, ignoreConflict?: boolean): Promise<any> {
     let params = { ignoreConflict };

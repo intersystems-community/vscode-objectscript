@@ -3,7 +3,7 @@ import { NodeBase } from './nodeBase';
 import { ClassNode } from './classesNode';
 
 export class PackageNode extends NodeBase {
-  public static readonly contextValue: string = 'packageNode';
+  public static readonly contextValue: string = 'dataNode:packageNode';
   constructor(
     public readonly label: string,
     private readonly _items,
@@ -23,7 +23,7 @@ export class PackageNode extends NodeBase {
     return {
       label: `${displayName}`,
       collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
-      contextValue: 'packageNode'
+      contextValue: 'dataNode:packageNode'
       // iconPath: {
       //     light: path.join(__filename, '..', '..', '..', '..', 'images', 'light', 'package.svg'),
       //     dark: path.join(__filename, '..', '..', '..', '..', 'images', 'dark', 'package.svg')

@@ -3,7 +3,7 @@ import { NodeBase } from './nodeBase';
 import { DocumentContentProvider } from '../../providers/DocumentContentProvider';
 
 export class RoutineNode extends NodeBase {
-  public static readonly contextValue: string = 'routineNode';
+  public static readonly contextValue: string = 'dataNode:routineNode';
   constructor(
     public readonly label: string,
     public readonly fullName: string,
@@ -23,7 +23,7 @@ export class RoutineNode extends NodeBase {
     return {
       label: `${displayName}`,
       collapsibleState: vscode.TreeItemCollapsibleState.None,
-      contextValue: 'routineNode',
+      contextValue: 'dataNode:routineNode',
       command: {
         command: 'vscode-objectscript.explorer.openRoutine',
         arguments: [DocumentContentProvider.getUri(this.fullName, this._workspaceFolder, this._namespace)],

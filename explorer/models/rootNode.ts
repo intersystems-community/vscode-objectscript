@@ -29,11 +29,11 @@ export class RootNode extends NodeBase {
   }
 
   async getChildren(element): Promise<NodeBase[]> {
-    if (element.contextValue === 'classesRootNode') {
+    if (element.contextValue === 'dataRootNode:classesRootNode') {
       return this.getClasses();
     }
 
-    if (element.contextValue === 'routinesRootNode') {
+    if (element.contextValue === 'dataRootNode:routinesRootNode') {
       return this.getRoutines();
     }
   }
