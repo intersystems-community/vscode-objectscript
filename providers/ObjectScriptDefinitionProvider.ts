@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { DocumentContentProvider } from './DocumentContentProvider';
 import { AtelierAPI } from '../api';
 import { ClassDefinition } from '../utils/classDefinition';
-import { currentFile } from '../utils';
+import { currentFile, CurrentFile } from '../utils';
 
 export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider {
   provideDefinition(
@@ -39,9 +39,8 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     let macroText = macroRange ? document.getText(macroRange) : '';
     let macroMatch = macroText.match(/^\${3}(\b\w+\b)$/);
     if (macroMatch) {
-      let fileName = currentFile().name;
       let [, macro] = macroMatch;
-      return this.macro(fileName, macro).then(data =>
+      return this.macro(currentFile(), macro).then(data =>
         data && data.document.length
           ? new vscode.Location(DocumentContentProvider.getUri(data.document), new vscode.Position(data.line, 0))
           : null
@@ -200,13 +199,21 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     };
   }
 
-  async macro(fileName: string, macro: string): Promise<{ document: string; line: number }> {
+  async macro(file: CurrentFile, macro: string): Promise<{ document: string; line: number }> {
+    let fileName = file.name;
     const api = new AtelierAPI();
     let includes = [];
     if (fileName.toLowerCase().endsWith('cls')) {
       let classDefinition = new ClassDefinition(fileName);
       includes = await classDefinition.includeCode();
     }
+    let tmpContent = file.content.replace(/\r/, '');
+    let match = tmpContent.match(new RegExp(`^[\\t ]*#def(?:ine|1arg) \\b${macro}\\b`, 'm'));
+    if (match) {
+      let line = tmpContent.substr(0, match.index).split('\n').length - 1;
+      return Promise.resolve({ document: fileName, line });
+    }
+
     return api.getmacrolocation(fileName, macro, includes).then(data => data.result.content);
   }
 }
