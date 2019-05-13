@@ -153,21 +153,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('vscode-objectscript.explorer.openRoutine', vscode.window.showTextDocument),
     vscode.commands.registerCommand('vscode-objectscript.explorer.export', exportExplorerItem),
     vscode.commands.registerCommand('vscode-objectscript.explorer.delete', deleteItem),
-    vscode.commands.registerCommand('vscode-objectscript.explorer.showSystem', (workspaceNode?: WorkspaceNode) => {
-      if (workspaceNode) {
-        explorerProvider.showSystem4Workspace(workspaceNode.label, true);
-      } else {
-        vscode.commands.executeCommand('setContext', 'vscode-objectscript.explorer.showSystem', true);
-        explorerProvider.showSystem = true;
-      }
+    vscode.commands.registerCommand('vscode-objectscript.explorer.otherNamespace', (workspaceNode: WorkspaceNode) => {
+      return explorerProvider.selectNamespace(workspaceNode.label);
     }),
-    vscode.commands.registerCommand('vscode-objectscript.explorer.hideSystem', (workspaceNode?) => {
-      if (workspaceNode) {
-        explorerProvider.showSystem4Workspace(workspaceNode.label, false);
-      } else {
-        vscode.commands.executeCommand('setContext', 'vscode-objectscript.explorer.showSystem', false);
-        explorerProvider.showSystem = false;
-      }
+    vscode.commands.registerCommand('vscode-objectscript.explorer.otherNamespaceClose', (workspaceNode: WorkspaceNode) => {
+      return explorerProvider.closeExtra4Workspace(workspaceNode.label, workspaceNode.ns);
     }),
     vscode.commands.registerCommand('vscode-objectscript.previewXml', (...args) => {
       xml2doc(context, window.activeTextEditor);

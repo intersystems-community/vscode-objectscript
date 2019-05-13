@@ -147,6 +147,16 @@
         {
           "command": "vscode-objectscript.explorer.hideSystem",
           "when": "view == ObjectScriptExplorer && viewItem == serverNodeSystem"
+        },
+        {
+          "command": "vscode-objectscript.explorer.otherNamespace",
+          "when": "view == ObjectScriptExplorer && viewItem == serverNode",
+          "group": "inline"
+        },
+        {
+          "command": "vscode-objectscript.explorer.otherNamespaceClose",
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNodeExtra:/",
+          "group": "inline"
         }
       ],
       "editor/context": [
@@ -311,6 +321,16 @@
       {
         "command": "vscode-objectscript.explorer.export",
         "title": "Export",
+        "category": "ObjecScript"
+      },
+      {
+        "command": "vscode-objectscript.explorer.otherNamespace",
+        "title": "View another namespace",
+        "category": "ObjecScript"
+      },
+      {
+        "command": "vscode-objectscript.explorer.otherNamespaceClose",
+        "title": "Close namespace",
         "category": "ObjecScript"
       },
       {

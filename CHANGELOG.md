@@ -7,6 +7,7 @@
 - Class Suggestion in ##class, Extends, As, CompileAfter, DependsOn, PropertyClass
 - \$SYSTEM suggestion by Classes from %SYSTEM
 - Import and compile folder or file by context menu in File explorer
+- Server Explorer, now possible to open any other namespace
 
 ## [0.7.10]
 

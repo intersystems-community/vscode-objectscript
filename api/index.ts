@@ -19,8 +19,8 @@ export class AtelierAPI {
     return workspaceState.get(currentWorkspaceFolder() + ':apiVersion', DEFAULT_API_VERSION);
   }
 
-  constructor() {
-    this.setConnection(currentWorkspaceFolder());
+  constructor(workspaceFolderName?: string) {
+    this.setConnection(workspaceFolderName || currentWorkspaceFolder());
     const { name, host, port } = this._config;
     this._cache = new Cache(extensionContext, `API:${name}:${host}:${port}`);
   }
@@ -166,7 +166,7 @@ export class AtelierAPI {
     return this.request(0, 'GET').then(info => {
       if (info && info.result && info.result.content && info.result.content.api > 0) {
         let apiVersion = info.result.content.api;
-        return workspaceState.update(currentWorkspaceFolder() + ':apiVersion', apiVersion);
+        return workspaceState.update(currentWorkspaceFolder() + ':apiVersion', apiVersion).then(() => info);
       }
     });
   }

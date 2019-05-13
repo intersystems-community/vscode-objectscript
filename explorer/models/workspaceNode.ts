@@ -7,27 +7,27 @@ import { config } from '../../extension';
 
 export class WorkspaceNode extends NodeBase {
   private _conn: any;
-  private _namespace: string;
-  showSystem: boolean;
+  private _extraNode: boolean;
 
   constructor(
     public readonly label: string,
     public eventEmitter: vscode.EventEmitter<NodeBase>,
-    private _showSystem: boolean = false
+    private _namespace?: string
   ) {
     super(label);
     this._conn = config('conn', this.label);
-    this._namespace = this._conn.ns;
-    if (this._showSystem) {
-      this._namespace = '%SYS';
-    }
-    this._showSystem = this._showSystem || this._namespace === '%SYS';
+    this._namespace = _namespace || this._conn.ns;
+    this._extraNode = (this._conn.ns !== this._namespace);
+  }
+
+  get ns(): string {
+    return this._namespace;
   }
 
   getTreeItem(): vscode.TreeItem {
     return {
-      label: `${this.label}${this._showSystem ? ' - System' : ''}`,
-      contextValue: `serverNode${this._showSystem ? 'System' : ''}`,
+      label: `${this.label}${this._extraNode ? `[${this._namespace}]` : ''}`,
+      contextValue: `serverNode${this._extraNode ? 'Extra:' + this._namespace : ''}`,
       collapsibleState: vscode.TreeItemCollapsibleState.Expanded
     };
   }
@@ -51,7 +51,7 @@ export class WorkspaceNode extends NodeBase {
 
   getDocNames(category: string): Promise<any> {
     const excludeSystem =
-      this._showSystem || this._namespace === '%SYS'
+      this._namespace === '%SYS'
         ? () => true
         : ({ db }) => !['IRISLIB', 'IRISSYS', 'CACHELIB', 'CACHESYS'].includes(db);
 
