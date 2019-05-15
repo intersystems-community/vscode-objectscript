@@ -4,6 +4,13 @@
   "scopeName": "source.objectscript",
   "patterns": [
     {
+      "match": "^(ROUTINE)\\s(\\b[a-zA-Z0-9]+\\b)",
+      "captures": {
+        "1": { "name": "keyword.control" },
+        "2": { "name": "entity.name.class" }
+      }
+    },
+    {
       "include": "#comments"
     },
     {
@@ -153,8 +160,12 @@
     "elements": {
       "patterns": [
         {
-          "match": "^[a-zA-Z0-9]+",
-          "name": "entity.name.function"
+          "match": "^([a-zA-Z0-9]+)(\\([^)]*\\))(?:\\s+(public|private))?",
+          "captures": {
+            "1": { "name": "entity.name.function" },
+            "2": { "name": "other" },
+            "3": { "name": "keyword.other" }
+          }
         },
         {
           "match": "(?i)(##class)(\\()([^)]+)(\\))",
