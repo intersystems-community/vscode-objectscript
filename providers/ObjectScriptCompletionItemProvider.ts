@@ -17,7 +17,12 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
   ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
     if (context.triggerKind === vscode.CompletionTriggerKind.TriggerCharacter) {
       if (context.triggerCharacter === '#')
-        return this.macro(document, position, token, context) || this.entities(document, position, token, context);
+        return (
+          this.macro(document, position, token, context) ||
+          this.entities(document, position, token, context) ||
+          null);
+      if (context.triggerCharacter === '$')
+        return this.macrolist(document, position, token, context);
       if (context.triggerCharacter === '.') {
         if (document.getWordRangeAtPosition(position, /\$system(\.\b\w+\b)?\./i)) {
           return this.system(document, position, token, context);
@@ -31,6 +36,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
     }
     let completions = (
       this.classes(document, position, token, context) ||
+      this.macrolist(document, position, token, context) ||
       this.dollarsComplete(document, position) ||
       this.commands(document, position) ||
       this.entities(document, position, token, context) ||
@@ -65,10 +71,42 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
           label: '##super()',
           insertText: new vscode.SnippetString('##super($0)'),
           range
+        },
+        {
+          label: '#dim',
+          insertText: new vscode.SnippetString('#dim $1 As $2'),
+          range
         }
       ];
     }
     return null;
+  }
+
+  macrolist(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+    token: vscode.CancellationToken,
+    context: vscode.CompletionContext
+  ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
+    let range = document.getWordRangeAtPosition(position, /\${3}(\b\w[\w\d]*\b)?/);
+    let text = range ? document.getText(range) : '';
+    if (range) {
+      let macro = text.toLowerCase().slice(3);
+      let file = currentFile();
+      let api = new AtelierAPI()
+      return api.getmacrollist(file.name, [])
+        .then(data => data.result.content.macros)
+        .then(list => list.filter(el => el.toLowerCase().startsWith(macro)))
+        .then(list => list.map(el => '$$$' + el))
+        .then(list => list.map(el => ({
+          label: el,
+          // kind: vscode.CompletionItemKind.Constant,
+          // insertText: el,
+          range
+        })))
+        .then(data => { console.log(data); return data; })
+    }
+    return null
   }
 
   commands(

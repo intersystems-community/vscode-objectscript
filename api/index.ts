@@ -245,4 +245,11 @@ export class AtelierAPI {
       includes
     });
   }
+  // v2+
+  getmacrollist(docname: string, includes: string[]) {
+    return this.request(2, 'POST', `${this.ns}/action/getmacrolist`, {
+      docname,
+      includes
+    });
+  }
 }

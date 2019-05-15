@@ -8,6 +8,7 @@
 - \$SYSTEM suggestion by Classes from %SYSTEM
 - Import and compile folder or file by context menu in File explorer
 - Server Explorer, now possible to open any other namespace
+- Macros suggestion
 
 ## [0.7.10]
 
