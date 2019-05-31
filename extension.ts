@@ -31,7 +31,6 @@ import { AtelierAPI } from './api';
 import { WorkspaceNode } from './explorer/models/workspaceNode';
 import { WorkspaceSymbolProvider } from './providers/WorkspaceSymbolProvider';
 import { FileSystemProvider } from './providers/FileSystemProvider';
-import { stringify } from 'querystring';
 export var fileSystemProvider: FileSystemProvider;
 export var explorerProvider: ObjectScriptExplorerProvider;
 export var documentContentProvider: DocumentContentProvider;

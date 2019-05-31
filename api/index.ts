@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as httpModule from 'http';
 import * as httpsModule from 'https';
-import { outputConsole, currentWorkspaceFolder, outputChannel } from '../utils';
+import { outputConsole, currentWorkspaceFolder } from '../utils';
 const Cache = require('vscode-cache');
 import { config, extensionContext, workspaceState, FILESYSTEM_SCHEMA } from '../extension';
 import * as url from 'url';
