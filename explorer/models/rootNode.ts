@@ -65,7 +65,7 @@ export class RootNode extends NodeBase {
       tree = tree.concat(parents);
     });
     tree = tree.filter((value, index, self) => self.findIndex(({ fullName }) => fullName === value.fullName) === index);
-    tree = tree.sort((el1, el2) => (el1.fullName < el2.fullName ? -1 : el1.fullName > el2.fullName ? 1 : 0));
+    tree = tree.sort((el1, el2) => el1.fullName.localeCompare(el2.fullName));
     tree.forEach(el => {
       el.nodes = tree.filter(ch => el.fullName === ch.parent);
     });

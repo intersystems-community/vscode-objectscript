@@ -4,7 +4,7 @@ import path = require('path');
 import glob = require('glob');
 import { AtelierAPI } from '../api';
 import { currentFile, CurrentFile, outputChannel } from '../utils';
-import { documentContentProvider, config } from '../extension';
+import { documentContentProvider, config, fileSystemProvider, FILESYSTEM_SCHEMA } from '../extension';
 import { DocumentContentProvider } from '../providers/DocumentContentProvider';
 
 async function compileFlags(): Promise<string> {
@@ -16,7 +16,7 @@ async function compileFlags(): Promise<string> {
 }
 
 async function importFile(file: CurrentFile): Promise<any> {
-  const api = new AtelierAPI();
+  const api = new AtelierAPI(file.uri);
   return api
     .putDoc(
       file.name,
@@ -36,21 +36,27 @@ function updateOthers(others: string[]) {
 }
 
 async function loadChanges(files: CurrentFile[]): Promise<any> {
-  const api = new AtelierAPI();
+  const api = new AtelierAPI(files[0].uri);
   return Promise.all(files.map(file =>
-    api.getDoc(file.name).then(data => {
-      fs.writeFileSync(file.fileName, (data.result.content || []).join('\n'));
-      return api
-        .actionIndex([file.name])
-        .then(data => data.result.content[0].others)
-        .then(updateOthers);
-    })
+    api.getDoc(file.name)
+      .then(data => {
+        const content = (data.result.content || []).join('\n')
+        if (file.uri.scheme === 'file') {
+          fs.writeFileSync(file.uri.fsPath, content);
+        } else if (file.uri.scheme === FILESYSTEM_SCHEMA) {
+          fileSystemProvider.writeFile(file.uri, Buffer.from(content), { overwrite: true, create: false })
+        }
+        return api
+          .actionIndex([file.name])
+          .then(data => data.result.content[0].others)
+          .then(updateOthers);
+      })
   ));
 }
 
 async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
-  flags = flags || config().compileFlags;
-  const api = new AtelierAPI();
+  flags = flags || config('compileFlags');
+  const api = new AtelierAPI(docs[0].uri);
   return api
     .actionCompile(docs.map(el => el.name), flags)
     .then(data => {

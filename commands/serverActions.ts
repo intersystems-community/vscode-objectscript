@@ -3,7 +3,7 @@ import { config } from '../extension';
 
 export async function serverActions(): Promise<void> {
   const conn = config('conn');
-  const connInfo = `${conn.host}:${conn.port}/${conn.ns}/`;
+  const connInfo = `${conn.host}:${conn.port}[${conn.ns}]`;
   const serverUrl = `${conn.https ? 'https' : 'http'}://${conn.host}:${conn.port}`;
   const portalUrl = `${serverUrl}/csp/sys/UtilHome.csp?$NAMESPACE=${conn.ns}`;
   const classRef = `${serverUrl}/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${conn.ns}`;

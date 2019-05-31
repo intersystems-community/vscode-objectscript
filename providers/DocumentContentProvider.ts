@@ -1,33 +1,36 @@
 import * as vscode from 'vscode';
 import { AtelierAPI } from './../api';
-import * as glob from 'glob';
 import * as url from 'url';
+import * as path from 'path';
+import * as fs from 'fs';
 
-import { OBJECTSCRIPT_FILE_SCHEMA } from '../extension';
+import { OBJECTSCRIPT_FILE_SCHEMA, config, FILESYSTEM_SCHEMA } from '../extension';
 import { currentWorkspaceFolder, workspaceFolderUri } from '../utils';
+import { getFileName } from '../commands/export';
 
 export class DocumentContentProvider implements vscode.TextDocumentContentProvider {
   private onDidChangeEvent: vscode.EventEmitter<vscode.Uri> = new vscode.EventEmitter<vscode.Uri>();
 
-  constructor() {}
+  constructor() { }
 
-  static findAsFile(name: string, workspaceFolder: string) {
-    let fileName = name.replace(/^%/, '[%_]').split('.');
-    let fileExt = fileName.pop().toLowerCase();
-    let root = workspaceFolderUri(workspaceFolder).path;
-    let pattern = `/**/{${fileName.join('.')},${fileName.join('/')}}.${fileExt}`;
-    let found = glob.sync(pattern, { root, nodir: true });
-    return found.length ? found.pop() : null;
+  static getAsFile(name: string, workspaceFolder: string) {
+    const { atelier, folder, addCategory } = config('export', workspaceFolder);
+
+    const root = [workspaceFolderUri(workspaceFolder).fsPath, folder].join(path.sep);
+    const fileName = getFileName(root, name, atelier, addCategory);
+    if (fs.existsSync(fileName)) {
+      return fileName
+    }
   }
 
-  public static getUri(name: string, workspaceFolder?: string, namespace?: string): vscode.Uri {
+  public static getUri(name: string, workspaceFolder?: string, namespace?: string, vfs = true): vscode.Uri {
     workspaceFolder = workspaceFolder && workspaceFolder !== '' ? workspaceFolder : currentWorkspaceFolder();
-    let found = this.findAsFile(name, workspaceFolder);
+    let found = this.getAsFile(name, workspaceFolder);
     if (found) {
       return vscode.Uri.file(found);
     }
     let uri = vscode.Uri.file(name).with({
-      scheme: OBJECTSCRIPT_FILE_SCHEMA
+      scheme: vfs ? FILESYSTEM_SCHEMA : OBJECTSCRIPT_FILE_SCHEMA
     });
     if (workspaceFolder && workspaceFolder !== '') {
       uri = uri.with({

@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.7.12]
+
+- Files in Server Explorer now can be edited.
+- Added more details about connection errors.
+- Improvements in Server Explorer build tree.
+- Fixed memory leak when exporting large amount of files.
+- Some other fixes
+
 ## [0.7.11]
 
 - added export setting "objectscript.export.addCategory" if enabled uses previous behavior, adds category folder to export folder, disabled by default

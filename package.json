@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "0.7.11-snapshot",
+  "version": "0.7.12-snapshot",
   "icon": "images/logo.png",
   "categories": [
     "Programming Languages",
@@ -424,7 +424,7 @@
           "description": "Hostname",
           "format": "hostname",
           "type": "string",
-          "default": "127.0.0.1"
+          "default": "localhost"
         },
         "objectscript.conn.port": {
           "description": "Port number",
@@ -470,7 +470,10 @@
         },
         "objectscript.export.addCategory": {
           "description": "add category folder to the export path",
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "object"
+          ],
           "default": false
         },
         "objectscript.export.atelier": {
@@ -565,18 +568,19 @@
     "@types/glob": "^7.1.1",
     "@types/mocha": "^5.2.5",
     "@types/node": "^10.12.15",
+    "@types/request": "^2.48.1",
     "eslint": "^5.10.0",
+    "extend": "^3.0.2",
     "tape": "^4.9.1",
     "tslint": "^5.11.0",
     "tslint-microsoft-contrib": "^5.2.1",
     "typescript": "^3.2.2",
     "vsce": "^1.57.0",
-    "vscode": "^1.1.33",
-    "extend": "^3.0.2"
+    "vscode": "^1.1.33"
   },
   "dependencies": {
-    "bottleneck": "^2.16.2",
     "glob": "^7.1.3",
+    "request": "^2.88.0",
     "vscode-cache": "^0.3.0"
   }
 }

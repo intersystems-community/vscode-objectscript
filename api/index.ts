@@ -1,25 +1,46 @@
+import * as vscode from 'vscode';
 import * as httpModule from 'http';
 import * as httpsModule from 'https';
-import { outputConsole, currentWorkspaceFolder } from '../utils';
+import { outputConsole, currentWorkspaceFolder, outputChannel } from '../utils';
 const Cache = require('vscode-cache');
-import { config, extensionContext, workspaceState } from '../extension';
+import { config, extensionContext, workspaceState, FILESYSTEM_SCHEMA } from '../extension';
+import * as url from 'url';
+import * as request from 'request';
 
-const DEFAULT_API_VERSION: number = 3;
+const DEFAULT_API_VERSION: number = 1;
 
 export class AtelierAPI {
   private _config: any;
   private _namespace: string;
   private _cache;
+  private _workspaceFolder;
 
   public get ns(): string {
     return this._namespace || this._config.ns;
   }
 
   private get apiVersion(): number {
-    return workspaceState.get(currentWorkspaceFolder() + ':apiVersion', DEFAULT_API_VERSION);
+    return workspaceState.get(this._workspaceFolder + ':apiVersion', DEFAULT_API_VERSION);
   }
 
-  constructor(workspaceFolderName?: string) {
+  constructor(wsOrFile?: string | vscode.Uri) {
+    let workspaceFolderName: string = '';
+    if (wsOrFile) {
+      if (wsOrFile instanceof vscode.Uri) {
+        if (wsOrFile.scheme === FILESYSTEM_SCHEMA) {
+          workspaceFolderName = wsOrFile.authority
+          let query = url.parse(decodeURIComponent(wsOrFile.toString()), true).query;
+          if (query) {
+            if (query.ns && query.ns !== '') {
+              let namespace = query.ns.toString();
+              this.setNamespace(namespace);
+            }
+          }
+        }
+      } else {
+        workspaceFolderName = wsOrFile
+      }
+    }
     this.setConnection(workspaceFolderName || currentWorkspaceFolder());
     const { name, host, port } = this._config;
     this._cache = new Cache(extensionContext, `API:${name}:${host}:${port}`);
@@ -48,6 +69,7 @@ export class AtelierAPI {
   }
 
   setConnection(workspaceFolderName: string) {
+    this._workspaceFolder = workspaceFolderName;
     let conn = config('conn', workspaceFolderName);
     this._config = conn;
   }
@@ -97,6 +119,7 @@ export class AtelierAPI {
     headers['Cache-Control'] = 'no-cache';
 
     const { host, port, username, password, https } = this._config;
+    const proto = this._config.https ? 'https' : 'http';
     const http: any = this._config.https ? httpsModule : httpModule;
     const agent = new http.Agent({
       keepAlive: true,
@@ -109,66 +132,60 @@ export class AtelierAPI {
       body = JSON.stringify(body);
     }
 
+    // outputChannel.appendLine(`API: ${method} ${host}:${port}${path}`)
     return new Promise((resolve, reject) => {
-      const req: httpModule.ClientRequest = http
-        .request(
-          {
-            method,
-            host,
-            port,
-            path,
-            agent,
-            auth: `${username}:${password}`,
-            headers,
-            body
-          },
-          (response: httpModule.IncomingMessage) => {
-            if (response.statusCode < 200 || response.statusCode > 299) {
-              reject(new Error('Failed to load page "' + path + '", status code: ' + response.statusCode));
-            }
-            this.updateCookies(response.headers['set-cookie']);
-            // temporary data holder
-            let body: string = '';
-            response.on('data', chunk => {
-              body += chunk;
-            });
-            response.on('end', () => {
-              if (response.headers['content-type'].includes('json')) {
-                const json = JSON.parse(body);
-                if (json.console) {
-                  outputConsole(json.console);
-                }
-                if (json.result.status) {
-                  reject(new Error(json.result.status));
-                  return;
-                }
-                resolve(json);
-              } else {
-                resolve(body);
-              }
-            });
+      request({
+        url: `${proto}://${host}:${port}${path}`,
+        method,
+        host,
+        port,
+        agent,
+        auth: { username, password },
+        headers,
+        body: (['PUT', 'POST'].includes(method) ? body : null)
+      }, (error, response, responseBody) => {
+        if (error) {
+          reject(error)
+        }
+        if (response.statusCode === 401) {
+          reject({
+            code: 'Unauthorized',
+            message: 'Not Authorized'
+          })
+        }
+        if (response.headers['content-type'].includes('json')) {
+          const json = JSON.parse(responseBody);
+          responseBody = '';
+          if (json.console) {
+            outputConsole(json.console);
           }
-        )
-        .on('error', error => {
-          reject(error);
-        });
-      if (['PUT', 'POST'].includes(method)) {
-        req.write(body);
-      }
-      req.end();
-    }).catch(error => {
-      console.error(error);
-      throw error;
-    });
+          if (json.result.status) {
+            reject(new Error(json.result.status));
+            return;
+          }
+          resolve(json);
+        } else {
+          resolve(responseBody);
+        }
+      })
+    })
   }
 
   serverInfo(): Promise<any> {
-    return this.request(0, 'GET').then(info => {
-      if (info && info.result && info.result.content && info.result.content.api > 0) {
-        let apiVersion = info.result.content.api;
-        return workspaceState.update(currentWorkspaceFolder() + ':apiVersion', apiVersion).then(() => info);
-      }
-    });
+    return this.request(0, 'GET')
+      .then(info => {
+        if (info && info.result && info.result.content && info.result.content.api > 0) {
+          let data = info.result.content;
+          let apiVersion = data.api;
+          if (!data.namespaces.includes(this.ns)) {
+            throw {
+              code: 'WrongNamespace',
+              message: 'This server does not have specified namespace.'
+            }
+          }
+          return workspaceState.update(currentWorkspaceFolder() + ':apiVersion', apiVersion).then(() => info);
+        }
+      });
   }
   // api v1+
   getDocNames({
@@ -216,6 +233,8 @@ export class AtelierAPI {
   }
   // v1+
   actionQuery(query: string, parameters: string[]): Promise<any> {
+    // outputChannel.appendLine('SQL: ' + query);
+    // outputChannel.appendLine('SQLPARAMS: ' + JSON.stringify(parameters));
     return this.request(1, 'POST', `${this.ns}/action/query`, {
       query,
       parameters

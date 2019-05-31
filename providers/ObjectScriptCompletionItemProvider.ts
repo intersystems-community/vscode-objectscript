@@ -104,7 +104,6 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
           // insertText: el,
           range
         })))
-        .then(data => { console.log(data); return data; })
     }
     return null
   }

@@ -26,7 +26,7 @@ export class ClassNode extends NodeBase {
       contextValue: 'dataNode:classNode',
       command: {
         command: 'vscode-objectscript.explorer.openClass',
-        arguments: [DocumentContentProvider.getUri(this.fullName, this._workspaceFolder, this._namespace)],
+        arguments: [DocumentContentProvider.getUri(this.fullName, this._workspaceFolder, this._namespace, true)],
         title: 'Open class'
       }
       // iconPath: {

@@ -2,6 +2,8 @@ import vscode = require('vscode');
 const { workspace, window } = vscode;
 export const OBJECTSCRIPT_FILE_SCHEMA = 'objectscript';
 export const OBJECTSCRIPTXML_FILE_SCHEMA = 'objectscriptxml';
+export const FILESYSTEM_SCHEMA = 'isfs';
+export const schemas = [OBJECTSCRIPT_FILE_SCHEMA, OBJECTSCRIPTXML_FILE_SCHEMA, FILESYSTEM_SCHEMA]
 
 import { viewOthers } from './commands/viewOthers';
 import { importAndCompile, namespaceCompile, importFolder as importFileOrFolder } from './commands/compile';
@@ -28,6 +30,9 @@ import { outputChannel, currentWorkspaceFolder } from './utils';
 import { AtelierAPI } from './api';
 import { WorkspaceNode } from './explorer/models/workspaceNode';
 import { WorkspaceSymbolProvider } from './providers/WorkspaceSymbolProvider';
+import { FileSystemProvider } from './providers/FileSystemProvider';
+import { stringify } from 'querystring';
+export var fileSystemProvider: FileSystemProvider;
 export var explorerProvider: ObjectScriptExplorerProvider;
 export var documentContentProvider: DocumentContentProvider;
 export var workspaceState: vscode.Memento;
@@ -72,6 +77,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   documentContentProvider = new DocumentContentProvider();
   const xmlContentProvider = new XmlContentProvider();
   context.workspaceState.update('xmlContentProvider', xmlContentProvider);
+  fileSystemProvider = new FileSystemProvider();
 
   vscode.window.registerTreeDataProvider('ObjectScriptExplorer', explorerProvider);
 
@@ -80,7 +86,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   panel.show();
   const checkConnection = () => {
     const conn = config('conn');
-    const connInfo = `${conn.host}:${conn.port}/${conn.ns}/`;
+    const connInfo = `${conn.host}:${conn.port}[${conn.ns}]`;
     panel.text = connInfo;
     panel.tooltip = '';
     vscode.commands.executeCommand('setContext', 'vscode-objectscript.connectActive', conn.active);
@@ -88,18 +94,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       panel.text = `${connInfo} - Disabled`;
       return;
     }
-    panel.text = `${connInfo}`;
-    const api = new AtelierAPI();
+    const api = new AtelierAPI(currentWorkspaceFolder());
     api
       .serverInfo()
       .then(async info => {
         panel.text = `${connInfo} - Connected`;
         explorerProvider.refresh();
       })
-      .catch((error: Error) => {
-        outputChannel.appendLine(error.message);
+      .catch(({ code, message }) => {
+        if (code === 'Unauthorized') {
+          outputChannel.appendLine(
+            'Authorization error: please check your username/password in the settings, and if you have sufficient privileges on the server.');
+        } else {
+          outputChannel.appendLine('Error: ' + message);
+          outputChannel.appendLine('Please check your network settings in the settings.')
+        }
         panel.text = `${connInfo} - ERROR`;
-        panel.tooltip = error.message;
+        panel.tooltip = message;
       });
   };
   checkConnection();
@@ -108,7 +119,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   });
 
   workspace.onDidSaveTextDocument(file => {
-    if (!config('autoCompile') || !languages.includes(file.languageId)) {
+    if (!languages.includes(file.languageId)) {
       return;
     }
     vscode.commands.executeCommand('vscode-objectscript.compile');
@@ -165,6 +176,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPT_FILE_SCHEMA, documentContentProvider),
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPTXML_FILE_SCHEMA, xmlContentProvider),
+    vscode.workspace.registerFileSystemProvider(FILESYSTEM_SCHEMA, fileSystemProvider, { isCaseSensitive: true }),
     vscode.languages.setLanguageConfiguration('objectscript-class', {
       wordPattern
     }),

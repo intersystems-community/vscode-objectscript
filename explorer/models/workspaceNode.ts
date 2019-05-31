@@ -50,21 +50,45 @@ export class WorkspaceNode extends NodeBase {
   }
 
   getDocNames(category: string): Promise<any> {
-    const excludeSystem =
-      this._namespace === '%SYS'
-        ? () => true
-        : ({ db }) => !['IRISLIB', 'IRISSYS', 'CACHELIB', 'CACHESYS'].includes(db);
+    const sql = `SELECT Name name
+      FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?)
+    `
+    let spec;
+    let notStudio = 0;
+    switch (category) {
+      case 'CLS':
+        spec = '*.cls';
+        break;
+      case 'RTN':
+        spec = '*.mac,*.int,*.inc';
+        break;
+      default:
+        return;
+    }
+    const direction = 1;
+    const orderBy = 1; // by Name
+    const flat = 1;
+    const generated = 0;
+    const filter = '';
 
-    let api = new AtelierAPI();
+    const systemFiles = (this._namespace === '%SYS') ? '1' : '0';
+
+    let api = new AtelierAPI(this.label);
     api.setNamespace(this._namespace);
-    api.setConnection(this.label);
     return api
-      .getDocNames({
-        category
-      })
+      .actionQuery(sql, [
+        spec,
+        direction,
+        orderBy,
+        systemFiles,
+        flat,
+        notStudio,
+        generated,
+        filter
+      ])
       .then(data => {
         let content = data.result.content;
-        return content.filter(excludeSystem);
+        return content;
       });
   }
 }
