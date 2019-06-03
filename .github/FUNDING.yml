@@ -1,9 +1,8 @@
 # These are supported funding model platforms
 
-github: daimor
-patreon: 
-open_collective: # Replace with a single Open Collective username
+github: [daimor]
+custom: https://www.paypal.me/daimor
+patreon: daimor
 ko_fi: daimor
-tidelift: # Replace with a single Tidelift platform-name/package-name e.g., npm/babel
-custom: https://liberapay.com/daimor/donate
-custom: https://money.yandex.ru/to/410018360447959
+# custom: https://liberapay.com/daimor/donate
+# custom: https://money.yandex.ru/to/410018360447959
