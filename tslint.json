@@ -1,4 +1,5 @@
 {
+  "$schema": "https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/tslint.json",
   "rules": {
     "insecure-random": true,
     "no-banned-terms": true,
@@ -9,8 +10,12 @@
     "no-document-write": true,
     "no-eval": true,
     "no-exec-script": true,
-    "no-function-constructor-with-string-args": true,
-    "no-http-string": [true, "http://www.example.com/?.*", "http://www.examples.com/?.*"],
+    "function-constructor": true,
+    "no-http-string": [
+      true,
+      "http://www.example.com/?.*",
+      "http://www.examples.com/?.*"
+    ],
     "no-inner-html": true,
     "no-octal-literal": true,
     // TODO: "no-reserved-keywords": true,
@@ -68,7 +73,7 @@
     "no-unnecessary-class": true,
     // TODO: "no-string-literal": true,
     "no-string-throw": true,
-    "no-unnecessary-bind": true,
+    "unnecessary-bind": true,
     "no-unnecessary-callback-wrapper": true,
     "no-unnecessary-initializer": true,
     "no-unnecessary-override": true,
@@ -96,7 +101,6 @@
     ],
     "use-isnan": true,
     "use-named-parameter": true,
-    "typeof-compare": true,
     "adjacent-overload-signatures": true,
     "array-type": [true, "array"],
     "arrow-parens": false,
@@ -288,8 +292,7 @@
     "no-empty-interfaces": false,
     "no-missing-visibility-modifiers": false,
     "no-multiple-var-decl": false,
-    "no-switch-case-fall-through": false,
-    "typeof-compare": false
+    "no-switch-case-fall-through": false
   },
   "rulesDirectory": "node_modules/tslint-microsoft-contrib/",
   "linterOptions": {
