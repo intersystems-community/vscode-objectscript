@@ -1,17 +1,17 @@
-import vscode = require('vscode');
-import fs = require('fs');
-import path = require('path');
-import glob = require('glob');
-import { AtelierAPI } from '../api';
-import { currentFile, CurrentFile, outputChannel } from '../utils';
-import { documentContentProvider, config, fileSystemProvider, FILESYSTEM_SCHEMA } from '../extension';
-import { DocumentContentProvider } from '../providers/DocumentContentProvider';
+import fs = require("fs");
+import glob = require("glob");
+import path = require("path");
+import vscode = require("vscode");
+import { AtelierAPI } from "../api";
+import { config, documentContentProvider, FILESYSTEM_SCHEMA, fileSystemProvider } from "../extension";
+import { DocumentContentProvider } from "../providers/DocumentContentProvider";
+import { currentFile, CurrentFile, outputChannel } from "../utils";
 
 async function compileFlags(): Promise<string> {
   const defaultFlags = config().compileFlags;
   return vscode.window.showInputBox({
-    prompt: 'Compilation flags',
-    value: defaultFlags
+    prompt: "Compilation flags",
+    value: defaultFlags,
   });
 }
 
@@ -21,15 +21,15 @@ async function importFile(file: CurrentFile): Promise<any> {
     .putDoc(
       file.name,
       {
+        content: file.content.split(/\r?\n/),
         enc: false,
-        content: file.content.split(/\r?\n/)
       },
-      true
+      true,
     );
 }
 
 function updateOthers(others: string[]) {
-  others.forEach(item => {
+  others.forEach((item) => {
     const uri = DocumentContentProvider.getUri(item);
     documentContentProvider.update(uri);
   });
@@ -37,34 +37,35 @@ function updateOthers(others: string[]) {
 
 async function loadChanges(files: CurrentFile[]): Promise<any> {
   const api = new AtelierAPI(files[0].uri);
-  return Promise.all(files.map(file =>
-    api.getDoc(file.name)
-      .then(data => {
-        const content = (data.result.content || []).join('\n')
-        if (file.uri.scheme === 'file') {
-          fs.writeFileSync(file.uri.toString(), content);
-        } else if (file.uri.scheme === FILESYSTEM_SCHEMA) {
-          fileSystemProvider.writeFile(file.uri, Buffer.from(content), { overwrite: true, create: false })
-        }
-        return api
-          .actionIndex([file.name])
-          .then(data => data.result.content[0].others)
-          .then(updateOthers);
-      })
-  ));
+  return Promise.all(
+    files.map((file) =>
+      api.getDoc(file.name)
+        .then((data) => {
+          const content = (data.result.content || []).join("\n");
+          if (file.uri.scheme === "file") {
+            fs.writeFileSync(file.uri.toString(), content);
+          } else if (file.uri.scheme === FILESYSTEM_SCHEMA) {
+            fileSystemProvider.writeFile(file.uri, Buffer.from(content), { overwrite: true, create: false });
+          }
+        })
+        .then(() => api.actionIndex([file.name]))
+        .then((data) => data.result.content[0].others)
+        .then(updateOthers),
+    ),
+  );
 }
 
 async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
-  flags = flags || config('compileFlags');
+  flags = flags || config("compileFlags");
   const api = new AtelierAPI(docs[0].uri);
   return api
-    .actionCompile(docs.map(el => el.name), flags)
-    .then(data => {
-      let info = docs.length > 1 ? '' : `${docs[0].name}: `;
+    .actionCompile(docs.map((el) => el.name), flags)
+    .then((data) => {
+      const info = docs.length > 1 ? "" : `${docs[0].name}: `;
       if (data.status && data.status.errors && data.status.errors.length) {
         throw new Error(`${info}Compile error`);
       } else {
-        vscode.window.showInformationMessage(`${info}Compile successed`, 'Hide');
+        vscode.window.showInformationMessage(`${info}Compile successed`, "Hide");
       }
       return docs;
     })
@@ -72,8 +73,8 @@ async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
     .catch((error: Error) => {
       outputChannel.appendLine(error.message);
       outputChannel.show(true);
-      vscode.window.showErrorMessage(error.message, 'Show details')
-        .then(data => {
+      vscode.window.showErrorMessage(error.message, "Show details")
+        .then((data) => {
           outputChannel.show(true);
         });
     });
@@ -84,22 +85,22 @@ export async function importAndCompile(askFLags = false): Promise<any> {
   if (!file) {
     return;
   }
-  if (!config('conn').active) {
+  if (!config("conn").active) {
     return;
   }
 
   const defaultFlags = config().compileFlags;
   const flags = askFLags ? await compileFlags() : defaultFlags;
-  return importFile(file).catch(error => {
-    console.error(error);
+  return importFile(file).catch((error) => {
+    // console.error(error);
   }).then(() => compile([file], flags));
 }
 
 // Compiles all files types in the namespace
 export async function namespaceCompile(askFLags = false): Promise<any> {
   const api = new AtelierAPI();
-  const fileTypes = ['*.CLS', '*.MAC', '*.INC', '*.BAS'];
-  if (!config('conn').active) {
+  const fileTypes = ["*.CLS", "*.MAC", "*.INC", "*.BAS"];
+  if (!config("conn").active) {
     throw new Error(`No Active Connection`);
   }
   const defaultFlags = config().compileFlags;
@@ -110,56 +111,54 @@ export async function namespaceCompile(askFLags = false): Promise<any> {
   }
   vscode.window.withProgress(
     {
+      cancellable: false,
       location: vscode.ProgressLocation.Notification,
       title: `Compiling Namespace: ${api.ns}`,
-      cancellable: false
     },
     async () => {
       const data = await api.actionCompile(fileTypes, flags);
       if (data.status && data.status.errors && data.status.errors.length) {
-        console.error(data.status.summary);
+        // console.error(data.status.summary);
         throw new Error(`Compiling Namespace: ${api.ns} Error`);
       } else {
         vscode.window.showInformationMessage(`Compiling Namespace: ${api.ns} Success`);
       }
       const file = currentFile();
       return loadChanges([file]);
-    }
+    },
   );
 }
 
 function importFiles(files) {
   return Promise.all<CurrentFile>(
-    files.map(file =>
+    files.map((file) =>
       vscode.workspace
         .openTextDocument(file)
         .then(currentFile)
-        .then(file =>
-          Promise.resolve(file)
-            .then(importFile)
-            .then(data => {
-              outputChannel.appendLine('Imported file: ' + file.fileName)
-              return file;
-            })
-        )
-    )
-  )
+        .then((curFile) =>
+          importFile(curFile)
+            .then((data) => {
+              outputChannel.appendLine("Imported file: " + curFile.fileName);
+              return curFile;
+            }),
+        ),
+    ))
     .then(compile);
 }
 
 export async function importFolder(uri: vscode.Uri): Promise<any> {
-  let folder = uri.path;
+  const folder = uri.path;
   if (fs.lstatSync(folder).isFile()) {
     return importFiles([folder]);
   }
   glob(
-    '**/*.{cls,inc,mac,int}',
+    "**/*.{cls,inc,mac,int}",
     {
       cwd: folder,
-      nocase: true
+      nocase: true,
     },
     (error, files) => importFiles(
-      files.map(name => path.join(folder, name))
-    )
+      files.map((name) => path.join(folder, name)),
+    ),
   );
 }

@@ -1,30 +1,30 @@
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
 export class ObjectScriptFoldingRangeProvider implements vscode.FoldingRangeProvider {
-  provideFoldingRanges(
+  public provideFoldingRanges(
     document: vscode.TextDocument,
     context: vscode.FoldingContext,
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
   ): vscode.ProviderResult<vscode.FoldingRange[]> {
-    let ranges: vscode.FoldingRange[] = [];
+    const ranges: vscode.FoldingRange[] = [];
 
     for (let i = 0; i < document.lineCount; i++) {
-      let line = document.lineAt(i);
+      const line = document.lineAt(i);
 
       if (line.text.match(/^\b\w+\b/) && !line.text.match(/^\bROUTINE\b/)) {
         const start = i;
         while (i++ && i < document.lineCount) {
-          let line = document.lineAt(i);
-          if (line.text.match(/^\b\w+\b/)) {
+          const text = document.lineAt(i).text;
+          if (text.match(/^\b\w+\b/)) {
             break;
           }
         }
         i--;
         const end = i;
         ranges.push({
-          start,
           end,
-          kind: vscode.FoldingRangeKind.Region
+          kind: vscode.FoldingRangeKind.Region,
+          start,
         });
         continue;
       }

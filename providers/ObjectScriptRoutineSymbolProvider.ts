@@ -1,19 +1,19 @@
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
 export class ObjectScriptRoutineSymbolProvider implements vscode.DocumentSymbolProvider {
   public provideDocumentSymbols(
     document: vscode.TextDocument,
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
   ): Thenable<vscode.SymbolInformation[]> {
-    return new Promise(resolve => {
-      var symbols: vscode.SymbolInformation[] = [];
+    return new Promise((resolve) => {
+      const symbols: vscode.SymbolInformation[] = [];
 
-      for (var i = 0; i < document.lineCount; i++) {
-        var line = document.lineAt(i);
+      for (let i = 0; i < document.lineCount; i++) {
+        let line = document.lineAt(i);
 
-        let label = line.text.match(/^(%?\b\w+\b)/);
+        const label = line.text.match(/^(%?\b\w+\b)/);
         if (label) {
-          let start = line.range.start;
+          const start = line.range.start;
           while (++i && i < document.lineCount) {
             line = document.lineAt(i);
             if (line.text.match(/^(%?\b\w+\b)/)) {
@@ -21,12 +21,12 @@ export class ObjectScriptRoutineSymbolProvider implements vscode.DocumentSymbolP
             }
           }
           line = document.lineAt(--i);
-          let end = line.range.start;
+          const end = line.range.start;
           symbols.push({
-            containerName: 'Label',
-            name: label[1],
+            containerName: "Label",
             kind: vscode.SymbolKind.Method,
-            location: new vscode.Location(document.uri, new vscode.Range(start, end))
+            location: new vscode.Location(document.uri, new vscode.Range(start, end)),
+            name: label[1],
           });
         }
       }

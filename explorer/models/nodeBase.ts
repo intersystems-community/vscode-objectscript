@@ -1,21 +1,21 @@
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
 export class NodeBase {
-  readonly label: string;
+  public readonly label: string;
   public readonly fullName: string;
 
   protected constructor(label: string) {
     this.label = label;
   }
 
-  getTreeItem(): vscode.TreeItem {
+  public getTreeItem(): vscode.TreeItem {
     return {
+      collapsibleState: vscode.TreeItemCollapsibleState.None,
       label: this.label,
-      collapsibleState: vscode.TreeItemCollapsibleState.None
     };
   }
 
-  async getChildren(element): Promise<NodeBase[]> {
+  public async getChildren(element): Promise<NodeBase[]> {
     return [];
   }
 }

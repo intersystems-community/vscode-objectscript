@@ -1,14 +1,14 @@
-import * as vscode from 'vscode';
-import { NodeBase } from './nodeBase';
-import { DocumentContentProvider } from '../../providers/DocumentContentProvider';
+import * as vscode from "vscode";
+import { DocumentContentProvider } from "../../providers/DocumentContentProvider";
+import { NodeBase } from "./nodeBase";
 
 export class RoutineNode extends NodeBase {
-  public static readonly contextValue: string = 'dataNode:routineNode';
+  public static readonly contextValue: string = "dataNode:routineNode";
   constructor(
     public readonly label: string,
     public readonly fullName: string,
     private _workspaceFolder: string,
-    private _namespace: string
+    private _namespace: string,
   ) {
     super(label);
   }
@@ -17,18 +17,18 @@ export class RoutineNode extends NodeBase {
     return this._workspaceFolder;
   }
 
-  getTreeItem(): vscode.TreeItem {
-    let displayName: string = this.label;
+  public getTreeItem(): vscode.TreeItem {
+    const displayName: string = this.label;
 
     return {
-      label: `${displayName}`,
       collapsibleState: vscode.TreeItemCollapsibleState.None,
-      contextValue: 'dataNode:routineNode',
       command: {
-        command: 'vscode-objectscript.explorer.openRoutine',
         arguments: [DocumentContentProvider.getUri(this.fullName, this._workspaceFolder, this._namespace)],
-        title: 'Open routine'
-      }
+        command: "vscode-objectscript.explorer.openRoutine",
+        title: "Open routine",
+      },
+      contextValue: "dataNode:routineNode",
+      label: `${displayName}`,
       // iconPath: {
       //     light: path.join(__filename, '..', '..', '..', '..', 'images', 'light', 'routine.svg'),
       //     dark: path.join(__filename, '..', '..', '..', '..', 'images', 'dark', 'routine.svg')

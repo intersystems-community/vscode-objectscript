@@ -1,29 +1,29 @@
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
-import commands = require('./completion/commands.json');
+import commands = require("./completion/commands.json");
 
 export class DocumentFormattingEditProvider implements vscode.DocumentFormattingEditProvider {
-  provideDocumentFormattingEdits(
+  public provideDocumentFormattingEdits(
     document: vscode.TextDocument,
     options: vscode.FormattingOptions,
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
   ): vscode.ProviderResult<vscode.TextEdit[]> {
-    let edits = [];
+    const edits = [];
 
-    for (var i = 0; i < document.lineCount; i++) {
-      var line = document.lineAt(i);
+    for (let i = 0; i < document.lineCount; i++) {
+      const line = document.lineAt(i);
 
-      let commandsMatch = line.text.match(/^\s+(?:}\s)?\b([a-z]+)\b/i);
+      const commandsMatch = line.text.match(/^\s+(?:}\s)?\b([a-z]+)\b/i);
       if (commandsMatch) {
         let [, found] = commandsMatch;
         found = found;
-        let pos = line.text.indexOf(found);
-        let command = commands.find(el => el.alias.includes(found.toUpperCase()));
+        const pos = line.text.indexOf(found);
+        const command = commands.find((el) => el.alias.includes(found.toUpperCase()));
         if (command.label !== found) {
-          let range = new vscode.Range(new vscode.Position(i, pos), new vscode.Position(i, pos + found.length));
+          const range = new vscode.Range(new vscode.Position(i, pos), new vscode.Position(i, pos + found.length));
           edits.push({
+            newText: command.label,
             range,
-            newText: command.label
           });
         }
       }
