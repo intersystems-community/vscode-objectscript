@@ -147,18 +147,18 @@ function importFiles(files) {
 }
 
 export async function importFolder(uri: vscode.Uri): Promise<any> {
-  const folder = uri.path;
+  const folder = uri.fsPath;
   if (fs.lstatSync(folder).isFile()) {
     return importFiles([folder]);
   }
   glob(
-    "**/*.{cls,inc,mac,int}",
+    "*.{cls,inc,mac,int}",
     {
       cwd: folder,
+      matchBase: true,
       nocase: true,
     },
     (error, files) => importFiles(
-      files.map((name) => path.join(folder, name)),
-    ),
+      files.map((name) => path.join(folder, name))),
   );
 }
