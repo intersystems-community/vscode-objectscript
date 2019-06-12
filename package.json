@@ -39,7 +39,7 @@
   },
   "activationEvents": [
     "workspaceContains:*.cls",
-    "onFileSystem:isfs",
+    "workspaceContains:*.mac",
     "onCommand:vscode-objectscript.export",
     "onCommand:vscode-objectscript.compile",
     "onCommand:vscode-objectscript.viewOthers",
@@ -47,12 +47,13 @@
     "onCommand:vscode-objectscript.explorer.refresh",
     "onCommand:vscode-objectscript.explorer.openClass",
     "onCommand:vscode-objectscript.explorer.openRoutine",
-    "onCommand:vscode-objectscript.explorer.hideSystem",
+    "onCommand:vscode-objectscript.compileFolder",
     "onLanguage:objectscript",
     "onLanguage:objectscript-class",
     "onLanguage:objectscript-macros",
     "onLanguage:xml",
     "onView:ObjectScriptExplorer",
+    "onFileSystem:isfs",
     "onFileSystem:objectscript",
     "onDebugInitialConfigurations"
   ],
@@ -70,11 +71,11 @@
         },
         {
           "command": "vscode-objectscript.compile",
-          "when": "vscode-objectscript.connectActive"
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.compileWithFlags",
-          "when": "vscode-objectscript.connectActive"
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.compileAll",
@@ -86,23 +87,23 @@
         },
         {
           "command": "vscode-objectscript.viewOthers",
-          "when": "vscode-objectscript.connectActive"
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.subclass",
-          "when": "vscode-objectscript.connectActive"
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.superclass",
-          "when": "vscode-objectscript.connectActive"
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.previewXml",
-          "when": "vscode-objectscript.connectActive"
+          "when": "editorLangId = xml && vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.explorer.export",
-          "when": "true"
+          "when": "vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.explorer.delete",
@@ -110,15 +111,11 @@
         },
         {
           "command": "vscode-objectscript.explorer.refresh",
-          "when": "true"
+          "when": "vscode-objectscript.connectActive"
         },
         {
-          "command": "vscode-objectscript.explorer.showSystem",
-          "when": "true"
-        },
-        {
-          "command": "vscode-objectscript.explorer.hideSystem",
-          "when": "true"
+          "command": "vscode-objectscript.compileFolder",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -140,14 +137,6 @@
         {
           "command": "vscode-objectscript.explorer.delete",
           "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
-        },
-        {
-          "command": "vscode-objectscript.explorer.showSystem",
-          "when": "view == ObjectScriptExplorer && viewItem == serverNode"
-        },
-        {
-          "command": "vscode-objectscript.explorer.hideSystem",
-          "when": "view == ObjectScriptExplorer && viewItem == serverNodeSystem"
         },
         {
           "command": "vscode-objectscript.explorer.otherNamespace",
@@ -308,16 +297,6 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.compileAllWithFlags",
         "title": "Compile all namespace files with specified flags"
-      },
-      {
-        "command": "vscode-objectscript.explorer.showSystem",
-        "title": "Show system objects",
-        "category": "ObjecScript"
-      },
-      {
-        "command": "vscode-objectscript.explorer.hideSystem",
-        "title": "Hide system objects",
-        "category": "ObjecScript"
       },
       {
         "command": "vscode-objectscript.explorer.export",

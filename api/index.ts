@@ -179,6 +179,10 @@ export class AtelierAPI {
           } else {
             return data;
           }
+        })
+        .catch((error) => {
+          console.error(error);
+          throw error;
         });
     });
   }

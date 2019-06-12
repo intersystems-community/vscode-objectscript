@@ -323,11 +323,11 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       className = text.split(" ").pop();
     }
     // tslint:disable-next-line: max-line-length
-    pattern = /(?:(Extends |CompileAfter *=|DependsOn *=|PropertyClass *=) *\(? *)((%?[a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z][a-zA-Z0-9]*)*)(, *%?[a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z][a-zA-Z0-9]*)*|, *)*.?)?/i;
+    pattern = /(?:(Extends |CompileAfter *=|DependsOn *=|PropertyClass *=) *\(? *)((%?[a-zA-Z0-9]*(?:\.[a-zA-Z0-9]*)*)(, *%?[a-zA-Z0-9]*(?:\.[a-zA-Z0-9]*)*|, *)*.?)?/i;
     if ((!range)
       // && (!document.getWordRangeAtPosition(position, /\bExtends\b\s*/i))
       && document.getWordRangeAtPosition(position, pattern)) {
-      range = document.getWordRangeAtPosition(position, /%?[a-zA-Z][a-zA-Z0-9.]*/)
+      range = document.getWordRangeAtPosition(position, /%?[a-zA-Z][a-zA-Z0-9.]*|%/)
         || new vscode.Range(position, position);
       text = document.getText(range);
       className = text.split(/\s|\(/).pop();
@@ -397,11 +397,15 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       return api.actionQuery(sql, params).then((data) => {
         return data.result.content
           .map((el) => ({
+            ...el,
+            AsPackage: (el.AsPackage === "1"),
+          }))
+          .map((el) => ({
             command: el.AsPackage ? { title: "", command: "editor.action.triggerSuggest" } : null,
             insertText: new vscode.SnippetString(el.PartName + (el.AsPackage ? "." : "")),
             kind: el.AsPackage ? vscode.CompletionItemKind.Folder : vscode.CompletionItemKind.Class,
             label: el.PartName,
-            range: document.getWordRangeAtPosition(position, /%?\b[a-zA-Z][a-zA-Z0-9]*\b/),
+            range: document.getWordRangeAtPosition(position, /%?\b[a-zA-Z][a-zA-Z0-9]*\b|%/),
             sortText: el.Priority + el.PartName + (el.AsPackage ? "0" : "1"),
           }));
       });

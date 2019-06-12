@@ -43,7 +43,7 @@ async function loadChanges(files: CurrentFile[]): Promise<any> {
         .then((data) => {
           const content = (data.result.content || []).join("\n");
           if (file.uri.scheme === "file") {
-            fs.writeFileSync(file.uri.toString(), content);
+            fs.writeFileSync(file.fileName, content);
           } else if (file.uri.scheme === FILESYSTEM_SCHEMA) {
             fileSystemProvider.writeFile(file.uri, Buffer.from(content), { overwrite: true, create: false });
           }

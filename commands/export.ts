@@ -129,9 +129,7 @@ export async function exportList(files: string[], workspaceFolder: string): Prom
       outputChannel.appendLine(`Items failed to export: \n${errors.join("\n")}`);
     }
   };
-  return run(files).then(() => {
-    outputChannel.appendLine("finish1");
-  });
+  return run(files);
 }
 
 export async function exportAll(workspaceFolder?: string): Promise<any> {
@@ -140,7 +138,8 @@ export async function exportAll(workspaceFolder?: string): Promise<any> {
       .filter((folder) => config("conn", folder.name).active)
       .map((el) => el.name);
     if (list.length > 1) {
-      return vscode.window.showQuickPick(list).then(exportAll);
+      return vscode.window.showQuickPick(list)
+        .then((folder) => folder ? exportAll : null);
     } else {
       workspaceFolder = list.pop();
     }

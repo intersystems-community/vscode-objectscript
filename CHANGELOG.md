@@ -7,6 +7,7 @@
 - Improvements in Server Explorer build tree.
 - Fixed memory leak when exporting large amount of files.
 - Some other fixes
+- Server view can be opened in explorer as virtual file system with schema `isfs://`
 
 ## [0.7.11]
 
