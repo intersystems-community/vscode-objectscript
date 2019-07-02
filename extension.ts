@@ -122,7 +122,6 @@ export async function activate(
       .serverInfo()
       .then(async (info) => {
         panel.text = `${connInfo} - Connected`;
-        explorerProvider.refresh();
       })
       .catch((error) => {
         let message = error.message;
@@ -138,6 +137,9 @@ export async function activate(
         }
         panel.text = `${connInfo} - ERROR`;
         panel.tooltip = message;
+      })
+      .finally(() => {
+        explorerProvider.refresh();
       });
   };
   checkConnection();
@@ -242,7 +244,7 @@ export async function activate(
       (workspaceNode: WorkspaceNode) => {
         return explorerProvider.closeExtra4Workspace(
           workspaceNode.label,
-          workspaceNode.ns,
+          workspaceNode.namespace,
         );
       },
     ),

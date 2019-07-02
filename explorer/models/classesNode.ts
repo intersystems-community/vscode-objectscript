@@ -7,14 +7,10 @@ export class ClassNode extends NodeBase {
   constructor(
     public readonly label: string,
     public readonly fullName: string,
-    private _workspaceFolder: string,
-    private _namespace: string,
+    workspaceFolder: string,
+    namespace: string,
   ) {
-    super(label);
-  }
-
-  get workspaceFolder(): string {
-    return this._workspaceFolder;
+    super(label, workspaceFolder, namespace);
   }
 
   public getTreeItem(): vscode.TreeItem {
@@ -23,7 +19,7 @@ export class ClassNode extends NodeBase {
     return {
       collapsibleState: vscode.TreeItemCollapsibleState.None,
       command: {
-        arguments: [DocumentContentProvider.getUri(this.fullName, this._workspaceFolder, this._namespace, true)],
+        arguments: [DocumentContentProvider.getUri(this.fullName, this.workspaceFolder, this.namespace, true)],
         command: "vscode-objectscript.explorer.openClass",
         title: "Open class",
       },

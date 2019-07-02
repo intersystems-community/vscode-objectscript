@@ -34,11 +34,13 @@ export const getFileName = (folder: string, name: string, split: boolean, addCat
   return [folder, cat, name].filter(notNull).join(path.sep);
 };
 
-export async function exportFile(workspaceFolder: string, name: string, fileName: string): Promise<void> {
+export async function exportFile(
+  workspaceFolder: string, namespace: string, name: string, fileName: string): Promise<void> {
   if (!config("conn", workspaceFolder).active) {
     return Promise.reject("Connection not active");
   }
   const api = new AtelierAPI(workspaceFolder);
+  api.setNamespace(namespace);
   const log = (status) => outputChannel.appendLine(`export "${name}" as "${fileName}" - ${status}`);
   const folders = path.dirname(fileName);
   return mkdirSyncRecursive(folders)
@@ -111,7 +113,7 @@ export async function exportFile(workspaceFolder: string, name: string, fileName
     });
 }
 
-export async function exportList(files: string[], workspaceFolder: string): Promise<any> {
+export async function exportList(files: string[], workspaceFolder: string, namespace: string): Promise<any> {
   if (!files || !files.length) {
     vscode.window.showWarningMessage("Nothing to export");
   }
@@ -121,7 +123,7 @@ export async function exportList(files: string[], workspaceFolder: string): Prom
   const run = async (fileList) => {
     const errors = [];
     for (const file of fileList) {
-      await exportFile(workspaceFolder, file, getFileName(root, file, atelier, addCategory))
+      await exportFile(workspaceFolder, namespace, file, getFileName(root, file, atelier, addCategory))
         .catch((error) => { errors.push(`${file} - ${error}`); });
     }
     outputChannel.appendLine(`Exported items: ${fileList.length - errors.length}`);
@@ -147,21 +149,32 @@ export async function exportAll(workspaceFolder?: string): Promise<any> {
   if (!config("conn", workspaceFolder).active) {
     return;
   }
-  const api = new AtelierAPI();
-  api.setConnection(workspaceFolder);
+  const api = new AtelierAPI(workspaceFolder);
   outputChannel.show(true);
-  const { category, generated, filter } = config("export", workspaceFolder);
+  const { category, generated, filter, ns } = config("export", workspaceFolder);
   const files = (data) => data.result.content.filter(filesFilter).map((file) => file.name);
   return api.getDocNames({ category, generated, filter }).then((data) => {
-    return exportList(files(data), workspaceFolder);
+    return exportList(files(data), workspaceFolder, ns);
   });
 }
 
 export async function exportExplorerItem(node: RootNode | PackageNode | ClassNode | RoutineNode): Promise<any> {
-  if (!config("conn", node.workspaceFolder).active) {
-    return;
+  const origNamespace = config("conn").ns;
+  if (origNamespace !== node.namespace) {
+    const answer = await vscode.window.showWarningMessage(
+      `
+You are going to export items from another namespace.
+Would you like to continue?`,
+      {
+        modal: true,
+      },
+      "Yes",
+    );
+    if (answer !== "Yes") {
+      return;
+    }
   }
-  const workspaceFolder = node.workspaceFolder;
+  const { workspaceFolder, namespace } = node;
   const nodesList = node instanceof RootNode ? node.getChildren(node) : Promise.resolve([node]);
   return nodesList
     .then((nodes) =>
@@ -171,6 +184,6 @@ export async function exportExplorerItem(node: RootNode | PackageNode | ClassNod
       ),
     )
     .then((items) => {
-      return exportList(items, workspaceFolder);
+      return exportList(items, workspaceFolder, namespace);
     });
 }

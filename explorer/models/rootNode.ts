@@ -10,14 +10,10 @@ export class RootNode extends NodeBase {
     public readonly contextValue: string,
     public eventEmitter: vscode.EventEmitter<NodeBase>,
     private _items: any[],
-    private _workspaceFolder: string,
-    private _namespace: string,
+    workspaceFolder: string,
+    namespace: string,
   ) {
-    super(label);
-  }
-
-  get workspaceFolder(): string {
-    return this._workspaceFolder;
+    super(label, workspaceFolder, namespace);
   }
 
   public getTreeItem(): vscode.TreeItem {
@@ -41,11 +37,11 @@ export class RootNode extends NodeBase {
   private async getClasses(): Promise<PackageNode[]> {
     const items = this.makeTree(this._items);
 
-    return items.map(({ name, nodes }) => new PackageNode(name, nodes, this._workspaceFolder, this._namespace));
+    return items.map(({ name, nodes }) => new PackageNode(name, nodes, this.workspaceFolder, this.namespace));
   }
 
   private async getRoutines(): Promise<RoutineNode[]> {
-    return this._items.map(({ name }) => new RoutineNode(name, name, this._workspaceFolder, this._namespace));
+    return this._items.map(({ name }) => new RoutineNode(name, name, this.workspaceFolder, this.namespace));
   }
 
   private makeTree(items: any[]): any[] {

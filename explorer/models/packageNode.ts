@@ -7,14 +7,10 @@ export class PackageNode extends NodeBase {
   constructor(
     public readonly label: string,
     private readonly _items,
-    private readonly _workspaceFolder: string,
-    private _namespace: string,
+    workspaceFolder: string,
+    namespace: string,
   ) {
-    super(label);
-  }
-
-  get workspaceFolder(): string {
-    return this._workspaceFolder;
+    super(label, workspaceFolder, namespace);
   }
 
   public getTreeItem(): vscode.TreeItem {
@@ -34,8 +30,8 @@ export class PackageNode extends NodeBase {
   public async getChildren(element): Promise<NodeBase[]> {
     return this._items.map(({ name, fullName, nodes }) =>
       nodes.length
-        ? new PackageNode(name, nodes, this._workspaceFolder, this._namespace)
-        : new ClassNode(name, fullName, this._workspaceFolder, this._namespace),
+        ? new PackageNode(name, nodes, this.workspaceFolder, this.namespace)
+        : new ClassNode(name, fullName, this.workspaceFolder, this.namespace),
     );
   }
 

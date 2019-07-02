@@ -1,34 +1,28 @@
 import * as vscode from "vscode";
 
 import { AtelierAPI } from "../../api";
-import { config } from "../../extension";
 import { NodeBase } from "./nodeBase";
 import { RootNode } from "./rootNode";
 
 export class WorkspaceNode extends NodeBase {
-  private _conn: any;
-  private _extraNode: boolean;
 
   constructor(
     public readonly label: string,
     public eventEmitter: vscode.EventEmitter<NodeBase>,
-    private _namespace?: string,
+    namespace?: string,
   ) {
-    super(label);
-    this._conn = config("conn", this.label);
-    this._namespace = _namespace || this._conn.ns;
-    this._extraNode = (this._conn.ns !== this._namespace);
+    super(label, label, namespace);
   }
 
-  get ns(): string {
-    return this._namespace;
-  }
+  // get ns(): string {
+  //   return this._namespace;
+  // }
 
   public getTreeItem(): vscode.TreeItem {
     return {
       collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
-      contextValue: `serverNode${this._extraNode ? "Extra:" + this._namespace : ""}`,
-      label: `${this.label}${this._extraNode ? `[${this._namespace}]` : ""}`,
+      contextValue: `serverNode${this.extraNode ? "Extra:" + this.namespace : ""}`,
+      label: `${this.label}${this.extraNode ? `[${this.namespace}]` : ""}`,
     };
   }
 
@@ -36,16 +30,15 @@ export class WorkspaceNode extends NodeBase {
     const children = [];
     let node: RootNode;
     let data: any;
-    const workspaceFolder = element.label;
 
     data = await this.getDocNames("CLS");
     node = new RootNode("Classes", "dataRootNode:classesRootNode",
-      this.eventEmitter, data, workspaceFolder, this._namespace);
+      this.eventEmitter, data, this.workspaceFolder, this.namespace);
     children.push(node);
 
     data = await this.getDocNames("RTN");
     node = new RootNode("Routines", "dataRootNode:routinesRootNode",
-      this.eventEmitter, data, workspaceFolder, this._namespace);
+      this.eventEmitter, data, this.workspaceFolder, this.namespace);
     children.push(node);
 
     return children;
@@ -73,10 +66,10 @@ export class WorkspaceNode extends NodeBase {
     const generated = 0;
     const filter = "";
 
-    const systemFiles = (this._namespace === "%SYS") ? "1" : "0";
+    const systemFiles = (this.namespace === "%SYS") ? "1" : "0";
 
     const api = new AtelierAPI(this.label);
-    api.setNamespace(this._namespace);
+    api.setNamespace(this.namespace);
     return api
       .actionQuery(sql, [
         spec,
