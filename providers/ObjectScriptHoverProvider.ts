@@ -14,6 +14,9 @@ export class ObjectScriptHoverProvider implements vscode.HoverProvider {
     position: vscode.Position,
     token: vscode.CancellationToken,
   ): vscode.ProviderResult<vscode.Hover> {
+    if (!document.getWordRangeAtPosition(position)) {
+      return;
+    }
     return this.dollars(document, position) || this.commands(document, position);
   }
 
