@@ -542,7 +542,9 @@
     "test": "npm run compile && node ./node_modules/vscode/bin/test",
     "lint": "node ./node_modules/tslint/bin/tslint --project tsconfig.json -t verbose",
     "lint-fix": "tslint --project tsconfig.json -t verbose --fix",
-    "postinstall": "node ./node_modules/vscode/bin/install"
+    "postinstall": "node ./node_modules/vscode/bin/install",
+    "snyk-protect": "snyk protect",
+    "prepare": "npm run snyk-protect"
   },
   "devDependencies": {
     "@types/glob": "^7.1.1",
@@ -563,6 +565,8 @@
     "glob": "^7.1.4",
     "request": "^2.88.0",
     "request-promise": "^4.2.4",
-    "vscode-cache": "^0.3.0"
-  }
+    "vscode-cache": "^0.3.0",
+    "snyk": "^1.189.0"
+  },
+  "snyk": true
 }
