@@ -69,3 +69,12 @@ jobs:
         displayName: 'Run tests'
         env:
           DISPLAY: :10
+      - task: Npm@1
+        displayName: 'Package VSIX'
+        inputs:
+          command: custom
+          verbose: false
+          customCommand: 'run package'
+      - task: PublishPipelineArtifact@1
+        inputs:
+          targetPath: '$(Pipeline.Workspace)/*.vsix'
