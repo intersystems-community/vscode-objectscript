@@ -82,11 +82,14 @@ jobs:
           command: custom
           verbose: false
           customCommand: 'run package'
-      - task: PublishPipelineArtifact@1
+      - task: CopyFiles@2
+        displayName: Stage VSIX for publishing
         inputs:
-          targetPath: '$(Build.SourcesDirectory)'
+          contents: |-
+            *.vsix
+          targetFolder: $(Build.ArtifactStagingDirectory)
       - task: PublishBuildArtifacts@1
+        displayName: Publish VSIX
         inputs:
-          PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-          ArtifactName: 'drop'
-          publishLocation: 'Container'
+          pathToPublish: $(Build.ArtifactStagingDirectory)
+          artifactName: azure-pipelines-vscode
