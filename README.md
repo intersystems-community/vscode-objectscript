@@ -1,3 +1,4 @@
+[![Build Status](https://dev.azure.com/mrdaimor/mrdaimor/_apis/build/status/daimor.vscode-objectscript?branchName=master)](https://dev.azure.com/mrdaimor/mrdaimor/_build/latest?definitionId=1&branchName=master)
 [![Known Vulnerabilities](https://snyk.io/test/github/daimor/vscode-objectscript/badge.svg)](https://snyk.io/test/github/daimor/vscode-objectscript)
 [![Gitter](https://badges.gitter.im/daimor/vscode-objectscript.svg)](https://gitter.im/daimor/vscode-objectscript?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 [![Liberpay](https://img.shields.io/liberapay/receives/daimor.svg?logo=liberapay)](https://liberapay.com/daimor/donate)
