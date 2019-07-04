@@ -1,8 +1,9 @@
 # These are supported funding model platforms
 
-github: [daimor]
-custom: https://www.paypal.me/daimor
+github: daimor
+custom: ['https://www.paypal.me/daimor', 'https://money.yandex.ru/to/410018360447959']
 patreon: daimor
 ko_fi: daimor
-# custom: https://liberapay.com/daimor/donate
-# custom: https://money.yandex.ru/to/410018360447959
+liberapay: daimor
+# open_collective: daimor
+
