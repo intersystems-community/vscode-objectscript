@@ -84,4 +84,4 @@ jobs:
           customCommand: 'run package'
       - task: PublishPipelineArtifact@1
         inputs:
-          targetPath: '$(Pipeline.Workspace)/*.vsix'
+          targetPath: '$(Build.SourcesDirectory)'
