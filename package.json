@@ -566,7 +566,7 @@
     "request": "^2.88.0",
     "request-promise": "^4.2.4",
     "vscode-cache": "^0.3.0",
-    "snyk": "^1.189.0"
+    "snyk": "^1.192.0"
   },
   "snyk": true
 }
