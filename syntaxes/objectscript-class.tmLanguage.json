@@ -1,63 +1,111 @@
 {
   "name": "objectscript_class",
-  "patterns": [{ "include": "#main" }],
+  "patterns": [
+    {
+      "include": "#main"
+    }
+  ],
   "scopeName": "source.objectscript_class",
   "uuid": "",
   "repository": {
     "main": {
       "patterns": [
-        { "include": "#documentation" },
-        { "include": "#comments" },
+        {
+          "include": "#documentation"
+        },
+        {
+          "include": "#comments"
+        },
         {
           "match": "(?i)^(\\Include\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*(?:\\.[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)*)",
           "captures": {
-            "1": { "name": "keyword.objectscript_class" },
-            "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "identifier.objectscript_class" }
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "identifier.objectscript_class"
+            }
           }
         },
         {
           "match": "(?i)^(\\bClass\\b)(\\s)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*(?:\\.[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)*)",
           "captures": {
-            "1": { "name": "keyword.objectscript_class" },
-            "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "entity.name.class.objectscript_class" }
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "entity.name.class.objectscript_class"
+            }
           }
         },
         {
           "match": "(?i)(\\bExtends\\b)(\\s)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*(?:\\.[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)*)",
           "captures": {
-            "1": { "name": "keyword.objectscript_class" },
-            "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "entity.name.class.objectscript_class" }
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "entity.name.class.objectscript_class"
+            }
           }
         },
         {
           "begin": "(?i)(\\bExtends\\b)(\\s+)(\\()",
           "beginCaptures": {
-            "1": { "name": "keyword.objectscript_class" },
-            "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "punctuation.objectscript_class" }
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "punctuation.objectscript_class"
+            }
           },
           "patterns": [
             {
               "match": "(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*(?:\\.[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)*)",
               "captures": {
-                "1": { "name": "entity.name.class.objectscript_class" }
+                "1": {
+                  "name": "entity.name.class.objectscript_class"
+                }
               }
             }
           ],
           "end": "(\\))",
           "endCaptures": {
-            "1": { "name": "punctuation.objectscript_class" }
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
           }
         },
         {
           "begin": "({)",
-          "beginCaptures": { "1": { "name": "punctuation.objectscript_class" } },
-          "patterns": [{ "include": "#class" }],
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#class"
+            }
+          ],
           "end": "(})",
-          "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          }
         }
       ]
     },
@@ -66,135 +114,318 @@
         {
           "match": "(?i)(\\bAs\\b(?:\\slist of)?)(\\s+)(%?[a-z][0-9a-z]*(?:_[0-9a-z]+)*(?:\\.[a-z][0-9a-z]*(?:_[0-9a-z]+)*)*)",
           "captures": {
-            "1": { "name": "keyword.objectscript_class" },
-            "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "entity.name.class.objectscript_class" }
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "entity.name.class.objectscript_class"
+            }
           }
         },
         {
           "begin": "(\\()",
-          "beginCaptures": { "1": { "name": "punctuation.objectscript_class" } },
-          "patterns": [{ "include": "text.objectscript" }],
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          },
+          "patterns": [
+            {
+              "include": "text.objectscript"
+            }
+          ],
           "end": "(\\))",
-          "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          }
         }
       ]
     },
     "class": {
       "patterns": [
-        { "include": "#documentation" },
-        { "include": "#comments" },
+        {
+          "include": "#documentation"
+        },
+        {
+          "include": "#comments"
+        },
         {
           "begin": "(?i)(^\\bIndex\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
           "beginCaptures": {
-            "1": { "name": "keyword.objectscript_class" },
-            "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "entity.other.attribute-name.objectscript_class" }
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "entity.other.attribute-name.objectscript_class"
+            }
           },
-          "patterns": [{ "include": "#index" }],
+          "patterns": [
+            {
+              "include": "#index"
+            }
+          ],
           "end": "(^(?=.{0,1})(?:|))",
-          "endCaptures": { "1": { "name": "whitespace.objectscript_class" } }
+          "endCaptures": {
+            "1": {
+              "name": "whitespace.objectscript_class"
+            }
+          }
         },
         {
           "match": "(?i)^(\\bForeignKey\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
           "captures": {
-            "1": { "name": "keyword.objectscript_class" },
-            "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "entity.other.attribute-name.objectscript_class" }
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "entity.other.attribute-name.objectscript_class"
+            }
           }
         },
         {
           "begin": "(?i)^(\\bParameter\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
           "beginCaptures": {
-            "1": { "name": "keyword.objectscript_class" },
-            "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "entity.other.attribute-name.objectscript_class" }
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "entity.other.attribute-name.objectscript_class"
+            }
           },
-          "patterns": [{ "include": "#parameter" }],
+          "patterns": [
+            {
+              "include": "#parameter"
+            }
+          ],
           "end": "(;)",
-          "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          }
         },
         {
           "match": "(?i)^(\\Projection\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
           "captures": {
-            "1": { "name": "keyword.objectscript_class" },
-            "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "entity.other.attribute-name.objectscript_class" }
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "entity.other.attribute-name.objectscript_class"
+            }
           }
         },
         {
           "begin": "(?i)^(\\bProperty\\b)(\\s+)((?:%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)|(?:\"[^\".]+\"))",
           "beginCaptures": {
-            "1": { "name": "keyword.objectscript_class" },
-            "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "entity.other.attribute-name.objectscript_class" }
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "entity.other.attribute-name.objectscript_class"
+            }
           },
-          "patterns": [{ "include": "#property" }],
+          "patterns": [
+            {
+              "include": "#property"
+            }
+          ],
           "end": "(;)",
-          "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          }
         },
         {
           "match": "(?i)^(\\bRelationship\\b)(\\s+)((?:%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)|(?:\"[^\".]+\"))",
           "captures": {
-            "1": { "name": "keyword.objectscript_class" },
-            "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "entity.other.attribute-name.objectscript_class" }
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "entity.other.attribute-name.objectscript_class"
+            }
           }
         },
         {
           "begin": "(?i)^(\\b(?:Class|Client)?Method\\b)(\\s+)((?:%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)|(?:\"[^\".]+\"))",
           "beginCaptures": {
-            "1": { "name": "keyword.objectscript_class" },
-            "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "entity.name.function.objectscript_class" }
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "entity.name.function.objectscript_class"
+            }
           },
-          "patterns": [{ "include": "#method" }],
+          "patterns": [
+            {
+              "include": "#method"
+            }
+          ],
           "end": "^(})$",
-          "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          }
         },
         {
           "begin": "(?i)^(\\Query\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
           "beginCaptures": {
-            "1": { "name": "keyword.objectscript_class" },
-            "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "entity.name.function.objectscript_class" }
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "entity.name.function.objectscript_class"
+            }
           },
-          "patterns": [{ "include": "#query" }],
+          "patterns": [
+            {
+              "include": "#query"
+            }
+          ],
           "end": "^(})$",
-          "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          }
         },
         {
           "begin": "(?i)^(\\bTrigger\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
           "beginCaptures": {
-            "1": { "name": "keyword.objectscript_class" },
-            "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "entity.name.function.objectscript_class" }
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "entity.name.function.objectscript_class"
+            }
           },
-          "patterns": [{ "include": "#trigger" }],
+          "patterns": [
+            {
+              "include": "#trigger"
+            }
+          ],
           "end": "^(})$",
-          "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          }
+        },
+        {
+          "begin": "(?i)^(\\XData\\b)(\\s+)(Style)",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "identifier.objectscript_class"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#params"
+            },
+            {
+              "include": "#xdataBodyStyle"
+            }
+          ],
+          "end": "^(})$",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          }
         },
         {
           "begin": "(?i)^(\\XData\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
           "beginCaptures": {
-            "1": { "name": "keyword.objectscript_class" },
-            "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "identifier.objectscript_class" }
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "identifier.objectscript_class"
+            }
           },
-          "patterns": [{ "include": "#xdata" }],
+          "patterns": [
+            {
+              "include": "#params"
+            },
+            {
+              "include": "#xml"
+            }
+          ],
           "end": "^(})$",
-          "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          }
         },
         {
           "begin": "(?i)^(\\Storage\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)",
           "beginCaptures": {
-            "1": { "name": "keyword.objectscript_class" },
-            "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "identifier.objectscript_class" }
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "identifier.objectscript_class"
+            }
           },
-          "patterns": [{ "include": "#storage" }],
+          "patterns": [
+            {
+              "include": "#storage"
+            }
+          ],
           "end": "^(})$",
-          "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          }
         }
       ]
     },
@@ -202,8 +433,16 @@
       "patterns": [
         {
           "begin": "^({)",
-          "beginCaptures": { "1": { "name": "punctuation.objectscript_class" } },
-          "patterns": [{ "include": "source.objectscript" }],
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          },
+          "patterns": [
+            {
+              "include": "source.objectscript"
+            }
+          ],
           "contentName": "meta.embedded.block.objectscript",
           "end": "^(?=})",
           "endCaptures": []
@@ -214,22 +453,41 @@
       "patterns": [
         {
           "begin": "(/\\*)",
-          "beginCaptures": { "1": { "name": "comment.objectscript_class" } },
+          "beginCaptures": {
+            "1": {
+              "name": "comment.objectscript_class"
+            }
+          },
           "contentName": "comment.objectscript_class",
           "end": "(.*?\\*/)",
-          "endCaptures": { "1": { "name": "comment.objectscript_class" } }
+          "endCaptures": {
+            "1": {
+              "name": "comment.objectscript_class"
+            }
+          }
         },
-        { "match": "(^\\s*// .*)", "name": "comment.objectscript_class" }
+        {
+          "match": "(^\\s*// .*)",
+          "name": "comment.objectscript_class"
+        }
       ]
     },
     "documentation": {
       "patterns": [
         {
           "begin": "(^/// .*)",
-          "beginCaptures": { "1": { "name": "comment.block.documentation.objectscript_class" } },
+          "beginCaptures": {
+            "1": {
+              "name": "comment.block.documentation.objectscript_class"
+            }
+          },
           "contentName": "comment.block.documentation.objectscript_class",
           "end": "(^(?=.{0,1})(?:|))",
-          "endCaptures": { "1": { "name": "whitespace.objectscript_class" } }
+          "endCaptures": {
+            "1": {
+              "name": "whitespace.objectscript_class"
+            }
+          }
         }
       ]
     },
@@ -237,17 +495,29 @@
       "patterns": [
         {
           "begin": "(\\()",
-          "beginCaptures": { "1": { "name": "punctuation.objectscript_class" } },
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          },
           "contentName": "text.objectscript_class",
           "end": "(\\))",
-          "endCaptures": { "1": { "name": "punctuation.objectscript_class" } },
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          },
           "patterns": [
-            { "include": "#as" },
+            {
+              "include": "#as"
+            },
             {
               "match": "[a-zA-Z][a-zA-Z0-9]*",
               "name": "variable.name.objectscrip"
             },
-            { "include": "source.objectscript#constants" }
+            {
+              "include": "source.objectscript#constants"
+            }
           ]
         }
       ]
@@ -257,34 +527,74 @@
         {
           "match": "(\\bOn\\b)(\\s+)(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*(?:\\.[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)*)",
           "captures": {
-            "1": { "name": "keyword.objectscript_class" },
-            "2": { "name": "whitespace.objectscript_class" },
-            "3": { "name": "entity.other.attribute-name.objectscript_class" }
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "entity.other.attribute-name.objectscript_class"
+            }
           }
         }
       ]
     },
     "method": {
       "patterns": [
-        { "include": "#formal_spec" },
-        { "include": "#as" },
-        { "include": "#params" },
-        { "include": "#code" }
+        {
+          "include": "#formal_spec"
+        },
+        {
+          "include": "#as"
+        },
+        {
+          "include": "#params"
+        },
+        {
+          "include": "#code"
+        }
       ]
     },
     "params": {
       "patterns": [
         {
           "begin": "(\\[)",
-          "beginCaptures": { "1": { "name": "punctuation.objectscript_class" } },
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          },
           "contentName": "text.objectscript_class",
           "end": "(\\])",
-          "endCaptures": { "1": { "name": "punctuation.objectscript_class" } }
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          }
         }
       ]
     },
-    "property": { "patterns": [{ "include": "#as" }, { "include": "#params" }] },
-    "parameter": { "patterns": [{ "include": "#as" }, { "include": "#parameter_value" }] },
+    "property": {
+      "patterns": [
+        {
+          "include": "#as"
+        },
+        {
+          "include": "#params"
+        }
+      ]
+    },
+    "parameter": {
+      "patterns": [
+        {
+          "include": "#as"
+        },
+        {
+          "include": "#parameter_value"
+        }
+      ]
+    },
     "parameter_value": {
       "patterns": [
         {
@@ -293,35 +603,72 @@
       ]
     },
     "query": {
-      "patterns": [{ "include": "#formal_spec" }, { "include": "#as" }, { "include": "#params" }, { "include": "#sql" }]
+      "patterns": [
+        {
+          "include": "#formal_spec"
+        },
+        {
+          "include": "#as"
+        },
+        {
+          "include": "#params"
+        },
+        {
+          "include": "#sql"
+        }
+      ]
     },
     "trigger": {
-      "patterns": [{ "include": "#params" }, { "include": "#code" }]
+      "patterns": [
+        {
+          "include": "#params"
+        },
+        {
+          "include": "#code"
+        }
+      ]
     },
     "sql": {
       "patterns": [
         {
           "begin": "^({)",
-          "beginCaptures": { "1": { "name": "punctuation.objectscript_class" } },
-          "patterns": [{ "include": "source.sql" }],
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          },
+          "patterns": [
+            {
+              "include": "source.sql"
+            }
+          ],
           "contentName": "meta.embedded.block.sql",
           "end": "^(?=})",
           "endCaptures": []
         }
       ]
     },
-    "storage": { "patterns": [{ "include": "#params" }, { "include": "#xml" }] },
-    "xdata": { "patterns": [{ "include": "#params" }, { "include": "#xdataStyle" }] },
-    "xdataStyle": {
+    "storage": {
+      "patterns": [
+        {
+          "include": "#params"
+        },
+        {
+          "include": "#xml"
+        }
+      ]
+    },
+    "xdataBodyStyle": {
       "begin": "^({)",
-      "beginCaptures": { "1": { "name": "punctuation.objectscript_class" } },
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.objectscript_class"
+        }
+      },
       "end": "^(?=})",
       "patterns": [
         {
-          "include": "text.xml"
-        },
-        {
-          "include": "source.css"
+          "include": "text.html.derivative"
         }
       ]
     },
@@ -329,8 +676,16 @@
       "patterns": [
         {
           "begin": "^({)",
-          "beginCaptures": { "1": { "name": "punctuation.objectscript_class" } },
-          "patterns": [{ "include": "text.xml" }],
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          },
+          "patterns": [
+            {
+              "include": "text.xml"
+            }
+          ],
           "contentName": "text.xml",
           "end": "^(?=})",
           "endCaptures": []
