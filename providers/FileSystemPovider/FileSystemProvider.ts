@@ -8,7 +8,7 @@ export type Entry = File | Directory;
 
 export class FileSystemProvider implements vscode.FileSystemProvider {
 
-  public root = new Directory("");
+  public root = new Directory("", "");
 
   public readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]>;
 
@@ -34,8 +34,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       .then((data) => data.result.content || [])
       .then((data) => data.map((item) => {
         const name = item.Name;
+        const fullName = folder === "" ? name : folder + "/" + name;
         if (item.IsDirectory.length) {
-          parent.entries.set(name, new Directory(name));
+          parent.entries.set(name, new Directory(name, fullName));
           return [name, vscode.FileType.Directory];
         } else {
           return [name, vscode.FileType.File];
@@ -51,7 +52,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
     return this._lookupAsDirectory(dirname)
       .then((parent) => {
-        const entry = new Directory(basename);
+        const entry = new Directory(basename, uri.path);
         parent.entries.set(entry.name, entry);
         parent.mtime = Date.now();
         parent.size += 1;
@@ -110,10 +111,18 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       let child: Entry | undefined;
       if (entry instanceof Directory) {
         child = entry.entries.get(part);
+        if (!part.includes(".")) {
+          const fullName = entry.name === "" ? part : entry.fullName + "/" + part;
+          child = new Directory(part, fullName);
+          entry.entries.set(part, child);
+        }
       }
       if (!child) {
-        return this._lookupAsFile(uri);
-        // throw vscode.FileSystemError.FileNotFound(uri);
+        if (part.includes(".")) {
+          return this._lookupAsFile(uri);
+        } else {
+          throw vscode.FileSystemError.FileNotFound(uri);
+        }
       }
       entry = child;
     }
@@ -149,7 +158,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         }),
       )
       .catch((error) => {
-        throw vscode.FileSystemError.FileNotFound();
+        throw vscode.FileSystemError.FileNotFound(uri);
       });
   }
 
