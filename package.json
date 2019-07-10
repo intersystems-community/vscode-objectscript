@@ -532,7 +532,30 @@
           "title": "ObjectScript"
         }
       ]
-    }
+    },
+    "breakpoints": [
+      {
+        "language": "objectscript"
+      },
+      {
+        "language": "objectscript-class"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "objectscript",
+        "label": "ObjectScript Debug",
+        "program": "./out/debug/index.js",
+        "runtime": "node",
+        "initialConfigurations": [
+          {
+            "type": "objectscript",
+            "request": "launch",
+            "name": "XDebug"
+          }
+        ]
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -552,6 +575,7 @@
     "@types/node": "^12.0.7",
     "@types/request": "^2.48.1",
     "@types/request-promise": "^4.1.44",
+    "@types/xmldom": "^0.1.29",
     "eslint": "^5.16.0",
     "extend": "^3.0.2",
     "tape": "^4.10.2",
@@ -559,14 +583,19 @@
     "tslint-microsoft-contrib": "^6.2.0",
     "typescript": "^3.5.1",
     "vsce": "^1.62.0",
-    "vscode": "^1.1.34"
+    "vscode": "^1.1.34",
+    "vscode-debugadapter-testsupport": "^1.35.0"
   },
   "dependencies": {
     "glob": "^7.1.4",
+    "iconv-lite": "^0.5.0",
     "request": "^2.88.0",
     "request-promise": "^4.2.4",
     "vscode-cache": "^0.3.0",
-    "snyk": "^1.192.0"
+    "snyk": "^1.192.0",
+    "vscode-debugadapter": "^1.35.0",
+    "vscode-debugprotocol": "^1.35.0",
+    "xmldom": "^0.1.27"
   },
   "snyk": true
 }
