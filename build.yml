@@ -1,9 +1,4 @@
 trigger:
-  branches:
-    include:
-      - master
-  tags:
-    include: ['*']
 
 jobs:
   - job: Windows
@@ -93,11 +88,13 @@ jobs:
         inputs:
           pathToPublish: $(Build.ArtifactStagingDirectory)
           artifactName: azure-pipelines-vscode
-      - task: UniversalPackages@0
+      - task: GitHubRelease@0
         inputs:
-          command: 'publish'
-          vstsFeed: 'b5e21e33-9745-400e-8ad9-e9df6cf7c119'
-          publishDirectory: '$(Build.ArtifactStagingDirectory)'
-          feedsToUsePublish: 'internal'
-          vstsFeedPublish: 'b5e21e33-9745-400e-8ad9-e9df6cf7c119'
-          versionOption: 'patch'
+          gitHubConnection: 'github'
+          repositoryName: '$(Build.Repository.Name)'
+          action: 'create'
+          target: '$(Build.SourceVersion)'
+          tagSource: 'manual'
+          tag: '${Build.BuildNumber}'
+          releaseNotesSource: 'input'
+          isPreRelease: true
