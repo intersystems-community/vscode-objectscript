@@ -93,3 +93,11 @@ jobs:
         inputs:
           pathToPublish: $(Build.ArtifactStagingDirectory)
           artifactName: azure-pipelines-vscode
+      - task: UniversalPackages@0
+        inputs:
+          command: 'publish'
+          vstsFeed: 'b5e21e33-9745-400e-8ad9-e9df6cf7c119'
+          publishDirectory: '$(Build.ArtifactStagingDirectory)'
+          feedsToUsePublish: 'internal'
+          vstsFeedPublish: 'b5e21e33-9745-400e-8ad9-e9df6cf7c119'
+          versionOption: 'patch'
