@@ -3,7 +3,8 @@ trigger:
     include:
       - master
   tags:
-    include: ['*']
+    include: 
+      - v*
     
 jobs:
   - job: Windows
@@ -100,6 +101,6 @@ jobs:
           action: 'create'
           target: '$(Build.SourceVersion)'
           tagSource: 'manual'
-          tag: '$(Build.BuildId)'
+          tag: '$(Build.BuildNumber)'
           releaseNotesSource: 'input'
           isPreRelease: true
