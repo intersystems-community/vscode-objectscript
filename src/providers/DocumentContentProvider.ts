@@ -29,7 +29,10 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     if (found) {
       return vscode.Uri.file(found);
     }
-    const fileName = name.split(".").slice(0, -1).join("/");
+    const fileName = name
+      .split(".")
+      .slice(0, -1)
+      .join("/");
     const fileExt = name.split(".").pop();
     name = fileName + "." + fileExt;
     let uri = vscode.Uri.file(name).with({

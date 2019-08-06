@@ -28,8 +28,13 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
   program: string;
   /** Automatically stop target after launch. If not specified, target does not stop. */
   stopOnEntry?: boolean;
-  /** enable logging the Debug Adapter Protocol */
-  trace?: boolean;
+}
+
+interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
+  /** The process id to attach to. */
+  processId: string;
+  /** Automatically stop target after connect. If not specified, target does not stop. */
+  stopOnEntry?: boolean;
 }
 
 /** converts a local path from VS Code to a server-side XDebug file URI with respect to source root settings */
@@ -95,10 +100,12 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     args: DebugProtocol.InitializeRequestArguments
   ): Promise<void> {
     // build and return the capabilities of this debug adapter:
-    response.body = response.body || {
-      supportsConfigurationDoneRequest: false,
+    response.body = {
+      ...response.body,
+      supportsConfigurationDoneRequest: true,
       supportsEvaluateForHovers: true,
-      supportsSetVariable: false, // TODO:
+      supportsSetVariable: false, // TODO
+      supportsConditionalBreakpoints: false, // TODO
       supportsStepBack: false,
     };
 
@@ -120,6 +127,11 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
     await this._connection.waitForInitPacket();
 
+    await this._connection.sendFeatureSetCommand("max_data", 8192);
+    await this._connection.sendFeatureSetCommand("max_children", 32);
+    await this._connection.sendFeatureSetCommand("max_depth", 2);
+    await this._connection.sendFeatureSetCommand("notify_ok", 1);
+
     this.sendResponse(response);
 
     this.sendEvent(new InitializedEvent());
@@ -130,13 +142,57 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
     const debugTarget = `${this._namespace}:${args.program}`;
     await this._connection.sendFeatureSetCommand("debug_target", debugTarget);
-    await this._connection.sendFeatureSetCommand("max_data", 1000);
 
     this._debugTargetSet.notify();
 
-    // const xdebugResponse = await this._connection.sendStepIntoCommand();
+    this.sendResponse(response);
+  }
+
+  protected async attachRequest(response: DebugProtocol.AttachResponse, args: AttachRequestArguments): Promise<void> {
+    const debugTarget = `PID:${args.processId}`;
+    await this._connection.sendFeatureSetCommand("debug_target", debugTarget);
+    this._debugTargetSet.notify();
+
+    this.sendResponse(response);
+  }
+
+  protected async pauseRequest(
+    response: DebugProtocol.PauseResponse,
+    args: DebugProtocol.PauseArguments
+  ): Promise<void> {
+    const xdebugResponse = await this._connection.sendBreakCommand();
+    await this._checkStatus(xdebugResponse);
+
+    this.sendResponse(response);
+  }
+
+  protected async configurationDoneRequest(
+    response: DebugProtocol.ConfigurationDoneResponse,
+    args: DebugProtocol.ConfigurationDoneArguments
+  ): Promise<void> {
     const xdebugResponse = await this._connection.sendRunCommand();
     await this._checkStatus(xdebugResponse);
+
+    this.sendResponse(response);
+  }
+
+  protected async disconnectRequest(
+    response: DebugProtocol.DisconnectResponse,
+    args: DebugProtocol.DisconnectArguments
+  ): Promise<void> {
+    if (this._connection) {
+      const stopSupported = (await this._connection.sendFeatureGetCommand("stop")).supported;
+      if (stopSupported) {
+        const xdebugResponse = await this._connection.sendStopCommand();
+        await this._checkStatus(xdebugResponse);
+      }
+
+      const detachSupported = (await this._connection.sendFeatureGetCommand("detach")).supported;
+      if (detachSupported) {
+        const xdebugResponse = await this._connection.sendDetachCommand();
+        await this._checkStatus(xdebugResponse);
+      }
+    }
 
     this.sendResponse(response);
   }
@@ -145,8 +201,16 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     response: DebugProtocol.SetBreakpointsResponse,
     args: DebugProtocol.SetBreakpointsArguments
   ): Promise<void> {
+    await this._debugTargetSet.wait(1000);
+
     const filePath = args.source.path;
     const fileUri = await convertClientPathToDebugger(args.source.path, this._namespace);
+
+    // const currentList = (await this._connection.sendBreakpointListCommand()).breakpoints.filter(breakpoint => {
+    //   if (breakpoint instanceof xdebug.LineBreakpoint) {
+    //     return breakpoint.fileUri === fileUri;
+    //   }
+    // });
 
     let xdebugBreakpoints: (xdebug.ConditionalBreakpoint | xdebug.ClassLineBreakpoint | xdebug.LineBreakpoint)[] = [];
     xdebugBreakpoints = await Promise.all(
@@ -167,7 +231,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
             }
           });
         } else {
-          return new xdebug.LineBreakpoint(fileUri, line - 1);
+          return new xdebug.LineBreakpoint(fileUri, line);
         }
       })
     );
@@ -374,14 +438,16 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     response: DebugProtocol.ContinueResponse,
     args: DebugProtocol.ContinueArguments
   ): Promise<void> {
+    this.sendResponse(response);
+
     const xdebugResponse = await this._connection.sendRunCommand();
     this._checkStatus(xdebugResponse);
-    this.sendResponse(response);
   }
 
   protected async nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): Promise<void> {
     const xdebugResponse = await this._connection.sendStepOverCommand();
     this._checkStatus(xdebugResponse);
+
     this.sendResponse(response);
   }
 
@@ -391,6 +457,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
   ): Promise<void> {
     const xdebugResponse = await this._connection.sendStepIntoCommand();
     this._checkStatus(xdebugResponse);
+
     this.sendResponse(response);
   }
 
@@ -400,6 +467,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
   ): Promise<void> {
     const xdebugResponse = await this._connection.sendStepOutCommand();
     this._checkStatus(xdebugResponse);
+
     this.sendResponse(response);
   }
 

@@ -4,6 +4,7 @@ export const OBJECTSCRIPT_FILE_SCHEMA = "objectscript";
 export const OBJECTSCRIPTXML_FILE_SCHEMA = "objectscriptxml";
 export const FILESYSTEM_SCHEMA = "isfs";
 export const schemas = [OBJECTSCRIPT_FILE_SCHEMA, OBJECTSCRIPTXML_FILE_SCHEMA, FILESYSTEM_SCHEMA];
+import { AtelierJob } from "./models";
 
 import { importAndCompile, importFolder as importFileOrFolder, namespaceCompile } from "./commands/compile";
 import { deleteItem } from "./commands/delete";
@@ -168,6 +169,31 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("vscode-objectscript.compileAllWithFlags", () => namespaceCompile(true)),
     vscode.commands.registerCommand("vscode-objectscript.compileFolder", importFileOrFolder),
     vscode.commands.registerCommand("vscode-objectscript.export", exportAll),
+    vscode.commands.registerCommand("vscode-objectscript.pickProcess", async config => {
+      const system = config.system;
+      const api = new AtelierAPI();
+      const convert = data =>
+        data.result.content.map(
+          (process: AtelierJob): vscode.QuickPickItem => ({
+            label: process.pid.toString(),
+            description: `Namespace: ${process.namespace}, Routine: ${process.routine}`,
+          })
+        );
+      const list = await api.getJobs(system).then(convert);
+      if (!list.length) {
+        vscode.window.showInformationMessage("No process found to attach to", {
+          modal: true,
+        });
+        return;
+      }
+      return vscode.window
+        .showQuickPick<vscode.QuickPickItem>(list, {
+          placeHolder: "Pick the process to attach to",
+        })
+        .then(value => {
+          if (value) return value.label;
+        });
+    }),
     vscode.commands.registerCommand("vscode-objectscript.viewOthers", viewOthers),
     vscode.commands.registerCommand("vscode-objectscript.subclass", subclass),
     vscode.commands.registerCommand("vscode-objectscript.superclass", superclass),

@@ -7,7 +7,6 @@ import { File } from "./File";
 export type Entry = File | Directory;
 
 export class FileSystemProvider implements vscode.FileSystemProvider {
-
   public root = new Directory("", "");
 
   public readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]>;
@@ -30,19 +29,22 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const sql = `CALL %Library.RoutineMgr_StudioOpenDialog(?,,,,,,0)`;
     const folder = uri.path === "/" ? "/" : uri.path.replace(/\//g, ".") + "/";
     const spec = folder.slice(1) + "*.cls,*.int";
-    return api.actionQuery(sql, [spec])
-      .then((data) => data.result.content || [])
-      .then((data) => data.map((item) => {
-        const name = item.Name;
-        const fullName = folder === "" ? name : folder + "/" + name;
-        if (item.IsDirectory.length) {
-          parent.entries.set(name, new Directory(name, fullName));
-          return [name, vscode.FileType.Directory];
-        } else {
-          return [name, vscode.FileType.File];
-        }
-      }))
-      .catch((error) => {
+    return api
+      .actionQuery(sql, [spec])
+      .then(data => data.result.content || [])
+      .then(data =>
+        data.map(item => {
+          const name = item.Name;
+          const fullName = folder === "" ? name : folder + "/" + name;
+          if (item.IsDirectory.length) {
+            parent.entries.set(name, new Directory(name, fullName));
+            return [name, vscode.FileType.Directory];
+          } else {
+            return [name, vscode.FileType.File];
+          }
+        })
+      )
+      .catch(error => {
         console.error(error);
       });
   }
@@ -50,18 +52,16 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   public createDirectory(uri: vscode.Uri): void | Thenable<void> {
     const basename = path.posix.basename(uri.path);
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
-    return this._lookupAsDirectory(dirname)
-      .then((parent) => {
-        const entry = new Directory(basename, uri.path);
-        parent.entries.set(entry.name, entry);
-        parent.mtime = Date.now();
-        parent.size += 1;
-        this._fireSoon(
-          { type: vscode.FileChangeType.Changed, uri: dirname },
-          { type: vscode.FileChangeType.Created, uri },
-        );
-      });
-
+    return this._lookupAsDirectory(dirname).then(parent => {
+      const entry = new Directory(basename, uri.path);
+      parent.entries.set(entry.name, entry);
+      parent.mtime = Date.now();
+      parent.size += 1;
+      this._fireSoon(
+        { type: vscode.FileChangeType.Changed, uri: dirname },
+        { type: vscode.FileChangeType.Created, uri }
+      );
+    });
   }
 
   public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
@@ -162,7 +162,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           return entry;
         })
       )
-      .catch((error) => {
+      .catch(error => {
         throw vscode.FileSystemError.FileNotFound(uri);
       });
   }

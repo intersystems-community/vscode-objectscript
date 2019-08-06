@@ -302,4 +302,11 @@ export class AtelierAPI {
       includes,
     });
   }
+  // v1+
+  public getJobs(system: boolean) {
+    const params = {
+      system,
+    };
+    return this.request(1, "GET", `%SYS/jobs`, null, params);
+  }
 }

@@ -116,7 +116,7 @@ export class StatusResponse extends Response {
   }
 }
 
-export type BreakpointType = "line" | "call" | "return" | "exception" | "conditional" | "watch";
+export type BreakpointType = "line" | "return" | "conditional" | "watch";
 export type BreakpointState = "enabled" | "disabled";
 
 /** Abstract base class for all breakpoints */
@@ -130,9 +130,6 @@ export abstract class Breakpoint {
       case "conditional":
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         return new ConditionalBreakpoint(breakpointNode, connection);
-      case "call":
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        return new CallBreakpoint(breakpointNode, connection);
       default:
         throw new Error(`Invalid type ${breakpointNode.getAttribute("type")}`);
     }
@@ -159,6 +156,7 @@ export abstract class Breakpoint {
       this.state = breakpointNode.getAttribute("state") as BreakpointState;
     } else {
       this.type = rest[0];
+      this.state = "enabled";
     }
   }
   /** Removes the breakpoint by sending a breakpoint_remove command */
@@ -214,39 +212,13 @@ export class ClassLineBreakpoint extends LineBreakpoint {
   }
 }
 
-/** class for call breakpoints. Returned from a breakpoint_list or passed to sendBreakpointSetCommand */
-export class CallBreakpoint extends Breakpoint {
-  /** the function to break on */
-  public fn: string;
-  /** optional expression that must evaluate to true */
-  public expression: string;
-  /** constructs a call breakpoint from an XML node */
-  public constructor(breakpointNode: Element, connection: Connection);
-  /** contructs a call breakpoint for passing to sendSetBreakpointCommand */
-  public constructor(fn: string, expression?: string);
-  public constructor(...rest) {
-    if (typeof rest[0] === "object") {
-      const breakpointNode: Element = rest[0];
-      const connection: Connection = rest[1];
-      super(breakpointNode, connection);
-      this.fn = breakpointNode.getAttribute("function");
-      this.expression = breakpointNode.getAttribute("expression"); // Base64 encoded?
-    } else {
-      // construct from arguments
-      super("call");
-      this.fn = rest[0];
-      this.expression = rest[1];
-    }
-  }
-}
-
 /** class for conditional breakpoints. Returned from a breakpoint_list or passed to sendBreakpointSetCommand */
 export class ConditionalBreakpoint extends Breakpoint {
   /** File URI */
   public fileUri: string;
   /** Line (optional) */
   public line: number;
-  /** The PHP expression under which to break on */
+  /** The expression under which to break on */
   public expression: string;
   /** Constructs a breakpoint object from an XML node from a XDebug response */
   public constructor(breakpointNode: Element, connection: Connection);
@@ -543,6 +515,18 @@ export class FeatureSetResponse extends Response {
   }
 }
 
+export class FeatureGetResponse extends Response {
+  /** the feature that was get */
+  public feature: string;
+  /** supported flag for the feature */
+  public supported: boolean;
+  public constructor(document: XMLDocument, connection: Connection) {
+    super(document, connection);
+    this.feature = document.documentElement.getAttribute("feature");
+    this.supported = document.documentElement.getAttribute("supported") === "1";
+  }
+}
+
 /** A command inside the queue */
 interface Command {
   /** The name of the command, like breakpoint_list */
@@ -555,7 +539,7 @@ interface Command {
   resolveFn: (response: XMLDocument) => any;
   /** callback that gets called if an error happened while parsing the response */
   rejectFn: (error?: Error) => any;
-  /** whether command results in PHP code being executed or not */
+  /** whether command results in code being executed or not */
   isExecuteCommand: boolean;
 }
 
@@ -564,7 +548,7 @@ interface Command {
  */
 export class Connection extends DbgpConnection {
   /**
-   * Whether a command was started that executes PHP, which means the connection will be blocked from
+   * Whether a command was started that executes code, which means the connection will be blocked from
    * running any additional commands until the execution gets to the next stopping point or exits.
    */
   public get isPendingExecuteCommand(): boolean {
@@ -682,8 +666,8 @@ export class Connection extends DbgpConnection {
    *  - notify_ok
    * or any command.
    */
-  public async sendFeatureGetCommand(feature: string): Promise<XMLDocument> {
-    return await this._enqueueCommand("feature_get", `-n ${feature}`);
+  public async sendFeatureGetCommand(feature: string): Promise<FeatureGetResponse> {
+    return new FeatureGetResponse(await this._enqueueCommand("feature_get", `-n ${feature}`), this);
   }
 
   /**
@@ -712,8 +696,8 @@ export class Connection extends DbgpConnection {
   public async sendBreakpointSetCommand(breakpoint: Breakpoint): Promise<BreakpointSetResponse> {
     let args = `-t ${breakpoint.type}`;
     let data: string | undefined;
+    args += ` -s ${breakpoint.state}`;
     if (breakpoint instanceof LineBreakpoint) {
-      args += ` -s enabled`;
       args += ` -f ${breakpoint.fileUri}`;
       if (breakpoint instanceof ClassLineBreakpoint) {
         args += ` -m ${breakpoint.method} -n ${breakpoint.methodOffset}`;
@@ -725,9 +709,6 @@ export class Connection extends DbgpConnection {
       if (typeof breakpoint.line === "number") {
         args += ` -n ${breakpoint.line}`;
       }
-      data = breakpoint.expression;
-    } else if (breakpoint instanceof CallBreakpoint) {
-      args += ` -m ${breakpoint.fn}`;
       data = breakpoint.expression;
     }
     return new BreakpointSetResponse(await this._enqueueCommand("breakpoint_set", args, data), this);
@@ -767,7 +748,17 @@ export class Connection extends DbgpConnection {
 
   /** sends a stop command */
   public async sendStopCommand(): Promise<StatusResponse> {
-    return new StatusResponse(await this._enqueueCommand("stop"), this);
+    return new StatusResponse(await this._immediateCommand("stop"), this);
+  }
+
+  /** sends an detach command */
+  public async sendDetachCommand(): Promise<StatusResponse> {
+    return new StatusResponse(await this._immediateCommand("detach"), this);
+  }
+
+  /** sends an break command */
+  public async sendBreakCommand(): Promise<StatusResponse> {
+    return new StatusResponse(await this._immediateCommand("break"), this);
   }
 
   // ------------------------------ stack ----------------------------------------
@@ -835,8 +826,21 @@ export class Connection extends DbgpConnection {
     });
   }
 
+  private _immediateCommand(name: string, args?: string, data?: string): Promise<XMLDocument> {
+    return new Promise((resolveFn, rejectFn): void => {
+      this._executeCommand({
+        name,
+        args,
+        data,
+        resolveFn,
+        rejectFn,
+        isExecuteCommand: false,
+      });
+    });
+  }
+
   /**
-   * Pushes a new execute command (one that results in executing PHP code)
+   * Pushes a new execute command (one that results in executing code)
    * to the queue that will be executed after all the previous
    * commands have finished and we received a response.
    * If the queue is empty AND there are no pending transactions

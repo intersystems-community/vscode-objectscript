@@ -559,7 +559,25 @@
                 "description": "Absolute path to the program."
               }
             }
+          },
+          "attach": {
+            "required": [],
+            "properties": {
+              "processId": {
+                "type": ["number", "string"],
+                "description": "ID of process to attach to.",
+                "default": "${command:PickProcess}"
+              },
+              "system": {
+                "type": "boolean",
+                "description": "Enable to attach to system process.",
+                "default": false
+              }
+            }
           }
+        },
+        "variables": {
+          "PickProcess": "vscode-objectscript.pickProcess"
         },
         "initialConfigurations": [
           {
