@@ -100,6 +100,6 @@ jobs:
           action: 'create'
           target: '$(Build.SourceVersion)'
           tagSource: 'manual'
-          tag: '${Build.BuildNumber}'
+          tag: '$(Build.BuildId)'
           releaseNotesSource: 'input'
           isPreRelease: true
