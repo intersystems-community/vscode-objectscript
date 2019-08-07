@@ -205,12 +205,19 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
     const filePath = args.source.path;
     const fileUri = await convertClientPathToDebugger(args.source.path, this._namespace);
+    const [, fileName] = fileUri.match(/\|([^|]+)$/);
 
-    // const currentList = (await this._connection.sendBreakpointListCommand()).breakpoints.filter(breakpoint => {
-    //   if (breakpoint instanceof xdebug.LineBreakpoint) {
-    //     return breakpoint.fileUri === fileUri;
-    //   }
-    // });
+    const currentList = await this._connection.sendBreakpointListCommand();
+    currentList.breakpoints
+      .filter(breakpoint => {
+        if (breakpoint instanceof xdebug.LineBreakpoint) {
+          return breakpoint.fileUri === fileName;
+        }
+        return false;
+      })
+      .map(breakpoint => {
+        this._connection.sendBreakpointRemoveCommand(breakpoint);
+      });
 
     let xdebugBreakpoints: (xdebug.ConditionalBreakpoint | xdebug.ClassLineBreakpoint | xdebug.LineBreakpoint)[] = [];
     xdebugBreakpoints = await Promise.all(
@@ -230,6 +237,8 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
               }
             }
           });
+        } else if (filePath.endsWith("mac") || filePath.endsWith("int")) {
+          return new xdebug.RoutineLineBreakpoint(fileUri, line, "", line - 1);
         } else {
           return new xdebug.LineBreakpoint(fileUri, line);
         }
@@ -294,11 +303,12 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
               }
             });
           }
+          const place = `${stackFrame.method}+${stackFrame.methodOffset}`;
           const stackFrameId = this._stackFrameIdCounter++;
           this._stackFrames.set(stackFrameId, stackFrame);
           return {
             id: stackFrameId,
-            name: source.name,
+            name: place,
             source,
             line,
             column: 1,

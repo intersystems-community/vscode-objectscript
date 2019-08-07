@@ -212,6 +212,27 @@ export class ClassLineBreakpoint extends LineBreakpoint {
   }
 }
 
+export class RoutineLineBreakpoint extends LineBreakpoint {
+  public method: string;
+  public methodOffset: number;
+
+  /** contructs a line breakpoint for passing to sendSetBreakpointCommand */
+  public constructor(fileUri: string, line: number, method: string, methodOffset: number);
+  public constructor(...rest) {
+    if (typeof rest[0] === "object") {
+      const breakpointNode: Element = rest[0];
+      const connection: Connection = rest[1];
+      super(breakpointNode, connection);
+      this.line = parseInt(breakpointNode.getAttribute("lineno"), 10);
+      this.fileUri = breakpointNode.getAttribute("filename");
+    } else {
+      super(rest[0], rest[1]);
+      this.method = rest[2];
+      this.methodOffset = rest[3];
+    }
+  }
+}
+
 /** class for conditional breakpoints. Returned from a breakpoint_list or passed to sendBreakpointSetCommand */
 export class ConditionalBreakpoint extends Breakpoint {
   /** File URI */
@@ -701,6 +722,8 @@ export class Connection extends DbgpConnection {
       args += ` -f ${breakpoint.fileUri}`;
       if (breakpoint instanceof ClassLineBreakpoint) {
         args += ` -m ${breakpoint.method} -n ${breakpoint.methodOffset}`;
+      } else if (breakpoint instanceof RoutineLineBreakpoint) {
+        args += ` -n ${breakpoint.methodOffset}`;
       } else {
         args += ` -n ${breakpoint.line}`;
       }
