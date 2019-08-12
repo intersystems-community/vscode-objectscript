@@ -8,7 +8,8 @@
     "Programming Languages",
     "Other",
     "Snippets",
-    "Debuggers"
+    "Debuggers",
+    "Formatters"
   ],
   "keywords": [
     "objectscript",
@@ -37,8 +38,9 @@
     }
   ],
   "engines": {
-    "vscode": "^1.31.0"
+    "vscode": "^1.37.0"
   },
+  "enableProposedApi": true,
   "activationEvents": [
     "onDebug",
     "workspaceContains:*.cls",
@@ -194,8 +196,7 @@
         "extensions": [
           ".mac",
           ".int"
-        ],
-        "configuration": "./language-configuration.json"
+        ]
       },
       {
         "id": "objectscript-class",
@@ -204,8 +205,7 @@
         ],
         "extensions": [
           ".cls"
-        ],
-        "configuration": "./language-configuration-class.jsonc"
+        ]
       },
       {
         "id": "objectscript-macros",
@@ -214,8 +214,7 @@
         ],
         "extensions": [
           ".inc"
-        ],
-        "configuration": "./language-configuration.json"
+        ]
       },
       {
         "id": "objectscript-csp",
@@ -515,6 +514,28 @@
           "description": "Max Export Connections (0 = Unlimited)",
           "type": "number",
           "default": 0
+        },
+        "objectscript.format": {
+          "type": "object",
+          "description": "Formatting settings"
+        },
+        "objectscript.format.commandCase": {
+          "anyOf": [
+            "word",
+            "upper",
+            "lower"
+          ],
+          "default": "word",
+          "description": "Case for commands"
+        },
+        "objectscript.format.functionCase": {
+          "anyOf": [
+            "word",
+            "upper",
+            "lower"
+          ],
+          "default": "word",
+          "description": "Case for system functions/variables"
         }
       }
     },
@@ -564,7 +585,10 @@
             "required": [],
             "properties": {
               "processId": {
-                "type": ["number", "string"],
+                "type": [
+                  "number",
+                  "string"
+                ],
                 "description": "ID of process to attach to.",
                 "default": "${command:PickProcess}"
               },
@@ -619,6 +643,7 @@
     "@types/node": "^12.0.7",
     "@types/request": "^2.48.1",
     "@types/request-promise": "^4.1.44",
+    "@types/vscode": "^1.37.0",
     "@types/ws": "^6.0.1",
     "@types/xmldom": "^0.1.29",
     "@typescript-eslint/eslint-plugin": "^1.13.0",
@@ -636,9 +661,9 @@
     "snyk": "^1.206.0",
     "tape": "^4.10.2",
     "typescript": "^3.5.2",
-    "vsce": "^1.62.0",
-    "vscode": "^1.1.34",
-    "vscode-debugadapter-testsupport": "^1.35.0"
+    "vsce": "^1.66.0",
+    "vscode-debugadapter-testsupport": "^1.35.0",
+    "vscode-test": "^1.2.0"
   },
   "dependencies": {
     "await-notify": "^1.0.1",

@@ -115,11 +115,10 @@ export class AtelierAPI {
       }
       const result = [];
       Object.keys(params).forEach(key => {
-        let value = params[key];
-        if (value && value !== "") {
-          if (typeof value === "boolean") {
-            value = value ? "1" : "0";
-          }
+        const value = params[key];
+        if (typeof value === "boolean") {
+          result.push(`${key}=${value ? "1" : "0"}`);
+        } else if (value && value !== "") {
           result.push(`${key}=${value}`);
         }
       });
@@ -256,7 +255,21 @@ export class AtelierAPI {
     sys?: boolean;
     gen?: boolean;
     max?: number;
+    regex?: boolean;
+    case?: boolean;
+    wild?: boolean;
+    word?: boolean;
   }): Promise<any> {
+    params = {
+      files: "*.cls,*.mac,*.inc",
+      gen: false,
+      sys: false,
+      regex: false,
+      case: false,
+      wild: false,
+      word: false,
+      ...params,
+    };
     return this.request(2, "GET", `${this.ns}/action/search`, null, params);
   }
   // v1+

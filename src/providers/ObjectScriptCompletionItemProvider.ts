@@ -7,8 +7,15 @@ import commands = require("./completion/commands.json");
 import structuredSystemVariables = require("./completion/structuredSystemVariables.json");
 import systemFunctions = require("./completion/systemFunctions.json");
 import systemVariables = require("./completion/systemVariables.json");
+import { Formatter } from "./Formatter";
 
 export class ObjectScriptCompletionItemProvider implements vscode.CompletionItemProvider {
+  private _formatter: Formatter;
+
+  public constructor() {
+    this._formatter = new Formatter();
+  }
+
   public provideCompletionItems(
     document: vscode.TextDocument,
     position: vscode.Position,
@@ -122,6 +129,11 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
         .filter(el => el.label.startsWith(search) || el.alias.findIndex(el2 => el2.startsWith(search)) >= 0)
         .map(el => ({
           ...el,
+          label: this._formatter.command(el.label),
+          insertText: el.insertText ? this._formatter.command(el.insertText) : null,
+        }))
+        .map(el => ({
+          ...el,
           documentation: new vscode.MarkdownString(el.documentation.join("")),
           insertText: new vscode.SnippetString(el.insertText || `${el.label} $0`),
           kind: vscode.CompletionItemKind.Keyword,
@@ -158,6 +170,8 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
           items: items.map(el => {
             return {
               ...el,
+              label: this._formatter.function(el.label),
+              insertText: this._formatter.function(el.insertText),
               range,
             };
           }),
@@ -166,6 +180,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
         return this.listStructuredSystemVariables(search, textAfter.length > 0).map(el => {
           return {
             ...el,
+            label: this._formatter.function(el.label),
             range,
           };
         });
@@ -194,6 +209,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       .map(el => {
         return {
           ...el,
+          insertText: el.label,
           documentation: new vscode.MarkdownString(el.documentation.join("\n")),
           kind: vscode.CompletionItemKind.Variable,
           preselect: el.alias.includes(search),
