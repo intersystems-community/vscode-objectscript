@@ -3,9 +3,9 @@ trigger:
     include:
       - master
   tags:
-    include: 
+    include:
       - v*
-    
+
 jobs:
   - job: Windows
     pool:
@@ -13,9 +13,9 @@ jobs:
       demands: npm
     steps:
       - task: NodeTool@0
-        displayName: 'Use Node 8.x'
+        displayName: 'Use Node 10.x'
         inputs:
-          versionSpec: 8.x
+          versionSpec: 10.x
       - task: Npm@1
         displayName: 'Install dependencies'
         inputs:
@@ -26,17 +26,21 @@ jobs:
           command: custom
           verbose: false
           customCommand: 'run compile'
-      - script: 'node node_modules/vscode/bin/test'
+      - task: Npm@1
         displayName: 'Run tests'
+        inputs:
+          command: custom
+          verbose: false
+          customCommand: 'run test'
   - job: macOS
     pool:
       name: Hosted macOS
       demands: npm
     steps:
       - task: NodeTool@0
-        displayName: 'Use Node 8.x'
+        displayName: 'Use Node 10.x'
         inputs:
-          versionSpec: 8.x
+          versionSpec: 10.x
       - task: Npm@1
         displayName: 'Install dependencies'
         inputs:
@@ -47,17 +51,21 @@ jobs:
           command: custom
           verbose: false
           customCommand: 'run compile'
-      - script: 'node node_modules/vscode/bin/test'
+      - task: Npm@1
         displayName: 'Run tests'
+        inputs:
+          command: custom
+          verbose: false
+          customCommand: 'run test'
   - job: Linux
     pool:
       name: Hosted Ubuntu 1604
       demands: npm
     steps:
       - task: NodeTool@0
-        displayName: 'Use Node 8.x'
+        displayName: 'Use Node 10.x'
         inputs:
-          versionSpec: 8.x
+          versionSpec: 10.x
       - task: Npm@1
         displayName: 'Install dependencies'
         inputs:
@@ -73,10 +81,14 @@ jobs:
           /usr/bin/Xvfb :10 -ac >> /tmp/Xvfb.out 2>&1 &
           disown -ar
         displayName: 'Start xvfb'
-      - script: 'node node_modules/vscode/bin/test'
+      - task: Npm@1
         displayName: 'Run tests'
         env:
           DISPLAY: :10
+        inputs:
+          command: custom
+          verbose: false
+          customCommand: 'run test'
       - task: Npm@1
         displayName: 'Package VSIX'
         inputs:

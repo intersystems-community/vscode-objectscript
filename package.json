@@ -62,7 +62,7 @@
     "onFileSystem:objectscript",
     "onDebugInitialConfigurations"
   ],
-  "main": "./out/src/extension",
+  "main": "./out/extension",
   "contributes": {
     "menus": {
       "commandPalette": [
@@ -630,12 +630,10 @@
     "package": "vsce package",
     "compile": "tsc -p ./",
     "watch": "tsc -w -p ./tsconfig.json",
-    "test": "npm run compile && node ./node_modules/vscode/bin/test",
+    "pretest": "npm run compile",
+    "test": "node ./out/test/runTest.js",
     "lint": "node ./node_modules/tslint/bin/tslint --project tsconfig.json -t verbose",
-    "lint-fix": "tslint --project tsconfig.json -t verbose --fix",
-    "postinstall": "node ./node_modules/vscode/bin/install",
-    "snyk-protect": "snyk protect",
-    "prepare": "npm run snyk-protect"
+    "lint-fix": "tslint --project tsconfig.json -t verbose --fix"
   },
   "devDependencies": {
     "@types/glob": "^7.1.1",
@@ -657,8 +655,8 @@
     "eslint-plugin-prettier": "^3.1.0",
     "eslint-plugin-promise": "^4.2.1",
     "extend": "^3.0.2",
+    "mocha": "^6.2.0",
     "prettier": "^1.18.2",
-    "snyk": "^1.206.0",
     "tape": "^4.10.2",
     "typescript": "^3.5.2",
     "vsce": "^1.66.0",
@@ -676,6 +674,5 @@
     "vscode-debugprotocol": "^1.35.0",
     "ws": "^7.1.0",
     "xmldom": "^0.1.27"
-  },
-  "snyk": true
+  }
 }

@@ -15,7 +15,6 @@ import {
 } from "vscode-debugadapter";
 import { DebugProtocol } from "vscode-debugprotocol";
 import WebSocket = require("ws");
-// import { ObjectScriptDebugConnection } from "./debugConnection";
 import { AtelierAPI } from "../api";
 import * as xdebug from "./xdebugConnection";
 import { FILESYSTEM_SCHEMA } from "../extension";
