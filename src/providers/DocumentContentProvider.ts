@@ -29,11 +29,11 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     if (found) {
       return vscode.Uri.file(found);
     }
+    const fileExt = name.split(".").pop();
     const fileName = name
       .split(".")
       .slice(0, -1)
-      .join("/");
-    const fileExt = name.split(".").pop();
+      .join(fileExt.match(/cls/i) ? "/" : ".");
     name = fileName + "." + fileExt;
     let uri = vscode.Uri.file(name).with({
       scheme: vfs ? FILESYSTEM_SCHEMA : OBJECTSCRIPT_FILE_SCHEMA,

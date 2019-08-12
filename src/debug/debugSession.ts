@@ -45,7 +45,7 @@ export async function convertClientPathToDebugger(localPath: string, namespace: 
     if (query.ns && query.ns !== "") {
       namespace = query.ns.toString();
     }
-    fileName = pathname.slice(1);
+    fileName = pathname.slice(1).replace(/\//, ".");
   } else {
     fileName = await vscode.workspace
       .openTextDocument(localPath)
@@ -55,6 +55,8 @@ export async function convertClientPathToDebugger(localPath: string, namespace: 
       });
   }
 
+  namespace = encodeURIComponent(namespace);
+  fileName = encodeURIComponent(fileName);
   return `dbgp://|${namespace}|${fileName}`;
 }
 
@@ -204,6 +206,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     await this._debugTargetSet.wait(1000);
 
     const filePath = args.source.path;
+    const uri = filePath.startsWith(FILESYSTEM_SCHEMA) ? vscode.Uri.parse(filePath) : vscode.Uri.file(filePath);
     const fileUri = await convertClientPathToDebugger(args.source.path, this._namespace);
     const [, fileName] = fileUri.match(/\|([^|]+)$/);
 
@@ -225,9 +228,9 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
         const line = breakpoint.line;
         if (breakpoint.condition) {
           return new xdebug.ConditionalBreakpoint(breakpoint.condition, fileUri, line);
-        } else if (filePath.endsWith("cls")) {
-          return await vscode.workspace.openTextDocument(filePath).then(document => {
-            const methodMatchPattern = new RegExp(`^(?:Class)?Method (.+)(?=[( ])`, "i");
+        } else if (fileName.endsWith("cls")) {
+          return await vscode.workspace.openTextDocument(uri).then(document => {
+            const methodMatchPattern = new RegExp(`^(?:Class)?Method ([^(]+)(?=[( ])`, "i");
             for (let i = line; line > 0; i--) {
               const lineOfCode = document.lineAt(i).text;
               const methodMatch = lineOfCode.match(methodMatchPattern);
@@ -286,7 +289,8 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       stack.stack.map(
         async (stackFrame: xdebug.StackFrame, index): Promise<StackFrame> => {
           const [, namespace, name] = decodeURI(stackFrame.fileUri).match(/^dbgp:\/\/\|([^|]+)\|(.*)$/);
-          const routine = name.includes(".") ? name : name + ".int";
+          const routine = name;
+          // const routine = name.includes(".") ? name : name + ".int";
           const fileUri = DocumentContentProvider.getUri(routine, null, namespace).toString();
           const source = new Source(routine, fileUri);
           let line = stackFrame.line + 1;
