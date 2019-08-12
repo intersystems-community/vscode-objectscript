@@ -1,0 +1,25 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@master
+    - name: Start xvfb
+      run: |
+        set -e
+        /usr/bin/Xvfb :10 -ac >> /tmp/Xvfb.out 2>&1 &
+        disown -ar
+    - name: Use Node.js
+      uses: actions/setup-node@master
+      with:
+        version: 10
+    - run: npm install
+    - run: npm run compile
+    - run: npm run test
+      env:
+        DISPLAY: :10
+    - run: npm run package
