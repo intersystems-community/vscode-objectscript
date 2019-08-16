@@ -10,7 +10,9 @@
 
 # vscode-objectscript
 
-[InterSystems](http://www.intersystems.com/our-products/) ObjectScript language support for Visual Studio Code
+[InterSystems](http://www.intersystems.com/our-products/) ObjectScript language support for Visual Studio Code.
+
+[CaretDev](https://caretdev.com/#products) provides commercial support services. [Request a Quote](https://caretdev.com/contact-us/).
 
 ## Features
 
