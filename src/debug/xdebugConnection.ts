@@ -910,6 +910,7 @@ export class Connection extends DbgpConnection {
     const data = iconv.encode(commandString, ENCODING);
     this._pendingCommands.set(transactionId, command);
     this._pendingExecuteCommand = command.isExecuteCommand;
+    console.log(data.toString());
     await this.write(data);
   }
 

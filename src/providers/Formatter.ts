@@ -43,6 +43,7 @@ export class Formatter {
         resultValue = resultValue.replace(/^elseif$/i, "ElseIf");
         /** functions */
         resultValue = resultValue.replace(/\^?\$(Z+\w|\w)/i, v => v.toUpperCase());
+        resultValue = resultValue.replace(/\$isobject/i, "$IsObject");
         break;
       }
       default: {

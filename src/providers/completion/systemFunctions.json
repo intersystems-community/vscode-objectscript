@@ -1819,6 +1819,16 @@
     "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fztimeh"
   },
   {
+    "deprecated": true,
+    "label": "$ZUTIL",
+    "alias": [
+      "$ZUTIL",
+      "$ZU"
+    ],
+    "documentation": [],
+    "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_replacements"
+  },
+  {
     "label":"$ZVERSION",
     "alias":[
       "$ZVERSION"

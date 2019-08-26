@@ -1,10 +1,10 @@
 import vscode = require("vscode");
+import { AtelierJob } from "./atelier";
 const { workspace, window } = vscode;
 export const OBJECTSCRIPT_FILE_SCHEMA = "objectscript";
 export const OBJECTSCRIPTXML_FILE_SCHEMA = "objectscriptxml";
 export const FILESYSTEM_SCHEMA = "isfs";
 export const schemas = [OBJECTSCRIPT_FILE_SCHEMA, OBJECTSCRIPTXML_FILE_SCHEMA, FILESYSTEM_SCHEMA];
-import { AtelierJob } from "./models";
 
 import { importAndCompile, importFolder as importFileOrFolder, namespaceCompile } from "./commands/compile";
 import { deleteItem } from "./commands/delete";
@@ -14,6 +14,8 @@ import { subclass } from "./commands/subclass";
 import { superclass } from "./commands/superclass";
 import { viewOthers } from "./commands/viewOthers";
 import { xml2doc } from "./commands/xml2doc";
+
+import { getLanguageConfiguration } from "./languageConfiguration";
 
 import { DocumentContentProvider } from "./providers/DocumentContentProvider";
 import { DocumentFormattingEditProvider } from "./providers/DocumentFormattingEditProvider";
@@ -33,8 +35,12 @@ import { ObjectScriptConfigurationProvider } from "./debug/debugConfProvider";
 import { ObjectScriptExplorerProvider } from "./explorer/explorer";
 import { WorkspaceNode } from "./explorer/models/workspaceNode";
 import { FileSystemProvider } from "./providers/FileSystemPovider/FileSystemProvider";
+import { FileSearchProvider } from "./providers/FileSystemPovider/FileSearchProvider";
+import { TextSearchProvider } from "./providers/FileSystemPovider/TextSearchProvider";
 import { WorkspaceSymbolProvider } from "./providers/WorkspaceSymbolProvider";
 import { currentWorkspaceFolder, outputChannel } from "./utils";
+import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
+import { DocumentRangeFormattingEditProvider } from "./providers/DocumentRangeFormattingEditProvider";
 export let fileSystemProvider: FileSystemProvider;
 export let explorerProvider: ObjectScriptExplorerProvider;
 export let documentContentProvider: DocumentContentProvider;
@@ -143,13 +149,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }
   });
 
-  const wordPattern = /("(?:[^"]|"")*")|((\${1,3}|[irm]?%|\^|#)?[^`~!@@#%^&*()-=+[{\]}|;:'",.<>/?_\s]+)/;
-
   const documentSelector = (...list) =>
     ["file", ...schemas].reduce((acc, scheme) => acc.concat(list.map(language => ({ scheme, language }))), []);
 
+  const diagnosticProvider = new ObjectScriptDiagnosticProvider();
+  if (vscode.window.activeTextEditor) {
+    diagnosticProvider.updateDiagnostics(vscode.window.activeTextEditor.document);
+  }
+
   context.subscriptions.push(
-    window.onDidChangeActiveTextEditor(e => {
+    workspace.onDidChangeTextDocument(event => {
+      diagnosticProvider.updateDiagnostics(event.document);
+    }),
+    window.onDidChangeActiveTextEditor(editor => {
+      if (editor) {
+        diagnosticProvider.updateDiagnostics(editor.document);
+      }
       if (workspace.workspaceFolders && workspace.workspaceFolders.length > 1) {
         const workspaceFolder = currentWorkspaceFolder();
         if (workspaceFolder && workspaceFolder !== workspaceState.get<string>("workspaceFolder")) {
@@ -220,15 +235,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPT_FILE_SCHEMA, documentContentProvider),
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPTXML_FILE_SCHEMA, xmlContentProvider),
     vscode.workspace.registerFileSystemProvider(FILESYSTEM_SCHEMA, fileSystemProvider, { isCaseSensitive: true }),
-    vscode.languages.setLanguageConfiguration("objectscript-class", {
-      wordPattern,
-    }),
-    vscode.languages.setLanguageConfiguration("objectscript", {
-      wordPattern,
-    }),
-    vscode.languages.setLanguageConfiguration("objectscript-macros", {
-      wordPattern,
-    }),
+    vscode.languages.setLanguageConfiguration("objectscript-class", getLanguageConfiguration()),
+    vscode.languages.setLanguageConfiguration("objectscript", getLanguageConfiguration()),
+    vscode.languages.setLanguageConfiguration("objectscript-macros", getLanguageConfiguration()),
     vscode.languages.registerDocumentSymbolProvider(
       documentSelector("objectscript-class"),
       new ObjectScriptClassSymbolProvider()
@@ -265,9 +274,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
       new DocumentFormattingEditProvider()
     ),
+    vscode.languages.registerDocumentRangeFormattingEditProvider(
+      documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
+      new DocumentRangeFormattingEditProvider()
+    ),
     vscode.languages.registerWorkspaceSymbolProvider(new WorkspaceSymbolProvider()),
     vscode.debug.registerDebugConfigurationProvider("objectscript", new ObjectScriptConfigurationProvider()),
     vscode.debug.registerDebugAdapterDescriptorFactory("objectscript", debugAdapterFactory),
-    debugAdapterFactory
+    debugAdapterFactory,
+
+    /* from proposed api */
+    vscode.workspace.registerFileSearchProvider(FILESYSTEM_SCHEMA, new FileSearchProvider()),
+    vscode.workspace.registerTextSearchProvider(FILESYSTEM_SCHEMA, new TextSearchProvider())
   );
 }

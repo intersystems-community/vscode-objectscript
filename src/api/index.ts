@@ -49,6 +49,10 @@ export class AtelierAPI {
     this.setConnection(workspaceFolderName || currentWorkspaceFolder());
   }
 
+  public get enabled(): boolean {
+    return this.config.active;
+  }
+
   public setNamespace(namespace: string) {
     this.namespace = namespace;
   }
@@ -261,7 +265,7 @@ export class AtelierAPI {
     word?: boolean;
   }): Promise<any> {
     params = {
-      files: "*.cls,*.mac,*.inc",
+      files: "*.cls,*.mac,*.int,*.inc",
       gen: false,
       sys: false,
       regex: false,
