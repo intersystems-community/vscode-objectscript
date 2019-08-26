@@ -3,38 +3,27 @@ name: CI
 on: [push]
 
 jobs:
-  # build:
-  #   runs-on: ${{ matrix.os }}
-  #   strategy:
-  #     matrix:
-  #       os: [ubuntu-latest, windows-latest, macOS-latest]
-  #   steps:
-  #   - uses: actions/checkout@master
-  #   - name: Start xvfb
-  #     if: runner.os == 'Linux'
-  #     run: |
-  #       set -e
-  #       /usr/bin/Xvfb :10 -ac >> /tmp/Xvfb.out 2>&1 &
-  #       disown -ar
-  #   - name: Use Node.js
-  #     uses: actions/setup-node@master
-  #     with:
-  #       version: 10
-  #   - run: npm install
-  #   - run: npm run compile
-  #   - run: npm run test
-  #     env:
-  #       DISPLAY: :10
-  #   - run: npm run package
-  #     if: runner.os == 'Linux'
-  publish:
-    # needs: build
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
-      - uses: actions/checkout@master
-      - run: ls -la
-      - uses: daimor/actions/hub@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: release
+    - uses: actions/checkout@master
+    - name: Start xvfb
+      if: runner.os == 'Linux'
+      run: |
+        set -e
+        /usr/bin/Xvfb :10 -ac >> /tmp/Xvfb.out 2>&1 &
+        disown -ar
+    - name: Use Node.js
+      uses: actions/setup-node@master
+      with:
+        version: 10
+    - run: npm install
+    - run: npm run compile
+    - run: npm run test
+      env:
+        DISPLAY: :10
+    - run: npm run package
+      if: runner.os == 'Linux'
