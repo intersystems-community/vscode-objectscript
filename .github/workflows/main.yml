@@ -1,6 +1,6 @@
 name: CI
 
-on: [push]
+on: [push,release]
 
 jobs:
   build:
@@ -25,5 +25,13 @@ jobs:
     - run: npm run test
       env:
         DISPLAY: :10
-    - run: npm run package
+    - name: Build package
       if: runner.os == 'Linux'
+      run: |
+        mkdir dist
+        ./node_modules/.bin/vsce package -o ./dist/$(jq -r '.name + "-" + .version' package.json).vsix
+    - uses: actions/upload-artifact@master
+      if: runner.os == 'Linux'
+      with:
+        name: vscode-objectscript
+        path: dist
