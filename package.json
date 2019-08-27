@@ -478,13 +478,6 @@
           "type": ["string", "object"],
           "default": "*"
         },
-        "objectscript.autoCompile": {
-          "description": "Autocompile on save file",
-          "type": "boolean",
-          "default": false,
-          "deprecationMessage": "Always enabled, now, when connection is active",
-          "scope": "resource"
-        },
         "objectscript.showExplorer": {
           "type": "boolean",
           "default": true,
@@ -536,6 +529,11 @@
           ],
           "default": "word",
           "description": "Case for system functions/variables"
+        },
+        "objectscript.suppressCompileMessages": {
+          "default": false,
+          "type": "boolean",
+          "description": "Suppress popup messages about successful compile"
         }
       }
     },
