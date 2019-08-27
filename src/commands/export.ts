@@ -16,19 +16,37 @@ const filesFilter = (file: any) => {
   return true;
 };
 
+const getCategory = (fileName: string, addCategory: {} | boolean): string => {
+  const fileExt = fileName
+    .split(".")
+    .pop()
+    .toLowerCase();
+  if (typeof addCategory === "object") {
+    for (const pattern of Object.keys(addCategory)) {
+      if (new RegExp(`^${pattern}$`).test(fileName)) {
+        return addCategory[pattern];
+      }
+      if (addCategory[fileExt]) return addCategory[fileExt];
+      if (addCategory["*"]) return addCategory["*"];
+    }
+    return null;
+  }
+  switch (fileExt) {
+    case "cls":
+      return "CLS";
+    case "int":
+    case "inc":
+    case "mac":
+      return "RTN";
+    default:
+      return "OTH";
+  }
+};
+
 export const getFileName = (folder: string, name: string, split: boolean, addCategory: boolean): string => {
   const fileNameArray: string[] = name.split(".");
   const fileExt = fileNameArray.pop().toLowerCase();
-  const cat =
-    typeof addCategory === "object" && addCategory[fileExt]
-      ? addCategory[fileExt]
-      : addCategory
-      ? fileExt === "cls"
-        ? "CLS"
-        : ["int", "mac", "inc"].includes(fileExt)
-        ? "RTN"
-        : "OTH"
-      : null;
+  const cat = addCategory ? getCategory(name, addCategory) : null;
   if (split) {
     const fileName = [folder, cat, ...fileNameArray].filter(notNull).join(path.sep);
     return [fileName, fileExt].join(".");

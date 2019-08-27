@@ -475,7 +475,7 @@
         },
         "objectscript.export.category": {
           "description": "Specifies a category: CLS = classes; RTN = routines; CSP = csp files; OTH = other. Default is *",
-          "type": "string",
+          "type": ["string", "object"],
           "default": "*"
         },
         "objectscript.autoCompile": {
