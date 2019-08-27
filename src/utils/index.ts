@@ -32,8 +32,10 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
   let ext = "";
   if (fileExt === "cls") {
     const match = content.match(/^Class (%?\w+(?:\.\w+)+)/im);
-    name = match[1];
-    ext = "cls";
+    if (match) {
+      name = match[1];
+      ext = "cls";
+    }
   } else {
     const match = content.match(/^ROUTINE ([^\s]+)(?:\s+\[.*Type=([a-z]{3,}))?/i);
     name = match[1];
