@@ -2,12 +2,17 @@
 
 ## [0.7.12]
 
-- Files in Server Explorer now can be edited.
-- Added more details about connection errors.
-- Improvements in Server Explorer build tree.
-- Fixed memory leak when exporting large amount of files.
-- Some other fixes
+- **Debugging support, run routine, class or attach to a process**
+- **Files in Server Explorer now can be edited**
+- Added more details about connection errors
+- Improvements in Server Explorer build tree
+- Fixed memory leak when exporting large amount of files
 - Server view can be opened in explorer as virtual file system with schema `isfs://`
+- Option to suppress popup information message about successful compile
+- Export, addCategory setting have more flexibility in naming category for exported items
+- Formatting for commands and functions, as Word, UPPER or lower
+- Some improvements in syntax highlighting
+- Some other small fixes
 
 ## [0.7.11]
 
