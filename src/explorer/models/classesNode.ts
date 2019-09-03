@@ -14,7 +14,7 @@ export class ClassNode extends NodeBase {
     return {
       collapsibleState: vscode.TreeItemCollapsibleState.None,
       command: {
-        arguments: [DocumentContentProvider.getUri(this.fullName, this.workspaceFolder, this.namespace, true)],
+        arguments: [DocumentContentProvider.getUri(this.fullName, this.workspaceFolder, this.namespace)],
         command: "vscode-objectscript.explorer.openClass",
         title: "Open class",
       },

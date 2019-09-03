@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "0.7.12",
+  "version": "0.7.13-SNAPSHOT",
   "icon": "images/logo.png",
   "categories": [
     "Programming Languages",
@@ -534,6 +534,11 @@
           "default": false,
           "type": "boolean",
           "description": "Suppress popup messages about successful compile"
+        },
+        "objectscript.serverSideEditing": {
+          "default": false,
+          "type": "boolean",
+          "description": "Allow to edit code directly on server"
         }
       }
     },

@@ -23,7 +23,10 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     }
   }
 
-  public static getUri(name: string, workspaceFolder?: string, namespace?: string, vfs = true): vscode.Uri {
+  public static getUri(name: string, workspaceFolder?: string, namespace?: string, vfs?: boolean): vscode.Uri {
+    if (vfs === undefined) {
+      vfs = config("serverSideEditing");
+    }
     workspaceFolder = workspaceFolder && workspaceFolder !== "" ? workspaceFolder : currentWorkspaceFolder();
     const found = this.getAsFile(name, workspaceFolder);
     if (found) {
@@ -53,7 +56,10 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
   private onDidChangeEvent: vscode.EventEmitter<vscode.Uri> = new vscode.EventEmitter<vscode.Uri>();
 
   public provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
-    const fileName = uri.path.split("/")[1];
+    const fileName = uri.path
+      .split("/")
+      .slice(1)
+      .join(".");
     const api = new AtelierAPI();
     const query = url.parse(decodeURIComponent(uri.toString()), true).query;
     if (query) {
