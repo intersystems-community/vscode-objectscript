@@ -35,6 +35,9 @@ function updateOthers(others: string[]) {
 }
 
 async function loadChanges(files: CurrentFile[]): Promise<any> {
+  if (!files.length) {
+    return;
+  }
   const api = new AtelierAPI(files[0].uri);
   return Promise.all(
     files.map(file =>
@@ -72,14 +75,15 @@ async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
       }
       return docs;
     })
-    .then(loadChanges)
     .catch((error: Error) => {
       outputChannel.appendLine(error.message);
       outputChannel.show(true);
       vscode.window.showErrorMessage(error.message, "Show details").then(data => {
         outputChannel.show(true);
       });
-    });
+      return [];
+    })
+    .then(loadChanges);
 }
 
 export async function importAndCompile(askFLags = false): Promise<any> {
