@@ -19,7 +19,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     const root = [workspaceFolderUri(workspaceFolder).fsPath, folder].join(path.sep);
     const fileName = getFileName(root, name, atelier, addCategory);
     if (fs.existsSync(fileName)) {
-      return fileName;
+      return fs.realpathSync.native(fileName);
     }
   }
 
