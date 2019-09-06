@@ -77,10 +77,11 @@ export async function mkdirSyncRecursive(dirpath: string): Promise<string> {
   });
 }
 
-export function currentWorkspaceFolder(): string {
+export function currentWorkspaceFolder(document?: vscode.TextDocument): string {
   let workspaceFolder;
-  if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document) {
-    const uri = vscode.window.activeTextEditor.document.uri;
+  document = document ? document : vscode.window.activeTextEditor && vscode.window.activeTextEditor.document;
+  if (document) {
+    const uri = document.uri;
     if (uri.scheme === "file") {
       if (vscode.workspace.getWorkspaceFolder(uri)) {
         workspaceFolder = vscode.workspace.getWorkspaceFolder(uri).name;

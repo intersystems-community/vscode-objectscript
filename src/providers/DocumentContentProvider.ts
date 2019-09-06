@@ -28,23 +28,31 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
       vfs = config("serverSideEditing");
     }
     workspaceFolder = workspaceFolder && workspaceFolder !== "" ? workspaceFolder : currentWorkspaceFolder();
-    const found = this.getAsFile(name, workspaceFolder);
-    if (found) {
-      return vscode.Uri.file(found);
-    }
-    const fileExt = name.split(".").pop();
-    const fileName = name
-      .split(".")
-      .slice(0, -1)
-      .join(fileExt.match(/cls/i) ? "/" : ".");
-    name = fileName + "." + fileExt;
-    let uri = vscode.Uri.file(name).with({
-      scheme: vfs ? FILESYSTEM_SCHEMA : OBJECTSCRIPT_FILE_SCHEMA,
-    });
-    if (workspaceFolder && workspaceFolder !== "") {
-      uri = uri.with({
-        authority: workspaceFolder,
+    const wFolderUri = workspaceFolderUri(workspaceFolder);
+    let uri: vscode.Uri;
+    if (wFolderUri.scheme === FILESYSTEM_SCHEMA) {
+      uri = wFolderUri.with({
+        path: `/${name}`,
       });
+    } else {
+      const found = this.getAsFile(name, workspaceFolder);
+      if (found) {
+        return vscode.Uri.file(found);
+      }
+      const fileExt = name.split(".").pop();
+      const fileName = name
+        .split(".")
+        .slice(0, -1)
+        .join(fileExt.match(/cls/i) ? "/" : ".");
+      name = fileName + "." + fileExt;
+      uri = vscode.Uri.file(name).with({
+        scheme: vfs ? FILESYSTEM_SCHEMA : OBJECTSCRIPT_FILE_SCHEMA,
+      });
+      if (workspaceFolder && workspaceFolder !== "") {
+        uri = uri.with({
+          authority: workspaceFolder,
+        });
+      }
     }
     if (namespace && namespace !== "") {
       uri = uri.with({

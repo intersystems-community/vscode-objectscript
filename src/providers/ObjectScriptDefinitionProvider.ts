@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { currentFile, CurrentFile } from "../utils";
+import { currentFile, CurrentFile, currentWorkspaceFolder } from "../utils";
 import { ClassDefinition } from "../utils/classDefinition";
 import { DocumentContentProvider } from "./DocumentContentProvider";
 
@@ -10,10 +10,12 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     position: vscode.Position,
     token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.Location | vscode.Location[] | vscode.DefinitionLink[]> {
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
+    const workspaceFolderName = workspaceFolder ? workspaceFolder.name : currentWorkspaceFolder();
     const lineText = document.lineAt(position.line).text;
     const file = currentFile();
 
-    const fromClassRef = this.classRef(document, position);
+    const fromClassRef = this.classRef(workspaceFolderName, document, position);
     if (fromClassRef) {
       return fromClassRef;
     }
@@ -39,7 +41,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     const macroMatch = macroText.match(/^\${3}(\b\w+\b)$/);
     if (macroMatch) {
       const [, macro] = macroMatch;
-      return this.macro(currentFile(), macro).then(data =>
+      return this.macro(workspaceFolderName, currentFile(), macro).then(data =>
         data && data.document.length
           ? new vscode.Location(DocumentContentProvider.getUri(data.document), new vscode.Position(data.line, 0))
           : null
@@ -53,7 +55,15 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
         const [keyword, name] = part.split(" ");
         const start = pos + keyword.length + 1;
         if (this.isValid(position, start, name.length)) {
-          return [this.makeClassDefinition(position, start, name.length, this.normalizeClassName(document, name))];
+          return [
+            this.makeClassDefinition(
+              workspaceFolderName,
+              position,
+              start,
+              name.length,
+              this.normalizeClassName(document, name)
+            ),
+          ];
         }
       }
       pos += part.length;
@@ -70,7 +80,13 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
             name = name.trim();
             const start = pos + part.indexOf(name);
             if (this.isValid(position, start, name.length)) {
-              return this.makeClassDefinition(position, start, name.length, this.normalizeClassName(document, name));
+              return this.makeClassDefinition(
+                workspaceFolderName,
+                position,
+                start,
+                name.length,
+                this.normalizeClassName(document, name)
+              );
             }
           })
           .filter(el => el != null);
@@ -86,7 +102,13 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
       const start = lineText.indexOf(name);
       if (this.isValid(position, start, name.length)) {
         return [
-          this.makeRoutineDefinition(position, start, name.length, this.normalizeRoutineName(document, name, "inc")),
+          this.makeRoutineDefinition(
+            workspaceFolderName,
+            position,
+            start,
+            name.length,
+            this.normalizeRoutineName(document, name, "inc")
+          ),
         ];
       }
     }
@@ -103,6 +125,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
           if (this.isValid(position, start, name.length)) {
             return [
               this.makeRoutineDefinition(
+                workspaceFolderName,
                 position,
                 start,
                 name.length,
@@ -119,6 +142,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
   }
 
   public classRef(
+    workspaceFolder: string,
     document: vscode.TextDocument,
     position: vscode.Position
   ): vscode.ProviderResult<vscode.Location | vscode.Location[] | vscode.DefinitionLink[]> {
@@ -129,7 +153,13 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
       const start = classRefRange.start.character + 8;
       if (this.isValid(position, start, className.length)) {
         return [
-          this.makeClassDefinition(position, start, className.length, this.normalizeClassName(document, className)),
+          this.makeClassDefinition(
+            workspaceFolder,
+            position,
+            start,
+            className.length,
+            this.normalizeClassName(document, className)
+          ),
         ];
       } else {
         const classDefinition = new ClassDefinition(className);
@@ -180,6 +210,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
   }
 
   public makeClassDefinition(
+    workspaceFolder: string,
     position: vscode.Position,
     start: number,
     length: number,
@@ -192,11 +223,12 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
         new vscode.Position(position.line, start + length)
       ),
       targetRange: new vscode.Range(firstLinePos, firstLinePos),
-      targetUri: DocumentContentProvider.getUri(name),
+      targetUri: DocumentContentProvider.getUri(name, workspaceFolder),
     };
   }
 
   public makeRoutineDefinition(
+    workspaceFolder: string,
     position: vscode.Position,
     start: number,
     length: number,
@@ -209,11 +241,15 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
         new vscode.Position(position.line, start + length)
       ),
       targetRange: new vscode.Range(firstLinePos, firstLinePos),
-      targetUri: DocumentContentProvider.getUri(name),
+      targetUri: DocumentContentProvider.getUri(name, workspaceFolder),
     };
   }
 
-  public async macro(file: CurrentFile, macro: string): Promise<{ document: string; line: number }> {
+  public async macro(
+    workspaceFolder: string,
+    file: CurrentFile,
+    macro: string
+  ): Promise<{ document: string; line: number }> {
     const fileName = file.name;
     const api = new AtelierAPI();
     let includes = [];
