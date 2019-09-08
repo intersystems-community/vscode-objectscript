@@ -14,11 +14,14 @@
 
 ## Features
 
-- Initial InterSystems ObjectScript code highlighting support.
+- InterSystems ObjectScript code highlighting support.
   ![example](https://raw.githubusercontent.com/daimor/vscode-objectscript/master/images/screenshot.png)
-- Export existing sources to the working directory: press Ctrl+Shift+P, type 'ObjectScript', press Enter.
-- Save and compile a class: press Ctrl+F7 (⌘+F7) or select "ObjectScript: Save and compile" from Ctrl+Shift+P menu.
+- Debugging ObjectScript code
+- Intellisense support for commands, system functions, class members
+- Export existing sources to the working directory: press Cmd/Ctrl+Shift+P, type 'ObjectScript', press Enter.
+- Save and compile a class: press Ctrl+F7 (⌘+F7) or select "ObjectScript: Save and compile" from Cmd/Ctrl+Shift+P menu.
 - Server Explorer with possibility to export items![ServerExplorer](https://raw.githubusercontent.com/daimor/vscode-objectscript/master/images/explorer.png)
+- Edit directly on server
 
 ## Installation
 
