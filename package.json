@@ -205,7 +205,8 @@
         ],
         "extensions": [
           ".cls"
-        ]
+        ],
+        "configuration": "./class-language-configuration.json"
       },
       {
         "id": "objectscript-macros",

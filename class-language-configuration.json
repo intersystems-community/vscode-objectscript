@@ -1,0 +1,21 @@
+{
+  "comments": {
+    "lineComment": "//",
+    "blockComment": ["/*", "*/"]
+  },
+  "brackets": [["{", "}"], ["(", ")"], ["[", "]"]],
+  // symbols that are auto closed when typing
+  "autoClosingPairs": [["{", "}"], ["(", ")"], ["[", "]"], ["\"", "\""]],
+  // symbols that that can be used to surround a selection
+  "surroundingPairs": [["{", "}"], ["(", ")"], ["\"", "\""], ["[", "]"]],
+  "indentationRules": {
+    "increaseIndentPattern": "^((Class|Client)?Method|Query|XData|Storage|Trigger)",
+    "decreaseIndentPattern": "^}"
+  },
+  "folding": {
+    "markers": {
+      "start": "^((Class|Client)?Method|Query|XData|Storage|Trigger)",
+      "end": "^}"
+    }
+  }
+}
