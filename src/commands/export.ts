@@ -33,13 +33,12 @@ const getCategory = (fileName: string, addCategory: {} | boolean): string => {
   }
   switch (fileExt) {
     case "cls":
-      return "CLS";
     case "int":
     case "inc":
     case "mac":
-      return "RTN";
+      return fileExt;
     default:
-      return "OTH";
+      return "oth";
   }
 };
 

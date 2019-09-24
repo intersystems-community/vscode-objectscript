@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "0.7.13-SNAPSHOT",
+  "version": "0.7.14-SNAPSHOT",
   "icon": "images/logo.png",
   "categories": [
     "Programming Languages",
@@ -474,7 +474,7 @@
           "default": ""
         },
         "objectscript.export.category": {
-          "description": "Specifies a category: CLS = classes; RTN = routines; CSP = csp files; OTH = other. Default is *",
+          "description": "Specifies a category to export: CLS = classes; RTN = routines; CSP = csp files; OTH = other. Default is *",
           "type": ["string", "object"],
           "default": "*"
         },
