@@ -10,8 +10,20 @@ export class ObjectScriptClassSymbolProvider implements vscode.DocumentSymbolPro
       let classItSelf = null;
       let symbols: vscode.DocumentSymbol[] = [];
 
+      let inComment = false;
       for (let i = 0; i < document.lineCount; i++) {
         const line = document.lineAt(i);
+
+        if (line.text.match(/\/\*/)) {
+          inComment = true;
+        }
+
+        if (inComment) {
+          if (line.text.match(/\*\//)) {
+            inComment = false;
+          }
+          continue;
+        }
 
         const classPat = line.text.match(/^(Class) (%?\b\w+\b(?:\.\b\w+\b)+)/i);
         if (classPat) {
