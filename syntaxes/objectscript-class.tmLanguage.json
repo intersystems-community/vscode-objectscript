@@ -258,18 +258,29 @@
           }
         },
         {
-          "match": "(?i)^(\\bRelationship\\b)(\\s+)((?:%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)|(?:\"[^\".]+\"))",
-          "captures": {
-            "1": {
-              "name": "keyword.objectscript_class"
+          "begin": "(?i)^(\\bRelationship\\b)(\\s+)((?:%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)|(?:\"[^\".]+\"))",
+            "beginCaptures": {
+              "1": {
+                "name": "keyword.objectscript_class"
+              },
+              "2": {
+                "name": "whitespace.objectscript_class"
+              },
+              "3": {
+                "name": "entity.other.attribute-name.objectscript_class"
+              }
             },
-            "2": {
-              "name": "whitespace.objectscript_class"
-            },
-            "3": {
-              "name": "entity.other.attribute-name.objectscript_class"
+            "patterns": [
+              {
+                "include": "#relationship"
+              }
+            ],
+            "end": "(;)",
+            "endCaptures": {
+              "1": {
+                "name": "punctuation.objectscript_class"
+              }
             }
-          }
         },
         {
           "begin": "(?i)^(\\b(?:Class|Client)?Method\\b)(\\s+)((?:%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)|(?:\"[^\".]+\"))",
@@ -541,6 +552,36 @@
               "name": "entity.other.attribute-name.objectscript_class"
             }
           }
+        },
+        {
+          "begin": "(?i)(\\bOn\\b)(\\s+)(\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "punctuation.objectscript_class"
+            }
+          },
+          "patterns": [
+            {
+              "match": "(%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*(?:\\.[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)*)",
+              "captures": {
+                "1": {
+                  "name": "entity.other.attribute-name.objectscript_class"
+                }
+              }
+            }
+          ],
+          "end": "(\\))",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          }
         }
       ]
     },
@@ -580,6 +621,16 @@
       ]
     },
     "property": {
+      "patterns": [
+        {
+          "include": "#as"
+        },
+        {
+          "include": "#params"
+        }
+      ]
+    },
+    "relationship": {
       "patterns": [
         {
           "include": "#as"

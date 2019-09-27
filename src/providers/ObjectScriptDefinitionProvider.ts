@@ -69,6 +69,37 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
       pos += part.length;
     }
 
+    const onProperty = /(\b(?:On)\b %?\b[a-zA-Z][a-zA-Z0-9]+\b)/i;
+    parts = lineText.split(onProperty);
+    pos = 0;
+    for (const part of parts) {
+      if (part.match(onProperty)) {
+        const [keyword, name] = part.split(" ");
+        const start = pos + keyword.length + 1;
+        if (this.isValid(position, start, name.length)) {
+          return [this.makePropertyDefinition(document, name)];
+        }
+      }
+      pos += part.length;
+    }
+    const onPropertyList = /(\b(?:On)\b \([^)]+\))/i;
+    parts = lineText.split(onPropertyList);
+    pos = 0;
+    for (const part of parts) {
+      if (part.match(onPropertyList)) {
+        const listProperties = /\(([^)]+)\)/.exec(part)[1].split(/\s*,\s*/);
+        return listProperties
+          .map(name => {
+            name = name.trim();
+            const start = pos + part.indexOf(name);
+            if (this.isValid(position, start, name.length)) {
+              return this.makePropertyDefinition(document, name);
+            }
+          })
+          .filter(el => el != null);
+      }
+      pos += part.length;
+    }
     const asClassList = /(\b(?:Extends)\b \([^)]+\))/i;
     parts = lineText.split(asClassList);
     pos = 0;
@@ -225,6 +256,37 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
       targetRange: new vscode.Range(firstLinePos, firstLinePos),
       targetUri: DocumentContentProvider.getUri(name, workspaceFolder),
     };
+  }
+
+  public makePropertyDefinition(document: vscode.TextDocument, name: string): vscode.DefinitionLink {
+    const property = new RegExp(`(?<=^Property\\s)\\b${name}\\b`, "i");
+    let descrLine = -1;
+    for (let i = 0; i < document.lineCount; i++) {
+      const line = document.lineAt(i).text;
+      if (descrLine < 0 && line.match(/^\/\/\//)) {
+        descrLine = i;
+      }
+      if (descrLine >= 0 && !line.trim().length) {
+        descrLine = -1;
+      }
+      const propertyMatch = line.match(property);
+      if (propertyMatch) {
+        const targetSelectionRange = new vscode.Range(
+          new vscode.Position(i, propertyMatch.index),
+          new vscode.Position(i, propertyMatch.index + name.length)
+        );
+        const targetRange = new vscode.Range(
+          new vscode.Position(descrLine >= 0 ? descrLine : i, 0),
+          new vscode.Position(i, propertyMatch.index + line.length)
+        );
+        return {
+          targetUri: document.uri,
+          targetRange,
+          targetSelectionRange,
+        };
+      }
+    }
+    return null;
   }
 
   public makeRoutineDefinition(
