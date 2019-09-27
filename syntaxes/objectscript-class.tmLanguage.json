@@ -509,11 +509,15 @@
           },
           "patterns": [
             {
+              "match": "(?i)\\b(Output|ByRef)\\b",
+              "name": "keyword.objectscript_class"
+            },
+            {
               "include": "#as"
             },
             {
               "match": "[a-zA-Z][a-zA-Z0-9]*",
-              "name": "variable.name.objectscrip"
+              "name": "variable.name.objectscript"
             },
             {
               "include": "source.objectscript#constants"
