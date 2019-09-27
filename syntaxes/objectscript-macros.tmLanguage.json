@@ -93,7 +93,7 @@
       "patterns": [
         {
           "contentname": "meta.preprocessor.objectscript",
-          "begin": "^\\s*(#\\s*(?i)(?:if|ifdef|ifndef|elif|else|undef|endif))\\b",
+          "begin": "^\\s*(#\\s*(?i)(?:if|ifdef|ifndef|elif|else|undef|ifundef|endif))\\b",
           "beginCaptures": { "1": { "name": "keyword.control.objectscript" } },
           "end": "(?=(?:;|//|/\\*))|$",
           "patterns": [{ "include": "#digits" }, { "include": "#comment-line" }]
