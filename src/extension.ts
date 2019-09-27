@@ -26,6 +26,7 @@ import { ObjectScriptDefinitionProvider } from "./providers/ObjectScriptDefiniti
 import { ObjectScriptFoldingRangeProvider } from "./providers/ObjectScriptFoldingRangeProvider";
 import { ObjectScriptHoverProvider } from "./providers/ObjectScriptHoverProvider";
 import { ObjectScriptRoutineSymbolProvider } from "./providers/ObjectScriptRoutineSymbolProvider";
+import { ObjectScriptClassCodeLensProvider } from "./providers/ObjectScriptClassCodeLensProvider";
 import { XmlContentProvider } from "./providers/XmlContentProvider";
 
 import { StatusCodeError } from "request-promise/errors";
@@ -184,6 +185,28 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("vscode-objectscript.compileAllWithFlags", () => namespaceCompile(true)),
     vscode.commands.registerCommand("vscode-objectscript.compileFolder", importFileOrFolder),
     vscode.commands.registerCommand("vscode-objectscript.export", exportAll),
+    vscode.commands.registerCommand("vscode-objectscript.debug", (program: string, askArgs: boolean) => {
+      const startDebugging = args => {
+        const programWithArgs = program + `(${args})`;
+        vscode.debug.startDebugging(undefined, {
+          type: "objectscript",
+          request: "launch",
+          name: `Debug ${program}`,
+          program: programWithArgs,
+        });
+      };
+      if (!askArgs) {
+        startDebugging("");
+        return;
+      }
+      return vscode.window
+        .showInputBox({
+          placeHolder: "Please enter comma delimited arguments list",
+        })
+        .then(args => {
+          startDebugging(args);
+        });
+    }),
     vscode.commands.registerCommand("vscode-objectscript.pickProcess", async config => {
       const system = config.system;
       const api = new AtelierAPI();
@@ -282,6 +305,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.debug.registerDebugConfigurationProvider("objectscript", new ObjectScriptConfigurationProvider()),
     vscode.debug.registerDebugAdapterDescriptorFactory("objectscript", debugAdapterFactory),
     debugAdapterFactory,
+    vscode.languages.registerCodeLensProvider(
+      documentSelector("objectscript-class"),
+      new ObjectScriptClassCodeLensProvider()
+    ),
 
     /* from proposed api */
     vscode.workspace.registerFileSearchProvider(FILESYSTEM_SCHEMA, new FileSearchProvider()),

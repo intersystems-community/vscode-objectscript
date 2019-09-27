@@ -580,7 +580,7 @@
             "properties": {
               "program": {
                 "type": "string",
-                "description": "Absolute path to the program."
+                "description": "Class or routine to debug."
               }
             }
           },
