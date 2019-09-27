@@ -235,9 +235,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPT_FILE_SCHEMA, documentContentProvider),
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPTXML_FILE_SCHEMA, xmlContentProvider),
     vscode.workspace.registerFileSystemProvider(FILESYSTEM_SCHEMA, fileSystemProvider, { isCaseSensitive: true }),
-    vscode.languages.setLanguageConfiguration("objectscript-class", getLanguageConfiguration()),
-    vscode.languages.setLanguageConfiguration("objectscript", getLanguageConfiguration()),
-    vscode.languages.setLanguageConfiguration("objectscript-macros", getLanguageConfiguration()),
+    vscode.languages.setLanguageConfiguration("objectscript-class", getLanguageConfiguration("class")),
+    vscode.languages.setLanguageConfiguration("objectscript", getLanguageConfiguration("routine")),
+    vscode.languages.setLanguageConfiguration("objectscript-macros", getLanguageConfiguration("routine")),
     vscode.languages.registerDocumentSymbolProvider(
       documentSelector("objectscript-class"),
       new ObjectScriptClassSymbolProvider()
