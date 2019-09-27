@@ -26,10 +26,41 @@ export class ObjectScriptDiagnosticProvider {
 
   private commands(document: vscode.TextDocument): vscode.Diagnostic[] {
     const result = new Array<vscode.Diagnostic>();
+    const isClass = document.fileName.toLowerCase().endsWith(".cls");
 
+    let inComment = false;
+    let endingComma = false;
+    let isCode = !isClass;
     for (let i = 0; i < document.lineCount; i++) {
       const line = document.lineAt(i);
       const text = this.stripLineComments(line.text);
+
+      if (text.match(/\/\*/)) {
+        inComment = true;
+      }
+
+      if (inComment) {
+        if (text.match(/\*\//)) {
+          inComment = false;
+        }
+        continue;
+      }
+      if (endingComma) {
+        endingComma = text.match(/,\s*$/) !== null;
+        continue;
+      }
+      endingComma = text.match(/,\s*$/) !== null;
+      if (isClass) {
+        if (isCode) {
+          isCode = text.match(/^}$/) === null;
+        } else {
+          isCode = text.match(/^(class)?method|trigger/i) != null;
+          continue;
+        }
+      }
+      if (!isCode) {
+        continue;
+      }
 
       const commandsMatch = text.match(/^\s+(?:}\s)?\b([a-z]+)\b/i);
       if (commandsMatch) {
@@ -60,9 +91,36 @@ export class ObjectScriptDiagnosticProvider {
   private functions(document: vscode.TextDocument): vscode.Diagnostic[] {
     const result = new Array<vscode.Diagnostic>();
 
+    const isClass = document.fileName.toLowerCase().endsWith(".cls");
+
+    let inComment = false;
+    let isCode = !isClass;
     for (let i = 0; i < document.lineCount; i++) {
       const line = document.lineAt(i);
       const text = this.stripLineComments(line.text);
+
+      if (text.match(/\/\*/)) {
+        inComment = true;
+      }
+
+      if (inComment) {
+        if (text.match(/\*\//)) {
+          inComment = false;
+        }
+        continue;
+      }
+
+      if (isClass) {
+        if (isCode) {
+          isCode = text.match(/^}$/) === null;
+        } else {
+          isCode = text.match(/^(class)?method|trigger/i) != null;
+          continue;
+        }
+      }
+      if (!isCode) {
+        continue;
+      }
 
       const pattern = /(?<!\$)(\$\b[a-z]+)\b/gi;
       let functionsMatch = null;
