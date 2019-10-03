@@ -475,7 +475,10 @@
         },
         "objectscript.export.category": {
           "description": "Specifies a category to export: CLS = classes; RTN = routines; CSP = csp files; OTH = other. Default is *",
-          "type": ["string", "object"],
+          "type": [
+            "string",
+            "object"
+          ],
           "default": "*"
         },
         "objectscript.showExplorer": {
@@ -641,29 +644,29 @@
   "devDependencies": {
     "@types/glob": "^7.1.1",
     "@types/mocha": "^5.2.7",
-    "@types/node": "^12.0.7",
-    "@types/request": "^2.48.1",
+    "@types/node": "^12.7.10",
+    "@types/request": "^2.48.3",
     "@types/request-promise": "^4.1.44",
     "@types/vscode": "^1.37.0",
-    "@types/ws": "^6.0.1",
+    "@types/ws": "^6.0.3",
     "@types/xmldom": "^0.1.29",
     "@typescript-eslint/eslint-plugin": "^1.13.0",
     "@typescript-eslint/parser": "^1.13.0",
-    "eslint": "^6.1.0",
+    "eslint": "^6.5.1",
     "eslint-config-airbnb": "^17.1.1",
-    "eslint-config-prettier": "^6.0.0",
+    "eslint-config-prettier": "^6.3.0",
     "eslint-plugin-import": "^2.18.2",
     "eslint-plugin-jsx-a11y": "^6.2.3",
-    "eslint-plugin-node": "^9.1.0",
-    "eslint-plugin-prettier": "^3.1.0",
+    "eslint-plugin-node": "^9.2.0",
+    "eslint-plugin-prettier": "^3.1.1",
     "eslint-plugin-promise": "^4.2.1",
     "extend": "^3.0.2",
-    "mocha": "^6.2.0",
+    "mocha": "^6.2.1",
     "prettier": "^1.18.2",
-    "tape": "^4.10.2",
-    "typescript": "^3.5.2",
-    "vsce": "^1.66.0",
-    "vscode-debugadapter-testsupport": "^1.35.0",
+    "tape": "^4.11.0",
+    "typescript": "^3.6.3",
+    "vsce": "^1.67.1",
+    "vscode-debugadapter-testsupport": "^1.37.1",
     "vscode-test": "^1.2.0"
   },
   "dependencies": {
@@ -673,9 +676,9 @@
     "request": "^2.88.0",
     "request-promise": "^4.2.4",
     "vscode-cache": "^0.3.0",
-    "vscode-debugadapter": "^1.35.0",
-    "vscode-debugprotocol": "^1.35.0",
-    "ws": "^7.1.0",
+    "vscode-debugadapter": "^1.37.1",
+    "vscode-debugprotocol": "^1.37.0",
+    "ws": "^7.1.2",
     "xmldom": "^0.1.27"
   }
 }
