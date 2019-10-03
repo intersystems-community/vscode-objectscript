@@ -28,7 +28,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const parent = await this._lookupAsDirectory(uri);
     const sql = `CALL %Library.RoutineMgr_StudioOpenDialog(?,,,,,,0)`;
     const folder = uri.path === "/" ? "/" : uri.path.replace(/\//g, ".") + "/";
-    const spec = folder.slice(1) + "*.cls,*.int,*.mac";
+    const spec = folder.slice(1) + "*.cls,*.inc,*.int,*.mac";
     return api
       .actionQuery(sql, [spec])
       .then(data => data.result.content || [])
