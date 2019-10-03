@@ -83,7 +83,7 @@ export class DocumentFormattingEditProvider implements vscode.DocumentFormatting
             range: new vscode.Range(new vscode.Position(i, 0), new vscode.Position(i, space.length)),
           });
         }
-        if (rest.trimLeft().length) {
+        if (rest.trimLeft().length && !rest.match(/^\s*\bwhile\b/i)) {
           const pos = line.text.indexOf("}") + 1;
           edits.push({
             newText: "\n" + " ".repeat(indentSize),
@@ -98,7 +98,7 @@ export class DocumentFormattingEditProvider implements vscode.DocumentFormatting
       const commandsMatch = line.text.match(/^(\s+[\s.]*)\b([a-z]+)\b/i);
       if (commandsMatch) {
         const indentSize = options.tabSize * indent;
-        const [, space, found] = commandsMatch;
+        const [, space] = commandsMatch;
         if (!space.includes(".") && options.insertSpaces && space.length !== indentSize) {
           const newText = " ".repeat(indentSize);
           edits.push({
@@ -106,17 +106,36 @@ export class DocumentFormattingEditProvider implements vscode.DocumentFormatting
             range: new vscode.Range(new vscode.Position(i, 0), new vscode.Position(i, space.length)),
           });
         }
-        const pos = line.text.indexOf(found);
-        const range = new vscode.Range(new vscode.Position(i, pos), new vscode.Position(i, pos + found.length));
-        const command = commands.find(el => el.alias.includes(found.toUpperCase()));
-        if (command) {
-          const expect = this._formatter.command(command.label);
-          if (expect !== found) {
-            edits.push({
-              newText: expect,
-              range,
-            });
+
+        // keep strings and comments
+        const keepList = [];
+        const restorePattern = [];
+        const toKeep = str => {
+          keepList.push(str);
+          restorePattern.push(String.fromCharCode(keepList.length));
+          return String.fromCharCode(keepList.length);
+        };
+        // restore strings and comments back
+        const toRestore = code => keepList[code.charCodeAt(0) - 1] || code;
+        const formatCommand = (full, spaces, cmd) => {
+          const command = commands.find(el => el.alias.includes(cmd.toUpperCase()));
+          if (command) {
+            return spaces + this._formatter.command(command.label);
           }
+          return full;
+        };
+        const newText = line.text
+          .replace(/"(?:""|[^"])*"|\/\*.*\*\/|\/\/+.*|##;.*/g, toKeep)
+          .replace(/(?<=^\s|{|})(\s*)(\b([a-z]+)\b)/gi, formatCommand)
+          .replace(/([{}])(?!\s|$)/g, "$1 ")
+          .replace(/(?<!\s)([{}])/g, " $1")
+          .replace(new RegExp(restorePattern.join("|"), "g"), toRestore);
+
+        if (newText != line.text) {
+          edits.push({
+            newText,
+            range: line.range,
+          });
         }
         const setAssignMatch = line.text.match(
           /^\s+(?:\.\s*)*set\s(?:\^?%?(?:[a-z][a-z0-9]*)(?:\.[a-z][a-z0-9]*)*)(\s*=\s*)/i

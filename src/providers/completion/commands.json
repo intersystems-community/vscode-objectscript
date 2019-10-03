@@ -519,7 +519,7 @@
   },
   {
     "label": "ZTRAP",
-    "alias": ["ZTRAP"],
+    "alias": ["ZTRAP", "ZT"],
     "documentation": [
       "Forces an error with a specified error code.\n",
       "```objectscript\n",
