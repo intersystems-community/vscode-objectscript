@@ -105,7 +105,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       ...response.body,
       supportsConfigurationDoneRequest: true,
       supportsEvaluateForHovers: true,
-      supportsSetVariable: false, // TODO
+      supportsSetVariable: true,
       supportsConditionalBreakpoints: false, // TODO
       supportsStepBack: false,
     };
@@ -503,6 +503,31 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     } else {
       response.body = { result: "no result", variablesReference: 0 };
     }
+    this.sendResponse(response);
+  }
+
+  protected async setVariableRequest(
+    response: DebugProtocol.SetVariableResponse,
+    args: DebugProtocol.SetVariableArguments
+  ): Promise<void> {
+    const { value, name, variablesReference } = args;
+    let property = null;
+    if (this._contexts.has(variablesReference)) {
+      // VS Code is requesting the variables for a SCOPE, so we have to do a context_get
+      const context = this._contexts.get(variablesReference);
+      const properties = await context.getProperties();
+      property = properties.find(el => el.name === name);
+    } else if (this._properties.has(variablesReference)) {
+      // VS Code is requesting the subelements for a variable, so we have to do a property_get
+      property = this._properties.get(variablesReference);
+    }
+    property.value = value;
+    await this._connection.sendPropertySetCommand(property);
+
+    response.body = {
+      value: args.value,
+      variablesReference: args.variablesReference,
+    };
     this.sendResponse(response);
   }
 }

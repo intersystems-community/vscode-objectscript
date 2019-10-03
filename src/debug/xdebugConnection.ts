@@ -497,6 +497,22 @@ export class PropertyGetResponse extends Response {
   }
 }
 
+/** The response to a property_set command */
+export class PropertySetResponse extends Response {
+  /** the children of the given property */
+  public children: Property[];
+  /**
+   * @param  {XMLDocument} document
+   * @param  {Property} property
+   */
+  public constructor(document: XMLDocument, property: Property) {
+    super(document, property.context.stackFrame.connection);
+    // this.children = Array.from(document.documentElement.firstChild.childNodes).map(
+    //   (propertyNode: Element): Property => new Property(propertyNode, property.context)
+    // );
+  }
+}
+
 /**
  * class for properties returned from eval commands.
  * These don't have a full name or an ID, but have all children already inlined.
@@ -817,6 +833,18 @@ export class Connection extends DbgpConnection {
       await this._enqueueCommand(
         "property_get",
         `-d ${property.context.stackFrame.level} -c ${property.context.id} -n ${escapedFullName}`
+      ),
+      property
+    );
+  }
+
+  /** Sends a property_get command */
+  public async sendPropertySetCommand(property: Property): Promise<PropertySetResponse> {
+    const value = Buffer.from(property.value).toString("base64");
+    return new PropertySetResponse(
+      await this._enqueueCommand(
+        "property_set",
+        `-d ${property.context.stackFrame.level} -n ${property.fullName} -- ${value}`
       ),
       property
     );
