@@ -14,6 +14,7 @@ import { subclass } from "./commands/subclass";
 import { superclass } from "./commands/superclass";
 import { viewOthers } from "./commands/viewOthers";
 import { xml2doc } from "./commands/xml2doc";
+import { mainMenu } from "./commands/studio";
 
 import { getLanguageConfiguration } from "./languageConfiguration";
 
@@ -36,12 +37,15 @@ import { ObjectScriptConfigurationProvider } from "./debug/debugConfProvider";
 import { ObjectScriptExplorerProvider } from "./explorer/explorer";
 import { WorkspaceNode } from "./explorer/models/workspaceNode";
 import { FileSystemProvider } from "./providers/FileSystemPovider/FileSystemProvider";
-import { FileSearchProvider } from "./providers/FileSystemPovider/FileSearchProvider";
-import { TextSearchProvider } from "./providers/FileSystemPovider/TextSearchProvider";
 import { WorkspaceSymbolProvider } from "./providers/WorkspaceSymbolProvider";
 import { currentWorkspaceFolder, outputChannel } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentRangeFormattingEditProvider } from "./providers/DocumentRangeFormattingEditProvider";
+
+/* proposed */
+import { FileSearchProvider } from "./providers/FileSystemPovider/FileSearchProvider";
+import { TextSearchProvider } from "./providers/FileSystemPovider/TextSearchProvider";
+
 export let fileSystemProvider: FileSystemProvider;
 export let explorerProvider: ObjectScriptExplorerProvider;
 export let documentContentProvider: DocumentContentProvider;
@@ -233,6 +237,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         });
     }),
     vscode.commands.registerCommand("vscode-objectscript.viewOthers", viewOthers),
+    vscode.commands.registerCommand("vscode-objectscript.studio.actions", mainMenu),
     vscode.commands.registerCommand("vscode-objectscript.subclass", subclass),
     vscode.commands.registerCommand("vscode-objectscript.superclass", superclass),
     vscode.commands.registerCommand("vscode-objectscript.serverActions", serverActions),

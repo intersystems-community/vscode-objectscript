@@ -121,6 +121,10 @@
         {
           "command": "vscode-objectscript.compileFolder",
           "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.studio.actions",
+          "when": "vscode-objectscript.connectActive && resourceScheme == isfs"
         }
       ],
       "view/title": [
@@ -164,6 +168,10 @@
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
+          "command": "vscode-objectscript.studio.actions",
+          "when": "resourceScheme == isfs && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
           "command": "vscode-objectscript.previewXml",
           "when": "editorLangId =~ /^xml/"
         }
@@ -184,6 +192,10 @@
         {
           "command": "vscode-objectscript.compileFolder",
           "when": "vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.studio.actions",
+          "when": "resourceScheme == isfs && resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         }
       ]
     },
@@ -361,6 +373,11 @@
         "category": "ObjectScsript",
         "command": "vscode-objectscript.compileFolder",
         "title": "Import and compile"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.studio.actions",
+        "title": "Studio actions"
       }
     ],
     "keybindings": [
