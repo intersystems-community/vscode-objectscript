@@ -1260,6 +1260,159 @@
     "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzarctan"
   },
   {
+    "label": "$ZBITAND",
+    "alias": [
+      "$ZBITAND"
+    ],
+    "deprecated": true,
+    "documentation": [
+      "Legacy, Bitstring function – AND\n",
+      "```objectscript\n",
+      "$ZBITAND(bitstring1,bitstring2)",
+      "```\n\n",
+      "Replaced by `$BIT`"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fbit"
+  },
+  {
+    "label": "$ZBITCOUNT",
+    "alias": [
+      "$ZBITCOUNT"
+    ],
+    "deprecated": true,
+    "documentation": [
+      "Legacy, Bitstring function – COUNT\n",
+      "```objectscript\n",
+      "$ZBITCOUNT(bitstring)",
+      "```\n\n",
+      "Replaced by `$BIT`"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fbit"
+  },
+  {
+    "label": "$ZBITFIND",
+    "alias": [
+      "$ZBITFIND"
+    ],
+    "deprecated": true,
+    "documentation": [
+      "Legacy, Bitstring function – FIND\n",
+      "```objectscript\n",
+      "$ZBITFIND(bitstring, truthval, position)",
+      "```\n\n",
+      "Replaced by `$BIT`"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fbit"
+  },
+  {
+    "label": "$ZBITGET",
+    "alias": [
+      "$ZBITGET"
+    ],
+    "deprecated": true,
+    "documentation": [
+      "Legacy, Bitstring function – GET\n",
+      "```objectscript\n",
+      "$ZBITGET(bitstring, position)",
+      "```\n",
+      "Parameters:\n\n",
+      "`bitstring` The bitstring to be evaluated.\n",
+      "`position` Value or expression that evaluates to a positive integer.\n\n",
+      "Replaced by `$BIT`"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fbit"
+  },
+  {
+    "label": "$ZBITLEN",
+    "alias": [
+      "$ZBITLEN"
+    ],
+    "deprecated": true,
+    "documentation": [
+      "Legacy, Bitstring function – LEN\n",
+      "```objectscript\n",
+      "$ZBITLEN(bitstring)",
+      "```\n\n",
+      "Replaced by `$BIT`"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fbit"
+  },
+  {
+    "label": "$ZBITNOT",
+    "alias": [
+      "$ZBITNOT"
+    ],
+    "deprecated": true,
+    "documentation": [
+      "Legacy, Bitstring function – NOT\n",
+      "```objectscript\n",
+      "$ZBITNOT(bitstring)",
+      "```\n\n",
+      "Replaced by `$BIT`"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fbit"
+  },
+  {
+    "label": "$ZBITOR",
+    "alias": [
+      "$ZBITOR"
+    ],
+    "deprecated": true,
+    "documentation": [
+      "Legacy, Bitstring function – OR\n",
+      "```objectscript\n",
+      "$ZBITOR(bitstring1,bitstring2)",
+      "```\n\n",
+      "Replaced by `$BIT`"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fbit"
+  },
+  {
+    "label": "$ZBITSET",
+    "alias": [
+      "$ZBITSET"
+    ],
+    "deprecated": true,
+    "documentation": [
+      "Legacy, Bitstring function – SET\n",
+      "```objectscript\n",
+      "$ZBITSET(bitstring,position,truthval)",
+      "```\n\n",
+      "Replaced by `$BIT`"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fbit"
+  },
+  {
+    "label": "$ZBITSTR",
+    "alias": [
+      "$ZBITSTR"
+    ],
+    "deprecated": true,
+    "documentation": [
+      "Legacy, Bitstring function – STR\n",
+      "```objectscript\n",
+      "$ZBITSTR(size,truthval)",
+      "```\n\n",
+      "Replaced by `$BIT`"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fbit"
+  },
+  {
+    "label": "$ZBITXOR",
+    "alias": [
+      "$ZBITXOR"
+    ],
+    "deprecated": true,
+    "documentation": [
+      "Legacy, Bitstring function – XOR\n",
+      "```objectscript\n",
+      "$ZBITXOR(bitstring1,bitstring2)",
+      "```\n\n",
+      "Replaced by `$BIT`"
+    ],
+    "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fbit"
+  },
+  {
     "label":"$ZBOOLEAN",
     "alias":[
       "$ZBOOLEAN",
