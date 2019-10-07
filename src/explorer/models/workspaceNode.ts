@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 
-import { AtelierAPI } from "../../api";
 import { NodeBase } from "./nodeBase";
 import { RootNode } from "./rootNode";
 
@@ -10,10 +9,6 @@ export class WorkspaceNode extends NodeBase {
     super(label, label, label, namespace);
     this.eventEmitter = eventEmitter;
   }
-
-  // get ns(): string {
-  //   return this._namespace;
-  // }
 
   public getTreeItem(): vscode.TreeItem {
     return {
@@ -26,64 +21,16 @@ export class WorkspaceNode extends NodeBase {
   public async getChildren(element): Promise<NodeBase[]> {
     const children = [];
     let node: RootNode;
-    let data: any;
 
-    data = await this.getDocNames("CLS");
-    node = new RootNode(
-      "Classes",
-      "dataRootNode:classesRootNode",
-      this.eventEmitter,
-      data,
-      this.workspaceFolder,
-      this.namespace
-    );
+    node = new RootNode("Classes", "", "dataRootNode:classesRootNode", "CLS", this.workspaceFolder, this.namespace);
     children.push(node);
 
-    data = await this.getDocNames("RTN");
-    node = new RootNode(
-      "Routines",
-      "dataRootNode:routinesRootNode",
-      this.eventEmitter,
-      data,
-      this.workspaceFolder,
-      this.namespace
-    );
+    node = new RootNode("Routines", "", "dataRootNode:routinesRootNode", "RTN", this.workspaceFolder, this.namespace);
+    children.push(node);
+
+    node = new RootNode("Includes", "", "dataRootNode:routinesRootNode", "INC", this.workspaceFolder, this.namespace);
     children.push(node);
 
     return children;
-  }
-
-  public getDocNames(category: string): Promise<any> {
-    const sql = `SELECT Name name
-      FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?)
-    `;
-    let spec;
-    const notStudio = 0;
-    switch (category) {
-      case "CLS":
-        spec = "*.cls";
-        break;
-      case "RTN":
-        spec = "*.mac,*.int,*.inc";
-        break;
-      default:
-        return;
-    }
-    const direction = 1;
-    const orderBy = 1; // by Name
-    const flat = 1;
-    const generated = 0;
-    const filter = "";
-
-    const systemFiles = this.namespace === "%SYS" ? "1" : "0";
-
-    const api = new AtelierAPI(this.label);
-    api.setNamespace(this.namespace);
-    return api
-      .actionQuery(sql, [spec, direction, orderBy, systemFiles, flat, notStudio, generated, filter])
-      .then(data => {
-        const content = data.result.content;
-        return content;
-      });
   }
 }
