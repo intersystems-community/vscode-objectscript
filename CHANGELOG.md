@@ -1,9 +1,11 @@
 # Change Log
 
 ## [0.7.14]
-- "Debug this ClassMethod" feauture added, to quickly debug any classmethod in a class
+- "Debug this ClassMethod" feature added, to quickly debug any classmethod in a class
 - Change variable value while debugging
 - When virtual filesystem `isfs://` used, now possible to execute some actions from Studio Source class menu
+- Explorer view, new way of generation, should be faster now
+- Explorer view, INC files now separate in own Includes folder
 
 ## [0.7.12]
 
