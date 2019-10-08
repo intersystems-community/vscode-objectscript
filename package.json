@@ -585,7 +585,7 @@
         {
           "id": "ObjectScriptExplorer",
           "name": "Explorer",
-          "when": "config.objectscript.showExplorer == true"
+          "when": "workspaceFolderCount != 0 && config.objectscript.showExplorer == true"
         }
       ]
     },
