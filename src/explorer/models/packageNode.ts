@@ -2,8 +2,8 @@ import * as vscode from "vscode";
 import { RootNode } from "./rootNode";
 
 export class PackageNode extends RootNode {
-  public constructor(label: string, fullName: string, category: string, workspaceFolder: string, namespace: string) {
-    super(label, fullName, "dataNode:packageNode", category, workspaceFolder, namespace);
+  public constructor(label: string, fullName: string, category: string, options) {
+    super(label, fullName, "dataNode:packageNode", category, options);
   }
 
   public getTreeItem(): vscode.TreeItem {

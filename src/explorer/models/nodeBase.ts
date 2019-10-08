@@ -1,7 +1,15 @@
 import * as vscode from "vscode";
 import { config } from "../../extension";
 
+export interface NodeOptions {
+  extraNode?: boolean;
+  generated?: boolean;
+  namespace?: string;
+  workspaceFolder?: string;
+}
+
 export class NodeBase {
+  public readonly options: NodeOptions;
   public readonly label: string;
   public readonly fullName: string;
   public readonly workspaceFolder: string;
@@ -9,13 +17,19 @@ export class NodeBase {
   public readonly extraNode: boolean;
   public readonly namespace: string;
 
-  protected constructor(label: string, fullName: string, workspaceFolder, namespace: string) {
+  protected constructor(label: string, fullName: string, options: NodeOptions) {
+    this.options = {
+      generated: false,
+      extraNode: false,
+      ...options,
+    };
     this.label = label;
     this.fullName = fullName;
+    const { workspaceFolder, namespace, extraNode } = options;
     this.workspaceFolder = workspaceFolder;
     this.conn = config("conn", workspaceFolder);
     this.namespace = namespace || this.conn.ns;
-    this.extraNode = this.conn.ns !== this.namespace;
+    this.extraNode = extraNode;
   }
 
   public getTreeItem(): vscode.TreeItem {

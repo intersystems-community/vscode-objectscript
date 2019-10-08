@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 
-import { NodeBase } from "./nodeBase";
+import { NodeBase, NodeOptions } from "./nodeBase";
 import { PackageNode } from "./packageNode";
 import { RoutineNode } from "./routineNode";
 import { AtelierAPI } from "../../api";
@@ -10,15 +10,8 @@ export class RootNode extends NodeBase {
   public readonly contextValue: string;
   private readonly _category: string;
 
-  public constructor(
-    label: string,
-    fullName: string,
-    contextValue: string,
-    category: string,
-    workspaceFolder: string,
-    namespace: string
-  ) {
-    super(label, fullName, workspaceFolder, namespace);
+  public constructor(label: string, fullName: string, contextValue: string, category: string, options: NodeOptions) {
+    super(label, fullName, options);
     this.contextValue = contextValue;
     this._category = category;
   }
@@ -56,7 +49,7 @@ export class RootNode extends NodeBase {
     const orderBy = "1"; // by Name
     const flat = "0";
     const notStudio = "0";
-    const generated = "0";
+    const generated = this.options.generated ? "1" : "0";
 
     spec = path + spec;
 
@@ -76,13 +69,13 @@ export class RootNode extends NodeBase {
             const fullName = (this instanceof PackageNode ? this.fullName + "." : "") + el.Name;
             switch (el.Type) {
               case "9":
-                return new PackageNode(el.Name, fullName, category, this.workspaceFolder, this.namespace);
+                return new PackageNode(el.Name, fullName, category, this.options);
               case "4":
-                return new ClassNode(el.Name, fullName, this.workspaceFolder, this.namespace);
+                return new ClassNode(el.Name, fullName, this.options);
               case "0":
               case "1":
               case "2":
-                return new RoutineNode(el.Name, fullName, this.workspaceFolder, this.namespace);
+                return new RoutineNode(el.Name, fullName, this.options);
               default:
                 return null;
             }

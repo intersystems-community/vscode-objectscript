@@ -247,6 +247,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("vscode-objectscript.explorer.openRoutine", vscode.window.showTextDocument),
     vscode.commands.registerCommand("vscode-objectscript.explorer.export", exportExplorerItem),
     vscode.commands.registerCommand("vscode-objectscript.explorer.delete", deleteItem),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.showGenerated", (workspaceNode: WorkspaceNode) => {
+      workspaceState.update(`ExplorerGenerated:${workspaceNode.uniqueId}`, true);
+      return explorerProvider.refresh();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.hideGenerated", (workspaceNode: WorkspaceNode) => {
+      workspaceState.update(`ExplorerGenerated:${workspaceNode.uniqueId}`, false);
+      return explorerProvider.refresh();
+    }),
     vscode.commands.registerCommand("vscode-objectscript.explorer.otherNamespace", (workspaceNode: WorkspaceNode) => {
       return explorerProvider.selectNamespace(workspaceNode.label);
     }),

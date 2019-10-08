@@ -65,11 +65,14 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
     workspaceFolders.forEach(workspaceFolder => {
       const conn: any = config("conn", workspaceFolder.name);
       if (conn.active && conn.ns) {
-        node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData);
+        node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData, {});
         rootNodes.push(node);
 
         this._showExtra4Workspace.forEach(ns => {
-          node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData, ns);
+          node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData, {
+            namespace: ns,
+            extraNode: true,
+          });
           rootNodes.push(node);
         });
       }

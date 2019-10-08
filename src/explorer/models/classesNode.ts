@@ -1,11 +1,11 @@
 import * as vscode from "vscode";
 import { DocumentContentProvider } from "../../providers/DocumentContentProvider";
-import { NodeBase } from "./nodeBase";
+import { NodeBase, NodeOptions } from "./nodeBase";
 
 export class ClassNode extends NodeBase {
   public static readonly contextValue: string = "dataNode:classNode";
-  public constructor(label: string, fullName: string, workspaceFolder: string, namespace: string) {
-    super(label, fullName, workspaceFolder, namespace);
+  public constructor(label: string, fullName: string, options: NodeOptions) {
+    super(label, fullName, options);
   }
 
   public getTreeItem(): vscode.TreeItem {

@@ -1,20 +1,24 @@
 import * as vscode from "vscode";
 
-import { NodeBase } from "./nodeBase";
+import { NodeBase, NodeOptions } from "./nodeBase";
 import { RootNode } from "./rootNode";
+import { workspaceState } from "../../extension";
 
 export class WorkspaceNode extends NodeBase {
   public eventEmitter: vscode.EventEmitter<NodeBase>;
-  public constructor(label: string, eventEmitter: vscode.EventEmitter<NodeBase>, namespace?: string) {
-    super(label, label, label, namespace);
+  public uniqueId: string;
+  public constructor(label: string, eventEmitter: vscode.EventEmitter<NodeBase>, options: NodeOptions) {
+    super(label, label, options);
+    this.uniqueId = `serverNode${this.extraNode ? ":extra:" + this.namespace : ""}`;
+    this.options.generated = workspaceState.get(`ExplorerGenerated:${this.uniqueId}`);
     this.eventEmitter = eventEmitter;
   }
 
   public getTreeItem(): vscode.TreeItem {
     return {
       collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
-      contextValue: `serverNode${this.extraNode ? "Extra:" + this.namespace : ""}`,
-      label: `${this.label}${this.extraNode ? `[${this.namespace}]` : ""}`,
+      contextValue: `${this.uniqueId}${this.options.generated ? ":generated:" : ""}`,
+      label: `${this.label}[${this.namespace}]`,
     };
   }
 
@@ -22,13 +26,13 @@ export class WorkspaceNode extends NodeBase {
     const children = [];
     let node: RootNode;
 
-    node = new RootNode("Classes", "", "dataRootNode:classesRootNode", "CLS", this.workspaceFolder, this.namespace);
+    node = new RootNode("Classes", "", "dataRootNode:classesRootNode", "CLS", this.options);
     children.push(node);
 
-    node = new RootNode("Routines", "", "dataRootNode:routinesRootNode", "RTN", this.workspaceFolder, this.namespace);
+    node = new RootNode("Routines", "", "dataRootNode:routinesRootNode", "RTN", this.options);
     children.push(node);
 
-    node = new RootNode("Includes", "", "dataRootNode:routinesRootNode", "INC", this.workspaceFolder, this.namespace);
+    node = new RootNode("Includes", "", "dataRootNode:routinesRootNode", "INC", this.options);
     children.push(node);
 
     return children;

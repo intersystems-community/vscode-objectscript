@@ -6,6 +6,7 @@
 - When virtual filesystem `isfs://` used, now possible to execute some actions from Studio Source class menu
 - Explorer view, new way of generation, should be faster now
 - Explorer view, INC files now separate in own Includes folder
+- Explorer view, option to show/hide generated items
 
 ## [0.7.12]
 

@@ -149,13 +149,21 @@
         },
         {
           "command": "vscode-objectscript.explorer.otherNamespace",
-          "when": "view == ObjectScriptExplorer && viewItem == serverNode",
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode((?!:extra:).)*$/",
           "group": "inline"
         },
         {
           "command": "vscode-objectscript.explorer.otherNamespaceClose",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNodeExtra:/",
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode:extra:/",
           "group": "inline"
+        },
+        {
+          "command": "vscode-objectscript.explorer.showGenerated",
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode((?!:generated:).)*$/"
+        },
+        {
+          "command": "vscode-objectscript.explorer.hideGenerated",
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode.*:generated:/"
         }
       ],
       "editor/context": [
@@ -315,22 +323,32 @@
       {
         "command": "vscode-objectscript.explorer.export",
         "title": "Export",
-        "category": "ObjecScript"
+        "category": "ObjectScript"
       },
       {
         "command": "vscode-objectscript.explorer.otherNamespace",
         "title": "View another namespace",
-        "category": "ObjecScript"
+        "category": "ObjectScript"
+      },
+      {
+        "command": "vscode-objectscript.explorer.showGenerated",
+        "title": "Show generated",
+        "category": "ObjectScript"
+      },
+      {
+        "command": "vscode-objectscript.explorer.hideGenerated",
+        "title": "Hide generated",
+        "category": "ObjectScript"
       },
       {
         "command": "vscode-objectscript.explorer.otherNamespaceClose",
         "title": "Close namespace",
-        "category": "ObjecScript"
+        "category": "ObjectScript"
       },
       {
         "command": "vscode-objectscript.explorer.delete",
         "title": "Delete",
-        "category": "ObjecScript"
+        "category": "ObjectScript"
       },
       {
         "command": "vscode-objectscript.explorer.refresh",
