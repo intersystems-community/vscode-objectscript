@@ -1,4 +1,7 @@
+const extensionId = "daimor.vscode-objectscript";
+
 import vscode = require("vscode");
+
 import { AtelierJob } from "./atelier";
 const { workspace, window } = vscode;
 export const OBJECTSCRIPT_FILE_SCHEMA = "objectscript";
@@ -52,6 +55,12 @@ export let documentContentProvider: DocumentContentProvider;
 export let workspaceState: vscode.Memento;
 export let extensionContext: vscode.ExtensionContext;
 
+import TelemetryReporter from "vscode-extension-telemetry";
+
+const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
+const extensionVersion = packageJson.version;
+const aiKey = packageJson.aiKey;
+
 export const config = (setting?: string, workspaceFolderName?: string): any => {
   workspaceFolderName = workspaceFolderName || currentWorkspaceFolder();
 
@@ -80,9 +89,12 @@ export function getXmlUri(uri: vscode.Uri): vscode.Uri {
     scheme: OBJECTSCRIPTXML_FILE_SCHEMA,
   });
 }
+let reporter;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  const languages = require(context.asAbsolutePath("./package.json")).contributes.languages.map(lang => lang.id);
+  reporter = new TelemetryReporter(extensionId, extensionVersion, aiKey);
+
+  const languages = packageJson.contributes.languages.map(lang => lang.id);
   workspaceState = context.workspaceState;
   extensionContext = context;
   workspaceState.update("workspaceFolder", "");
@@ -163,6 +175,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   }
 
   context.subscriptions.push(
+    reporter,
     workspace.onDidChangeTextDocument(event => {
       diagnosticProvider.updateDiagnostics(event.document);
     }),
@@ -327,4 +340,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.workspace.registerFileSearchProvider(FILESYSTEM_SCHEMA, new FileSearchProvider()),
     vscode.workspace.registerTextSearchProvider(FILESYSTEM_SCHEMA, new TextSearchProvider())
   );
+  reporter.sendTelemetryEvent("extensionActivated");
+}
+
+export function deactivate() {
+  // This will ensure all pending events get flushed
+  reporter.dispose();
 }

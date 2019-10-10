@@ -4,6 +4,7 @@
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
   "version": "0.7.14-SNAPSHOT",
   "icon": "images/logo.png",
+  "aiKey": "62520d06-0454-4694-ad43-0ff4bd613c04",
   "categories": [
     "Programming Languages",
     "Other",
@@ -713,6 +714,7 @@
     "vscode-cache": "^0.3.0",
     "vscode-debugadapter": "^1.37.1",
     "vscode-debugprotocol": "^1.37.0",
+    "vscode-extension-telemetry": "^0.1.2",
     "ws": "^7.1.2",
     "xmldom": "^0.1.27"
   }
