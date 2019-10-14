@@ -155,7 +155,15 @@ export async function exportList(files: string[], workspaceFolder: string, names
       outputChannel.appendLine(`Items failed to export: \n${errors.join("\n")}`);
     }
   };
-  return run(files);
+  return vscode.window.withProgress(
+    {
+      title: "Export items",
+      location: vscode.ProgressLocation.Notification,
+    },
+    () => {
+      return run(files);
+    }
+  );
 }
 
 export async function exportAll(workspaceFolder?: string): Promise<any> {
@@ -198,15 +206,7 @@ Would you like to continue?`,
     }
   }
   const { workspaceFolder, namespace } = node;
-  const nodesList = node instanceof RootNode ? node.getChildren(node) : Promise.resolve([node]);
-  return nodesList
-    .then(nodes =>
-      nodes.reduce(
-        (list, subNode) => list.concat(subNode instanceof PackageNode ? subNode.getClasses() : [subNode.fullName]),
-        []
-      )
-    )
-    .then(items => {
-      return exportList(items, workspaceFolder, namespace);
-    });
+  return node.getItems4Export().then(items => {
+    return exportList(items, workspaceFolder, namespace);
+  });
 }

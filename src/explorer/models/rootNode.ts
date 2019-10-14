@@ -28,7 +28,8 @@ export class RootNode extends NodeBase {
     const path = this instanceof PackageNode ? this.fullName + "/" : "";
     return this.getItems(path, this._category);
   }
-  public getItems(path: string, category: string): Promise<NodeBase[]> {
+
+  public getList(path: string, category: string, flat: boolean) {
     const sql = "CALL %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)";
     // const sql = "CALL %Library.RoutineMgr_StudioOpenDialog(?,,,,,,?)";
     let spec = "";
@@ -42,12 +43,14 @@ export class RootNode extends NodeBase {
       case "INC":
         spec = "*.inc";
         break;
+      case "ALL":
+        spec = "*.cls,*.mac,*.int,*.inc";
+        break;
       default:
         return;
     }
     const direction = "1";
     const orderBy = "1"; // by Name
-    const flat = "0";
     const notStudio = "0";
     const generated = this.options.generated ? "1" : "0";
 
@@ -58,29 +61,45 @@ export class RootNode extends NodeBase {
     const api = new AtelierAPI(this.workspaceFolder);
     api.setNamespace(this.namespace);
     return api
-      .actionQuery(sql, [spec, direction, orderBy, systemFiles, flat, notStudio, generated])
+      .actionQuery(sql, [spec, direction, orderBy, systemFiles, flat ? "1" : "0", notStudio, generated])
       .then(data => {
         const content = data.result.content;
         return content;
       })
       .then(data =>
-        data
-          .map(el => {
-            const fullName = (this instanceof PackageNode ? this.fullName + "." : "") + el.Name;
-            switch (el.Type) {
-              case "9":
-                return new PackageNode(el.Name, fullName, category, this.options);
-              case "4":
-                return new ClassNode(el.Name, fullName, this.options);
-              case "0":
-              case "1":
-              case "2":
-                return new RoutineNode(el.Name, fullName, this.options);
-              default:
-                return null;
-            }
-          })
-          .filter(el => el !== null)
+        data.map(el => {
+          const fullName = (this instanceof PackageNode ? this.fullName + "." : "") + el.Name;
+          return {
+            ...el,
+            fullName,
+          };
+        })
       );
+  }
+
+  public getItems(path: string, category: string): Promise<NodeBase[]> {
+    return this.getList(path, category, false).then(data =>
+      data
+        .map(el => {
+          switch (el.Type) {
+            case "9":
+              return new PackageNode(el.Name, el.fullName, category, this.options);
+            case "4":
+              return new ClassNode(el.Name, el.fullName, this.options);
+            case "0":
+            case "1":
+            case "2":
+              return new RoutineNode(el.Name, el.fullName, this.options);
+            default:
+              return null;
+          }
+        })
+        .filter(el => el !== null)
+    );
+  }
+
+  public getItems4Export(): Promise<string[]> {
+    const path = this instanceof PackageNode ? this.fullName + "/" : "";
+    return this.getList(path, "ALL", true).then(data => data.map(el => el.Name));
   }
 }

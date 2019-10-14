@@ -42,4 +42,8 @@ export class NodeBase {
   public async getChildren(element): Promise<NodeBase[]> {
     return [];
   }
+
+  public async getItems4Export(): Promise<string[]> {
+    return [this.fullName];
+  }
 }
