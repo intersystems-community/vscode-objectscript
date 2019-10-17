@@ -71,7 +71,7 @@ async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
       if (data.status && data.status.errors && data.status.errors.length) {
         throw new Error(`${info}Compile error`);
       } else if (!config("suppressCompileMessages")) {
-        vscode.window.showInformationMessage(`${info}Compile successed`, "Hide");
+        vscode.window.showInformationMessage(`${info}Compilation succeeded`, "Hide");
       }
       return docs;
     })
