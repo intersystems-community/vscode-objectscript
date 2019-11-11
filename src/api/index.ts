@@ -5,7 +5,7 @@ import * as url from "url";
 import * as vscode from "vscode";
 import * as Cache from "vscode-cache";
 import { config, extensionContext, FILESYSTEM_SCHEMA, workspaceState } from "../extension";
-import { currentWorkspaceFolder, outputConsole } from "../utils";
+import { currentWorkspaceFolder, outputConsole, outputChannel } from "../utils";
 
 const DEFAULT_API_VERSION = 1;
 // require("request-promise").debug = true;
@@ -177,6 +177,10 @@ export class AtelierAPI {
             const data = response.body;
             if (data.console) {
               outputConsole(data.console);
+            }
+            if (data.result.status && data.result.status !== "") {
+              outputChannel.appendLine(data.result.status);
+              throw new Error(data.result.status);
             }
             if (data.status.summary) {
               throw new Error(data.status.summary);

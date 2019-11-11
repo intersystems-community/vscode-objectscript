@@ -13,8 +13,72 @@ export class ObjectScriptDiagnosticProvider {
 
   public updateDiagnostics(document: vscode.TextDocument) {
     if (document.languageId.startsWith("objectscript")) {
-      this._collection.set(document.uri, [...this.commands(document), ...this.functions(document)]);
+      this._collection.set(document.uri, [
+        ...this.classMembers(document),
+        ...this.commands(document),
+        ...this.functions(document),
+      ]);
     }
+  }
+
+  private classMembers(document: vscode.TextDocument): vscode.Diagnostic[] {
+    const result = new Array<vscode.Diagnostic>();
+    const isClass = document.fileName.toLowerCase().endsWith(".cls");
+    if (!isClass) {
+      return [];
+    }
+
+    const map = new Map<string, string>();
+    let inComment = false;
+
+    for (let i = 0; i < document.lineCount; i++) {
+      const line = document.lineAt(i);
+      const text = this.stripLineComments(line.text);
+
+      if (text.match(/\/\*/)) {
+        inComment = true;
+      }
+
+      if (inComment) {
+        if (text.match(/\*\//)) {
+          inComment = false;
+        }
+        continue;
+      }
+
+      const memberMatch = text.match(
+        /^(Class|Property|Relationship|Index|ClassMethod|Method|XData|Query|Trigger|ForeignKey|Projection|Parameter)\s(\b[^  (]+\b)/i
+      );
+      if (memberMatch) {
+        const [fullMatch, type, name] = memberMatch;
+        const simpleType = type
+          .toLowerCase()
+          .replace("classmethod", "method")
+          .replace("relationship", "property");
+        const key = simpleType === "class" ? simpleType : [simpleType, name].join(":");
+        if (map.has(key)) {
+          const original = map.get(key);
+          const pos = line.text.indexOf(name);
+          const range = new vscode.Range(new vscode.Position(i, pos), new vscode.Position(i, pos + name.length));
+          result.push({
+            code: "",
+            message: "Element name conflict",
+            range,
+            severity: vscode.DiagnosticSeverity.Error,
+            source: "",
+            relatedInformation: [
+              new vscode.DiagnosticRelatedInformation(
+                new vscode.Location(document.uri, range),
+                `'${original}' already defined earlier`
+              ),
+            ],
+          });
+        }
+        map.set(key, fullMatch);
+      }
+    }
+
+    return result;
   }
 
   private stripLineComments(text: string) {

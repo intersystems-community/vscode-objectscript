@@ -100,6 +100,7 @@ export async function importAndCompile(askFLags = false): Promise<any> {
   return importFile(file)
     .catch(error => {
       // console.error(error);
+      throw error;
     })
     .then(() => compile([file], flags));
 }
