@@ -42,7 +42,15 @@ function doMenuAction(uri: vscode.Uri, menuType: string): Promise<any> {
     .then(action => {
       if (action) {
         const query = "select * from %Atelier_v1_Utils.Extension_UserAction(?, ?, ?, ?)";
-        const parameters = ["0", action.id, name, ""];
+        let selectedText = "";
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            selectedText = ""
+        }
+        const selection = editor.selection;
+        selectedText = editor.document.getText(selection);
+        
+        const parameters = ["0", action.id, name, selectedText];
         return vscode.window.withProgress(
           {
             cancellable: false,
