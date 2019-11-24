@@ -74,14 +74,14 @@
     "embeddedJS": {
       "patterns": [
         {
-          "begin": "(&js)(\\()",
+          "begin": "(&js)(<)",
           "beginCaptures": {
             "1": { "name": "keyword.special.js.objectscript" },
             "2": { "name": "punctuation.objectscript" }
           },
           "patterns": [{ "include": "source.js" }],
           "contentName": "text.js",
-          "end": "\\)"
+          "end": ">"
         }
       ]
     },
