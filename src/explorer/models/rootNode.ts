@@ -16,6 +16,10 @@ export class RootNode extends NodeBase {
     this._category = category;
   }
 
+  public get category(): string {
+    return this._category;
+  }
+
   public getTreeItem(): vscode.TreeItem {
     return {
       collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,

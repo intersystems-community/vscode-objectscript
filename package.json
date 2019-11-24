@@ -116,6 +116,10 @@
           "when": "false"
         },
         {
+          "command": "vscode-objectscript.explorer.compile",
+          "when": "false"
+        },
+        {
           "command": "vscode-objectscript.explorer.refresh",
           "when": "vscode-objectscript.connectActive"
         },
@@ -146,6 +150,10 @@
         },
         {
           "command": "vscode-objectscript.explorer.delete",
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
+        },
+        {
+          "command": "vscode-objectscript.explorer.compile",
           "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
         },
         {
@@ -349,6 +357,11 @@
       {
         "command": "vscode-objectscript.explorer.delete",
         "title": "Delete",
+        "category": "ObjectScript"
+      },
+      {
+        "command": "vscode-objectscript.explorer.compile",
+        "title": "Compile",
         "category": "ObjectScript"
       },
       {

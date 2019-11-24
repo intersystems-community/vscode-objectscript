@@ -9,7 +9,12 @@ export const OBJECTSCRIPTXML_FILE_SCHEMA = "objectscriptxml";
 export const FILESYSTEM_SCHEMA = "isfs";
 export const schemas = [OBJECTSCRIPT_FILE_SCHEMA, OBJECTSCRIPTXML_FILE_SCHEMA, FILESYSTEM_SCHEMA];
 
-import { importAndCompile, importFolder as importFileOrFolder, namespaceCompile } from "./commands/compile";
+import {
+  importAndCompile,
+  importFolder as importFileOrFolder,
+  namespaceCompile,
+  compileExplorerItem,
+} from "./commands/compile";
 import { deleteItem } from "./commands/delete";
 import { exportAll, exportExplorerItem } from "./commands/export";
 import { serverActions } from "./commands/serverActions";
@@ -260,6 +265,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("vscode-objectscript.explorer.openRoutine", vscode.window.showTextDocument),
     vscode.commands.registerCommand("vscode-objectscript.explorer.export", exportExplorerItem),
     vscode.commands.registerCommand("vscode-objectscript.explorer.delete", deleteItem),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.compile", compileExplorerItem),
     vscode.commands.registerCommand("vscode-objectscript.explorer.showGenerated", (workspaceNode: WorkspaceNode) => {
       workspaceState.update(`ExplorerGenerated:${workspaceNode.uniqueId}`, true);
       return explorerProvider.refresh();

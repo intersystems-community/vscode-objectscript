@@ -44,6 +44,8 @@ export class Formatter {
         /** functions */
         resultValue = resultValue.replace(/\^?\$(Z+\w|\w)/i, v => v.toUpperCase());
         resultValue = resultValue.replace(/\$isobject/i, "$IsObject");
+        resultValue = resultValue.replace(/\$classmethod/i, "$ClassMethod");
+        resultValue = resultValue.replace(/\$classname/i, "$ClassName");
         break;
       }
       default: {

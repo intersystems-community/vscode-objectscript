@@ -6,6 +6,10 @@ import { AtelierAPI } from "../api";
 import { config, documentContentProvider, FILESYSTEM_SCHEMA, fileSystemProvider } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { currentFile, CurrentFile, outputChannel } from "../utils";
+import { RootNode } from "../explorer/models/rootNode";
+import { PackageNode } from "../explorer/models/packageNode";
+import { ClassNode } from "../explorer/models/classesNode";
+import { RoutineNode } from "../explorer/models/routineNode";
 
 async function compileFlags(): Promise<string> {
   const defaultFlags = config().compileFlags;
@@ -168,4 +172,23 @@ export async function importFolder(uri: vscode.Uri): Promise<any> {
     },
     (error, files) => importFiles(files.map(name => path.join(folder, name)))
   );
+}
+
+export async function compileExplorerItem(node: RootNode | PackageNode | ClassNode | RoutineNode): Promise<any> {
+  const { workspaceFolder, namespace } = node;
+  const flags = config().compileFlags;
+  const api = new AtelierAPI(workspaceFolder);
+  api.setNamespace(namespace);
+  let docs = [node.fullName];
+  if (node instanceof PackageNode) {
+    switch (node.category) {
+      case "RTN":
+        docs = [node.fullName + ".*.mac"];
+        break;
+      case "CLS":
+        docs = [node.fullName + ".*.cls"];
+        break;
+    }
+  }
+  return api.actionCompile(docs, flags);
 }

@@ -102,7 +102,6 @@ export class DbgpConnection extends EventEmitter {
             },
           },
         });
-        console.log(xml);
         const document = parser.parseFromString(xml, "application/xml");
         this.emit("message", document);
         // reset buffer

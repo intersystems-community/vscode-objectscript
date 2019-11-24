@@ -31,6 +31,9 @@ export async function serverActions(): Promise<void> {
       }
     )
     .then(action => {
+      if (!action) {
+        return;
+      }
       switch (action.id) {
         case "toggleConnection": {
           return vscode.workspace.getConfiguration().update("objectscript.conn.active", !conn.active);
