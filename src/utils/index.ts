@@ -1,7 +1,7 @@
 import fs = require("fs");
 import path = require("path");
 import * as vscode from "vscode";
-import { schemas, workspaceState } from "../extension";
+import { config, schemas, workspaceState } from "../extension";
 
 export const outputChannel = vscode.window.createOutputChannel("ObjectScript");
 
@@ -36,7 +36,12 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
       name = match[1];
       ext = "cls";
     }
-  } else {
+  }
+  else if (fileExt === "csp") {
+    name = config().conn.label.toLowerCase()+fileName.split(config().conn.label.toLowerCase())[1].replace(/\\/g,"/").replace(".csp","")
+    ext = "csp"
+  }
+  else {
     const match = content.match(/^ROUTINE ([^\s]+)(?:\s+\[.*Type=([a-z]{3,}))?/i);
     name = match[1];
     ext = match[2] || "mac";
