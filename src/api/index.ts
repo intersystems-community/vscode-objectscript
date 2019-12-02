@@ -38,7 +38,7 @@ export class AtelierAPI {
       if (wsOrFile instanceof vscode.Uri) {
         if (wsOrFile.scheme === FILESYSTEM_SCHEMA) {
           workspaceFolderName = wsOrFile.authority;
-          const { query } = url.parse(wsOrFile.toString(), true);
+          const { query } = url.parse(decodeURIComponent(wsOrFile.toString()), true);
           if (query) {
             if (query.ns && query.ns !== "") {
               const namespace = query.ns.toString();

@@ -8,6 +8,7 @@
 - Explorer view, INC files now separate in own Includes folder
 - Explorer view, option to show/hide generated items
 - Explorer view will be shown only when any folder open
+- When used docker-compose to run instance, it's now possible to get connected to a random port from service.
 
 ## [0.7.12]
 
