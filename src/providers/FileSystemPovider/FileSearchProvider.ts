@@ -12,7 +12,6 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
     options: vscode.FileSearchOptions,
     token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.Uri[]> {
-    console.log("options", options);
     return [];
   }
 }

@@ -26,49 +26,53 @@ function doMenuAction(uri: vscode.Uri, menuType: string): Promise<any> {
           list.concat(
             sub.items
               .filter(el => el.id !== "" && el.separator == 0 && el.enabled == 1)
-              .map(el => ({ ...el, id: `${sub.id},${el.id}`, label: el.name }))
+              .map(el => ({ ...el, id: `${sub.id},${el.id}`, label: el.name, itemId: el.id, type: sub.type }))
           ),
         []
       )
     )
+    .then(menuItems =>
+      menuItems.filter((item: any, index: number, self: any) => {
+        if (item && item.type === "main") {
+          return true;
+        }
+        return self.findIndex((el): boolean => el.itemId === item.itemId) === index;
+      })
+    )
     .then(menuItems => {
       return vscode.window.showQuickPick<StudioAction>(menuItems, { canPickMany: false });
     })
-    .then(({ id, label }) => ({
-      id: id,
-      label,
-      name,
-    }))
     .then(action => {
-      if (action) {
-        const query = "select * from %Atelier_v1_Utils.Extension_UserAction(?, ?, ?, ?)";
-        let selectedText = "";
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            selectedText = ""
-        }
-        const selection = editor.selection;
-        selectedText = editor.document.getText(selection);
-        
-        const parameters = ["0", action.id, name, selectedText];
-        return vscode.window.withProgress(
-          {
-            cancellable: false,
-            location: vscode.ProgressLocation.Notification,
-            title: `Executing user action: ${action.label}`,
-          },
-          () =>
-            api
-              .actionQuery(query, parameters)
-              .then(data => data.result.content.pop())
-              .then(userAction => {
-                if (userAction && userAction.action != "0") {
-                  outputChannel.appendLine(`Studio Action "${action.label}" not supported`);
-                  outputChannel.show();
-                }
-              })
-        );
+      if (!action) {
+        return;
       }
+      const query = "select * from %Atelier_v1_Utils.Extension_UserAction(?, ?, ?, ?)";
+      let selectedText = "";
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        selectedText = "";
+      }
+      const selection = editor.selection;
+      selectedText = editor.document.getText(selection);
+
+      const parameters = ["0", action.id, name, selectedText];
+      return vscode.window.withProgress(
+        {
+          cancellable: false,
+          location: vscode.ProgressLocation.Notification,
+          title: `Executing user action: ${action.label}`,
+        },
+        () =>
+          api
+            .actionQuery(query, parameters)
+            .then(data => data.result.content.pop())
+            .then(userAction => {
+              if (userAction && userAction.action != "0") {
+                outputChannel.appendLine(`Studio Action "${action.label}" not supported`);
+                outputChannel.show();
+              }
+            })
+      );
     });
 }
 

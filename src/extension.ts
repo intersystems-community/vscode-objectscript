@@ -46,7 +46,7 @@ import { ObjectScriptExplorerProvider } from "./explorer/explorer";
 import { WorkspaceNode } from "./explorer/models/workspaceNode";
 import { FileSystemProvider } from "./providers/FileSystemPovider/FileSystemProvider";
 import { WorkspaceSymbolProvider } from "./providers/WorkspaceSymbolProvider";
-import { currentWorkspaceFolder, outputChannel } from "./utils";
+import { currentWorkspaceFolder, outputChannel, portFromDockerCompose, terminalWithDocker } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentRangeFormattingEditProvider } from "./providers/DocumentRangeFormattingEditProvider";
 
@@ -59,6 +59,8 @@ export let explorerProvider: ObjectScriptExplorerProvider;
 export let documentContentProvider: DocumentContentProvider;
 export let workspaceState: vscode.Memento;
 export let extensionContext: vscode.ExtensionContext;
+export let panel: vscode.StatusBarItem;
+export let terminal: vscode.Terminal;
 
 import TelemetryReporter from "vscode-extension-telemetry";
 
@@ -112,13 +114,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   vscode.window.registerTreeDataProvider("ObjectScriptExplorer", explorerProvider);
 
-  const panel = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+  panel = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
 
   const debugAdapterFactory = new ObjectScriptDebugAdapterDescriptorFactory();
 
   panel.command = "vscode-objectscript.serverActions";
   panel.show();
-  const checkConnection = () => {
+  const checkConnection = (clearCookies = false) => {
     const conn = config("conn");
     const connInfo = `${conn.host}:${conn.port}[${conn.ns}]`;
     panel.text = connInfo;
@@ -128,11 +130,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       panel.text = `${connInfo} - Disabled`;
       return;
     }
+    const { port: dockerPort, docker: withDocker } = portFromDockerCompose(config("conn.docker-compose"), conn.port);
+    if (withDocker) {
+      terminal = terminalWithDocker();
+      if (dockerPort !== conn.port) {
+        workspaceState.update(currentWorkspaceFolder() + ":port", dockerPort);
+      }
+    }
+
     const api = new AtelierAPI(currentWorkspaceFolder());
+    if (clearCookies) {
+      api.clearCookies();
+    }
     api
       .serverInfo()
       .then(async info => {
-        panel.text = `${connInfo} - Connected`;
+        // panel.text = `${connInfo} - Connected`;
       })
       .catch(error => {
         let message = error.message;
@@ -154,8 +167,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       });
   };
   checkConnection();
-  vscode.workspace.onDidChangeConfiguration(() => {
-    checkConnection();
+  vscode.workspace.onDidChangeConfiguration(({ affectsConfiguration }) => {
+    if (affectsConfiguration("objectscript.conn")) {
+      checkConnection(true);
+    }
   });
 
   workspace.onDidSaveTextDocument(file => {

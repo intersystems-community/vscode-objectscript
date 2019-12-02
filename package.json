@@ -446,11 +446,6 @@
           "type": "boolean",
           "default": false
         },
-        "objectscript.conn.label": {
-          "description": "Server Name",
-          "type": "string",
-          "default": "LOCAL"
-        },
         "objectscript.conn.host": {
           "description": "Hostname",
           "format": "hostname",
@@ -460,7 +455,7 @@
         "objectscript.conn.port": {
           "description": "Port number",
           "type": "number",
-          "default": 57772
+          "default": 52773
         },
         "objectscript.conn.username": {
           "description": "Username",
@@ -477,17 +472,28 @@
           "type": "string",
           "default": "USER"
         },
-        "objectscript.conn.version": {
-          "description": "API Version number",
-          "type": "number",
-          "default": 3,
-          "readOnly": true,
-          "deprecationMessage": "This value loads from server"
-        },
         "objectscript.conn.https": {
           "description": "Use SSL to access to API",
           "type": "boolean",
           "default": false
+        },
+        "objectscript.conn.docker-compose.service": {
+          "description": "Name of service in docker-compose",
+          "type": "string"
+        },
+        "objectscript.conn.docker-compose.port": {
+          "description": "Target port inside the service in docker-compose",
+          "type": "number",
+          "default": 52773
+        },
+        "objectscript.conn.docker-compose.file": {
+          "description": "docker-compose file",
+          "type": "string",
+          "default": "docker-compose.yml"
+        },
+        "objectscript.conn.docker-compose": {
+          "description": "Connect to server running in docker-compose",
+          "type": "object"
         },
         "objectscript.export": {
           "type": "object",

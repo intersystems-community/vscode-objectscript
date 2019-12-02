@@ -4,7 +4,7 @@ import * as request from "request-promise";
 import * as url from "url";
 import * as vscode from "vscode";
 import * as Cache from "vscode-cache";
-import { config, extensionContext, FILESYSTEM_SCHEMA, workspaceState } from "../extension";
+import { config, extensionContext, FILESYSTEM_SCHEMA, workspaceState, panel } from "../extension";
 import { currentWorkspaceFolder, outputConsole, outputChannel } from "../utils";
 
 const DEFAULT_API_VERSION = 1;
@@ -24,6 +24,10 @@ export class AtelierAPI {
     return workspaceState.get(this.workspaceFolder + ":apiVersion", DEFAULT_API_VERSION);
   }
 
+  private get port(): number {
+    return workspaceState.get(this.workspaceFolder + ":port", this.config.port);
+  }
+
   private get iris(): boolean {
     return workspaceState.get(this.workspaceFolder + ":iris", false);
   }
@@ -34,7 +38,7 @@ export class AtelierAPI {
       if (wsOrFile instanceof vscode.Uri) {
         if (wsOrFile.scheme === FILESYSTEM_SCHEMA) {
           workspaceFolderName = wsOrFile.authority;
-          const query = url.parse(decodeURIComponent(wsOrFile.toString()), true).query;
+          const { query } = url.parse(wsOrFile.toString(), true);
           if (query) {
             if (query.ns && query.ns !== "") {
               const namespace = query.ns.toString();
@@ -61,8 +65,13 @@ export class AtelierAPI {
     return this.cache.get("cookies", []);
   }
 
+  public clearCookies(): void {
+    this.cache.set("cookies", []);
+  }
+
   public xdebugUrl(): string {
-    const { host, port, username, password, https } = this.config;
+    const { host, username, password, https } = this.config;
+    const port = this.port;
     const proto = https ? "wss" : "ws";
     const auth = this.iris
       ? `IRISUsername=${username}&IRISPassword=${password}`
@@ -88,7 +97,8 @@ export class AtelierAPI {
     this.workspaceFolder = workspaceFolderName;
     const conn = config("conn", workspaceFolderName);
     this.config = conn;
-    const { name, host, port } = this.config;
+    const { name, host } = this.config;
+    const port = this.port;
     this.cache = new Cache(extensionContext, `API:${name}:${host}:${port}`);
   }
 
@@ -134,7 +144,8 @@ export class AtelierAPI {
     }
     headers["Cache-Control"] = "no-cache";
 
-    const { host, port, username, password, https } = this.config;
+    const { host, username, password, https } = this.config;
+    const port = this.port;
     const proto = this.config.https ? "https" : "http";
     const http: any = this.config.https ? httpsModule : httpModule;
     const agent = new http.Agent({
@@ -151,11 +162,12 @@ export class AtelierAPI {
     } else if (!cookies.length) {
       auth = this.request(0, "HEAD");
     }
+    const connInfo = `${host}:${port}[${this.ns}]`;
     return auth.then(cookie => {
       return (
         request({
           agent,
-          auth: { username, password, sendImmediately: false },
+          auth: { username, password, sendImmediately: true },
           body: ["PUT", "POST"].includes(method) ? body : null,
           headers: {
             ...headers,
@@ -170,6 +182,7 @@ export class AtelierAPI {
           // .catch(error => error.error)
           .then(response => this.updateCookies(response.headers["set-cookie"]).then(() => response))
           .then(response => {
+            panel.text = `${connInfo} - Connected`;
             // console.log(`APIResponse: ${method} ${proto}://${host}:${port}${path}`)
             if (method === "HEAD") {
               return this.cookies;
@@ -203,10 +216,11 @@ export class AtelierAPI {
       if (info && info.result && info.result.content && info.result.content.api > 0) {
         const data = info.result.content;
         const apiVersion = data.api;
-        if (!data.namespaces.includes(this.ns)) {
+        if (!data.namespaces.includes(this.ns.toUpperCase())) {
           throw {
             code: "WrongNamespace",
-            message: "This server does not have specified namespace.",
+            message: `This server does not have specified namespace '${this.ns}'.\n
+            You must select one of the following: ${data.namespaces.join(", ")}.`,
           };
         }
         return Promise.all([
