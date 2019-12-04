@@ -481,7 +481,7 @@
           "description": "Name of service in docker-compose",
           "type": "string"
         },
-        "objectscript.conn.docker-compose.port": {
+        "objectscript.conn.docker-compose.internalPort": {
           "description": "Target port inside the service in docker-compose",
           "type": "number",
           "default": 52773
@@ -720,7 +720,7 @@
     "prettier": "^1.18.2",
     "tape": "^4.11.0",
     "typescript": "^3.6.3",
-    "vsce": "^1.67.1",
+    "vsce": "^1.70.0",
     "vscode-debugadapter-testsupport": "^1.37.1",
     "vscode-test": "^1.2.0"
   },

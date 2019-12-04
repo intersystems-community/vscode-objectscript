@@ -50,7 +50,7 @@ To be able to use many plugin features, you need to configure the connection to 
 Or you can edit it through settings editor. Which you can open from menu *Code* > *Preferences* > *Settings* for macOS or *File* > *Preferences* > *Settings* for Windows, search for "workspace settings" through Command Palette [⌘⇧P/Ctrl+Shift+P] or by shortcut [⌘,/Ctrl+,].
 
 - Find a 'objectscript', do not forget to set `active` to `true`
-  `port` should follow to web port of instance (usually by default, 57772 for Caché/Ensemble, 52773 for IRIS) ![Settings UI](https://raw.githubusercontent.com/daimor/vscode-objectscript/master/images/settings.png)
+  `port` should follow to web port of instance (usually by default, 52773 for Caché/Ensemble, 52773 for IRIS) ![Settings UI](https://raw.githubusercontent.com/daimor/vscode-objectscript/master/images/settings.png)
 - Change settings according to your Caché/IRIS instance
 - You will see related output in "Output" while switched to "ObjectScript" channel (right drop-down menu on top of the output window)
 

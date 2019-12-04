@@ -98,6 +98,55 @@ export function getXmlUri(uri: vscode.Uri): vscode.Uri {
 }
 let reporter;
 
+export const checkConnection = (clearCookies = false): void => {
+  const conn = config("conn");
+  const connInfo = `${conn.host}:${conn.port}[${conn.ns}]`;
+  panel.text = connInfo;
+  panel.tooltip = "";
+  vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", conn.active);
+  if (!conn.active) {
+    panel.text = `${connInfo} - Disabled`;
+    return;
+  }
+  workspaceState.update(currentWorkspaceFolder() + ":port", undefined);
+  const { port: dockerPort, docker: withDocker } = portFromDockerCompose(config("conn.docker-compose"), conn.port);
+  workspaceState.update(currentWorkspaceFolder() + ":docker", withDocker);
+  if (withDocker) {
+    terminalWithDocker();
+    if (dockerPort !== conn.port) {
+      workspaceState.update(currentWorkspaceFolder() + ":port", dockerPort);
+    }
+  }
+
+  const api = new AtelierAPI(currentWorkspaceFolder());
+  if (clearCookies) {
+    api.clearCookies();
+  }
+  api
+    .serverInfo()
+    .then(async info => {
+      // panel.text = `${connInfo} - Connected`;
+    })
+    .catch(error => {
+      let message = error.message;
+      if (error instanceof StatusCodeError && error.statusCode === 401) {
+        message = "Not Authorized";
+        outputChannel.appendLine(
+          `Authorization error: please check your username/password in the settings,
+          and if you have sufficient privileges on the server.`
+        );
+      } else {
+        outputChannel.appendLine("Error: " + message);
+        outputChannel.appendLine("Please check your network settings in the settings.");
+      }
+      panel.text = `${connInfo} - ERROR`;
+      panel.tooltip = message;
+    })
+    .finally(() => {
+      explorerProvider.refresh();
+    });
+};
+
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   reporter = new TelemetryReporter(extensionId, extensionVersion, aiKey);
 
@@ -120,52 +169,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   panel.command = "vscode-objectscript.serverActions";
   panel.show();
-  const checkConnection = (clearCookies = false) => {
-    const conn = config("conn");
-    const connInfo = `${conn.host}:${conn.port}[${conn.ns}]`;
-    panel.text = connInfo;
-    panel.tooltip = "";
-    vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", conn.active);
-    if (!conn.active) {
-      panel.text = `${connInfo} - Disabled`;
-      return;
-    }
-    const { port: dockerPort, docker: withDocker } = portFromDockerCompose(config("conn.docker-compose"), conn.port);
-    if (withDocker) {
-      terminal = terminalWithDocker();
-      if (dockerPort !== conn.port) {
-        workspaceState.update(currentWorkspaceFolder() + ":port", dockerPort);
-      }
-    }
 
-    const api = new AtelierAPI(currentWorkspaceFolder());
-    if (clearCookies) {
-      api.clearCookies();
-    }
-    api
-      .serverInfo()
-      .then(async info => {
-        // panel.text = `${connInfo} - Connected`;
-      })
-      .catch(error => {
-        let message = error.message;
-        if (error instanceof StatusCodeError && error.statusCode === 401) {
-          message = "Not Authorized";
-          outputChannel.appendLine(
-            `Authorization error: please check your username/password in the settings,
-            and if you have sufficient privileges on the server.`
-          );
-        } else {
-          outputChannel.appendLine("Error: " + message);
-          outputChannel.appendLine("Please check your network settings in the settings.");
-        }
-        panel.text = `${connInfo} - ERROR`;
-        panel.tooltip = message;
-      })
-      .finally(() => {
-        explorerProvider.refresh();
-      });
-  };
   checkConnection();
   vscode.workspace.onDidChangeConfiguration(({ affectsConfiguration }) => {
     if (affectsConfiguration("objectscript.conn")) {

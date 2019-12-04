@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { config, workspaceState } from "../extension";
-import { currentWorkspaceFolder } from "../utils";
+import { config, workspaceState, checkConnection } from "../extension";
+import { currentWorkspaceFolder, terminalWithDocker } from "../utils";
 
 export async function serverActions(): Promise<void> {
   const { active, host, ns, https, port: defaultPort, username, password } = config("conn");
@@ -14,9 +14,24 @@ export async function serverActions(): Promise<void> {
   const auth = iris
     ? `&IRISUsername=${username}&IRISPassword=${password}`
     : `&CacheUserName=${username}&CachePassword=${password}`;
+
+  const terminal = [];
+  if (workspaceState.get(workspaceFolder + ":docker", true)) {
+    terminal.push({
+      id: "openDockerTerminal",
+      label: "Open terminal in docker",
+      detail: "Use docker-compose to start session inside configured service",
+    });
+  }
   return vscode.window
     .showQuickPick(
       [
+        {
+          id: "refreshConnection",
+          label: "Refresh connection",
+          detail: "Force attempt to connect to the server",
+        },
+        ...terminal,
         {
           detail: "Enable/Disable current connection",
           id: "toggleConnection",
@@ -52,6 +67,13 @@ export async function serverActions(): Promise<void> {
         case "openClassReference": {
           vscode.env.openExternal(vscode.Uri.parse(classRef + auth));
           break;
+        }
+        case "refreshConnection": {
+          checkConnection();
+          break;
+        }
+        case "openDockerTerminal": {
+          terminalWithDocker();
         }
       }
     });

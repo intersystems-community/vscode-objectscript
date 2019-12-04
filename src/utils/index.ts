@@ -128,12 +128,12 @@ export function portFromDockerCompose(options, defaultPort: number): { port: num
   if (!options) {
     return result;
   }
-  const { file, service, port } = options;
-  if (!port || !file || !service || service === "") {
+  const { file = "docker-compose.yml", service, internalPort = 52773 } = options;
+  if (!internalPort || !file || !service || service === "") {
     return result;
   }
   const cwd = workspaceFolderUri().fsPath;
-  const cmd = `docker-compose -f ${file} ps ${service}`;
+  const cmd = `docker-compose -f ${file} port --protocol=tcp ${service} ${internalPort}`;
   try {
     const serviceLine = execSync(cmd, {
       cwd,
@@ -142,12 +142,13 @@ export function portFromDockerCompose(options, defaultPort: number): { port: num
       .replace("/r", "")
       .split("/n")
       .pop();
-    const servicePortMatch = serviceLine.match(new RegExp(`:(\\d+)->${port}/`));
+    const servicePortMatch = serviceLine.match(new RegExp(`:(\\d+)`));
     if (servicePortMatch) {
       const [, newPort] = servicePortMatch;
       return { port: parseInt(newPort, 10), docker: true };
     }
   } catch (e) {
+    console.log(e);
     // nope
   }
   return result;
@@ -167,7 +168,7 @@ export function terminalWithDocker() {
       "-c",
       `command -v ccontrol >/dev/null 2>&1 && ccontrol session $ISC_PACKAGE_INSTANCENAME -U ${ns} || iris session $ISC_PACKAGE_INSTANCENAME -U ${ns}`,
     ]);
-    terminal.show();
   }
+  terminal.show();
   return terminal;
 }
