@@ -154,7 +154,7 @@ export class ClassDefinition {
     if (name.startsWith("#")) {
       pattern = `(Parameter) ${name.substr(1)}(?=[( ;])`;
     } else {
-      pattern = `((Class)?Method|Property|RelationShip) ${name}(?=[( ])`;
+      pattern = `((Class)?Method|Property|RelationShip) (${name}|"${name}")(?=[( ])`;
     }
     return this.getDocument().then(document => {
       for (let i = 0; i < document.lineCount; i++) {
