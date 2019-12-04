@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { ClassDefinition } from "../utils/classDefinition";
+import { DocumentContentProvider } from "./DocumentContentProvider";
 
 export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
   public provideWorkspaceSymbols(
@@ -10,10 +11,9 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
     if (query.length < 3) {
       return null;
     }
-    return Promise.all([this.byClasses(query), this.byMethods(query)]).then(([classes, methods]) => [
-      ...classes,
-      ...methods,
-    ]);
+    return Promise.all([this.byClasses(query), this.byRoutines(query), this.byMethods(query)]).then(
+      ([classes, routines, methods]) => [...classes, ...routines, ...methods]
+    );
   }
 
   public async byClasses(query: string): Promise<vscode.SymbolInformation[]> {
@@ -31,6 +31,27 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
         uri: new ClassDefinition(ClassName).uri,
       },
       name: ClassName,
+    }));
+  }
+
+  public async byRoutines(query: string): Promise<vscode.SymbolInformation[]> {
+    query = `*${query}*.mac,*${query}*.int`;
+    const sql = `CALL %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)`;
+    const api = new AtelierAPI();
+    const direction = "1";
+    const orderBy = "1";
+    const systemFiles = "0";
+    const flat = "1";
+    const notStudio = "0";
+    const generated = "0";
+
+    const data = await api.actionQuery(sql, [query, direction, orderBy, systemFiles, flat, notStudio, generated]);
+    return data.result.content.map(({ Name }) => ({
+      kind: vscode.SymbolKind.File,
+      location: {
+        uri: DocumentContentProvider.getUri(Name),
+      },
+      name: Name,
     }));
   }
 
