@@ -169,6 +169,21 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
       pos += part.length;
     }
 
+    const asLabelRoutineCall = /(\^%?\b[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*\b)/;
+    parts = lineText.split(asLabelRoutineCall);
+    pos = 0;
+    for (const part of parts) {
+      if (part.match(asLabelRoutineCall)) {
+        const [, routine] = part.match(/\^(%?\b\w+\b)/);
+        const start = pos + part.indexOf(routine) - 1;
+        const length = routine.length + 1;
+        return this.getFullRoutineName(routine).then(routineName => [
+          this.makeRoutineDefinition(workspaceFolderName, position, start, length, routineName),
+        ]);
+      }
+      pos += part.length;
+    }
+
     return [];
   }
 
@@ -220,6 +235,15 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
   public normalizeRoutineName(document: vscode.TextDocument, name: string, extension: string): string {
     name += "." + extension;
     return name;
+  }
+
+  public getFullRoutineName(name: string): Promise<string> {
+    const api = new AtelierAPI();
+    return api
+      .actionIndex([`${name}.int`, `${name}.mac`])
+      .then(data => data.result.content)
+      .then(files => files.filter(el => !el.gen && el.status === "" && el.db !== ""))
+      .then(files => files.pop().name);
   }
 
   /**

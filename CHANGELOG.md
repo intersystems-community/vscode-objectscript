@@ -9,6 +9,8 @@
 - Explorer view, option to show/hide generated items
 - Explorer view will be shown only when any folder open
 - When used docker-compose to run instance, it's now possible to get connected to a random port from service.
+- When used docker-compose it's now very easy to connect to terminal
+- Go to routine
 
 ## [0.7.12]
 
