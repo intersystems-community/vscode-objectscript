@@ -95,9 +95,23 @@ export class ObjectScriptDiagnosticProvider {
     let inComment = false;
     let endingComma = false;
     let isCode = !isClass;
+    let jsScript = false;
     for (let i = 0; i < document.lineCount; i++) {
       const line = document.lineAt(i);
       const text = this.stripLineComments(line.text);
+
+      // it is important to check script tag context before ObjectScript comments
+      // since /* ... */ comments can also be used in JavaScript
+      if (text.match(/<script .*>/)) {
+        jsScript = true;
+      }
+
+      if (jsScript) {
+        if (text.match(/<\/script>/)) {
+          jsScript = false;
+        }
+        continue;
+      }
 
       if (text.match(/\/\*/)) {
         inComment = true;
