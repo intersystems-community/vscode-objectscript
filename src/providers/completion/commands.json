@@ -91,7 +91,7 @@
   },
   {
     "label": "ELSE",
-    "alias": ["ELSE"],
+    "alias": ["ELSE", "E"],
     "documentation": ["Clause of block-oriented IF command.\n", "```objectscript\n", "ELSE { code }\n", "```\n"],
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_celse",
     "insertText": "ELSE {\n\t$0\n}\n"
