@@ -96,6 +96,8 @@ export class ObjectScriptDiagnosticProvider {
     let endingComma = false;
     let isCode = !isClass;
     let jsScript = false;
+    let sql = false;
+    let sqlParens = 0;
     for (let i = 0; i < document.lineCount; i++) {
       const line = document.lineAt(i);
       const text = this.stripLineComments(line.text);
@@ -104,6 +106,19 @@ export class ObjectScriptDiagnosticProvider {
       // since /* ... */ comments can also be used in JavaScript
       if (text.match(/<script .*>/)) {
         jsScript = true;
+      }
+
+      if (text.match("&sql")) {
+        sql = true;
+        sqlParens = 0;
+      }
+
+      if (sql) {
+        sqlParens = sqlParens + (text.split("(").length - 1) - (text.split(")").length - 1);
+        if (sqlParens <= 0) {
+          sql = false;
+        }
+        continue;
       }
 
       if (jsScript) {
@@ -151,8 +166,9 @@ export class ObjectScriptDiagnosticProvider {
             code: "",
             message: "Unrecognized command",
             range,
-            severity: vscode.DiagnosticSeverity.Error,
-            source: "",
+            severity: found.toUpperCase().startsWith("Z")
+              ? vscode.DiagnosticSeverity.Warning
+              : vscode.DiagnosticSeverity.Error,
             relatedInformation: [
               new vscode.DiagnosticRelatedInformation(
                 new vscode.Location(document.uri, range),
@@ -211,15 +227,30 @@ export class ObjectScriptDiagnosticProvider {
         );
         if (!systemFunction) {
           result.push({
-            code: "",
-            message: "Unrecognized system function/variable",
             range,
-            severity: vscode.DiagnosticSeverity.Error,
-            source: "",
+            message: "Unrecognized system function/variable",
+            severity: found.toUpperCase().startsWith("$Z")
+              ? vscode.DiagnosticSeverity.Warning
+              : vscode.DiagnosticSeverity.Error,
             relatedInformation: [
               new vscode.DiagnosticRelatedInformation(
                 new vscode.Location(document.uri, range),
                 `System function or variable '${found}' not recognized`
+              ),
+            ],
+          });
+        }
+        if (systemFunction && systemFunction.deprecated) {
+          result.push({
+            range,
+            code: systemFunction.code || "",
+            severity: vscode.DiagnosticSeverity.Warning,
+            message: "Deprecated system function/variable",
+            tags: [vscode.DiagnosticTag.Deprecated],
+            relatedInformation: [
+              new vscode.DiagnosticRelatedInformation(
+                new vscode.Location(document.uri, range),
+                `System function or variable '${found}' deprecated`
               ),
             ],
           });

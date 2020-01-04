@@ -1775,6 +1775,62 @@
     "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fzname"
   },
   {
+    "label": "$ZOBJCLASSMETHOD",
+    "alias": [
+      "$ZOBJCLASSMETHOD"
+    ],
+    "deprecated": true,
+    "documentation": [
+      "The $ZOBJCLASSMETHOD functions have been replaced with standard Caché functions. ",
+      "The $ZOBJCLASSMETHOD functions are still available to applications, but they are no longer documented.",
+      "Replaced by `$CLASSMETHOD`"
+    ],
+    "link": "https://cedocs.intersystems.com/latest/csp/docbook/DocBook.UI.Page.cls?KEY=GCRNA_upgrade20101_zobj",
+    "code": "$zobjxxx"
+  },
+  {
+    "label": "$ZOBJMETHOD",
+    "alias": [
+      "$ZOBJMETHOD"
+    ],
+    "deprecated": true,
+    "documentation": [
+      "The $ZOBJMETHOD functions have been replaced with standard Caché functions. ",
+      "The $ZOBJMETHOD functions are still available to applications, but they are no longer documented.",
+      "Replaced by `$METHOD`"
+    ],
+    "link": "https://cedocs.intersystems.com/latest/csp/docbook/DocBook.UI.Page.cls?KEY=GCRNA_upgrade20101_zobj",
+    "code": "$zobjxxx"
+  },
+  {
+    "label": "$ZOBJPROPERTY",
+    "alias": [
+      "$ZOBJPROPERTY"
+    ],
+    "deprecated": true,
+    "documentation": [
+      "The $ZOBJPROPERTY functions have been replaced with standard Caché functions. ",
+      "The $ZOBJPROPERTY functions are still available to applications, but they are no longer documented.",
+      "Replaced by `$PROPERTY`"
+    ],
+    "link": "https://cedocs.intersystems.com/latest/csp/docbook/DocBook.UI.Page.cls?KEY=GCRNA_upgrade20101_zobj",
+    "code": "$zobjxxx"
+  },
+  {
+    "label": "$ZOBJCLASS",
+    "alias": [
+      "$ZOBJCLASS"
+    ],
+    "deprecated": true,
+    "documentation": [
+      "The $ZOBJCLASS functions have been replaced with standard Caché functions. ",
+      "The $ZOBJCLASS functions are still available to applications, but they are no longer documented.",
+      "Replaced by `$CLASSNAME`"
+    ],
+    "link": "https://cedocs.intersystems.com/latest/csp/docbook/DocBook.UI.Page.cls?KEY=GCRNA_upgrade20101_zobj",
+    "code": "$zobjxxx"
+  },
+  {
     "label":"$ZPOSITION",
     "alias":[
       "$ZPOSITION"

@@ -63,6 +63,7 @@ export let panel: vscode.StatusBarItem;
 export let terminal: vscode.Terminal;
 
 import TelemetryReporter from "vscode-extension-telemetry";
+import { CodeActionProvider } from "./providers/CodeActionProvider";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -312,6 +313,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.languages.setLanguageConfiguration("objectscript-class", getLanguageConfiguration("class")),
     vscode.languages.setLanguageConfiguration("objectscript", getLanguageConfiguration("routine")),
     vscode.languages.setLanguageConfiguration("objectscript-macros", getLanguageConfiguration("routine")),
+    vscode.languages.registerCodeActionsProvider(
+      documentSelector("objectscript-class", "objectscript"),
+      new CodeActionProvider()
+    ),
     vscode.languages.registerDocumentSymbolProvider(
       documentSelector("objectscript-class"),
       new ObjectScriptClassSymbolProvider()
