@@ -11,6 +11,7 @@
 - When used docker-compose to run instance, it's now possible to get connected to a random port from service.
 - When used docker-compose it's now very easy to connect to terminal
 - Go to routine
+- Show warning for deprecated functions, quick fix for `$zobj<xxx>` functions replaced
 
 ## [0.7.12]
 
