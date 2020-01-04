@@ -6,14 +6,17 @@ export async function serverActions(): Promise<void> {
   const { active, host, ns, https, port: defaultPort, username, password } = config("conn");
   const workspaceFolder = currentWorkspaceFolder();
   const port = workspaceState.get(workspaceFolder + ":port", defaultPort);
-  const connInfo = `${host}:${port}[${ns}]`;
+  const nsEncoded = encodeURIComponent(ns);
+  const connInfo = `${host}:${port}[${nsEncoded}]`;
   const serverUrl = `${https ? "https" : "http"}://${host}:${port}`;
-  const portalUrl = `${serverUrl}/csp/sys/UtilHome.csp?$NAMESPACE=${ns}`;
-  const classRef = `${serverUrl}/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${ns}`;
+  const portalUrl = `${serverUrl}/csp/sys/UtilHome.csp?$NAMESPACE=${nsEncoded}`;
+  const classRef = `${serverUrl}/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${nsEncoded}`;
   const iris = workspaceState.get(workspaceFolder + ":iris", false);
+  const usernameEncoded = encodeURIComponent(username);
+  const passwordEncoded = encodeURIComponent(password);
   const auth = iris
-    ? `&IRISUsername=${username}&IRISPassword=${password}`
-    : `&CacheUserName=${username}&CachePassword=${password}`;
+    ? `&IRISUsername=${usernameEncoded}&IRISPassword=${passwordEncoded}`
+    : `&CacheUserName=${usernameEncoded}&CachePassword=${passwordEncoded}`;
 
   const terminal = [];
   if (workspaceState.get(workspaceFolder + ":docker", true)) {
