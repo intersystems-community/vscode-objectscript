@@ -68,25 +68,34 @@ async function loadChanges(files: CurrentFile[]): Promise<any> {
 async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
   flags = flags || config("compileFlags");
   const api = new AtelierAPI(docs[0].uri);
-  return api
-    .actionCompile(docs.map(el => el.name), flags)
-    .then(data => {
-      const info = docs.length > 1 ? "" : `${docs[0].name}: `;
-      if (data.status && data.status.errors && data.status.errors.length) {
-        throw new Error(`${info}Compile error`);
-      } else if (!config("suppressCompileMessages")) {
-        vscode.window.showInformationMessage(`${info}Compilation succeeded`, "Hide");
-      }
-      return docs;
-    })
-    .catch((error: Error) => {
-      outputChannel.appendLine(error.message);
-      outputChannel.show(true);
-      vscode.window.showErrorMessage(error.message, "Show details").then(data => {
-        outputChannel.show(true);
-      });
-      return [];
-    })
+  return vscode.window
+    .withProgress(
+      {
+        cancellable: false,
+        location: vscode.ProgressLocation.Notification,
+        title: `Compiling: ${docs.length === 1 ? docs.map(el => el.name).join(", ") : docs.length + " files"}`,
+      },
+      () =>
+        api
+          .actionCompile(docs.map(el => el.name), flags)
+          .then(data => {
+            const info = docs.length > 1 ? "" : `${docs[0].name}: `;
+            if (data.status && data.status.errors && data.status.errors.length) {
+              throw new Error(`${info}Compile error`);
+            } else if (!config("suppressCompileMessages")) {
+              vscode.window.showInformationMessage(`${info}Compilation succeeded`, "Hide");
+            }
+            return docs;
+          })
+          .catch((error: Error) => {
+            outputChannel.appendLine(error.message);
+            outputChannel.show(true);
+            vscode.window.showErrorMessage(error.message, "Show details").then(data => {
+              outputChannel.show(true);
+            });
+            return [];
+          })
+    )
     .then(loadChanges);
 }
 
