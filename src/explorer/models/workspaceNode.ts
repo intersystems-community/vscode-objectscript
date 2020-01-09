@@ -18,7 +18,7 @@ export class WorkspaceNode extends NodeBase {
     return {
       collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
       contextValue: `${this.uniqueId}${this.options.generated ? ":generated:" : ""}`,
-      label: `${this.label}[${this.namespace}]`,
+      label: `${this.label}(${this.connInfo})`,
     };
   }
 
