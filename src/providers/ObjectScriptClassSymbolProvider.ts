@@ -53,7 +53,7 @@ export class ObjectScriptClassSymbolProvider implements vscode.DocumentSymbolPro
           }
         }
 
-        const method = line.text.match(/^((?:Class|Client)?Method|Trigger|Query) (%?\b\w+\b|"[^"]+")/i);
+        const method = line.text.match(/^((?:Client)?(?:Class)?Method|Trigger|Query) (%?\b\w+\b|"[^"]+")/i);
         if (method) {
           let startCode = line.range.start;
           let end = line.range.end;

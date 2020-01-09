@@ -283,7 +283,7 @@
             }
         },
         {
-          "begin": "(?i)^(\\b(?:Class|Client)?Method\\b)(\\s+)((?:%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)|(?:\"[^\".]+\"))",
+          "begin": "(?i)^(\\b(?:Client)?(?:Class)?Method\\b)(\\s+)((?:%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)|(?:\"[^\".]+\"))",
           "beginCaptures": {
             "1": {
               "name": "keyword.objectscript_class"
@@ -358,7 +358,7 @@
           }
         },
         {
-          "begin": "(?i)^(\\XData\\b)(\\s+)(Style)",
+          "begin": "(?i)^(\\XData\\b)(\\s+)((?:SVG)?Style)",
           "beginCaptures": {
             "1": {
               "name": "keyword.objectscript_class"
