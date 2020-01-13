@@ -1,5 +1,6 @@
 import fs = require("fs");
 import path = require("path");
+import * as url from "url";
 import { execSync } from "child_process";
 import * as vscode from "vscode";
 import { config, schemas, workspaceState } from "../extension";
@@ -22,7 +23,10 @@ export interface CurrentFile {
 
 export function currentFile(document?: vscode.TextDocument): CurrentFile {
   document = document || (vscode.window.activeTextEditor.document ? vscode.window.activeTextEditor.document : null);
-  if (!document || !document.fileName || !document.languageId || !document.languageId.startsWith("objectscript")) {
+  if (
+    !schemas.includes(document.uri.scheme) &&
+    (!document || !document.fileName || !document.languageId || !document.languageId.startsWith("objectscript"))
+  ) {
     return null;
   }
   const uri = document.uri;
@@ -31,20 +35,16 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
   const fileExt = fileName.match(/\.(\w+)$/)[1].toLowerCase();
   let name = "";
   let ext = "";
-  if (fileExt === "cls") {
+  const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+  const csp = query.csp === "" || query.csp === "1";
+  if (csp) {
+    name = fileName;
+  } else if (fileExt === "cls") {
     const match = content.match(/^Class (%?\w+(?:\.\w+)+)/im);
     if (match) {
       name = match[1];
       ext = "cls";
     }
-  } else if (fileExt === "csp") {
-    name =
-      config().conn.label.toLowerCase() +
-      fileName
-        .split(config().conn.label.toLowerCase())[1]
-        .replace(/\\/g, "/")
-        .replace(".csp", "");
-    ext = "csp";
   } else {
     const match = content.match(/^ROUTINE ([^\s]+)(?:\s+\[.*Type=([a-z]{3,}))?/i);
     name = match[1];
@@ -53,7 +53,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
   if (!name) {
     return null;
   }
-  name += "." + ext;
+  name += ext ? "." + ext : "";
 
   return {
     content,

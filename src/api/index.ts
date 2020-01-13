@@ -188,6 +188,11 @@ export class AtelierAPI {
               return this.cookies;
             }
             const data = response.body;
+            /// deconde encoded content
+            if (data.result && data.result.enc && data.result.content) {
+              data.result.enc = false;
+              data.result.content = Buffer.from(data.result.content.join(""), "base64");
+            }
             if (data.console) {
               outputConsole(data.console);
             }

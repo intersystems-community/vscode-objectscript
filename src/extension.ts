@@ -179,10 +179,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   });
 
   workspace.onDidSaveTextDocument(file => {
-    if (!languages.includes(file.languageId)) {
-      return;
+    if (schemas.includes(file.uri.scheme) || languages.includes(file.languageId)) {
+      vscode.commands.executeCommand("vscode-objectscript.compile");
     }
-    vscode.commands.executeCommand("vscode-objectscript.compile");
   });
 
   vscode.window.onDidChangeActiveTextEditor((textEditor: vscode.TextEditor) => {

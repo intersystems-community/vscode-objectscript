@@ -1,5 +1,6 @@
 import * as path from "path";
 import * as vscode from "vscode";
+import * as url from "url";
 import { AtelierAPI } from "../../api";
 import { Directory } from "./Directory";
 import { File } from "./File";
@@ -26,17 +27,36 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   public async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
     const api = new AtelierAPI(uri);
     const parent = await this._lookupAsDirectory(uri);
-    const sql = `CALL %Library.RoutineMgr_StudioOpenDialog(?,,,,,,0)`;
-    const folder = uri.path === "/" ? "/" : uri.path.replace(/\//g, ".") + "/";
-    const spec = folder.slice(1) + "*.cls,*.inc,*.int,*.mac";
+    const sql = `CALL %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)`;
+    const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+    const type = String(query && query.type).toLowerCase() || "all";
+    const csp = query.csp === "" || query.csp === "1";
+    let filter = query.filter || "";
+    if (csp) {
+      filter = filter || "*";
+    } else if (type === "rtn") {
+      filter = "*.inc,*.int,*.mac";
+    } else if (type === "cls") {
+      filter = "*.cls";
+    } else {
+      filter = query.filter || "*.cls,*.inc,*.int,*.mac";
+    }
+    const folder = csp ? (uri.path.endsWith("/") ? uri.path : uri.path + "/") : uri.path.replace(/\//g, ".");
+    const spec = csp ? folder + filter : folder.slice(1) + filter;
+    const dir = "1";
+    const orderBy = "1";
+    const system = api.ns === "%SYS" ? "1" : "0";
+    const flat = String(query.flat) || "0";
+    const notStudio = "0";
+    const generated = String(query.generated) || "0";
     return api
-      .actionQuery(sql, [spec])
+      .actionQuery(sql, [spec, dir, orderBy, system, flat, notStudio, generated])
       .then(data => data.result.content || [])
       .then(data =>
         data.map(item => {
           const name = item.Name;
           const fullName = folder === "" ? name : folder + "/" + name;
-          if (item.IsDirectory.length) {
+          if (item.Type === "10" || item.Type === "9") {
             parent.entries.set(name, new Directory(name, fullName));
             return [name, vscode.FileType.Directory];
           } else {
@@ -76,7 +96,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       overwrite: boolean;
     }
   ): void | Thenable<void> {
-    const fileName = uri.path.slice(1).replace(/\//g, ".");
+    const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+    const csp = query.csp === "" || query.csp === "1";
+    const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     if (fileName.startsWith(".")) {
       return;
     }
@@ -143,10 +165,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   private async _lookupAsFile(uri: vscode.Uri): Promise<File> {
-    // if (!uri.path.match(/\.\w+$/)) {
-    //   return Promise.resolve(new Directory(uri.path))
-    // }
-    const fileName = uri.path.slice(1).replace(/\//g, ".");
+    const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+    const csp = query.csp === "" || query.csp === "1";
+    const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     if (fileName.startsWith(".")) {
       throw vscode.FileSystemError.FileNotFound();
     }
@@ -155,7 +176,16 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     return api
       .getDoc(fileName)
       .then(data => data.result)
-      .then(({ ts, content }) => new File(name, fileName, ts, content.join("\n").length, content.join("\n")))
+      .then(
+        ({ ts, content }) =>
+          new File(
+            name,
+            fileName,
+            ts,
+            Array.isArray(content) ? content.join("\n").length : content.length,
+            Array.isArray(content) ? content.join("\n") : content
+          )
+      )
       .then(entry =>
         this._lookupParentDirectory(uri).then(parent => {
           parent.entries.set(name, entry);
