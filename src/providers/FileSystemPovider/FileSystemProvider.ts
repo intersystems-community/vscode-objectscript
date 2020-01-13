@@ -31,7 +31,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const { query } = url.parse(decodeURIComponent(uri.toString()), true);
     const type = String(query && query.type).toLowerCase() || "all";
     const csp = query.csp === "" || query.csp === "1";
-    let filter = query.filter || "";
+    let filter: string = query.filter ? query.file.toString() : "";
     if (csp) {
       filter = filter || "*";
     } else if (type === "rtn") {
@@ -39,10 +39,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     } else if (type === "cls") {
       filter = "*.cls";
     } else {
-      filter = query.filter || "*.cls,*.inc,*.int,*.mac";
+      filter = query.filter ? query.file.toString() : "*.cls,*.inc,*.int,*.mac";
     }
     const folder = csp ? (uri.path.endsWith("/") ? uri.path : uri.path + "/") : uri.path.replace(/\//g, ".");
-    const spec = csp ? folder + filter : folder.slice(1) + filter;
+    const spec = csp ? folder + filter : folder.length > 1 ? folder.slice(1) + "/" + filter : filter;
     const dir = "1";
     const orderBy = "1";
     const system = api.ns === "%SYS" ? "1" : "0";
