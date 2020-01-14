@@ -10,12 +10,29 @@ jobs:
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
     - uses: actions/checkout@master
+    - run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
     - name: Start xvfb
       if: runner.os == 'Linux'
       run: |
         set -e
         /usr/bin/Xvfb :10 -ac >> /tmp/Xvfb.out 2>&1 &
         disown -ar
+    - name: Set an output
+      id: set-version
+      if: runner.os == 'Linux'
+      run: |
+        set -x
+        VERSION=$(jq -r '.version' package.json | cut -d- -f1)
+        CHANGELOG=$(cat CHANGELOG.md | sed -n "/## \[${VERSION}\]/,/## /p" | sed '/^$/d;1d;$d')
+        CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
+        echo ::set-output name=changelog::$CHANGELOG
+        VERSION+=-beta
+        git tag -l | cat
+        VERSION+=.$(($(git tag -l "v$VERSION.*" 2>/dev/null | tail -1 | cut -d. -f4)+1))
+        echo ::set-output name=version::$VERSION
+        echo ::set-output name=name::$(jq -r '.name' package.json)-$VERSION
+        tmp=$(mktemp)
+        jq --arg version "$VERSION" '.version = $version' package.json > "$tmp" && mv "$tmp" package.json
     - name: Use Node.js
       uses: actions/setup-node@master
       with:
@@ -25,17 +42,11 @@ jobs:
     - run: npm run test
       env:
         DISPLAY: :10
-    - name: Set an output
-      id: get-version
-      if: runner.os == 'Linux'
-      run: |
-        echo ::set-output name=version::$(jq -r '.version' package.json | cut -d- -f1)-B$(date -u "+%Y%m%d")
-        echo ::set-output name=name::$(jq -r '.name+"-"+.version' package.json | cut -d- -f1-3)-B$(date -u "+%Y%m%d")
     - name: Build package
       if: runner.os == 'Linux'
       run: |
         mkdir dist
-        ./node_modules/.bin/vsce package -o ./dist/${{ steps.get-version.outputs.name }}.vsix
+        ./node_modules/.bin/vsce package -o ./dist/${{ steps.set-version.outputs.name }}.vsix
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -43,18 +54,21 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v${{ steps.get-version.outputs.version }}
-        release_name: v${{ steps.get-version.outputs.version }}
+        tag_name: v${{ steps.set-version.outputs.version }}
+        release_name: v${{ steps.set-version.outputs.version }}
         draft: false
         prerelease: true
+        body: |
+          Changes in this release
+          - test
     - name: Upload Release Asset
-      id: upload-release-asset 
+      id: upload-release-asset
       uses: actions/upload-release-asset@v1.0.1
       if: runner.os == 'Linux'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/${{ steps.get-version.outputs.name }}.vsix
-        asset_name: ${{ steps.get-version.outputs.name }}.vsix
+        asset_path: ./dist/${{ steps.set-version.outputs.name }}.vsix
+        asset_name: ${{ steps.set-version.outputs.name }}.vsix
         asset_content_type: application/zip
