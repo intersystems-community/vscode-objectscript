@@ -97,7 +97,7 @@ export function getXmlUri(uri: vscode.Uri): vscode.Uri {
     scheme: OBJECTSCRIPTXML_FILE_SCHEMA,
   });
 }
-let reporter;
+let reporter: TelemetryReporter;
 
 export const checkConnection = (clearCookies = false): void => {
   const conn = config("conn");
@@ -125,8 +125,12 @@ export const checkConnection = (clearCookies = false): void => {
   }
   api
     .serverInfo()
-    .then(async info => {
-      // panel.text = `${connInfo} - Connected`;
+    .then(info => {
+      const hasHS = info.result.content.features.find(el => el.name === "HEALTHSHARE" && el.enabled) !== undefined;
+      reporter.sendTelemetryEvent("connected", {
+        serverVersion: info.result.content.version,
+        healthshare: hasHS ? "yes" : "no",
+      });
     })
     .catch(error => {
       let message = error.message;
