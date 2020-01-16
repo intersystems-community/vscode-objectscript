@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.7.14]
+## [0.8.0]
 - "Debug this ClassMethod" feature added, to quickly debug any classmethod in a class
 - Change variable value while debugging
 - When virtual filesystem `isfs://` used, now possible to execute some actions from Studio Source class menu
