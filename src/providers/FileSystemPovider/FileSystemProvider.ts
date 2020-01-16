@@ -29,26 +29,28 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const parent = await this._lookupAsDirectory(uri);
     const sql = `CALL %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)`;
     const { query } = url.parse(decodeURIComponent(uri.toString()), true);
-    const type = String(query && query.type).toLowerCase() || "all";
+    const type = query.type && query.type != "" ? query.type.toString() : "all";
     const csp = query.csp === "" || query.csp === "1";
-    let filter: string = query.filter ? query.file.toString() : "";
-    if (csp) {
-      filter = filter || "*";
+    let filter = "";
+    if (query.filter && query.filter.length) {
+      filter = query.filter.toString();
+    } else if (csp) {
+      filter = "*";
     } else if (type === "rtn") {
-      filter = "*.inc,*.int,*.mac";
+      filter = "*.inc,*.mac,*.int";
     } else if (type === "cls") {
       filter = "*.cls";
     } else {
-      filter = query.filter ? query.file.toString() : "*.cls,*.inc,*.int,*.mac";
+      filter = "*.cls,*.inc,*.mac,*.int";
     }
     const folder = csp ? (uri.path.endsWith("/") ? uri.path : uri.path + "/") : uri.path.replace(/\//g, ".");
     const spec = csp ? folder + filter : folder.length > 1 ? folder.slice(1) + "/" + filter : filter;
     const dir = "1";
     const orderBy = "1";
     const system = api.ns === "%SYS" ? "1" : "0";
-    const flat = String(query.flat) || "0";
+    const flat = query.flat && query.flat.length ? query.flat.toString() : "0";
     const notStudio = "0";
-    const generated = String(query.generated) || "0";
+    const generated = query.generated && query.generated.length ? query.generated.toString() : "0";
     return api
       .actionQuery(sql, [spec, dir, orderBy, system, flat, notStudio, generated])
       .then(data => data.result.content || [])
