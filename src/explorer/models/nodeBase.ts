@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
-import { config } from "../../extension";
+import { config, workspaceState } from "../../extension";
+import { currentWorkspaceFolder } from "../../utils";
 
 export interface NodeOptions {
   extraNode?: boolean;
@@ -26,14 +27,15 @@ export class NodeBase {
     this.label = label;
     this.fullName = fullName;
     const { workspaceFolder, namespace, extraNode } = options;
-    this.workspaceFolder = workspaceFolder;
+    this.workspaceFolder = workspaceFolder || currentWorkspaceFolder();
     this.conn = config("conn", workspaceFolder);
     this.namespace = namespace || this.conn.ns;
     this.extraNode = extraNode;
   }
 
   public get connInfo(): string {
-    return `${this.conn.host}:${this.conn.port}[${this.namespace}]`;
+    const port = workspaceState.get(this.workspaceFolder + ":port", this.conn.port);
+    return `${this.conn.host}:${port}[${this.namespace}]`;
   }
 
   public getTreeItem(): vscode.TreeItem {
