@@ -104,23 +104,76 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (fileName.startsWith(".")) {
       return;
     }
-    if (options.create) {
-      return;
-    }
-
-    return this._lookupAsFile(uri).then(entry => {
-      this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
-    });
+    const api = new AtelierAPI(uri);
+    return api
+      .actionIndex([fileName])
+      .then(data => data.result.content[0])
+      .then(info => {
+        if (info.status === "") {
+          /// file found, everything is Ok
+          return;
+        }
+        if (options.create) {
+          const fileExt = fileName
+            .split(".")
+            .pop()
+            .toLowerCase();
+          if (fileExt === "cls") {
+            const className = fileName
+              .split(".")
+              .slice(0, -1)
+              .join(".");
+            return api.putDoc(
+              fileName,
+              {
+                content: [`Class ${className} {}`],
+                enc: false,
+              },
+              false
+            );
+          } else if (["int", "inc", "mac"].includes(fileExt)) {
+            const api = new AtelierAPI(uri);
+            const routineName = fileName
+              .split(".")
+              .slice(0, -1)
+              .join(".");
+            const routineType = `[ type = ${fileExt}]`;
+            return api.putDoc(
+              fileName,
+              {
+                content: [`ROUTINE ${routineName} ${routineType}`],
+                enc: false,
+              },
+              false
+            );
+          }
+          throw new Error("Not implemented");
+        }
+      })
+      .then(() =>
+        this._lookupAsFile(uri).then(entry => {
+          this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
+        })
+      );
   }
 
   public delete(uri: vscode.Uri, options: { recursive: boolean }): void | Thenable<void> {
-    return;
+    const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+    const csp = query.csp === "" || query.csp === "1";
+    const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
+    if (fileName.startsWith(".")) {
+      return;
+    }
+    const api = new AtelierAPI(uri);
+    return api.deleteDoc(fileName).then(() => this._fireSoon({ type: vscode.FileChangeType.Deleted, uri }));
   }
 
   public rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): void | Thenable<void> {
+    throw new Error("Not implemented");
     return;
   }
   public copy?(source: vscode.Uri, destination: vscode.Uri, options: { overwrite: boolean }): void | Thenable<void> {
+    throw new Error("Not implemented");
     return;
   }
 
