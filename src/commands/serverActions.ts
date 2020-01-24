@@ -3,7 +3,7 @@ import { config, workspaceState, checkConnection } from "../extension";
 import { currentWorkspaceFolder, terminalWithDocker } from "../utils";
 
 export async function serverActions(): Promise<void> {
-  const { active, host, ns, https, port: defaultPort, username, password } = config("conn");
+  const { active, host, ns, https, port: defaultPort, username, password, links } = config("conn");
   const workspaceFolder = currentWorkspaceFolder();
   const port = workspaceState.get(workspaceFolder + ":port", defaultPort);
   const nsEncoded = encodeURIComponent(ns);
@@ -17,7 +17,17 @@ export async function serverActions(): Promise<void> {
   const auth = iris
     ? `&IRISUsername=${usernameEncoded}&IRISPassword=${passwordEncoded}`
     : `&CacheUserName=${usernameEncoded}&CachePassword=${passwordEncoded}`;
-
+  const extraLinks = [];
+  for (const title in links) {
+    const link = String(links[title])
+      .replace("${host}", host)
+      .replace("${port}", port);
+    extraLinks.push({
+      id: "extraLink" + extraLinks.length,
+      label: title,
+      detail: link,
+    });
+  }
   const terminal = [];
   if (workspaceState.get(workspaceFolder + ":docker", true)) {
     terminal.push({
@@ -29,6 +39,7 @@ export async function serverActions(): Promise<void> {
   return vscode.window
     .showQuickPick(
       [
+        ...extraLinks,
         {
           id: "refreshConnection",
           label: "Refresh connection",
@@ -77,6 +88,10 @@ export async function serverActions(): Promise<void> {
         }
         case "openDockerTerminal": {
           terminalWithDocker();
+          break;
+        }
+        default: {
+          vscode.env.openExternal(vscode.Uri.parse(action.detail));
         }
       }
     });

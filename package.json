@@ -477,6 +477,10 @@
           "type": "boolean",
           "default": false
         },
+        "objectscript.conn.docker-compose": {
+          "description": "Connect to server running in docker-compose",
+          "type": "object"
+        },
         "objectscript.conn.docker-compose.service": {
           "description": "Name of service in docker-compose",
           "type": "string"
@@ -491,8 +495,8 @@
           "type": "string",
           "default": "docker-compose.yml"
         },
-        "objectscript.conn.docker-compose": {
-          "description": "Connect to server running in docker-compose",
+        "objectscript.conn.links": {
+          "description": "Extra links for the server",
           "type": "object"
         },
         "objectscript.export": {
