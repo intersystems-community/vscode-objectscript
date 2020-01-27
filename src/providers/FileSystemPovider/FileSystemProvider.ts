@@ -92,7 +92,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
 
   public writeFile(
     uri: vscode.Uri,
-    content: Uint8Array,
+    content: Buffer,
     options: {
       create: boolean;
       overwrite: boolean;
@@ -114,6 +114,16 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           return;
         }
         if (options.create) {
+          if (csp) {
+            return api.putDoc(
+              fileName,
+              {
+                content: [content.toString("base64")],
+                enc: true,
+              },
+              false
+            );
+          }
           const fileExt = fileName
             .split(".")
             .pop()

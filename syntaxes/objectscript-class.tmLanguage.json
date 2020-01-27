@@ -358,7 +358,7 @@
           }
         },
         {
-          "begin": "(?i)^(\\XData\\b)(\\s+)((?:SVG)?Style)",
+          "begin": "(?i)^(\\XData\\b)(\\s+)((?:SVG|CSS3)?Style)",
           "beginCaptures": {
             "1": {
               "name": "keyword.objectscript_class"
