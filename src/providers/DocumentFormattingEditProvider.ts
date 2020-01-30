@@ -21,15 +21,68 @@ export class DocumentFormattingEditProvider implements vscode.DocumentFormatting
   private commands(document: vscode.TextDocument, options: vscode.FormattingOptions): vscode.TextEdit[] {
     const edits = [];
     let indent = 1;
+    const isClass = document.fileName.toLowerCase().endsWith(".cls");
 
+    let inComment = false;
+    let isCode = !isClass;
+    let jsScript = false;
+    let sql = false;
+    let sqlParens = 0;
     for (let i = 0; i < document.lineCount; i++) {
       const line = document.lineAt(i);
+      const text = this.stripLineComments(line.text);
 
+      if (text.match(/<script .*>/)) {
+        jsScript = true;
+      }
+
+      if (text.match("&sql")) {
+        sql = true;
+        sqlParens = 0;
+      }
+
+      if (sql) {
+        sqlParens = sqlParens + (text.split("(").length - 1) - (text.split(")").length - 1);
+        if (sqlParens <= 0) {
+          sql = false;
+        }
+        continue;
+      }
+
+      if (jsScript) {
+        if (text.match(/<\/script>/)) {
+          jsScript = false;
+        }
+        continue;
+      }
+
+      if (text.match(/\/\*/)) {
+        inComment = true;
+      }
+
+      if (inComment) {
+        if (text.match(/\*\//)) {
+          inComment = false;
+        }
+        continue;
+      }
       if (line.text.length && !line.text.trim().length) {
         edits.push({
           newText: "",
           range: line.range,
         });
+        continue;
+      }
+
+      if (isClass) {
+        if (isCode) {
+          isCode = text.match(/^}$/) === null;
+        } else {
+          isCode = text.match(/^(class)?method|trigger/i) != null;
+          continue;
+        }
+      }
+      if (!isCode) {
         continue;
       }
 
@@ -170,13 +223,13 @@ export class DocumentFormattingEditProvider implements vscode.DocumentFormatting
     for (let i = 0; i < document.lineCount; i++) {
       const line = document.lineAt(i);
 
-      const pattern = /(?<!\$)(\$\b[a-z]+)\b/gi;
+      const pattern = /(?<!\$)(\$\b[a-z]+)\b(\()?/gi;
       let functionsMatch = null;
       while ((functionsMatch = pattern.exec(line.text)) !== null) {
-        const [, found] = functionsMatch;
+        const [, found, isFunc] = functionsMatch;
         const pos = functionsMatch.index;
         const range = new vscode.Range(new vscode.Position(i, pos), new vscode.Position(i, pos + found.length));
-        const systemFunction = [...systemFunctions, ...systemVariables].find(el =>
+        const systemFunction = (isFunc ? systemFunctions : systemVariables).find(el =>
           el.alias.includes(found.toUpperCase())
         );
         if (systemFunction) {
@@ -192,5 +245,12 @@ export class DocumentFormattingEditProvider implements vscode.DocumentFormatting
     }
 
     return edits;
+  }
+
+  private stripLineComments(text: string) {
+    text = text.replace(/\/\/.*$/, "");
+    text = text.replace(/#+;.*$/, "");
+    text = text.replace(/;.*$/, "");
+    return text;
   }
 }
