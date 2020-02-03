@@ -11,12 +11,6 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
-    - name: Start xvfb
-      if: runner.os == 'Linux'
-      run: |
-        set -e
-        /usr/bin/Xvfb :10 -ac >> /tmp/Xvfb.out 2>&1 &
-        disown -ar
     - name: Set an output
       id: set-version
       if: runner.os == 'Linux'
@@ -36,12 +30,13 @@ jobs:
     - name: Use Node.js
       uses: actions/setup-node@master
       with:
-        node-version: 10
+        node-version: 12.x
     - run: npm install
     - run: npm run compile
-    - run: npm run test
-      env:
-        DISPLAY: :10
+    - name: npm test
+      uses: GabrielBB/xvfb-action@v1.0
+      with:
+        run: npm run test
     - name: Build package
       if: runner.os == 'Linux'
       run: |
