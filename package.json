@@ -597,10 +597,23 @@
           "type": "boolean",
           "description": "Suppress popup messages about successful compile"
         },
+        "objectscript.suppressCompileErrorMessages": {
+          "default": false,
+          "type": "boolean",
+          "description": "Suppress popup messages about errors during compile, but keep focus on Output view"
+        },
         "objectscript.serverSideEditing": {
           "default": false,
           "type": "boolean",
           "description": "Allow to edit code directly on server"
+        },
+        "objectscript.debug": {
+          "type": "object"
+        },
+        "objectscript.debug.debugThisMethod": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show `Debug this method` action for ClassMethods"
         }
       }
     },

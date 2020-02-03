@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { config } from "../extension";
 
 export class ObjectScriptClassCodeLensProvider implements vscode.CodeLensProvider {
   public provideCodeLenses(
@@ -40,24 +41,27 @@ export class ObjectScriptClassCodeLensProvider implements vscode.CodeLensProvide
           [className] = classNameMatch;
         }
       }
+      const { debugThisMethod } = config("debug");
       const methodMatch = text.match(/(?<=^ClassMethod\s)([^(]+)(\(.)/i);
       if (methodMatch) {
         const [, name, parens] = methodMatch;
         const program = `##class(${className}).${name}`;
         const askArgs = parens !== "()";
-        result.push(
-          new vscode.CodeLens(
-            new vscode.Range(
-              new vscode.Position(i, methodMatch.index),
-              new vscode.Position(i, methodMatch.index + name.length)
-            ),
-            {
-              title: `Debug this method`,
-              command: "vscode-objectscript.debug",
-              arguments: [program, askArgs],
-            }
-          )
-        );
+        if (debugThisMethod) {
+          result.push(
+            new vscode.CodeLens(
+              new vscode.Range(
+                new vscode.Position(i, methodMatch.index),
+                new vscode.Position(i, methodMatch.index + name.length)
+              ),
+              {
+                title: `Debug this method`,
+                command: "vscode-objectscript.debug",
+                arguments: [program, askArgs],
+              }
+            )
+          );
+        }
       }
     }
     return result;
