@@ -104,11 +104,11 @@ export class ObjectScriptDiagnosticProvider {
 
       // it is important to check script tag context before ObjectScript comments
       // since /* ... */ comments can also be used in JavaScript
-      if (text.match(/<script .*>/)) {
+      if (text.match(/<script .*>/i)) {
         jsScript = true;
       }
 
-      if (text.match("&sql")) {
+      if (text.match(/&sql/i)) {
         sql = true;
         sqlParens = 0;
       }
@@ -122,7 +122,7 @@ export class ObjectScriptDiagnosticProvider {
       }
 
       if (jsScript) {
-        if (text.match(/<\/script>/)) {
+        if (text.match(/<\/script>/i)) {
           jsScript = false;
         }
         continue;
