@@ -90,9 +90,11 @@ async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
           .catch((error: Error) => {
             outputChannel.appendLine(error.message);
             outputChannel.show(true);
-            vscode.window.showErrorMessage(error.message, "Show details").then(data => {
-              outputChannel.show(true);
-            });
+            if (!config("suppressCompileErrorMessages")) {
+              vscode.window.showErrorMessage(error.message, "Show details").then(data => {
+                outputChannel.show(true);
+              });
+            }
             return [];
           })
     )
