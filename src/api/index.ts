@@ -4,7 +4,7 @@ import * as request from "request-promise";
 import * as url from "url";
 import * as vscode from "vscode";
 import * as Cache from "vscode-cache";
-import { config, extensionContext, FILESYSTEM_SCHEMA, workspaceState, panel } from "../extension";
+import { config, extensionContext, FILESYSTEM_SCHEMA, workspaceState, panel, checkConnection } from "../extension";
 import { currentWorkspaceFolder, outputConsole, outputChannel } from "../utils";
 
 const DEFAULT_API_VERSION = 1;
@@ -26,6 +26,10 @@ export class AtelierAPI {
 
   private get port(): number {
     return workspaceState.get(this.workspaceFolder + ":port", this.config.port);
+  }
+
+  private get password(): string {
+    return workspaceState.get(this.workspaceFolder + ":password", this.config.password);
   }
 
   private get iris(): boolean {
@@ -70,8 +74,9 @@ export class AtelierAPI {
   }
 
   public xdebugUrl(): string {
-    const { host, username, password, https } = this.config;
+    const { host, username, https } = this.config;
     const port = this.port;
+    const password = this.password;
     const proto = https ? "wss" : "ws";
     const auth = this.iris
       ? `IRISUsername=${username}&IRISPassword=${password}`
@@ -144,8 +149,9 @@ export class AtelierAPI {
     }
     headers["Cache-Control"] = "no-cache";
 
-    const { host, username, password, https } = this.config;
+    const { host, username, https } = this.config;
     const port = this.port;
+    const password = this.password;
     const proto = this.config.https ? "https" : "http";
     const http: any = this.config.https ? httpsModule : httpModule;
     const agent = new http.Agent({
@@ -209,6 +215,9 @@ export class AtelierAPI {
             }
           })
           .catch(error => {
+            if (error.error && error.error.code === "ECONNREFUSED") {
+              setTimeout(checkConnection, 1000);
+            }
             console.error(error);
             throw error;
           })

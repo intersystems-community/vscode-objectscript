@@ -3,9 +3,10 @@ import { config, workspaceState, checkConnection } from "../extension";
 import { currentWorkspaceFolder, terminalWithDocker } from "../utils";
 
 export async function serverActions(): Promise<void> {
-  const { active, host, ns, https, port: defaultPort, username, password, links } = config("conn");
+  const { active, host, ns, https, port: defaultPort, username, password: defaultPassword, links } = config("conn");
   const workspaceFolder = currentWorkspaceFolder();
   const port = workspaceState.get(workspaceFolder + ":port", defaultPort);
+  const password = workspaceState.get(workspaceFolder + ":password", defaultPassword);
   const nsEncoded = encodeURIComponent(ns);
   const connInfo = `${host}:${port}[${nsEncoded}]`;
   const serverUrl = `${https ? "https" : "http"}://${host}:${port}`;
@@ -83,7 +84,7 @@ export async function serverActions(): Promise<void> {
           break;
         }
         case "refreshConnection": {
-          checkConnection();
+          checkConnection(true);
           break;
         }
         case "openDockerTerminal": {

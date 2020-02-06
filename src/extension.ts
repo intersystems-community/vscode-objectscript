@@ -9,6 +9,7 @@ export const OBJECTSCRIPTXML_FILE_SCHEMA = "objectscriptxml";
 export const FILESYSTEM_SCHEMA = "isfs";
 export const schemas = [OBJECTSCRIPT_FILE_SCHEMA, OBJECTSCRIPTXML_FILE_SCHEMA, FILESYSTEM_SCHEMA];
 
+import WebSocket = require("ws");
 import {
   importAndCompile,
   importFolder as importFileOrFolder,
@@ -101,7 +102,7 @@ let reporter: TelemetryReporter;
 
 export const checkConnection = (clearCookies = false): void => {
   const conn = config("conn");
-  const connInfo = `${conn.host}:${conn.port}[${conn.ns}]`;
+  let connInfo = `${conn.host}:${conn.port}[${conn.ns}]`;
   panel.text = connInfo;
   panel.tooltip = "";
   vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", conn.active);
@@ -117,6 +118,7 @@ export const checkConnection = (clearCookies = false): void => {
     if (dockerPort !== conn.port) {
       workspaceState.update(currentWorkspaceFolder() + ":port", dockerPort);
     }
+    connInfo = `${conn.host}:${dockerPort}[${conn.ns}]`;
   }
 
   const api = new AtelierAPI(currentWorkspaceFolder());
@@ -131,10 +133,36 @@ export const checkConnection = (clearCookies = false): void => {
         serverVersion: info.result.content.version,
         healthshare: hasHS ? "yes" : "no",
       });
+      /// Use xdebug's websocket, to catch when server disconnected
+      const socket = new WebSocket(api.xdebugUrl());
+      socket.onopen = () => {
+        panel.text = `${connInfo} - Connected`;
+      };
+      socket.onclose = event => {
+        panel.text = `${connInfo} - Disconnected`;
+      };
     })
     .catch(error => {
       let message = error.message;
       if (error instanceof StatusCodeError && error.statusCode === 401) {
+        setTimeout(
+          () =>
+            vscode.window
+              .showInputBox({
+                password: true,
+                placeHolder: "Not Authorized, please enter password to connect",
+                ignoreFocusOut: true,
+              })
+              .then(password => {
+                if (password) {
+                  workspaceState.update(currentWorkspaceFolder() + ":password", password);
+                  checkConnection();
+                } else {
+                  vscode.workspace.getConfiguration().update("objectscript.conn.active", false);
+                }
+              }),
+          1000
+        );
         message = "Not Authorized";
         outputChannel.appendLine(
           `Authorization error: please check your username/password in the settings,
@@ -175,7 +203,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   panel.command = "vscode-objectscript.serverActions";
   panel.show();
 
-  checkConnection();
+  checkConnection(true);
   vscode.workspace.onDidChangeConfiguration(({ affectsConfiguration }) => {
     if (affectsConfiguration("objectscript.conn")) {
       checkConnection(true);
@@ -184,13 +212,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   workspace.onDidSaveTextDocument(file => {
     if (schemas.includes(file.uri.scheme) || languages.includes(file.languageId)) {
-      vscode.commands.executeCommand("vscode-objectscript.compile");
+      return vscode.commands.executeCommand("vscode-objectscript.compile");
     }
   });
 
   vscode.window.onDidChangeActiveTextEditor((textEditor: vscode.TextEditor) => {
     if (config("autoPreviewXML")) {
-      xml2doc(context, textEditor);
+      return xml2doc(context, textEditor);
     }
   });
 
@@ -379,4 +407,5 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 export function deactivate() {
   // This will ensure all pending events get flushed
   reporter.dispose();
+  terminal.dispose();
 }
