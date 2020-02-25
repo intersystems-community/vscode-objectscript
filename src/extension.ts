@@ -196,7 +196,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   vscode.window.registerTreeDataProvider("ObjectScriptExplorer", explorerProvider);
 
-  panel = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+  posPanel = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
+  posPanel.show();
+
+  panel = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1);
 
   const debugAdapterFactory = new ObjectScriptDebugAdapterDescriptorFactory();
 
@@ -217,9 +220,32 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   });
 
   vscode.window.onDidChangeActiveTextEditor((textEditor: vscode.TextEditor) => {
-    if (config("autoPreviewXML")) {
+    posPanel.text = "";
+    if (textEditor.document.fileName.endsWith(".xml") && config("autoPreviewXML")) {
       return xml2doc(context, textEditor);
     }
+  });
+  vscode.window.onDidChangeTextEditorSelection((event: vscode.TextEditorSelectionChangeEvent) => {
+    posPanel.text = "";
+    const intMatch = event.textEditor.document.fileName.match(/\/?(.*)\.int$/i);
+    if (!intMatch || event.selections.length > 1 || !event.selections[0].isEmpty) {
+      return;
+    }
+    const line = event.selections[0].start.line;
+    const [, routine] = intMatch;
+    const { document } = event.textEditor;
+    let label = "";
+    let pos = 0;
+    for (let i = line; i > 0; i--) {
+      const labelMatch = document.lineAt(i).text.match(/^(\w+).*/);
+      if (labelMatch) {
+        [, label] = labelMatch;
+        break;
+      }
+      pos++;
+    }
+    event.textEditor.document.getText;
+    posPanel.text = `${label}${pos > 0 ? "+" + pos : ""}^${routine}`;
   });
 
   const documentSelector = (...list) =>
