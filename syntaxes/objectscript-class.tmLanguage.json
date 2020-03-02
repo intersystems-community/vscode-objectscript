@@ -283,7 +283,7 @@
             }
         },
         {
-          "begin": "(?i)^(\\b(?:Client)?(?:Class)?Method\\b)(\\s+)((?:%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)|(?:\"[^\".]+\"))",
+          "begin": "(?i)^(\\b(?:Client)?(?:Class)?Method\\b)(\\s+)((?:%|%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)|(?:\"[^\".]+\"))",
           "beginCaptures": {
             "1": {
               "name": "keyword.objectscript_class"
