@@ -77,7 +77,10 @@ async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
       },
       () =>
         api
-          .actionCompile(docs.map(el => el.name), flags)
+          .actionCompile(
+            docs.map(el => el.name),
+            flags
+          )
           .then(data => {
             const info = docs.length > 1 ? "" : `${docs[0].name}: `;
             if (data.status && data.status.errors && data.status.errors.length) {

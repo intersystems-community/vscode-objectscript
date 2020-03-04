@@ -31,9 +31,16 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     const wFolderUri = workspaceFolderUri(workspaceFolder);
     let uri: vscode.Uri;
     if (wFolderUri.scheme === FILESYSTEM_SCHEMA) {
+      const fileExt = name.split(".").pop();
+      const fileName = name
+        .split(".")
+        .slice(0, -1)
+        .join(fileExt.match(/cls/i) ? "/" : ".");
+      name = fileName + "." + fileExt;
       uri = wFolderUri.with({
         path: `/${name}`,
       });
+      vfs = true;
     } else {
       const found = this.getAsFile(name, workspaceFolder);
       if (found) {

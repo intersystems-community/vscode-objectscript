@@ -9,6 +9,7 @@ export const OBJECTSCRIPTXML_FILE_SCHEMA = "objectscriptxml";
 export const FILESYSTEM_SCHEMA = "isfs";
 export const schemas = [OBJECTSCRIPT_FILE_SCHEMA, OBJECTSCRIPTXML_FILE_SCHEMA, FILESYSTEM_SCHEMA];
 
+import * as url from "url";
 import WebSocket = require("ws");
 import {
   importAndCompile,
@@ -76,6 +77,25 @@ export const config = (setting?: string, workspaceFolderName?: string): any => {
 
   if (["conn", "export"].includes(setting)) {
     if (workspaceFolderName && workspaceFolderName !== "") {
+      if (workspaceFolderName.match(/.+:\d+$/)) {
+        const { port, hostname: host, auth, query } = url.parse("http://" + workspaceFolderName, true);
+        const { ns = "USER", https = false } = query;
+        const [username, password] = (auth || "_SYSTEM:SYS").split(":");
+        if (setting == "conn") {
+          return {
+            active: true,
+            https,
+            ns,
+            host,
+            port,
+            username,
+            password,
+          };
+        } else if (setting == "export") {
+          return {};
+        }
+      }
+
       const workspaceFolder = vscode.workspace.workspaceFolders.find(
         el => el.name.toLowerCase() === workspaceFolderName.toLowerCase()
       );
@@ -101,6 +121,8 @@ export function getXmlUri(uri: vscode.Uri): vscode.Uri {
 }
 let reporter: TelemetryReporter;
 
+let connectionSocket: WebSocket;
+
 export const checkConnection = (clearCookies = false): void => {
   const conn = config("conn");
   let connInfo = `${conn.host}:${conn.port}[${conn.ns}]`;
@@ -112,7 +134,7 @@ export const checkConnection = (clearCookies = false): void => {
     return;
   }
   workspaceState.update(currentWorkspaceFolder() + ":port", undefined);
-  const { port: dockerPort, docker: withDocker } = portFromDockerCompose(config("conn.docker-compose"), conn.port);
+  const { port: dockerPort, docker: withDocker } = portFromDockerCompose();
   workspaceState.update(currentWorkspaceFolder() + ":docker", withDocker);
   if (withDocker) {
     terminalWithDocker();
@@ -126,6 +148,9 @@ export const checkConnection = (clearCookies = false): void => {
   if (clearCookies) {
     api.clearCookies();
   }
+  if (connectionSocket && connectionSocket.url == api.xdebugUrl() && connectionSocket.OPEN) {
+    return;
+  }
   api
     .serverInfo()
     .then(info => {
@@ -135,11 +160,11 @@ export const checkConnection = (clearCookies = false): void => {
         healthshare: hasHS ? "yes" : "no",
       });
       /// Use xdebug's websocket, to catch when server disconnected
-      const socket = new WebSocket(api.xdebugUrl());
-      socket.onopen = () => {
+      connectionSocket = new WebSocket(api.xdebugUrl());
+      connectionSocket.onopen = () => {
         panel.text = `${connInfo} - Connected`;
       };
-      socket.onclose = event => {
+      connectionSocket.onclose = event => {
         panel.text = `${connInfo} - Disconnected`;
       };
     })

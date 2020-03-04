@@ -32,7 +32,10 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
   const uri = document.uri;
   const fileName = document.fileName;
   const content = document.getText();
-  const fileExt = fileName.match(/\.(\w+)$/)[1].toLowerCase();
+  const fileExt = fileName
+    .split(".")
+    .pop()
+    .toLowerCase();
   let name = "";
   let ext = "";
   const { query } = url.parse(decodeURIComponent(uri.toString()), true);
@@ -42,13 +45,11 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
   } else if (fileExt === "cls") {
     const match = content.match(/^Class (%?\w+(?:\.\w+)+)/im);
     if (match) {
-      name = match[1];
-      ext = "cls";
+      [, name, ext = "cls"] = match;
     }
   } else {
     const match = content.match(/^ROUTINE ([^\s]+)(?:\s+\[.*Type=([a-z]{3,}))?/i);
-    name = match[1];
-    ext = match[2] || "mac";
+    [, name, ext = "mac"] = match;
   }
   if (!name) {
     return null;
@@ -107,8 +108,9 @@ export function currentWorkspaceFolder(document?: vscode.TextDocument): string {
 }
 
 export function workspaceFolderUri(workspaceFolder: string = currentWorkspaceFolder()): vscode.Uri {
-  return vscode.workspace.workspaceFolders.find(
-    (el): boolean => el.name.toLowerCase() === workspaceFolder.toLowerCase()
+  return (
+    vscode.workspace.workspaceFolders.find((el): boolean => el.name.toLowerCase() === workspaceFolder.toLowerCase()) ||
+    vscode.workspace.workspaceFolders.find((el): boolean => el.uri.authority == workspaceFolder)
   ).uri;
 }
 
@@ -123,12 +125,10 @@ export function notNull(el: any): boolean {
   return el !== null;
 }
 
-export function portFromDockerCompose(options, defaultPort: number): { port: number; docker: boolean } {
+export function portFromDockerCompose(): { port: number; docker: boolean } {
+  const { "docker-compose": dockerCompose, port: defaultPort } = config("conn");
   const result = { port: defaultPort, docker: false };
-  if (!options) {
-    return result;
-  }
-  const { file = "docker-compose.yml", service, internalPort = 52773 } = options;
+  const { service, file = "docker-compose.yml", internalPort = 52773 } = dockerCompose;
   if (!internalPort || !file || !service || service === "") {
     return result;
   }
@@ -155,13 +155,16 @@ export function portFromDockerCompose(options, defaultPort: number): { port: num
 }
 
 export function terminalWithDocker() {
-  const { ns } = config("conn");
-  const { service } = config("conn.docker-compose");
+  const { ns, "docker-compose": dockerCompose } = config("conn");
+  const { service, file = "docker-compose.yml" } = dockerCompose;
+  const workspace = currentWorkspaceFolder();
 
-  const terminalName = `ObjectScript:${service}`;
+  const terminalName = `ObjectScript:${workspace}`;
   let terminal = vscode.window.terminals.find(el => el.name === terminalName);
   if (!terminal) {
     terminal = vscode.window.createTerminal(terminalName, "docker-compose", [
+      "-f",
+      file,
       "exec",
       service,
       "/bin/bash",

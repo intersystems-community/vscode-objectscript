@@ -479,7 +479,8 @@
         },
         "objectscript.conn.docker-compose": {
           "description": "Connect to server running in docker-compose",
-          "type": "object"
+          "type": "object",
+          "scope": "resource"
         },
         "objectscript.conn.docker-compose.service": {
           "description": "Name of service in docker-compose",

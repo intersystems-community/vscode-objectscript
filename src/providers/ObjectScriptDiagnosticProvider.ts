@@ -47,7 +47,7 @@ export class ObjectScriptDiagnosticProvider {
       }
 
       const memberMatch = text.match(
-        /^(Class|Property|Relationship|Index|ClassMethod|Method|XData|Query|Trigger|ForeignKey|Projection|Parameter)\s(\b[^  (]+\b)/i
+        /^(Class|Property|Relationship|Index|(?:(?:Client)?(?:Class)?Method)|ClientClassMethod|Method|XData|Query|Trigger|ForeignKey|Projection|Parameter)\s(\b[^  (]+\b)/i
       );
       if (memberMatch) {
         const [fullMatch, type, name] = memberMatch;
@@ -222,9 +222,11 @@ export class ObjectScriptDiagnosticProvider {
         const [, found] = functionsMatch;
         const pos = functionsMatch.index;
         const range = new vscode.Range(new vscode.Position(i, pos), new vscode.Position(i, pos + found.length));
-        const systemFunction = [...systemFunctions, ...systemVariables, ...structuredSystemVariables].find(el =>
-          el.alias.includes(found.toUpperCase())
-        );
+        const systemFunction: CompletionModel = [
+          ...systemFunctions,
+          ...systemVariables,
+          ...structuredSystemVariables,
+        ].find(el => el.alias.includes(found.toUpperCase()));
         if (!systemFunction) {
           result.push({
             range,

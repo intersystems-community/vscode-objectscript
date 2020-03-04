@@ -11,9 +11,11 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
     if (query.length < 3) {
       return null;
     }
-    return Promise.all([this.byClasses(query), this.byRoutines(query), this.byMethods(query)]).then(
-      ([classes, routines, methods]) => [...classes, ...routines, ...methods]
-    );
+    return Promise.all([
+      this.byClasses(query),
+      this.byRoutines(query),
+      this.byMethods(query),
+    ]).then(([classes, routines, methods]) => [...classes, ...routines, ...methods]);
   }
 
   public async byClasses(query: string): Promise<vscode.SymbolInformation[]> {

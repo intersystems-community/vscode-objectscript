@@ -20,18 +20,6 @@ export class AtelierAPI {
     return this.namespace || this.config.ns;
   }
 
-  private get apiVersion(): number {
-    return workspaceState.get(this.workspaceFolder + ":apiVersion", DEFAULT_API_VERSION);
-  }
-
-  private get port(): number {
-    return workspaceState.get(this.workspaceFolder + ":port", this.config.port);
-  }
-
-  private get password(): string {
-    return workspaceState.get(this.workspaceFolder + ":password", this.config.password);
-  }
-
   private get iris(): boolean {
     return workspaceState.get(this.workspaceFolder + ":iris", false);
   }
@@ -74,14 +62,12 @@ export class AtelierAPI {
   }
 
   public xdebugUrl(): string {
-    const { host, username, https } = this.config;
-    const port = this.port;
-    const password = this.password;
+    const { host, username, https, port, password, apiVersion } = this.config;
     const proto = https ? "wss" : "ws";
     const auth = this.iris
       ? `IRISUsername=${username}&IRISPassword=${password}`
       : `CacheUserName=${username}&CachePassword=${password}`;
-    return `${proto}://${host}:${port}/api/atelier/v${this.apiVersion}/%25SYS/debug?${auth}`;
+    return `${proto}://${host}:${port}/api/atelier/v${apiVersion}/%25SYS/debug?${auth}`;
   }
 
   public updateCookies(newCookies: string[]): Promise<any> {
@@ -102,8 +88,11 @@ export class AtelierAPI {
     this.workspaceFolder = workspaceFolderName;
     const conn = config("conn", workspaceFolderName);
     this.config = conn;
-    const { name, host } = this.config;
-    const port = this.port;
+    this.config.port = workspaceState.get(this.workspaceFolder + ":port", this.config.port);
+    this.config.password = workspaceState.get(this.workspaceFolder + ":password", this.config.password);
+    this.config.apiVersion = workspaceState.get(this.workspaceFolder + ":apiVersion", DEFAULT_API_VERSION);
+
+    const { name, host, port } = this.config;
     this.cache = new Cache(extensionContext, `API:${name}:${host}:${port}`);
   }
 
@@ -115,14 +104,15 @@ export class AtelierAPI {
     params?: any,
     headers?: any
   ): Promise<any> {
-    if (minVersion > this.apiVersion) {
-      return Promise.reject(`${path} not supported by API version ${this.apiVersion}`);
+    const { active, apiVersion, host, username, https, port, password } = this.config;
+    if (!active) {
+      return Promise.reject();
+    }
+    if (minVersion > apiVersion) {
+      return Promise.reject(`${path} not supported by API version ${apiVersion}`);
     }
     if (minVersion && minVersion > 0) {
-      path = `v${this.apiVersion}/${path}`;
-    }
-    if (!this.config.active) {
-      return Promise.reject();
+      path = `v${apiVersion}/${path}`;
     }
     headers = {
       ...headers,
@@ -149,9 +139,6 @@ export class AtelierAPI {
     }
     headers["Cache-Control"] = "no-cache";
 
-    const { host, username, https } = this.config;
-    const port = this.port;
-    const password = this.password;
     const proto = this.config.https ? "https" : "http";
     const http: any = this.config.https ? httpsModule : httpModule;
     const agent = new http.Agent({

@@ -85,7 +85,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
   private _evalResultProperties = new Map<number, xdebug.EvalResultProperty>();
 
   public constructor() {
-    super("mock-debug.txt");
+    super();
 
     const api = new AtelierAPI();
     this._namespace = api.ns;
