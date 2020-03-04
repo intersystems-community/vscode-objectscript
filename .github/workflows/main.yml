@@ -41,7 +41,7 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         mkdir dist
-        ./node_modules/.bin/vsce package -o ./dist/${{ steps.set-version.outputs.name }}.vsix
+        ./node_modules/.bin/vsce package -o ./dist/vscode-objectscript.vsix
     - name: Create Release
       id: create_release
       uses: actions/create-release@master
@@ -58,12 +58,12 @@ jobs:
           ${{ steps.set-version.outputs.changelog }}
     - name: Upload Release Asset
       id: upload-release-asset
-      uses: actions/upload-release-asset@v1.0.1
+      uses: actions/upload-release-asset@master
       if: runner.os == 'Linux'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/${{ steps.set-version.outputs.name }}.vsix
+        asset_path: ./dist/vscode-objectscript.vsix
         asset_name: ${{ steps.set-version.outputs.name }}.vsix
         asset_content_type: application/zip
