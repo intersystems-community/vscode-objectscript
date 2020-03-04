@@ -61,6 +61,7 @@ export let documentContentProvider: DocumentContentProvider;
 export let workspaceState: vscode.Memento;
 export let extensionContext: vscode.ExtensionContext;
 export let panel: vscode.StatusBarItem;
+export let posPanel: vscode.StatusBarItem;
 export let terminal: vscode.Terminal;
 
 import TelemetryReporter from "vscode-extension-telemetry";

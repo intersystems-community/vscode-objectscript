@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { config, workspaceState, checkConnection } from "../extension";
-import { currentWorkspaceFolder, terminalWithDocker } from "../utils";
+import { currentWorkspaceFolder, terminalWithDocker, currentFile } from "../utils";
 
 export async function serverActions(): Promise<void> {
   const { active, host, ns, https, port: defaultPort, username, password: defaultPassword, links } = config("conn");
@@ -19,10 +19,18 @@ export async function serverActions(): Promise<void> {
     ? `&IRISUsername=${usernameEncoded}&IRISPassword=${passwordEncoded}`
     : `&CacheUserName=${usernameEncoded}&CachePassword=${passwordEncoded}`;
   const extraLinks = [];
+  const file = currentFile();
+  const classname = file && file.name.match(/cls$/i) ? file.name : "";
   for (const title in links) {
-    const link = String(links[title])
+    let link = String(links[title]);
+    if (classname == "" && link.includes("${classname}")) {
+      continue;
+    }
+    link = link
       .replace("${host}", host)
-      .replace("${port}", port);
+      .replace("${port}", port)
+      .replace("${namespace}", ns == "%SYS" ? "sys" : nsEncoded.toLowerCase())
+      .replace("${classname}", classname);
     extraLinks.push({
       id: "extraLink" + extraLinks.length,
       label: title,
