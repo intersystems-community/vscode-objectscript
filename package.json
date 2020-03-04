@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "0.8.2-SNAPSHOT",
+  "version": "0.8.3-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "7047c4a1-fc13-43ea-a485-01a74ff0b2af",
   "categories": [
