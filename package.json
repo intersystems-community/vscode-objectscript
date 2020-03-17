@@ -19,7 +19,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/daimor/vscode-objectscript"
+    "url": "https://github.com/intersystems-community/vscode-objectscript"
   },
   "license": "MIT",
   "preview": true,
