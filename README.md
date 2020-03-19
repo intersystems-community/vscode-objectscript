@@ -56,4 +56,8 @@ Or you can edit it through settings editor. Which you can open from menu *Code* 
 
 ## Notes
 
-For Caché/IRIS instance with maximum security level, add '%Development' role for '/api/atelier/' web-application ( [More](https://community.intersystems.com/post/using-atelier-rest-api) )
+For Caché/IRIS instance with maximum security level, add '%Development' role for '/api/atelier/' web-application ( [More](https://community.intersystems.com/post/using-atelier-rest-api) )  
+If you are getting 'ERROR #5540: SQLCODE: -99 Message: User xxx is not privileged for the operation' when you try to get/refresh class/routine/includes lists, grant a following SQL Procedure to your user on target namespace.
+```SQL
+grant execute on %Library.RoutineMgr_StudioOpenDialog to xxx
+```
