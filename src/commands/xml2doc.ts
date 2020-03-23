@@ -1,9 +1,7 @@
 import * as vscode from "vscode";
-import { config, OBJECTSCRIPTXML_FILE_SCHEMA } from "../extension";
-import { XmlContentProvider } from "../providers/XmlContentProvider";
+import { config, OBJECTSCRIPTXML_FILE_SCHEMA, xmlContentProvider } from "../extension";
 
 export async function xml2doc(context: vscode.ExtensionContext, textEditor: vscode.TextEditor): Promise<void> {
-  const xmlContentProvider: XmlContentProvider = context.workspaceState.get("xmlContentProvider");
   if (!config("conn").active) {
     return;
   }

@@ -2,12 +2,9 @@ import fs = require("fs");
 import path = require("path");
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { ClassNode } from "../explorer/models/classesNode";
-import { PackageNode } from "../explorer/models/packageNode";
-import { RootNode } from "../explorer/models/rootNode";
-import { RoutineNode } from "../explorer/models/routineNode";
 import { config } from "../extension";
 import { mkdirSyncRecursive, notNull, outputChannel, workspaceFolderUri } from "../utils";
+import { NodeBase } from "../explorer/models/nodeBase";
 
 const filesFilter = (file: any) => {
   if (file.cat === "CSP" || file.name.startsWith("%") || file.name.startsWith("INFORMATION.")) {
@@ -189,8 +186,9 @@ export async function exportAll(workspaceFolder?: string): Promise<any> {
   });
 }
 
-export async function exportExplorerItem(node: RootNode | PackageNode | ClassNode | RoutineNode): Promise<any> {
+export async function exportExplorerItem(nodes: NodeBase[]): Promise<any> {
   const origNamespace = config("conn").ns;
+  const node = nodes[0];
   if (origNamespace !== node.namespace) {
     const answer = await vscode.window.showWarningMessage(
       `
@@ -206,7 +204,7 @@ Would you like to continue?`,
     }
   }
   const { workspaceFolder, namespace } = node;
-  return node.getItems4Export().then(items => {
-    return exportList(items, workspaceFolder, namespace);
+  return Promise.all(nodes.map(node => node.getItems4Export())).then(items => {
+    return exportList(items.flat(), workspaceFolder, namespace);
   });
 }

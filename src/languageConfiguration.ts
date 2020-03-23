@@ -5,7 +5,10 @@ export const WORD_PATTERN = /((?<=(class|extends|as|of) )(%?\b[a-z0-9]+(\.[a-z0-
 export function getLanguageConfiguration(lang: string): LanguageConfiguration {
   return {
     wordPattern: WORD_PATTERN,
-    brackets: [["{", "}"], ["(", ")"], ['"', '"']],
+    brackets: [
+      ["{", "}"],
+      ["(", ")"],
+    ],
     comments: {
       lineComment: lang === "class" ? "//" : "#;",
       blockComment: ["/*", "*/"],
