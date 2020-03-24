@@ -287,6 +287,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     diagnosticProvider.updateDiagnostics(vscode.window.activeTextEditor.document);
   }
 
+  const proposed = packageJson.enableProposedApi
+    ? [
+        vscode.workspace.registerFileSearchProvider(FILESYSTEM_SCHEMA, new FileSearchProvider()),
+        vscode.workspace.registerTextSearchProvider(FILESYSTEM_SCHEMA, new TextSearchProvider()),
+      ]
+    : [];
+
   context.subscriptions.push(
     reporter,
     workspace.onDidChangeTextDocument(event => {
@@ -457,8 +464,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ),
 
     /* from proposed api */
-    vscode.workspace.registerFileSearchProvider(FILESYSTEM_SCHEMA, new FileSearchProvider()),
-    vscode.workspace.registerTextSearchProvider(FILESYSTEM_SCHEMA, new TextSearchProvider())
+    ...proposed
   );
   reporter.sendTelemetryEvent("extensionActivated");
 }

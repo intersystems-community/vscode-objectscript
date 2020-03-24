@@ -22,7 +22,14 @@ export interface CurrentFile {
 }
 
 export function currentFile(document?: vscode.TextDocument): CurrentFile {
-  document = document || (vscode.window.activeTextEditor.document ? vscode.window.activeTextEditor.document : null);
+  document =
+    document ||
+    (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document
+      ? vscode.window.activeTextEditor.document
+      : null);
+  if (!document) {
+    return null;
+  }
   if (
     !schemas.includes(document.uri.scheme) &&
     (!document || !document.fileName || !document.languageId || !document.languageId.startsWith("objectscript"))
