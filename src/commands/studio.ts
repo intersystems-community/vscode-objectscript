@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { FILESYSTEM_SCHEMA } from "../extension";
+import { config, FILESYSTEM_SCHEMA } from "../extension";
 import { outputChannel } from "../utils";
 
 interface StudioAction extends vscode.QuickPickItem {
@@ -36,7 +36,10 @@ class StudioActions {
           .showWarningMessage(target, { modal: true }, "Yes", "No")
           .then(answer => (answer === "Yes" ? "1" : answer === "No" ? "0" : "2"));
       case 2: // Run a CSP page/Template. The Target is the full url to the CSP page/Template
-        throw new Error("Not suppoorted");
+        const conn = config().conn;
+        vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(`http://${conn.host}:${conn.port}${target}`));
+        break;
+        // throw new Error("Not suppoorted");
       case 3: // Run an EXE on the client.
         throw new Error("Not suppoorted");
       case 4: // Insert the text in Target in the current document at the current selection point
