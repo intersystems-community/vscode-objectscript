@@ -96,6 +96,8 @@ export class ObjectScriptDiagnosticProvider {
     let endingComma = false;
     let isCode = !isClass;
     let jsScript = false;
+    let js = false;
+    let jsParens = 0;
     let sql = false;
     let sqlParens = 0;
     for (let i = 0; i < document.lineCount; i++) {
@@ -106,6 +108,18 @@ export class ObjectScriptDiagnosticProvider {
       // since /* ... */ comments can also be used in JavaScript
       if (text.match(/<script .*>/i)) {
         jsScript = true;
+      }
+
+      if (text.match(/&js(cript)?/i)) {
+        js = true;
+        jsParens = 0;
+      }
+      if (js) {
+        jsParens = jsParens + (text.split("<").length - 1) - (text.split(">").length - 1);
+        if (jsParens <= 0) {
+          js = false;
+        }
+        continue;
       }
 
       if (text.match(/&sql/i)) {
