@@ -85,7 +85,13 @@ export class ObjectScriptDiagnosticProvider {
     text = text.replace(/\/\/.*$/, "");
     text = text.replace(/#+;.*$/, "");
     text = text.replace(/;.*$/, "");
+    text = text.replace(/\/\*.*(?=\*\/)\*\//g, e => e.replace(/./g, " "));
     return text;
+  }
+
+  /// replace value in double quotes by spaces
+  private stripQuoted(text: string) {
+    return text.replace(/"(?:.*(?="")"")*[^"]*"/g, e => '"' + e.replace(/./g, " ").slice(2) + '"');
   }
 
   private commands(document: vscode.TextDocument): vscode.Diagnostic[] {
@@ -102,7 +108,9 @@ export class ObjectScriptDiagnosticProvider {
     let sqlParens = 0;
     for (let i = 0; i < document.lineCount; i++) {
       const line = document.lineAt(i);
-      const text = this.stripLineComments(line.text);
+      let text = line.text;
+      text = this.stripLineComments(text);
+      text = this.stripQuoted(text);
 
       // it is important to check script tag context before ObjectScript comments
       // since /* ... */ comments can also be used in JavaScript
@@ -205,7 +213,9 @@ export class ObjectScriptDiagnosticProvider {
     let isCode = !isClass;
     for (let i = 0; i < document.lineCount; i++) {
       const line = document.lineAt(i);
-      const text = this.stripLineComments(line.text);
+      let text = line.text;
+      text = this.stripLineComments(text);
+      text = this.stripQuoted(text);
 
       if (text.match(/\/\*/)) {
         inComment = true;
@@ -230,7 +240,7 @@ export class ObjectScriptDiagnosticProvider {
         continue;
       }
 
-      const pattern = /(?<!\$)(\$\b[a-z]+)\b/gi;
+      const pattern = /(?<!\$)(\$[a-z]+)/gi;
       let functionsMatch = null;
       while ((functionsMatch = pattern.exec(text)) !== null) {
         const [, found] = functionsMatch;
