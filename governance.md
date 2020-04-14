@@ -66,9 +66,8 @@ The PMC Chair has no additional authority over other members of the PMC: the rol
 ## Decision making process
 
 In order to ensure that the project is not bogged down by endless discussion and continual voting, the project operates a policy of lazy consensus. This allows the majority of decisions to be made without resorting to a formal vote.
-Lazy consensus
 
-### Lazy concensus
+### Lazy consensus
 
 Decision making typically involves the following steps:
 
