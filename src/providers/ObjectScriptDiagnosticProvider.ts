@@ -91,7 +91,7 @@ export class ObjectScriptDiagnosticProvider {
 
   /// replace value in double quotes by spaces
   private stripQuoted(text: string) {
-    return text.replace(/"(?:.*(?="")"")*[^"]*"/g, e => '"' + e.replace(/./g, " ").slice(2) + '"');
+    return text.replace(/"([^"]*(?="")"")*[^"]*"/g, e => '"' + e.replace(/./g, " ").slice(2) + '"');
   }
 
   private commands(document: vscode.TextDocument): vscode.Diagnostic[] {
