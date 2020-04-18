@@ -103,7 +103,7 @@ class StudioActions {
     }
   }
 
-  private userAction(action, afterUserAction = false, answer: string = "", msg: string = ""): Thenable<void> {
+  private userAction(action, afterUserAction = false, answer = "", msg = ""): Thenable<void> {
     if (!action) {
       return;
     }

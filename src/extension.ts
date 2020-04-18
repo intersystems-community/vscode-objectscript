@@ -64,6 +64,7 @@ export let extensionContext: vscode.ExtensionContext;
 export let panel: vscode.StatusBarItem;
 export let posPanel: vscode.StatusBarItem;
 export let terminal: vscode.Terminal;
+export let xmlContentProvider: XmlContentProvider;
 
 import TelemetryReporter from "vscode-extension-telemetry";
 import { CodeActionProvider } from "./providers/CodeActionProvider";
@@ -214,13 +215,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   extensionContext = context;
   workspaceState.update("workspaceFolder", "");
 
-  explorerProvider = new ObjectScriptExplorerProvider();
   documentContentProvider = new DocumentContentProvider();
-  const xmlContentProvider = new XmlContentProvider();
-  context.workspaceState.update("xmlContentProvider", xmlContentProvider);
+  xmlContentProvider = new XmlContentProvider();
   fileSystemProvider = new FileSystemProvider();
 
-  vscode.window.registerTreeDataProvider("ObjectScriptExplorer", explorerProvider);
+  explorerProvider = new ObjectScriptExplorerProvider();
+  // vscode.window.registerTreeDataProvider("ObjectScriptExplorer", explorerProvider);
+  vscode.window.createTreeView("ObjectScriptExplorer", {
+    treeDataProvider: explorerProvider,
+    showCollapseAll: true,
+    canSelectMany: true,
+  });
 
   posPanel = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
   posPanel.show();
@@ -281,6 +286,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   if (vscode.window.activeTextEditor) {
     diagnosticProvider.updateDiagnostics(vscode.window.activeTextEditor.document);
   }
+
+  const proposed = packageJson.enableProposedApi
+    ? [
+        vscode.workspace.registerFileSearchProvider(FILESYSTEM_SCHEMA, new FileSearchProvider()),
+        vscode.workspace.registerTextSearchProvider(FILESYSTEM_SCHEMA, new TextSearchProvider()),
+      ]
+    : [];
 
   context.subscriptions.push(
     reporter,
@@ -366,7 +378,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("vscode-objectscript.explorer.refresh", () => explorerProvider.refresh()),
     vscode.commands.registerCommand("vscode-objectscript.explorer.openClass", vscode.window.showTextDocument),
     vscode.commands.registerCommand("vscode-objectscript.explorer.openRoutine", vscode.window.showTextDocument),
-    vscode.commands.registerCommand("vscode-objectscript.explorer.export", exportExplorerItem),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.export", (item, items) =>
+      exportExplorerItem(items && items.length ? items : [item])
+    ),
     vscode.commands.registerCommand("vscode-objectscript.explorer.delete", deleteItem),
     vscode.commands.registerCommand("vscode-objectscript.explorer.compile", compileExplorerItem),
     vscode.commands.registerCommand("vscode-objectscript.explorer.showGenerated", (workspaceNode: WorkspaceNode) => {
@@ -450,8 +464,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ),
 
     /* from proposed api */
-    vscode.workspace.registerFileSearchProvider(FILESYSTEM_SCHEMA, new FileSearchProvider()),
-    vscode.workspace.registerTextSearchProvider(FILESYSTEM_SCHEMA, new TextSearchProvider())
+    ...proposed
   );
   reporter.sendTelemetryEvent("extensionActivated");
 }

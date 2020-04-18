@@ -60,7 +60,7 @@
     "embeddedSQL": {
       "patterns": [
         {
-          "begin": "(&sql)(\\()",
+          "begin": "(?i)(&sql)(\\()",
           "beginCaptures": {
             "1": { "name": "keyword.special.sql.objectscript" },
             "2": { "name": "punctuation.objectscript" }
@@ -74,7 +74,7 @@
     "embeddedJS": {
       "patterns": [
         {
-          "begin": "(&js)(<)",
+          "begin": "(?i)(&js(cript)?)(<)",
           "beginCaptures": {
             "1": { "name": "keyword.special.js.objectscript" },
             "2": { "name": "punctuation.objectscript" }

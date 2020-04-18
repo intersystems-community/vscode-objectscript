@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "0.8.3-SNAPSHOT",
+  "version": "0.8.4-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "7047c4a1-fc13-43ea-a485-01a74ff0b2af",
   "categories": [
@@ -19,7 +19,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/daimor/vscode-objectscript"
+    "url": "https://github.com/intersystems-community/vscode-objectscript"
   },
   "license": "MIT",
   "preview": true,
@@ -734,6 +734,7 @@
     "eslint-plugin-prettier": "^3.1.2",
     "eslint-plugin-promise": "^4.2.1",
     "extend": "^3.0.2",
+    "minimist": ">=1.2.2",
     "mocha": "^6.2.2",
     "prettier": "^1.19.1",
     "tape": "^4.13.0",
@@ -746,11 +747,12 @@
     "await-notify": "^1.0.1",
     "glob": "^7.1.6",
     "iconv-lite": "^0.5.1",
+    "mkdirp": "^1.0.3",
     "request": "^2.88.0",
     "request-promise": "^4.2.5",
     "vscode-cache": "^0.3.0",
-    "vscode-debugadapter": "^1.38.0",
-    "vscode-debugprotocol": "^1.38.0",
+    "vscode-debugadapter": "^1.39.1",
+    "vscode-debugprotocol": "^1.39.0",
     "vscode-extension-telemetry": "^0.1.2",
     "ws": "^7.2.1",
     "xmldom": "^0.1.31"

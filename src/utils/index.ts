@@ -22,7 +22,14 @@ export interface CurrentFile {
 }
 
 export function currentFile(document?: vscode.TextDocument): CurrentFile {
-  document = document || (vscode.window.activeTextEditor.document ? vscode.window.activeTextEditor.document : null);
+  document =
+    document ||
+    (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document
+      ? vscode.window.activeTextEditor.document
+      : null);
+  if (!document) {
+    return null;
+  }
   if (
     !schemas.includes(document.uri.scheme) &&
     (!document || !document.fileName || !document.languageId || !document.languageId.startsWith("objectscript"))
@@ -132,7 +139,19 @@ export function portFromDockerCompose(): { port: number; docker: boolean } {
   if (!internalPort || !file || !service || service === "") {
     return result;
   }
-  const cwd = workspaceFolderUri().fsPath;
+  const workspaceFolderPath = workspaceFolderUri().fsPath;
+  const workspaceRootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+
+  const cwd = fs.existsSync(path.join(workspaceFolderPath, file))
+    ? workspaceFolderPath
+    : fs.existsSync(path.join(workspaceRootPath, file))
+    ? workspaceRootPath
+    : null;
+
+  if (!cwd) {
+    return result;
+  }
+
   const cmd = `docker-compose -f ${file} port --protocol=tcp ${service} ${internalPort}`;
   try {
     const serviceLine = execSync(cmd, {
@@ -162,6 +181,7 @@ export function terminalWithDocker() {
   const terminalName = `ObjectScript:${workspace}`;
   let terminal = vscode.window.terminals.find(el => el.name === terminalName);
   if (!terminal) {
+    outputChannel.appendLine("Open terminal");
     terminal = vscode.window.createTerminal(terminalName, "docker-compose", [
       "-f",
       file,
@@ -169,8 +189,10 @@ export function terminalWithDocker() {
       service,
       "/bin/bash",
       "-c",
-      `command -v ccontrol >/dev/null 2>&1 && ccontrol session $ISC_PACKAGE_INSTANCENAME -U ${ns} || iris session $ISC_PACKAGE_INSTANCENAME -U ${ns}`,
+      `command -v ccontrol >/dev/null 2>&1 && (ccontrol session $ISC_PACKAGE_INSTANCENAME -U ${ns} || iris session $ISC_PACKAGE_INSTANCENAME -U ${ns})`,
     ]);
+  } else {
+    outputChannel.appendLine("terminal already exists");
   }
   terminal.show();
   return terminal;
