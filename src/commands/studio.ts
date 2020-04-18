@@ -36,8 +36,54 @@ class StudioActions {
           .showWarningMessage(target, { modal: true }, "Yes", "No")
           .then(answer => (answer === "Yes" ? "1" : answer === "No" ? "0" : "2"));
       case 2: // Run a CSP page/Template. The Target is the full url to the CSP page/Template
+        // Open the target URL in a webview
         const conn = config().conn;
-        vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(`http://${conn.host}:${conn.port}${target}`));
+        const column = vscode.window.activeTextEditor
+          ? vscode.window.activeTextEditor.viewColumn
+          : undefined;
+        const panel = vscode.window.createWebviewPanel(
+          'studioactionwebview',
+          'CSP Page',
+          column || vscode.ViewColumn.One,
+          {
+            enableScripts: true,
+          }
+        );
+        panel.webview.html = `
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <style type="text/css">
+              body, html
+              {
+                margin: 0; padding: 0; height: 100%; overflow: hidden;
+              }
+              #content
+              {
+                position:absolute; left: 0; right: 0; bottom: 0; top: 0px;
+              }
+            </style>
+          </head>
+          <body>
+            <div id="content">
+              <iframe src="http://${conn.host}:${conn.port}${target}" onLoad="checkForCancelState()" width="100%" height="100%" frameborder="0"></iframe>
+            </div>
+            <script>
+              function checkForCancelState() {
+                var x = document.getElementsByTagName("BODY")[0];
+                console.log(x);
+              }
+            </script>
+          </body>
+          </html>
+          `;
+        panel.onDidDispose(
+          () => {
+            // fire a cancel answer if the user closes the webview
+            return "2";
+          }
+        );
+        // TODO: use panel.dispose() when the cancel text is sent back in the iframe
         break;
         // throw new Error("Not suppoorted");
       case 3: // Run an EXE on the client.
