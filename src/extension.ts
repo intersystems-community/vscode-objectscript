@@ -48,7 +48,7 @@ import { ObjectScriptExplorerProvider } from "./explorer/explorer";
 import { WorkspaceNode } from "./explorer/models/workspaceNode";
 import { FileSystemProvider } from "./providers/FileSystemPovider/FileSystemProvider";
 import { WorkspaceSymbolProvider } from "./providers/WorkspaceSymbolProvider";
-import { currentWorkspaceFolder, outputChannel, portFromDockerCompose, terminalWithDocker } from "./utils";
+import { currentWorkspaceFolder, outputChannel, portFromDockerCompose, terminalWithDocker, notNull } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentRangeFormattingEditProvider } from "./providers/DocumentRangeFormattingEditProvider";
 
@@ -287,12 +287,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     diagnosticProvider.updateDiagnostics(vscode.window.activeTextEditor.document);
   }
 
-  const proposed = packageJson.enableProposedApi
-    ? [
-        vscode.workspace.registerFileSearchProvider(FILESYSTEM_SCHEMA, new FileSearchProvider()),
-        vscode.workspace.registerTextSearchProvider(FILESYSTEM_SCHEMA, new TextSearchProvider()),
-      ]
-    : [];
+  const proposed = [
+    packageJson.enableProposedApi && typeof vscode.workspace.registerFileSearchProvider === "function"
+      ? vscode.workspace.registerFileSearchProvider(FILESYSTEM_SCHEMA, new FileSearchProvider())
+      : null,
+    packageJson.enableProposedApi && typeof vscode.workspace.registerTextSearchProvider === "function"
+      ? vscode.workspace.registerTextSearchProvider(FILESYSTEM_SCHEMA, new TextSearchProvider())
+      : null,
+  ].filter(notNull);
 
   context.subscriptions.push(
     reporter,

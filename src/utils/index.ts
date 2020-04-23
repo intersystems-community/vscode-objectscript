@@ -179,9 +179,8 @@ export function terminalWithDocker() {
   const workspace = currentWorkspaceFolder();
 
   const terminalName = `ObjectScript:${workspace}`;
-  let terminal = vscode.window.terminals.find(el => el.name === terminalName);
+  let terminal = vscode.window.terminals.find(el => el.name === terminalName && terminal.exitStatus == undefined);
   if (!terminal) {
-    outputChannel.appendLine("Open terminal");
     terminal = vscode.window.createTerminal(terminalName, "docker-compose", [
       "-f",
       file,
@@ -191,8 +190,6 @@ export function terminalWithDocker() {
       "-c",
       `command -v ccontrol >/dev/null 2>&1 && (ccontrol session $ISC_PACKAGE_INSTANCENAME -U ${ns} || iris session $ISC_PACKAGE_INSTANCENAME -U ${ns})`,
     ]);
-  } else {
-    outputChannel.appendLine("terminal already exists");
   }
   terminal.show();
   return terminal;
