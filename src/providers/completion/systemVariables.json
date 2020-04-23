@@ -30,6 +30,18 @@
     "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vestack"
   },
   {
+    "label": "$ETRAP",
+    "alias": ["$ETRAP", "$ET"],
+    "documentation": [
+      "Contains a string of ObjectScript commands to be executed when an error occurs.\n",
+      "```objectscript\n",
+      "$ETRAP\n",
+      "$ET\n",
+      "```\n"
+    ],
+    "link": "/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_vetrap"
+  },
+  {
     "label": "$HALT",
     "alias": ["$HALT"],
     "documentation": ["Contains a halt trap routine call.\n", "```objectscript\n", "$HALT\n", "```\n"],
