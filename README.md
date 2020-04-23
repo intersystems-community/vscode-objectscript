@@ -1,5 +1,5 @@
 [![Known Vulnerabilities](https://snyk.io/test/github/intersystems-community/vscode-objectscript/badge.svg)](https://snyk.io/test/github/intersystems-community/vscode-objectscript)
-[![Gitter](https://badges.gitter.im/intersystems-community/vscode-objectscript.svg)](https://gitter.im/intersystems-community/vscode-objectscript?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/daimor.vscode-objectscript)
 [![](https://img.shields.io/visual-studio-marketplace/i/daimor.vscode-objectscript.svg)](https://marketplace.visualstudio.com/items?itemName=daimor.vscode-objectscript)
 
 [![](https://img.shields.io/badge/InterSystems-IRIS-blue.svg)](https://www.intersystems.com/products/intersystems-iris/)
@@ -10,7 +10,11 @@
 
 [InterSystems](http://www.intersystems.com/our-products/) ObjectScript language support for Visual Studio Code.
 
+
 [CaretDev](https://caretdev.com/#products) provides commercial support services. [Request a Quote](https://caretdev.com/contact-us/).
+
+On-line course from CaretDev - [Developing with VSCode ObjectScript – Easy Start](https://caretdev.com/courses/).
+
 
 ## Features
 
@@ -56,7 +60,7 @@ Or you can edit it through settings editor. Which you can open from menu *Code* 
 
 ## Notes
 
-For Caché/IRIS instance with maximum security level, add '%Development' role for '/api/atelier/' web-application ( [More](https://community.intersystems.com/post/using-atelier-rest-api) )  
+For Caché/IRIS instance with maximum security level, add '%Development' role for '/api/atelier/' web-application ( [More](https://community.intersystems.com/post/using-atelier-rest-api) )
 If you are getting 'ERROR #5540: SQLCODE: -99 Message: User xxx is not privileged for the operation' when you try to get/refresh class/routine/includes lists, grant a following SQL Procedure to your user on target namespace.
 ```SQL
 grant execute on %Library.RoutineMgr_StudioOpenDialog to xxx
