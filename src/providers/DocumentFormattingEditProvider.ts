@@ -32,6 +32,10 @@ export class DocumentFormattingEditProvider implements vscode.DocumentFormatting
       const line = document.lineAt(i);
       const text = this.stripLineComments(line.text);
 
+      if (!text.replace(/[\s\t]+/g, "").length) {
+        continue;
+      }
+
       if (text.match(/<script .*>/)) {
         jsScript = true;
       }
@@ -229,9 +233,8 @@ export class DocumentFormattingEditProvider implements vscode.DocumentFormatting
         const [, found, isFunc] = functionsMatch;
         const pos = functionsMatch.index;
         const range = new vscode.Range(new vscode.Position(i, pos), new vscode.Position(i, pos + found.length));
-        const systemFunction = (isFunc ? systemFunctions : systemVariables).find(el =>
-          el.alias.includes(found.toUpperCase())
-        );
+        const list: any[] = isFunc ? systemFunctions : systemVariables;
+        const systemFunction = list.find(el => el.alias.includes(found.toUpperCase()));
         if (systemFunction) {
           const expect = this._formatter.function(systemFunction.label);
           if (expect !== found) {

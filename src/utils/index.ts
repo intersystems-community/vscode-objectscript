@@ -56,7 +56,11 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
     }
   } else {
     const match = content.match(/^ROUTINE ([^\s]+)(?:\s+\[.*Type=([a-z]{3,}))?/i);
-    [, name, ext = "mac"] = match;
+    if (match) {
+      [, name, ext = "mac"] = match;
+    } else {
+      [name, ext = "mac"] = path.basename(document.fileName).split(".");
+    }
   }
   if (!name) {
     return null;
@@ -188,7 +192,7 @@ export function terminalWithDocker() {
       service,
       "/bin/bash",
       "-c",
-      `command -v ccontrol >/dev/null 2>&1 && (ccontrol session $ISC_PACKAGE_INSTANCENAME -U ${ns} || iris session $ISC_PACKAGE_INSTANCENAME -U ${ns})`,
+      `command -v iris >/dev/null 2>&1 && iris session $ISC_PACKAGE_INSTANCENAME -U ${ns} || ccontrol session $ISC_PACKAGE_INSTANCENAME -U ${ns}`,
     ]);
   }
   terminal.show();
