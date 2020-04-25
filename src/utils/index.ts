@@ -177,13 +177,13 @@ export function portFromDockerCompose(): { port: number; docker: boolean } {
   return result;
 }
 
-export function terminalWithDocker() {
+export async function terminalWithDocker(): Promise<vscode.Terminal> {
   const { ns, "docker-compose": dockerCompose } = config("conn");
   const { service, file = "docker-compose.yml" } = dockerCompose;
   const workspace = currentWorkspaceFolder();
 
   const terminalName = `ObjectScript:${workspace}`;
-  let terminal = vscode.window.terminals.find(el => el.name === terminalName && terminal.exitStatus == undefined);
+  let terminal = vscode.window.terminals.find(el => el.name === terminalName && el.exitStatus == undefined);
   if (!terminal) {
     terminal = vscode.window.createTerminal(terminalName, "docker-compose", [
       "-f",
