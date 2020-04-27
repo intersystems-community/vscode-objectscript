@@ -283,7 +283,32 @@
             }
         },
         {
-          "begin": "(?i)^(\\b(?:Client)?(?:Class)?Method\\b)(\\s+)((?:%|%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)|(?:\"[^\".]+\"))",
+          "begin": "(?i)^(\\bClient(?:Class)?Method\\b)(\\s+)((?:%|%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)|(?:\"[^\".]+\"))",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.objectscript_class"
+            },
+            "2": {
+              "name": "whitespace.objectscript_class"
+            },
+            "3": {
+              "name": "entity.name.function.objectscript_class"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#jsmethod"
+            }
+          ],
+          "end": "^(})$",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          }
+        },
+        {
+          "begin": "(?i)^(\\b(?:Class)?Method\\b)(\\s+)((?:%|%?[a-zA-Z][0-9a-zA-Z]*(?:_[0-9a-zA-Z]+)*)|(?:\"[^\".]+\"))",
           "beginCaptures": {
             "1": {
               "name": "keyword.objectscript_class"
@@ -460,6 +485,26 @@
         }
       ]
     },
+    "jscode": {
+      "patterns": [
+        {
+          "begin": "^({)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.objectscript_class"
+            }
+          },
+          "patterns": [
+            {
+              "include": "source.js"
+            }
+          ],
+          "contentName": "text.js",
+          "end": "^(?=})",
+          "endCaptures": []
+        }
+      ]
+    },
     "comments": {
       "patterns": [
         {
@@ -598,6 +643,22 @@
         },
         {
           "include": "#code"
+        }
+      ]
+    },
+    "jsmethod": {
+      "patterns": [
+        {
+          "include": "#formal_spec"
+        },
+        {
+          "include": "#as"
+        },
+        {
+          "include": "#params"
+        },
+        {
+          "include": "#jscode"
         }
       ]
     },
