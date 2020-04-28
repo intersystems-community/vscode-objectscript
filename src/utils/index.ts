@@ -55,7 +55,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
       [, name, ext = "cls"] = match;
     }
   } else {
-    const match = content.match(/^ROUTINE ([^\s]+)(?:\s+\[.*Type=([a-z]{3,}))?/i);
+    const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i);
     if (match) {
       [, name, ext = "mac"] = match;
     } else {
@@ -65,7 +65,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
   if (!name) {
     return null;
   }
-  name += ext ? "." + ext : "";
+  name += ext ? "." + ext.toLowerCase() : "";
 
   return {
     content,
