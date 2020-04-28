@@ -1,5 +1,5 @@
 [![Known Vulnerabilities](https://snyk.io/test/github/intersystems-community/vscode-objectscript/badge.svg)](https://snyk.io/test/github/intersystems-community/vscode-objectscript)
-![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/daimor.vscode-objectscript)
+![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/daimor.vscode-objectscript.svg)
 [![](https://img.shields.io/visual-studio-marketplace/i/daimor.vscode-objectscript.svg)](https://marketplace.visualstudio.com/items?itemName=daimor.vscode-objectscript)
 
 [![](https://img.shields.io/badge/InterSystems-IRIS-blue.svg)](https://www.intersystems.com/products/intersystems-iris/)
