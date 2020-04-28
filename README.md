@@ -21,7 +21,7 @@ On-line course from CaretDev - [Developing with VSCode ObjectScript – Easy Sta
 - InterSystems ObjectScript code highlighting support.
   ![example](https://raw.githubusercontent.com/intersystems-community/vscode-objectscript/master/images/screenshot.png)
 - Debugging ObjectScript code
-- Intellisense support for commands, system functions, class members
+- Intellisense support for commands, system functions, and class members.
 - Export existing sources to the working directory: press Cmd/Ctrl+Shift+P, type 'ObjectScript', press Enter.
 - Save and compile a class: press Ctrl+F7 (⌘+F7) or select "ObjectScript: Save and compile" from Cmd/Ctrl+Shift+P menu.
 - Server Explorer with possibility to export items![ServerExplorer](https://raw.githubusercontent.com/intersystems-community/vscode-objectscript/master/images/explorer.png)
@@ -37,7 +37,7 @@ Or install from ObjectScript extension page on [Visual Studio Marketplace](https
 
 ## Configure connection
 
-To be able to use many plugin features, you need to configure the connection to Caché server first. You can create or edit existing `.vscode/settings.json` file. So, your settings file may somethiing like this.
+To be able to use many plugin features, you need to configure the connection to Caché/IRIS server first. You can create or edit existing `.vscode/settings.json` file. So, your settings file may look something like this.
   ```JSON
   "objectscript.conn": {
     "active": true,
