@@ -28,7 +28,8 @@ export class DocumentFormattingEditProvider implements vscode.DocumentFormatting
     let jsScript = false;
     let sql = false;
     let sqlParens = 0;
-    for (let i = 0; i < document.lineCount; i++) {
+    const lineFrom = isClass ? 0 : 1; // just skip ROUTINE header
+    for (let i = lineFrom; i < document.lineCount; i++) {
       const line = document.lineAt(i);
       const text = this.stripLineComments(line.text);
 
@@ -40,7 +41,7 @@ export class DocumentFormattingEditProvider implements vscode.DocumentFormatting
         jsScript = true;
       }
 
-      if (text.match("&sql")) {
+      if (text.match(/(&|##)sql/i)) {
         sql = true;
         sqlParens = 0;
       }
@@ -184,8 +185,10 @@ export class DocumentFormattingEditProvider implements vscode.DocumentFormatting
         const newText = line.text
           .replace(/"(?:""|[^"])*"|\/\*.*\*\/|\/\/+.*|##;.*/g, toKeep)
           .replace(/(?<=^\s|{|})(\s*)(\b([a-z]+)\b)/gi, formatCommand)
-          .replace(/([{}])(?!\s|$)/g, "$1 ")
-          .replace(/(?<!\s)([{}])/g, " $1")
+          .replace(/{(?!\s|}|$)/g, "{ ")
+          .replace(/}(?!\s|\.|$)/g, "} ")
+          .replace(/(?<!\s|{)}/g, " }")
+          .replace(/(?<!\s){/g, " {")
           .replace(new RegExp(restorePattern.join("|"), "g"), toRestore);
 
         if (newText != line.text) {
