@@ -132,7 +132,7 @@ jobs:
         jq --arg version "$VERSION" '.version = $version' package.json > "$tmp" && mv "$tmp" package.json
         jq '.enableProposedApi = false' package.json > "$tmp" && mv "$tmp" package.json
         npm install
-        npm i -g vsce
+        npm i -g vsce ovsx
         git push
     - name: Upload Release Asset
       id: upload-release-asset
@@ -145,6 +145,8 @@ jobs:
         asset_path: ./dist/package.vsix
         asset_name: ${{ steps.set-version.outputs.name }}.vsix
         asset_content_type: application/zip
-    - name: Publish to Marketplace
-      run: vsce publish -p ${{ secrets.VSCE_TOKEN }}
+    - name: Publish to Marketplaces
+      run: |
+        vsce publish -p ${{ secrets.VSCE_TOKEN }}
+        ovsx publish --pat ${{ secrets.OVSX_TOKEN }}
 
