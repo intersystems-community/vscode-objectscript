@@ -433,7 +433,7 @@
       }
     ],
     "configuration": {
-      "title": "InterSystems ObjectScript Configuration",
+      "title": "InterSystems ObjectScript",
       "type": "object",
       "properties": {
         "objectscript.conn": {
