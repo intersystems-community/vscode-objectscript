@@ -24,7 +24,7 @@ import { subclass } from "./commands/subclass";
 import { superclass } from "./commands/superclass";
 import { viewOthers } from "./commands/viewOthers";
 import { xml2doc } from "./commands/xml2doc";
-import { mainMenu } from "./commands/studio";
+import { mainMenu, fireAttemptedEdit, contextMenu } from "./commands/studio";
 
 import { getLanguageConfiguration } from "./languageConfiguration";
 
@@ -298,6 +298,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     reporter,
     workspace.onDidChangeTextDocument(event => {
       diagnosticProvider.updateDiagnostics(event.document);
+      if(event.contentChanges.length !== 0
+        && event.document.uri.scheme === FILESYSTEM_SCHEMA
+        && !event.document.isDirty) {
+          fireAttemptedEdit(event.document.uri);
+      }
     }),
     window.onDidChangeActiveTextEditor(editor => {
       if (editor) {
@@ -371,6 +376,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.commands.registerCommand("vscode-objectscript.viewOthers", viewOthers),
     vscode.commands.registerCommand("vscode-objectscript.studio.actions", mainMenu),
+    vscode.commands.registerCommand("vscode-objectscript.studio.contextActions", contextMenu),
     vscode.commands.registerCommand("vscode-objectscript.subclass", subclass),
     vscode.commands.registerCommand("vscode-objectscript.superclass", superclass),
     vscode.commands.registerCommand("vscode-objectscript.serverActions", serverActions),
