@@ -27,7 +27,7 @@ export class Formatter {
     } else {
       inputValue = value as string;
     }
-    switch (wordCase) {
+    switch (wordCase.toLowerCase()) {
       case "lower": {
         resultValue = inputValue.toLowerCase();
         break;
@@ -36,7 +36,8 @@ export class Formatter {
         resultValue = inputValue.toUpperCase();
         break;
       }
-      case "word": {
+      case "word":
+      default: {
         resultValue = inputValue.toLowerCase();
         /** commands */
         resultValue = resultValue.replace(/^(Z+\w|TS|TC|TRO|\w)/i, v => v.toUpperCase());
@@ -46,9 +47,6 @@ export class Formatter {
         resultValue = resultValue.replace(/\$isobject/i, "$IsObject");
         resultValue = resultValue.replace(/\$classmethod/i, "$ClassMethod");
         resultValue = resultValue.replace(/\$classname/i, "$ClassName");
-        break;
-      }
-      default: {
         break;
       }
     }

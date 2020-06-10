@@ -3,12 +3,20 @@
   "name": "objectscript_macros",
   "scopeName": "source.objectscript_macros",
   "patterns": [
+    {
+      "match": "^(ROUTINE)\\s(\\b[a-zA-Z0-9.]+\\b)",
+      "captures": {
+        "1": { "name": "keyword.control" },
+        "2": { "name": "entity.name.class" }
+      }
+    },
     { "include": "#include" },
     { "include": "#dim" },
     { "include": "#define" },
     { "include": "#def1arg" },
     { "include": "#ifdef" },
-    { "include": "#comment-line" }
+    { "include": "#comment-line" },
+    { "include": "#sql" }
   ],
 
   "repository": {
@@ -121,6 +129,20 @@
           "end": "\\*/",
           "beginCaptures": { "0": { "name": "punctuation.definition.objectscript" } },
           "endCaptures": { "0": { "name": "punctuation.definition.objectscript" } }
+        }
+      ]
+    },
+    "sql": {
+      "patterns": [
+        {
+          "begin": "(?i)(##sql)(\\()",
+          "beginCaptures": {
+            "1": { "name": "keyword.special.sql.objectscript" },
+            "2": { "name": "punctuation.objectscript" }
+          },
+          "patterns": [{ "include": "source.sql" }],
+          "contentName": "meta.embedded.block.sql",
+          "end": "\\)"
         }
       ]
     }

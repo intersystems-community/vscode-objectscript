@@ -804,9 +804,9 @@
     "link":"/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_fprefetchon"
   },
   {
-    "label": "$PREPOROCESS",
+    "label": "$PREPROCESS",
     "alias": [
-      "$PREPOROCESS"
+      "$PREPROCESS"
     ],
     "documentation": [
     ]

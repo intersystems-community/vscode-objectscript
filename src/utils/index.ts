@@ -55,13 +55,17 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
       [, name, ext = "cls"] = match;
     }
   } else {
-    const match = content.match(/^ROUTINE ([^\s]+)(?:\s+\[.*Type=([a-z]{3,}))?/i);
-    [, name, ext = "mac"] = match;
+    const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i);
+    if (match) {
+      [, name, ext = "mac"] = match;
+    } else {
+      [name, ext = "mac"] = path.basename(document.fileName).split(".");
+    }
   }
   if (!name) {
     return null;
   }
-  name += ext ? "." + ext : "";
+  name += ext ? "." + ext.toLowerCase() : "";
 
   return {
     content,
@@ -173,15 +177,14 @@ export function portFromDockerCompose(): { port: number; docker: boolean } {
   return result;
 }
 
-export function terminalWithDocker() {
+export async function terminalWithDocker(): Promise<vscode.Terminal> {
   const { ns, "docker-compose": dockerCompose } = config("conn");
   const { service, file = "docker-compose.yml" } = dockerCompose;
   const workspace = currentWorkspaceFolder();
 
   const terminalName = `ObjectScript:${workspace}`;
-  let terminal = vscode.window.terminals.find(el => el.name === terminalName);
+  let terminal = vscode.window.terminals.find(el => el.name === terminalName && el.exitStatus == undefined);
   if (!terminal) {
-    outputChannel.appendLine("Open terminal");
     terminal = vscode.window.createTerminal(terminalName, "docker-compose", [
       "-f",
       file,
@@ -189,10 +192,8 @@ export function terminalWithDocker() {
       service,
       "/bin/bash",
       "-c",
-      `command -v ccontrol >/dev/null 2>&1 && (ccontrol session $ISC_PACKAGE_INSTANCENAME -U ${ns} || iris session $ISC_PACKAGE_INSTANCENAME -U ${ns})`,
+      `command -v iris >/dev/null 2>&1 && iris session $ISC_PACKAGE_INSTANCENAME -U ${ns} || ccontrol session $ISC_PACKAGE_INSTANCENAME -U ${ns}`,
     ]);
-  } else {
-    outputChannel.appendLine("terminal already exists");
   }
   terminal.show();
   return terminal;

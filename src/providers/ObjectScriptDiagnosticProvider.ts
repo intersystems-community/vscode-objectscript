@@ -130,7 +130,7 @@ export class ObjectScriptDiagnosticProvider {
         continue;
       }
 
-      if (text.match(/&sql/i)) {
+      if (text.match(/(?:&|##)sql/i)) {
         sql = true;
         sqlParens = 0;
       }
