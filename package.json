@@ -624,6 +624,11 @@
           "type": "boolean",
           "default": true,
           "description": "Show `Debug this method` action for ClassMethods"
+        },
+        "objectscript.studioActionDebugOutput": {
+          "type": "boolean",
+          "default": false,
+          "description": "Output the action that VSCode should perform as requested by the server in JSON format."
         }
       }
     },

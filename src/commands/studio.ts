@@ -45,7 +45,9 @@ class StudioActions {
       outputChannel.appendLine(errorText);
       outputChannel.show();
     }
-    // outputChannel.appendLine(JSON.stringify(userAction));
+    if(config().studioActionDebugOutput) {
+      outputChannel.appendLine(JSON.stringify(userAction));
+    }
     switch (serverAction) {
       case 0:
         /// do nothing
