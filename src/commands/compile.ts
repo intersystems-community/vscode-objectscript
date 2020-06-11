@@ -104,8 +104,8 @@ async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
     .then(loadChanges);
 }
 
-export async function importAndCompile(askFLags = false): Promise<any> {
-  const file = currentFile();
+export async function importAndCompile(askFLags = false, document?: vscode.TextDocument): Promise<any> {
+  const file = currentFile(document);
   if (!file) {
     return;
   }

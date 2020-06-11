@@ -24,7 +24,7 @@ import { subclass } from "./commands/subclass";
 import { superclass } from "./commands/superclass";
 import { viewOthers } from "./commands/viewOthers";
 import { xml2doc } from "./commands/xml2doc";
-import { mainMenu, fireAttemptedEdit, contextMenu } from "./commands/studio";
+import { mainMenu, fireAttemptedEdit, contextMenu, fireChangedNamespace, documentBeingProcessed } from "./commands/studio";
 
 import { getLanguageConfiguration } from "./languageConfiguration";
 
@@ -163,6 +163,7 @@ export const checkConnection = (clearCookies = false): void => {
       /// Use xdebug's websocket, to catch when server disconnected
       connectionSocket = new WebSocket(api.xdebugUrl());
       connectionSocket.onopen = () => {
+        fireChangedNamespace();
         panel.text = `${connInfo} - Connected`;
       };
       connectionSocket.onclose = event => {
@@ -246,7 +247,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   workspace.onDidSaveTextDocument(file => {
     if (schemas.includes(file.uri.scheme) || languages.includes(file.languageId)) {
-      return vscode.commands.executeCommand("vscode-objectscript.compile");
+      if(documentBeingProcessed !== file) {
+        // return vscode.commands.executeCommand("vscode-objectscript.compile");
+        return importAndCompile(false, file);
+      }
     }
   });
 

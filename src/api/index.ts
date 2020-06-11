@@ -187,7 +187,14 @@ export class AtelierAPI {
               data.result.content = Buffer.from(data.result.content.join(""), "base64");
             }
             if (data.console) {
-              outputConsole(data.console);
+              // Let studio actions handle their console output
+              const isStudioAction = data.result.content != undefined
+                && data.result.content.length !== 0
+                && data.result.content[0] != undefined
+                && data.result.content[0].action != undefined;
+              if(!isStudioAction) {
+                outputConsole(data.console);
+              }
             }
             if (data.result.status && data.result.status !== "") {
               outputChannel.appendLine(data.result.status);

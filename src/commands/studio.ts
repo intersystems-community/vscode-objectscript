@@ -1,12 +1,15 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { config, FILESYSTEM_SCHEMA } from "../extension";
-import { outputChannel } from "../utils";
+import { outputChannel, outputConsole } from "../utils";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { ClassNode } from "../explorer/models/classesNode";
 import { PackageNode } from "../explorer/models/packageNode";
 import { RoutineNode } from "../explorer/models/routineNode";
 import { NodeBase } from "../explorer/models/nodeBase";
+import { importAndCompile } from "./compile";
+
+export let documentBeingProcessed: vscode.TextDocument = null;
 
 interface StudioAction extends vscode.QuickPickItem {
   name: string;
@@ -18,18 +21,20 @@ class StudioActions {
   private api: AtelierAPI;
   private name: string;
 
-  public constructor(uriOrNode: vscode.Uri | PackageNode | ClassNode | RoutineNode) {
+  public constructor(uriOrNode?: vscode.Uri | PackageNode | ClassNode | RoutineNode) {
     if(uriOrNode instanceof vscode.Uri) {
       const uri: vscode.Uri = uriOrNode;
       this.uri = uri;
       this.name = this.uri.path.slice(1).replace(/\//g, ".");
       this.api = new AtelierAPI(uri.authority);
-    } else {
+    } else if(uriOrNode) {
       const node: NodeBase = uriOrNode;
       this.api = new AtelierAPI();
       this.name = (node instanceof PackageNode)
         ? node.fullName + ".PKG"
         : node.fullName;
+    } else {
+      this.api = new AtelierAPI();
     }
   }
 
@@ -40,7 +45,7 @@ class StudioActions {
       outputChannel.appendLine(errorText);
       outputChannel.show();
     }
-    outputChannel.appendLine(JSON.stringify(userAction));
+    // outputChannel.appendLine(JSON.stringify(userAction));
     switch (serverAction) {
       case 0:
         /// do nothing
@@ -179,11 +184,10 @@ class StudioActions {
     const query = `select * from %Atelier_v1_Utils.Extension_${func}`;
     let selectedText = "";
     const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      selectedText = "";
+    if (editor) {
+      const selection = editor.selection;
+      selectedText = editor.document.getText(selection);
     }
-    const selection = editor.selection;
-    selectedText = editor.document.getText(selection);
 
     const parameters = afterUserAction
       ? [type.toString(), action.id, this.name, answer, msg]
@@ -198,12 +202,13 @@ class StudioActions {
       () =>
         this.api
           .actionQuery(query, parameters)
-          .then(data => {
-            const actionInfo = data.result.content.pop();
-            actionInfo.save = action.save;
-            return actionInfo;
+          .then(async data => {
+            if(action.save) {
+              await this.processSaveFlag(action.save);
+            }
+            outputConsole(data.console);
+            return data.result.content.pop();
           })
-          .then(this.processSaveFlag)
           .then(this.processUserAction)
           .then(answer => {
             if (answer) {
@@ -286,19 +291,38 @@ class StudioActions {
     });
   }
 
-  private async processSaveFlag(userAction) {
-    if(userAction.save) {
-      const bitString = userAction.save.toString().padStart(3, "0");
-      // Save the current document
-      if(bitString.charAt(0) === "1") {
-        await vscode.window.activeTextEditor.document.save();
+  public changedNamespace() {
+    const changedNamespaceAction = {
+      id: "5",
+      label: "Changed Namespace"
+    };
+    this.userAction(changedNamespaceAction, false, "", "", 1);
+  }
+
+  private async processSaveFlag(saveFlag: number) {
+    const bitString = saveFlag.toString().padStart(3, "0");
+    const saveAndCompile = async (document: vscode.TextDocument) => {
+      if(document.isDirty) {
+        // Prevent onDidSave from compiling the file
+        // in order to await the importAndCompile function
+        documentBeingProcessed = document;
+        await document.save();
+        await importAndCompile(false, document);
+        documentBeingProcessed = null;
       }
-      // Save all documents
-      if(bitString.charAt(2) === "1") {
-        await vscode.workspace.saveAll();
+    };
+
+    // Save the current document
+    if(bitString.charAt(0) === "1") {
+      await saveAndCompile(vscode.window.activeTextEditor.document);
+    }
+
+    // Save all documents
+    if(bitString.charAt(2) === "1") {
+      for(const document of vscode.workspace.textDocuments) {
+        await saveAndCompile(document)
       }
     }
-    return userAction;
   }
 }
 
@@ -330,4 +354,9 @@ export async function contextMenu(node: PackageNode | ClassNode | RoutineNode): 
   }
   const studioActions = new StudioActions(nodeOrUri);
   return studioActions && studioActions.getMenu("", true);
+}
+
+export async function fireChangedNamespace() {
+  const studioActions = new StudioActions();
+  return studioActions && studioActions.changedNamespace();
 }
