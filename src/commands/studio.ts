@@ -11,6 +11,16 @@ import { importAndCompile } from "./compile";
 
 export let documentBeingProcessed: vscode.TextDocument = null;
 
+export enum OtherStudioAction {
+  AttemptedEdit = 0,
+  CreatedNewDocument = 1,
+  DeletedDocument = 2,
+  OpenedDocument = 3,
+  ClosedDocument = 4,
+  ConnectedToNewNamespace = 5,
+  FirstTimeDocumentSave = 7,
+}
+
 interface StudioAction extends vscode.QuickPickItem {
   name: string;
   id: string;
@@ -277,28 +287,23 @@ class StudioActions {
       .then(action => this.userAction(action));
   }
 
-  public attemptedEdit() {
-    const query = "select * from %Atelier_v1_Utils.Extension_GetStatus(?)";
-    this.api.actionQuery(query, [this.name]).then(statusObj => {
-      const docStatus = statusObj.result.content.pop();
-      // if(!docStatus.editable && docStatus.inSourceControl && !docStatus.isCheckedOut) {
-      if(!docStatus.editable) {
-        const attemptedEditAction = {
-          id: "0",
-          label: "Attempted Edit"
-        };
-        vscode.commands.executeCommand('undo');
-        this.userAction(attemptedEditAction, false, "", "", 1);
-      } // else if(!docStatus.editable && docStatus.in)
-    });
-  }
-
-  public changedNamespace() {
-    const changedNamespaceAction = {
-      id: "5",
-      label: "Changed Namespace"
+  public fireOtherStudioAction(action: OtherStudioAction) {
+    if(action === OtherStudioAction.AttemptedEdit) {
+      const query = "select * from %Atelier_v1_Utils.Extension_GetStatus(?)";
+      this.api.actionQuery(query, [this.name]).then(statusObj => {
+        const docStatus = statusObj.result.content.pop();
+        if(!docStatus.editable) {
+          vscode.commands.executeCommand('undo');
+        } else {
+          return;
+        }
+      });
+    }
+    const actionObject = {
+      id: action.toString(),
+      label: getOtherStudioActionLabel(action)
     };
-    this.userAction(changedNamespaceAction, false, "", "", 1);
+    this.userAction(actionObject, false, "", "", 1);
   }
 
   private async processSaveFlag(saveFlag: number) {
@@ -341,14 +346,6 @@ export async function mainMenu(uri: vscode.Uri) {
   return studioActions && studioActions.getMenu("");
 }
 
-export async function fireAttemptedEdit(uri: vscode.Uri) {
-  if(!uri || uri.scheme !== FILESYSTEM_SCHEMA) {
-    return;
-  }
-  const studioActions = new StudioActions(uri);
-  studioActions.attemptedEdit();
-}
-
 export async function contextMenu(node: PackageNode | ClassNode | RoutineNode): Promise<any> {
   const nodeOrUri = node || vscode.window.activeTextEditor.document.uri;
   if(!nodeOrUri || (nodeOrUri instanceof vscode.Uri && nodeOrUri.scheme !== FILESYSTEM_SCHEMA)) {
@@ -358,7 +355,28 @@ export async function contextMenu(node: PackageNode | ClassNode | RoutineNode): 
   return studioActions && studioActions.getMenu("", true);
 }
 
-export async function fireChangedNamespace() {
-  const studioActions = new StudioActions();
-  return studioActions && studioActions.changedNamespace();
+export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vscode.Uri) {
+  const studioActions = new StudioActions(uri);
+  return studioActions && studioActions.fireOtherStudioAction(action);
+}
+
+function getOtherStudioActionLabel(action: OtherStudioAction): string {
+  let label = "";
+  switch(action) {
+    case OtherStudioAction.AttemptedEdit:
+      label = "Attempted Edit";
+    case OtherStudioAction.CreatedNewDocument:
+      label = "Created New Document";
+    case OtherStudioAction.DeletedDocument:
+      label = "Deleted Document";
+    case OtherStudioAction.OpenedDocument:
+      label = "Opened Document";
+    case OtherStudioAction.ClosedDocument:
+      label = "Closed Document";
+    case OtherStudioAction.ConnectedToNewNamespace:
+      label = "Changed Namespace";
+    case OtherStudioAction.FirstTimeDocumentSave:
+      label = "Saved Document to Server for the First Time"
+  }
+  return label;
 }
