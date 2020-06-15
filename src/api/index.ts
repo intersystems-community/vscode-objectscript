@@ -197,7 +197,11 @@ export class AtelierAPI {
               }
             }
             if (data.result.status && data.result.status !== "") {
-              outputChannel.appendLine(data.result.status);
+              const status: string = data.result.status;
+              outputChannel.appendLine(status);
+              if(status.endsWith("is marked as read only by source control hooks.")) {
+                vscode.window.showWarningMessage(status, { modal: true });
+              }
               throw new Error(data.result.status);
             }
             if (data.status.summary) {
