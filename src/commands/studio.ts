@@ -1,13 +1,13 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { config, FILESYSTEM_SCHEMA } from "../extension";
-import { outputChannel, outputConsole } from "../utils";
+import { outputChannel, outputConsole, currentFile } from "../utils";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { ClassNode } from "../explorer/models/classesNode";
 import { PackageNode } from "../explorer/models/packageNode";
 import { RoutineNode } from "../explorer/models/routineNode";
 import { NodeBase } from "../explorer/models/nodeBase";
-import { importAndCompile } from "./compile";
+import { importAndCompile, loadChanges } from "./compile";
 
 export let documentBeingProcessed: vscode.TextDocument = null;
 
@@ -54,6 +54,10 @@ class StudioActions {
     if (errorText !== "") {
       outputChannel.appendLine(errorText);
       outputChannel.show();
+    }
+    if(userAction.reload) {
+      const document = vscode.window.activeTextEditor.document;
+      loadChanges([currentFile(document)]);
     }
     if(config().studioActionDebugOutput) {
       outputChannel.appendLine(JSON.stringify(userAction));

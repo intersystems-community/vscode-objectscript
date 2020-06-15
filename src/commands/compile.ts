@@ -38,7 +38,7 @@ function updateOthers(others: string[]) {
   });
 }
 
-async function loadChanges(files: CurrentFile[]): Promise<any> {
+export async function loadChanges(files: CurrentFile[]): Promise<any> {
   if (!files.length) {
     return;
   }
