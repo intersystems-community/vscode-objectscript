@@ -19,6 +19,7 @@ export interface CurrentFile {
   fileName: string;
   content: string;
   uri: vscode.Uri;
+  eol: vscode.EndOfLine;
 }
 
 export function currentFile(document?: vscode.TextDocument): CurrentFile {
@@ -36,6 +37,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
   ) {
     return null;
   }
+  const eol = document.eol || vscode.EndOfLine.LF;
   const uri = document.uri;
   const fileName = document.fileName;
   const content = document.getText();
@@ -69,6 +71,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
     fileName,
     name,
     uri,
+    eol,
   };
 }
 
