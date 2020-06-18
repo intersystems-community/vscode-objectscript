@@ -292,22 +292,22 @@ class StudioActions {
   }
 
   public fireOtherStudioAction(action: OtherStudioAction) {
+    const actionObject = {
+      id: action.toString(),
+      label: getOtherStudioActionLabel(action)
+    };
     if(action === OtherStudioAction.AttemptedEdit) {
       const query = "select * from %Atelier_v1_Utils.Extension_GetStatus(?)";
       this.api.actionQuery(query, [this.name]).then(statusObj => {
         const docStatus = statusObj.result.content.pop();
         if(!docStatus.editable) {
           vscode.commands.executeCommand('undo');
-        } else {
-          return;
+          this.userAction(actionObject, false, "", "", 1);
         }
       });
+    } else {
+      this.userAction(actionObject, false, "", "", 1);
     }
-    const actionObject = {
-      id: action.toString(),
-      label: getOtherStudioActionLabel(action)
-    };
-    this.userAction(actionObject, false, "", "", 1);
   }
 
   private async processSaveFlag(saveFlag: number) {
