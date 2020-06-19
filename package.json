@@ -306,12 +306,12 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.export",
-        "title": "Export sources"
+        "title": "Export Sources"
       },
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.compile",
-        "title": "Import and compile current file"
+        "title": "Import and Compile Current File"
       },
       {
         "category": "ObjectScript",
@@ -321,17 +321,17 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.compileWithFlags",
-        "title": "Import and compile current file with specified flags"
+        "title": "Import and Compile Current File with Specified Flags..."
       },
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.compileAll",
-        "title": "Compile all namespace files"
+        "title": "Compile All Namespace Files"
       },
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.compileAllWithFlags",
-        "title": "Compile all namespace files with specified flags"
+        "title": "Compile All Namespace Files with Specified Flags..."
       },
       {
         "command": "vscode-objectscript.explorer.export",
@@ -340,22 +340,22 @@
       },
       {
         "command": "vscode-objectscript.explorer.otherNamespace",
-        "title": "View another namespace",
+        "title": "View Another Namespace...",
         "category": "ObjectScript"
       },
       {
         "command": "vscode-objectscript.explorer.showGenerated",
-        "title": "Show generated",
+        "title": "Show Generated",
         "category": "ObjectScript"
       },
       {
         "command": "vscode-objectscript.explorer.hideGenerated",
-        "title": "Hide generated",
+        "title": "Hide Generated",
         "category": "ObjectScript"
       },
       {
         "command": "vscode-objectscript.explorer.otherNamespaceClose",
-        "title": "Close namespace",
+        "title": "Close Namespace",
         "category": "ObjectScript"
       },
       {
@@ -380,7 +380,7 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.viewOthers",
-        "title": "View other"
+        "title": "View Other"
       },
       {
         "category": "ObjectScript",
@@ -390,7 +390,7 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.superclass",
-        "title": "Go to Super class..."
+        "title": "Go to Superclass..."
       },
       {
         "command": "vscode-objectscript.touchBar.compile",
@@ -403,22 +403,22 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.serverActions",
-        "title": "Show server actions"
+        "title": "Server Actions..."
       },
       {
-        "category": "ObjectScsript",
+        "category": "ObjectScript",
         "command": "vscode-objectscript.compileFolder",
-        "title": "Import and compile"
+        "title": "Import and Compile"
       },
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.studio.actions",
-        "title": "Studio Actions"
+        "title": "Studio Actions..."
       },
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.studio.contextActions",
-        "title": "Studio Context Actions"
+        "title": "Studio Context Actions..."
       }
     ],
     "keybindings": [
