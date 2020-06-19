@@ -368,10 +368,7 @@
         "command": "vscode-objectscript.explorer.refresh",
         "title": "Refresh Explorer",
         "category": "ObjectScript",
-        "icon": {
-          "light": "images/light/refresh.svg",
-          "dark": "images/dark/refresh.svg"
-        }
+        "icon": "$(refresh)"
       },
       {
         "category": "ObjectScript",
