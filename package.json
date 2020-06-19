@@ -413,12 +413,12 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.studio.actions",
-        "title": "Studio actions"
+        "title": "Studio Actions"
       },
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.studio.contextActions",
-        "title": "Studio context actions"
+        "title": "Studio Context Actions"
       }
     ],
     "keybindings": [

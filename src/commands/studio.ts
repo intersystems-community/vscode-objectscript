@@ -156,7 +156,7 @@ class StudioActions {
           const filetype = splitClassname[splitClassname.length - 1];
           const isCorrectMethod = (text: string) => (filetype === "cls")
             ? text.match("Method " + method)
-            : text.startsWith(method)
+            : text.startsWith(method);
 
           const uri = DocumentContentProvider.getUri(classname);
           vscode.window.showTextDocument(uri, {"preview": false}).then(newEditor => {
@@ -331,7 +331,7 @@ class StudioActions {
     // Save all documents
     if(bitString.charAt(2) === "1") {
       for(const document of vscode.workspace.textDocuments) {
-        await saveAndCompile(document)
+        await saveAndCompile(document);
       }
     }
   }
@@ -380,7 +380,7 @@ function getOtherStudioActionLabel(action: OtherStudioAction): string {
     case OtherStudioAction.ConnectedToNewNamespace:
       label = "Changed Namespace";
     case OtherStudioAction.FirstTimeDocumentSave:
-      label = "Saved Document to Server for the First Time"
+      label = "Saved Document to Server for the First Time";
   }
   return label;
 }
