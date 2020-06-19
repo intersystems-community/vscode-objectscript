@@ -492,5 +492,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 export function deactivate(): void {
   // This will ensure all pending events get flushed
   reporter.dispose();
-  terminal.dispose();
+  if (terminal) {
+    terminal.dispose();
+  }
 }
