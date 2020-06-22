@@ -130,6 +130,10 @@
         {
           "command": "vscode-objectscript.studio.actions",
           "when": "vscode-objectscript.connectActive && resourceScheme == isfs"
+        },
+        {
+          "command": "vscode-objectscript.studio.contextActions",
+          "when": "false"
         }
       ],
       "view/title": [

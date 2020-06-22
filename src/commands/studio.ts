@@ -337,12 +337,8 @@ class StudioActions {
   }
 }
 
-// export function contextMenu(uri: vscode.Uri): Promise<void> {
-//   return doMenuAction(uri, "context");
-// }
-
 export async function mainMenu(uri: vscode.Uri) {
-  uri = uri || vscode.window.activeTextEditor.document.uri;
+  uri = uri || vscode.window.activeTextEditor?.document.uri;
   if (!uri || uri.scheme !== FILESYSTEM_SCHEMA) {
     return;
   }
@@ -351,8 +347,8 @@ export async function mainMenu(uri: vscode.Uri) {
 }
 
 export async function contextMenu(node: PackageNode | ClassNode | RoutineNode): Promise<any> {
-  const nodeOrUri = node || vscode.window.activeTextEditor.document.uri;
-  if(!nodeOrUri || (nodeOrUri instanceof vscode.Uri && nodeOrUri.scheme !== FILESYSTEM_SCHEMA)) {
+  const nodeOrUri = node || vscode.window.activeTextEditor?.document.uri;
+  if (!nodeOrUri || (nodeOrUri instanceof vscode.Uri && nodeOrUri.scheme !== FILESYSTEM_SCHEMA)) {
     return;
   }
   const studioActions = new StudioActions(nodeOrUri);
