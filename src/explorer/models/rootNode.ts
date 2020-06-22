@@ -9,11 +9,13 @@ import { ClassNode } from "./classesNode";
 export class RootNode extends NodeBase {
   public readonly contextValue: string;
   private readonly _category: string;
+  private readonly isCsp: boolean;
 
-  public constructor(label: string, fullName: string, contextValue: string, category: string, options: NodeOptions) {
+  public constructor(label: string, fullName: string, contextValue: string, category: string, options: NodeOptions, isCsp = false) {
     super(label, fullName, options);
     this.contextValue = contextValue;
     this._category = category;
+    this.isCsp = isCsp;
   }
 
   public get category(): string {
@@ -29,7 +31,7 @@ export class RootNode extends NodeBase {
   }
 
   public async getChildren(element): Promise<NodeBase[]> {
-    const path = this instanceof PackageNode ? this.fullName + "/" : "";
+    const path = (this instanceof PackageNode || this.isCsp) ? this.fullName + "/" : "";
     return this.getItems(path, this._category);
   }
 
@@ -49,6 +51,12 @@ export class RootNode extends NodeBase {
         break;
       case "ALL":
         spec = "*.cls,*.mac,*.int,*.inc";
+        break;
+      case "CSP":
+        spec = "*";
+        break;
+      case "OTHER":
+        spec = "*";
         break;
       default:
         return;
@@ -72,7 +80,12 @@ export class RootNode extends NodeBase {
       })
       .then(data =>
         data.map(el => {
-          const fullName = (this instanceof PackageNode ? this.fullName + "." : "") + el.Name;
+          let fullName = el.Name;
+          if(this instanceof PackageNode) {
+            fullName = this.fullName + "." + el.Name;
+          } else if(this.isCsp) {
+            fullName = this.fullName + "/" + el.Name;
+          }
           return {
             ...el,
             fullName,
@@ -84,6 +97,15 @@ export class RootNode extends NodeBase {
   public getItems(path: string, category: string): Promise<NodeBase[]> {
     return this.getList(path, category, false).then(data =>
       data
+        .filter(el => {
+          if(category === "OTHER") {
+            return el.Type === "100";
+          } else if(category === "CSP") {
+            return el.Type === "10" || el.Type === "5"
+          } else {
+            return true;
+          }
+        })
         .map(el => {
           switch (el.Type) {
             case "9":
@@ -94,6 +116,12 @@ export class RootNode extends NodeBase {
             case "1":
             case "2":
               return new RoutineNode(el.Name, el.fullName, this.options);
+            case "100":
+              return new ClassNode(el.Name, el.fullName, this.options);
+            case "10":
+              return new RootNode(el.Name, el.fullName, this.contextValue, this._category, this.options, true);
+            case "5":
+              return new ClassNode(el.Name, el.fullName, this.options);
             default:
               return null;
           }
