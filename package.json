@@ -157,6 +157,10 @@
           "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
         },
         {
+          "command": "vscode-objectscript.studio.contextActions",
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
+        },
+        {
           "command": "vscode-objectscript.explorer.otherNamespace",
           "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode((?!:extra:).)*$/",
           "group": "inline"
@@ -407,6 +411,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.studio.actions",
         "title": "Studio Actions..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.studio.contextActions",
+        "title": "Studio Context Actions..."
       }
     ],
     "keybindings": [
@@ -612,6 +621,11 @@
           "type": "boolean",
           "default": true,
           "description": "Show `Debug this method` action for ClassMethods"
+        },
+        "objectscript.studioActionDebugOutput": {
+          "type": "boolean",
+          "default": false,
+          "description": "Output the action that VSCode should perform as requested by the server in JSON format."
         }
       }
     },

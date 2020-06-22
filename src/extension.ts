@@ -24,7 +24,7 @@ import { subclass } from "./commands/subclass";
 import { superclass } from "./commands/superclass";
 import { viewOthers } from "./commands/viewOthers";
 import { xml2doc } from "./commands/xml2doc";
-import { mainMenu } from "./commands/studio";
+import { mainMenu, contextMenu, documentBeingProcessed, fireOtherStudioAction, OtherStudioAction } from "./commands/studio";
 
 import { getLanguageConfiguration } from "./languageConfiguration";
 
@@ -163,6 +163,7 @@ export const checkConnection = (clearCookies = false): void => {
       /// Use xdebug's websocket, to catch when server disconnected
       connectionSocket = new WebSocket(api.xdebugUrl());
       connectionSocket.onopen = () => {
+        fireOtherStudioAction(OtherStudioAction.ConnectedToNewNamespace);
         panel.text = `${connInfo} - Connected`;
       };
       connectionSocket.onclose = event => {
@@ -246,7 +247,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   workspace.onDidSaveTextDocument(file => {
     if (schemas.includes(file.uri.scheme) || languages.includes(file.languageId)) {
-      return vscode.commands.executeCommand("vscode-objectscript.compile");
+      if(documentBeingProcessed !== file) {
+        // return vscode.commands.executeCommand("vscode-objectscript.compile");
+        return importAndCompile(false, file);
+      }
     }
   });
 
@@ -300,6 +304,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     reporter,
     workspace.onDidChangeTextDocument(event => {
       diagnosticProvider.updateDiagnostics(event.document);
+      if(event.contentChanges.length !== 0
+        && event.document.uri.scheme === FILESYSTEM_SCHEMA
+        && !event.document.isDirty) {
+          fireOtherStudioAction(OtherStudioAction.AttemptedEdit, event.document.uri);
+      }
     }),
     window.onDidChangeActiveTextEditor(editor => {
       if (editor) {
@@ -373,6 +382,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.commands.registerCommand("vscode-objectscript.viewOthers", viewOthers),
     vscode.commands.registerCommand("vscode-objectscript.studio.actions", mainMenu),
+    vscode.commands.registerCommand("vscode-objectscript.studio.contextActions", contextMenu),
     vscode.commands.registerCommand("vscode-objectscript.subclass", subclass),
     vscode.commands.registerCommand("vscode-objectscript.superclass", superclass),
     vscode.commands.registerCommand("vscode-objectscript.serverActions", serverActions),
