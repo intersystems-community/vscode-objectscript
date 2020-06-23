@@ -24,6 +24,16 @@ export class AtelierAPI {
     return workspaceState.get(this.workspaceFolder + ":iris", false);
   }
 
+  private formatCspName(filename: string): string {
+    // If a CSP file, change from
+    // \csp\user\... to
+    // csp/user/...
+    if(filename.startsWith("\\")) {
+      return filename.substring(1).replace(/\\/g, "\/");
+    }
+    return filename;
+  }
+
   public constructor(wsOrFile?: string | vscode.Uri) {
     let workspaceFolderName = "";
     if (wsOrFile) {
@@ -267,6 +277,7 @@ export class AtelierAPI {
         format,
       };
     }
+    name = this.formatCspName(name);
     return this.request(1, "GET", `${this.ns}/doc/${name}`, params);
   }
   // api v1+
@@ -276,6 +287,7 @@ export class AtelierAPI {
   // v1+
   public putDoc(name: string, data: { enc: boolean; content: string[] }, ignoreConflict?: boolean): Promise<any> {
     const params = { ignoreConflict };
+    name = this.formatCspName(name);
     return this.request(1, "PUT", `${this.ns}/doc/${name}`, data, params);
   }
   // v1+
@@ -317,6 +329,7 @@ export class AtelierAPI {
   }
   // v1+
   public actionCompile(docs: string[], flags?: string, source = false): Promise<any> {
+    docs = docs.map(doc => this.formatCspName(doc));
     return this.request(1, "POST", `${this.ns}/action/compile`, docs, {
       flags,
       source,

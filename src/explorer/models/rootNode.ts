@@ -44,7 +44,7 @@ export class RootNode extends NodeBase {
         spec = "*.cls";
         break;
       case "RTN":
-        spec = "*.mac,*.int";
+        spec = "*.mac,*.int,*.bas";
         break;
       case "INC":
         spec = "*.inc";
@@ -115,6 +115,8 @@ export class RootNode extends NodeBase {
             case "0":
             case "1":
             case "2":
+            case "3":
+            case "11":
               return new RoutineNode(el.Name, el.fullName, this.options);
             case "100":
               return new ClassNode(el.Name, el.fullName, this.options);
