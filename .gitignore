@@ -5,3 +5,4 @@ node_modules/
 .vscode-test
 out
 *.vsix
+vscode*.d.ts
