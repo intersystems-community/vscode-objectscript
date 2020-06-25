@@ -2,7 +2,8 @@ node_modules/
 .idea
 *.iml
 .vscode/**
-.vscode-test
-out
+.vscode-test/
+out/
+dist/
 *.vsix
 vscode*.d.ts

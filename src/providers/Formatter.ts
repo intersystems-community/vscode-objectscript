@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { config } from "../extension.js";
+import { config } from "../extension";
 
 export type WordCase = "word" | "upper" | "lower";
 

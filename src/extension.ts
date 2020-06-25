@@ -489,7 +489,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   reporter.sendTelemetryEvent("extensionActivated");
 }
 
-export function deactivate() {
+export function deactivate(): void {
   // This will ensure all pending events get flushed
   reporter.dispose();
   terminal.dispose();

@@ -716,7 +716,9 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "webpack --mode production",
+    "webpack": "webpack --mode development",
+    "webpack-dev": "webpack --mode development --watch",
     "package": "vsce package",
     "compile": "tsc -p ./",
     "watch": "tsc -w -p ./tsconfig.json",
@@ -751,11 +753,14 @@
     "mocha": "^8.0.1",
     "prettier": "^2.0.5",
     "tape": "^5.0.1",
+    "ts-loader": "^7.0.5",
     "typescript": "^3.9.5",
     "vsce": "^1.77.0",
     "vscode-debugadapter-testsupport": "^1.41.0",
     "vscode-dts": "^0.3.1",
-    "vscode-test": "^1.4.0"
+    "vscode-test": "^1.4.0",
+    "webpack": "^4.43.0",
+    "webpack-cli": "^3.3.12"
   },
   "dependencies": {
     "await-notify": "^1.0.1",

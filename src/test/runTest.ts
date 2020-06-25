@@ -12,7 +12,7 @@ async function main() {
     // Passed to --extensionTestsPath
     const extensionTestsPath = path.resolve(__dirname, "./suite/index");
 
-    const launchArgs = ["-n", "--enable-proposed-api", "daimor.vscode-objectscript"];
+    const launchArgs = ["--enable-proposed-api", "daimor.vscode-objectscript"];
 
     // Download VS Code, unzip it and run the integration test
     await runTests({ extensionDevelopmentPath, extensionTestsPath, launchArgs });
