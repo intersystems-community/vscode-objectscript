@@ -91,13 +91,13 @@ export class DbgpConnection extends EventEmitter {
         const xml = iconv.decode(Buffer.from(response, "base64"), ENCODING);
         const parser = new DOMParser({
           errorHandler: {
-            warning: warning => {
+            warning: (warning) => {
               this.emit("warning", warning);
             },
-            error: error => {
+            error: (error) => {
               this.emit("error", error instanceof Error ? error : new Error(error));
             },
-            fatalError: error => {
+            fatalError: (error) => {
               this.emit("error", error instanceof Error ? error : new Error(error));
             },
           },

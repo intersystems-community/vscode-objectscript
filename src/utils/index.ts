@@ -39,10 +39,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
   const uri = document.uri;
   const fileName = document.fileName;
   const content = document.getText();
-  const fileExt = fileName
-    .split(".")
-    .pop()
-    .toLowerCase();
+  const fileExt = fileName.split(".").pop().toLowerCase();
   let name = "";
   let ext = "";
   const { query } = url.parse(decodeURIComponent(uri.toString()), true);
@@ -183,7 +180,7 @@ export async function terminalWithDocker(): Promise<vscode.Terminal> {
   const workspace = currentWorkspaceFolder();
 
   const terminalName = `ObjectScript:${workspace}`;
-  let terminal = vscode.window.terminals.find(el => el.name === terminalName && el.exitStatus == undefined);
+  let terminal = vscode.window.terminals.find((el) => el.name === terminalName && el.exitStatus == undefined);
   if (!terminal) {
     terminal = vscode.window.createTerminal(terminalName, "docker-compose", [
       "-f",

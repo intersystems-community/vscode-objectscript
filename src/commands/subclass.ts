@@ -10,15 +10,12 @@ export async function subclass(): Promise<void> {
   if (!file || !file.name.toLowerCase().endsWith(".cls")) {
     return;
   }
-  const className = file.name
-    .split(".")
-    .slice(0, -1)
-    .join(".");
+  const className = file.name.split(".").slice(0, -1).join(".");
   if (!config("conn").active) {
     return;
   }
 
-  const open = item => {
+  const open = (item) => {
     const uri = DocumentContentProvider.getUri(ClassDefinition.normalizeClassName(item, true));
     vscode.window.showTextDocument(uri);
   };
@@ -26,14 +23,14 @@ export async function subclass(): Promise<void> {
   const api = new AtelierAPI();
   return api
     .actionQuery("CALL %Dictionary.ClassDefinitionQuery_SubclassOf(?)", [className])
-    .then(data => {
+    .then((data) => {
       const list = data.result.content.slice(0, 100) || [];
       if (!list.length) {
         return;
       }
-      vscode.window.showQuickPick(list.map(el => el.Name)).then(item => {
+      vscode.window.showQuickPick(list.map((el) => el.Name)).then((item) => {
         open(item);
       });
     })
-    .catch(err => console.error(err));
+    .catch((err) => console.error(err));
 }

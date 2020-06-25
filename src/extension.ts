@@ -24,7 +24,13 @@ import { subclass } from "./commands/subclass";
 import { superclass } from "./commands/superclass";
 import { viewOthers } from "./commands/viewOthers";
 import { xml2doc } from "./commands/xml2doc";
-import { mainMenu, contextMenu, documentBeingProcessed, fireOtherStudioAction, OtherStudioAction } from "./commands/studio";
+import {
+  mainMenu,
+  contextMenu,
+  documentBeingProcessed,
+  fireOtherStudioAction,
+  OtherStudioAction,
+} from "./commands/studio";
 
 import { getLanguageConfiguration } from "./languageConfiguration";
 
@@ -98,7 +104,7 @@ export const config = (setting?: string, workspaceFolderName?: string): any => {
       }
 
       const workspaceFolder = vscode.workspace.workspaceFolders.find(
-        el => el.name.toLowerCase() === workspaceFolderName.toLowerCase()
+        (el) => el.name.toLowerCase() === workspaceFolderName.toLowerCase()
       );
       return vscode.workspace.getConfiguration("objectscript", workspaceFolder.uri).get(setting);
     } else {
@@ -154,8 +160,8 @@ export const checkConnection = (clearCookies = false): void => {
   }
   api
     .serverInfo()
-    .then(info => {
-      const hasHS = info.result.content.features.find(el => el.name === "HEALTHSHARE" && el.enabled) !== undefined;
+    .then((info) => {
+      const hasHS = info.result.content.features.find((el) => el.name === "HEALTHSHARE" && el.enabled) !== undefined;
       reporter.sendTelemetryEvent("connected", {
         serverVersion: info.result.content.version,
         healthshare: hasHS ? "yes" : "no",
@@ -166,11 +172,11 @@ export const checkConnection = (clearCookies = false): void => {
         fireOtherStudioAction(OtherStudioAction.ConnectedToNewNamespace);
         panel.text = `${connInfo} - Connected`;
       };
-      connectionSocket.onclose = event => {
+      connectionSocket.onclose = (event) => {
         panel.text = `${connInfo} - Disconnected`;
       };
     })
-    .catch(error => {
+    .catch((error) => {
       let message = error.message;
       if (error instanceof StatusCodeError && error.statusCode === 401) {
         setTimeout(
@@ -178,10 +184,10 @@ export const checkConnection = (clearCookies = false): void => {
             vscode.window
               .showInputBox({
                 password: true,
-                placeHolder: "Not Authorized, please enter password to connect",
+                placeHolder: "Not Authorized, please enter password to connect to: " + connInfo,
                 ignoreFocusOut: true,
               })
-              .then(password => {
+              .then((password) => {
                 if (password) {
                   workspaceState.update(currentWorkspaceFolder() + ":password", password);
                   checkConnection();
@@ -211,7 +217,7 @@ export const checkConnection = (clearCookies = false): void => {
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   reporter = new TelemetryReporter(extensionId, extensionVersion, aiKey);
 
-  const languages = packageJson.contributes.languages.map(lang => lang.id);
+  const languages = packageJson.contributes.languages.map((lang) => lang.id);
   workspaceState = context.workspaceState;
   extensionContext = context;
   workspaceState.update("workspaceFolder", "");
@@ -245,9 +251,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }
   });
 
-  workspace.onDidSaveTextDocument(file => {
+  workspace.onDidSaveTextDocument((file) => {
     if (schemas.includes(file.uri.scheme) || languages.includes(file.languageId)) {
-      if(documentBeingProcessed !== file) {
+      if (documentBeingProcessed !== file) {
         // return vscode.commands.executeCommand("vscode-objectscript.compile");
         return importAndCompile(false, file);
       }
@@ -272,7 +278,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     let label = "";
     let pos = 0;
     for (let i = line; i > 0; i--) {
-      const labelMatch = document.lineAt(i).text.match(/^(\w+).*/);
+      const labelMatch = document.lineAt(i).text.match(/^(%?\w+).*/);
       if (labelMatch) {
         [, label] = labelMatch;
         break;
@@ -284,7 +290,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   });
 
   const documentSelector = (...list) =>
-    ["file", ...schemas].reduce((acc, scheme) => acc.concat(list.map(language => ({ scheme, language }))), []);
+    ["file", ...schemas].reduce((acc, scheme) => acc.concat(list.map((language) => ({ scheme, language }))), []);
 
   const diagnosticProvider = new ObjectScriptDiagnosticProvider();
   if (vscode.window.activeTextEditor) {
@@ -302,15 +308,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   context.subscriptions.push(
     reporter,
-    workspace.onDidChangeTextDocument(event => {
+    workspace.onDidChangeTextDocument((event) => {
       diagnosticProvider.updateDiagnostics(event.document);
-      if(event.contentChanges.length !== 0
-        && event.document.uri.scheme === FILESYSTEM_SCHEMA
-        && !event.document.isDirty) {
-          fireOtherStudioAction(OtherStudioAction.AttemptedEdit, event.document.uri);
+      if (
+        event.contentChanges.length !== 0 &&
+        event.document.uri.scheme === FILESYSTEM_SCHEMA &&
+        !event.document.isDirty
+      ) {
+        fireOtherStudioAction(OtherStudioAction.AttemptedEdit, event.document.uri);
       }
     }),
-    window.onDidChangeActiveTextEditor(editor => {
+    window.onDidChangeActiveTextEditor((editor) => {
       if (editor) {
         diagnosticProvider.updateDiagnostics(editor.document);
       }
@@ -334,7 +342,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("vscode-objectscript.compileFolder", importFileOrFolder),
     vscode.commands.registerCommand("vscode-objectscript.export", exportAll),
     vscode.commands.registerCommand("vscode-objectscript.debug", (program: string, askArgs: boolean) => {
-      const startDebugging = args => {
+      const startDebugging = (args) => {
         const programWithArgs = program + `(${args})`;
         vscode.debug.startDebugging(undefined, {
           type: "objectscript",
@@ -351,14 +359,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         .showInputBox({
           placeHolder: "Please enter comma delimited arguments list",
         })
-        .then(args => {
+        .then((args) => {
           startDebugging(args);
         });
     }),
-    vscode.commands.registerCommand("vscode-objectscript.pickProcess", async config => {
+    vscode.commands.registerCommand("vscode-objectscript.pickProcess", async (config) => {
       const system = config.system;
       const api = new AtelierAPI();
-      const convert = data =>
+      const convert = (data) =>
         data.result.content.map(
           (process: AtelierJob): vscode.QuickPickItem => ({
             label: process.pid.toString(),
@@ -376,7 +384,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         .showQuickPick<vscode.QuickPickItem>(list, {
           placeHolder: "Pick the process to attach to",
         })
-        .then(value => {
+        .then((value) => {
           if (value) return value.label;
         });
     }),

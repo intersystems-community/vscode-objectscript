@@ -49,6 +49,9 @@ jobs:
         node-version: 12.x
     - run: npm install
     - run: npm run compile
+    - name: lint
+      if: runner.os == 'Linux'
+      run: npm run lint
     - name: npm test
       uses: GabrielBB/xvfb-action@v1.0
       with:

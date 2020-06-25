@@ -13,18 +13,18 @@ export async function viewOthers(): Promise<void> {
     return;
   }
 
-  const open = item => {
+  const open = (item) => {
     const uri = DocumentContentProvider.getUri(item);
     vscode.window.showTextDocument(uri);
   };
 
-  const getOthers = info => {
+  const getOthers = (info) => {
     return info.result.content[0].others;
   };
   const api = new AtelierAPI();
   return api
     .actionIndex([file.name])
-    .then(info => {
+    .then((info) => {
       const listOthers = getOthers(info) || [];
       if (!listOthers.length) {
         return;
@@ -32,10 +32,10 @@ export async function viewOthers(): Promise<void> {
       if (listOthers.length === 1) {
         open(listOthers[0]);
       } else {
-        vscode.window.showQuickPick(listOthers).then(item => {
+        vscode.window.showQuickPick(listOthers).then((item) => {
           open(item);
         });
       }
     })
-    .catch(err => console.error(err));
+    .catch((err) => console.error(err));
 }

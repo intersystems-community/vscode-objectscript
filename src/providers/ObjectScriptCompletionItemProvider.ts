@@ -101,11 +101,11 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       const api = new AtelierAPI();
       return api
         .getmacrollist(file.name, [])
-        .then(data => data.result.content.macros)
-        .then(list => list.filter(el => el.toLowerCase().startsWith(macro)))
-        .then(list => list.map(el => "$$$" + el))
-        .then(list =>
-          list.map(el => ({
+        .then((data) => data.result.content.macros)
+        .then((list) => list.filter((el) => el.toLowerCase().startsWith(macro)))
+        .then((list) => list.map((el) => "$$$" + el))
+        .then((list) =>
+          list.map((el) => ({
             label: el,
             // kind: vscode.CompletionItemKind.Constant,
             // insertText: el,
@@ -126,13 +126,13 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
     if (line.match(/^\s+\b[a-z]+\b$/i)) {
       const search = line.trim().toUpperCase();
       const items = commands
-        .filter(el => el.label.startsWith(search) || el.alias.findIndex(el2 => el2.startsWith(search)) >= 0)
-        .map(el => ({
+        .filter((el) => el.label.startsWith(search) || el.alias.findIndex((el2) => el2.startsWith(search)) >= 0)
+        .map((el) => ({
           ...el,
           label: this._formatter.command(el.label),
           insertText: el.insertText ? this._formatter.command(el.insertText) : null,
         }))
-        .map(el => ({
+        .map((el) => ({
           ...el,
           documentation: new vscode.MarkdownString(el.documentation.join("")),
           insertText: new vscode.SnippetString(el.insertText || `${el.label} $0`),
@@ -167,7 +167,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
         const items = [...this.listSystemFunctions(search, textAfter.length > 0), ...this.listSystemVariables(search)];
         return {
           isIncomplete: items.length > 1,
-          items: items.map(el => {
+          items: items.map((el) => {
             return {
               ...el,
               label: this._formatter.function(el.label),
@@ -177,7 +177,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
           }),
         };
       } else if (dollars === "^$") {
-        return this.listStructuredSystemVariables(search, textAfter.length > 0).map(el => {
+        return this.listStructuredSystemVariables(search, textAfter.length > 0).map((el) => {
           return {
             ...el,
             label: this._formatter.function(el.label),
@@ -191,8 +191,8 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
 
   public listSystemFunctions(search: string, open = false): vscode.CompletionItem[] {
     return systemFunctions
-      .filter(el => el.label.startsWith(search) || el.alias.findIndex(el2 => el2.startsWith(search)) >= 0)
-      .map(el => {
+      .filter((el) => el.label.startsWith(search) || el.alias.findIndex((el2) => el2.startsWith(search)) >= 0)
+      .map((el) => {
         return {
           ...el,
           documentation: new vscode.MarkdownString(el.documentation.join("")),
@@ -205,8 +205,8 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
 
   public listSystemVariables(search: string) {
     return systemVariables
-      .filter(el => el.label.startsWith(search) || el.alias.findIndex(el2 => el2.startsWith(search)) >= 0)
-      .map(el => {
+      .filter((el) => el.label.startsWith(search) || el.alias.findIndex((el2) => el2.startsWith(search)) >= 0)
+      .map((el) => {
         return {
           ...el,
           insertText: el.label,
@@ -218,7 +218,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
   }
 
   public listStructuredSystemVariables(search: string, open = false) {
-    return structuredSystemVariables.map(el => {
+    return structuredSystemVariables.map((el) => {
       return {
         ...el,
         documentation: new vscode.MarkdownString(el.documentation.join("\n")),
@@ -253,7 +253,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
         {
           label: "%ROWCOUNT",
         },
-      ].map(el => ({ ...el, kind, range }));
+      ].map((el) => ({ ...el, kind, range }));
     }
     return null;
   }
@@ -269,14 +269,14 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
     const curFile = currentFile();
     const searchText = document.getText(range);
 
-    const method = el => ({
+    const method = (el) => ({
       documentation: el.desc.length ? new vscode.MarkdownString(el.desc.join("")) : null,
       insertText: new vscode.SnippetString(`${el.name}($0)`),
       kind: vscode.CompletionItemKind.Method,
       label: el.name,
     });
 
-    const parameter = el => ({
+    const parameter = (el) => ({
       documentation: el.desc.length ? new vscode.MarkdownString(el.desc.join("")) : null,
       insertText: new vscode.SnippetString(`${el.name}`),
       kind: vscode.CompletionItemKind.Constant,
@@ -284,23 +284,23 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       range,
     });
 
-    const property = el => ({
+    const property = (el) => ({
       documentation: el.desc.length ? new vscode.MarkdownString(el.desc.join("")) : null,
       insertText: new vscode.SnippetString(`${el.name}`),
       kind: vscode.CompletionItemKind.Property,
       label: el.name,
     });
 
-    const search = el => el.name.startsWith(searchText);
+    const search = (el) => el.name.startsWith(searchText);
 
     const classRef = textBefore.match(/##class\(([^)]+)\)\.#?$/i);
     if (classRef) {
       const [, className] = classRef;
       const classDef = new ClassDefinition(className);
       if (textBefore.endsWith("#")) {
-        return classDef.parameters().then(data => data.filter(search).map(parameter));
+        return classDef.parameters().then((data) => data.filter(search).map(parameter));
       }
-      return classDef.methods("class").then(data => data.filter(search).map(method));
+      return classDef.methods("class").then((data) => data.filter(search).map(method));
     }
 
     if (curFile.fileName.endsWith("cls")) {
@@ -308,9 +308,9 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       if (selfRef) {
         const classDef = new ClassDefinition(curFile.name);
         if (textBefore.endsWith("#")) {
-          return classDef.parameters().then(data => data.filter(search).map(parameter));
+          return classDef.parameters().then((data) => data.filter(search).map(parameter));
         }
-        return Promise.all([classDef.methods(), classDef.properties()]).then(data => {
+        return Promise.all([classDef.methods(), classDef.properties()]).then((data) => {
           const [methods, properties] = data;
           return [...methods.filter(search).map(method), ...properties.filter(search).map(property)];
         });
@@ -360,14 +360,8 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       let sql = "";
       /// Classes from the current class's package
       if (part === 1 && curFile.fileName.endsWith("cls")) {
-        const packageName = curFile.name
-          .split(".")
-          .slice(0, -2)
-          .join(".");
-        const className2 = curFile.name
-          .split(".")
-          .slice(0, -1)
-          .join(".");
+        const packageName = curFile.name.split(".").slice(0, -2).join(".");
+        const className2 = curFile.name.split(".").slice(0, -1).join(".");
         const part2 = packageName.split(".").length + 1;
         sql += `
         SELECT
@@ -417,13 +411,13 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       sql += " ORDER BY PartName,AsPackage DESC";
 
       const api = new AtelierAPI();
-      return api.actionQuery(sql, params).then(data => {
+      return api.actionQuery(sql, params).then((data) => {
         return data.result.content
-          .map(el => ({
+          .map((el) => ({
             ...el,
             AsPackage: el.AsPackage === "1",
           }))
-          .map(el => ({
+          .map((el) => ({
             command: el.AsPackage ? { title: "", command: "editor.action.triggerSuggest" } : null,
             insertText: new vscode.SnippetString(el.PartName + (el.AsPackage ? "." : "")),
             kind: el.AsPackage ? vscode.CompletionItemKind.Folder : vscode.CompletionItemKind.Class,
@@ -449,13 +443,13 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
 
     const api = new AtelierAPI();
     if (!className) {
-      return api.getDocNames({ category: "CLS", filter: "%SYSTEM." }).then(data => {
+      return api.getDocNames({ category: "CLS", filter: "%SYSTEM." }).then((data) => {
         return data.result.content
-          .map(el => el.name)
-          .filter(el => el.startsWith("%SYSTEM."))
-          .map(el => el.split(".")[1])
+          .map((el) => el.name)
+          .filter((el) => el.startsWith("%SYSTEM."))
+          .map((el) => el.split(".")[1])
           .filter(onlyUnique)
-          .map(el => ({
+          .map((el) => ({
             command: { title: "", command: "editor.action.triggerSuggest" },
             insertText: el + ".",
             kind: vscode.CompletionItemKind.Class,
@@ -463,12 +457,12 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
           }));
       });
     } else {
-      return api.actionIndex([`%SYSTEM${className}.cls`]).then(data => {
+      return api.actionIndex([`%SYSTEM${className}.cls`]).then((data) => {
         return data.result.content
           .pop()
-          .content.methods.filter(el => !el.private)
-          .filter(el => !el.internal)
-          .map(el => ({
+          .content.methods.filter((el) => !el.private)
+          .filter((el) => !el.internal)
+          .map((el) => ({
             documentation: el.desc.length ? new vscode.MarkdownString(el.desc.join("")) : null,
             insertText: new vscode.SnippetString(`${el.name}($0)`),
             kind: vscode.CompletionItemKind.Method,

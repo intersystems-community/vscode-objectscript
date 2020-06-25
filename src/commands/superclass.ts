@@ -13,7 +13,7 @@ export async function superclass(): Promise<void> {
     return;
   }
 
-  const open = item => {
+  const open = (item) => {
     const uri = DocumentContentProvider.getUri(ClassDefinition.normalizeClassName(item, true));
     vscode.window.showTextDocument(uri);
   };
@@ -21,14 +21,14 @@ export async function superclass(): Promise<void> {
   const classDefinition = new ClassDefinition(file.name);
   return classDefinition
     .super()
-    .then(data => {
+    .then((data) => {
       const list = data || [];
       if (!list.length) {
         return;
       }
-      vscode.window.showQuickPick(list).then(item => {
+      vscode.window.showQuickPick(list).then((item) => {
         open(item);
       });
     })
-    .catch(err => console.error(err));
+    .catch((err) => console.error(err));
 }

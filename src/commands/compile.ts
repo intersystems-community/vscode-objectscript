@@ -32,7 +32,7 @@ async function importFile(file: CurrentFile): Promise<any> {
 }
 
 function updateOthers(others: string[]) {
-  others.forEach(item => {
+  others.forEach((item) => {
     const uri = DocumentContentProvider.getUri(item);
     documentContentProvider.update(uri);
   });
@@ -44,10 +44,10 @@ export async function loadChanges(files: CurrentFile[]): Promise<any> {
   }
   const api = new AtelierAPI(files[0].uri);
   return Promise.all(
-    files.map(file =>
+    files.map((file) =>
       api
         .getDoc(file.name)
-        .then(data => {
+        .then((data) => {
           const content = (data.result.content || []).join("\n");
           if (file.uri.scheme === "file") {
             fs.writeFileSync(file.fileName, content);
@@ -59,7 +59,7 @@ export async function loadChanges(files: CurrentFile[]): Promise<any> {
           }
         })
         .then(() => api.actionIndex([file.name]))
-        .then(data => data.result.content[0].others)
+        .then((data) => data.result.content[0].others)
         .then(updateOthers)
     )
   );
@@ -73,15 +73,15 @@ async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
       {
         cancellable: false,
         location: vscode.ProgressLocation.Notification,
-        title: `Compiling: ${docs.length === 1 ? docs.map(el => el.name).join(", ") : docs.length + " files"}`,
+        title: `Compiling: ${docs.length === 1 ? docs.map((el) => el.name).join(", ") : docs.length + " files"}`,
       },
       () =>
         api
           .actionCompile(
-            docs.map(el => el.name),
+            docs.map((el) => el.name),
             flags
           )
-          .then(data => {
+          .then((data) => {
             const info = docs.length > 1 ? "" : `${docs[0].name}: `;
             if (data.status && data.status.errors && data.status.errors.length) {
               throw new Error(`${info}Compile error`);
@@ -94,7 +94,7 @@ async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
             outputChannel.appendLine(error.message);
             outputChannel.show(true);
             if (!config("suppressCompileErrorMessages")) {
-              vscode.window.showErrorMessage(error.message, "Show details").then(data => {
+              vscode.window.showErrorMessage(error.message, "Show details").then((data) => {
                 outputChannel.show(true);
               });
             }
@@ -116,7 +116,7 @@ export async function importAndCompile(askFLags = false, document?: vscode.TextD
   const defaultFlags = config().compileFlags;
   const flags = askFLags ? await compileFlags() : defaultFlags;
   return importFile(file)
-    .catch(error => {
+    .catch((error) => {
       // console.error(error);
       throw error;
     })
@@ -158,12 +158,12 @@ export async function namespaceCompile(askFLags = false): Promise<any> {
 
 function importFiles(files) {
   return Promise.all<CurrentFile>(
-    files.map(file =>
+    files.map((file) =>
       vscode.workspace
         .openTextDocument(file)
         .then(currentFile)
-        .then(curFile =>
-          importFile(curFile).then(data => {
+        .then((curFile) =>
+          importFile(curFile).then((data) => {
             outputChannel.appendLine("Imported file: " + curFile.fileName);
             return curFile;
           })
@@ -184,7 +184,7 @@ export async function importFolder(uri: vscode.Uri): Promise<any> {
       matchBase: true,
       nocase: true,
     },
-    (error, files) => importFiles(files.map(name => path.join(folder, name)))
+    (error, files) => importFiles(files.map((name) => path.join(folder, name)))
   );
 }
 
