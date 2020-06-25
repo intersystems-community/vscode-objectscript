@@ -48,7 +48,7 @@ export async function loadChanges(files: CurrentFile[]): Promise<any> {
       api
         .getDoc(file.name)
         .then((data) => {
-          const content = (data.result.content || []).join("\n");
+          const content = (data.result.content || []).join(file.eol === vscode.EndOfLine.LF ? "\n" : "\r\n");
           if (file.uri.scheme === "file") {
             fs.writeFileSync(file.fileName, content);
           } else if (file.uri.scheme === FILESYSTEM_SCHEMA) {
