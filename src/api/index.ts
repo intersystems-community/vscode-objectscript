@@ -215,7 +215,7 @@ export class AtelierAPI {
           })
           .catch((error) => {
             if (error.error && error.error.code === "ECONNREFUSED") {
-              setTimeout(checkConnection, 1000);
+              setTimeout(checkConnection, 30000);
             }
             console.error(error);
             throw error;

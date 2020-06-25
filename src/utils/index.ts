@@ -183,18 +183,16 @@ export async function terminalWithDocker(): Promise<vscode.Terminal> {
   const workspace = currentWorkspaceFolder();
 
   const terminalName = `ObjectScript:${workspace}`;
-  let terminal = vscode.window.terminals.find((el) => el.name === terminalName && el.exitStatus == undefined);
-  if (!terminal) {
-    terminal = vscode.window.createTerminal(terminalName, "docker-compose", [
-      "-f",
-      file,
-      "exec",
-      service,
-      "/bin/bash",
-      "-c",
-      `command -v iris >/dev/null 2>&1 && iris session $ISC_PACKAGE_INSTANCENAME -U ${ns} || ccontrol session $ISC_PACKAGE_INSTANCENAME -U ${ns}`,
-    ]);
-  }
-  terminal.show();
+  const terminal = vscode.window.createTerminal(terminalName, "docker-compose", [
+    "-f",
+    file,
+    "exec",
+    service,
+    "/bin/bash",
+    "-c",
+    `[ -f /tmp/vscodesession.pid ] && kill $(cat /tmp/vscodesession.pid) >/dev/null 2>&1 ; echo $$ > /tmp/vscodesession.pid;
+      $(command -v ccontrol || command -v iris) session $ISC_PACKAGE_INSTANCENAME -U ${ns}`,
+  ]);
+  terminal.show(true);
   return terminal;
 }
