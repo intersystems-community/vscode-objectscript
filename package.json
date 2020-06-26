@@ -190,7 +190,7 @@
         },
         {
           "command": "vscode-objectscript.studio.actions",
-          "when": "resourceScheme == isfs && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "resourceScheme == isfs && vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.previewXml",

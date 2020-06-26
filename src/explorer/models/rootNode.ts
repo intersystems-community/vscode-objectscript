@@ -121,7 +121,7 @@ export class RootNode extends NodeBase {
             case "100":
               return new ClassNode(el.Name, el.fullName, this.options);
             case "10":
-              return new RootNode(el.Name, el.fullName, this.contextValue, this._category, this.options, true);
+              return new RootNode(el.Name, el.fullName, "dataNode:CSPApplication", this._category, this.options, true);
             case "5":
               return new ClassNode(el.Name, el.fullName, this.options);
             default:
