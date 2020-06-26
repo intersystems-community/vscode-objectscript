@@ -63,7 +63,7 @@
     "onFileSystem:objectscript",
     "onDebugInitialConfigurations"
   ],
-  "main": "./out/extension",
+  "main": "./dist/extension",
   "contributes": {
     "menus": {
       "commandPalette": [
@@ -720,7 +720,7 @@
     "webpack": "webpack --mode development",
     "webpack-dev": "webpack --mode development --watch",
     "package": "vsce package",
-    "compile": "tsc -p ./",
+    "compile": "webpack --mode production && tsc -p ./",
     "watch": "tsc -w -p ./tsconfig.json",
     "pretest": "npm run compile",
     "test": "node ./out/test/runTest.js",
