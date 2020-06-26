@@ -3,7 +3,7 @@ import path = require("path");
 import * as url from "url";
 import { execSync } from "child_process";
 import * as vscode from "vscode";
-import { config, schemas, workspaceState } from "../extension";
+import { config, schemas, workspaceState, terminals } from "../extension";
 
 export const outputChannel = vscode.window.createOutputChannel("ObjectScript");
 
@@ -137,7 +137,7 @@ export function notNull(el: any): boolean {
 }
 
 export function portFromDockerCompose(): { port: number; docker: boolean } {
-  const { "docker-compose": dockerCompose, port: defaultPort } = config("conn");
+  const { "docker-compose": dockerCompose = {}, port: defaultPort } = config("conn");
   const result = { port: defaultPort, docker: false };
   const { service, file = "docker-compose.yml", internalPort = 52773 } = dockerCompose;
   if (!internalPort || !file || !service || service === "") {
@@ -183,16 +183,20 @@ export async function terminalWithDocker(): Promise<vscode.Terminal> {
   const workspace = currentWorkspaceFolder();
 
   const terminalName = `ObjectScript:${workspace}`;
-  const terminal = vscode.window.createTerminal(terminalName, "docker-compose", [
-    "-f",
-    file,
-    "exec",
-    service,
-    "/bin/bash",
-    "-c",
-    `[ -f /tmp/vscodesession.pid ] && kill $(cat /tmp/vscodesession.pid) >/dev/null 2>&1 ; echo $$ > /tmp/vscodesession.pid;
-      $(command -v ccontrol || command -v iris) session $ISC_PACKAGE_INSTANCENAME -U ${ns}`,
-  ]);
+  let terminal = terminals.find((t) => t.name == terminalName && t.exitStatus == undefined);
+  if (!terminal) {
+    terminal = vscode.window.createTerminal(terminalName, "docker-compose", [
+      "-f",
+      file,
+      "exec",
+      service,
+      "/bin/bash",
+      "-c",
+      `[ -f /tmp/vscodesession.pid ] && kill $(cat /tmp/vscodesession.pid) >/dev/null 2>&1 ; echo $$ > /tmp/vscodesession.pid;
+        $(command -v ccontrol || command -v iris) session $ISC_PACKAGE_INSTANCENAME -U ${ns}`,
+    ]);
+    terminals.push(terminal);
+  }
   terminal.show(true);
   return terminal;
 }

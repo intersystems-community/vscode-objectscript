@@ -69,7 +69,7 @@ export let workspaceState: vscode.Memento;
 export let extensionContext: vscode.ExtensionContext;
 export let panel: vscode.StatusBarItem;
 export let posPanel: vscode.StatusBarItem;
-export let terminal: vscode.Terminal;
+export const terminals: vscode.Terminal[] = [];
 export let xmlContentProvider: XmlContentProvider;
 
 import TelemetryReporter from "vscode-extension-telemetry";
@@ -248,6 +248,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   vscode.workspace.onDidChangeConfiguration(({ affectsConfiguration }) => {
     if (affectsConfiguration("objectscript.conn")) {
       checkConnection(true);
+    }
+  });
+  vscode.window.onDidCloseTerminal((t) => {
+    const terminalIndex = terminals.findIndex((terminal) => terminal.name == t.name);
+    if (terminalIndex > -1) {
+      terminals.splice(terminalIndex, 1);
     }
   });
 
@@ -492,7 +498,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 export function deactivate(): void {
   // This will ensure all pending events get flushed
   reporter.dispose();
-  if (terminal) {
-    terminal.dispose();
+  if (terminals) {
+    terminals.forEach((t) => t.dispose());
   }
 }
