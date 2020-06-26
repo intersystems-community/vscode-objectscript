@@ -129,7 +129,7 @@
         },
         {
           "command": "vscode-objectscript.studio.actions",
-          "when": "vscode-objectscript.connectActive && resourceScheme == isfs"
+          "when": "vscode-objectscript.connectActive && resourceScheme == isfs || vscode-objectscript.connectActive && !editorIsOpen"
         },
         {
           "command": "vscode-objectscript.studio.contextActions",
@@ -193,12 +193,19 @@
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
-          "command": "vscode-objectscript.studio.actions",
+          "command": "vscode-objectscript.studio.contextActions",
           "when": "resourceScheme == isfs && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.previewXml",
           "when": "editorLangId =~ /^xml/"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "vscode-objectscript.studio.actions",
+          "group": "navigation@1",
+          "when": "vscode-objectscript.connectActive && resourceScheme == isfs"
         }
       ],
       "touchBar": [
@@ -219,7 +226,7 @@
           "when": "vscode-objectscript.connectActive"
         },
         {
-          "command": "vscode-objectscript.studio.actions",
+          "command": "vscode-objectscript.studio.contextActions",
           "when": "resourceScheme == isfs && resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         }
       ]
@@ -414,12 +421,13 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.studio.actions",
-        "title": "Studio Actions..."
+        "title": "Server Source Control...",
+        "icon": "$(source-control)"
       },
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.studio.contextActions",
-        "title": "Studio Context Actions..."
+        "title": "Server Source Control..."
       }
     ],
     "keybindings": [
