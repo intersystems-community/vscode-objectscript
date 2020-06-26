@@ -63,7 +63,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     }
     const isCsp = name.split("/")[0] === "csp";
     if (namespace && namespace !== "") {
-      if(isCsp) {
+      if (isCsp) {
         uri = uri.with({
           query: `ns=${namespace}&csp=1`,
         });

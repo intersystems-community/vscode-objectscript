@@ -11,7 +11,14 @@ export class RootNode extends NodeBase {
   private readonly _category: string;
   private readonly isCsp: boolean;
 
-  public constructor(label: string, fullName: string, contextValue: string, category: string, options: NodeOptions, isCsp = false) {
+  public constructor(
+    label: string,
+    fullName: string,
+    contextValue: string,
+    category: string,
+    options: NodeOptions,
+    isCsp = false
+  ) {
     super(label, fullName, options);
     this.contextValue = contextValue;
     this._category = category;
@@ -31,7 +38,7 @@ export class RootNode extends NodeBase {
   }
 
   public async getChildren(element): Promise<NodeBase[]> {
-    const path = (this instanceof PackageNode || this.isCsp) ? this.fullName + "/" : "";
+    const path = this instanceof PackageNode || this.isCsp ? this.fullName + "/" : "";
     return this.getItems(path, this._category);
   }
 
@@ -78,12 +85,12 @@ export class RootNode extends NodeBase {
         const content = data.result.content;
         return content;
       })
-      .then(data =>
-        data.map(el => {
+      .then((data) =>
+        data.map((el) => {
           let fullName = el.Name;
-          if(this instanceof PackageNode) {
+          if (this instanceof PackageNode) {
             fullName = this.fullName + "." + el.Name;
-          } else if(this.isCsp) {
+          } else if (this.isCsp) {
             fullName = this.fullName + "/" + el.Name;
           }
           return {
@@ -97,11 +104,11 @@ export class RootNode extends NodeBase {
   public getItems(path: string, category: string): Promise<NodeBase[]> {
     return this.getList(path, category, false).then((data) =>
       data
-        .filter(el => {
-          if(category === "OTHER") {
+        .filter((el) => {
+          if (category === "OTHER") {
             return el.Type === "100";
-          } else if(category === "CSP") {
-            return el.Type === "10" || el.Type === "5"
+          } else if (category === "CSP") {
+            return el.Type === "10" || el.Type === "5";
           } else {
             return true;
           }

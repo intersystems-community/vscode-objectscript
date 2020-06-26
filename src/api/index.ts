@@ -28,8 +28,8 @@ export class AtelierAPI {
     // If a CSP file, change from
     // \csp\user\... to
     // csp/user/...
-    if(filename.startsWith("\\")) {
-      return filename.substring(1).replace(/\\/g, "\/");
+    if (filename.startsWith("\\")) {
+      return filename.substring(1).replace(/\\/g, "/");
     }
     return filename;
   }
@@ -330,7 +330,7 @@ export class AtelierAPI {
   }
   // v1+
   public actionCompile(docs: string[], flags?: string, source = false): Promise<any> {
-    docs = docs.map(doc => this.formatCspName(doc));
+    docs = docs.map((doc) => this.formatCspName(doc));
     return this.request(1, "POST", `${this.ns}/action/compile`, docs, {
       flags,
       source,
