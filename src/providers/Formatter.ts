@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { config } from "../extension.js";
+import { config } from "../extension";
 
 export type WordCase = "word" | "upper" | "lower";
 
@@ -9,7 +9,7 @@ export class Formatter {
 
   public constructor() {
     this.loadConfig();
-    vscode.workspace.onDidChangeConfiguration(event => {
+    vscode.workspace.onDidChangeConfiguration((event) => {
       this.loadConfig();
     });
   }
@@ -40,10 +40,10 @@ export class Formatter {
       default: {
         resultValue = inputValue.toLowerCase();
         /** commands */
-        resultValue = resultValue.replace(/^(Z+\w|TS|TC|TRO|\w)/i, v => v.toUpperCase());
+        resultValue = resultValue.replace(/^(Z+\w|TS|TC|TRO|\w)/i, (v) => v.toUpperCase());
         resultValue = resultValue.replace(/^elseif$/i, "ElseIf");
         /** functions */
-        resultValue = resultValue.replace(/\^?\$(Z+\w|\w)/i, v => v.toUpperCase());
+        resultValue = resultValue.replace(/\^?\$(Z+\w|\w)/i, (v) => v.toUpperCase());
         resultValue = resultValue.replace(/\$isobject/i, "$IsObject");
         resultValue = resultValue.replace(/\$classmethod/i, "$ClassMethod");
         resultValue = resultValue.replace(/\$classname/i, "$ClassName");
@@ -58,7 +58,7 @@ export class Formatter {
   }
 
   public command(value: string): string {
-    return value.replace(/\b(\w+)\b/g, v => this.setCase(this._commandCase, v));
+    return value.replace(/\b(\w+)\b/g, (v) => this.setCase(this._commandCase, v));
   }
 
   public function<T extends string | vscode.SnippetString>(value: T): T {

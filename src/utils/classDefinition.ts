@@ -43,26 +43,20 @@ export class ClassDefinition {
     if (methods.length) {
       return Promise.resolve(methods);
     }
-    const filterScope = method => scope === "any" || method.scope === scope;
+    const filterScope = (method) => scope === "any" || method.scope === scope;
     const api = new AtelierAPI();
-    const getMethods = content => {
+    const getMethods = (content) => {
       const extend = [];
-      content.forEach(el => {
+      content.forEach((el) => {
         methods.push(...el.content.methods);
-        extend.push(...el.content.super.map(extendName => ClassDefinition.normalizeClassName(extendName, true)));
+        extend.push(...el.content.super.map((extendName) => ClassDefinition.normalizeClassName(extendName, true)));
       });
       if (extend.length) {
-        return api.actionIndex(extend).then(data => getMethods(data.result.content));
+        return api.actionIndex(extend).then((data) => getMethods(data.result.content));
       }
-      return this.store(
-        "methods-" + scope,
-        methods
-          .filter(filterScope)
-          .filter(onlyUnique)
-          .sort()
-      );
+      return this.store("methods-" + scope, methods.filter(filterScope).filter(onlyUnique).sort());
     };
-    return api.actionIndex([this._classFileName]).then(data => getMethods(data.result.content));
+    return api.actionIndex([this._classFileName]).then((data) => getMethods(data.result.content));
   }
 
   public async properties(): Promise<any[]> {
@@ -71,18 +65,18 @@ export class ClassDefinition {
       return Promise.resolve(properties);
     }
     const api = new AtelierAPI();
-    const getProperties = content => {
+    const getProperties = (content) => {
       const extend = [];
-      content.forEach(el => {
+      content.forEach((el) => {
         properties.push(...el.content.properties);
-        extend.push(...el.content.super.map(extendName => ClassDefinition.normalizeClassName(extendName, true)));
+        extend.push(...el.content.super.map((extendName) => ClassDefinition.normalizeClassName(extendName, true)));
       });
       if (extend.length) {
-        return api.actionIndex(extend).then(data => getProperties(data.result.content));
+        return api.actionIndex(extend).then((data) => getProperties(data.result.content));
       }
       return this.store("properties", properties.filter(onlyUnique).sort());
     };
-    return api.actionIndex([this._classFileName]).then(data => getProperties(data.result.content));
+    return api.actionIndex([this._classFileName]).then((data) => getProperties(data.result.content));
   }
 
   public async parameters(): Promise<any[]> {
@@ -91,18 +85,18 @@ export class ClassDefinition {
       return Promise.resolve(parameters);
     }
     const api = new AtelierAPI();
-    const getParameters = content => {
+    const getParameters = (content) => {
       const extend = [];
-      content.forEach(el => {
+      content.forEach((el) => {
         parameters.push(...el.content.parameters);
-        extend.push(...el.content.super.map(extendName => ClassDefinition.normalizeClassName(extendName, true)));
+        extend.push(...el.content.super.map((extendName) => ClassDefinition.normalizeClassName(extendName, true)));
       });
       if (extend.length) {
-        return api.actionIndex(extend).then(data => getParameters(data.result.content));
+        return api.actionIndex(extend).then((data) => getParameters(data.result.content));
       }
       return this.store("parameters", parameters.filter(onlyUnique).sort());
     };
-    return api.actionIndex([this._classFileName]).then(data => getParameters(data.result.content));
+    return api.actionIndex([this._classFileName]).then((data) => getParameters(data.result.content));
   }
 
   public async super(): Promise<string[]> {
@@ -116,17 +110,17 @@ export class ClassDefinition {
     return api
       .actionQuery(sql, [this._className])
       .then(
-        data =>
+        (data) =>
           data.result.content
             .reduce(
               (list: string[], el: { PrimarySuper: string }) =>
-                list.concat(el.PrimarySuper.split("~").filter(item => item.length)),
+                list.concat(el.PrimarySuper.split("~").filter((item) => item.length)),
               []
             )
             .filter((name: string) => name !== this._className)
         // .filter(name => !['%Library.Base', '%Library.SystemBase'].includes(name))
       )
-      .then(data => this.store("super", data));
+      .then((data) => this.store("super", data));
   }
 
   public async includeCode(): Promise<string[]> {
@@ -140,13 +134,13 @@ export class ClassDefinition {
     const defaultIncludes = ["%occInclude", "%occErrors"];
     return api
       .actionQuery(sql, [this._className])
-      .then(data =>
+      .then((data) =>
         data.result.content.reduce(
           (list: string[], el: { List: string }) => list.concat(el.List.split(",")),
           defaultIncludes
         )
       )
-      .then(data => this.store("includeCode", data));
+      .then((data) => this.store("includeCode", data));
   }
 
   public async getMemberLocation(name: string): Promise<vscode.Location> {
@@ -156,7 +150,7 @@ export class ClassDefinition {
     } else {
       pattern = `((Class)?Method|Property|RelationShip) (${name}|"${name}")(?=[( ])`;
     }
-    return this.getDocument().then(document => {
+    return this.getDocument().then((document) => {
       for (let i = 0; i < document.lineCount; i++) {
         const line = document.lineAt(i);
         if (line.text.match(pattern)) {
@@ -171,10 +165,10 @@ export class ClassDefinition {
     const extendList = await this.super();
     return Promise.all([
       await this.getMemberLocation(name),
-      ...extendList.map(async docName => {
+      ...extendList.map(async (docName) => {
         const classDef = new ClassDefinition(docName);
         return classDef.getMemberLocation(name);
       }),
-    ]).then(data => data.filter(el => el != null));
+    ]).then((data) => data.filter((el) => el != null));
   }
 }

@@ -3,7 +3,7 @@ import path = require("path");
 import * as url from "url";
 import { execSync } from "child_process";
 import * as vscode from "vscode";
-import { config, schemas, workspaceState } from "../extension";
+import { config, schemas, workspaceState, terminals } from "../extension";
 
 export const outputChannel = vscode.window.createOutputChannel("ObjectScript");
 
@@ -19,6 +19,7 @@ export interface CurrentFile {
   fileName: string;
   content: string;
   uri: vscode.Uri;
+  eol: vscode.EndOfLine;
 }
 
 export function currentFile(document?: vscode.TextDocument): CurrentFile {
@@ -36,13 +37,11 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
   ) {
     return null;
   }
+  const eol = document.eol || vscode.EndOfLine.LF;
   const uri = document.uri;
   const fileName = document.fileName;
   const content = document.getText();
-  const fileExt = fileName
-    .split(".")
-    .pop()
-    .toLowerCase();
+  const fileExt = fileName.split(".").pop().toLowerCase();
   let name = "";
   let ext = "";
   const { query } = url.parse(decodeURIComponent(uri.toString()), true);
@@ -74,6 +73,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
     fileName,
     name,
     uri,
+    eol,
   };
 }
 
@@ -139,7 +139,7 @@ export function notNull(el: any): boolean {
 }
 
 export function portFromDockerCompose(): { port: number; docker: boolean } {
-  const { "docker-compose": dockerCompose, port: defaultPort } = config("conn");
+  const { "docker-compose": dockerCompose = {}, port: defaultPort } = config("conn");
   const result = { port: defaultPort, docker: false };
   const { service, file = "docker-compose.yml", internalPort = 52773 } = dockerCompose;
   if (!internalPort || !file || !service || service === "") {
@@ -185,7 +185,7 @@ export async function terminalWithDocker(): Promise<vscode.Terminal> {
   const workspace = currentWorkspaceFolder();
 
   const terminalName = `ObjectScript:${workspace}`;
-  let terminal = vscode.window.terminals.find(el => el.name === terminalName && el.exitStatus == undefined);
+  let terminal = terminals.find((t) => t.name == terminalName && t.exitStatus == undefined);
   if (!terminal) {
     terminal = vscode.window.createTerminal(terminalName, "docker-compose", [
       "-f",
@@ -194,9 +194,11 @@ export async function terminalWithDocker(): Promise<vscode.Terminal> {
       service,
       "/bin/bash",
       "-c",
-      `command -v iris >/dev/null 2>&1 && iris session $ISC_PACKAGE_INSTANCENAME -U ${ns} || ccontrol session $ISC_PACKAGE_INSTANCENAME -U ${ns}`,
+      `[ -f /tmp/vscodesession.pid ] && kill $(cat /tmp/vscodesession.pid) >/dev/null 2>&1 ; echo $$ > /tmp/vscodesession.pid;
+        $(command -v ccontrol || command -v iris) session $ISC_PACKAGE_INSTANCENAME -U ${ns}`,
     ]);
+    terminals.push(terminal);
   }
-  terminal.show();
+  terminal.show(true);
   return terminal;
 }

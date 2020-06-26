@@ -942,7 +942,7 @@ export class Connection extends DbgpConnection {
   }
 
   private sendEvent(event: string, ...args: any[]) {
-    setImmediate(_ => {
+    setImmediate((_) => {
       this.emit(event, ...args);
     });
   }

@@ -82,9 +82,9 @@ export class AtelierAPI {
 
   public updateCookies(newCookies: string[]): Promise<any> {
     const cookies = this.cache.get("cookies", []);
-    newCookies.forEach(cookie => {
+    newCookies.forEach((cookie) => {
       const [cookieName] = cookie.split("=");
-      const index = cookies.findIndex(el => el.startsWith(cookieName));
+      const index = cookies.findIndex((el) => el.startsWith(cookieName));
       if (index >= 0) {
         cookies[index] = cookie;
       } else {
@@ -133,7 +133,7 @@ export class AtelierAPI {
         return "";
       }
       const result = [];
-      Object.keys(params).forEach(key => {
+      Object.keys(params).forEach((key) => {
         const value = params[key];
         if (typeof value === "boolean") {
           result.push(`${key}=${value ? "1" : "0"}`);
@@ -166,7 +166,7 @@ export class AtelierAPI {
       auth = this.request(0, "HEAD");
     }
     const connInfo = `${host}:${port}[${this.ns}]`;
-    return auth.then(cookie => {
+    return auth.then((cookie) => {
       return (
         request({
           agent,
@@ -183,8 +183,8 @@ export class AtelierAPI {
           uri: `${proto}://${host}:${port}${path}`,
         })
           // .catch(error => error.error)
-          .then(response => this.updateCookies(response.headers["set-cookie"]).then(() => response))
-          .then(response => {
+          .then((response) => this.updateCookies(response.headers["set-cookie"]).then(() => response))
+          .then((response) => {
             panel.text = `${connInfo} - Connected`;
             // console.log(`APIResponse: ${method} ${proto}://${host}:${port}${path}`)
             if (method === "HEAD") {
@@ -198,18 +198,19 @@ export class AtelierAPI {
             }
             if (data.console) {
               // Let studio actions handle their console output
-              const isStudioAction = data.result.content != undefined
-                && data.result.content.length !== 0
-                && data.result.content[0] != undefined
-                && data.result.content[0].action != undefined;
-              if(!isStudioAction) {
+              const isStudioAction =
+                data.result.content != undefined &&
+                data.result.content.length !== 0 &&
+                data.result.content[0] != undefined &&
+                data.result.content[0].action != undefined;
+              if (!isStudioAction) {
                 outputConsole(data.console);
               }
             }
             if (data.result.status && data.result.status !== "") {
               const status: string = data.result.status;
               outputChannel.appendLine(status);
-              if(status.endsWith("is marked as read only by source control hooks.")) {
+              if (status.endsWith("is marked as read only by source control hooks.")) {
                 vscode.window.showWarningMessage(status, { modal: true });
               }
               throw new Error(data.result.status);
@@ -222,9 +223,9 @@ export class AtelierAPI {
               return data;
             }
           })
-          .catch(error => {
+          .catch((error) => {
             if (error.error && error.error.code === "ECONNREFUSED") {
-              setTimeout(checkConnection, 1000);
+              setTimeout(checkConnection, 30000);
             }
             console.error(error);
             throw error;
@@ -234,7 +235,7 @@ export class AtelierAPI {
   }
 
   public serverInfo(): Promise<any> {
-    return this.request(0, "GET").then(info => {
+    return this.request(0, "GET").then((info) => {
       if (info && info.result && info.result.content && info.result.content.api > 0) {
         const data = info.result.content;
         const apiVersion = data.api;

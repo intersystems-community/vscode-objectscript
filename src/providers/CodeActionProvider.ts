@@ -14,7 +14,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     token: vscode.CancellationToken
   ): vscode.ProviderResult<(vscode.Command | vscode.CodeAction)[]> {
     const codeActions: vscode.CodeAction[] = [];
-    context.diagnostics.forEach(diagnostic => {
+    context.diagnostics.forEach((diagnostic) => {
       if (diagnostic.code === "$zobjxxx") {
         const text = document.getText(diagnostic.range).toLowerCase();
         let replacement = "";

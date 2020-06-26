@@ -74,7 +74,7 @@ export class RootNode extends NodeBase {
     api.setNamespace(this.namespace);
     return api
       .actionQuery(sql, [spec, direction, orderBy, systemFiles, flat ? "1" : "0", notStudio, generated])
-      .then(data => {
+      .then((data) => {
         const content = data.result.content;
         return content;
       })
@@ -95,7 +95,7 @@ export class RootNode extends NodeBase {
   }
 
   public getItems(path: string, category: string): Promise<NodeBase[]> {
-    return this.getList(path, category, false).then(data =>
+    return this.getList(path, category, false).then((data) =>
       data
         .filter(el => {
           if(category === "OTHER") {
@@ -106,7 +106,7 @@ export class RootNode extends NodeBase {
             return true;
           }
         })
-        .map(el => {
+        .map((el) => {
           switch (el.Type) {
             case "9":
               return new PackageNode(el.Name, el.fullName, category, this.options);
@@ -128,12 +128,12 @@ export class RootNode extends NodeBase {
               return null;
           }
         })
-        .filter(el => el !== null)
+        .filter((el) => el !== null)
     );
   }
 
   public getItems4Export(): Promise<string[]> {
     const path = this instanceof PackageNode ? this.fullName + "/" : "";
-    return this.getList(path, "ALL", true).then(data => data.map(el => el.Name));
+    return this.getList(path, "ALL", true).then((data) => data.map((el) => el.Name));
   }
 }

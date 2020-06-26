@@ -78,10 +78,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
   private onDidChangeEvent: vscode.EventEmitter<vscode.Uri> = new vscode.EventEmitter<vscode.Uri>();
 
   public provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
-    const fileName = uri.path
-      .split("/")
-      .slice(1)
-      .join(".");
+    const fileName = uri.path.split("/").slice(1).join(".");
     const api = new AtelierAPI();
     const query = url.parse(decodeURIComponent(uri.toString()), true).query;
     if (query) {
@@ -91,7 +88,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
       }
     }
     api.setConnection(uri.authority);
-    return api.getDoc(fileName).then(data => {
+    return api.getDoc(fileName).then((data) => {
       return data.result.content.join("\n");
     });
   }

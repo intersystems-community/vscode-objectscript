@@ -49,7 +49,7 @@ export async function convertClientPathToDebugger(localPath: string, namespace: 
     fileName = await vscode.workspace
       .openTextDocument(localPath)
       .then(currentFile)
-      .then(curFile => {
+      .then((curFile) => {
         return curFile.name;
       });
   }
@@ -211,24 +211,24 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
     const currentList = await this._connection.sendBreakpointListCommand();
     currentList.breakpoints
-      .filter(breakpoint => {
+      .filter((breakpoint) => {
         if (breakpoint instanceof xdebug.LineBreakpoint) {
           return breakpoint.fileUri === fileName;
         }
         return false;
       })
-      .map(breakpoint => {
+      .map((breakpoint) => {
         this._connection.sendBreakpointRemoveCommand(breakpoint);
       });
 
     let xdebugBreakpoints: (xdebug.ConditionalBreakpoint | xdebug.ClassLineBreakpoint | xdebug.LineBreakpoint)[] = [];
     xdebugBreakpoints = await Promise.all(
-      args.breakpoints.map(async breakpoint => {
+      args.breakpoints.map(async (breakpoint) => {
         const line = breakpoint.line;
         if (breakpoint.condition) {
           return new xdebug.ConditionalBreakpoint(breakpoint.condition, fileUri, line);
         } else if (fileName.endsWith("cls")) {
-          return await vscode.workspace.openTextDocument(uri).then(document => {
+          return await vscode.workspace.openTextDocument(uri).then((document) => {
             const methodMatchPattern = new RegExp(`^(?:Class)?Method ([^(]+)(?=[( ])`, "i");
             for (let i = line; line > 0; i--) {
               const lineOfCode = document.lineAt(i).text;
@@ -294,7 +294,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
           const source = new Source(routine, fileUri);
           let line = stackFrame.line + 1;
           if (source.name.endsWith(".cls") && stackFrame.method !== "") {
-            line = await vscode.workspace.openTextDocument(vscode.Uri.parse(source.path)).then(document => {
+            line = await vscode.workspace.openTextDocument(vscode.Uri.parse(source.path)).then((document) => {
               const methodMatchPattern = new RegExp(`^(Class)?Method ${stackFrame.method}(?=[( ])`, "i");
               for (let i = 0; i < document.lineCount; i++) {
                 const line = document.lineAt(i);
@@ -336,7 +336,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       throw new Error(`Unknown frameId ${args.frameId}`);
     }
     const contexts = await stackFrame.getContexts();
-    scopes = contexts.map(context => {
+    scopes = contexts.map((context) => {
       const variableId = this._variableIdCounter++;
       this._contexts.set(variableId, context);
       return new Scope(context.name, variableId);
@@ -378,7 +378,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     } else {
       throw new Error("Unknown variable reference");
     }
-    variables = properties.map(property => {
+    variables = properties.map((property) => {
       const displayValue = formatPropertyValue(property);
       let variablesReference: number;
       let evaluateName: string;
@@ -516,7 +516,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       // VS Code is requesting the variables for a SCOPE, so we have to do a context_get
       const context = this._contexts.get(variablesReference);
       const properties = await context.getProperties();
-      property = properties.find(el => el.name === name);
+      property = properties.find((el) => el.name === name);
     } else if (this._properties.has(variablesReference)) {
       // VS Code is requesting the subelements for a variable, so we have to do a property_get
       property = this._properties.get(variablesReference);

@@ -1,0 +1,23 @@
+{
+  "folders": [
+    {
+      "path": "."
+    },
+    {
+      "name": "isfs",
+      "uri": "isfs://IRIS/"
+    }
+  ],
+  "settings": {
+    "intersystems.servers": {
+      "IRIS": {
+        "webServer": {
+          "scheme": "http",
+          "host": "127.0.0.1",
+          "port": 52773
+        },
+        "description": "Connection to default local InterSystems IRIS™ installation. Delete if unwanted."
+      },
+    }
+  }
+}

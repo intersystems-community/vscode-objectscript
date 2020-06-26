@@ -75,6 +75,6 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
             new vscode.SymbolInformation(Name, vscode.SymbolKind.Method, ClassName, await getLocation(ClassName, Name))
         )
       )
-      .then(data => Promise.all(data));
+      .then((data) => Promise.all(data));
   }
 }

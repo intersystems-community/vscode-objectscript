@@ -41,7 +41,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     const macroMatch = macroText.match(/^\${3}(\b\w+\b)$/);
     if (macroMatch) {
       const [, macro] = macroMatch;
-      return this.macro(workspaceFolderName, currentFile(), macro).then(data =>
+      return this.macro(workspaceFolderName, currentFile(), macro).then((data) =>
         data && data.document.length
           ? new vscode.Location(DocumentContentProvider.getUri(data.document), new vscode.Position(data.line, 0))
           : null
@@ -89,14 +89,14 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
       if (part.match(onPropertyList)) {
         const listProperties = /\(([^)]+)\)/.exec(part)[1].split(/\s*,\s*/);
         return listProperties
-          .map(name => {
+          .map((name) => {
             name = name.trim();
             const start = pos + part.indexOf(name);
             if (this.isValid(position, start, name.length)) {
               return this.makePropertyDefinition(document, name);
             }
           })
-          .filter(el => el != null);
+          .filter((el) => el != null);
       }
       pos += part.length;
     }
@@ -107,7 +107,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
       if (part.match(asClassList)) {
         const listClasses = /\(([^)]+)\)/.exec(part)[1].split(/\s*,\s*/);
         return listClasses
-          .map(name => {
+          .map((name) => {
             name = name.trim();
             const start = pos + part.indexOf(name);
             if (this.isValid(position, start, name.length)) {
@@ -120,7 +120,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
               );
             }
           })
-          .filter(el => el != null);
+          .filter((el) => el != null);
       }
       pos += part.length;
     }
@@ -177,7 +177,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
         const [, routine] = part.match(/\^(%?\b\w+\b)/);
         const start = pos + part.indexOf(routine) - 1;
         const length = routine.length + 1;
-        return this.getFullRoutineName(routine).then(routineName => [
+        return this.getFullRoutineName(routine).then((routineName) => [
           this.makeRoutineDefinition(workspaceFolderName, position, start, length, routineName),
         ]);
       }
@@ -241,9 +241,9 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     const api = new AtelierAPI();
     return api
       .actionIndex([`${name}.int`, `${name}.mac`])
-      .then(data => data.result.content)
-      .then(files => files.filter(el => !el.gen && el.status === "" && el.db !== ""))
-      .then(files => files.pop().name);
+      .then((data) => data.result.content)
+      .then((files) => files.filter((el) => !el.gen && el.status === "" && el.db !== ""))
+      .then((files) => files.pop().name);
   }
 
   /**
@@ -254,11 +254,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     for (let i = 0; i < document.lineCount; i++) {
       const line = document.lineAt(i).text;
       if (line.startsWith("Class")) {
-        return line
-          .split(" ")[1]
-          .split(".")
-          .slice(0, -1)
-          .join(".");
+        return line.split(" ")[1].split(".").slice(0, -1).join(".");
       }
     }
     return "";
@@ -350,6 +346,6 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
       return Promise.resolve({ document: fileName, line });
     }
 
-    return api.getmacrolocation(fileName, macro, includes).then(data => data.result.content);
+    return api.getmacrolocation(fileName, macro, includes).then((data) => data.result.content);
   }
 }

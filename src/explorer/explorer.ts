@@ -20,11 +20,11 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
     const api = new AtelierAPI(workspaceFolder);
     return api
       .serverInfo()
-      .then(data => data.result.content.namespaces)
-      .then(data => data.filter(ns => ns !== api.ns && !this._showExtra4Workspace.includes(ns)))
-      .then(data => data.map(ns => ({ label: ns })))
+      .then((data) => data.result.content.namespaces)
+      .then((data) => data.filter((ns) => ns !== api.ns && !this._showExtra4Workspace.includes(ns)))
+      .then((data) => data.map((ns) => ({ label: ns })))
       .then(vscode.window.showQuickPick)
-      .then(ns => this.showExtra4Workspace(workspaceFolder, ns.label));
+      .then((ns) => this.showExtra4Workspace(workspaceFolder, ns.label));
   }
 
   public showExtra4Workspace(workspaceFolder: string, ns: string) {
@@ -63,14 +63,14 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
 
     const workspaceFolders = vscode.workspace.workspaceFolders || [];
     workspaceFolders
-      .filter(workspaceFolder => workspaceFolder.uri && workspaceFolder.uri.scheme === "file")
-      .forEach(workspaceFolder => {
+      .filter((workspaceFolder) => workspaceFolder.uri && workspaceFolder.uri.scheme === "file")
+      .forEach((workspaceFolder) => {
         const conn: any = config("conn", workspaceFolder.name);
         if (conn.active && conn.ns) {
           node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData, {});
           rootNodes.push(node);
 
-          this._showExtra4Workspace.forEach(ns => {
+          this._showExtra4Workspace.forEach((ns) => {
             node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData, {
               namespace: ns,
               extraNode: true,
