@@ -26,23 +26,44 @@ interface StudioAction extends vscode.QuickPickItem {
   id: string;
 }
 
+function getOtherStudioActionLabel(action: OtherStudioAction): string {
+  let label = "";
+  /* eslint-disable no-fallthrough */
+  switch (action) {
+    case OtherStudioAction.AttemptedEdit:
+      label = "Attempted Edit";
+    case OtherStudioAction.CreatedNewDocument:
+      label = "Created New Document";
+    case OtherStudioAction.DeletedDocument:
+      label = "Deleted Document";
+    case OtherStudioAction.OpenedDocument:
+      label = "Opened Document";
+    case OtherStudioAction.ClosedDocument:
+      label = "Closed Document";
+    case OtherStudioAction.ConnectedToNewNamespace:
+      label = "Changed Namespace";
+    case OtherStudioAction.FirstTimeDocumentSave:
+      label = "Saved Document to Server for the First Time";
+  }
+  /* eslint-enable no-fallthrough */
+  return label;
+}
+
 class StudioActions {
   private uri: vscode.Uri;
   private api: AtelierAPI;
   private name: string;
 
   public constructor(uriOrNode?: vscode.Uri | PackageNode | ClassNode | RoutineNode) {
-    if(uriOrNode instanceof vscode.Uri) {
+    if (uriOrNode instanceof vscode.Uri) {
       const uri: vscode.Uri = uriOrNode;
       this.uri = uri;
       this.name = this.uri.path.slice(1).replace(/\//g, ".");
       this.api = new AtelierAPI(uri.authority);
-    } else if(uriOrNode) {
+    } else if (uriOrNode) {
       const node: NodeBase = uriOrNode;
       this.api = new AtelierAPI();
-      this.name = (node instanceof PackageNode)
-        ? node.fullName + ".PKG"
-        : node.fullName;
+      this.name = node instanceof PackageNode ? node.fullName + ".PKG" : node.fullName;
     } else {
       this.api = new AtelierAPI();
     }
@@ -55,11 +76,11 @@ class StudioActions {
       outputChannel.appendLine(errorText);
       outputChannel.show();
     }
-    if(userAction.reload) {
+    if (userAction.reload) {
       const document = vscode.window.activeTextEditor.document;
       loadChanges([currentFile(document)]);
     }
-    if(config().studioActionDebugOutput) {
+    if (config().studioActionDebugOutput) {
       outputChannel.appendLine(JSON.stringify(userAction));
     }
     switch (serverAction) {
@@ -69,14 +90,12 @@ class StudioActions {
       case 1: // Display the default Studio dialog with a yes/no/cancel button.
         return vscode.window
           .showWarningMessage(target, { modal: true }, "Yes", "No")
-          .then(answer => (answer === "Yes" ? "1" : answer === "No" ? "0" : "2"));
+          .then((answer) => (answer === "Yes" ? "1" : answer === "No" ? "0" : "2"));
       case 2: // Run a CSP page/Template. The Target is the full url to the CSP page/Template
         return new Promise((resolve) => {
           let answer = "2";
           const conn = config().conn;
-          const column = vscode.window.activeTextEditor
-            ? vscode.window.activeTextEditor.viewColumn
-            : undefined;
+          const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
           const panel = vscode.window.createWebviewPanel(
             "studioactionwebview",
             "Studio Extension Page",
@@ -85,8 +104,8 @@ class StudioActions {
               enableScripts: true,
             }
           );
-          panel.webview.onDidReceiveMessage(message => {
-            if(message.result && message.result === "done") {
+          panel.webview.onDidReceiveMessage((message) => {
+            if (message.result && message.result === "done") {
               answer = "1";
               panel.dispose();
             }
@@ -95,11 +114,13 @@ class StudioActions {
 
           const url = new URL(`http://${conn.host}:${conn.port}${target}`);
           const api = new AtelierAPI();
-          api.actionQuery("select %Atelier_v1_Utils.General_GetCSPToken(?) token", [url.toString()]).then(tokenObj => {
-            const csptoken = tokenObj.result.content[0].token;
-            url.searchParams.set('CSPCHD', csptoken);
-            url.searchParams.set('Namespace', conn.ns);
-            panel.webview.html = `
+          api
+            .actionQuery("select %Atelier_v1_Utils.General_GetCSPToken(?) token", [url.toString()])
+            .then((tokenObj) => {
+              const csptoken = tokenObj.result.content[0].token;
+              url.searchParams.set("CSPCHD", csptoken);
+              url.searchParams.set("Namespace", conn.ns);
+              panel.webview.html = `
               <!DOCTYPE html>
               <html lang="en">
               <head>
@@ -127,26 +148,28 @@ class StudioActions {
               </body>
               </html>
               `;
-          });
+            });
         });
       case 3: // Run an EXE on the client.
         throw new Error("Not suppoorted");
-      case 4: // Insert the text in Target in the current document at the current selection point
+      case 4: {
+        // Insert the text in Target in the current document at the current selection point
         const editor = vscode.window.activeTextEditor;
-        if(editor) {
-          editor.edit(editBuilder => {
+        if (editor) {
+          editor.edit((editBuilder) => {
             editBuilder.replace(editor.selection, target);
           });
         }
         return;
+      }
       case 5: // Studio will open the documents listed in Target
-        target.split(",").forEach(element => {
+        target.split(",").forEach((element) => {
           let classname = element;
           let method: string;
           let offset = 0;
-          if(element.includes(":")) {
+          if (element.includes(":")) {
             [classname, method] = element.split(":");
-            if(method.includes("+")) {
+            if (method.includes("+")) {
               offset = +method.split("+")[1];
               method = method.split("+")[0];
             }
@@ -154,18 +177,17 @@ class StudioActions {
 
           const splitClassname = classname.split(".");
           const filetype = splitClassname[splitClassname.length - 1];
-          const isCorrectMethod = (text: string) => (filetype === "cls")
-            ? text.match("Method " + method)
-            : text.startsWith(method)
+          const isCorrectMethod = (text: string) =>
+            filetype === "cls" ? text.match("Method " + method) : text.startsWith(method);
 
           const uri = DocumentContentProvider.getUri(classname);
-          vscode.window.showTextDocument(uri, {"preview": false}).then(newEditor => {
-            if(method) {
+          vscode.window.showTextDocument(uri, { preview: false }).then((newEditor) => {
+            if (method) {
               const document = newEditor.document;
-              for(let i = 0; i < document.lineCount; i++) {
+              for (let i = 0; i < document.lineCount; i++) {
                 const line = document.lineAt(i);
-                if(isCorrectMethod(line.text)) {
-                  if(!line.text.endsWith("{")) offset++;
+                if (isCorrectMethod(line.text)) {
+                  if (!line.text.endsWith("{")) offset++;
                   const cursor = newEditor.selection.active;
                   const newPosition = cursor.with(i + offset, 0);
                   newEditor.selection = new vscode.Selection(newPosition, newPosition);
@@ -179,14 +201,16 @@ class StudioActions {
       case 6: // Display an alert dialog in Studio with the text from the Target variable.
         return vscode.window.showWarningMessage(target, { modal: true });
       case 7: // Display a dialog with a textbox and Yes/No/Cancel buttons.
-        return vscode.window.showInputBox({
-          prompt: target,
-        }).then(msg => {
-          return {
-            "msg": (msg ? msg : ""),
-            "answer": (msg ? 1 : 2)
-          }
-        });
+        return vscode.window
+          .showInputBox({
+            prompt: target,
+          })
+          .then((msg) => {
+            return {
+              msg: msg ? msg : "",
+              answer: msg ? 1 : 2,
+            };
+          });
       default:
         throw new Error("Not suppoorted");
     }
@@ -253,14 +277,14 @@ class StudioActions {
 
   private constructMenu(menu, contextOnly = false): any[] {
     return menu
-      .filter(menuGroup => !(contextOnly && menuGroup.type === "main"))
+      .filter((menuGroup) => !(contextOnly && menuGroup.type === "main"))
       .reduce(
         (list, sub) =>
           list.concat(
             sub.items
-              .filter(el => el.id !== "" && el.separator == 0)
-              .filter(el => el.enabled == 1)
-              .map(el => ({
+              .filter((el) => el.id !== "" && el.separator == 0)
+              .filter((el) => el.enabled == 1)
+              .map((el) => ({
                 ...el,
                 id: `${sub.id},${el.id}`,
                 label: el.name.replace("&", ""),
@@ -283,7 +307,7 @@ class StudioActions {
   public getMenu(menuType: string, contextOnly = false): Thenable<any> {
     let selectedText = "";
     const editor = vscode.window.activeTextEditor;
-    if(this.uri && editor) {
+    if (this.uri && editor) {
       const selection = editor.selection;
       selectedText = editor.document.getText(selection);
     }
@@ -293,25 +317,25 @@ class StudioActions {
 
     return this.api
       .actionQuery(query, parameters)
-      .then(data => data.result.content)
-      .then(menu => this.constructMenu(menu, contextOnly))
-      .then(menuItems => {
+      .then((data) => data.result.content)
+      .then((menu) => this.constructMenu(menu, contextOnly))
+      .then((menuItems) => {
         return vscode.window.showQuickPick<StudioAction>(menuItems, { canPickMany: false });
       })
-      .then(action => this.userAction(action));
+      .then((action) => this.userAction(action));
   }
 
   public fireOtherStudioAction(action: OtherStudioAction) {
     const actionObject = {
       id: action.toString(),
-      label: getOtherStudioActionLabel(action)
+      label: getOtherStudioActionLabel(action),
     };
-    if(action === OtherStudioAction.AttemptedEdit) {
+    if (action === OtherStudioAction.AttemptedEdit) {
       const query = "select * from %Atelier_v1_Utils.Extension_GetStatus(?)";
-      this.api.actionQuery(query, [this.name]).then(statusObj => {
+      this.api.actionQuery(query, [this.name]).then((statusObj) => {
         const docStatus = statusObj.result.content.pop();
-        if(!docStatus.editable) {
-          vscode.commands.executeCommand('undo');
+        if (!docStatus.editable) {
+          vscode.commands.executeCommand("undo");
           this.userAction(actionObject, false, "", "", 1);
         }
       });
@@ -323,7 +347,7 @@ class StudioActions {
   private async processSaveFlag(saveFlag: number) {
     const bitString = saveFlag.toString().padStart(3, "0");
     const saveAndCompile = async (document: vscode.TextDocument) => {
-      if(document.isDirty) {
+      if (document.isDirty) {
         // Prevent onDidSave from compiling the file
         // in order to await the importAndCompile function
         documentBeingProcessed = document;
@@ -334,14 +358,14 @@ class StudioActions {
     };
 
     // Save the current document
-    if(bitString.charAt(0) === "1") {
+    if (bitString.charAt(0) === "1") {
       await saveAndCompile(vscode.window.activeTextEditor.document);
     }
 
     // Save all documents
-    if(bitString.charAt(2) === "1") {
-      for(const document of vscode.workspace.textDocuments) {
-        await saveAndCompile(document)
+    if (bitString.charAt(2) === "1") {
+      for (const document of vscode.workspace.textDocuments) {
+        await saveAndCompile(document);
       }
     }
   }
@@ -362,7 +386,7 @@ export async function mainMenu(uri: vscode.Uri) {
 
 export async function contextMenu(node: PackageNode | ClassNode | RoutineNode): Promise<any> {
   const nodeOrUri = node || vscode.window.activeTextEditor.document.uri;
-  if(!nodeOrUri || (nodeOrUri instanceof vscode.Uri && nodeOrUri.scheme !== FILESYSTEM_SCHEMA)) {
+  if (!nodeOrUri || (nodeOrUri instanceof vscode.Uri && nodeOrUri.scheme !== FILESYSTEM_SCHEMA)) {
     return;
   }
   const studioActions = new StudioActions(nodeOrUri);
@@ -372,25 +396,4 @@ export async function contextMenu(node: PackageNode | ClassNode | RoutineNode): 
 export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vscode.Uri) {
   const studioActions = new StudioActions(uri);
   return studioActions && studioActions.fireOtherStudioAction(action);
-}
-
-function getOtherStudioActionLabel(action: OtherStudioAction): string {
-  let label = "";
-  switch(action) {
-    case OtherStudioAction.AttemptedEdit:
-      label = "Attempted Edit";
-    case OtherStudioAction.CreatedNewDocument:
-      label = "Created New Document";
-    case OtherStudioAction.DeletedDocument:
-      label = "Deleted Document";
-    case OtherStudioAction.OpenedDocument:
-      label = "Opened Document";
-    case OtherStudioAction.ClosedDocument:
-      label = "Closed Document";
-    case OtherStudioAction.ConnectedToNewNamespace:
-      label = "Changed Namespace";
-    case OtherStudioAction.FirstTimeDocumentSave:
-      label = "Saved Document to Server for the First Time"
-  }
-  return label;
 }

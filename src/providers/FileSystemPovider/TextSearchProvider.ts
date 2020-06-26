@@ -29,9 +29,9 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
         word: query.isWordMatch,
         case: query.isCaseSensitive,
       })
-      .then(data => data.result)
+      .then((data) => data.result)
       .then((files: AtelierSearchResult[]) =>
-        files.map(async file => {
+        files.map(async (file) => {
           const fileName = file.doc;
           const uri = DocumentContentProvider.getUri(fileName);
           const document = await vscode.workspace.openTextDocument(uri);
@@ -42,9 +42,9 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
           };
         })
       )
-      .then(files => Promise.all(files))
-      .then(files => {
-        files.forEach(file => {
+      .then((files) => Promise.all(files))
+      .then((files) => {
+        files.forEach((file) => {
           const { uri, document, matches } = file;
           matches.forEach((match: AtelierSearchMatch) => {
             const { text, member } = match;

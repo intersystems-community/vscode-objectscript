@@ -53,9 +53,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const generated = query.generated && query.generated.length ? query.generated.toString() : "0";
     return api
       .actionQuery(sql, [spec, dir, orderBy, system, flat, notStudio, generated])
-      .then(data => data.result.content || [])
-      .then(data =>
-        data.map(item => {
+      .then((data) => data.result.content || [])
+      .then((data) =>
+        data.map((item) => {
           const name = item.Name;
           const fullName = folder === "" ? name : folder + "/" + name;
           if (item.Type === "10" || item.Type === "9") {
@@ -66,7 +66,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           }
         })
       )
-      .catch(error => {
+      .catch((error) => {
         console.error(error);
       });
   }
@@ -74,7 +74,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   public createDirectory(uri: vscode.Uri): void | Thenable<void> {
     const basename = path.posix.basename(uri.path);
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
-    return this._lookupAsDirectory(dirname).then(parent => {
+    return this._lookupAsDirectory(dirname).then((parent) => {
       const entry = new Directory(basename, uri.path);
       parent.entries.set(entry.name, entry);
       parent.mtime = Date.now();
@@ -107,8 +107,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const api = new AtelierAPI(uri);
     return api
       .actionIndex([fileName])
-      .then(data => data.result.content[0])
-      .then(info => {
+      .then((data) => data.result.content[0])
+      .then((info) => {
         if (info.status === "") {
           /// file found, everything is Ok
           return;
@@ -124,15 +124,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               false
             );
           }
-          const fileExt = fileName
-            .split(".")
-            .pop()
-            .toLowerCase();
+          const fileExt = fileName.split(".").pop().toLowerCase();
           if (fileExt === "cls") {
-            const className = fileName
-              .split(".")
-              .slice(0, -1)
-              .join(".");
+            const className = fileName.split(".").slice(0, -1).join(".");
             return api.putDoc(
               fileName,
               {
@@ -143,10 +137,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             );
           } else if (["int", "inc", "mac"].includes(fileExt)) {
             const api = new AtelierAPI(uri);
-            const routineName = fileName
-              .split(".")
-              .slice(0, -1)
-              .join(".");
+            const routineName = fileName.split(".").slice(0, -1).join(".");
             const routineType = `[ type = ${fileExt}]`;
             return api.putDoc(
               fileName,
@@ -161,7 +152,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         }
       })
       .then(() =>
-        this._lookupAsFile(uri).then(entry => {
+        this._lookupAsFile(uri).then((entry) => {
           this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
         })
       );
@@ -240,7 +231,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const api = new AtelierAPI(uri);
     return api
       .getDoc(fileName)
-      .then(data => data.result)
+      .then((data) => data.result)
       .then(
         ({ ts, content }) =>
           new File(
@@ -251,13 +242,13 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             Array.isArray(content) ? content.join("\n") : content
           )
       )
-      .then(entry =>
-        this._lookupParentDirectory(uri).then(parent => {
+      .then((entry) =>
+        this._lookupParentDirectory(uri).then((parent) => {
           parent.entries.set(name, entry);
           return entry;
         })
       )
-      .catch(error => {
+      .catch((error) => {
         throw vscode.FileSystemError.FileNotFound(uri);
       });
   }

@@ -1,9 +1,14 @@
+.github/**
 .vscode/**
 .vscode-test/**
-typings/**
-out/test/**
-test/**
-# src/**
-# **/*.map
+out/
+src/
+**/*.ts
+**/*.map
+**/*.cls
 .gitignore
-tsconfig.json
+tsconfig*.json
+**/tslint.json
+**/.eslintrc.json
+node_modules/
+webpack.config.js
