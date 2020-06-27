@@ -97,7 +97,7 @@ class StudioActions {
           .showWarningMessage(target, { modal: true }, "Yes", "No")
           .then((answer) => (answer === "Yes" ? "1" : answer === "No" ? "0" : "2"));
       case 2: // Run a CSP page/Template. The Target is the full url to the CSP page/Template
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
           let answer = "2";
           const conn = config().conn;
           const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
@@ -362,7 +362,7 @@ class StudioActions {
   }
 }
 
-export async function mainMenu(uri?: vscode.Uri) {
+export async function mainMenu(uri?: vscode.Uri): Promise<any> {
   uri = uri || vscode.window.activeTextEditor?.document.uri;
   if (uri && uri.scheme !== FILESYSTEM_SCHEMA) {
     return;
@@ -380,7 +380,7 @@ export async function contextMenu(node: PackageNode | ClassNode | RoutineNode): 
   return studioActions && studioActions.getMenu("", true);
 }
 
-export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vscode.Uri) {
+export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vscode.Uri): Promise<void> {
   const studioActions = new StudioActions(uri);
   return studioActions && studioActions.fireOtherStudioAction(action);
 }
