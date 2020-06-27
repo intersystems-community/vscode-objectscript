@@ -5,7 +5,7 @@ export class ObjectScriptRoutineSymbolProvider implements vscode.DocumentSymbolP
     document: vscode.TextDocument,
     token: vscode.CancellationToken
   ): Thenable<vscode.SymbolInformation[]> {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       const symbols: vscode.SymbolInformation[] = [];
 
       for (let i = 0; i < document.lineCount; i++) {

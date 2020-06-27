@@ -26,6 +26,34 @@ interface StudioAction extends vscode.QuickPickItem {
   id: string;
 }
 
+function getOtherStudioActionLabel(action: OtherStudioAction): string {
+  let label = "";
+  switch (action) {
+    case OtherStudioAction.AttemptedEdit:
+      label = "Attempted Edit";
+      break;
+    case OtherStudioAction.CreatedNewDocument:
+      label = "Created New Document";
+      break;
+    case OtherStudioAction.DeletedDocument:
+      label = "Deleted Document";
+      break;
+    case OtherStudioAction.OpenedDocument:
+      label = "Opened Document";
+      break;
+    case OtherStudioAction.ClosedDocument:
+      label = "Closed Document";
+      break;
+    case OtherStudioAction.ConnectedToNewNamespace:
+      label = "Changed Namespace";
+      break;
+    case OtherStudioAction.FirstTimeDocumentSave:
+      label = "Saved Document to Server for the First Time";
+      break;
+  }
+  return label;
+}
+
 class StudioActions {
   private uri: vscode.Uri;
   private api: AtelierAPI;
@@ -67,7 +95,7 @@ class StudioActions {
       case 1: // Display the default Studio dialog with a yes/no/cancel button.
         return vscode.window
           .showWarningMessage(target, { modal: true }, "Yes", "No")
-          .then(answer => (answer === "Yes" ? "1" : answer === "No" ? "0" : "2"));
+          .then((answer) => (answer === "Yes" ? "1" : answer === "No" ? "0" : "2"));
       case 2: // Run a CSP page/Template. The Target is the full url to the CSP page/Template
         return new Promise(resolve => {
           let answer = "2";
@@ -81,7 +109,7 @@ class StudioActions {
               enableScripts: true,
             }
           );
-          panel.webview.onDidReceiveMessage(message => {
+          panel.webview.onDidReceiveMessage((message) => {
             if (message.result && message.result === "done") {
               answer = "1";
               panel.dispose();
@@ -91,11 +119,13 @@ class StudioActions {
 
           const url = new URL(`http://${conn.host}:${conn.port}${target}`);
           const api = new AtelierAPI();
-          api.actionQuery("select %Atelier_v1_Utils.General_GetCSPToken(?) token", [url.toString()]).then(tokenObj => {
-            const csptoken = tokenObj.result.content[0].token;
-            url.searchParams.set("CSPCHD", csptoken);
-            url.searchParams.set("Namespace", conn.ns);
-            panel.webview.html = `
+          api
+            .actionQuery("select %Atelier_v1_Utils.General_GetCSPToken(?) token", [url.toString()])
+            .then((tokenObj) => {
+              const csptoken = tokenObj.result.content[0].token;
+              url.searchParams.set("CSPCHD", csptoken);
+              url.searchParams.set("Namespace", conn.ns);
+              panel.webview.html = `
               <!DOCTYPE html>
               <html lang="en">
               <head>
@@ -123,20 +153,22 @@ class StudioActions {
               </body>
               </html>
               `;
-          });
+            });
         });
       case 3: // Run an EXE on the client.
         throw new Error("Not suppoorted");
-      case 4: // Insert the text in Target in the current document at the current selection point
+      case 4: {
+        // Insert the text in Target in the current document at the current selection point
         const editor = vscode.window.activeTextEditor;
         if (editor) {
-          editor.edit(editBuilder => {
+          editor.edit((editBuilder) => {
             editBuilder.replace(editor.selection, target);
           });
         }
         return;
+      }
       case 5: // Studio will open the documents listed in Target
-        target.split(",").forEach(element => {
+        target.split(",").forEach((element) => {
           let classname = element;
           let method: string;
           let offset = 0;
@@ -154,7 +186,7 @@ class StudioActions {
             filetype === "cls" ? text.match("Method " + method) : text.startsWith(method);
 
           const uri = DocumentContentProvider.getUri(classname);
-          vscode.window.showTextDocument(uri, { preview: false }).then(newEditor => {
+          vscode.window.showTextDocument(uri, { preview: false }).then((newEditor) => {
             if (method) {
               const document = newEditor.document;
               for (let i = 0; i < document.lineCount; i++) {
@@ -178,7 +210,7 @@ class StudioActions {
           .showInputBox({
             prompt: target,
           })
-          .then(msg => {
+          .then((msg) => {
             return {
               msg: msg ? msg : "",
               answer: msg ? 1 : 2,
@@ -215,7 +247,7 @@ class StudioActions {
       () =>
         this.api
           .actionQuery(query, parameters)
-          .then(async data => {
+          .then(async (data) => {
             if (action.save) {
               await this.processSaveFlag(action.save);
             }
@@ -223,14 +255,14 @@ class StudioActions {
             return data.result.content.pop();
           })
           .then(this.processUserAction)
-          .then(answer => {
+          .then((answer) => {
             if (answer) {
               return answer.msg || answer.msg === ""
                 ? this.userAction(action, true, answer.answer, answer.msg, type)
                 : this.userAction(action, true, answer, "", type);
             }
           })
-          .catch(err => {
+          .catch((err) => {
             console.log(err);
             outputChannel.appendLine(`Studio Action "${action.label}" not supported`);
             outputChannel.show();
@@ -240,14 +272,14 @@ class StudioActions {
 
   private constructMenu(menu, contextMenu = false): any[] {
     return menu
-      .filter(menuGroup => !(contextMenu == (menuGroup.type === "main")))
+      .filter((menuGroup) => !(contextMenu == (menuGroup.type === "main")))
       .reduce(
         (list, sub) =>
           list.concat(
             sub.items
-              .filter(el => el.id !== "" && el.separator == 0)
-              .filter(el => el.enabled == 1)
-              .map(el => ({
+              .filter((el) => el.id !== "" && el.separator == 0)
+              .filter((el) => el.enabled == 1)
+              .map((el) => ({
                 ...el,
                 id: `${sub.id},${el.id}`,
                 label: el.name.replace("&", ""),
@@ -273,15 +305,15 @@ class StudioActions {
 
     return this.api
       .actionQuery(query, parameters)
-      .then(data => data.result.content)
-      .then(menu => this.constructMenu(menu, contextOnly))
-      .then(menuItems => {
+      .then((data) => data.result.content)
+      .then((menu) => this.constructMenu(menu, contextOnly))
+      .then((menuItems) => {
         return vscode.window.showQuickPick<StudioAction>(menuItems, {
           canPickMany: false,
           placeHolder: `Pick server-side action to perform${this.name ? " on " + this.name : ""}`,
         });
       })
-      .then(action => this.userAction(action));
+      .then((action) => this.userAction(action));
   }
 
   public fireOtherStudioAction(action: OtherStudioAction) {
@@ -291,7 +323,7 @@ class StudioActions {
     };
     if (action === OtherStudioAction.AttemptedEdit) {
       const query = "select * from %Atelier_v1_Utils.Extension_GetStatus(?)";
-      this.api.actionQuery(query, [this.name]).then(statusObj => {
+      this.api.actionQuery(query, [this.name]).then((statusObj) => {
         const docStatus = statusObj.result.content.pop();
         if (!docStatus.editable) {
           vscode.commands.executeCommand("undo");
@@ -351,31 +383,4 @@ export async function contextMenu(node: PackageNode | ClassNode | RoutineNode): 
 export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vscode.Uri) {
   const studioActions = new StudioActions(uri);
   return studioActions && studioActions.fireOtherStudioAction(action);
-}
-
-function getOtherStudioActionLabel(action: OtherStudioAction): string {
-  let label = "";
-  switch (action) {
-    case OtherStudioAction.AttemptedEdit:
-      label = "Attempted Edit";
-      break;
-    case OtherStudioAction.CreatedNewDocument:
-      label = "Created New Document";
-      break;
-    case OtherStudioAction.DeletedDocument:
-      label = "Deleted Document";
-      break;
-    case OtherStudioAction.OpenedDocument:
-      label = "Opened Document";
-      break;
-    case OtherStudioAction.ClosedDocument:
-      label = "Closed Document";
-      break;
-    case OtherStudioAction.ConnectedToNewNamespace:
-      label = "Changed Namespace";
-      break;
-    case OtherStudioAction.FirstTimeDocumentSave:
-      label = "Saved Document to Server for the First Time";
-  }
-  return label;
 }

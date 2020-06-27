@@ -13,11 +13,8 @@ const filesFilter = (file: any) => {
   return true;
 };
 
-const getCategory = (fileName: string, addCategory: {} | boolean): string => {
-  const fileExt = fileName
-    .split(".")
-    .pop()
-    .toLowerCase();
+const getCategory = (fileName: string, addCategory: any | boolean): string => {
+  const fileExt = fileName.split(".").pop().toLowerCase();
   if (typeof addCategory === "object") {
     for (const pattern of Object.keys(addCategory)) {
       if (new RegExp(`^${pattern}$`).test(fileName)) {
@@ -61,11 +58,11 @@ export async function exportFile(
   }
   const api = new AtelierAPI(workspaceFolder);
   api.setNamespace(namespace);
-  const log = status => outputChannel.appendLine(`export "${name}" as "${fileName}" - ${status}`);
+  const log = (status) => outputChannel.appendLine(`export "${name}" as "${fileName}" - ${status}`);
   const folders = path.dirname(fileName);
   return mkdirSyncRecursive(folders)
     .then(() => {
-      return api.getDoc(name).then(data => {
+      return api.getDoc(name).then((data) => {
         if (!data || !data.result) {
           throw new Error("Something wrong happened");
         }
@@ -75,7 +72,7 @@ export async function exportFile(
         const promise = new Promise((resolve, reject) => {
           if (noStorage) {
             // get only the storage xml for the doc.
-            api.getDoc(name + "?storageOnly=1").then(storageData => {
+            api.getDoc(name + "?storageOnly=1").then((storageData) => {
               if (!storageData || !storageData.result) {
                 reject(new Error("Something wrong happened fetching the storage data"));
               }
@@ -122,12 +119,12 @@ export async function exportFile(
 
             log(`Success ${isSkipped}`);
           })
-          .catch(error => {
+          .catch((error) => {
             throw error;
           });
       });
     })
-    .catch(error => {
+    .catch((error) => {
       log("ERROR: " + error);
       throw error;
     });
@@ -140,12 +137,14 @@ export async function exportList(files: string[], workspaceFolder: string, names
   const { atelier, folder, addCategory } = config("export", workspaceFolder);
 
   const root = [workspaceFolderUri(workspaceFolder).fsPath, folder].join(path.sep);
-  const run = async fileList => {
+  const run = async (fileList) => {
     const errors = [];
     for (const file of fileList) {
-      await exportFile(workspaceFolder, namespace, file, getFileName(root, file, atelier, addCategory)).catch(error => {
-        errors.push(`${file} - ${error}`);
-      });
+      await exportFile(workspaceFolder, namespace, file, getFileName(root, file, atelier, addCategory)).catch(
+        (error) => {
+          errors.push(`${file} - ${error}`);
+        }
+      );
     }
     outputChannel.appendLine(`Exported items: ${fileList.length - errors.length}`);
     if (errors.length) {
@@ -166,10 +165,10 @@ export async function exportList(files: string[], workspaceFolder: string, names
 export async function exportAll(workspaceFolder?: string): Promise<any> {
   if (!workspaceFolder) {
     const list = vscode.workspace.workspaceFolders
-      .filter(folder => config("conn", folder.name).active)
-      .map(el => el.name);
+      .filter((folder) => config("conn", folder.name).active)
+      .map((el) => el.name);
     if (list.length > 1) {
-      return vscode.window.showQuickPick(list).then(folder => (folder ? exportAll : null));
+      return vscode.window.showQuickPick(list).then((folder) => (folder ? exportAll : null));
     } else {
       workspaceFolder = list.pop();
     }
@@ -180,8 +179,8 @@ export async function exportAll(workspaceFolder?: string): Promise<any> {
   const api = new AtelierAPI(workspaceFolder);
   outputChannel.show(true);
   const { category, generated, filter, ns } = config("export", workspaceFolder);
-  const files = data => data.result.content.filter(filesFilter).map(file => file.name);
-  return api.getDocNames({ category, generated, filter }).then(data => {
+  const files = (data) => data.result.content.filter(filesFilter).map((file) => file.name);
+  return api.getDocNames({ category, generated, filter }).then((data) => {
     return exportList(files(data), workspaceFolder, ns);
   });
 }
@@ -204,7 +203,7 @@ Would you like to continue?`,
     }
   }
   const { workspaceFolder, namespace } = node;
-  return Promise.all(nodes.map(node => node.getItems4Export())).then(items => {
+  return Promise.all(nodes.map((node) => node.getItems4Export())).then((items) => {
     return exportList(items.flat(), workspaceFolder, namespace);
   });
 }

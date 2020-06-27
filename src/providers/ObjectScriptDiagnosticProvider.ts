@@ -51,10 +51,7 @@ export class ObjectScriptDiagnosticProvider {
       );
       if (memberMatch) {
         const [fullMatch, type, name] = memberMatch;
-        const simpleType = type
-          .toLowerCase()
-          .replace("classmethod", "method")
-          .replace("relationship", "property");
+        const simpleType = type.toLowerCase().replace("classmethod", "method").replace("relationship", "property");
         const key = simpleType === "class" ? simpleType : [simpleType, name].join(":");
         if (map.has(key)) {
           const original = map.get(key);
@@ -85,13 +82,13 @@ export class ObjectScriptDiagnosticProvider {
     text = text.replace(/\/\/.*$/, "");
     text = text.replace(/#+;.*$/, "");
     text = text.replace(/;.*$/, "");
-    text = text.replace(/\/\*.*(?=\*\/)\*\//g, e => e.replace(/./g, " "));
+    text = text.replace(/\/\*.*(?=\*\/)\*\//g, (e) => e.replace(/./g, " "));
     return text;
   }
 
   /// replace value in double quotes by spaces
   private stripQuoted(text: string) {
-    return text.replace(/"([^"]*(?="")"")*[^"]*"/g, e => '"' + e.replace(/./g, " ").slice(2) + '"');
+    return text.replace(/"([^"]*(?="")"")*[^"]*"/g, (e) => '"' + e.replace(/./g, " ").slice(2) + '"');
   }
 
   private commands(document: vscode.TextDocument): vscode.Diagnostic[] {
@@ -182,7 +179,7 @@ export class ObjectScriptDiagnosticProvider {
         const [, found] = commandsMatch;
         const pos = line.text.indexOf(found);
         const range = new vscode.Range(new vscode.Position(i, pos), new vscode.Position(i, pos + found.length));
-        const command = commands.find(el => el.alias.includes(found.toUpperCase()));
+        const command = commands.find((el) => el.alias.includes(found.toUpperCase()));
         if (!command) {
           result.push({
             code: "",
@@ -250,7 +247,7 @@ export class ObjectScriptDiagnosticProvider {
           ...systemFunctions,
           ...systemVariables,
           ...structuredSystemVariables,
-        ].find(el => el.alias.includes(found.toUpperCase()));
+        ].find((el) => el.alias.includes(found.toUpperCase()));
         if (!systemFunction) {
           result.push({
             range,

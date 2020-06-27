@@ -13,9 +13,9 @@ export class XmlContentProvider implements vscode.TextDocumentContentProvider {
     // uri.query.
     return vscode.workspace
       .openTextDocument(vscode.Uri.file(uri.fragment))
-      .then(document => document.getText())
-      .then(text => this._api.cvtXmlUdl(text))
-      .then(data => data.result.content[0].content.join("\n"));
+      .then((document) => document.getText())
+      .then((text) => this._api.cvtXmlUdl(text))
+      .then((data) => data.result.content[0].content.join("\n"));
   }
 
   public get onDidChange(): vscode.Event<vscode.Uri> {

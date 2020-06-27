@@ -168,15 +168,15 @@ export class DocumentFormattingEditProvider implements vscode.DocumentFormatting
         // keep strings and comments
         const keepList = [];
         const restorePattern = [];
-        const toKeep = str => {
+        const toKeep = (str) => {
           keepList.push(str);
           restorePattern.push(String.fromCharCode(keepList.length));
           return String.fromCharCode(keepList.length);
         };
         // restore strings and comments back
-        const toRestore = code => keepList[code.charCodeAt(0) - 1] || code;
+        const toRestore = (code) => keepList[code.charCodeAt(0) - 1] || code;
         const formatCommand = (full, spaces, cmd) => {
-          const command = commands.find(el => el.alias.includes(cmd.toUpperCase()));
+          const command = commands.find((el) => el.alias.includes(cmd.toUpperCase()));
           if (command) {
             return spaces + this._formatter.command(command.label);
           }
@@ -237,7 +237,7 @@ export class DocumentFormattingEditProvider implements vscode.DocumentFormatting
         const pos = functionsMatch.index;
         const range = new vscode.Range(new vscode.Position(i, pos), new vscode.Position(i, pos + found.length));
         const list: any[] = isFunc ? systemFunctions : systemVariables;
-        const systemFunction = list.find(el => el.alias.includes(found.toUpperCase()));
+        const systemFunction = list.find((el) => el.alias.includes(found.toUpperCase()));
         if (systemFunction) {
           const expect = this._formatter.function(systemFunction.label);
           if (expect !== found) {

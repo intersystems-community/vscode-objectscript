@@ -34,14 +34,14 @@ export class ObjectScriptHoverProvider implements vscode.HoverProvider {
       const [dollars, value] = dollarsMatch;
       search = search.toUpperCase();
       if (dollars === "$$$") {
-        return this.macro(file.name, value).then(contents => ({
+        return this.macro(file.name, value).then((contents) => ({
           contents: [contents.join("")],
           range,
         }));
       } else if (dollars === "$" || dollars === "^$") {
-        let found = systemFunctions.find(el => el.label === search || el.alias.includes(search));
-        found = found || systemVariables.find(el => el.label === search || el.alias.includes(search));
-        found = found || structuredSystemVariables.find(el => el.label === search || el.alias.includes(search));
+        let found = systemFunctions.find((el) => el.label === search || el.alias.includes(search));
+        found = found || systemVariables.find((el) => el.label === search || el.alias.includes(search));
+        found = found || structuredSystemVariables.find((el) => el.label === search || el.alias.includes(search));
         if (found) {
           return {
             contents: [found.documentation.join(""), this.documentationLink(found.link)],
@@ -65,10 +65,10 @@ export class ObjectScriptHoverProvider implements vscode.HoverProvider {
     }
     return api
       .getmacrodefinition(fileName, macro, includes)
-      .then(data =>
+      .then((data) =>
         data.result.content.definition.map((line: string) => (line.match(/^\s*#def/) ? line : `#define ${line}`))
       )
-      .then(data => ["```objectscript\n", ...data, "\n```"]);
+      .then((data) => ["```objectscript\n", ...data, "\n```"]);
   }
 
   public commands(document: vscode.TextDocument, position: vscode.Position): vscode.ProviderResult<vscode.Hover> {
@@ -79,7 +79,7 @@ export class ObjectScriptHoverProvider implements vscode.HoverProvider {
     const commandMatch = text.match(/^\s+\b[a-z]+\b$/i);
     if (commandMatch) {
       const search = text.trim().toUpperCase();
-      const command = commands.find(el => el.label === search || el.alias.includes(search));
+      const command = commands.find((el) => el.label === search || el.alias.includes(search));
       if (search) {
         return {
           contents: [command.documentation.join(""), this.documentationLink(command.link)],

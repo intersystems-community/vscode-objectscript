@@ -85,7 +85,7 @@ export async function serverActions(): Promise<void> {
         placeHolder: `Select action for server ${connInfo}`,
       }
     )
-    .then(action => {
+    .then((action) => {
       if (!action) {
         return;
       }
