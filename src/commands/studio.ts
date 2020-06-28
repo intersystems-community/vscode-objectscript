@@ -21,6 +21,11 @@ export enum OtherStudioAction {
   FirstTimeDocumentSave = 7,
 }
 
+export enum StudioMenuType {
+  Main = "main",
+  Context = "context",
+}
+
 interface StudioAction extends vscode.QuickPickItem {
   name: string;
   id: string;
@@ -156,7 +161,7 @@ class StudioActions {
             });
         });
       case 3: // Run an EXE on the client.
-        throw new Error("Not suppoorted");
+        throw new Error("Not supported");
       case 4: {
         // Insert the text in Target in the current document at the current selection point
         const editor = vscode.window.activeTextEditor;
@@ -217,7 +222,7 @@ class StudioActions {
             };
           });
       default:
-        throw new Error("Not suppoorted");
+        throw new Error("Not supported");
     }
   }
 
@@ -270,9 +275,9 @@ class StudioActions {
     );
   }
 
-  private constructMenu(menu, contextMenu = false): any[] {
-    return menu
-      .filter((menuGroup) => !(contextMenu == (menuGroup.type === "main")))
+  private prepareMenuItems(menus, sourceControl: boolean): any[] {
+    return menus
+      .filter((menu) => sourceControl == (menu.id === "%SourceMenu" || menu.id === "%SourceContext"))
       .reduce(
         (list, sub) =>
           list.concat(
@@ -292,7 +297,7 @@ class StudioActions {
       );
   }
 
-  public getMenu(menuType: string, contextOnly = false): Thenable<any> {
+  public getMenu(menuType: StudioMenuType, sourceControl: boolean): Thenable<any> {
     let selectedText = "";
     const editor = vscode.window.activeTextEditor;
     if (this.uri && editor) {
@@ -306,11 +311,11 @@ class StudioActions {
     return this.api
       .actionQuery(query, parameters)
       .then((data) => data.result.content)
-      .then((menu) => this.constructMenu(menu, contextOnly))
+      .then((menus) => this.prepareMenuItems(menus, sourceControl))
       .then((menuItems) => {
         return vscode.window.showQuickPick<StudioAction>(menuItems, {
           canPickMany: false,
-          placeHolder: `Pick server-side action to perform${this.name ? " on " + this.name : ""}`,
+          placeHolder: `Pick server-side command to perform${this.name ? " on " + this.name : ""}`,
         });
       })
       .then((action) => this.userAction(action));
@@ -362,22 +367,38 @@ class StudioActions {
   }
 }
 
-export async function mainMenu(uri?: vscode.Uri): Promise<any> {
+export async function mainCommandMenu(uri?: vscode.Uri): Promise<any> {
+  return _mainMenu(false, uri);
+}
+
+export async function mainSourceControlMenu(uri?: vscode.Uri): Promise<any> {
+  return _mainMenu(true, uri);
+}
+
+async function _mainMenu(sourceControl: boolean, uri?: vscode.Uri): Promise<any> {
   uri = uri || vscode.window.activeTextEditor?.document.uri;
   if (uri && uri.scheme !== FILESYSTEM_SCHEMA) {
     return;
   }
   const studioActions = new StudioActions(uri);
-  return studioActions && studioActions.getMenu("");
+  return studioActions && studioActions.getMenu(StudioMenuType.Main, sourceControl);
 }
 
-export async function contextMenu(node: PackageNode | ClassNode | RoutineNode): Promise<any> {
+export async function contextCommandMenu(node: PackageNode | ClassNode | RoutineNode): Promise<any> {
+  return _contextMenu(false, node);
+}
+
+export async function contextSourceControlMenu(node: PackageNode | ClassNode | RoutineNode): Promise<any> {
+  return _contextMenu(true, node);
+}
+
+export async function _contextMenu(sourceControl: boolean, node: PackageNode | ClassNode | RoutineNode): Promise<any> {
   const nodeOrUri = node || vscode.window.activeTextEditor?.document.uri;
   if (!nodeOrUri || (nodeOrUri instanceof vscode.Uri && nodeOrUri.scheme !== FILESYSTEM_SCHEMA)) {
     return;
   }
   const studioActions = new StudioActions(nodeOrUri);
-  return studioActions && studioActions.getMenu("", true);
+  return studioActions && studioActions.getMenu(StudioMenuType.Context, sourceControl);
 }
 
 export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vscode.Uri): Promise<void> {

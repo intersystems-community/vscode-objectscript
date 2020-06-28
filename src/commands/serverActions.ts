@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { config, workspaceState, checkConnection, FILESYSTEM_SCHEMA } from "../extension";
 import { currentWorkspaceFolder, terminalWithDocker, currentFile } from "../utils";
-import { mainMenu } from "./studio";
+import { mainCommandMenu, mainSourceControlMenu } from "./studio";
 
 export async function serverActions(): Promise<void> {
   const { active, host, ns, https, port: defaultPort, username, password: defaultPassword, links } = config("conn");
@@ -49,9 +49,14 @@ export async function serverActions(): Promise<void> {
   const studio = [];
   if (!vscode.window.activeTextEditor || vscode.window.activeTextEditor.document.uri.scheme === FILESYSTEM_SCHEMA) {
     studio.push({
-      id: "studioAction",
+      id: "serverSourceControlMenu",
       label: "Server Source Control...",
       detail: "Pick server-side source control action",
+    });
+    studio.push({
+      id: "serverCommandMenu",
+      label: "Server Command Menu...",
+      detail: "Pick server-side command",
     });
   }
   return vscode.window
@@ -109,8 +114,12 @@ export async function serverActions(): Promise<void> {
           terminalWithDocker();
           break;
         }
-        case "studioAction": {
-          mainMenu();
+        case "serverSourceControlMenu": {
+          mainSourceControlMenu();
+          break;
+        }
+        case "serverCommandMenu": {
+          mainCommandMenu();
           break;
         }
         default: {

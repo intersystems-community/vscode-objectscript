@@ -25,11 +25,13 @@ import { superclass } from "./commands/superclass";
 import { viewOthers } from "./commands/viewOthers";
 import { xml2doc } from "./commands/xml2doc";
 import {
-  mainMenu,
-  contextMenu,
+  mainCommandMenu,
+  contextCommandMenu,
   documentBeingProcessed,
   fireOtherStudioAction,
   OtherStudioAction,
+  contextSourceControlMenu,
+  mainSourceControlMenu,
 } from "./commands/studio";
 
 import { getLanguageConfiguration } from "./languageConfiguration";
@@ -395,8 +397,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         });
     }),
     vscode.commands.registerCommand("vscode-objectscript.viewOthers", viewOthers),
-    vscode.commands.registerCommand("vscode-objectscript.studio.actions", mainMenu),
-    vscode.commands.registerCommand("vscode-objectscript.studio.contextActions", contextMenu),
+    vscode.commands.registerCommand("vscode-objectscript.serverCommands.sourceControl", mainSourceControlMenu),
+    vscode.commands.registerCommand(
+      "vscode-objectscript.serverCommands.contextSourceControl",
+      contextSourceControlMenu
+    ),
+    vscode.commands.registerCommand("vscode-objectscript.serverCommands.other", mainCommandMenu),
+    vscode.commands.registerCommand("vscode-objectscript.serverCommands.contextOther", contextCommandMenu),
     vscode.commands.registerCommand("vscode-objectscript.subclass", subclass),
     vscode.commands.registerCommand("vscode-objectscript.superclass", superclass),
     vscode.commands.registerCommand("vscode-objectscript.serverActions", serverActions),
