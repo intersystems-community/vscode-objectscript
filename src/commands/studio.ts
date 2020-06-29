@@ -243,36 +243,38 @@ class StudioActions {
         return new Promise((resolve) => {
           this.api
             .actionQuery(query, parameters)
-            .then(async data => {
-              if(action.save) {
+            .then(async (data) => {
+              if (action.save) {
                 await this.processSaveFlag(action.save);
               }
-              if(!afterUserAction) {
+              if (!afterUserAction) {
                 outputConsole(data.console);
               }
               const actionToProcess = data.result.content.pop();
 
               // CSP pages should not have a progress bar
-              if(actionToProcess.action === 2) {
+              if (actionToProcess.action === 2) {
                 resolve();
               }
               return actionToProcess;
             })
             .then(this.processUserAction)
-            .then(answer => {
+            .then((answer) => {
               if (answer) {
-                return (answer.msg || answer.msg === "")
+                return answer.msg || answer.msg === ""
                   ? this.userAction(action, true, answer.answer, answer.msg, type)
                   : this.userAction(action, true, answer, "", type);
               }
-            }).then(() => resolve())
-            .catch(err => {
+            })
+            .then(() => resolve())
+            .catch((err) => {
               console.log(err);
               outputChannel.appendLine(`Studio Action "${action.label}" not supported`);
               outputChannel.show();
-            })
+            });
         });
-      });
+      }
+    );
   }
 
   private constructMenu(menu, contextOnly = false): any[] {
