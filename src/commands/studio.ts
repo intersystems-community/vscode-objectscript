@@ -27,8 +27,8 @@ export enum StudioMenuType {
 }
 
 interface StudioAction extends vscode.QuickPickItem {
-  name: string;
   id: string;
+  save: number;
 }
 
 function getOtherStudioActionLabel(action: OtherStudioAction): string {
@@ -227,7 +227,7 @@ class StudioActions {
   }
 
   private userAction(action, afterUserAction = false, answer = "", msg = "", type = 0): Thenable<void> {
-    if (!action) {
+    if (!action || action.id == "") {
       return;
     }
     const func = afterUserAction ? "AfterUserAction(?, ?, ?, ?, ?)" : "UserAction(?, ?, ?, ?)";
@@ -275,29 +275,36 @@ class StudioActions {
     );
   }
 
-  private prepareMenuItems(menus, sourceControl: boolean): any[] {
+  private prepareMenuItems(menus, sourceControl: boolean): StudioAction[] {
     return menus
       .filter((menu) => sourceControl == (menu.id === "%SourceMenu" || menu.id === "%SourceContext"))
       .reduce(
         (list, sub) =>
           list.concat(
             sub.items
-              .filter((el) => el.id !== "" && el.separator == 0)
-              .filter((el) => el.enabled == 1)
-              .map((el) => ({
-                ...el,
-                id: `${sub.id},${el.id}`,
-                label: el.name.replace("&", ""),
-                itemId: el.id,
-                type: sub.type,
-                description: sub.name.replace("&", ""),
-              }))
+              .filter((el) => el.id !== "")
+              .filter((el) => el.separator == 1 || el.enabled == 1)
+              .map((el) =>
+                el.separator == 1
+                  ? {
+                      label: "",
+                      description: "---",
+                      id: "",
+                      save: 0,
+                    }
+                  : {
+                      label: el.name.replace("&", ""),
+                      description: sub.name.replace("&", ""),
+                      id: `${sub.id},${el.id}`,
+                      save: el.save,
+                    }
+              )
           ),
         []
       );
   }
 
-  public getMenu(menuType: StudioMenuType, sourceControl: boolean): Thenable<any> {
+  public getMenu(menuType: StudioMenuType, sourceControl: boolean): Thenable<void> {
     let selectedText = "";
     const editor = vscode.window.activeTextEditor;
     if (this.uri && editor) {
@@ -367,15 +374,15 @@ class StudioActions {
   }
 }
 
-export async function mainCommandMenu(uri?: vscode.Uri): Promise<any> {
+export async function mainCommandMenu(uri?: vscode.Uri): Promise<void> {
   return _mainMenu(false, uri);
 }
 
-export async function mainSourceControlMenu(uri?: vscode.Uri): Promise<any> {
+export async function mainSourceControlMenu(uri?: vscode.Uri): Promise<void> {
   return _mainMenu(true, uri);
 }
 
-async function _mainMenu(sourceControl: boolean, uri?: vscode.Uri): Promise<any> {
+async function _mainMenu(sourceControl: boolean, uri?: vscode.Uri): Promise<void> {
   uri = uri || vscode.window.activeTextEditor?.document.uri;
   if (uri && uri.scheme !== FILESYSTEM_SCHEMA) {
     return;
@@ -384,15 +391,15 @@ async function _mainMenu(sourceControl: boolean, uri?: vscode.Uri): Promise<any>
   return studioActions && studioActions.getMenu(StudioMenuType.Main, sourceControl);
 }
 
-export async function contextCommandMenu(node: PackageNode | ClassNode | RoutineNode): Promise<any> {
+export async function contextCommandMenu(node: PackageNode | ClassNode | RoutineNode): Promise<void> {
   return _contextMenu(false, node);
 }
 
-export async function contextSourceControlMenu(node: PackageNode | ClassNode | RoutineNode): Promise<any> {
+export async function contextSourceControlMenu(node: PackageNode | ClassNode | RoutineNode): Promise<void> {
   return _contextMenu(true, node);
 }
 
-export async function _contextMenu(sourceControl: boolean, node: PackageNode | ClassNode | RoutineNode): Promise<any> {
+export async function _contextMenu(sourceControl: boolean, node: PackageNode | ClassNode | RoutineNode): Promise<void> {
   const nodeOrUri = node || vscode.window.activeTextEditor?.document.uri;
   if (!nodeOrUri || (nodeOrUri instanceof vscode.Uri && nodeOrUri.scheme !== FILESYSTEM_SCHEMA)) {
     return;
