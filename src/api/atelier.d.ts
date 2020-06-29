@@ -7,19 +7,31 @@ interface ResponseStatus {
   summary: string;
 }
 
-interface ResponseResult<T> {
+interface Content<T> {
   content: T;
 }
 
 export interface Response<T = any> {
   status: ResponseStatus;
   console: string[];
-  result: ResponseResult<T>;
+  result: T;
 }
 
 interface ServerInfoFeature {
   name: string;
   enabled: string;
+}
+
+export interface Document {
+  name: string;
+  db: string;
+  ts: string;
+  upd: boolean;
+  cat: "RTN" | "CLS" | "CSP" | "OTH";
+  status: string;
+  enc: boolean;
+  flags: number;
+  content: string[];
 }
 
 export interface ServerInfo {
@@ -30,7 +42,7 @@ export interface ServerInfo {
   namespaces: string[];
 }
 
-export interface AtelierSearchMatch {
+export interface SearchMatch {
   text: string;
   line?: number;
   member?: string;
@@ -38,9 +50,9 @@ export interface AtelierSearchMatch {
   attrline?: number;
 }
 
-export interface AtelierSearchResult {
+export interface SearchResult {
   doc: string;
-  matches: AtelierSearchMatch[];
+  matches: SearchMatch[];
 }
 
 export interface AtelierJob {
@@ -49,4 +61,10 @@ export interface AtelierJob {
   routine: string;
   state: string;
   device: string;
+}
+
+export interface DeleteStatus {
+  name: string;
+  db: string;
+  status: string;
 }

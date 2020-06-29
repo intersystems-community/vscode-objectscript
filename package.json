@@ -509,7 +509,7 @@
           "scope": "resource",
           "additionalProperties": false,
           "default": {
-            "active": true,
+            "active": false,
             "host": "localhost",
             "port": 52773,
             "ns": "USER"
@@ -520,7 +520,8 @@
           "properties": {
             "active": {
               "type": "boolean",
-              "description": "This connection is active"
+              "description": "This connection is active",
+              "default": false
             },
             "server": {
               "type": "string",

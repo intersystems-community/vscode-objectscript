@@ -129,7 +129,7 @@ export class AtelierAPI {
 
   private setConnection(workspaceFolderName: string, namespace?: string): void {
     let serverName;
-    if (config(`intersystems.servers.${workspaceFolderName}.webServer`)) {
+    if (config(`intersystems.servers.${workspaceFolderName}`)) {
       serverName = workspaceFolderName;
       workspaceFolderName = currentWorkspaceFolder();
     }
@@ -139,10 +139,11 @@ export class AtelierAPI {
     }
 
     if (serverName && serverName.length) {
-      const { scheme, host, port, username, password, pathPrefix } = config(
-        `intersystems.servers.${serverName}.webServer`,
-        workspaceFolderName
-      );
+      const {
+        webServer: { scheme, host, port, pathPrefix },
+        username,
+        password,
+      } = config(`intersystems.servers.${serverName}`, workspaceFolderName);
       this._config = {
         active: conn.active,
         apiVersion: 1,
@@ -308,7 +309,7 @@ export class AtelierAPI {
     });
   }
 
-  public serverInfo(): Promise<Atelier.Response<Atelier.ServerInfo>> {
+  public serverInfo(): Promise<Atelier.Response<Atelier.Content<Atelier.ServerInfo>>> {
     return this.request(0, "GET").then((info) => {
       if (info && info.result && info.result.content && info.result.content.api > 0) {
         const data = info.result.content;
@@ -339,7 +340,7 @@ export class AtelierAPI {
     category?: string;
     type?: string;
     filter?: string;
-  }): Promise<any> {
+  }): Promise<Atelier.Response> {
     return this.request(1, "GET", `${this.ns}/docnames/${category}/${type}`, null, {
       filter,
       generated,
@@ -347,7 +348,7 @@ export class AtelierAPI {
   }
 
   // api v1+
-  public getDoc(name: string, format?: string): Promise<any> {
+  public getDoc(name: string, format?: string): Promise<Atelier.Response> {
     let params = {};
     if (format) {
       params = {
@@ -359,12 +360,16 @@ export class AtelierAPI {
   }
 
   // api v1+
-  public deleteDoc(name: string): Promise<any> {
+  public deleteDoc(name: string): Promise<Atelier.Response<Atelier.Document>> {
     return this.request(1, "DELETE", `${this.ns}/doc/${name}`);
   }
 
   // v1+
-  public putDoc(name: string, data: { enc: boolean; content: string[] }, ignoreConflict?: boolean): Promise<any> {
+  public putDoc(
+    name: string,
+    data: { enc: boolean; content: string[] },
+    ignoreConflict?: boolean
+  ): Promise<Atelier.Response> {
     const params = { ignoreConflict };
     name = this.transformNameIfCsp(name);
     return this.request(1, "PUT", `${this.ns}/doc/${name}`, data, params);
@@ -386,7 +391,7 @@ export class AtelierAPI {
     case?: boolean;
     wild?: boolean;
     word?: boolean;
-  }): Promise<any> {
+  }): Promise<Atelier.Response<Atelier.SearchResult[]>> {
     params = {
       files: "*.cls,*.mac,*.int,*.inc",
       gen: false,
@@ -419,12 +424,12 @@ export class AtelierAPI {
     });
   }
 
-  public cvtXmlUdl(source: string): Promise<any> {
+  public cvtXmlUdl(source: string): Promise<Atelier.Response> {
     return this.request(1, "POST", `${this.ns}/`, source, {}, { "Content-Type": "application/xml" });
   }
 
   // v2+
-  public getmacrodefinition(docname: string, macroname: string, includes: string[]): Promise<any> {
+  public getmacrodefinition(docname: string, macroname: string, includes: string[]): Promise<Atelier.Response> {
     return this.request(2, "POST", `${this.ns}/action/getmacrodefinition`, {
       docname,
       includes,
