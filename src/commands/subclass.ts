@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { config } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { currentFile } from "../utils";
 import { ClassDefinition } from "../utils/classDefinition";
@@ -11,7 +10,8 @@ export async function subclass(): Promise<void> {
     return;
   }
   const className = file.name.split(".").slice(0, -1).join(".");
-  if (!config("conn").active) {
+  const api = new AtelierAPI();
+  if (!api.active) {
     return;
   }
 
@@ -20,7 +20,6 @@ export async function subclass(): Promise<void> {
     vscode.window.showTextDocument(uri);
   };
 
-  const api = new AtelierAPI();
   return api
     .actionQuery("CALL %Dictionary.ClassDefinitionQuery_SubclassOf(?)", [className])
     .then((data) => {

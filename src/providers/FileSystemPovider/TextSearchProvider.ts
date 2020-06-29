@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { AtelierSearchResult, AtelierSearchMatch } from "../../atelier";
+import { AtelierSearchResult, AtelierSearchMatch } from "../../api/atelier";
 import { AtelierAPI } from "../../api";
 import { DocumentContentProvider } from "../DocumentContentProvider";
 

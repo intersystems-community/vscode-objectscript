@@ -224,7 +224,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const { query } = url.parse(decodeURIComponent(uri.toString()), true);
     const csp = query.csp === "" || query.csp === "1";
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
-    if (fileName.startsWith(".")) {
+    if (!csp && !fileName.match(/\.(cls|mac|int|inc|dfi|bpl)$/i)) {
       throw vscode.FileSystemError.FileNotFound();
     }
     const name = path.basename(uri.path);

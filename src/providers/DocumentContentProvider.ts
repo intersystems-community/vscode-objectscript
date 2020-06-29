@@ -79,7 +79,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
 
   public provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
     const fileName = uri.path.split("/").slice(1).join(".");
-    const api = new AtelierAPI();
+    const api = new AtelierAPI(uri);
     const query = url.parse(decodeURIComponent(uri.toString()), true).query;
     if (query) {
       if (query.ns && query.ns !== "") {
@@ -87,7 +87,6 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
         api.setNamespace(namespace);
       }
     }
-    api.setConnection(uri.authority);
     return api.getDoc(fileName).then((data) => {
       return data.result.content.join("\n");
     });

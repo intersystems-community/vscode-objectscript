@@ -127,13 +127,14 @@ export function workspaceFolderUri(workspaceFolder: string = currentWorkspaceFol
   ).uri;
 }
 
-export function onlyUnique(value: any, index: number, self: any): boolean {
+export function onlyUnique(value: { name: string }, index: number, self: { name: string }[]): boolean {
   if (value && value.name) {
     return self.findIndex((el): boolean => el.name === value.name) === index;
   }
   return self.indexOf(value) === index;
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function notNull(el: any): boolean {
   return el !== null;
 }

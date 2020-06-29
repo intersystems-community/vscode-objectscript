@@ -2,7 +2,7 @@ export const extensionId = "daimor.vscode-objectscript";
 
 import vscode = require("vscode");
 
-import { AtelierJob } from "./atelier";
+import { AtelierJob } from "./api/atelier";
 const { workspace, window } = vscode;
 export const OBJECTSCRIPT_FILE_SCHEMA = "objectscript";
 export const OBJECTSCRIPTXML_FILE_SCHEMA = "objectscriptxml";
@@ -83,6 +83,13 @@ const aiKey = packageJson.aiKey;
 
 export const config = (setting?: string, workspaceFolderName?: string): any => {
   workspaceFolderName = workspaceFolderName || currentWorkspaceFolder();
+  let prefix;
+  if (setting.startsWith("intersystems.")) {
+    prefix = "intersystems";
+    setting = setting.split(".").slice(1).join(".");
+  } else {
+    prefix = "objectscript";
+  }
 
   if (["conn", "export"].includes(setting)) {
     if (workspaceFolderName && workspaceFolderName !== "") {
@@ -108,15 +115,15 @@ export const config = (setting?: string, workspaceFolderName?: string): any => {
       const workspaceFolder = vscode.workspace.workspaceFolders.find(
         (el) => el.name.toLowerCase() === workspaceFolderName.toLowerCase()
       );
-      return vscode.workspace.getConfiguration("objectscript", workspaceFolder.uri).get(setting);
+      return vscode.workspace.getConfiguration(prefix, workspaceFolder.uri).get(setting);
     } else {
-      return vscode.workspace.getConfiguration("objectscript", null).get(setting);
+      return vscode.workspace.getConfiguration(prefix, null).get(setting);
     }
   }
   if (setting && setting !== "") {
-    return vscode.workspace.getConfiguration("objectscript").get(setting);
+    return vscode.workspace.getConfiguration(prefix).get(setting);
   }
-  return vscode.workspace.getConfiguration("objectscript");
+  return vscode.workspace.getConfiguration(prefix);
 };
 
 export function getXmlUri(uri: vscode.Uri): vscode.Uri {
@@ -133,31 +140,30 @@ let reporter: TelemetryReporter;
 let connectionSocket: WebSocket;
 
 export const checkConnection = (clearCookies = false): void => {
-  const conn = config("conn");
-  let connInfo = `${conn.host}:${conn.port}[${conn.ns}]`;
+  const api = new AtelierAPI(currentWorkspaceFolder());
+  const { active, host, port, ns } = api.config;
+  let connInfo = `${host}:${port}[${ns}]`;
   panel.text = connInfo;
   panel.tooltip = "";
-  vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", conn.active);
-  if (!conn.active) {
+  vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
+  if (!active) {
     panel.text = `${connInfo} - Disabled`;
     return;
   }
   workspaceState.update(currentWorkspaceFolder() + ":port", undefined);
   const { port: dockerPort, docker: withDocker } = portFromDockerCompose();
-  workspaceState.update(currentWorkspaceFolder() + ":docker", withDocker);
   if (withDocker) {
+    workspaceState.update(currentWorkspaceFolder() + ":docker", withDocker);
     terminalWithDocker();
-    if (dockerPort !== conn.port) {
+    if (dockerPort !== port) {
       workspaceState.update(currentWorkspaceFolder() + ":port", dockerPort);
     }
-    connInfo = `${conn.host}:${dockerPort}[${conn.ns}]`;
+    connInfo = `${host}:${dockerPort}[${ns}]`;
   }
 
-  const api = new AtelierAPI(currentWorkspaceFolder());
   if (clearCookies) {
     api.clearCookies();
-  }
-  if (connectionSocket && connectionSocket.url == api.xdebugUrl() && connectionSocket.OPEN) {
+  } else if (connectionSocket && connectionSocket.url == api.xdebugUrl() && connectionSocket.OPEN) {
     return;
   }
   api

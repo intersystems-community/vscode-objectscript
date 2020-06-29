@@ -9,15 +9,44 @@ import { currentWorkspaceFolder, outputConsole, outputChannel } from "../utils";
 
 const DEFAULT_API_VERSION = 1;
 // require("request-promise").debug = true;
+import * as Atelier from "./atelier";
+
+export interface ConnectionSettings {
+  active: boolean;
+  apiVersion: number;
+  https: boolean;
+  host: string;
+  port: number;
+  pathPrefix: string;
+  ns: string;
+  username: string;
+  password: string;
+}
 
 export class AtelierAPI {
-  private config: any;
+  private _config: ConnectionSettings;
   private namespace: string;
   private cache;
   private workspaceFolder;
 
   public get ns(): string {
-    return this.namespace || this.config.ns;
+    return this.namespace || this._config.ns;
+  }
+
+  public get config(): ConnectionSettings {
+    const { active, apiVersion, https, host, port, pathPrefix, username, password } = this._config;
+    const ns = this.namespace || this._config.ns;
+    return {
+      active,
+      apiVersion,
+      https,
+      host,
+      port,
+      pathPrefix,
+      ns,
+      username,
+      password,
+    };
   }
 
   private get iris(): boolean {
@@ -36,6 +65,7 @@ export class AtelierAPI {
 
   public constructor(wsOrFile?: string | vscode.Uri) {
     let workspaceFolderName = "";
+    let namespace;
     if (wsOrFile) {
       if (wsOrFile instanceof vscode.Uri) {
         if (wsOrFile.scheme === FILESYSTEM_SCHEMA) {
@@ -43,8 +73,7 @@ export class AtelierAPI {
           const { query } = url.parse(decodeURIComponent(wsOrFile.toString()), true);
           if (query) {
             if (query.ns && query.ns !== "") {
-              const namespace = query.ns.toString();
-              this.setNamespace(namespace);
+              namespace = query.ns.toString();
             }
           }
         }
@@ -52,15 +81,19 @@ export class AtelierAPI {
         workspaceFolderName = wsOrFile;
       }
     }
-    this.setConnection(workspaceFolderName || currentWorkspaceFolder());
+    this.setConnection(workspaceFolderName || currentWorkspaceFolder(), namespace);
   }
 
   public get enabled(): boolean {
-    return this.config.active;
+    return this._config.active;
   }
 
-  public setNamespace(namespace: string) {
+  public setNamespace(namespace: string): void {
     this.namespace = namespace;
+  }
+
+  public get active(): boolean {
+    return !!this._config.active;
   }
 
   private get cookies(): string[] {
@@ -72,7 +105,7 @@ export class AtelierAPI {
   }
 
   public xdebugUrl(): string {
-    const { host, username, https, port, password, apiVersion } = this.config;
+    const { host, username, https, port, password, apiVersion } = this._config;
     const proto = https ? "wss" : "ws";
     const auth = this.iris
       ? `IRISUsername=${username}&IRISPassword=${password}`
@@ -94,27 +127,65 @@ export class AtelierAPI {
     return this.cache.put("cookies", cookies);
   }
 
-  public setConnection(workspaceFolderName: string) {
-    this.workspaceFolder = workspaceFolderName;
+  private setConnection(workspaceFolderName: string, namespace?: string): void {
+    let serverName;
+    if (config(`intersystems.servers.${workspaceFolderName}.webServer`)) {
+      serverName = workspaceFolderName;
+      workspaceFolderName = currentWorkspaceFolder();
+    }
     const conn = config("conn", workspaceFolderName);
-    this.config = conn;
-    this.config.port = workspaceState.get(this.workspaceFolder + ":port", this.config.port);
-    this.config.password = workspaceState.get(this.workspaceFolder + ":password", this.config.password);
-    this.config.apiVersion = workspaceState.get(this.workspaceFolder + ":apiVersion", DEFAULT_API_VERSION);
+    if (!serverName && conn.server) {
+      serverName = conn.server;
+    }
 
-    const { name, host, port } = this.config;
-    this.cache = new Cache(extensionContext, `API:${name}:${host}:${port}`);
+    if (serverName && serverName.length) {
+      const { scheme, host, port, username, password, pathPrefix } = config(
+        `intersystems.servers.${serverName}.webServer`,
+        workspaceFolderName
+      );
+      this._config = {
+        active: conn.active,
+        apiVersion: 1,
+        https: scheme === "https",
+        ns: namespace || conn.ns,
+        host,
+        port,
+        username,
+        password,
+        pathPrefix,
+      };
+    } else {
+      this._config = conn;
+      this._config.port = workspaceState.get(workspaceFolderName + ":port", this._config.port);
+    }
+    this._config.password = workspaceState.get(workspaceFolderName + ":password", this._config.password);
+    this._config.apiVersion = workspaceState.get(workspaceFolderName + ":apiVersion", DEFAULT_API_VERSION);
+
+    this.workspaceFolder = workspaceFolderName;
+    const { host, port } = this._config;
+    this.cache = new Cache(extensionContext, `API:${host}:${port}`);
   }
 
   public async request(
     minVersion: number,
     method: string,
     path?: string,
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     body?: any,
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     params?: any,
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     headers?: any
   ): Promise<any> {
-    const { active, apiVersion, host, username, https, port, password } = this.config;
+    const {
+      active = false,
+      apiVersion = 1,
+      host = "localhost",
+      port = 52773,
+      username = "_SYSTEM",
+      password = "SYS",
+      https = false,
+    } = this._config;
     if (!active) {
       return Promise.reject();
     }
@@ -149,14 +220,20 @@ export class AtelierAPI {
     }
     headers["Cache-Control"] = "no-cache";
 
-    const proto = this.config.https ? "https" : "http";
-    const http: any = this.config.https ? httpsModule : httpModule;
+    const proto = this._config.https ? "https" : "http";
+    const http: any = this._config.https ? httpsModule : httpModule;
     const agent = new http.Agent({
       keepAlive: true,
       maxSockets: 10,
       rejectUnauthorized: https && config("http.proxyStrictSSL"),
     });
-    path = encodeURI(`/api/atelier/${path || ""}${buildParams()}`);
+
+    let pathPrefix = this._config.pathPrefix || "";
+    if (pathPrefix.length && !pathPrefix.startsWith("/")) {
+      pathPrefix = "/" + pathPrefix;
+    }
+
+    path = encodeURI(`${pathPrefix}/api/atelier/${path || ""}${buildParams()}`);
 
     const cookies = this.cookies;
     let auth;
@@ -170,7 +247,7 @@ export class AtelierAPI {
       return (
         request({
           agent,
-          auth: { username, password, sendImmediately: true },
+          auth: { user: username, pass: password, sendImmediately: true },
           body: ["PUT", "POST"].includes(method) ? body : null,
           headers: {
             ...headers,
@@ -231,7 +308,7 @@ export class AtelierAPI {
     });
   }
 
-  public serverInfo(): Promise<any> {
+  public serverInfo(): Promise<Atelier.Response<Atelier.ServerInfo>> {
     return this.request(0, "GET").then((info) => {
       if (info && info.result && info.result.content && info.result.content.api > 0) {
         const data = info.result.content;
@@ -250,6 +327,7 @@ export class AtelierAPI {
       }
     });
   }
+
   // api v1+
   public getDocNames({
     generated = false,
@@ -267,6 +345,7 @@ export class AtelierAPI {
       generated,
     });
   }
+
   // api v1+
   public getDoc(name: string, format?: string): Promise<any> {
     let params = {};
@@ -278,20 +357,24 @@ export class AtelierAPI {
     name = this.transformNameIfCsp(name);
     return this.request(1, "GET", `${this.ns}/doc/${name}`, params);
   }
+
   // api v1+
   public deleteDoc(name: string): Promise<any> {
     return this.request(1, "DELETE", `${this.ns}/doc/${name}`);
   }
+
   // v1+
   public putDoc(name: string, data: { enc: boolean; content: string[] }, ignoreConflict?: boolean): Promise<any> {
     const params = { ignoreConflict };
     name = this.transformNameIfCsp(name);
     return this.request(1, "PUT", `${this.ns}/doc/${name}`, data, params);
   }
+
   // v1+
-  public actionIndex(docs: string[]): Promise<any> {
+  public actionIndex(docs: string[]): Promise<Atelier.Response> {
     return this.request(1, "POST", `${this.ns}/action/index`, docs);
   }
+
   // v2+
   public actionSearch(params: {
     query: string;
@@ -316,8 +399,9 @@ export class AtelierAPI {
     };
     return this.request(2, "GET", `${this.ns}/action/search`, null, params);
   }
+
   // v1+
-  public actionQuery(query: string, parameters: string[]): Promise<any> {
+  public actionQuery(query: string, parameters: string[]): Promise<Atelier.Response> {
     // outputChannel.appendLine('SQL: ' + query);
     // outputChannel.appendLine('SQLPARAMS: ' + JSON.stringify(parameters));
     return this.request(1, "POST", `${this.ns}/action/query`, {
@@ -325,8 +409,9 @@ export class AtelierAPI {
       query,
     });
   }
+
   // v1+
-  public actionCompile(docs: string[], flags?: string, source = false): Promise<any> {
+  public actionCompile(docs: string[], flags?: string, source = false): Promise<Atelier.Response> {
     docs = docs.map((doc) => this.transformNameIfCsp(doc));
     return this.request(1, "POST", `${this.ns}/action/compile`, docs, {
       flags,
@@ -337,31 +422,35 @@ export class AtelierAPI {
   public cvtXmlUdl(source: string): Promise<any> {
     return this.request(1, "POST", `${this.ns}/`, source, {}, { "Content-Type": "application/xml" });
   }
+
   // v2+
-  public getmacrodefinition(docname: string, macroname: string, includes: string[]) {
+  public getmacrodefinition(docname: string, macroname: string, includes: string[]): Promise<any> {
     return this.request(2, "POST", `${this.ns}/action/getmacrodefinition`, {
       docname,
       includes,
       macroname,
     });
   }
+
   // v2+
-  public getmacrolocation(docname: string, macroname: string, includes: string[]) {
+  public getmacrolocation(docname: string, macroname: string, includes: string[]): Promise<Atelier.Response> {
     return this.request(2, "POST", `${this.ns}/action/getmacrolocation`, {
       docname,
       includes,
       macroname,
     });
   }
+
   // v2+
-  public getmacrollist(docname: string, includes: string[]) {
+  public getmacrollist(docname: string, includes: string[]): Promise<Atelier.Response> {
     return this.request(2, "POST", `${this.ns}/action/getmacrolist`, {
       docname,
       includes,
     });
   }
+
   // v1+
-  public getJobs(system: boolean) {
+  public getJobs(system: boolean): Promise<Atelier.Response> {
     const params = {
       system,
     };

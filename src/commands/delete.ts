@@ -15,8 +15,7 @@ function deleteList(items: string[], workspaceFolder: string): Promise<any> {
     vscode.window.showWarningMessage("Nothing to export");
   }
 
-  const api = new AtelierAPI();
-  api.setConnection(workspaceFolder);
+  const api = new AtelierAPI(workspaceFolder);
   return Promise.all(items.map((item) => api.deleteDoc(item))).then((files) => {
     files.forEach((file) => {
       if (file.result.ext) {
