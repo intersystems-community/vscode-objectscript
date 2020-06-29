@@ -24,10 +24,6 @@ function deleteList(items: string[], workspaceFolder: string): Promise<any> {
       }
     });
     outputChannel.appendLine(`Deleted items: ${files.filter((el) => el.result).length}`);
-    const failed = files.filter((el) => !el.result).map((el) => `${el.file} - ${el.error}`);
-    if (files.find((el) => !el.result)) {
-      outputChannel.appendLine(`Items failed to delete: \n${failed.join("\n")}`);
-    }
   });
 }
 
