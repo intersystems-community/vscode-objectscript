@@ -24,7 +24,7 @@ export class AtelierAPI {
     return workspaceState.get(this.workspaceFolder + ":iris", false);
   }
 
-  private formatCspName(filename: string): string {
+  private transformNameIfCsp(filename: string): string {
     // If a CSP file, change from
     // \csp\user\... to
     // csp/user/...
@@ -278,7 +278,7 @@ export class AtelierAPI {
         format,
       };
     }
-    name = this.formatCspName(name);
+    name = this.transformNameIfCsp(name);
     return this.request(1, "GET", `${this.ns}/doc/${name}`, params);
   }
   // api v1+
@@ -288,7 +288,7 @@ export class AtelierAPI {
   // v1+
   public putDoc(name: string, data: { enc: boolean; content: string[] }, ignoreConflict?: boolean): Promise<any> {
     const params = { ignoreConflict };
-    name = this.formatCspName(name);
+    name = this.transformNameIfCsp(name);
     return this.request(1, "PUT", `${this.ns}/doc/${name}`, data, params);
   }
   // v1+
@@ -330,7 +330,7 @@ export class AtelierAPI {
   }
   // v1+
   public actionCompile(docs: string[], flags?: string, source = false): Promise<any> {
-    docs = docs.map((doc) => this.formatCspName(doc));
+    docs = docs.map((doc) => this.transformNameIfCsp(doc));
     return this.request(1, "POST", `${this.ns}/action/compile`, docs, {
       flags,
       source,
