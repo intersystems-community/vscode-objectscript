@@ -62,7 +62,7 @@ export class RootNode extends NodeBase {
       case "CSP":
         spec = "*";
         break;
-      case "OTHER":
+      case "OTH":
         spec = "*";
         break;
       default:
@@ -105,7 +105,7 @@ export class RootNode extends NodeBase {
     return this.getList(path, category, false).then((data) =>
       data
         .filter((el) => {
-          if (category === "OTHER") {
+          if (category === "OTH") {
             return el.Type === "100";
           } else if (category === "CSP") {
             return el.Type === "10" || el.Type === "5";
@@ -115,11 +115,11 @@ export class RootNode extends NodeBase {
         })
         .map((el) => {
           switch (el.Type) {
-            case "5":
             case "9":
-            case "100":
               return new PackageNode(el.Name, el.fullName, category, this.options);
             case "4":
+            case "5":
+            case "100":
               return new ClassNode(el.Name, el.fullName, this.options);
             case "0":
             case "1":

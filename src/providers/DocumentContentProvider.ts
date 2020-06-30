@@ -61,7 +61,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
         });
       }
     }
-    const isCsp = name.split("/")[0] === "csp";
+    const isCsp = name.includes("/");
     if (namespace && namespace !== "") {
       if (isCsp) {
         uri = uri.with({
