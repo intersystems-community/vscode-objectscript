@@ -53,7 +53,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
     if (match) {
       [, name, ext = "cls"] = match;
     }
-  } else if (fileExt === "mac" || fileExt === "int" || fileExt === "inc") {
+  } else if (fileExt.match(/(mac|int|inc)/i)) {
     const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i);
     if (match) {
       [, name, ext = "mac"] = match;

@@ -115,7 +115,9 @@ export class RootNode extends NodeBase {
         })
         .map((el) => {
           switch (el.Type) {
+            case "5":
             case "9":
+            case "100":
               return new PackageNode(el.Name, el.fullName, category, this.options);
             case "4":
               return new ClassNode(el.Name, el.fullName, this.options);
@@ -125,12 +127,8 @@ export class RootNode extends NodeBase {
             case "3":
             case "11":
               return new RoutineNode(el.Name, el.fullName, this.options);
-            case "100":
-              return new ClassNode(el.Name, el.fullName, this.options);
             case "10":
               return new RootNode(el.Name, el.fullName, "dataNode:CSPApplication", this._category, this.options, true);
-            case "5":
-              return new ClassNode(el.Name, el.fullName, this.options);
             default:
               return null;
           }
