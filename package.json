@@ -128,8 +128,20 @@
           "when": "false"
         },
         {
-          "command": "vscode-objectscript.studio.actions",
-          "when": "vscode-objectscript.connectActive && resourceScheme == isfs"
+          "command": "vscode-objectscript.serverCommands.sourceControl",
+          "when": "vscode-objectscript.connectActive && resourceScheme == isfs || vscode-objectscript.connectActive && !editorIsOpen"
+        },
+        {
+          "command": "vscode-objectscript.serverCommands.contextSourceControl",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.serverCommands.other",
+          "when": "vscode-objectscript.connectActive && resourceScheme == isfs || vscode-objectscript.connectActive && !editorIsOpen"
+        },
+        {
+          "command": "vscode-objectscript.serverCommands.contextOther",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -157,7 +169,11 @@
           "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
         },
         {
-          "command": "vscode-objectscript.studio.contextActions",
+          "command": "vscode-objectscript.serverCommands.contextSourceControl",
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
+        },
+        {
+          "command": "vscode-objectscript.serverCommands.contextOther",
           "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
         },
         {
@@ -182,20 +198,42 @@
       "editor/context": [
         {
           "command": "vscode-objectscript.viewOthers",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "group": "objectscript@1"
         },
         {
           "command": "vscode-objectscript.compile",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
-        },
-        {
-          "command": "vscode-objectscript.studio.actions",
-          "when": "resourceScheme == isfs && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "group": "objectscript@2"
         },
         {
           "command": "vscode-objectscript.previewXml",
-          "when": "editorLangId =~ /^xml/"
+          "when": "editorLangId =~ /^xml/",
+          "group": "objectscript@3"
+        },
+        {
+          "command": "vscode-objectscript.serverCommands.contextSourceControl",
+          "when": "resourceScheme == isfs && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "group": "objectscript@4"
+        },
+        {
+          "command": "vscode-objectscript.serverCommands.contextOther",
+          "when": "resourceScheme == isfs && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "group": "objectscript@5"
         }
+      ],
+      "editor/title": [
+        {
+          "command": "vscode-objectscript.serverCommands.sourceControl",
+          "group": "navigation@1",
+          "when": "vscode-objectscript.connectActive && resourceScheme == isfs"
+        },
+        {
+          "command": "vscode-objectscript.serverCommands.other",
+          "group": "navigation@2",
+          "when": "vscode-objectscript.connectActive && resourceScheme == isfs"
+        }
+
       ],
       "touchBar": [
         {
@@ -212,11 +250,18 @@
       "explorer/context": [
         {
           "command": "vscode-objectscript.compileFolder",
-          "when": "vscode-objectscript.connectActive"
+          "when": "vscode-objectscript.connectActive",
+          "group": "objectscript@1"
         },
         {
-          "command": "vscode-objectscript.studio.actions",
-          "when": "resourceScheme == isfs && resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "command": "vscode-objectscript.serverCommands.contextSourceControl",
+          "when": "resourceScheme == isfs && resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "group": "objectscript@2"
+        },
+        {
+          "command": "vscode-objectscript.serverCommands.contextOther",
+          "when": "resourceScheme == isfs && resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "group": "objectscript@3"
         }
       ]
     },
@@ -409,13 +454,25 @@
       },
       {
         "category": "ObjectScript",
-        "command": "vscode-objectscript.studio.actions",
-        "title": "Studio Actions..."
+        "command": "vscode-objectscript.serverCommands.sourceControl",
+        "title": "Server Source Control...",
+        "icon": "$(source-control)"
       },
       {
         "category": "ObjectScript",
-        "command": "vscode-objectscript.studio.contextActions",
-        "title": "Studio Context Actions..."
+        "command": "vscode-objectscript.serverCommands.contextSourceControl",
+        "title": "Server Source Control..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.serverCommands.other",
+        "title": "Server Command Menu...",
+        "icon": "$(server-environment)"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.serverCommands.contextOther",
+        "title": "Server Command Menu..."
       }
     ],
     "keybindings": [

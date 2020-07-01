@@ -21,31 +21,41 @@ export enum OtherStudioAction {
   FirstTimeDocumentSave = 7,
 }
 
+export enum StudioMenuType {
+  Main = "main",
+  Context = "context",
+}
+
 interface StudioAction extends vscode.QuickPickItem {
-  name: string;
   id: string;
+  save: number;
 }
 
 function getOtherStudioActionLabel(action: OtherStudioAction): string {
   let label = "";
-  /* eslint-disable no-fallthrough */
   switch (action) {
     case OtherStudioAction.AttemptedEdit:
       label = "Attempted Edit";
+      break;
     case OtherStudioAction.CreatedNewDocument:
       label = "Created New Document";
+      break;
     case OtherStudioAction.DeletedDocument:
       label = "Deleted Document";
+      break;
     case OtherStudioAction.OpenedDocument:
       label = "Opened Document";
+      break;
     case OtherStudioAction.ClosedDocument:
       label = "Closed Document";
+      break;
     case OtherStudioAction.ConnectedToNewNamespace:
       label = "Changed Namespace";
+      break;
     case OtherStudioAction.FirstTimeDocumentSave:
       label = "Saved Document to Server for the First Time";
+      break;
   }
-  /* eslint-enable no-fallthrough */
   return label;
 }
 
@@ -151,7 +161,7 @@ class StudioActions {
             });
         });
       case 3: // Run an EXE on the client.
-        throw new Error("Not suppoorted");
+        throw new Error("Not supported");
       case 4: {
         // Insert the text in Target in the current document at the current selection point
         const editor = vscode.window.activeTextEditor;
@@ -212,12 +222,12 @@ class StudioActions {
             };
           });
       default:
-        throw new Error("Not suppoorted");
+        throw new Error("Not supported");
     }
   }
 
   private userAction(action, afterUserAction = false, answer = "", msg = "", type = 0): Thenable<void> {
-    if (!action) {
+    if (!action || action.id == "") {
       return;
     }
     const func = afterUserAction ? "AfterUserAction(?, ?, ?, ?, ?)" : "UserAction(?, ?, ?, ?)";
@@ -265,36 +275,36 @@ class StudioActions {
     );
   }
 
-  private constructMenu(menu, contextOnly = false): any[] {
-    return menu
-      .filter((menuGroup) => !(contextOnly && menuGroup.type === "main"))
+  private prepareMenuItems(menus, sourceControl: boolean): StudioAction[] {
+    return menus
+      .filter((menu) => sourceControl == (menu.id === "%SourceMenu" || menu.id === "%SourceContext"))
       .reduce(
         (list, sub) =>
           list.concat(
             sub.items
-              .filter((el) => el.id !== "" && el.separator == 0)
-              .filter((el) => el.enabled == 1)
-              .map((el) => ({
-                ...el,
-                id: `${sub.id},${el.id}`,
-                label: el.name.replace("&", ""),
-                itemId: el.id,
-                type: sub.type,
-                description: sub.name.replace("&", ""),
-              }))
+              .filter((el) => el.id !== "")
+              .filter((el) => el.separator == 1 || el.enabled == 1)
+              .map((el) =>
+                el.separator == 1
+                  ? {
+                      label: "",
+                      description: "---",
+                      id: "",
+                      save: 0,
+                    }
+                  : {
+                      label: el.name.replace("&", ""),
+                      description: sub.name.replace("&", ""),
+                      id: `${sub.id},${el.id}`,
+                      save: el.save,
+                    }
+              )
           ),
         []
-      )
-      .sort((el1, el2) => (el1.type === "main" && el2.type !== el1.type ? -1 : 1))
-      .filter((item: any, index: number, self: any) => {
-        if (item && item.type === "main") {
-          return true;
-        }
-        return self.findIndex((el): boolean => el.itemId === item.itemId) === index;
-      });
+      );
   }
 
-  public getMenu(menuType: string, contextOnly = false): Thenable<any> {
+  public getMenu(menuType: StudioMenuType, sourceControl: boolean): Thenable<void> {
     let selectedText = "";
     const editor = vscode.window.activeTextEditor;
     if (this.uri && editor) {
@@ -308,9 +318,12 @@ class StudioActions {
     return this.api
       .actionQuery(query, parameters)
       .then((data) => data.result.content)
-      .then((menu) => this.constructMenu(menu, contextOnly))
+      .then((menus) => this.prepareMenuItems(menus, sourceControl))
       .then((menuItems) => {
-        return vscode.window.showQuickPick<StudioAction>(menuItems, { canPickMany: false });
+        return vscode.window.showQuickPick<StudioAction>(menuItems, {
+          canPickMany: false,
+          placeHolder: `Pick server-side command to perform${this.name ? " on " + this.name : ""}`,
+        });
       })
       .then((action) => this.userAction(action));
   }
@@ -361,29 +374,41 @@ class StudioActions {
   }
 }
 
-// export function contextMenu(uri: vscode.Uri): Promise<void> {
-//   return doMenuAction(uri, "context");
-// }
+export async function mainCommandMenu(uri?: vscode.Uri): Promise<void> {
+  return _mainMenu(false, uri);
+}
 
-export async function mainMenu(uri: vscode.Uri) {
-  uri = uri || vscode.window.activeTextEditor.document.uri;
-  if (!uri || uri.scheme !== FILESYSTEM_SCHEMA) {
+export async function mainSourceControlMenu(uri?: vscode.Uri): Promise<void> {
+  return _mainMenu(true, uri);
+}
+
+async function _mainMenu(sourceControl: boolean, uri?: vscode.Uri): Promise<void> {
+  uri = uri || vscode.window.activeTextEditor?.document.uri;
+  if (uri && uri.scheme !== FILESYSTEM_SCHEMA) {
     return;
   }
   const studioActions = new StudioActions(uri);
-  return studioActions && studioActions.getMenu("");
+  return studioActions && studioActions.getMenu(StudioMenuType.Main, sourceControl);
 }
 
-export async function contextMenu(node: PackageNode | ClassNode | RoutineNode): Promise<any> {
-  const nodeOrUri = node || vscode.window.activeTextEditor.document.uri;
+export async function contextCommandMenu(node: PackageNode | ClassNode | RoutineNode): Promise<void> {
+  return _contextMenu(false, node);
+}
+
+export async function contextSourceControlMenu(node: PackageNode | ClassNode | RoutineNode): Promise<void> {
+  return _contextMenu(true, node);
+}
+
+export async function _contextMenu(sourceControl: boolean, node: PackageNode | ClassNode | RoutineNode): Promise<void> {
+  const nodeOrUri = node || vscode.window.activeTextEditor?.document.uri;
   if (!nodeOrUri || (nodeOrUri instanceof vscode.Uri && nodeOrUri.scheme !== FILESYSTEM_SCHEMA)) {
     return;
   }
   const studioActions = new StudioActions(nodeOrUri);
-  return studioActions && studioActions.getMenu("", true);
+  return studioActions && studioActions.getMenu(StudioMenuType.Context, sourceControl);
 }
 
-export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vscode.Uri) {
+export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vscode.Uri): Promise<void> {
   const studioActions = new StudioActions(uri);
   return studioActions && studioActions.fireOtherStudioAction(action);
 }

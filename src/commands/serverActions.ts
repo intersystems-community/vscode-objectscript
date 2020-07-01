@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
-import { config, workspaceState, checkConnection } from "../extension";
+import { config, workspaceState, checkConnection, FILESYSTEM_SCHEMA } from "../extension";
 import { currentWorkspaceFolder, terminalWithDocker, currentFile } from "../utils";
+import { mainCommandMenu, mainSourceControlMenu } from "./studio";
 
 export async function serverActions(): Promise<void> {
   const { active, host, ns, https, port: defaultPort, username, password: defaultPassword, links } = config("conn");
@@ -45,34 +46,48 @@ export async function serverActions(): Promise<void> {
       detail: "Use docker-compose to start session inside configured service",
     });
   }
+  const studio = [];
+  if (!vscode.window.activeTextEditor || vscode.window.activeTextEditor.document.uri.scheme === FILESYSTEM_SCHEMA) {
+    studio.push({
+      id: "serverSourceControlMenu",
+      label: "Server Source Control...",
+      detail: "Pick server-side source control action",
+    });
+    studio.push({
+      id: "serverCommandMenu",
+      label: "Server Command Menu...",
+      detail: "Pick server-side command",
+    });
+  }
   return vscode.window
     .showQuickPick(
       [
         ...extraLinks,
         {
           id: "refreshConnection",
-          label: "Refresh connection",
+          label: "Refresh Connection",
           detail: "Force attempt to connect to the server",
         },
         ...terminal,
         {
-          detail: "Enable/Disable current connection",
           id: "toggleConnection",
-          label: "Toggle connection",
+          label: "Toggle Connection",
+          detail: "Enable/Disable current connection",
         },
         {
-          detail: portalUrl,
           id: "openPortal",
           label: "Open Management Portal",
+          detail: portalUrl,
         },
         {
-          detail: classRef,
           id: "openClassReference",
-          label: "Open class reference",
+          label: "Open Class Reference",
+          detail: classRef,
         },
+        ...studio,
       ],
       {
-        placeHolder: `Select action for server: ${connInfo}`,
+        placeHolder: `Select action for server ${connInfo}`,
       }
     )
     .then((action) => {
@@ -97,6 +112,14 @@ export async function serverActions(): Promise<void> {
         }
         case "openDockerTerminal": {
           terminalWithDocker();
+          break;
+        }
+        case "serverSourceControlMenu": {
+          mainSourceControlMenu();
+          break;
+        }
+        case "serverCommandMenu": {
+          mainCommandMenu();
           break;
         }
         default: {
