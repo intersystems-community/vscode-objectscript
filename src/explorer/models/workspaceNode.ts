@@ -35,6 +35,12 @@ export class WorkspaceNode extends NodeBase {
     node = new RootNode("Includes", "", "dataRootNode:routinesRootNode", "INC", this.options);
     children.push(node);
 
+    node = new RootNode("CSP Files", "", "dataRootNode:cspRootNode", "CSP", this.options);
+    children.push(node);
+
+    node = new RootNode("Other", "", "dataRootNode:otherRootNode", "OTH", this.options);
+    children.push(node);
+
     return children;
   }
 }
