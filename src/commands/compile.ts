@@ -21,14 +21,16 @@ async function compileFlags(): Promise<string> {
 
 async function importFile(file: CurrentFile): Promise<any> {
   const api = new AtelierAPI(file.uri);
-  return api.putDoc(
-    file.name,
-    {
-      content: file.content.split(/\r?\n/),
-      enc: false,
-    },
-    true
-  );
+  return api
+    .putDoc(
+      file.name,
+      {
+        content: file.content.split(/\r?\n/),
+        enc: false,
+      },
+      true
+    )
+    .catch((error) => vscode.window.showErrorMessage(error.message));
 }
 
 function updateOthers(others: string[]) {

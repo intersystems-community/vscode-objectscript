@@ -14,9 +14,9 @@
       "stopOnEntry": false,
       "sourceMaps": true,
       "outFiles": [
-        "${workspaceRoot}/out/**/*.js"
+        "${workspaceRoot}/dist/**/*.js"
       ],
-      "preLaunchTask": "npm: watch"
+      "preLaunchTask": "npm: webpack"
     },
     {
       "name": "Launch Extension",
@@ -29,9 +29,9 @@
       "stopOnEntry": false,
       "sourceMaps": true,
       "outFiles": [
-        "${workspaceRoot}/out/**/*.js"
+        "${workspaceRoot}/dist/**/*.js"
       ],
-      "preLaunchTask": "npm: watch"
+      "preLaunchTask": "npm: webpack"
     },
     {
       "name": "Extension Tests",
