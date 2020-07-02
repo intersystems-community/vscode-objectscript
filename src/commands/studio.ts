@@ -340,7 +340,7 @@ class StudioActions {
       .then((action) => this.userAction(action));
   }
 
-  public fireOtherStudioAction(action: OtherStudioAction) {
+  public fireOtherStudioAction(action: OtherStudioAction, userAction?) {
     const actionObject = {
       id: action.toString(),
       label: getOtherStudioActionLabel(action),
@@ -352,6 +352,14 @@ class StudioActions {
         if (!docStatus.editable) {
           vscode.commands.executeCommand("undo");
           this.userAction(actionObject, false, "", "", 1);
+        }
+      });
+    } else if (userAction) {
+      this.processUserAction(userAction).then((answer) => {
+        if (answer) {
+          answer.msg || answer.msg === ""
+            ? this.userAction(actionObject, true, answer.answer, answer.msg, 1)
+            : this.userAction(actionObject, true, answer, "", 1);
         }
       });
     } else {
@@ -420,7 +428,7 @@ export async function _contextMenu(sourceControl: boolean, node: PackageNode | C
   return studioActions && studioActions.getMenu(StudioMenuType.Context, sourceControl);
 }
 
-export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vscode.Uri): Promise<void> {
+export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vscode.Uri, userAction?): Promise<void> {
   const studioActions = new StudioActions(uri);
-  return studioActions && studioActions.fireOtherStudioAction(action);
+  return studioActions && studioActions.fireOtherStudioAction(action, userAction);
 }
