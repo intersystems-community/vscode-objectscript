@@ -514,7 +514,7 @@
           "properties": {
             "active": {
               "type": "boolean",
-              "description": "This connection is active",
+              "description": "This connection is active.",
               "default": false
             },
             "server": {
@@ -545,7 +545,7 @@
               "maximum": 65535
             },
             "ns": {
-              "description": "Server Namespace",
+              "description": "Server namespace.",
               "type": "string",
               "default": "USER"
             },
@@ -558,29 +558,29 @@
               "description": "Password of username. If not set here it must be provided when connecting."
             },
             "https": {
-              "description": "Use SSL to access to API",
+              "description": "Use SSL to access to API.",
               "type": "boolean",
               "default": false
             },
             "links": {
-              "description": "Extra links for the server",
+              "description": "Extra links for the server.",
               "type": "object"
             },
             "docker-compose": {
               "type": "object",
-              "description": "Connect to server running in docker-compose",
+              "description": "Connect to server running in docker-compose.",
               "additionalProperties": false,
               "properties": {
                 "service": {
-                  "description": "Name of service in docker-compose",
+                  "description": "Name of service in docker-compose.",
                   "type": "string"
                 },
                 "internalPort": {
-                  "description": "Target port inside the service in docker-compose",
+                  "description": "Target port inside the service in docker-compose.",
                   "type": "number"
                 },
                 "file": {
-                  "description": "docker-compose file",
+                  "description": "Name of docker-compose file.",
                   "type": "string"
                 }
               }
@@ -589,7 +589,7 @@
         },
         "objectscript.export": {
           "type": "object",
-          "description": "Export only the necessary stuff",
+          "description": "Export only the necessary stuff.",
           "scope": "resource"
         },
         "objectscript.export.folder": {

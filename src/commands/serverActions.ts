@@ -15,13 +15,13 @@ export async function serverActions(): Promise<void> {
     actions.push({
       detail: "Enable/Disable current connection",
       id: "toggleConnection",
-      label: "Toggle connection",
+      label: "Toggle Connection",
     });
   }
   if (active) {
     actions.push({
       id: "refreshConnection",
-      label: "Refresh connection",
+      label: "Refresh Connection",
       detail: "Force attempt to connect to the server",
     });
   }
@@ -94,7 +94,7 @@ export async function serverActions(): Promise<void> {
   actions.push({
     detail: classRef,
     id: "openClassReference",
-    label: "Open class reference",
+    label: "Open Class Reference",
   });
   if (!vscode.window.activeTextEditor || vscode.window.activeTextEditor.document.uri.scheme === FILESYSTEM_SCHEMA) {
     actions.push({

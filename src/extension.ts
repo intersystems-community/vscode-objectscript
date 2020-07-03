@@ -168,7 +168,7 @@ export const checkConnection = (clearCookies = false): void => {
     if (withDocker) {
       if (!dockerPort) {
         outputChannel.appendLine(
-          `Something wrong with your docker-compose connection settings. Or your service not running.`
+          `Something is wrong with your docker-compose connection settings, or your service is not running.`
         );
         panel.text = `${packageJson.displayName} - ERROR`;
         return;
@@ -190,7 +190,7 @@ export const checkConnection = (clearCookies = false): void => {
   }
   api = new AtelierAPI(workspaceFolder);
   if (!api.config.host || !api.config.port || !api.config.ns) {
-    outputChannel.appendLine("host, port and ns should be specified");
+    outputChannel.appendLine("host, port and ns must be specified.");
     panel.text = `${packageJson.displayName} - ERROR`;
     return;
   }

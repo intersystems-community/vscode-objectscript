@@ -193,7 +193,7 @@ export class AtelierAPI {
       return Promise.reject();
     }
     if (!username || !username.length || !password || !password.length) {
-      outputChannel.appendLine("username and password fields in settinds are mandatory");
+      outputChannel.appendLine("username and password fields in settings are mandatory.");
       return Promise.reject();
     }
     if (minVersion > apiVersion) {
