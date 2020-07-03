@@ -32,6 +32,7 @@ export interface Document {
   enc: boolean;
   flags: number;
   content: string[];
+  ext: string;
 }
 
 export interface ServerInfo {
