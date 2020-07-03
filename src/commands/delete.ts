@@ -7,6 +7,8 @@ import { RootNode } from "../explorer/models/rootNode";
 import { RoutineNode } from "../explorer/models/routineNode";
 import { explorerProvider } from "../extension";
 import { outputChannel } from "../utils";
+import { OtherStudioAction, fireOtherStudioAction } from "./studio";
+import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 
 function deleteList(items: string[], workspaceFolder: string): Promise<any> {
   if (!items || !items.length) {
@@ -16,6 +18,12 @@ function deleteList(items: string[], workspaceFolder: string): Promise<any> {
   const api = new AtelierAPI();
   api.setConnection(workspaceFolder);
   return Promise.all(items.map((item) => api.deleteDoc(item))).then((files) => {
+    files.forEach((file) => {
+      if (file.result.ext) {
+        const uri = DocumentContentProvider.getUri(file.result.name);
+        fireOtherStudioAction(OtherStudioAction.DeletedDocument, uri, file.result.ext);
+      }
+    });
     outputChannel.appendLine(`Deleted items: ${files.filter((el) => el.result).length}`);
     const failed = files.filter((el) => !el.result).map((el) => `${el.file} - ${el.error}`);
     if (files.find((el) => !el.result)) {

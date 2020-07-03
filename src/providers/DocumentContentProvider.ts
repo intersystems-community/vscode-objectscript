@@ -28,6 +28,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
       vfs = config("serverSideEditing");
     }
     workspaceFolder = workspaceFolder && workspaceFolder !== "" ? workspaceFolder : currentWorkspaceFolder();
+    const isCsp = name.includes("/");
     const wFolderUri = workspaceFolderUri(workspaceFolder);
     let uri: vscode.Uri;
     if (wFolderUri.scheme === FILESYSTEM_SCHEMA) {
@@ -61,7 +62,6 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
         });
       }
     }
-    const isCsp = name.includes("/");
     if (namespace && namespace !== "") {
       if (isCsp) {
         uri = uri.with({
