@@ -455,7 +455,7 @@ export class AtelierAPI {
   }
 
   // v2+
-  public getmacrollist(docname: string, includes: string[]): Promise<Atelier.Response> {
+  public getmacrolist(docname: string, includes: string[]): Promise<Atelier.Response> {
     return this.request(2, "POST", `${this.ns}/action/getmacrolist`, {
       docname,
       includes,

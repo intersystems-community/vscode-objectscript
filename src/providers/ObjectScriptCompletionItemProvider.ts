@@ -100,7 +100,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       const file = currentFile();
       const api = new AtelierAPI();
       return api
-        .getmacrollist(file.name, [])
+        .getmacrolist(file.name, [])
         .then((data) => data.result.content.macros)
         .then((list) => list.filter((el) => el.toLowerCase().startsWith(macro)))
         .then((list) => list.map((el) => "$$$" + el))

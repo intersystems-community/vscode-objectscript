@@ -13,7 +13,7 @@ export async function serverActions(): Promise<void> {
   const actions = [];
   if (!api.externalServer) {
     actions.push({
-      detail: "Enable/Disable current connection",
+      detail: (active ? "Disable" : "Enable") + " current connection",
       id: "toggleConnection",
       label: "Toggle Connection",
     });
@@ -82,7 +82,7 @@ export async function serverActions(): Promise<void> {
   if (workspaceState.get(workspaceFolder + ":docker", false)) {
     actions.push({
       id: "openDockerTerminal",
-      label: "Open terminal in docker",
+      label: "Open Terminal in Docker",
       detail: "Use docker-compose to start session inside configured service",
     });
   }

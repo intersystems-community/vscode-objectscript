@@ -519,8 +519,8 @@
             },
             "server": {
               "type": "string",
-              "pattern": "^[A-Za-z0-9-._~]+$",
-              "markdownDescription": "Server defined in `intersystems.servers`"
+              "pattern": "^[a-z0-9-._~]+$",
+              "markdownDescription": "Server defined in `#intersystems.servers#`"
             },
             "host": {
               "type": "string",
