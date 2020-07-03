@@ -69,7 +69,7 @@ class StudioActions {
       const uri: vscode.Uri = uriOrNode;
       this.uri = uri;
       this.name = this.uri.path.slice(1).replace(/\//g, ".");
-      this.api = new AtelierAPI(uri.authority);
+      this.api = new AtelierAPI(uri);
     } else if (uriOrNode) {
       const node: NodeBase = uriOrNode;
       this.api = new AtelierAPI();

@@ -140,12 +140,12 @@ export function notNull(el: any): boolean {
 }
 
 export function portFromDockerCompose(): { port: number; docker: boolean } {
-  const { "docker-compose": dockerCompose = {}, port: defaultPort } = config("conn");
-  const result = { port: defaultPort, docker: false };
+  const { "docker-compose": dockerCompose = {} } = config("conn");
   const { service, file = "docker-compose.yml", internalPort = 52773 } = dockerCompose;
   if (!internalPort || !file || !service || service === "") {
-    return result;
+    return { docker: false, port: null };
   }
+  const result = { port: null, docker: true };
   const workspaceFolderPath = workspaceFolderUri().fsPath;
   const workspaceRootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
 
@@ -174,7 +174,6 @@ export function portFromDockerCompose(): { port: number; docker: boolean } {
       return { port: parseInt(newPort, 10), docker: true };
     }
   } catch (e) {
-    console.log(e);
     // nope
   }
   return result;

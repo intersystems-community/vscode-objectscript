@@ -11,16 +11,11 @@ async function main() {
     // The path to the extension test script
     // Passed to --extensionTestsPath
     const extensionTestsPath = path.resolve(__dirname, "./suite/index");
-    const codeWorkspacePath = path.resolve(extensionDevelopmentPath, "./src/test/workspace/test.code-workspace");
-    console.log("codeWorkspacePath", codeWorkspacePath);
 
-    const launchArgs = [
-      "-n",
-      "--disable-extensions",
-      "--enable-proposed-api",
-      "daimor.vscode-objectscript",
-      codeWorkspacePath,
-    ];
+    // The path to the workspace file
+    const workspace = path.resolve("test-fixtures", "test.code-workspace");
+
+    const launchArgs = ["-n", "--disable-extensions", workspace];
 
     // Download VS Code, unzip it and run the integration test
     await runTests({ extensionDevelopmentPath, extensionTestsPath, launchArgs });

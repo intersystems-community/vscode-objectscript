@@ -26,16 +26,26 @@ export interface ConnectionSettings {
 export class AtelierAPI {
   private _config: ConnectionSettings;
   private namespace: string;
-  private cache;
-  private workspaceFolder;
+  private configName: string;
+
+  // when FileSystemProvider used
+  public externalServer = false;
 
   public get ns(): string {
     return this.namespace || this._config.ns;
   }
 
   public get config(): ConnectionSettings {
-    const { active, apiVersion, https, host, port, pathPrefix, username, password } = this._config;
+    const { active = false, https = false, pathPrefix = "", username } = this._config;
     const ns = this.namespace || this._config.ns;
+    const host = this.externalServer
+      ? this._config.host
+      : workspaceState.get(this.configName + ":host", this._config.host);
+    const port = this.externalServer
+      ? this._config.port
+      : workspaceState.get(this.configName + ":port", this._config.port);
+    const password = workspaceState.get(this.configName + ":password", this._config.password);
+    const apiVersion = workspaceState.get(this.configName + ":apiVersion", DEFAULT_API_VERSION);
     return {
       active,
       apiVersion,
@@ -50,7 +60,7 @@ export class AtelierAPI {
   }
 
   private get iris(): boolean {
-    return workspaceState.get(this.workspaceFolder + ":iris", false);
+    return workspaceState.get(this.configName + ":iris", false);
   }
 
   private transformNameIfCsp(filename: string): string {
@@ -105,7 +115,7 @@ export class AtelierAPI {
   }
 
   public xdebugUrl(): string {
-    const { host, username, https, port, password, apiVersion } = this._config;
+    const { host, username, https, port, password, apiVersion } = this.config;
     const proto = https ? "wss" : "ws";
     const auth = this.iris
       ? `IRISUsername=${username}&IRISPassword=${password}`
@@ -129,8 +139,10 @@ export class AtelierAPI {
 
   private setConnection(workspaceFolderName: string, namespace?: string): void {
     let serverName;
-    if (config(`intersystems.servers.${workspaceFolderName}`)) {
-      serverName = workspaceFolderName;
+    this.configName = workspaceFolderName;
+    if (config("intersystems.servers").has(workspaceFolderName.toLowerCase())) {
+      this.externalServer = true;
+      serverName = workspaceFolderName.toLowerCase();
       workspaceFolderName = currentWorkspaceFolder();
     }
     const conn = config("conn", workspaceFolderName);
@@ -140,12 +152,12 @@ export class AtelierAPI {
 
     if (serverName && serverName.length) {
       const {
-        webServer: { scheme, host, port, pathPrefix },
+        webServer: { scheme, host, port, pathPrefix = "" },
         username,
         password,
-      } = config(`intersystems.servers.${serverName}`, workspaceFolderName);
+      } = config("intersystems.servers", workspaceFolderName).get(serverName);
       this._config = {
-        active: conn.active,
+        active: this.externalServer || conn.active,
         apiVersion: 1,
         https: scheme === "https",
         ns: namespace || conn.ns,
@@ -157,14 +169,12 @@ export class AtelierAPI {
       };
     } else {
       this._config = conn;
-      this._config.port = workspaceState.get(workspaceFolderName + ":port", this._config.port);
     }
-    this._config.password = workspaceState.get(workspaceFolderName + ":password", this._config.password);
-    this._config.apiVersion = workspaceState.get(workspaceFolderName + ":apiVersion", DEFAULT_API_VERSION);
+  }
 
-    this.workspaceFolder = workspaceFolderName;
-    const { host, port } = this._config;
-    this.cache = new Cache(extensionContext, `API:${host}:${port}`);
+  private get cache(): Cache {
+    const { host, port } = this.config;
+    return new Cache(extensionContext, `API:${host}:${port}`);
   }
 
   public async request(
@@ -178,16 +188,12 @@ export class AtelierAPI {
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     headers?: any
   ): Promise<any> {
-    const {
-      active = false,
-      apiVersion = 1,
-      host = "localhost",
-      port = 52773,
-      username = "_SYSTEM",
-      password = "SYS",
-      https = false,
-    } = this._config;
+    const { active, apiVersion, host, port, username, password, https } = this.config;
     if (!active) {
+      return Promise.reject();
+    }
+    if (!username || !username.length || !password || !password.length) {
+      outputChannel.appendLine("username and password fields in settinds are mandatory");
       return Promise.reject();
     }
     if (minVersion > apiVersion) {
@@ -264,7 +270,6 @@ export class AtelierAPI {
           .then((response) => this.updateCookies(response.headers["set-cookie"]).then(() => response))
           .then((response) => {
             panel.text = `${connInfo} - Connected`;
-            // console.log(`APIResponse: ${method} ${proto}://${host}:${port}${path}`)
             if (method === "HEAD") {
               return this.cookies;
             }
@@ -299,7 +304,10 @@ export class AtelierAPI {
             }
           })
           .catch((error) => {
+            console.log(error.error);
             if (error.error && error.error.code === "ECONNREFUSED") {
+              workspaceState.update(this.configName + ":host", undefined);
+              workspaceState.update(this.configName + ":port", undefined);
               setTimeout(checkConnection, 30000);
             }
             console.error(error);
@@ -322,8 +330,8 @@ export class AtelierAPI {
           };
         }
         return Promise.all([
-          workspaceState.update(currentWorkspaceFolder() + ":apiVersion", apiVersion),
-          workspaceState.update(currentWorkspaceFolder() + ":iris", data.version.startsWith("IRIS")),
+          workspaceState.update(this.configName + ":apiVersion", apiVersion),
+          workspaceState.update(this.configName + ":iris", data.version.startsWith("IRIS")),
         ]).then(() => info);
       }
     });

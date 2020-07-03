@@ -13,7 +13,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     return this.onDidChangeEvent.event;
   }
 
-  public static getAsFile(name: string, workspaceFolder: string) {
+  public static getAsFile(name: string, workspaceFolder: string): string {
     const { atelier, folder, addCategory } = config("export", workspaceFolder);
 
     const root = [workspaceFolderUri(workspaceFolder).fsPath, folder].join(path.sep);
@@ -46,6 +46,11 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
       const found = this.getAsFile(name, workspaceFolder);
       if (found) {
         return vscode.Uri.file(found);
+      }
+      const conn = config("conn", workspaceFolder);
+      const { active } = conn;
+      if (!active) {
+        return null;
       }
       const fileExt = name.split(".").pop();
       const fileName = name
