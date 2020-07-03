@@ -558,13 +558,19 @@
               "description": "Password of username. If not set here it must be provided when connecting."
             },
             "https": {
-              "description": "Use SSL to access to API.",
+              "description": "Use SSL/TLS to access the server.",
               "type": "boolean",
               "default": false
             },
             "links": {
               "description": "Extra links for the server.",
-              "type": "object"
+              "type": "object",
+              "patternProperties": {
+                ".*": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
             },
             "docker-compose": {
               "type": "object",

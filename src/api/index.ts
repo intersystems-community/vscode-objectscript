@@ -228,7 +228,7 @@ export class AtelierAPI {
     headers["Cache-Control"] = "no-cache";
 
     const proto = this._config.https ? "https" : "http";
-    const http: any = this._config.https ? httpsModule : httpModule;
+    const http = this._config.https ? httpsModule : httpModule;
     const agent = new http.Agent({
       keepAlive: true,
       maxSockets: 10,
