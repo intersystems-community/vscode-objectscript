@@ -207,10 +207,6 @@
           "group": "objectscript@2"
         },
         {
-          "command": "vscode-objectscript.studio.actions",
-          "when": "resourceScheme == isfs && vscode-objectscript.connectActive"
-        },
-        {
           "command": "vscode-objectscript.previewXml",
           "when": "editorLangId =~ /^xml/",
           "group": "objectscript@3"
