@@ -24,6 +24,7 @@ import { subclass } from "./commands/subclass";
 import { superclass } from "./commands/superclass";
 import { viewOthers } from "./commands/viewOthers";
 import { xml2doc } from "./commands/xml2doc";
+import { createNewFile } from "./commands/newFile";
 import {
   mainCommandMenu,
   contextCommandMenu,
@@ -411,6 +412,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("vscode-objectscript.explorer.refresh", () => explorerProvider.refresh()),
     vscode.commands.registerCommand("vscode-objectscript.explorer.openClass", vscode.window.showTextDocument),
     vscode.commands.registerCommand("vscode-objectscript.explorer.openRoutine", vscode.window.showTextDocument),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.new", createNewFile),
     vscode.commands.registerCommand("vscode-objectscript.explorer.export", (item, items) =>
       exportExplorerItem(items && items.length ? items : [item])
     ),

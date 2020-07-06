@@ -120,6 +120,10 @@
           "when": "false"
         },
         {
+          "command": "vscode-objectscript.explorer.new",
+          "when": "false"
+        },
+        {
           "command": "vscode-objectscript.explorer.refresh",
           "when": "vscode-objectscript.connectActive"
         },
@@ -167,6 +171,10 @@
         {
           "command": "vscode-objectscript.explorer.compile",
           "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
+        },
+        {
+          "command": "vscode-objectscript.explorer.new",
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^data/"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextSourceControl",
@@ -418,6 +426,11 @@
         "title": "Refresh Explorer",
         "category": "ObjectScript",
         "icon": "$(refresh)"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.explorer.new",
+        "title": "New..."
       },
       {
         "category": "ObjectScript",
