@@ -1,8 +1,9 @@
 import * as vscode from "vscode";
 import { RootNode } from "./rootNode";
+import { NodeOptions } from "./nodeBase";
 
 export class PackageNode extends RootNode {
-  public constructor(label: string, fullName: string, category: string, options) {
+  public constructor(label: string, fullName: string, category: string, options: NodeOptions) {
     super(label, fullName, "dataNode:packageNode", category, options);
   }
 

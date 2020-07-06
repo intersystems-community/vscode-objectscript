@@ -4,6 +4,7 @@ import * as url from "url";
 import { AtelierAPI } from "../../api";
 import { Directory } from "./Directory";
 import { File } from "./File";
+import { StudioOpenDialog } from "../../queries";
 
 export type Entry = File | Directory;
 
@@ -55,7 +56,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       .actionQuery(sql, [spec, dir, orderBy, system, flat, notStudio, generated])
       .then((data) => data.result.content || [])
       .then((data) =>
-        data.map((item) => {
+        data.map((item: StudioOpenDialog) => {
           const name = item.Name;
           const fullName = folder === "" ? name : folder + "/" + name;
           if (item.Type === "10" || item.Type === "9") {

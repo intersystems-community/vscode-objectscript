@@ -5,6 +5,7 @@ import { PackageNode } from "./packageNode";
 import { RoutineNode } from "./routineNode";
 import { AtelierAPI } from "../../api";
 import { ClassNode } from "./classesNode";
+import { StudioOpenDialog } from "../../queries";
 
 export class RootNode extends NodeBase {
   public readonly contextValue: string;
@@ -37,12 +38,12 @@ export class RootNode extends NodeBase {
     };
   }
 
-  public async getChildren(element): Promise<NodeBase[]> {
+  public async getChildren(element: NodeBase): Promise<NodeBase[]> {
     const path = this instanceof PackageNode || this.isCsp ? this.fullName + "/" : "";
     return this.getItems(path, this._category);
   }
 
-  public getList(path: string, category: string, flat: boolean) {
+  public getList(path: string, category: string, flat: boolean): Promise<(StudioOpenDialog & { fullName: string })[]> {
     const sql = "CALL %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)";
     // const sql = "CALL %Library.RoutineMgr_StudioOpenDialog(?,,,,,,?)";
     let spec = "";
@@ -86,7 +87,7 @@ export class RootNode extends NodeBase {
         return content;
       })
       .then((data) =>
-        data.map((el) => {
+        data.map((el: StudioOpenDialog) => {
           let fullName = el.Name;
           if (this instanceof PackageNode) {
             fullName = this.fullName + "." + el.Name;

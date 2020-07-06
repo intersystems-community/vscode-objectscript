@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { ClassDefinition } from "../utils/classDefinition";
 import { DocumentContentProvider } from "./DocumentContentProvider";
+import { StudioOpenDialog } from "../queries";
 
 export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
   public provideWorkspaceSymbols(
@@ -48,7 +49,7 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
     const generated = "0";
 
     const data = await api.actionQuery(sql, [query, direction, orderBy, systemFiles, flat, notStudio, generated]);
-    return data.result.content.map(({ Name }) => ({
+    return data.result.content.map(({ Name }: StudioOpenDialog) => ({
       kind: vscode.SymbolKind.File,
       location: {
         uri: DocumentContentProvider.getUri(Name),
