@@ -260,6 +260,10 @@ class StudioActions {
               if (!afterUserAction) {
                 outputConsole(data.console);
               }
+              if (!data.result.content.length) {
+                // nothing to-do, just ignore it
+                return resolve();
+              }
               const actionToProcess = data.result.content.pop();
 
               // CSP pages should not have a progress bar
