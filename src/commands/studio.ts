@@ -250,7 +250,7 @@ class StudioActions {
         title: `Executing user action: ${action.label}`,
       },
       () => {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
           this.api
             .actionQuery(query, parameters)
             .then(async (data) => {
@@ -281,6 +281,7 @@ class StudioActions {
               console.log(err);
               outputChannel.appendLine(`Studio Action "${action.label}" not supported`);
               outputChannel.show();
+              return reject();
             });
         });
       }
