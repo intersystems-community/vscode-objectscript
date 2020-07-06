@@ -11,7 +11,7 @@ export class ObjectScriptDiagnosticProvider {
     this._collection = vscode.languages.createDiagnosticCollection("ObjectScript");
   }
 
-  public updateDiagnostics(document: vscode.TextDocument) {
+  public updateDiagnostics(document: vscode.TextDocument): void {
     if (document.languageId.startsWith("objectscript")) {
       this._collection.set(document.uri, [
         ...this.classMembers(document),
@@ -100,6 +100,8 @@ export class ObjectScriptDiagnosticProvider {
     let isCode = !isClass;
     let jsScript = false;
     let js = false;
+    let html = false;
+    let htmlParens = 0;
     let jsParens = 0;
     let sql = false;
     let sqlParens = 0;
@@ -111,8 +113,14 @@ export class ObjectScriptDiagnosticProvider {
 
       // it is important to check script tag context before ObjectScript comments
       // since /* ... */ comments can also be used in JavaScript
-      if (text.match(/<script .*>/i)) {
+      if (text.match(/<script.*>/i)) {
         jsScript = true;
+      }
+      if (jsScript) {
+        if (text.match(/<\/script>/i)) {
+          jsScript = false;
+        }
+        continue;
       }
 
       if (text.match(/&js(cript)?/i)) {
@@ -120,9 +128,22 @@ export class ObjectScriptDiagnosticProvider {
         jsParens = 0;
       }
       if (js) {
-        jsParens = jsParens + (text.split("<").length - 1) - (text.split(">").length - 1);
+        let noParensText = text;
+        while (noParensText != (noParensText = noParensText.replace(/\([^()]*\)/g, "")));
+        jsParens = jsParens + (noParensText.split("<").length - 1) - (noParensText.split(">").length - 1);
         if (jsParens <= 0) {
           js = false;
+        }
+        continue;
+      }
+      if (text.match(/&html/i)) {
+        html = true;
+        htmlParens = 0;
+      }
+      if (html) {
+        htmlParens = htmlParens + (text.split("<").length - 1) - (text.split(">").length - 1);
+        if (htmlParens <= 0) {
+          html = false;
         }
         continue;
       }
@@ -136,13 +157,6 @@ export class ObjectScriptDiagnosticProvider {
         sqlParens = sqlParens + (text.split("(").length - 1) - (text.split(")").length - 1);
         if (sqlParens <= 0) {
           sql = false;
-        }
-        continue;
-      }
-
-      if (jsScript) {
-        if (text.match(/<\/script>/i)) {
-          jsScript = false;
         }
         continue;
       }
