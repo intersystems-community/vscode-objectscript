@@ -64,6 +64,9 @@
     "onDebugInitialConfigurations"
   ],
   "main": "./dist/extension",
+  "extensionDependencies": [
+    "intersystems-community.servermanager"
+  ],
   "contributes": {
     "menus": {
       "commandPalette": [
