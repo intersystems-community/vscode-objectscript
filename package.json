@@ -196,6 +196,14 @@
         {
           "command": "vscode-objectscript.explorer.hideGenerated",
           "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode.*:generated:/"
+        },
+        {
+          "command": "vscode-objectscript.explorer.showSystem",
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode((?!:(%SYS|system):).)*$/"
+        },
+        {
+          "command": "vscode-objectscript.explorer.hideSystem",
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode.*:system:/"
         }
       ],
       "editor/context": [
@@ -399,6 +407,16 @@
       {
         "command": "vscode-objectscript.explorer.hideGenerated",
         "title": "Hide Generated",
+        "category": "ObjectScript"
+      },
+      {
+        "command": "vscode-objectscript.explorer.showSystem",
+        "title": "Show System",
+        "category": "ObjectScript"
+      },
+      {
+        "command": "vscode-objectscript.explorer.hideSystem",
+        "title": "Hide System",
         "category": "ObjectScript"
       },
       {

@@ -9,20 +9,24 @@ export class WorkspaceNode extends NodeBase {
   public uniqueId: string;
   public constructor(label: string, eventEmitter: vscode.EventEmitter<NodeBase>, options: NodeOptions) {
     super(label, label, options);
-    this.uniqueId = `serverNode${this.extraNode ? ":extra:" + this.namespace : ""}`;
+    this.uniqueId = `serverNode:${this.namespace}:${this.extraNode ? ":extra:" : ""}`;
     this.options.generated = workspaceState.get(`ExplorerGenerated:${this.uniqueId}`);
+    this.options.system = workspaceState.get(`ExplorerSystem:${this.uniqueId}`);
     this.eventEmitter = eventEmitter;
   }
 
   public getTreeItem(): vscode.TreeItem {
+    const flags = [];
+    this.options.generated && flags.push(":generated:");
+    this.options.system && flags.push(":system:");
     return {
       collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
-      contextValue: `${this.uniqueId}${this.options.generated ? ":generated:" : ""}`,
+      contextValue: `${this.uniqueId}${flags.join("")}`,
       label: `${this.label}(${this.connInfo})`,
     };
   }
 
-  public async getChildren(element): Promise<NodeBase[]> {
+  public async getChildren(_element: NodeBase): Promise<NodeBase[]> {
     const children = [];
     let node: RootNode;
 
