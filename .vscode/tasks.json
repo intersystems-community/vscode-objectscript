@@ -21,7 +21,7 @@
         "kind": "build"
       },
       "isBackground": true,
-      "problemMatcher": "$tsc-watch"
+      "problemMatcher": "$eslint-stylish"
     }
   ]
 }
