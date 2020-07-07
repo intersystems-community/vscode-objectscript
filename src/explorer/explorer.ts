@@ -9,7 +9,7 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
   public onDidChange?: vscode.Event<vscode.Uri>;
   public onDidChangeTreeData: vscode.Event<NodeBase>;
   private _onDidChangeTreeData: vscode.EventEmitter<NodeBase>;
-  private _showExtra4Workspace: string[] = [];
+  private _showExtra4Workspace: { [key: string]: string[] }[] = [];
 
   public constructor() {
     this._onDidChangeTreeData = new vscode.EventEmitter<NodeBase>();
@@ -17,27 +17,32 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
   }
 
   public async selectNamespace(workspaceFolder: string): Promise<any> {
+    const extra4Workspace = this._showExtra4Workspace[workspaceFolder] || [];
     const api = new AtelierAPI(workspaceFolder);
     return api
       .serverInfo()
       .then((data) => data.result.content.namespaces)
-      .then((data) => data.filter((ns) => ns !== api.ns && !this._showExtra4Workspace.includes(ns)))
+      .then((data) => data.filter((ns) => ns !== api.ns && !extra4Workspace.includes(ns)))
       .then((data) => data.map((ns) => ({ label: ns })))
       .then(vscode.window.showQuickPick)
       .then((ns) => this.showExtra4Workspace(workspaceFolder, ns.label));
   }
 
-  public showExtra4Workspace(workspaceFolder: string, ns: string) {
-    if (!this._showExtra4Workspace.includes(ns)) {
-      this._showExtra4Workspace.push(ns);
+  public showExtra4Workspace(workspaceFolder: string, ns: string): void {
+    const extra4Workspace = this._showExtra4Workspace[workspaceFolder] || [];
+    if (!extra4Workspace.includes(ns)) {
+      extra4Workspace.push(ns);
+      this._showExtra4Workspace[workspaceFolder] = extra4Workspace;
       this._onDidChangeTreeData.fire(null);
     }
   }
 
-  public closeExtra4Workspace(workspaceFolder: string, ns: string) {
-    const pos = this._showExtra4Workspace.indexOf(ns);
+  public closeExtra4Workspace(workspaceFolder: string, ns: string): void {
+    const extra4Workspace = this._showExtra4Workspace[workspaceFolder] || [];
+    const pos = extra4Workspace.indexOf(ns);
     if (pos >= 0) {
-      this._showExtra4Workspace.splice(pos, 1);
+      extra4Workspace.splice(pos, 1);
+      this._showExtra4Workspace[workspaceFolder] = extra4Workspace;
       this._onDidChangeTreeData.fire(null);
     }
   }
@@ -67,10 +72,11 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
       .forEach((workspaceFolder) => {
         const conn: any = config("conn", workspaceFolder.name);
         if (conn.active && conn.ns) {
+          const extra4Workspace = this._showExtra4Workspace[workspaceFolder.name] || [];
           node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData, {});
           rootNodes.push(node);
 
-          this._showExtra4Workspace.forEach((ns) => {
+          extra4Workspace.forEach((ns) => {
             node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData, {
               namespace: ns,
               extraNode: true,
