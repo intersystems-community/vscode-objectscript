@@ -64,9 +64,6 @@
     "onDebugInitialConfigurations"
   ],
   "main": "./dist/extension",
-  "extensionDependencies": [
-    "intersystems-community.servermanager"
-  ],
   "contributes": {
     "menus": {
       "commandPalette": [
@@ -712,6 +709,11 @@
           "type": "boolean",
           "default": false,
           "description": "Output the action that VSCode should perform as requested by the server in JSON format."
+        },
+        "objectscript.ignoreInstallServerManager": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Do not offer to install `#intersystems-community.servermanager#` extension"
         }
       }
     },
