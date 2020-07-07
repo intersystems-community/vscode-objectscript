@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { AtelierSearchResult, AtelierSearchMatch } from "../../atelier";
+import { SearchResult, SearchMatch } from "../../api/atelier";
 import { AtelierAPI } from "../../api";
 import { DocumentContentProvider } from "../DocumentContentProvider";
 
@@ -30,7 +30,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
         case: query.isCaseSensitive,
       })
       .then((data) => data.result)
-      .then((files: AtelierSearchResult[]) =>
+      .then((files: SearchResult[]) =>
         files.map(async (file) => {
           const fileName = file.doc;
           const uri = DocumentContentProvider.getUri(fileName);
@@ -46,7 +46,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
       .then((files) => {
         files.forEach((file) => {
           const { uri, document, matches } = file;
-          matches.forEach((match: AtelierSearchMatch) => {
+          matches.forEach((match: SearchMatch) => {
             const { text, member } = match;
             let { line } = match;
             if (member) {

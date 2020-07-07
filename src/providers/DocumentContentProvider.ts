@@ -13,7 +13,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     return this.onDidChangeEvent.event;
   }
 
-  public static getAsFile(name: string, workspaceFolder: string) {
+  public static getAsFile(name: string, workspaceFolder: string): string {
     const { atelier, folder, addCategory } = config("export", workspaceFolder);
 
     const root = [workspaceFolderUri(workspaceFolder).fsPath, folder].join(path.sep);
@@ -47,6 +47,11 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
       if (found) {
         return vscode.Uri.file(found);
       }
+      const conn = config("conn", workspaceFolder);
+      const { active } = conn;
+      if (!active) {
+        return null;
+      }
       const fileExt = name.split(".").pop();
       const fileName = name
         .split(".")
@@ -79,7 +84,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
 
   public provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
     const fileName = uri.path.split("/").slice(1).join(".");
-    const api = new AtelierAPI();
+    const api = new AtelierAPI(uri);
     const query = url.parse(decodeURIComponent(uri.toString()), true).query;
     if (query) {
       if (query.ns && query.ns !== "") {
@@ -87,7 +92,6 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
         api.setNamespace(namespace);
       }
     }
-    api.setConnection(uri.authority);
     return api.getDoc(fileName).then((data) => {
       return data.result.content.join("\n");
     });

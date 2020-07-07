@@ -2,7 +2,7 @@ export const extensionId = "daimor.vscode-objectscript";
 
 import vscode = require("vscode");
 
-import { AtelierJob } from "./atelier";
+import { AtelierJob } from "./api/atelier";
 const { workspace, window } = vscode;
 export const OBJECTSCRIPT_FILE_SCHEMA = "objectscript";
 export const OBJECTSCRIPTXML_FILE_SCHEMA = "objectscriptxml";
@@ -81,8 +81,24 @@ const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
 const aiKey = packageJson.aiKey;
 
-export const config = (setting?: string, workspaceFolderName?: string): any => {
+export const config = (setting?: string, workspaceFolderName?: string): vscode.WorkspaceConfiguration | any => {
   workspaceFolderName = workspaceFolderName || currentWorkspaceFolder();
+  if (
+    workspaceFolderName &&
+    workspaceFolderName !== "" &&
+    vscode.workspace.getConfiguration("intersystems.servers", null).has(workspaceFolderName)
+  ) {
+    workspaceFolderName = vscode.workspace.workspaceFolders[0].name;
+  }
+  let prefix;
+  const workspaceFolder = vscode.workspace.workspaceFolders.find(
+    (el) => el.name.toLowerCase() === workspaceFolderName.toLowerCase()
+  );
+  if (setting && setting.startsWith("intersystems")) {
+    return vscode.workspace.getConfiguration(setting, workspaceFolder);
+  } else {
+    prefix = "objectscript";
+  }
 
   if (["conn", "export"].includes(setting)) {
     if (workspaceFolderName && workspaceFolderName !== "") {
@@ -104,19 +120,10 @@ export const config = (setting?: string, workspaceFolderName?: string): any => {
           return {};
         }
       }
-
-      const workspaceFolder = vscode.workspace.workspaceFolders.find(
-        (el) => el.name.toLowerCase() === workspaceFolderName.toLowerCase()
-      );
-      return vscode.workspace.getConfiguration("objectscript", workspaceFolder.uri).get(setting);
-    } else {
-      return vscode.workspace.getConfiguration("objectscript", null).get(setting);
     }
   }
-  if (setting && setting !== "") {
-    return vscode.workspace.getConfiguration("objectscript").get(setting);
-  }
-  return vscode.workspace.getConfiguration("objectscript");
+  const result = vscode.workspace.getConfiguration(prefix, workspaceFolder?.uri);
+  return setting && setting.length ? result.get(setting) : result;
 };
 
 export function getXmlUri(uri: vscode.Uri): vscode.Uri {
@@ -128,46 +135,74 @@ export function getXmlUri(uri: vscode.Uri): vscode.Uri {
     scheme: OBJECTSCRIPTXML_FILE_SCHEMA,
   });
 }
-let reporter: TelemetryReporter;
+let reporter: TelemetryReporter = null;
 
 let connectionSocket: WebSocket;
 
 export const checkConnection = (clearCookies = false): void => {
-  const conn = config("conn");
-  let connInfo = `${conn.host}:${conn.port}[${conn.ns}]`;
+  const workspaceFolder = currentWorkspaceFolder();
+  if (clearCookies) {
+    /// clean-up cached values
+    workspaceState.update(workspaceFolder + ":host", undefined);
+    workspaceState.update(workspaceFolder + ":port", undefined);
+    workspaceState.update(workspaceFolder + ":password", undefined);
+    workspaceState.update(workspaceFolder + ":apiVersion", undefined);
+    workspaceState.update(workspaceFolder + ":docker", undefined);
+  }
+  let api = new AtelierAPI(workspaceFolder);
+  const { active, host = "", port = 0, ns = "" } = api.config;
+  let connInfo = `${host}:${port}[${ns}]`;
+  if (!host.length || !port || !ns.length) {
+    connInfo = packageJson.displayName;
+  }
   panel.text = connInfo;
   panel.tooltip = "";
-  vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", conn.active);
-  if (!conn.active) {
-    panel.text = `${connInfo} - Disabled`;
+  vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
+  if (!active) {
+    panel.text = `${packageJson.displayName} - Disabled`;
     return;
   }
-  workspaceState.update(currentWorkspaceFolder() + ":port", undefined);
-  const { port: dockerPort, docker: withDocker } = portFromDockerCompose();
-  workspaceState.update(currentWorkspaceFolder() + ":docker", withDocker);
-  if (withDocker) {
-    terminalWithDocker();
-    if (dockerPort !== conn.port) {
-      workspaceState.update(currentWorkspaceFolder() + ":port", dockerPort);
+  if (!workspaceState.get(workspaceFolder + ":port") && !api.externalServer) {
+    const { port: dockerPort, docker: withDocker } = portFromDockerCompose();
+    workspaceState.update(workspaceFolder + ":docker", withDocker);
+    if (withDocker) {
+      if (!dockerPort) {
+        outputChannel.appendLine(
+          `Something is wrong with your docker-compose connection settings, or your service is not running.`
+        );
+        panel.text = `${packageJson.displayName} - ERROR`;
+        return;
+      }
+      terminalWithDocker();
+      if (dockerPort !== port) {
+        workspaceState.update(workspaceFolder + ":host", "localhost");
+        workspaceState.update(workspaceFolder + ":port", dockerPort);
+      }
+      connInfo = `localhost:${dockerPort}[${ns}]`;
     }
-    connInfo = `${conn.host}:${dockerPort}[${conn.ns}]`;
   }
 
-  const api = new AtelierAPI(currentWorkspaceFolder());
   if (clearCookies) {
     api.clearCookies();
+  } else if (connectionSocket && connectionSocket.url == api.xdebugUrl() && connectionSocket.OPEN) {
+    panel.text = `${connInfo} - Connected`;
+    return;
   }
-  if (connectionSocket && connectionSocket.url == api.xdebugUrl() && connectionSocket.OPEN) {
+  api = new AtelierAPI(workspaceFolder);
+  if (!api.config.host || !api.config.port || !api.config.ns) {
+    outputChannel.appendLine("host, port and ns must be specified.");
+    panel.text = `${packageJson.displayName} - ERROR`;
     return;
   }
   api
     .serverInfo()
     .then((info) => {
       const hasHS = info.result.content.features.find((el) => el.name === "HEALTHSHARE" && el.enabled) !== undefined;
-      reporter.sendTelemetryEvent("connected", {
-        serverVersion: info.result.content.version,
-        healthshare: hasHS ? "yes" : "no",
-      });
+      reporter &&
+        reporter.sendTelemetryEvent("connected", {
+          serverVersion: info.result.content.version,
+          healthshare: hasHS ? "yes" : "no",
+        });
       /// Use xdebug's websocket, to catch when server disconnected
       connectionSocket = new WebSocket(api.xdebugUrl());
       connectionSocket.onopen = () => {
@@ -208,8 +243,10 @@ export const checkConnection = (clearCookies = false): void => {
         outputChannel.appendLine("Error: " + message);
         outputChannel.appendLine("Please check your network settings in the settings.");
       }
+      console.error(error);
       panel.text = `${connInfo} - ERROR`;
       panel.tooltip = message;
+      throw error;
     })
     .finally(() => {
       explorerProvider.refresh();
@@ -217,7 +254,9 @@ export const checkConnection = (clearCookies = false): void => {
 };
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  reporter = new TelemetryReporter(extensionId, extensionVersion, aiKey);
+  if (!packageJson.version.includes("SNAPSHOT")) {
+    reporter = new TelemetryReporter(extensionId, extensionVersion, aiKey);
+  }
 
   const languages = packageJson.contributes.languages.map((lang) => lang.id);
   workspaceState = context.workspaceState;
@@ -269,6 +308,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   });
 
   vscode.window.onDidChangeActiveTextEditor((textEditor: vscode.TextEditor) => {
+    checkConnection();
     posPanel.text = "";
     if (textEditor.document.fileName.endsWith(".xml") && config("autoPreviewXML")) {
       return xml2doc(context, textEditor);
@@ -499,12 +539,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     /* from proposed api */
     ...proposed
   );
-  reporter.sendTelemetryEvent("extensionActivated");
+  reporter && reporter.sendTelemetryEvent("extensionActivated");
 }
 
 export function deactivate(): void {
   // This will ensure all pending events get flushed
-  reporter.dispose();
+  reporter && reporter.dispose();
   if (terminals) {
     terminals.forEach((t) => t.dispose());
   }

@@ -10,7 +10,7 @@ export class ClassDefinition {
     return DocumentContentProvider.getUri(this._classFileName);
   }
 
-  public static normalizeClassName(className, withExtension = false): string {
+  public static normalizeClassName(className: string, withExtension = false): string {
     return className.replace(/^%(\b\w+\b)$/, "%Library.$1") + (withExtension ? ".cls" : "");
   }
   private _className: string;

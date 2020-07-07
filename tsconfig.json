@@ -7,7 +7,7 @@
     "moduleResolution": "node",
     "lib": ["esnext", "dom"],
     "sourceMap": true,
-    "rootDir": "src"
+    "rootDir": "src",
   },
   "exclude": ["node_modules", ".vscode-test"]
 }

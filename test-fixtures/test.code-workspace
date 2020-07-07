@@ -1,0 +1,14 @@
+{
+  "folders": [
+    {
+      "path": "."
+    },
+  ],
+  "settings": {
+    "objectscript.conn": {
+      "active": false
+    },
+    "intersystems.servers": {
+    }
+  }
+}

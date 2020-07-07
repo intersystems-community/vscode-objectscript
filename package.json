@@ -64,6 +64,9 @@
     "onDebugInitialConfigurations"
   ],
   "main": "./dist/extension",
+  "extensionDependencies": [
+    "intersystems-community.servermanager"
+  ],
   "contributes": {
     "menus": {
       "commandPalette": [
@@ -502,70 +505,96 @@
         "objectscript.conn": {
           "type": "object",
           "description": "Server Access",
-          "scope": "resource"
-        },
-        "objectscript.conn.active": {
-          "description": "Active",
-          "type": "boolean",
-          "default": false
-        },
-        "objectscript.conn.host": {
-          "description": "Hostname",
-          "format": "hostname",
-          "type": "string",
-          "default": "localhost"
-        },
-        "objectscript.conn.port": {
-          "description": "Port number",
-          "type": "number",
-          "default": 52773
-        },
-        "objectscript.conn.username": {
-          "description": "Username",
-          "type": "string",
-          "default": "_SYSTEM"
-        },
-        "objectscript.conn.password": {
-          "description": "User's Password",
-          "type": "string",
-          "default": "SYS"
-        },
-        "objectscript.conn.ns": {
-          "description": "Server Namespace",
-          "type": "string",
-          "default": "USER"
-        },
-        "objectscript.conn.https": {
-          "description": "Use SSL to access to API",
-          "type": "boolean",
-          "default": false
-        },
-        "objectscript.conn.docker-compose": {
-          "description": "Connect to server running in docker-compose",
-          "type": "object",
-          "scope": "resource"
-        },
-        "objectscript.conn.docker-compose.service": {
-          "description": "Name of service in docker-compose",
-          "type": "string"
-        },
-        "objectscript.conn.docker-compose.internalPort": {
-          "description": "Target port inside the service in docker-compose",
-          "type": "number",
-          "default": 52773
-        },
-        "objectscript.conn.docker-compose.file": {
-          "description": "docker-compose file",
-          "type": "string",
-          "default": "docker-compose.yml"
-        },
-        "objectscript.conn.links": {
-          "description": "Extra links for the server",
-          "type": "object"
+          "scope": "resource",
+          "additionalProperties": false,
+          "required": [
+            "active"
+          ],
+          "properties": {
+            "active": {
+              "type": "boolean",
+              "description": "This connection is active.",
+              "default": false
+            },
+            "server": {
+              "type": "string",
+              "pattern": "^[a-z0-9-._~]+$",
+              "markdownDescription": "Server defined in `#intersystems.servers#`"
+            },
+            "host": {
+              "type": "string",
+              "description": "Hostname or IP address of the web server.",
+              "anyOf": [
+                {
+                  "format": "hostname"
+                },
+                {
+                  "format": "ipv4"
+                },
+                {
+                  "format": "ipv6"
+                }
+              ],
+              "default": "localhost"
+            },
+            "port": {
+              "type": "integer",
+              "description": "TCP port number the web server listens on.",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "ns": {
+              "description": "Server namespace.",
+              "type": "string",
+              "default": "USER"
+            },
+            "username": {
+              "type": "string",
+              "description": "Username to connect as. If not set here it must be provided when connecting."
+            },
+            "password": {
+              "type": "string",
+              "description": "Password of username. If not set here it must be provided when connecting."
+            },
+            "https": {
+              "description": "Use SSL/TLS to access the server.",
+              "type": "boolean",
+              "default": false
+            },
+            "links": {
+              "description": "Extra links for the server.",
+              "type": "object",
+              "patternProperties": {
+                ".*": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            },
+            "docker-compose": {
+              "type": "object",
+              "description": "Connect to server running in docker-compose.",
+              "additionalProperties": false,
+              "properties": {
+                "service": {
+                  "description": "Name of service in docker-compose.",
+                  "type": "string"
+                },
+                "internalPort": {
+                  "description": "Target port inside the service in docker-compose.",
+                  "type": "number"
+                },
+                "file": {
+                  "description": "Name of docker-compose file.",
+                  "type": "string"
+                }
+              }
+            }
+          }
         },
         "objectscript.export": {
           "type": "object",
-          "description": "Export only the necessary stuff ",
+          "description": "Export only the necessary stuff.",
           "scope": "resource"
         },
         "objectscript.export.folder": {
@@ -778,8 +807,9 @@
     "webpack-dev": "webpack --mode development --watch",
     "package": "vsce package",
     "compile": "webpack --mode production && tsc -p ./",
+    "test-compile": "webpack --mode development && tsc -p ./",
     "watch": "tsc -w -p ./tsconfig.json",
-    "pretest": "npm run compile",
+    "pretest": "npm run test-compile",
     "test": "node ./out/test/runTest.js",
     "lint": "eslint src/**",
     "lint-fix": "eslint --fix src/**",
@@ -808,6 +838,7 @@
     "extend": "^3.0.2",
     "minimist": ">=1.2.5",
     "mocha": "^8.0.1",
+    "nock": "^13.0.0",
     "prettier": "^2.0.5",
     "tape": "^5.0.1",
     "ts-loader": "^7.0.5",

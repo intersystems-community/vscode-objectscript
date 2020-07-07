@@ -2,13 +2,54 @@ import * as vscode from "vscode";
 import { config, workspaceState, checkConnection, FILESYSTEM_SCHEMA } from "../extension";
 import { currentWorkspaceFolder, terminalWithDocker, currentFile } from "../utils";
 import { mainCommandMenu, mainSourceControlMenu } from "./studio";
+import { AtelierAPI } from "../api";
 
 export async function serverActions(): Promise<void> {
-  const { active, host, ns, https, port: defaultPort, username, password: defaultPassword, links } = config("conn");
   const workspaceFolder = currentWorkspaceFolder();
-  const port = workspaceState.get(workspaceFolder + ":port", defaultPort);
-  const password = workspaceState.get(workspaceFolder + ":password", defaultPassword);
+  const api = new AtelierAPI(workspaceFolder);
+  const { active, host = "", ns = "", https, port = 0, username, password } = api.config;
+  const { links } = config("conn");
   const nsEncoded = encodeURIComponent(ns);
+  const actions = [];
+  if (!api.externalServer) {
+    actions.push({
+      detail: (active ? "Disable" : "Enable") + " current connection",
+      id: "toggleConnection",
+      label: "Toggle Connection",
+    });
+  }
+  if (active) {
+    actions.push({
+      id: "refreshConnection",
+      label: "Refresh Connection",
+      detail: "Force attempt to connect to the server",
+    });
+  }
+  const connectionActionsHandler = (action) => {
+    if (!action) {
+      return;
+    }
+    switch (action.id) {
+      case "toggleConnection": {
+        const connConfig = config("", workspaceFolder);
+        const target = connConfig.inspect("conn").workspaceFolderValue
+          ? vscode.ConfigurationTarget.WorkspaceFolder
+          : vscode.ConfigurationTarget.Workspace;
+        const targetConfig =
+          connConfig.inspect("conn").workspaceFolderValue || connConfig.inspect("conn").workspaceValue;
+        return connConfig.update("conn", { ...targetConfig, active: !active }, target);
+      }
+      case "refreshConnection": {
+        checkConnection(true);
+        break;
+      }
+      default:
+        return action;
+    }
+  };
+  if (!active || !host?.length || !port || !ns.length) {
+    return vscode.window.showQuickPick(actions).then(connectionActionsHandler);
+  }
   const connInfo = `${host}:${port}[${nsEncoded}]`;
   const serverUrl = `${https ? "https" : "http"}://${host}:${port}`;
   const portalUrl = `${serverUrl}/csp/sys/UtilHome.csp?$NAMESPACE=${nsEncoded}`;
@@ -29,7 +70,7 @@ export async function serverActions(): Promise<void> {
     }
     link = link
       .replace("${host}", host)
-      .replace("${port}", port)
+      .replace("${port}", port.toString())
       .replace("${namespace}", ns == "%SYS" ? "sys" : nsEncoded.toLowerCase())
       .replace("${classname}", classname);
     extraLinks.push({
@@ -38,76 +79,51 @@ export async function serverActions(): Promise<void> {
       detail: link,
     });
   }
-  const terminal = [];
-  if (workspaceState.get(workspaceFolder + ":docker", true)) {
-    terminal.push({
+  if (workspaceState.get(workspaceFolder + ":docker", false)) {
+    actions.push({
       id: "openDockerTerminal",
-      label: "Open terminal in docker",
+      label: "Open Terminal in Docker",
       detail: "Use docker-compose to start session inside configured service",
     });
   }
-  const studio = [];
+  actions.push({
+    detail: portalUrl,
+    id: "openPortal",
+    label: "Open Management Portal",
+  });
+  actions.push({
+    detail: classRef,
+    id: "openClassReference",
+    label: "Open Class Reference",
+  });
   if (!vscode.window.activeTextEditor || vscode.window.activeTextEditor.document.uri.scheme === FILESYSTEM_SCHEMA) {
-    studio.push({
+    actions.push({
       id: "serverSourceControlMenu",
       label: "Server Source Control...",
       detail: "Pick server-side source control action",
     });
-    studio.push({
+    actions.push({
       id: "serverCommandMenu",
       label: "Server Command Menu...",
       detail: "Pick server-side command",
     });
   }
   return vscode.window
-    .showQuickPick(
-      [
-        ...extraLinks,
-        {
-          id: "refreshConnection",
-          label: "Refresh Connection",
-          detail: "Force attempt to connect to the server",
-        },
-        ...terminal,
-        {
-          id: "toggleConnection",
-          label: "Toggle Connection",
-          detail: "Enable/Disable current connection",
-        },
-        {
-          id: "openPortal",
-          label: "Open Management Portal",
-          detail: portalUrl,
-        },
-        {
-          id: "openClassReference",
-          label: "Open Class Reference",
-          detail: classRef,
-        },
-        ...studio,
-      ],
-      {
-        placeHolder: `Select action for server ${connInfo}`,
-      }
-    )
+    .showQuickPick(actions, {
+      placeHolder: `Select action for server: ${connInfo}`,
+    })
+    .then(connectionActionsHandler)
     .then((action) => {
       if (!action) {
         return;
       }
       switch (action.id) {
-        case "toggleConnection": {
-          return vscode.workspace.getConfiguration().update("objectscript.conn.active", !active);
-        }
         case "openPortal": {
           vscode.env.openExternal(vscode.Uri.parse(portalUrl + auth));
           break;
         }
         case "openClassReference": {
           vscode.env.openExternal(vscode.Uri.parse(classRef + auth));
-          break;
-        }
-        case "refreshConnection": {
-          checkConnection(true);
           break;
         }
         case "openDockerTerminal": {

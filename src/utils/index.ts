@@ -127,24 +127,25 @@ export function workspaceFolderUri(workspaceFolder: string = currentWorkspaceFol
   ).uri;
 }
 
-export function onlyUnique(value: any, index: number, self: any): boolean {
+export function onlyUnique(value: { name: string }, index: number, self: { name: string }[]): boolean {
   if (value && value.name) {
     return self.findIndex((el): boolean => el.name === value.name) === index;
   }
   return self.indexOf(value) === index;
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function notNull(el: any): boolean {
   return el !== null;
 }
 
 export function portFromDockerCompose(): { port: number; docker: boolean } {
-  const { "docker-compose": dockerCompose = {}, port: defaultPort } = config("conn");
-  const result = { port: defaultPort, docker: false };
+  const { "docker-compose": dockerCompose = {} } = config("conn");
   const { service, file = "docker-compose.yml", internalPort = 52773 } = dockerCompose;
   if (!internalPort || !file || !service || service === "") {
-    return result;
+    return { docker: false, port: null };
   }
+  const result = { port: null, docker: true };
   const workspaceFolderPath = workspaceFolderUri().fsPath;
   const workspaceRootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
 
@@ -173,7 +174,6 @@ export function portFromDockerCompose(): { port: number; docker: boolean } {
       return { port: parseInt(newPort, 10), docker: true };
     }
   } catch (e) {
-    console.log(e);
     // nope
   }
   return result;
