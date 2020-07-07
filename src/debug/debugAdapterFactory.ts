@@ -2,7 +2,8 @@ import net = require("net");
 import vscode = require("vscode");
 import { ObjectScriptDebugSession } from "./debugSession";
 
-export class ObjectScriptDebugAdapterDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {
+export class ObjectScriptDebugAdapterDescriptorFactory
+  implements vscode.DebugAdapterDescriptorFactory, vscode.Disposable {
   private server?: net.Server;
 
   public createDebugAdapterDescriptor(
@@ -26,7 +27,7 @@ export class ObjectScriptDebugAdapterDescriptorFactory implements vscode.DebugAd
     return new vscode.DebugAdapterServer(port);
   }
 
-  public dispose() {
+  public dispose(): void {
     if (this.server) {
       this.server.close();
     }

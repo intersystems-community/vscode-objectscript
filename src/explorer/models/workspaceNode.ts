@@ -22,7 +22,7 @@ export class WorkspaceNode extends NodeBase {
     };
   }
 
-  public async getChildren(element): Promise<NodeBase[]> {
+  public async getChildren(element: NodeBase): Promise<NodeBase[]> {
     const children = [];
     let node: RootNode;
 
