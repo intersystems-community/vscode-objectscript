@@ -47,7 +47,7 @@ export class ObjectScriptDiagnosticProvider {
       }
 
       const memberMatch = text.match(
-        /^(Class|Property|Relationship|Index|(?:(?:Client)?(?:Class)?Method)|ClientClassMethod|Method|XData|Query|Trigger|ForeignKey|Projection|Parameter)\s(\b[^  (]+\b)/i
+        /^(Class|Property|Relationship|Index|(?:(?:Client)?(?:Class)?Method)|ClientClassMethod|Method|XData|Query|Trigger|ForeignKey|Projection|Parameter)\s((?:"[^"]+")|(?:[^ (;]+))/i
       );
       if (memberMatch) {
         const [fullMatch, type, name] = memberMatch;
@@ -72,6 +72,25 @@ export class ObjectScriptDiagnosticProvider {
           });
         }
         map.set(key, fullMatch);
+
+        let leftChars;
+        if (!name.startsWith('"') && (leftChars = name.replace(/[%a-z0-9.]/gi, "")) && leftChars !== "") {
+          const pos = line.text.indexOf(name);
+          const range = new vscode.Range(new vscode.Position(i, pos), new vscode.Position(i, pos + name.length));
+          result.push({
+            code: "",
+            message: "Non-latin characters",
+            range,
+            severity: vscode.DiagnosticSeverity.Warning,
+            source: "",
+            relatedInformation: [
+              new vscode.DiagnosticRelatedInformation(
+                new vscode.Location(document.uri, range),
+                `Element name contains non-latin characters: ${leftChars}`
+              ),
+            ],
+          });
+        }
       }
     }
 
