@@ -263,8 +263,7 @@ async function serverManager(): Promise<void> {
   }
   return vscode.window
     .showInformationMessage(
-      `Extension InterSystems® Server Manager have not installed,
-      it's recommended to install it.`,
+      "The InterSystems® Server Manager extension is recommended to help you define connections."
       "Install",
       "Skip",
       "Ignore"
