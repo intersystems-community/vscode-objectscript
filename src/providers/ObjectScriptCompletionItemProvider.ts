@@ -203,7 +203,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       });
   }
 
-  public listSystemVariables(search: string) {
+  public listSystemVariables(search: string): vscode.CompletionItem[] {
     return systemVariables
       .filter((el) => el.label.startsWith(search) || el.alias.findIndex((el2) => el2.startsWith(search)) >= 0)
       .map((el) => {
@@ -217,7 +217,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       });
   }
 
-  public listStructuredSystemVariables(search: string, open = false) {
+  public listStructuredSystemVariables(search: string, open = false): vscode.CompletionItem[] {
     return structuredSystemVariables.map((el) => {
       return {
         ...el,
@@ -436,7 +436,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
     position: vscode.Position,
     token: vscode.CancellationToken,
     context: vscode.CompletionContext
-  ) {
+  ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
     const range = document.getWordRangeAtPosition(position, /\$system(\.\b\w+\b)?(\.\b\w+\b)?\./i);
     const text = range ? document.getText(range) : "";
     const [, className] = text.match(/\$system(\.\b\w+\b)?(\.\b\w+\b)?\./i);
