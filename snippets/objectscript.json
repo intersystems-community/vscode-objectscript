@@ -1,0 +1,24 @@
+{
+	"ForOrder": {
+		"prefix": ["For"],
+		"body": [
+			"Set ${1:key} = \"\"",
+			"For {",
+				"\tSet ${1:key} = \\$ORDER(${2:array}(${1:key}))",
+				"\tQuit:${1:key}=\"\"",
+				"\t$3 // process ${2:array}(${1:key})",
+			"}"
+		],
+		"description": "Looping Array with $Order"
+    },
+    "SQL Statement": {
+        "prefix": ["sql"],
+        "body": [
+                "Set rs = ##class(%SQL.Statement).%ExecDirect(,\"SELECT * FROM\")",
+                "While rs.%Next() {",
+                "\twrite rs.ID, !",
+                "}"],
+        "description": "Prepare and execute SQL Query"
+    }
+
+}

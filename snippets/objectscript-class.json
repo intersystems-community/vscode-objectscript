@@ -26,5 +26,86 @@
   "Index": {
     "prefix": "Index",
     "body": "Index $1 On ${2:Name};"
-  }
+  },
+  "Unique Index": {
+		"prefix": "Index",
+		"body": "Index $1 On ${2:property} [Unique];",
+		"description": "Unique Index"
+	},
+	"Query": {
+		"prefix":["Query"],
+		"body":["Query $1($2) As %SQLQuery [ SqlProc ]","{","\t$3","}"],
+		"description": "Based on SQL statement"
+	},
+	"Trigger": {
+		"prefix": "Trigger",
+		"body": [
+			"Trigger $1 [Event=${2|INSERT,UPDATE,DELETE|}, Time=${3|BEFORE,AFTER|}, Foreach=${4|row/object,row,statement|}]",
+			"{",
+			"\t$5",
+			"}"
+			],
+		"description": "Trigger"
+	},
+	"ForeignKey": {
+		"prefix": "Foreignkey",
+		"body": "ForeignKey $1 (${2:property}) References ${3:referencedClass}(${4:refIndex});",
+		"description": "ForeignKey"
+	},
+	"Relationship": {
+		"prefix": ["Relationship"],
+		"body": "Relationship $1 As ${2:classname} [ Cardinality = ${3|one,many,parent,children|}, Inverse = ${4:correspondingProperty} ];",
+		"description": "Relationship"
+  },
+  "BusinessService": {
+		"prefix": ["BusinessService","Interoperability"],
+		"body": ["Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.BusinessService",
+			"{\n",
+			"Property Adapter As ${2:Ens.InboundAdapter};\n",
+			"Parameter ADAPTER = \"${2:Ens.InboundAdapter}\";\n",
+			"Method OnProcessInput(pInput As %RegisteredObject, pOutput As %RegisteredObject) As %Status",
+			"{",
+			"\t$3",
+			"\tReturn \\$\\$\\$ERROR(\\$\\$\\$NotImplemented)",
+			"}",
+			"}"],
+		"description": "Business Service Definition"
+	},
+	"BusinessOperation": {
+		"prefix":["BusinessOperation","Interoperability"],
+		"body": ["Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.BusinessOperation",
+		"{\n",
+		"Property Adapter As ${2:Ens.OutboundAdapter};\n",
+		"Parameter ADAPTER = \"${2:Ens.OutboundAdapter}\";\n",
+		"Parameter INVOCATION = \"Queue\";\n",
+		"Method SampleCall(pRequest As ${3:Ens.Request}, Output pResponse As ${4:Ens.Response} ) As %Status",
+		"{",
+		"\t$5",
+		"\tReturn \\$\\$\\$ERROR(\\$\\$\\$NotImplemented)",
+		"}\n",
+		"XData MessageMap",
+		"{",
+		"<MapItems>",
+		"\t<MapItem MessageType=\"${3:Ens.Request}\">",
+		"\t\t<Method>SampleCall</Method>",
+		"\t</MapItem>",
+		"</MapItems>",
+		"}",
+		"}"],
+		"description": "Business Operation Definition"
+	},
+	"Production": {
+		"prefix": ["Production","Interoperability"],
+		"body": ["Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Production",
+		"{\n",
+		"XData ProductionDefinition",
+		"{",
+		"\t<Production Name=\"${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE}\">",
+			"\t\t<ActorPoolSize>2</ActorPoolSize>",
+			"\t\t<Item ClassName=\"$2\" Name=\"$3\" PoolSize=\"1\"/>",
+		"\t</Production>",
+		"}",
+		"}"],
+		"description": "Production Definition"
+	}
 }

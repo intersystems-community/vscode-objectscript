@@ -348,6 +348,10 @@
       {
         "language": "objectscript-class",
         "path": "./snippets/objectscript-class.json"
+      },
+      {
+        "language": "objectscript",
+        "path": "./snippets/objectscript.json"
       }
     ],
     "commands": [
