@@ -4,6 +4,7 @@ import * as url from "url";
 import { AtelierAPI } from "../../api";
 import { Directory } from "./Directory";
 import { File } from "./File";
+import { fireOtherStudioAction, OtherStudioAction } from "../../commands/studio";
 import { StudioOpenDialog } from "../../queries";
 
 export type Entry = File | Directory;
@@ -152,11 +153,15 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           throw new Error("Not implemented");
         }
       })
-      .then(() =>
+      .then((response) => {
+        if (response && response.result.ext && response.result.ext[0] && response.result.ext[1]) {
+          fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, uri, response.result.ext[0]);
+          fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, uri, response.result.ext[1]);
+        }
         this._lookupAsFile(uri).then((entry) => {
           this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
-        })
-      );
+        });
+      });
   }
 
   public delete(uri: vscode.Uri, options: { recursive: boolean }): void | Thenable<void> {
@@ -167,7 +172,12 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       return;
     }
     const api = new AtelierAPI(uri);
-    return api.deleteDoc(fileName).then(() => this._fireSoon({ type: vscode.FileChangeType.Deleted, uri }));
+    return api.deleteDoc(fileName).then((response) => {
+      if (response.result.ext) {
+        fireOtherStudioAction(OtherStudioAction.DeletedDocument, uri, response.result.ext);
+      }
+      this._fireSoon({ type: vscode.FileChangeType.Deleted, uri });
+    });
   }
 
   public rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): void | Thenable<void> {
