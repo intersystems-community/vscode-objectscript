@@ -1,10 +1,11 @@
 import * as vscode from "vscode";
-import { config, workspaceState } from "../../extension";
 import { currentWorkspaceFolder } from "../../utils";
+import { AtelierAPI } from "../../api";
 
 export interface NodeOptions {
   extraNode?: boolean;
   generated?: boolean;
+  system?: boolean;
   namespace?: string;
   workspaceFolder?: string;
 }
@@ -28,14 +29,14 @@ export class NodeBase {
     this.fullName = fullName;
     const { workspaceFolder, namespace, extraNode } = options;
     this.workspaceFolder = workspaceFolder || currentWorkspaceFolder();
-    this.conn = config("conn", workspaceFolder);
+    const api = new AtelierAPI(workspaceFolder);
+    this.conn = api.config;
     this.namespace = namespace || this.conn.ns;
     this.extraNode = extraNode;
   }
 
   public get connInfo(): string {
-    const port = workspaceState.get(this.workspaceFolder + ":port", this.conn.port);
-    return `${this.conn.host}:${port}[${this.namespace}]`;
+    return `${this.conn.host}:${this.conn.port}[${this.namespace}]`;
   }
 
   public getTreeItem(): vscode.TreeItem {

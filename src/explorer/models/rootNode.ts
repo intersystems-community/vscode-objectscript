@@ -76,7 +76,7 @@ export class RootNode extends NodeBase {
 
     spec = path + spec;
 
-    const systemFiles = this.namespace === "%SYS" ? "1" : "0";
+    const systemFiles = this.options.system || this.namespace === "%SYS" ? "1" : "0";
 
     const api = new AtelierAPI(this.workspaceFolder);
     api.setNamespace(this.namespace);

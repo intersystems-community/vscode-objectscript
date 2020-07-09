@@ -491,8 +491,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       workspaceState.update(`ExplorerGenerated:${workspaceNode.uniqueId}`, true);
       return explorerProvider.refresh();
     }),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.showSystem", (workspaceNode: WorkspaceNode) => {
+      workspaceState.update(`ExplorerSystem:${workspaceNode.uniqueId}`, true);
+      return explorerProvider.refresh();
+    }),
     vscode.commands.registerCommand("vscode-objectscript.explorer.hideGenerated", (workspaceNode: WorkspaceNode) => {
       workspaceState.update(`ExplorerGenerated:${workspaceNode.uniqueId}`, false);
+      return explorerProvider.refresh();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.hideSystem", (workspaceNode: WorkspaceNode) => {
+      workspaceState.update(`ExplorerSystem:${workspaceNode.uniqueId}`, false);
       return explorerProvider.refresh();
     }),
     vscode.commands.registerCommand("vscode-objectscript.explorer.otherNamespace", (workspaceNode: WorkspaceNode) => {
