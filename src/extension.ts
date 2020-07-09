@@ -263,7 +263,7 @@ async function serverManager(): Promise<void> {
   }
   return vscode.window
     .showInformationMessage(
-      "The InterSystems® Server Manager extension is recommended to help you define connections."
+      "The InterSystems® Server Manager extension is recommended to help you define connections.",
       "Install",
       "Skip",
       "Ignore"
@@ -271,11 +271,9 @@ async function serverManager(): Promise<void> {
     .then(async (action) => {
       switch (action) {
         case "Install":
-          await vscode.commands.executeCommand("workbench.extensions.installExtension", extId);
-        // eslint-disable-next-line no-fallthrough
-        case "View":
           await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`);
           await vscode.commands.executeCommand("extension.open", extId);
+          await vscode.commands.executeCommand("workbench.extensions.installExtension", extId);
           break;
         case "Ignore":
           config().update("ignoreInstallServerManager", true, vscode.ConfigurationTarget.Global);
