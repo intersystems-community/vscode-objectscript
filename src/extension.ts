@@ -253,6 +253,37 @@ export const checkConnection = (clearCookies = false): void => {
     });
 };
 
+async function serverManager(): Promise<void> {
+  const extId = "intersystems-community.servermanager";
+  const ignore =
+    config("ignoreInstallServerManager") ||
+    vscode.workspace.getConfiguration("intersystems.servers").get("/ignore", false);
+  if (ignore || vscode.extensions.getExtension(extId)) {
+    return;
+  }
+  return vscode.window
+    .showInformationMessage(
+      "The InterSystems® Server Manager extension is recommended to help you define connections.",
+      "Install",
+      "Skip",
+      "Ignore"
+    )
+    .then(async (action) => {
+      switch (action) {
+        case "Install":
+          await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`);
+          await vscode.commands.executeCommand("extension.open", extId);
+          await vscode.commands.executeCommand("workbench.extensions.installExtension", extId);
+          break;
+        case "Ignore":
+          config().update("ignoreInstallServerManager", true, vscode.ConfigurationTarget.Global);
+          break;
+        case "Skip":
+        default:
+      }
+    });
+}
+
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   if (!packageJson.version.includes("SNAPSHOT")) {
     reporter = new TelemetryReporter(extensionId, extensionVersion, aiKey);
@@ -540,6 +571,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ...proposed
   );
   reporter && reporter.sendTelemetryEvent("extensionActivated");
+
+  // offer to install servermanager extension
+  await serverManager();
 }
 
 export function deactivate(): void {
