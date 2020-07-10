@@ -3,7 +3,13 @@ import glob = require("glob");
 import path = require("path");
 import vscode = require("vscode");
 import { AtelierAPI } from "../api";
-import { config, documentContentProvider, FILESYSTEM_SCHEMA, fileSystemProvider } from "../extension";
+import {
+  config,
+  documentContentProvider,
+  FILESYSTEM_SCHEMA,
+  FILESYSTEM_READONLY_SCHEMA,
+  fileSystemProvider,
+} from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { currentFile, CurrentFile, outputChannel } from "../utils";
 import { RootNode } from "../explorer/models/rootNode";
@@ -53,7 +59,7 @@ export async function loadChanges(files: CurrentFile[]): Promise<any> {
           const content = (data.result.content || []).join(file.eol === vscode.EndOfLine.LF ? "\n" : "\r\n");
           if (file.uri.scheme === "file") {
             fs.writeFileSync(file.fileName, content);
-          } else if (file.uri.scheme === FILESYSTEM_SCHEMA) {
+          } else if (file.uri.scheme === FILESYSTEM_SCHEMA || file.uri.scheme === FILESYSTEM_READONLY_SCHEMA) {
             fileSystemProvider.writeFile(file.uri, Buffer.from(content), {
               overwrite: true,
               create: false,

@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { config, workspaceState, checkConnection, FILESYSTEM_SCHEMA } from "../extension";
+import { config, workspaceState, checkConnection, FILESYSTEM_SCHEMA, FILESYSTEM_READONLY_SCHEMA } from "../extension";
 import { currentWorkspaceFolder, terminalWithDocker, currentFile } from "../utils";
 import { mainCommandMenu, mainSourceControlMenu } from "./studio";
 import { AtelierAPI } from "../api";
@@ -96,7 +96,11 @@ export async function serverActions(): Promise<void> {
     id: "openClassReference",
     label: "Open Class Reference",
   });
-  if (!vscode.window.activeTextEditor || vscode.window.activeTextEditor.document.uri.scheme === FILESYSTEM_SCHEMA) {
+  if (
+    !vscode.window.activeTextEditor ||
+    vscode.window.activeTextEditor.document.uri.scheme === FILESYSTEM_SCHEMA ||
+    vscode.window.activeTextEditor.document.uri.scheme === FILESYSTEM_READONLY_SCHEMA
+  ) {
     actions.push({
       id: "serverSourceControlMenu",
       label: "Server Source Control...",

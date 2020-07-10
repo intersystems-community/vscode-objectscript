@@ -7,7 +7,13 @@ const { workspace, window } = vscode;
 export const OBJECTSCRIPT_FILE_SCHEMA = "objectscript";
 export const OBJECTSCRIPTXML_FILE_SCHEMA = "objectscriptxml";
 export const FILESYSTEM_SCHEMA = "isfs";
-export const schemas = [OBJECTSCRIPT_FILE_SCHEMA, OBJECTSCRIPTXML_FILE_SCHEMA, FILESYSTEM_SCHEMA];
+export const FILESYSTEM_READONLY_SCHEMA = "isfs-readonly";
+export const schemas = [
+  OBJECTSCRIPT_FILE_SCHEMA,
+  OBJECTSCRIPTXML_FILE_SCHEMA,
+  FILESYSTEM_SCHEMA,
+  FILESYSTEM_READONLY_SCHEMA,
+];
 
 import * as url from "url";
 import WebSocket = require("ws");
@@ -380,8 +386,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     packageJson.enableProposedApi && typeof vscode.workspace.registerFileSearchProvider === "function"
       ? vscode.workspace.registerFileSearchProvider(FILESYSTEM_SCHEMA, new FileSearchProvider())
       : null,
+    packageJson.enableProposedApi && typeof vscode.workspace.registerFileSearchProvider === "function"
+      ? vscode.workspace.registerFileSearchProvider(FILESYSTEM_READONLY_SCHEMA, new FileSearchProvider())
+      : null,
     packageJson.enableProposedApi && typeof vscode.workspace.registerTextSearchProvider === "function"
       ? vscode.workspace.registerTextSearchProvider(FILESYSTEM_SCHEMA, new TextSearchProvider())
+      : null,
+    packageJson.enableProposedApi && typeof vscode.workspace.registerTextSearchProvider === "function"
+      ? vscode.workspace.registerTextSearchProvider(FILESYSTEM_READONLY_SCHEMA, new TextSearchProvider())
       : null,
   ].filter(notNull);
 
@@ -518,7 +530,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPT_FILE_SCHEMA, documentContentProvider),
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPTXML_FILE_SCHEMA, xmlContentProvider),
-    vscode.workspace.registerFileSystemProvider(FILESYSTEM_SCHEMA, fileSystemProvider, { isCaseSensitive: true }),
+    vscode.workspace.registerFileSystemProvider(FILESYSTEM_SCHEMA, fileSystemProvider, {
+      isCaseSensitive: true,
+    }),
+    vscode.workspace.registerFileSystemProvider(FILESYSTEM_READONLY_SCHEMA, fileSystemProvider, {
+      isCaseSensitive: true,
+      isReadonly: true,
+    }),
     vscode.languages.setLanguageConfiguration("objectscript-class", getLanguageConfiguration("class")),
     vscode.languages.setLanguageConfiguration("objectscript", getLanguageConfiguration("routine")),
     vscode.languages.setLanguageConfiguration("objectscript-macros", getLanguageConfiguration("routine")),

@@ -17,7 +17,7 @@ import { DebugProtocol } from "vscode-debugprotocol";
 import WebSocket = require("ws");
 import { AtelierAPI } from "../api";
 import * as xdebug from "./xdebugConnection";
-import { FILESYSTEM_SCHEMA } from "../extension";
+import { FILESYSTEM_SCHEMA, FILESYSTEM_READONLY_SCHEMA } from "../extension";
 import * as url from "url";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { formatPropertyValue } from "./utils";
@@ -40,7 +40,7 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
 export async function convertClientPathToDebugger(localPath: string, namespace: string): Promise<string> {
   const { protocol, pathname, query } = url.parse(decodeURIComponent(localPath), true, true);
   let fileName = localPath;
-  if (protocol && protocol === `${FILESYSTEM_SCHEMA}:`) {
+  if (protocol && (protocol === `${FILESYSTEM_SCHEMA}:` || protocol === `${FILESYSTEM_READONLY_SCHEMA}:`)) {
     if (query.ns && query.ns !== "") {
       namespace = query.ns.toString();
     }
@@ -205,7 +205,10 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     await this._debugTargetSet.wait(1000);
 
     const filePath = args.source.path;
-    const uri = filePath.startsWith(FILESYSTEM_SCHEMA) ? vscode.Uri.parse(filePath) : vscode.Uri.file(filePath);
+    const uri =
+      filePath.startsWith(FILESYSTEM_SCHEMA) || filePath.startsWith(FILESYSTEM_READONLY_SCHEMA)
+        ? vscode.Uri.parse(filePath)
+        : vscode.Uri.file(filePath);
     const fileUri = await convertClientPathToDebugger(args.source.path, this._namespace);
     const [, fileName] = fileUri.match(/\|([^|]+)$/);
 
