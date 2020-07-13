@@ -12,9 +12,10 @@ export class ObjectScriptDebugAdapterDescriptorFactory
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
     if (!this.server) {
       // start listening on a random port
+      const debugSession = new ObjectScriptDebugSession();
+
       this.server = net
         .createServer((socket) => {
-          const debugSession = new ObjectScriptDebugSession();
           debugSession.setRunAsServer(true);
           debugSession.start(socket as NodeJS.ReadableStream, socket);
         })

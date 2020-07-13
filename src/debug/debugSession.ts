@@ -4,6 +4,7 @@ import { Subject } from "await-notify";
 import {
   InitializedEvent,
   LoggingDebugSession,
+  ErrorDestination,
   OutputEvent,
   StoppedEvent,
   ThreadEvent,
@@ -17,7 +18,7 @@ import { DebugProtocol } from "vscode-debugprotocol";
 import WebSocket = require("ws");
 import { AtelierAPI } from "../api";
 import * as xdebug from "./xdebugConnection";
-import { FILESYSTEM_SCHEMA } from "../extension";
+import { schemas } from "../extension";
 import * as url from "url";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { formatPropertyValue } from "./utils";
@@ -40,7 +41,7 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
 export async function convertClientPathToDebugger(localPath: string, namespace: string): Promise<string> {
   const { protocol, pathname, query } = url.parse(decodeURIComponent(localPath), true, true);
   let fileName = localPath;
-  if (protocol && protocol === `${FILESYSTEM_SCHEMA}:`) {
+  if (protocol && schemas.includes(protocol.slice(0, -1))) {
     if (query.ns && query.ns !== "") {
       namespace = query.ns.toString();
     }
@@ -88,6 +89,9 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     super();
 
     const api = new AtelierAPI();
+    if (!api.active) {
+      throw new Error("Connection not active");
+    }
     this._namespace = api.ns;
     this._url = api.xdebugUrl();
 
@@ -141,19 +145,27 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
   protected async launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments): Promise<void> {
     // this._args = args;
 
-    const debugTarget = `${this._namespace}:${args.program}`;
-    await this._connection.sendFeatureSetCommand("debug_target", debugTarget);
+    try {
+      const debugTarget = `${this._namespace}:${args.program}`;
+      await this._connection.sendFeatureSetCommand("debug_target", debugTarget);
 
-    this._debugTargetSet.notify();
-
+      this._debugTargetSet.notify();
+    } catch (error) {
+      this.sendErrorResponse(response, error);
+      return;
+    }
     this.sendResponse(response);
   }
 
   protected async attachRequest(response: DebugProtocol.AttachResponse, args: AttachRequestArguments): Promise<void> {
-    const debugTarget = `PID:${args.processId}`;
-    await this._connection.sendFeatureSetCommand("debug_target", debugTarget);
-    this._debugTargetSet.notify();
-
+    try {
+      const debugTarget = `PID:${args.processId}`;
+      await this._connection.sendFeatureSetCommand("debug_target", debugTarget);
+      this._debugTargetSet.notify();
+    } catch (error) {
+      this.sendErrorResponse(response, error);
+      return;
+    }
     this.sendResponse(response);
   }
 
@@ -202,71 +214,79 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     response: DebugProtocol.SetBreakpointsResponse,
     args: DebugProtocol.SetBreakpointsArguments
   ): Promise<void> {
-    await this._debugTargetSet.wait(1000);
+    try {
+      await this._debugTargetSet.wait(1000);
 
-    const filePath = args.source.path;
-    const uri = filePath.startsWith(FILESYSTEM_SCHEMA) ? vscode.Uri.parse(filePath) : vscode.Uri.file(filePath);
-    const fileUri = await convertClientPathToDebugger(args.source.path, this._namespace);
-    const [, fileName] = fileUri.match(/\|([^|]+)$/);
+      const filePath = args.source.path;
+      const { protocol } = url.parse(decodeURIComponent(filePath), true, true);
+      const uri =
+        protocol && schemas.includes(protocol.slice(0, -1)) ? vscode.Uri.parse(filePath) : vscode.Uri.file(filePath);
+      const fileUri = await convertClientPathToDebugger(args.source.path, this._namespace);
+      const [, fileName] = fileUri.match(/\|([^|]+)$/);
 
-    const currentList = await this._connection.sendBreakpointListCommand();
-    currentList.breakpoints
-      .filter((breakpoint) => {
-        if (breakpoint instanceof xdebug.LineBreakpoint) {
-          return breakpoint.fileUri === fileName;
-        }
-        return false;
-      })
-      .map((breakpoint) => {
-        this._connection.sendBreakpointRemoveCommand(breakpoint);
-      });
+      const currentList = await this._connection.sendBreakpointListCommand();
+      currentList.breakpoints
+        .filter((breakpoint) => {
+          if (breakpoint instanceof xdebug.LineBreakpoint) {
+            return breakpoint.fileUri === fileName;
+          }
+          return false;
+        })
+        .map((breakpoint) => {
+          this._connection.sendBreakpointRemoveCommand(breakpoint);
+        });
 
-    let xdebugBreakpoints: (xdebug.ConditionalBreakpoint | xdebug.ClassLineBreakpoint | xdebug.LineBreakpoint)[] = [];
-    xdebugBreakpoints = await Promise.all(
-      args.breakpoints.map(async (breakpoint) => {
-        const line = breakpoint.line;
-        if (breakpoint.condition) {
-          return new xdebug.ConditionalBreakpoint(breakpoint.condition, fileUri, line);
-        } else if (fileName.endsWith("cls")) {
-          return await vscode.workspace.openTextDocument(uri).then((document) => {
-            const methodMatchPattern = new RegExp(`^(?:Class)?Method ([^(]+)(?=[( ])`, "i");
-            for (let i = line; line > 0; i--) {
-              const lineOfCode = document.lineAt(i).text;
-              const methodMatch = lineOfCode.match(methodMatchPattern);
-              if (methodMatch) {
-                const [, methodName] = methodMatch;
-                return new xdebug.ClassLineBreakpoint(fileUri, line, methodName, line - i - 2);
+      let xdebugBreakpoints: (xdebug.ConditionalBreakpoint | xdebug.ClassLineBreakpoint | xdebug.LineBreakpoint)[] = [];
+      xdebugBreakpoints = await Promise.all(
+        args.breakpoints.map(async (breakpoint) => {
+          const line = breakpoint.line;
+          if (breakpoint.condition) {
+            return new xdebug.ConditionalBreakpoint(breakpoint.condition, fileUri, line);
+          } else if (fileName.endsWith("cls")) {
+            return await vscode.workspace.openTextDocument(uri).then((document) => {
+              const methodMatchPattern = new RegExp(`^(?:Class)?Method ([^(]+)(?=[( ])`, "i");
+              for (let i = line; line > 0; i--) {
+                const lineOfCode = document.lineAt(i).text;
+                const methodMatch = lineOfCode.match(methodMatchPattern);
+                if (methodMatch) {
+                  const [, methodName] = methodMatch;
+                  return new xdebug.ClassLineBreakpoint(fileUri, line, methodName, line - i - 2);
+                }
               }
-            }
-          });
-        } else if (filePath.endsWith("mac") || filePath.endsWith("int")) {
-          return new xdebug.RoutineLineBreakpoint(fileUri, line, "", line - 1);
-        } else {
-          return new xdebug.LineBreakpoint(fileUri, line);
-        }
-      })
-    );
+            });
+          } else if (filePath.endsWith("mac") || filePath.endsWith("int")) {
+            return new xdebug.RoutineLineBreakpoint(fileUri, line, "", line - 1);
+          } else {
+            return new xdebug.LineBreakpoint(fileUri, line);
+          }
+        })
+      );
 
-    const vscodeBreakpoints: DebugProtocol.Breakpoint[] = [];
-    await Promise.all(
-      xdebugBreakpoints.map(async (breakpoint, index) => {
-        try {
-          await this._connection.sendBreakpointSetCommand(breakpoint);
-          vscodeBreakpoints[index] = { verified: true, line: breakpoint.line };
-        } catch (error) {
-          vscodeBreakpoints[index] = {
-            verified: false,
-            line: breakpoint.line,
-            message: error.message,
-          };
-        }
-      })
-    );
+      const vscodeBreakpoints: DebugProtocol.Breakpoint[] = [];
+      await Promise.all(
+        xdebugBreakpoints.map(async (breakpoint, index) => {
+          try {
+            await this._connection.sendBreakpointSetCommand(breakpoint);
+            vscodeBreakpoints[index] = { verified: true, line: breakpoint.line };
+          } catch (error) {
+            vscodeBreakpoints[index] = {
+              verified: false,
+              line: breakpoint.line,
+              message: error.message,
+            };
+          }
+        })
+      );
 
-    // send back the actual breakpoint positions
-    response.body = {
-      breakpoints: vscodeBreakpoints,
-    };
+      // send back the actual breakpoint positions
+      response.body = {
+        breakpoints: vscodeBreakpoints,
+      };
+    } catch (error) {
+      this.sendErrorResponse(response, error);
+      return;
+    }
+
     this.sendResponse(response);
   }
 
@@ -529,5 +549,31 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       variablesReference: args.variablesReference,
     };
     this.sendResponse(response);
+  }
+
+  protected sendErrorResponse(response: DebugProtocol.Response, error: Error, dest?: ErrorDestination): void;
+  protected sendErrorResponse(
+    response: DebugProtocol.Response,
+    codeOrMessage: number | DebugProtocol.Message,
+    format?: string,
+    variables?: any,
+    dest?: ErrorDestination
+  ): void;
+  protected sendErrorResponse(response: DebugProtocol.Response, ...rest): void {
+    if (rest[0] instanceof Error) {
+      const error = rest[0] as Error & { code?: number | string; errno?: number };
+      const dest = rest[1] as ErrorDestination;
+      let code: number;
+      if (typeof error.code === "number") {
+        code = error.code as number;
+      } else if (typeof error.errno === "number") {
+        code = error.errno;
+      } else {
+        code = 0;
+      }
+      super.sendErrorResponse(response, code, error.message, dest);
+    } else {
+      super.sendErrorResponse(response, rest[0], rest[1], rest[2], rest[3]);
+    }
   }
 }

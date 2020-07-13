@@ -103,7 +103,8 @@ export class AtelierAPI {
   }
 
   public get active(): boolean {
-    return !!this._config.active;
+    const { host = "", port = 0 } = this.config;
+    return !!this._config.active && host.length > 0 && port > 0;
   }
 
   private get cookies(): string[] {
