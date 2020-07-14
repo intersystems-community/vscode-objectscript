@@ -45,6 +45,7 @@ export class ObjectScriptDiagnosticProvider {
         }
         continue;
       }
+      let skipNonLatin = false;
 
       const memberMatch = text.match(
         /^(Class|Property|Relationship|Index|(?:(?:Client)?(?:Class)?Method)|ClientClassMethod|Method|XData|Query|Trigger|ForeignKey|Projection|Parameter)\s((?:"[^"]+")|(?:[^ (;]+))/i
@@ -53,6 +54,53 @@ export class ObjectScriptDiagnosticProvider {
         const [fullMatch, type, name] = memberMatch;
         const simpleType = type.toLowerCase().replace("classmethod", "method").replace("relationship", "property");
         const key = simpleType === "class" ? simpleType : [simpleType, name].join(":");
+        if (simpleType === "class") {
+          if (!name.includes(".")) {
+            const pos = line.text.indexOf(name);
+            const range = new vscode.Range(new vscode.Position(i, pos), new vscode.Position(i, pos + name.length));
+            result.push({
+              code: "",
+              message: "Class name is incorrect",
+              range,
+              severity: vscode.DiagnosticSeverity.Error,
+              source: "",
+              relatedInformation: [
+                new vscode.DiagnosticRelatedInformation(
+                  new vscode.Location(document.uri, range),
+                  `Class name '${name}' should contain package name`
+                ),
+              ],
+            });
+          }
+        }
+        const notValid =
+          simpleType !== "class" && name.startsWith('"') && name.endsWith('"')
+            ? simpleType !== "class" && name.includes(".")
+              ? "."
+              : ""
+            : name[0].replace(/[^\x21-\x2F\x3A-\x40\x5B-\x60\x7B-\x7E0-9]|%/g, "") +
+              name
+                .slice(1)
+                .replace(simpleType === "class" ? "." : "", "")
+                .replace(/[^\x21-\x2F\x3A-\x40\x5B-\x60\x7B-\x7E]/g, "");
+        if (notValid !== "") {
+          const pos = line.text.indexOf(name);
+          const range = new vscode.Range(new vscode.Position(i, pos), new vscode.Position(i, pos + name.length));
+          result.push({
+            code: "",
+            message: "Name is incorrect",
+            range,
+            severity: vscode.DiagnosticSeverity.Error,
+            source: "",
+            relatedInformation: [
+              new vscode.DiagnosticRelatedInformation(
+                new vscode.Location(document.uri, range),
+                `'${fullMatch}' contains not valid characters '${notValid}'`
+              ),
+            ],
+          });
+          skipNonLatin = true;
+        }
         if (map.has(key)) {
           const original = map.get(key);
           const pos = line.text.indexOf(name);
@@ -74,7 +122,12 @@ export class ObjectScriptDiagnosticProvider {
         map.set(key, fullMatch);
 
         let leftChars;
-        if (!name.startsWith('"') && (leftChars = name.replace(/[%a-z0-9.]/gi, "")) && leftChars !== "") {
+        if (
+          !skipNonLatin &&
+          !name.startsWith('"') &&
+          (leftChars = name.replace(/[%a-z0-9.]/gi, "")) &&
+          leftChars !== ""
+        ) {
           const pos = line.text.indexOf(name);
           const range = new vscode.Range(new vscode.Position(i, pos), new vscode.Position(i, pos + name.length));
           result.push({
