@@ -60,14 +60,14 @@ export class ObjectScriptDiagnosticProvider {
             const range = new vscode.Range(new vscode.Position(i, pos), new vscode.Position(i, pos + name.length));
             result.push({
               code: "",
-              message: "Class name is incorrect",
+              message: "Class name is invalid",
               range,
               severity: vscode.DiagnosticSeverity.Error,
               source: "",
               relatedInformation: [
                 new vscode.DiagnosticRelatedInformation(
                   new vscode.Location(document.uri, range),
-                  `Class name '${name}' should contain package name`
+                  `Class name '${name}' should have a package name prefix`
                 ),
               ],
             });
@@ -88,14 +88,14 @@ export class ObjectScriptDiagnosticProvider {
           const range = new vscode.Range(new vscode.Position(i, pos), new vscode.Position(i, pos + name.length));
           result.push({
             code: "",
-            message: "Name is incorrect",
+            message: "Name is invalid",
             range,
             severity: vscode.DiagnosticSeverity.Error,
             source: "",
             relatedInformation: [
               new vscode.DiagnosticRelatedInformation(
                 new vscode.Location(document.uri, range),
-                `'${fullMatch}' contains not valid characters '${notValid}'`
+                `'${fullMatch}' contains invalid characters '${notValid}'`
               ),
             ],
           });
