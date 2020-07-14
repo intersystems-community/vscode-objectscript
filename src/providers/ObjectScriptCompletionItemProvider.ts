@@ -90,13 +90,14 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
   public macrolist(
     document: vscode.TextDocument,
     position: vscode.Position,
-    token: vscode.CancellationToken,
-    context: vscode.CompletionContext
+    _token: vscode.CancellationToken,
+    _context: vscode.CompletionContext
   ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
-    const range = document.getWordRangeAtPosition(position, /\${3}(\b\w[\w\d]*\b)?/);
+    const pattern = /(\${3}|\s)(\b\w[\w\d]*\b)?/;
+    const range = document.getWordRangeAtPosition(position, pattern);
     const text = range ? document.getText(range) : "";
     if (range) {
-      const macro = text.toLowerCase().slice(3);
+      const [, prefix, macro = ""] = text.toLowerCase().match(pattern);
       const file = currentFile();
       const api = new AtelierAPI();
       return api
@@ -107,9 +108,9 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
         .then((list) =>
           list.map((el) => ({
             label: el,
-            // kind: vscode.CompletionItemKind.Constant,
-            // insertText: el,
-            range,
+            range: range.with(
+              new vscode.Position(range.start.line, range.start.character + prefix.replace(/\$/g, "").length)
+            ),
           }))
         );
     }
