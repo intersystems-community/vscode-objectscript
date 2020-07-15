@@ -5,7 +5,7 @@ import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 
 import { getFileName } from "../commands/export";
-import { config, FILESYSTEM_SCHEMA, OBJECTSCRIPT_FILE_SCHEMA } from "../extension";
+import { config, FILESYSTEM_SCHEMA, FILESYSTEM_READONLY_SCHEMA, OBJECTSCRIPT_FILE_SCHEMA } from "../extension";
 import { currentWorkspaceFolder, workspaceFolderUri } from "../utils";
 
 export class DocumentContentProvider implements vscode.TextDocumentContentProvider {
@@ -27,11 +27,12 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     if (vfs === undefined) {
       vfs = config("serverSideEditing");
     }
+    let scheme = vfs ? FILESYSTEM_SCHEMA : OBJECTSCRIPT_FILE_SCHEMA;
     workspaceFolder = workspaceFolder && workspaceFolder !== "" ? workspaceFolder : currentWorkspaceFolder();
     const isCsp = name.includes("/");
     const wFolderUri = workspaceFolderUri(workspaceFolder);
     let uri: vscode.Uri;
-    if (wFolderUri.scheme === FILESYSTEM_SCHEMA) {
+    if (wFolderUri.scheme === FILESYSTEM_SCHEMA || wFolderUri.scheme === FILESYSTEM_READONLY_SCHEMA) {
       const fileExt = name.split(".").pop();
       const fileName = name
         .split(".")
@@ -42,6 +43,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
         path: `/${name}`,
       });
       vfs = true;
+      scheme = wFolderUri.scheme;
     } else {
       const found = this.getAsFile(name, workspaceFolder);
       if (found) {
@@ -59,7 +61,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
         .join(fileExt.match(/cls/i) ? "/" : ".");
       name = fileName + "." + fileExt;
       uri = vscode.Uri.file(name).with({
-        scheme: vfs ? FILESYSTEM_SCHEMA : OBJECTSCRIPT_FILE_SCHEMA,
+        scheme: scheme,
       });
       if (workspaceFolder && workspaceFolder !== "") {
         uri = uri.with({

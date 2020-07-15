@@ -36,6 +36,10 @@
     {
       "name": "Oleg Dmitrovich",
       "email": "doublefint@gmail.com"
+    },
+    {
+      "name": "John Murray",
+      "email": "johnm@georgejames.com"
     }
   ],
   "engines": {
@@ -60,6 +64,7 @@
     "onLanguage:xml",
     "onView:ObjectScriptExplorer",
     "onFileSystem:isfs",
+    "onFileSystem:isfs-readonly",
     "onFileSystem:objectscript",
     "onDebugInitialConfigurations"
   ],
@@ -137,7 +142,7 @@
         },
         {
           "command": "vscode-objectscript.serverCommands.other",
-          "when": "vscode-objectscript.connectActive && resourceScheme == isfs || vscode-objectscript.connectActive && !editorIsOpen"
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ || vscode-objectscript.connectActive && !editorIsOpen"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
@@ -226,7 +231,7 @@
         },
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
-          "when": "resourceScheme == isfs && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "when": "resourceScheme =~ /^isfs(-readonly)?$/ && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
           "group": "objectscript@5"
         }
       ],
@@ -239,7 +244,7 @@
         {
           "command": "vscode-objectscript.serverCommands.other",
           "group": "navigation@2",
-          "when": "vscode-objectscript.connectActive && resourceScheme == isfs"
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/"
         }
 
       ],
@@ -268,7 +273,7 @@
         },
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
-          "when": "resourceScheme == isfs && resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "when": "resourceScheme =~ /^isfs(-readonly)?$/ && resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
           "group": "objectscript@3"
         }
       ]

@@ -4,7 +4,15 @@ import * as request from "request-promise";
 import * as url from "url";
 import * as vscode from "vscode";
 import * as Cache from "vscode-cache";
-import { config, extensionContext, FILESYSTEM_SCHEMA, workspaceState, panel, checkConnection } from "../extension";
+import {
+  config,
+  extensionContext,
+  FILESYSTEM_SCHEMA,
+  FILESYSTEM_READONLY_SCHEMA,
+  workspaceState,
+  panel,
+  checkConnection,
+} from "../extension";
 import { currentWorkspaceFolder, outputConsole, outputChannel } from "../utils";
 
 const DEFAULT_API_VERSION = 1;
@@ -78,7 +86,7 @@ export class AtelierAPI {
     let namespace;
     if (wsOrFile) {
       if (wsOrFile instanceof vscode.Uri) {
-        if (wsOrFile.scheme === FILESYSTEM_SCHEMA) {
+        if (wsOrFile.scheme === FILESYSTEM_SCHEMA || wsOrFile.scheme === FILESYSTEM_READONLY_SCHEMA) {
           workspaceFolderName = wsOrFile.authority;
           const { query } = url.parse(decodeURIComponent(wsOrFile.toString()), true);
           if (query) {
