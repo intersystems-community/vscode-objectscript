@@ -8,7 +8,10 @@ import {
   documentContentProvider,
   FILESYSTEM_SCHEMA,
   FILESYSTEM_READONLY_SCHEMA,
+  OBJECTSCRIPT_FILE_SCHEMA,
   fileSystemProvider,
+  workspaceState,
+  schemas,
 } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { currentFile, CurrentFile, outputChannel } from "../utils";
@@ -25,18 +28,91 @@ async function compileFlags(): Promise<string> {
   });
 }
 
-async function importFile(file: CurrentFile): Promise<any> {
+export async function checkChangedOnServer(file: CurrentFile): Promise<number> {
+  if (!file || !file.uri || schemas.includes(file.uri.scheme)) {
+    return -1;
+  }
   const api = new AtelierAPI(file.uri);
+  const mtime =
+    workspaceState.get(`${file.uniqueId}:mtime`, null) ||
+    (await api
+      .getDoc(file.name)
+      .then((data) => data.result)
+      .then(({ ts, content }) => {
+        const fileContent = file.content.split(/\r?\n/);
+        const serverTime = Number(new Date(ts + "Z"));
+        const sameContent = content.every((line, index) => line.trim() == (fileContent[index] || "").trim());
+        const mtime = sameContent ? serverTime : Math.max(Number(fs.statSync(file.fileName).mtime), serverTime);
+        return mtime;
+      })
+      .catch(() => -1));
+  workspaceState.update(`${file.uniqueId}:mtime`, mtime > 0 ? mtime : undefined);
+  return mtime;
+}
+
+async function importFile(file: CurrentFile, ignoreConflict?: boolean): Promise<any> {
+  const api = new AtelierAPI(file.uri);
+  const content = file.content.split(/\r?\n/);
+  const mtime = await checkChangedOnServer(file);
+  ignoreConflict = ignoreConflict || mtime < 0;
   return api
     .putDoc(
       file.name,
       {
-        content: file.content.split(/\r?\n/),
+        content,
         enc: false,
+        mtime,
       },
-      true
+      ignoreConflict
     )
-    .catch((error) => vscode.window.showErrorMessage(error.message));
+    .catch((error) => {
+      if (error.statusCode == 400) {
+        outputChannel.appendLine(error.error.result.status);
+        vscode.window.showErrorMessage(error.error.result.status);
+        return Promise.reject();
+      }
+      if (error.statusCode == 409) {
+        return vscode.window
+          .showErrorMessage(
+            `Failed to import '${file.name}': The content of the file on the server is newer.
+Please compare your version with the file contents or overwrite the content of the file with your changes.`,
+            "Compare",
+            "Overwrite",
+            "Pull Server Changes",
+            "Cancel"
+          )
+          .then((action) => {
+            switch (action) {
+              case "Compare":
+                return vscode.commands
+                  .executeCommand(
+                    "vscode.diff",
+                    file.uri,
+                    vscode.Uri.file(file.name).with({
+                      scheme: OBJECTSCRIPT_FILE_SCHEMA,
+                      authority: file.workspaceFolder,
+                    }),
+                    `Local • ${file.fileName} ↔ Remote • ${file.name}`
+                  )
+                  .then(() => Promise.reject());
+              case "Overwrite":
+                return importFile(file, true);
+              case "Pull Server Changes":
+                outputChannel.appendLine(`${file.name}: Loading changes from server`);
+                outputChannel.show(true);
+                loadChanges([file]);
+                return Promise.reject();
+              case "Cancel":
+                outputChannel.appendLine(`${file.name}: Import and Compile  canceled by user`);
+                outputChannel.show(true);
+                return Promise.reject();
+            }
+            return Promise.reject();
+          });
+      }
+      vscode.window.showErrorMessage(error.message);
+      return Promise.reject();
+    });
 }
 
 function updateOthers(others: string[]) {
@@ -57,6 +133,8 @@ export async function loadChanges(files: CurrentFile[]): Promise<any> {
         .getDoc(file.name)
         .then((data) => {
           const content = (data.result.content || []).join(file.eol === vscode.EndOfLine.LF ? "\n" : "\r\n");
+          const mtime = Number(new Date(data.result.ts + "Z"));
+          workspaceState.update(`${file.uniqueId}:mtime`, mtime > 0 ? mtime : undefined);
           if (file.uri.scheme === "file") {
             fs.writeFileSync(file.fileName, content);
           } else if (file.uri.scheme === FILESYSTEM_SCHEMA || file.uri.scheme === FILESYSTEM_READONLY_SCHEMA) {

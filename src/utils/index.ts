@@ -20,6 +20,8 @@ export interface CurrentFile {
   content: string;
   uri: vscode.Uri;
   eol: vscode.EndOfLine;
+  workspaceFolder: string;
+  uniqueId: string;
 }
 
 export function currentFile(document?: vscode.TextDocument): CurrentFile {
@@ -67,6 +69,8 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
     return null;
   }
   name += ext ? "." + ext.toLowerCase() : "";
+  const workspaceFolder = currentWorkspaceFolder(document);
+  const uniqueId = `${workspaceFolder}:${name}`;
 
   return {
     content,
@@ -74,6 +78,8 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
     name,
     uri,
     eol,
+    workspaceFolder,
+    uniqueId,
   };
 }
 

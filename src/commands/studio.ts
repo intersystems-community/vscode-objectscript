@@ -352,7 +352,7 @@ class StudioActions {
       const query = "select * from %Atelier_v1_Utils.Extension_GetStatus(?)";
       this.api.actionQuery(query, [this.name]).then((statusObj) => {
         const docStatus = statusObj.result.content.pop();
-        if (!docStatus.editable) {
+        if (docStatus && !docStatus.editable) {
           vscode.commands.executeCommand("undo");
           this.userAction(actionObject, false, "", "", 1);
         }
