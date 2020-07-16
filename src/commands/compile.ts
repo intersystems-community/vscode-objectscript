@@ -74,10 +74,10 @@ async function importFile(file: CurrentFile, ignoreConflict?: boolean): Promise<
       if (error.statusCode == 409) {
         return vscode.window
           .showErrorMessage(
-            `Failed to import '${file.name}': The content of the file on the server is newer.
-Please compare your version with the file contents or overwrite the content of the file with your changes.`,
+            `Failed to import '${file.name}': The version of the file on the server is newer.
+What do you want to do?`,
             "Compare",
-            "Overwrite",
+            "Overwrite on Server",
             "Pull Server Changes",
             "Cancel"
           )
@@ -92,10 +92,10 @@ Please compare your version with the file contents or overwrite the content of t
                       scheme: OBJECTSCRIPT_FILE_SCHEMA,
                       authority: file.workspaceFolder,
                     }),
-                    `Local • ${file.fileName} ↔ Remote • ${file.name}`
+                    `Local • ${file.fileName} ↔ Server • ${file.name}`
                   )
                   .then(() => Promise.reject());
-              case "Overwrite":
+              case "Overwrite on Server":
                 return importFile(file, true);
               case "Pull Server Changes":
                 outputChannel.appendLine(`${file.name}: Loading changes from server`);
@@ -103,7 +103,7 @@ Please compare your version with the file contents or overwrite the content of t
                 loadChanges([file]);
                 return Promise.reject();
               case "Cancel":
-                outputChannel.appendLine(`${file.name}: Import and Compile  canceled by user`);
+                outputChannel.appendLine(`${file.name}: Import and Compile canceled by user`);
                 outputChannel.show(true);
                 return Promise.reject();
             }
