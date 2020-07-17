@@ -27,9 +27,11 @@ TypeScript errors and warnings will be displayed in the `PROBLEMS` panel of Visu
 ### Run dev build and validate your changes
 
 To test changes, open the `vscode-objectscript` folder in VSCode.
-Then, open the debug panel by clicking the `Run and Debug` icon on the Activity Bar, select the `Launch Extension` or `Launch Extension Alone`
+Then, open the debug panel by clicking the `Run and Debug` icon on the Activity Bar, select the `Launch Extension`
 option from the top menu, and click start. A new window will launch with the title
-`[Extension Development Host]`.
+`[Extension Development Host]`. Do your testing here.
+
+If you want to disable all other extensions when testing in the Extension Development Host, choose the `Launch Extension Alone` option instead.
 
 ### Pull requests
 
