@@ -10,22 +10,16 @@
 
 [InterSystems](http://www.intersystems.com/our-products/) ObjectScript language support for Visual Studio Code.
 
-
-[CaretDev](https://caretdev.com/#products) provides commercial support services. [Request a Quote](https://caretdev.com/contact-us/).
-
-On-line course from CaretDev - [Developing with VSCode ObjectScript – Easy Start](https://caretdev.com/courses/).
-
-
 ## Features
 
 - InterSystems ObjectScript code highlighting support.
   ![example](https://raw.githubusercontent.com/intersystems-community/vscode-objectscript/master/images/screenshot.png)
-- Debugging ObjectScript code
+- Debugging ObjectScript code.
 - Intellisense support for commands, system functions, and class members.
 - Export existing sources to the working directory: press Cmd/Ctrl+Shift+P, type 'ObjectScript', press Enter.
-- Save and compile a class: press <kbd>Ctrl</kbd>+<kbd>F7</kbd> (<kbd>⌘</kbd>+<kbd>F7</kbd>) or select "ObjectScript: Save and compile" from <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> menu.
-- Server Explorer with possibility to export items![ServerExplorer](https://raw.githubusercontent.com/intersystems-community/vscode-objectscript/master/images/explorer.png)
-- Edit directly on server
+- Save and compile a class: press <kbd>Ctrl</kbd>+<kbd>F7</kbd> (<kbd>⌘</kbd>+<kbd>F7</kbd>) or select "ObjectScript: Import and Compile Current File" from <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> menu.
+- Direct access to edit or view server code VSCode Explorer via `isfs` and `isfs-readonly` FileSystemProviders (e.g. using a [multi-root workspace](https://code.visualstudio.com/docs/editor/multi-root-workspaces)).
+- Server Explorer view (ObjectScript: Explorer) with ability to export items to working directory. ![ServerExplorer](https://raw.githubusercontent.com/intersystems-community/vscode-objectscript/master/images/explorer.png)
 
 ## Installation
 
@@ -35,33 +29,109 @@ Open VSCode. Go to extensions and search for "ObjectScript" like it is shown on 
 Or install from ObjectScript extension page on [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=daimor.vscode-objectscript)
 ![installation](https://raw.githubusercontent.com/intersystems-community/vscode-objectscript/master/images/installation.gif)
 
-## Configure connection
+## Configure Connection
 
-To be able to use many plugin features, you need to configure the connection to Caché/IRIS server first. You can create or edit existing `.vscode/settings.json` file. So, your settings file may look something like this.
-  ```JSON
+To be able to use many features you first need to configure the connection to your IRIS/Caché/Ensemble server(s) in your [VSCode settings](https://code.visualstudio.com/docs/getstarted/settings). If you are unfamiliar with how settings work and how they are edited, use that link.
+
+We recommend you define server connections in the `intersystems.servers` object whose structure is defined by the [InterSystems Server Manager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) helper extension. Install this extension to get assistance when editing the JSON definition. For example:
+
+```json
+	"intersystems.servers": {
+		"local": {
+			"webServer": {
+				"scheme": "http",
+				"host": "127.0.0.1",
+				"port": 52773
+			},
+      "description": "My local IRIS",
+      "username": "me"
+		}
+  }
+```
+Setting the `username` property is optional. If omitted it will be prompted for when connecting.
+
+By defining connections in your User Settings they become available for use by any workspace you open in VSCode.
+
+### Client-side Editing
+
+A workspace consisting of a local working directory in which you edit InterSystems source files and manage them using client-side source control (e.g. Git) will use the `objectscript.conn` settings object to access the server for export (compile) and debug, and also for import. This is usually defined in Workspace Settings, for example in the `.vscode/settings.json` file of your working directory.
+
+We recommend that `objectscript.conn` uses its `server` property to point to an entry in `intersystems.servers`. For example:
+
+```json
   "objectscript.conn": {
     "active": true,
-    "label": "LOCAL",
-    "host": "127.0.0.1",
-    "port": 52773,
-    "username": "user",
-    "password": "password",
-    "ns": "USER",
-    "https": false
+    "server": "local",
+    "ns": "USER"
   }
-  ```
+```
 
-Or you can edit it through settings editor. Which you can open from menu *Code* > *Preferences* > *Settings* for macOS or *File* > *Preferences* > *Settings* for Windows, search for "workspace settings" through Command Palette [<kbd>⌘⇧P</kbd>/<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>] or by shortcut [<kbd>⌘</kbd>+<kbd>,</kbd>/<kbd>Ctrl</kbd>+<kbd>,</kbd>].
+The mandatory `ns` property defines which server namespace you will work with. If `username` is set here it overrides that setting from the `intersystems.servers` entry.
 
-- Find a 'objectscript', do not forget to set `active` to `true`
-  `port` should follow to web port of instance (usually by default, `57772` for Caché/Ensemble, `52773` for IRIS) ![Settings UI](https://raw.githubusercontent.com/intersystems-community/vscode-objectscript/master/images/settings.png)
-- Change settings according to your Caché/IRIS instance
-- You will see related output in "Output" while switched to "ObjectScript" channel (right drop-down menu on top of the output window)
+### Server-side Editing
+
+To edit code directly in one or more namespaces on one or more servers (local or remote) we recommend creating a workspace definition file (XYZ.code-workspace) in which you specify one or more root folders that directly access namespaces via the `isfs` or `isfs-readonly` URI schemes. The only difference between these two schemes is that any file opened from a folder using the `isfs-readonly` scheme will be set as readonly in VSCode and thus protected against changing.
+
+1. Start VSCode.
+2. If your last-used folder opens, use 'Close Folder' on the 'File' menu ('Code' menu on macOS). Or if what opened was your last-used workspace, use 'Close Workspace'.
+3. Use 'Save Workspace As...' to create an empty file with a .code-workspace extension.
+4. Use the Command Palette to run 'Preferences: Open Workspace Settings (JSON)'.
+5. Add a `folders` array that defines one or more root folders for your workspace. The `uri` property of each folder specifies whether to use `isfs` or `isfs-readonly`, and which entry within `intersystems.servers` to get the connection definition from. All example here reference one named `local`. Add a `ns` query parameter to specify which namespace to access. Optionally add a `label` property to set the display name of the folder in Explorer. Optionally add a workspace-specific `settings` object to hide the ObjectScript Explorer view, which is not usually needed when working server-side in this way.
+
+```json
+{
+	"folders": [
+		{
+			"name": "local:USER",
+			"uri": "isfs://local/?ns=USER"
+		},
+		{
+			"name": "local:USER (readonly)",
+			"uri": "isfs-readonly://local/?ns=USER"
+		}
+	],
+	"settings": {
+		"objectscript.showExplorer": false
+	}
+}
+```
+
+To access the server-side files of a web application, format your `uri` property like this:
+
+```json
+    {
+      "uri": "isfs://local/csp/user/?&csp&ns=USER"
+    }
+```
+The `csp` query parameter indicates web application files are to be shown. The uri path specifies which application. The `ns` parameter must specify the same namespace the application is configured to use.
+
+To see only classes in the X.Y package, format the uri like this:
+
+```json
+		{
+			"uri": "isfs://local/X/Y?ns=USER&type=cls"
+		}
+```
+
+Other query parameters that can be specified:
+- `type=cls` to show only classes, or `type=rtn` to show only routines.
+- `flat=1` to flatten the hierarchy.
+- `generated=1` to show generated items.
+- `filter=filterspec` to use a filter specification formatted in the same way as used in InterSystems Studio's File Open dialog (e.g. `filter=Ensem*.inc`).
 
 ## Notes
 
-For Caché/IRIS instance with maximum security level, add `%Development` role for `/api/atelier/` web-application ( [More](https://community.intersystems.com/post/using-atelier-rest-api) )
-If you are getting `ERROR #5540: SQLCODE: -99 Message: User xxx is not privileged for the operation` when you try to get/refresh class/routine/includes lists, grant a following SQL Procedure to your user on target namespace.
+Connection-related output appears in the "Output" view while switched to the "ObjectScript" channel using the drop-down menu on the view titlebar.
+
+For Caché/IRIS instance with maximum security level, add `%Development` role for `/api/atelier/` web-application ([read more](https://community.intersystems.com/post/using-atelier-rest-api)).
+
+If you are getting `ERROR #5540: SQLCODE: -99 Message: User xxx is not privileged for the operation` when you try to get/refresh class/routine/includes lists, grant your username (or a SQL role you hold) execute permission for the following SQL Procedure in the target namespace.
 ```SQL
 GRANT EXECUTE ON %Library.RoutineMgr_StudioOpenDialog TO xxx
 ```
+
+## Support and Training
+
+[CaretDev](https://caretdev.com/#products) provides commercial support services. [Request a Quote](https://caretdev.com/contact-us/).
+
+On-line course from CaretDev - [Developing with VSCode ObjectScript – Easy Start](https://caretdev.com/courses/).
