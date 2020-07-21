@@ -98,7 +98,7 @@ export async function exportFile(
 
         return promise
           .then((res: any) => {
-            let joinedContent = (content || []).join("\n").toString("utf8");
+            let joinedContent = content instanceof Buffer ? content.toString("utf-8") : (content || []).join("\n");
             let isSkipped = "";
 
             if (res.found) {

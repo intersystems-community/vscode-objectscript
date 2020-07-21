@@ -22,6 +22,7 @@ import {
   importFolder as importFileOrFolder,
   namespaceCompile,
   compileExplorerItem,
+  checkChangedOnServer,
 } from "./commands/compile";
 import { deleteItem } from "./commands/delete";
 import { exportAll, exportExplorerItem } from "./commands/export";
@@ -62,7 +63,14 @@ import { ObjectScriptExplorerProvider } from "./explorer/explorer";
 import { WorkspaceNode } from "./explorer/models/workspaceNode";
 import { FileSystemProvider } from "./providers/FileSystemPovider/FileSystemProvider";
 import { WorkspaceSymbolProvider } from "./providers/WorkspaceSymbolProvider";
-import { currentWorkspaceFolder, outputChannel, portFromDockerCompose, terminalWithDocker, notNull } from "./utils";
+import {
+  currentWorkspaceFolder,
+  outputChannel,
+  portFromDockerCompose,
+  terminalWithDocker,
+  notNull,
+  currentFile,
+} from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentRangeFormattingEditProvider } from "./providers/DocumentRangeFormattingEditProvider";
 
@@ -338,7 +346,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   workspace.onDidSaveTextDocument((file) => {
     if (schemas.includes(file.uri.scheme) || languages.includes(file.languageId)) {
       if (documentBeingProcessed !== file) {
-        // return vscode.commands.executeCommand("vscode-objectscript.compile");
         return importAndCompile(false, file);
       }
     }
@@ -407,6 +414,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         !event.document.isDirty
       ) {
         fireOtherStudioAction(OtherStudioAction.AttemptedEdit, event.document.uri);
+      }
+      if (!event.document.isDirty) {
+        checkChangedOnServer(currentFile(event.document));
       }
     }),
     window.onDidChangeActiveTextEditor((editor) => {
