@@ -242,7 +242,7 @@ export async function namespaceCompile(askFLags = false): Promise<any> {
   );
 }
 
-function importFiles(files) {
+function importFiles(files, noCompile = false) {
   return Promise.all<CurrentFile>(
     files.map((file) =>
       vscode.workspace
@@ -255,13 +255,13 @@ function importFiles(files) {
           })
         )
     )
-  ).then(compile);
+  ).then(noCompile ? Promise.resolve : compile);
 }
 
-export async function importFolder(uri: vscode.Uri): Promise<any> {
+export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<any> {
   const folder = uri.fsPath;
   if (fs.lstatSync(folder).isFile()) {
-    return importFiles([folder]);
+    return importFiles([folder], noCompile);
   }
   glob(
     "*.{cls,inc,mac,int}",
@@ -270,7 +270,11 @@ export async function importFolder(uri: vscode.Uri): Promise<any> {
       matchBase: true,
       nocase: true,
     },
-    (error, files) => importFiles(files.map((name) => path.join(folder, name)))
+    (_error, files) =>
+      importFiles(
+        files.map((name) => path.join(folder, name)),
+        noCompile
+      )
   );
 }
 
