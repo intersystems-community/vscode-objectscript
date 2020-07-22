@@ -147,7 +147,7 @@ export function notNull(el: any): boolean {
 
 export function portFromDockerCompose(): { port: number; docker: boolean } {
   const { "docker-compose": dockerCompose = {} } = config("conn");
-  const { service, file = "docker-compose.yml", internalPort = 52773 } = dockerCompose;
+  const { service, file = "docker-compose.yml", internalPort = 52773, envFile } = dockerCompose;
   if (!internalPort || !file || !service || service === "") {
     return { docker: false, port: null };
   }
@@ -165,7 +165,9 @@ export function portFromDockerCompose(): { port: number; docker: boolean } {
     return result;
   }
 
-  const cmd = `docker-compose -f ${file} port --protocol=tcp ${service} ${internalPort}`;
+  const envFileParam = envFile ? `--env-file ${envFile}` : "";
+  const cmd = `docker-compose -f ${file} ${envFileParam} port --protocol=tcp ${service} ${internalPort}`;
+
   try {
     const serviceLine = execSync(cmd, {
       cwd,

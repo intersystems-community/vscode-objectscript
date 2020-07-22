@@ -611,6 +611,10 @@
                 "file": {
                   "description": "Name of docker-compose file.",
                   "type": "string"
+                },
+                "envFile": {
+                  "description": "Name of env-file for docker-compose configuration.",
+                  "type": "string"
                 }
               }
             }
