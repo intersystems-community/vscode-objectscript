@@ -246,7 +246,6 @@
           "group": "navigation@2",
           "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/"
         }
-
       ],
       "touchBar": [
         {
