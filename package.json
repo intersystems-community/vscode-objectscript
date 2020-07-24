@@ -882,6 +882,7 @@
     "minimist": ">=1.2.5",
     "mocha": "^8.0.1",
     "nock": "^13.0.0",
+    "ovsx": "latest",
     "prettier": "^2.0.5",
     "tape": "^5.0.1",
     "ts-loader": "^7.0.5",
