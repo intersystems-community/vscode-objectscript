@@ -154,6 +154,15 @@ let connectionSocket: WebSocket;
 
 let serverManagerApi: any;
 
+// Map of the intersystems.server connection specs we have resolved via the API to that extension
+const resolvedConnSpecs = new Map<string, any>();
+
+// Accessor for the connection specs
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export function getResolvedConnectionSpec(key: string, dflt: any): any {
+  return resolvedConnSpecs.has(key) ? resolvedConnSpecs.get(key) : dflt;
+}
+
 export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
   const { apiTarget, configName } = connectionTarget(uri);
   if (clearCookies) {
@@ -339,13 +348,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     reporter = new TelemetryReporter(extensionId, extensionVersion, aiKey);
   }
 
-  // Get api for servermanager extension, perhaps offering to install it
-  serverManagerApi = await serverManager();
-
   const languages = packageJson.contributes.languages.map((lang) => lang.id);
   workspaceState = context.workspaceState;
   extensionContext = context;
   workspaceState.update("workspaceFolder", "");
+
+  // Get api for servermanager extension, perhaps offering to install it
+  serverManagerApi = await serverManager();
 
   documentContentProvider = new DocumentContentProvider();
   xmlContentProvider = new XmlContentProvider();
@@ -375,7 +384,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const { configName } = connectionTarget(uri);
     toCheck.set(configName, uri);
   });
-  toCheck.forEach(function (uri) {
+  toCheck.forEach(async function (uri, configName) {
+    if (serverManagerApi && serverManagerApi.getServerSpec) {
+      const connSpec = await serverManagerApi.getServerSpec(configName);
+      if (connSpec) {
+        resolvedConnSpecs.set(configName, connSpec);
+      }
+    }
     checkConnection(true, uri);
   });
 

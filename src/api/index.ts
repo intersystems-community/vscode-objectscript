@@ -5,6 +5,7 @@ import * as url from "url";
 import * as vscode from "vscode";
 import * as Cache from "vscode-cache";
 import {
+  getResolvedConnectionSpec,
   config,
   extensionContext,
   FILESYSTEM_SCHEMA,
@@ -169,7 +170,7 @@ export class AtelierAPI {
         webServer: { scheme, host, port, pathPrefix = "" },
         username,
         password,
-      } = config("intersystems.servers", workspaceFolderName).get(serverName);
+      } = getResolvedConnectionSpec(serverName, config("intersystems.servers", workspaceFolderName).get(serverName));
       this._config = {
         active: this.externalServer || conn.active,
         apiVersion: 1,
