@@ -440,7 +440,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("vscode-objectscript.compileWithFlags", () => importAndCompile(true)),
     vscode.commands.registerCommand("vscode-objectscript.compileAll", () => namespaceCompile(false)),
     vscode.commands.registerCommand("vscode-objectscript.compileAllWithFlags", () => namespaceCompile(true)),
-    vscode.commands.registerCommand("vscode-objectscript.compileFolder", importFileOrFolder),
+    vscode.commands.registerCommand("vscode-objectscript.compileFolder", (_file, files) =>
+      Promise.all(files.map((file) => importFileOrFolder(file, false)))
+    ),
+    vscode.commands.registerCommand("vscode-objectscript.importFolder", (_file, files) =>
+      Promise.all(files.map((file) => importFileOrFolder(file, true)))
+    ),
     vscode.commands.registerCommand("vscode-objectscript.export", exportAll),
     vscode.commands.registerCommand("vscode-objectscript.debug", (program: string, askArgs: boolean) => {
       const startDebugging = (args) => {

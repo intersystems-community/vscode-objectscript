@@ -58,6 +58,7 @@
     "onCommand:vscode-objectscript.explorer.openClass",
     "onCommand:vscode-objectscript.explorer.openRoutine",
     "onCommand:vscode-objectscript.compileFolder",
+    "onCommand:vscode-objectscript.importFolder",
     "onLanguage:objectscript",
     "onLanguage:objectscript-class",
     "onLanguage:objectscript-macros",
@@ -262,7 +263,12 @@
       "explorer/context": [
         {
           "command": "vscode-objectscript.compileFolder",
-          "when": "vscode-objectscript.connectActive",
+          "when": "vscode-objectscript.connectActive && resourceScheme == file",
+          "group": "objectscript@1"
+        },
+        {
+          "command": "vscode-objectscript.importFolder",
+          "when": "vscode-objectscript.connectActive && resourceScheme == file",
           "group": "objectscript@1"
         },
         {
@@ -477,6 +483,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.compileFolder",
         "title": "Import and Compile"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.importFolder",
+        "title": "Import without Compilation"
       },
       {
         "category": "ObjectScript",
