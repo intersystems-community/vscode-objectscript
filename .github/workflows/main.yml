@@ -126,11 +126,12 @@ jobs:
       id: set-version
       run: |
         VERSION=`cat ./dist/.version`
+        NEXT_VERSION=`cat ./dist/.version | awk -F. '/[0-9]+\./{$NF++;print}' OFS=.`
         echo ::set-output name=name::`cat ./dist/.name`
         tmp=$(mktemp)
         git config --global user.name 'ProjectBot'
         git config --global user.email 'bot@users.noreply.github.com'
-        jq --arg version "${VERSION}-SNAPSHOT" '.version = $version' package.json > "$tmp" && mv "$tmp" package.json
+        jq --arg version "${NEXT_VERSION}-SNAPSHOT" '.version = $version' package.json > "$tmp" && mv "$tmp" package.json
         git add package.json
         git commit -m 'auto bump version with release'
         jq --arg version "$VERSION" '.version = $version' package.json > "$tmp" && mv "$tmp" package.json
