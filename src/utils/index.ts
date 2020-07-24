@@ -22,6 +22,16 @@ export interface CurrentFile {
   eol: vscode.EndOfLine;
 }
 
+// For workspace roots in the local filesystem, configName is the root's name
+//  which defaults to the folder name, and apiTarget is the same.
+// For isfs roots, configName is the uri.authority (i.e. isfs://this-bit/...)
+//  which is normally the server name as looked up in intersystems.servers, and
+//  apiTarget is the uri.
+export interface ConnectionTarget {
+  apiTarget: string | vscode.Uri;
+  configName: string;
+}
+
 export function currentFile(document?: vscode.TextDocument): CurrentFile {
   document =
     document ||
@@ -100,24 +110,67 @@ export async function mkdirSyncRecursive(dirpath: string): Promise<string> {
   });
 }
 
+export function connectionTarget(uri?: vscode.Uri): ConnectionTarget {
+  const result: ConnectionTarget = { apiTarget: "", configName: "" };
+  uri = uri
+    ? uri
+    : vscode.window.activeTextEditor && vscode.window.activeTextEditor.document
+    ? vscode.window.activeTextEditor.document.uri
+    : undefined;
+  if (uri) {
+    if (uri.scheme === "file") {
+      const folder = vscode.workspace.getWorkspaceFolder(uri);
+
+      // Active document might not be from any folder in the workspace (e.g. user's settings.json)
+      if (folder) {
+        result.configName = folder.name;
+        result.apiTarget = result.configName;
+      }
+    } else if (schemas.includes(uri.scheme)) {
+      result.apiTarget = uri;
+      result.configName = uri.authority;
+    }
+  }
+
+  // Fall back to the connection for the first folder in the workspace
+  if (result.apiTarget === "") {
+    const firstFolder =
+      vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length
+        ? vscode.workspace.workspaceFolders[0]
+        : undefined;
+    if (firstFolder && schemas.includes(firstFolder.uri.scheme)) {
+      result.configName = firstFolder.uri.authority;
+      result.apiTarget = firstFolder.uri;
+    } else {
+      result.configName = workspaceState.get<string>("workspaceFolder") || firstFolder ? firstFolder.name : "";
+      result.apiTarget = result.configName;
+    }
+  }
+
+  return result;
+}
+
 export function currentWorkspaceFolder(document?: vscode.TextDocument): string {
-  let workspaceFolder;
   document = document ? document : vscode.window.activeTextEditor && vscode.window.activeTextEditor.document;
   if (document) {
     const uri = document.uri;
     if (uri.scheme === "file") {
       if (vscode.workspace.getWorkspaceFolder(uri)) {
-        workspaceFolder = vscode.workspace.getWorkspaceFolder(uri).name;
+        return vscode.workspace.getWorkspaceFolder(uri).name;
       }
     } else if (schemas.includes(uri.scheme)) {
-      workspaceFolder = uri.authority;
+      return uri.authority;
     }
   }
-  const first =
+  const firstFolder =
     vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length
-      ? vscode.workspace.workspaceFolders[0].name
-      : "";
-  return workspaceFolder || workspaceState.get<string>("workspaceFolder") || first;
+      ? vscode.workspace.workspaceFolders[0]
+      : undefined;
+  if (firstFolder && schemas.includes(firstFolder.uri.scheme)) {
+    return firstFolder.uri.authority;
+  } else {
+    return workspaceState.get<string>("workspaceFolder") || firstFolder ? firstFolder.name : "";
+  }
 }
 
 export function workspaceFolderUri(workspaceFolder: string = currentWorkspaceFolder()): vscode.Uri {

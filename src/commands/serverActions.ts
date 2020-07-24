@@ -1,12 +1,12 @@
 import * as vscode from "vscode";
 import { config, workspaceState, checkConnection, FILESYSTEM_SCHEMA, FILESYSTEM_READONLY_SCHEMA } from "../extension";
-import { currentWorkspaceFolder, terminalWithDocker, currentFile } from "../utils";
+import { connectionTarget, terminalWithDocker, currentFile } from "../utils";
 import { mainCommandMenu, mainSourceControlMenu } from "./studio";
 import { AtelierAPI } from "../api";
 
 export async function serverActions(): Promise<void> {
-  const workspaceFolder = currentWorkspaceFolder();
-  const api = new AtelierAPI(workspaceFolder);
+  const { apiTarget, configName: workspaceFolder } = connectionTarget();
+  const api = new AtelierAPI(apiTarget);
   const { active, host = "", ns = "", https, port = 0, username, password } = api.config;
   const { links } = config("conn");
   const nsEncoded = encodeURIComponent(ns);

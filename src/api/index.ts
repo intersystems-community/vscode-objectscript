@@ -39,6 +39,9 @@ export class AtelierAPI {
   // when FileSystemProvider used
   public externalServer = false;
 
+  // record of the constructor argument
+  public readonly wsOrFile?: string | vscode.Uri;
+
   public get ns(): string {
     return this.namespace || this._config.ns;
   }
@@ -81,9 +84,12 @@ export class AtelierAPI {
     return filename;
   }
 
-  public constructor(wsOrFile?: string | vscode.Uri) {
+  public constructor(wsOrFile?: string | vscode.Uri, retryAfter401 = true) {
+    if (retryAfter401) {
+      this.wsOrFile = wsOrFile;
+    }
     let workspaceFolderName = "";
-    let namespace;
+    let namespace = "";
     if (wsOrFile) {
       if (wsOrFile instanceof vscode.Uri) {
         if (wsOrFile.scheme === FILESYSTEM_SCHEMA || wsOrFile.scheme === FILESYSTEM_READONLY_SCHEMA) {
@@ -147,16 +153,15 @@ export class AtelierAPI {
   }
 
   private setConnection(workspaceFolderName: string, namespace?: string): void {
-    let serverName;
     this.configName = workspaceFolderName;
-    if (config("intersystems.servers").has(workspaceFolderName.toLowerCase())) {
-      this.externalServer = true;
-      serverName = workspaceFolderName.toLowerCase();
-      workspaceFolderName = currentWorkspaceFolder();
-    }
     const conn = config("conn", workspaceFolderName);
-    if (!serverName && conn.server) {
+    let serverName = workspaceFolderName.toLowerCase();
+    if (config("intersystems.servers").has(serverName)) {
+      this.externalServer = true;
+    } else if (conn.server) {
       serverName = conn.server;
+    } else {
+      serverName = "";
     }
 
     if (serverName && serverName.length) {
@@ -176,6 +181,13 @@ export class AtelierAPI {
         password,
         pathPrefix,
       };
+
+      // Report server as inactive when no namespace has been determined,
+      // otherwise output channel reports the issue.
+      // This arises when a server-only workspace is editing the user's settings.json, or the .code-workspace file.
+      if (this._config.ns === "" && this.externalServer) {
+        this._config.active = false;
+      }
     } else {
       this._config = conn;
     }
@@ -199,10 +211,6 @@ export class AtelierAPI {
   ): Promise<any> {
     const { active, apiVersion, host, port, username, password, https } = this.config;
     if (!active) {
-      return Promise.reject();
-    }
-    if (!username || !username.length || !password || !password.length) {
-      outputChannel.appendLine("username and password fields in settings are mandatory.");
       return Promise.reject();
     }
     if (minVersion > apiVersion) {
@@ -318,6 +326,10 @@ export class AtelierAPI {
               workspaceState.update(this.configName + ":host", undefined);
               workspaceState.update(this.configName + ":port", undefined);
               setTimeout(checkConnection, 30000);
+            } else if (error.statusCode === 401 && this.wsOrFile) {
+              setTimeout(() => {
+                checkConnection(true, typeof this.wsOrFile === "object" ? this.wsOrFile : undefined);
+              }, 1000);
             }
             console.error(error);
             throw error;
