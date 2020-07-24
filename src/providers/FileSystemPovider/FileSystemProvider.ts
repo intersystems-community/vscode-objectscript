@@ -27,8 +27,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
-    const api = new AtelierAPI(uri);
     const parent = await this._lookupAsDirectory(uri);
+    const api = new AtelierAPI(uri);
     const sql = `CALL %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)`;
     const { query } = url.parse(decodeURIComponent(uri.toString()), true);
     const type = query.type && query.type != "" ? query.type.toString() : "all";
@@ -100,6 +100,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       overwrite: boolean;
     }
   ): void | Thenable<void> {
+    if (uri.path.match(/\/\.[^/]*\//)) {
+      throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
+    }
     const { query } = url.parse(decodeURIComponent(uri.toString()), true);
     const csp = query.csp === "" || query.csp === "1";
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
@@ -227,6 +230,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   private async _lookupAsDirectory(uri: vscode.Uri): Promise<Directory> {
+    // Reject attempt to access /node_modules
+    if (uri.path.startsWith("/node_modules")) {
+      throw vscode.FileSystemError.FileNotADirectory(uri);
+    }
     const entry = await this._lookup(uri);
     if (entry instanceof Directory) {
       return entry;
@@ -235,6 +242,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   private async _lookupAsFile(uri: vscode.Uri): Promise<File> {
+    // Reject attempts to access files in .-folders such as .vscode and .git
+    if (uri.path.match(/\/\.[^/]*\//)) {
+      throw vscode.FileSystemError.FileNotFound("dot-folders not supported by server");
+    }
     const { query } = url.parse(decodeURIComponent(uri.toString()), true);
     const csp = query.csp === "" || query.csp === "1";
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");

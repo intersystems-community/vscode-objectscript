@@ -64,6 +64,7 @@ import { WorkspaceNode } from "./explorer/models/workspaceNode";
 import { FileSystemProvider } from "./providers/FileSystemPovider/FileSystemProvider";
 import { WorkspaceSymbolProvider } from "./providers/WorkspaceSymbolProvider";
 import {
+  connectionTarget,
   currentWorkspaceFolder,
   outputChannel,
   portFromDockerCompose,
@@ -104,7 +105,7 @@ export const config = (setting?: string, workspaceFolderName?: string): vscode.W
   ) {
     workspaceFolderName = vscode.workspace.workspaceFolders[0].name;
   }
-  let prefix;
+  let prefix: string;
   const workspaceFolder = vscode.workspace.workspaceFolders.find(
     (el) => el.name.toLowerCase() === workspaceFolderName.toLowerCase()
   );
@@ -153,17 +154,28 @@ let reporter: TelemetryReporter = null;
 
 let connectionSocket: WebSocket;
 
-export const checkConnection = (clearCookies = false): void => {
-  const workspaceFolder = currentWorkspaceFolder();
+let serverManagerApi: any;
+
+// Map of the intersystems.server connection specs we have resolved via the API to that extension
+const resolvedConnSpecs = new Map<string, any>();
+
+// Accessor for the connection specs
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export function getResolvedConnectionSpec(key: string, dflt: any): any {
+  return resolvedConnSpecs.has(key) ? resolvedConnSpecs.get(key) : dflt;
+}
+
+export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
+  const { apiTarget, configName } = connectionTarget(uri);
   if (clearCookies) {
     /// clean-up cached values
-    workspaceState.update(workspaceFolder + ":host", undefined);
-    workspaceState.update(workspaceFolder + ":port", undefined);
-    workspaceState.update(workspaceFolder + ":password", undefined);
-    workspaceState.update(workspaceFolder + ":apiVersion", undefined);
-    workspaceState.update(workspaceFolder + ":docker", undefined);
+    workspaceState.update(configName + ":host", undefined);
+    workspaceState.update(configName + ":port", undefined);
+    workspaceState.update(configName + ":password", undefined);
+    workspaceState.update(configName + ":apiVersion", undefined);
+    workspaceState.update(configName + ":docker", undefined);
   }
-  let api = new AtelierAPI(workspaceFolder);
+  let api = new AtelierAPI(apiTarget, false);
   const { active, host = "", port = 0, ns = "" } = api.config;
   let connInfo = `${host}:${port}[${ns}]`;
   if (!host.length || !port || !ns.length) {
@@ -176,9 +188,9 @@ export const checkConnection = (clearCookies = false): void => {
     panel.text = `${packageJson.displayName} - Disabled`;
     return;
   }
-  if (!workspaceState.get(workspaceFolder + ":port") && !api.externalServer) {
+  if (!workspaceState.get(configName + ":port") && !api.externalServer) {
     const { port: dockerPort, docker: withDocker } = portFromDockerCompose();
-    workspaceState.update(workspaceFolder + ":docker", withDocker);
+    workspaceState.update(configName + ":docker", withDocker);
     if (withDocker) {
       if (!dockerPort) {
         outputChannel.appendLine(
@@ -189,8 +201,8 @@ export const checkConnection = (clearCookies = false): void => {
       }
       terminalWithDocker();
       if (dockerPort !== port) {
-        workspaceState.update(workspaceFolder + ":host", "localhost");
-        workspaceState.update(workspaceFolder + ":port", dockerPort);
+        workspaceState.update(configName + ":host", "localhost");
+        workspaceState.update(configName + ":port", dockerPort);
       }
       connInfo = `localhost:${dockerPort}[${ns}]`;
     }
@@ -202,10 +214,15 @@ export const checkConnection = (clearCookies = false): void => {
     panel.text = `${connInfo} - Connected`;
     return;
   }
-  api = new AtelierAPI(workspaceFolder);
+
+  // Why must this be recreated here?
+  api = new AtelierAPI(apiTarget, false);
+
   if (!api.config.host || !api.config.port || !api.config.ns) {
-    outputChannel.appendLine("host, port and ns must be specified.");
+    const message = "host, port and ns must be specified.";
+    outputChannel.appendLine(message);
     panel.text = `${packageJson.displayName} - ERROR`;
+    panel.tooltip = message;
     return;
   }
   api
@@ -230,32 +247,39 @@ export const checkConnection = (clearCookies = false): void => {
     .catch((error) => {
       let message = error.message;
       if (error instanceof StatusCodeError && error.statusCode === 401) {
-        setTimeout(
-          () =>
+        setTimeout(() => {
+          const username = api.config.username;
+          if (username === "") {
+            vscode.window.showErrorMessage(`Anonymous access rejected by ${connInfo}.`);
+            if (!api.externalServer) {
+              vscode.window.showErrorMessage("Connection has been disabled.");
+              disableConnection(configName);
+            }
+          } else {
             vscode.window
               .showInputBox({
                 password: true,
-                placeHolder: "Not Authorized, please enter password to connect to: " + connInfo,
+                placeHolder: `Not Authorized. Enter password to connect as user '${username}' to ${connInfo}`,
+                prompt: !api.externalServer ? "If no password is entered the connection will be disabled." : "",
                 ignoreFocusOut: true,
               })
               .then((password) => {
                 if (password) {
-                  workspaceState.update(currentWorkspaceFolder() + ":password", password);
-                  checkConnection();
-                } else {
-                  vscode.workspace.getConfiguration().update("objectscript.conn.active", false);
+                  workspaceState.update(configName + ":password", password);
+                  checkConnection(false, uri);
+                } else if (!api.externalServer) {
+                  disableConnection(configName);
                 }
-              }),
-          1000
-        );
+              });
+          }
+        }, 1000);
         message = "Not Authorized";
         outputChannel.appendLine(
-          `Authorization error: please check your username/password in the settings,
-          and if you have sufficient privileges on the server.`
+          `Authorization error: Check your credentials in Settings, and that you have sufficient privileges on the /api/atelier web application on ${connInfo}`
         );
       } else {
-        outputChannel.appendLine("Error: " + message);
-        outputChannel.appendLine("Please check your network settings in the settings.");
+        outputChannel.appendLine(`Error: ${message}`);
+        outputChannel.appendLine(`Check your server details in Settings (${connInfo}).`);
       }
       console.error(error);
       panel.text = `${connInfo} - ERROR`;
@@ -265,37 +289,60 @@ export const checkConnection = (clearCookies = false): void => {
     .finally(() => {
       explorerProvider.refresh();
     });
-};
+}
 
-async function serverManager(): Promise<void> {
+// Set objectscript.conn.active = false at WorkspaceFolder level if objectscript.conn is defined there,
+//  else set it false at Workspace level
+function disableConnection(configName: string) {
+  const connConfig: vscode.WorkspaceConfiguration = config("", configName);
+  const target: vscode.ConfigurationTarget = connConfig.inspect("conn").workspaceFolderValue
+    ? vscode.ConfigurationTarget.WorkspaceFolder
+    : vscode.ConfigurationTarget.Workspace;
+  const targetConfig: any =
+    connConfig.inspect("conn").workspaceFolderValue || connConfig.inspect("conn").workspaceValue;
+  return connConfig.update("conn", { ...targetConfig, active: false }, target);
+}
+
+// Promise to return the API of the servermanager
+async function serverManager(): Promise<any> {
   const extId = "intersystems-community.servermanager";
+  let extension = vscode.extensions.getExtension(extId);
   const ignore =
     config("ignoreInstallServerManager") ||
     vscode.workspace.getConfiguration("intersystems.servers").get("/ignore", false);
-  if (ignore || vscode.extensions.getExtension(extId)) {
-    return;
+  if (!extension) {
+    if (ignore) {
+      return;
+    }
+    await vscode.window
+      .showInformationMessage(
+        "The InterSystems® Server Manager extension is recommended to help you define connections and store passwords securely in your keychain.",
+        "Install",
+        "Skip",
+        "Ignore"
+      )
+      .then(async (action) => {
+        switch (action) {
+          case "Install":
+            await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`);
+            await vscode.commands.executeCommand("extension.open", extId);
+            await vscode.commands.executeCommand("workbench.extensions.installExtension", extId);
+            extension = vscode.extensions.getExtension(extId);
+            break;
+          case "Ignore":
+            config().update("ignoreInstallServerManager", true, vscode.ConfigurationTarget.Global);
+            break;
+          case "Skip":
+          default:
+        }
+      });
   }
-  return vscode.window
-    .showInformationMessage(
-      "The InterSystems® Server Manager extension is recommended to help you define connections.",
-      "Install",
-      "Skip",
-      "Ignore"
-    )
-    .then(async (action) => {
-      switch (action) {
-        case "Install":
-          await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`);
-          await vscode.commands.executeCommand("extension.open", extId);
-          await vscode.commands.executeCommand("workbench.extensions.installExtension", extId);
-          break;
-        case "Ignore":
-          config().update("ignoreInstallServerManager", true, vscode.ConfigurationTarget.Global);
-          break;
-        case "Skip":
-        default:
-      }
-    });
+  if (extension) {
+    if (!extension.isActive) {
+      await extension.activate();
+    }
+    return extension.exports;
+  }
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
@@ -308,12 +355,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   extensionContext = context;
   workspaceState.update("workspaceFolder", "");
 
+  // Get api for servermanager extension, perhaps offering to install it
+  serverManagerApi = await serverManager();
+
   documentContentProvider = new DocumentContentProvider();
   xmlContentProvider = new XmlContentProvider();
   fileSystemProvider = new FileSystemProvider();
 
   explorerProvider = new ObjectScriptExplorerProvider();
-  // vscode.window.registerTreeDataProvider("ObjectScriptExplorer", explorerProvider);
   vscode.window.createTreeView("ObjectScriptExplorer", {
     treeDataProvider: explorerProvider,
     showCollapseAll: true,
@@ -330,7 +379,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   panel.command = "vscode-objectscript.serverActions";
   panel.show();
 
-  checkConnection(true);
+  // Check once (flushing cookies) each connection used by the workspace(s)
+  const toCheck = new Map<string, vscode.Uri>();
+  vscode.workspace.workspaceFolders.map((workspaceFolder) => {
+    const uri = workspaceFolder.uri;
+    const { configName } = connectionTarget(uri);
+    toCheck.set(configName, uri);
+  });
+  toCheck.forEach(async function (uri, configName) {
+    if (serverManagerApi && serverManagerApi.getServerSpec) {
+      const connSpec = await serverManagerApi.getServerSpec(configName);
+      if (connSpec) {
+        resolvedConnSpecs.set(configName, connSpec);
+      }
+    }
+    checkConnection(true, uri);
+  });
+
   vscode.workspace.onDidChangeConfiguration(({ affectsConfiguration }) => {
     if (affectsConfiguration("objectscript.conn")) {
       checkConnection(true);
@@ -612,9 +677,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ...proposed
   );
   reporter && reporter.sendTelemetryEvent("extensionActivated");
-
-  // offer to install servermanager extension
-  await serverManager();
 }
 
 export function deactivate(): void {
