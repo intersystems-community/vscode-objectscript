@@ -191,7 +191,8 @@ export async function exportExplorerItem(nodes: NodeBase[]): Promise<any> {
   if (origNamespace !== node.namespace) {
     const answer = await vscode.window.showWarningMessage(
       `
-You are going to export items from another namespace.
+You are about to export items from another namespace.
+Edits to these files in your local workspace will be compiled in the primary namespace of your workspace root, not the namespace from which you originally exported them.
 Would you like to continue?`,
       {
         modal: true,
