@@ -1,5 +1,54 @@
 # Change Log
 
+## [0.8.7]
+- Use `intersystems.servers` object for more flexible connection definitions.
+- Recommend [intersystems-community.servermanager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) extension for management of `intersystems.servers` definitions.
+- Support server-side source control and other server-side commands.
+- Add `isfs-readonly` scheme to give readonly access to server code.
+- Improve class snippets and implement snippets for routines.
+- Be less strict about spaces in header of routines.
+- Handle `objectscript.format.commandCase` set to invalid value.
+- Make command titles conform to VS Code style.
+- Support compilation for more file types.
+- Display CSP and Other files in ObjectScript Explorer.
+- Add option to show system files in ObjectScript Explorer.
+- Make `View Another Namespace...` command in ObjectScript Explorer only apply to the selected server.
+- Fix several issues with terminal in Docker.
+- Fix some debugging issues.
+- Respect original EndOfLine in file when loading changes from server.
+- Alert on import error.
+- Resolve diagnostic issue in html style block.
+- Added diagnostic to warn if non-latin characters found in class element.
+- Webpack extension to reduce size.
+
+## [0.8.6] - 2020-04-23
+- Support $ETRAP system variable.
+- Fix opening Docker terminal.
+
+## [0.8.5] - 2020-04-20
+- Fix errors in embedded JS code.
+- Fix diagnostic error for values in quotes.
+
+## [0.8.3] - 2020-03-23
+- Support for custom address in isfs.
+- Multi select in explorer view for mass export.
+
+## [0.8.2] - 2020-03-04
+- Show current place (label+pos^routine) in status bar for INT code.
+- Fix syntax highlighting.
+- Support for ${namespace} in links.
+
+## [0.8.1] - 2020-02-06
+- Some small fixes in filtering for isfs.
+- Fixed connection info in Explorer.
+- Extra links for server.
+- Support creating classes, routines, webapp files on isfs.
+- Some fixes in formatting provider.
+- Option to suppress error messages.
+- Ignore case for script and sql in diagnostics.
+- Option to disable `debug this method` action.
+- Password prompt, live connection status.
+
 ## [0.8.0]
 - "Debug this ClassMethod" feature added, to quickly debug any classmethod in a class
 - Change variable value while debugging

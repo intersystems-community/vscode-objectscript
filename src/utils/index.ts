@@ -20,6 +20,8 @@ export interface CurrentFile {
   content: string;
   uri: vscode.Uri;
   eol: vscode.EndOfLine;
+  workspaceFolder: string;
+  uniqueId: string;
 }
 
 // For workspace roots in the local filesystem, configName is the root's name
@@ -77,6 +79,8 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
     return null;
   }
   name += ext ? "." + ext.toLowerCase() : "";
+  const workspaceFolder = currentWorkspaceFolder(document);
+  const uniqueId = `${workspaceFolder}:${name}`;
 
   return {
     content,
@@ -84,6 +88,8 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
     name,
     uri,
     eol,
+    workspaceFolder,
+    uniqueId,
   };
 }
 
@@ -194,7 +200,7 @@ export function notNull(el: any): boolean {
 
 export function portFromDockerCompose(): { port: number; docker: boolean } {
   const { "docker-compose": dockerCompose = {} } = config("conn");
-  const { service, file = "docker-compose.yml", internalPort = 52773 } = dockerCompose;
+  const { service, file = "docker-compose.yml", internalPort = 52773, envFile } = dockerCompose;
   if (!internalPort || !file || !service || service === "") {
     return { docker: false, port: null };
   }
@@ -212,7 +218,9 @@ export function portFromDockerCompose(): { port: number; docker: boolean } {
     return result;
   }
 
-  const cmd = `docker-compose -f ${file} port --protocol=tcp ${service} ${internalPort}`;
+  const envFileParam = envFile ? `--env-file ${envFile}` : "";
+  const cmd = `docker-compose -f ${file} ${envFileParam} port --protocol=tcp ${service} ${internalPort}`;
+
   try {
     const serviceLine = execSync(cmd, {
       cwd,

@@ -125,6 +125,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               {
                 content: [content.toString("base64")],
                 enc: true,
+                mtime: Date.now(),
               },
               false
             );
@@ -137,6 +138,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               {
                 content: [`Class ${className} {}`],
                 enc: false,
+                mtime: Date.now(),
               },
               false
             );
@@ -149,6 +151,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               {
                 content: [`ROUTINE ${routineName} ${routineType}`],
                 enc: false,
+                mtime: Date.now(),
               },
               false
             );
@@ -260,8 +263,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             name,
             fileName,
             ts,
-            Array.isArray(content) ? content.join("\n").length : content.length,
-            Array.isArray(content) ? content.join("\n") : content
+            Array.isArray(content) ? content.join("\n").length : String(content).length,
+            Array.isArray(content) ? content.join("\n") : String(content)
           )
       )
       .then((entry) =>

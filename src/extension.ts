@@ -22,6 +22,7 @@ import {
   importFolder as importFileOrFolder,
   namespaceCompile,
   compileExplorerItem,
+  checkChangedOnServer,
 } from "./commands/compile";
 import { deleteItem } from "./commands/delete";
 import { exportAll, exportExplorerItem } from "./commands/export";
@@ -69,6 +70,7 @@ import {
   portFromDockerCompose,
   terminalWithDocker,
   notNull,
+  currentFile,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentRangeFormattingEditProvider } from "./providers/DocumentRangeFormattingEditProvider";
@@ -409,7 +411,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   workspace.onDidSaveTextDocument((file) => {
     if (schemas.includes(file.uri.scheme) || languages.includes(file.languageId)) {
       if (documentBeingProcessed !== file) {
-        // return vscode.commands.executeCommand("vscode-objectscript.compile");
         return importAndCompile(false, file);
       }
     }
@@ -479,6 +480,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       ) {
         fireOtherStudioAction(OtherStudioAction.AttemptedEdit, event.document.uri);
       }
+      if (!event.document.isDirty) {
+        checkChangedOnServer(currentFile(event.document));
+      }
     }),
     window.onDidChangeActiveTextEditor((editor) => {
       if (editor) {
@@ -501,7 +505,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("vscode-objectscript.compileWithFlags", () => importAndCompile(true)),
     vscode.commands.registerCommand("vscode-objectscript.compileAll", () => namespaceCompile(false)),
     vscode.commands.registerCommand("vscode-objectscript.compileAllWithFlags", () => namespaceCompile(true)),
-    vscode.commands.registerCommand("vscode-objectscript.compileFolder", importFileOrFolder),
+    vscode.commands.registerCommand("vscode-objectscript.compileFolder", (_file, files) =>
+      Promise.all(files.map((file) => importFileOrFolder(file, false)))
+    ),
+    vscode.commands.registerCommand("vscode-objectscript.importFolder", (_file, files) =>
+      Promise.all(files.map((file) => importFileOrFolder(file, true)))
+    ),
     vscode.commands.registerCommand("vscode-objectscript.export", exportAll),
     vscode.commands.registerCommand("vscode-objectscript.debug", (program: string, askArgs: boolean) => {
       const startDebugging = (args) => {

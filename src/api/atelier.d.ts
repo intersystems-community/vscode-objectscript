@@ -31,7 +31,7 @@ export interface Document {
   status: string;
   enc: boolean;
   flags: number;
-  content: string[];
+  content: string[] | Buffer;
   ext: string;
 }
 

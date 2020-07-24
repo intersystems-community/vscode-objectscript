@@ -378,7 +378,7 @@ export class AtelierAPI {
   }
 
   // api v1+
-  public getDoc(name: string, format?: string): Promise<Atelier.Response> {
+  public getDoc(name: string, format?: string): Promise<Atelier.Response<Atelier.Document>> {
     let params = {};
     if (format) {
       params = {
@@ -397,12 +397,16 @@ export class AtelierAPI {
   // v1+
   public putDoc(
     name: string,
-    data: { enc: boolean; content: string[] },
+    data: { enc: boolean; content: string[]; mtime: number },
     ignoreConflict?: boolean
   ): Promise<Atelier.Response> {
     const params = { ignoreConflict };
     name = this.transformNameIfCsp(name);
-    return this.request(1, "PUT", `${this.ns}/doc/${name}`, data, params);
+    const headers = {};
+    if (!ignoreConflict && data.mtime && data.mtime > 0) {
+      headers["IF_NONE_MATCH"] = new Date(data.mtime).toISOString().replace(/T|Z/g, " ").trim();
+    }
+    return this.request(1, "PUT", `${this.ns}/doc/${name}`, data, params, headers);
   }
 
   // v1+
