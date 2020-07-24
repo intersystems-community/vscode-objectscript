@@ -60,7 +60,7 @@ export async function serverActions(): Promise<void> {
   const auth = iris
     ? `&IRISUsername=${usernameEncoded}&IRISPassword=${passwordEncoded}`
     : `&CacheUserName=${usernameEncoded}&CachePassword=${passwordEncoded}`;
-  const extraLinks = [];
+  let extraLinks = 0;
   const file = currentFile();
   const classname = file && file.name.match(/cls$/i) ? file.name : "";
   for (const title in links) {
@@ -73,8 +73,8 @@ export async function serverActions(): Promise<void> {
       .replace("${port}", port.toString())
       .replace("${namespace}", ns == "%SYS" ? "sys" : nsEncoded.toLowerCase())
       .replace("${classname}", classname);
-    extraLinks.push({
-      id: "extraLink" + extraLinks.length,
+    actions.push({
+      id: "extraLink" + extraLinks++,
       label: title,
       detail: link,
     });
