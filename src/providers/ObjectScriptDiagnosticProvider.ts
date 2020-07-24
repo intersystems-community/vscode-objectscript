@@ -81,7 +81,7 @@ export class ObjectScriptDiagnosticProvider {
             : name[0].replace(/[^\x21-\x2F\x3A-\x40\x5B-\x60\x7B-\x7E0-9]|%/g, "") +
               name
                 .slice(1)
-                .replace(simpleType === "class" ? "." : "", "")
+                .replace(simpleType === "class" ? /\./g : "", "")
                 .replace(/[^\x21-\x2F\x3A-\x40\x5B-\x60\x7B-\x7E]/g, "");
         if (notValid !== "") {
           const pos = line.text.indexOf(name);
