@@ -29,7 +29,7 @@ remote_theme: pmarsceill/just-the-docs
 # plugins:
   # - jekyll-feed
 
-logo: "/assets/images/isc_logo_eye.png"
+logo: "/assets/images/vscode_objectscript_logo_title.png"
 
 color_scheme: isc
 
