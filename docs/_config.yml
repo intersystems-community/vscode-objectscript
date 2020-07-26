@@ -40,7 +40,7 @@ search:
 
 aux_links:
   "GitHub Repo":
-    = "https://github.com/intersystems-community/vscode-objectscript"
+    "https://github.com/intersystems-community/vscode-objectscript"
 
 footer_content: "Copyright &copy; 2020 InterSystems Corp. Distributed by an <a href=\"https://github.com/intersystems-community/vscode-objectscript/tree/master/LICENSE.txt\">MIT license.</a>"
 
