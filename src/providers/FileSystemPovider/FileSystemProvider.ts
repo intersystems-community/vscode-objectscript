@@ -107,63 +107,67 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       return;
     }
     const api = new AtelierAPI(uri);
-    return api
-      .actionIndex([fileName])
-      .then((data) => data.result.content[0])
-      .then((info) => {
-        if (info.status === "") {
-          /// file found, everything is Ok
-          return;
-        }
-        if (options.create) {
-          if (csp) {
-            return api.putDoc(
-              fileName,
-              {
-                content: [content.toString("base64")],
-                enc: true,
-                mtime: Date.now(),
-              },
-              false
-            );
-          }
-          const fileExt = fileName.split(".").pop().toLowerCase();
-          if (fileExt === "cls") {
-            const className = fileName.split(".").slice(0, -1).join(".");
-            return api.putDoc(
-              fileName,
-              {
-                content: [`Class ${className} {}`],
-                enc: false,
-                mtime: Date.now(),
-              },
-              false
-            );
-          } else if (["int", "inc", "mac"].includes(fileExt)) {
-            const api = new AtelierAPI(uri);
-            const routineName = fileName.split(".").slice(0, -1).join(".");
-            const routineType = `[ type = ${fileExt}]`;
-            return api.putDoc(
-              fileName,
-              {
-                content: [`ROUTINE ${routineName} ${routineType}`],
-                enc: false,
-                mtime: Date.now(),
-              },
-              false
-            );
-          }
-          throw new Error("Not implemented");
-        }
-      })
-      .then((response) => {
-        if (response && response.result.ext && response.result.ext[0] && response.result.ext[1]) {
-          fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, uri, response.result.ext[0]);
-          fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, uri, response.result.ext[1]);
-        }
-        this._lookupAsFile(uri).then((entry) => {
-          this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
-        });
+    return this._lookupAsFile(uri)
+      .then((file) => (file.data = content))
+      .then(() => {
+        api
+          .actionIndex([fileName])
+          .then((data) => data.result.content[0])
+          .then((info) => {
+            if (info.status === "") {
+              /// file found, everything is Ok
+              return;
+            }
+            if (options.create) {
+              if (csp) {
+                return api.putDoc(
+                  fileName,
+                  {
+                    content: [content.toString("base64")],
+                    enc: true,
+                    mtime: Date.now(),
+                  },
+                  false
+                );
+              }
+              const fileExt = fileName.split(".").pop().toLowerCase();
+              if (fileExt === "cls") {
+                const className = fileName.split(".").slice(0, -1).join(".");
+                return api.putDoc(
+                  fileName,
+                  {
+                    content: [`Class ${className} {}`],
+                    enc: false,
+                    mtime: Date.now(),
+                  },
+                  false
+                );
+              } else if (["int", "inc", "mac"].includes(fileExt)) {
+                const api = new AtelierAPI(uri);
+                const routineName = fileName.split(".").slice(0, -1).join(".");
+                const routineType = `[ type = ${fileExt}]`;
+                return api.putDoc(
+                  fileName,
+                  {
+                    content: [`ROUTINE ${routineName} ${routineType}`],
+                    enc: false,
+                    mtime: Date.now(),
+                  },
+                  false
+                );
+              }
+              throw new Error("Not implemented");
+            }
+          })
+          .then((response) => {
+            if (response && response.result.ext && response.result.ext[0] && response.result.ext[1]) {
+              fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, uri, response.result.ext[0]);
+              fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, uri, response.result.ext[1]);
+            }
+            this._lookupAsFile(uri).then((entry) => {
+              this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
+            });
+          });
       });
   }
 
