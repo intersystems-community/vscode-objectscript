@@ -26,7 +26,7 @@ TypeScript errors and warnings will be displayed in the `PROBLEMS` panel of Visu
 
 ### Editing code snippets
 
-Code snippets are defined in files in /snippets/ folder:
+Code snippets are defined in files in the /snippets/ folder:
 
 * objectscript-class.json - snippets for class definition context
 * objectscript.json - snippets for objectscript context 
