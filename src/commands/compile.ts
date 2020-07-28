@@ -46,7 +46,6 @@ export async function checkChangedOnServer(file: CurrentFile, force = false): Pr
           : content.every((line, index) => line.trim() == (fileContent[index] || "").trim());
         const mtime =
           force || sameContent ? serverTime : Math.max(Number(fs.statSync(file.fileName).mtime), serverTime);
-        outputChannel.appendLine(`mtime'${file.name}': ${sameContent} - ${ts} - ${serverTime}`);
         return mtime;
       })
       .catch(() => -1));
