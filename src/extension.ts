@@ -388,9 +388,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   });
   toCheck.forEach(async function (uri, configName) {
     if (serverManagerApi && serverManagerApi.getServerSpec) {
-      const connSpec = await serverManagerApi.getServerSpec(configName);
-      if (connSpec) {
-        resolvedConnSpecs.set(configName, connSpec);
+      const serverName = uri.scheme === "file" ? config("conn", configName).server : configName;
+      if (serverName && serverName !== "" && !resolvedConnSpecs.has(serverName)) {
+        const connSpec = await serverManagerApi.getServerSpec(serverName);
+        if (connSpec) {
+          resolvedConnSpecs.set(serverName, connSpec);
+        }
       }
     }
     checkConnection(true, uri);
