@@ -574,6 +574,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("vscode-objectscript.explorer.refresh", () => explorerProvider.refresh()),
     vscode.commands.registerCommand("vscode-objectscript.explorer.openClass", vscode.window.showTextDocument),
     vscode.commands.registerCommand("vscode-objectscript.explorer.openRoutine", vscode.window.showTextDocument),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.openCSPFile", vscode.window.showTextDocument),
     vscode.commands.registerCommand("vscode-objectscript.explorer.export", (item, items) =>
       exportExplorerItem(items && items.length ? items : [item])
     ),

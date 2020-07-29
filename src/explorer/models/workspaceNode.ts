@@ -22,7 +22,10 @@ export class WorkspaceNode extends NodeBase {
     return {
       collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
       contextValue: `${this.uniqueId}${flags.join("")}`,
-      label: `${this.label}(${this.connInfo})`,
+      label: this.extraNode
+        ? `[${this.namespace}] on ${this.conn.host}:${this.conn.port}`
+        : `${this.label} (${this.connInfo})`,
+      iconPath: new vscode.ThemeIcon(this.extraNode ? "database" : "server-environment"),
     };
   }
 
