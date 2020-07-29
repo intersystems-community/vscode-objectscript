@@ -5,6 +5,7 @@ import { PackageNode } from "./packageNode";
 import { RoutineNode } from "./routineNode";
 import { AtelierAPI } from "../../api";
 import { ClassNode } from "./classesNode";
+import { CSPFileNode } from "./cspFileNode";
 import { StudioOpenDialog } from "../../queries";
 
 export class RootNode extends NodeBase {
@@ -119,9 +120,10 @@ export class RootNode extends NodeBase {
             case "9":
               return new PackageNode(el.Name, el.fullName, category, this.options);
             case "4":
-            case "5":
             case "100":
               return new ClassNode(el.Name, el.fullName, this.options);
+            case "5":
+              return new CSPFileNode(el.Name, el.fullName, this.options);
             case "0":
             case "1":
             case "2":
@@ -129,7 +131,7 @@ export class RootNode extends NodeBase {
             case "11":
               return new RoutineNode(el.Name, el.fullName, this.options);
             case "10":
-              return new RootNode(el.Name, el.fullName, "dataNode:CSPApplication", this._category, this.options, true);
+              return new RootNode(el.Name, el.fullName, "dataNode:cspApplication", this._category, this.options, true);
             default:
               return null;
           }
