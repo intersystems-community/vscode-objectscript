@@ -114,6 +114,7 @@ jobs:
     - uses: actions/checkout@v2
       with:
         ref: master
+        token: ${{ secrets.TOKEN }}
     - uses: actions/download-artifact@master
       with:
         name: vsix
