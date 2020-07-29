@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 
 import { AtelierAPI } from "../api/index";
 import { ClassDefinition } from "../utils/classDefinition";
-import { currentFile, onlyUnique } from "../utils/index";
+import { currentFile, onlyUnique, notNull } from "../utils/index";
 import commands = require("./completion/commands.json");
 import structuredSystemVariables = require("./completion/structuredSystemVariables.json");
 import systemFunctions = require("./completion/systemFunctions.json");
@@ -40,17 +40,19 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
         );
       }
     }
-    const completions =
-      this.classes(document, position, token, context) ||
-      this.macrolist(document, position, token, context) ||
-      this.dollarsComplete(document, position) ||
-      this.commands(document, position) ||
-      this.entities(document, position, token, context) ||
-      this.macro(document, position, token, context) ||
-      this.constants(document, position, token, context) ||
-      null;
+    const completions = []
+      .concat(
+        this.classes(document, position, token, context),
+        this.macrolist(document, position, token, context),
+        this.dollarsComplete(document, position),
+        this.commands(document, position),
+        this.entities(document, position, token, context),
+        this.macro(document, position, token, context),
+        this.constants(document, position, token, context)
+      )
+      .filter(notNull);
 
-    return completions;
+    return Promise.all(completions).then((data) => data.flatMap((el) => el.items || el));
   }
 
   public macro(
