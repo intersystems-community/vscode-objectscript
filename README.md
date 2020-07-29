@@ -43,14 +43,19 @@ We recommend you define server connections in the `intersystems.servers` object 
 				"host": "127.0.0.1",
 				"port": 52773
 			},
-      "description": "My local IRIS",
-      "username": "me"
+      		"description": "My local IRIS",
+      		"username": "me"
 		}
   }
 ```
-Setting the `username` property is optional. If omitted it will be prompted for when connecting.
 
-By defining connections in your User Settings they become available for use by any workspace you open in VSCode.
+By defining connections in your User Settings they become available for use by any workspace you open in VSCode. Alternatively, define them in workspace-specific settings.
+
+Setting the `username` property is optional. If omitted it will be prompted for when connecting, then cached for the session..
+
+Setting a plaintext value for the `password` property is not recommended. Instead, run the `InterSystems Server Manager: Store Password in Keychain` command from Command Palette.
+
+If no password has been set or stored it will be prompted for when connecting, then cached for the session.
 
 ### Client-side Editing
 
@@ -66,7 +71,9 @@ We recommend that `objectscript.conn` uses its `server` property to point to an 
   }
 ```
 
-The mandatory `ns` property defines which server namespace you will work with. If `username` is set here it overrides that setting from the `intersystems.servers` entry.
+The mandatory `ns` property defines which server namespace you will work with.
+
+When the `server` property is set, any `username` or `password` properties of `objectscript.conn` are ignored. Instead these values come from the `intersystems.servers` entry.
 
 ### Server-side Editing
 
