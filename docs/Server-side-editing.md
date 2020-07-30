@@ -14,7 +14,7 @@ First, you should configure the connection to InterSystems as described [here](h
 
 Add a file with extension `.code-workspace`, with content similar to this.
 
-```JSON
+```json
 {
     "folders": [
         {
@@ -41,7 +41,7 @@ With the next start of VSCode, you see two folders in the root with the names de
 
 Example with connection to different namespaces on the same server:
 
-```JSON
+```json
 {
   "folders": [
     {

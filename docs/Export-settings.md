@@ -13,12 +13,12 @@ There are a few settings that control how the code is exported to the local mach
 - `objectscript.export.addCategory` -- If `true` adds folders for particular file types under the folder defined in the `objectscript.export.folder` setting. Files of type `cls`, `int`, `mac` and `inc` are placed in a folder with same type. Any other file types are placed in the `oth` folder.
 You can define the structure as an object, where the property name is supplied as pattern (mask or RegExp) and the value as a folder. For example:
 
-     ```JSON
-     {
-       "%*.cls": "_cls",
-       "*.cls": "cls"
-     }
-     ```
+```json
+{
+ "%*.cls": "_cls",
+ "*.cls": "cls"
+}
+```
 
      This saves percent classes to the `_cls` folder, and any other classes to the `cls` folder.
 

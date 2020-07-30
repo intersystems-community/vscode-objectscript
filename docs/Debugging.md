@@ -8,7 +8,7 @@ nav_order: 5
 
 Example of `.vscode/launch.json` file:
 
-```JSONC
+```json
 {
 // Use IntelliSense to learn about possible attributes.
 // Hover to view descriptions of existing attributes.
