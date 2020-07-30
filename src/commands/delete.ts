@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 
 import { AtelierAPI } from "../api";
-import { ClassNode } from "../explorer/models/classesNode";
+import { ClassNode } from "../explorer/models/classNode";
 import { PackageNode } from "../explorer/models/packageNode";
 import { RootNode } from "../explorer/models/rootNode";
 import { RoutineNode } from "../explorer/models/routineNode";

@@ -33,19 +33,59 @@ export class WorkspaceNode extends NodeBase {
     const children = [];
     let node: RootNode;
 
-    node = new RootNode("Classes", "", "dataRootNode:classesRootNode", "CLS", this.options);
+    node = new RootNode(
+      "Classes",
+      "",
+      "dataRootNode:classesRootNode",
+      "CLS",
+      this.options,
+      false
+      //new vscode.ThemeIcon("symbol-class")
+    );
     children.push(node);
 
-    node = new RootNode("Routines", "", "dataRootNode:routinesRootNode", "RTN", this.options);
+    node = new RootNode(
+      "Routines",
+      "",
+      "dataRootNode:routinesRootNode",
+      "RTN",
+      this.options,
+      false
+      //new vscode.ThemeIcon("note")
+    );
     children.push(node);
 
-    node = new RootNode("Includes", "", "dataRootNode:routinesRootNode", "INC", this.options);
+    node = new RootNode(
+      "Includes",
+      "",
+      "dataRootNode:routinesRootNode",
+      "INC",
+      this.options,
+      false
+      //new vscode.ThemeIcon("file-symlink-file")
+    );
     children.push(node);
 
-    node = new RootNode("CSP Files", "", "dataRootNode:cspRootNode", "CSP", this.options);
+    node = new RootNode(
+      "CSP Files",
+      "",
+      "dataRootNode:cspRootNode",
+      "CSP",
+      this.options,
+      false
+      //new vscode.ThemeIcon("symbol-file")
+    );
     children.push(node);
 
-    node = new RootNode("Other", "", "dataRootNode:otherRootNode", "OTH", this.options);
+    node = new RootNode(
+      "Other",
+      "",
+      "dataRootNode:otherRootNode",
+      "OTH",
+      this.options,
+      false
+      //new vscode.ThemeIcon("symbol-misc")
+    );
     children.push(node);
 
     return children;

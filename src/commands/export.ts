@@ -47,6 +47,14 @@ export const getFileName = (folder: string, name: string, split: boolean, addCat
   return [folder, cat, name].filter(notNull).join(path.sep);
 };
 
+export const getFolderName = (folder: string, name: string, split: boolean, cat: string = null): string => {
+  const folderNameArray: string[] = name.split(".");
+  if (split) {
+    return [folder, cat, ...folderNameArray].filter(notNull).join(path.sep);
+  }
+  return [folder, cat, name].filter(notNull).join(path.sep);
+};
+
 export async function exportFile(
   workspaceFolder: string,
   namespace: string,
@@ -186,13 +194,15 @@ export async function exportAll(workspaceFolder?: string): Promise<any> {
 }
 
 export async function exportExplorerItem(nodes: NodeBase[]): Promise<any> {
-  const origNamespace = config("conn").ns;
   const node = nodes[0];
+  const origNamespace = config("conn", node.workspaceFolder).ns;
   if (origNamespace !== node.namespace) {
     const answer = await vscode.window.showWarningMessage(
       `
-You are about to export items from another namespace.
-Edits to these files in your local workspace will be compiled in the primary namespace of your workspace root, not the namespace from which you originally exported them.
+You are about to export from namespace ${node.namespace}.
+
+Future edits to the file(s) in your local workspace will be saved and compiled in the primary namespace of your workspace root, ${origNamespace}, not the namespace from which you originally exported.
+
 Would you like to continue?`,
       {
         modal: true,

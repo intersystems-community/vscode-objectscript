@@ -10,16 +10,19 @@ export class CSPFileNode extends NodeBase {
 
   public getTreeItem(): vscode.TreeItem {
     const displayName: string = this.label;
+    const itemUri = DocumentContentProvider.getUri(this.fullName, this.workspaceFolder, this.namespace);
+    const isLocalFile = itemUri.scheme === "file";
 
     return {
       collapsibleState: vscode.TreeItemCollapsibleState.None,
       command: {
-        arguments: [DocumentContentProvider.getUri(this.fullName, this.workspaceFolder, this.namespace)],
+        arguments: [itemUri],
         command: "vscode-objectscript.explorer.openCSPFile",
         title: "Open File",
       },
       contextValue: CSPFileNode.contextValue,
       label: `${displayName}`,
+      tooltip: isLocalFile ? undefined : this.fullName,
     };
   }
 }

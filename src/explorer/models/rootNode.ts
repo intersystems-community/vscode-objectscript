@@ -4,14 +4,24 @@ import { NodeBase, NodeOptions } from "./nodeBase";
 import { PackageNode } from "./packageNode";
 import { RoutineNode } from "./routineNode";
 import { AtelierAPI } from "../../api";
-import { ClassNode } from "./classesNode";
+import { ClassNode } from "./classNode";
 import { CSPFileNode } from "./cspFileNode";
 import { StudioOpenDialog } from "../../queries";
+
+type IconPath =
+  | string
+  | vscode.Uri
+  | {
+      light: string | vscode.Uri;
+      dark: string | vscode.Uri;
+    }
+  | vscode.ThemeIcon;
 
 export class RootNode extends NodeBase {
   public readonly contextValue: string;
   private readonly _category: string;
   private readonly isCsp: boolean;
+  private readonly iconPath: IconPath;
 
   public constructor(
     label: string,
@@ -19,12 +29,14 @@ export class RootNode extends NodeBase {
     contextValue: string,
     category: string,
     options: NodeOptions,
-    isCsp = false
+    isCsp = false,
+    iconPath?: IconPath
   ) {
     super(label, fullName, options);
     this.contextValue = contextValue;
     this._category = category;
     this.isCsp = isCsp;
+    this.iconPath = iconPath;
   }
 
   public get category(): string {
@@ -36,6 +48,8 @@ export class RootNode extends NodeBase {
       collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
       contextValue: this.contextValue,
       label: this.label,
+      tooltip: this.isCsp ? this.fullName : undefined,
+      iconPath: this.iconPath,
     };
   }
 
