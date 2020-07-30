@@ -24,7 +24,11 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
       .then((data) => data.result.content.namespaces)
       .then((data) => data.filter((ns) => ns !== api.ns && !extra4Workspace.includes(ns)))
       .then((data) => data.map((ns) => ({ label: ns })))
-      .then(vscode.window.showQuickPick)
+      .then((data) =>
+        vscode.window.showQuickPick(data, {
+          placeHolder: `Choose a namespace on ${api.config.host}:${api.config.port} to add to ObjectScript Explorer`,
+        })
+      )
       .then((ns) => this.showExtra4Workspace(workspaceFolder, ns.label));
   }
 
@@ -73,11 +77,14 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
         const conn: any = config("conn", workspaceFolder.name);
         if (conn.active && conn.ns) {
           const extra4Workspace = this._showExtra4Workspace[workspaceFolder.name] || [];
-          node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData, {});
+          node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData, {
+            workspaceFolder: workspaceFolder.name,
+          });
           rootNodes.push(node);
 
           extra4Workspace.forEach((ns) => {
             node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData, {
+              workspaceFolder: workspaceFolder.name,
               namespace: ns,
               extraNode: true,
             });

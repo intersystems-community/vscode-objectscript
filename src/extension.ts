@@ -388,9 +388,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   });
   toCheck.forEach(async function (uri, configName) {
     if (serverManagerApi && serverManagerApi.getServerSpec) {
-      const connSpec = await serverManagerApi.getServerSpec(configName);
-      if (connSpec) {
-        resolvedConnSpecs.set(configName, connSpec);
+      const serverName = uri.scheme === "file" ? config("conn", configName).server : configName;
+      if (serverName && serverName !== "" && !resolvedConnSpecs.has(serverName)) {
+        const connSpec = await serverManagerApi.getServerSpec(serverName);
+        if (connSpec) {
+          resolvedConnSpecs.set(serverName, connSpec);
+        }
       }
     }
     checkConnection(true, uri);
@@ -574,6 +577,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("vscode-objectscript.explorer.refresh", () => explorerProvider.refresh()),
     vscode.commands.registerCommand("vscode-objectscript.explorer.openClass", vscode.window.showTextDocument),
     vscode.commands.registerCommand("vscode-objectscript.explorer.openRoutine", vscode.window.showTextDocument),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.openCSPFile", vscode.window.showTextDocument),
     vscode.commands.registerCommand("vscode-objectscript.explorer.export", (item, items) =>
       exportExplorerItem(items && items.length ? items : [item])
     ),

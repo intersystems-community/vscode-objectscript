@@ -28,7 +28,7 @@ async function compileFlags(): Promise<string> {
   });
 }
 
-export async function checkChangedOnServer(file: CurrentFile): Promise<number> {
+export async function checkChangedOnServer(file: CurrentFile, force = false): Promise<number> {
   if (!file || !file.uri || schemas.includes(file.uri.scheme)) {
     return -1;
   }
@@ -41,8 +41,11 @@ export async function checkChangedOnServer(file: CurrentFile): Promise<number> {
       .then(({ ts, content }) => {
         const fileContent = file.content.split(/\r?\n/);
         const serverTime = Number(new Date(ts + "Z"));
-        const sameContent = content.every((line, index) => line.trim() == (fileContent[index] || "").trim());
-        const mtime = sameContent ? serverTime : Math.max(Number(fs.statSync(file.fileName).mtime), serverTime);
+        const sameContent = force
+          ? false
+          : content.every((line, index) => line.trim() == (fileContent[index] || "").trim());
+        const mtime =
+          force || sameContent ? serverTime : Math.max(Number(fs.statSync(file.fileName).mtime), serverTime);
         return mtime;
       })
       .catch(() => -1));
@@ -54,6 +57,7 @@ async function importFile(file: CurrentFile, ignoreConflict?: boolean): Promise<
   const api = new AtelierAPI(file.uri);
   const content = file.content.split(/\r?\n/);
   const mtime = await checkChangedOnServer(file);
+  workspaceState.update(`${file.uniqueId}:mtime`, undefined);
   ignoreConflict = ignoreConflict || mtime < 0;
   return api
     .putDoc(
@@ -65,6 +69,9 @@ async function importFile(file: CurrentFile, ignoreConflict?: boolean): Promise<
       },
       ignoreConflict
     )
+    .then(() => {
+      checkChangedOnServer(file, true);
+    })
     .catch((error) => {
       if (error.statusCode == 400) {
         outputChannel.appendLine(error.error.result.status);

@@ -43,17 +43,21 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
   if (!document) {
     return null;
   }
+  const fileName = document.fileName;
+  const fileExt = fileName.split(".").pop().toLowerCase();
   if (
     !schemas.includes(document.uri.scheme) &&
-    (!document || !document.fileName || !document.languageId || !document.languageId.startsWith("objectscript"))
+    (!document ||
+      !document.fileName ||
+      !document.languageId ||
+      !document.languageId.startsWith("objectscript") ||
+      fileExt.match(/(csp)/i)) // Skip CSP for now, yet
   ) {
     return null;
   }
   const eol = document.eol || vscode.EndOfLine.LF;
   const uri = document.uri;
-  const fileName = document.fileName;
   const content = document.getText();
-  const fileExt = fileName.split(".").pop().toLowerCase();
   let name = "";
   let ext = "";
   const { query } = url.parse(decodeURIComponent(uri.toString()), true);

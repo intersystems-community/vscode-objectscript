@@ -57,6 +57,7 @@
     "onCommand:vscode-objectscript.explorer.refresh",
     "onCommand:vscode-objectscript.explorer.openClass",
     "onCommand:vscode-objectscript.explorer.openRoutine",
+    "onCommand:vscode-objectscript.explorer.openCSPFile",
     "onCommand:vscode-objectscript.compileFolder",
     "onCommand:vscode-objectscript.importFolder",
     "onLanguage:objectscript",
@@ -160,11 +161,11 @@
       "view/item/context": [
         {
           "command": "vscode-objectscript.explorer.export",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:(?!(cspApplication|cspFileNode))/"
         },
         {
           "command": "vscode-objectscript.explorer.export",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataRootNode:/"
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataRootNode:(?!cspRootNode)/"
         },
         {
           "command": "vscode-objectscript.explorer.delete",
@@ -185,28 +186,32 @@
         {
           "command": "vscode-objectscript.explorer.otherNamespace",
           "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode((?!:extra:).)*$/",
-          "group": "inline"
+          "group": "inline@30"
         },
         {
           "command": "vscode-objectscript.explorer.otherNamespaceClose",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode:extra:/",
-          "group": "inline"
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode.*:extra:/",
+          "group": "inline@30"
         },
         {
           "command": "vscode-objectscript.explorer.showGenerated",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode((?!:generated:).)*$/"
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode((?!:generated:).)*$/",
+          "group": "inline@20"
         },
         {
           "command": "vscode-objectscript.explorer.hideGenerated",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode.*:generated:/"
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode.*:generated:/",
+          "group": "inline@20"
         },
         {
           "command": "vscode-objectscript.explorer.showSystem",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode((?!:(%SYS|system):).)*$/"
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode((?!:(%SYS|system):).)*$/",
+          "group": "inline@10"
         },
         {
           "command": "vscode-objectscript.explorer.hideSystem",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode.*:system:/"
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode.*:system:/",
+          "group": "inline@10"
         }
       ],
       "editor/context": [
@@ -408,31 +413,37 @@
       {
         "command": "vscode-objectscript.explorer.otherNamespace",
         "title": "View Another Namespace...",
+        "icon": "$(add)",
         "category": "ObjectScript"
       },
       {
         "command": "vscode-objectscript.explorer.showGenerated",
-        "title": "Show Generated",
+        "title": "Show Generated Items",
+        "icon": "$(server-process)",
         "category": "ObjectScript"
       },
       {
         "command": "vscode-objectscript.explorer.hideGenerated",
-        "title": "Hide Generated",
+        "title": "Hide Generated Items",
+        "icon": "$(server-process)",
         "category": "ObjectScript"
       },
       {
         "command": "vscode-objectscript.explorer.showSystem",
-        "title": "Show System",
+        "title": "Show System Items",
+        "icon": "$(library)",
         "category": "ObjectScript"
       },
       {
         "command": "vscode-objectscript.explorer.hideSystem",
-        "title": "Hide System",
+        "title": "Hide System Items",
+        "icon": "$(library)",
         "category": "ObjectScript"
       },
       {
         "command": "vscode-objectscript.explorer.otherNamespaceClose",
         "title": "Close Namespace",
+        "icon": "$(remove)",
         "category": "ObjectScript"
       },
       {
@@ -882,6 +893,7 @@
     "minimist": ">=1.2.5",
     "mocha": "^8.0.1",
     "nock": "^13.0.0",
+    "ovsx": "latest",
     "prettier": "^2.0.5",
     "tape": "^5.0.1",
     "ts-loader": "^7.0.5",
