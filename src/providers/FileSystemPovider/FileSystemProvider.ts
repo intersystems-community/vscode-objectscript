@@ -92,6 +92,28 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     return this._lookupAsFile(uri).then((file: File) => file.data);
   }
 
+  private generateFileContent(fileName: string, content: Buffer): { content: string[]; enc: boolean } {
+    const fileExt = fileName.split(".").pop().toLowerCase();
+    if (fileExt === "cls") {
+      const className = fileName.split(".").slice(0, -1).join(".");
+      return {
+        content: [`Class ${className} {}`],
+        enc: false,
+      };
+    } else if (["int", "inc", "mac"].includes(fileExt)) {
+      const routineName = fileName.split(".").slice(0, -1).join(".");
+      const routineType = `[ type = ${fileExt}]`;
+      return {
+        content: [`ROUTINE ${routineName} ${routineType}`],
+        enc: false,
+      };
+    }
+    return {
+      content: [content.toString("base64")],
+      enc: true,
+    };
+  }
+
   public writeFile(
     uri: vscode.Uri,
     content: Buffer,
@@ -111,66 +133,38 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     }
     const api = new AtelierAPI(uri);
     return this._lookupAsFile(uri)
-      .then((file) => (file.data = content))
+      .then(() => Promise.reject())
+      .catch((error) => {
+        if (error.code === "FileNotFound") {
+          return;
+        }
+        return Promise.reject();
+      })
       .then(() => {
-        api
-          .actionIndex([fileName])
-          .then((data) => data.result.content[0])
-          .then((info) => {
-            if (info.status === "") {
-              /// file found, everything is Ok
-              return;
-            }
-            if (options.create) {
-              if (csp) {
-                return api.putDoc(
-                  fileName,
-                  {
-                    content: [content.toString("base64")],
-                    enc: true,
-                    mtime: Date.now(),
-                  },
-                  false
-                );
-              }
-              const fileExt = fileName.split(".").pop().toLowerCase();
-              if (fileExt === "cls") {
-                const className = fileName.split(".").slice(0, -1).join(".");
-                return api.putDoc(
-                  fileName,
-                  {
-                    content: [`Class ${className} {}`],
-                    enc: false,
-                    mtime: Date.now(),
-                  },
-                  false
-                );
-              } else if (["int", "inc", "mac"].includes(fileExt)) {
-                const api = new AtelierAPI(uri);
-                const routineName = fileName.split(".").slice(0, -1).join(".");
-                const routineType = `[ type = ${fileExt}]`;
-                return api.putDoc(
-                  fileName,
-                  {
-                    content: [`ROUTINE ${routineName} ${routineType}`],
-                    enc: false,
-                    mtime: Date.now(),
-                  },
-                  false
-                );
-              }
-              throw new Error("Not implemented");
-            }
-          })
-          .then((response) => {
-            if (response && response.result.ext && response.result.ext[0] && response.result.ext[1]) {
-              fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, uri, response.result.ext[0]);
-              fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, uri, response.result.ext[1]);
-            }
-            this._lookupAsFile(uri).then((entry) => {
-              this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
-            });
-          });
+        const newContent = this.generateFileContent(fileName, content);
+        return api.putDoc(
+          fileName,
+          {
+            ...newContent,
+            mtime: Date.now(),
+          },
+          false
+        );
+      })
+      .catch((error) => {
+        if (error.error?.result?.status) {
+          throw vscode.FileSystemError.Unavailable(error.error.result.status);
+        }
+        throw vscode.FileSystemError.Unavailable(error.message);
+      })
+      .then((response) => {
+        if (response && response.result.ext && response.result.ext[0] && response.result.ext[1]) {
+          fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, uri, response.result.ext[0]);
+          fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, uri, response.result.ext[1]);
+        }
+        this._lookupAsFile(uri).then((entry) => {
+          this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
+        });
       });
   }
 
