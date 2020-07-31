@@ -24,6 +24,15 @@ npm install
 
 TypeScript errors and warnings will be displayed in the `PROBLEMS` panel of Visual Studio Code.
 
+### Editing code snippets
+
+Code snippets are defined in files in the /snippets/ folder:
+
+* objectscript-class.json - snippets for class definition context
+* objectscript.json - snippets for objectscript context 
+
+Snippets syntax is described [here](https://code.visualstudio.com/docs/editor/userdefinedsnippets). 
+
 ### Run dev build and validate your changes
 
 To test changes, open the `vscode-objectscript` folder in VSCode.
