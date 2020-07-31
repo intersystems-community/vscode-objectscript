@@ -161,7 +161,7 @@ class StudioActions {
             });
         });
       case 3: // Run an EXE on the client.
-        throw new Error("Not supported");
+        throw new Error("processUserAction: Run EXE (Action=5) not supported");
       case 4: {
         // Insert the text in Target in the current document at the current selection point
         const editor = vscode.window.activeTextEditor;
@@ -170,7 +170,7 @@ class StudioActions {
             editBuilder.replace(editor.selection, target);
           });
         }
-        return;
+        break;
       }
       case 5: // Studio will open the documents listed in Target
         target.split(",").forEach((element) => {
@@ -207,7 +207,7 @@ class StudioActions {
             }
           });
         });
-        return;
+        break;
       case 6: // Display an alert dialog in Studio with the text from the Target variable.
         return vscode.window.showWarningMessage(target, { modal: true });
       case 7: // Display a dialog with a textbox and Yes/No/Cancel buttons.
@@ -222,8 +222,9 @@ class StudioActions {
             };
           });
       default:
-        throw new Error("Not supported");
+        throw new Error(`processUserAction: ${userAction} not supported`);
     }
+    return Promise.resolve();
   }
 
   private userAction(action, afterUserAction = false, answer = "", msg = "", type = 0): Thenable<void> {
@@ -247,7 +248,7 @@ class StudioActions {
       {
         cancellable: false,
         location: vscode.ProgressLocation.Notification,
-        title: `Executing user action: ${action.label}`,
+        title: `Executing ${afterUserAction ? "AfterUserAction" : "UserAction"}: ${action.label}`,
       },
       () => {
         return this.api
@@ -274,6 +275,7 @@ class StudioActions {
           .then(
             (actionToProcess) =>
               actionToProcess &&
+              !afterUserAction &&
               this.processUserAction(actionToProcess).then((answer) =>
                 answer && (answer.msg || answer.msg === "")
                   ? this.userAction(action, true, answer.answer, answer.msg, type)
@@ -431,6 +433,7 @@ export async function _contextMenu(sourceControl: boolean, node: PackageNode | C
   return studioActions && studioActions.getMenu(StudioMenuType.Context, sourceControl);
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vscode.Uri, userAction?): Promise<void> {
   const studioActions = new StudioActions(uri);
   return studioActions && studioActions.fireOtherStudioAction(action, userAction);
