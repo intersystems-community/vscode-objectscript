@@ -766,6 +766,11 @@
           "type": "boolean",
           "default": false,
           "markdownDescription": "Do not offer to install the [intersystems-community.servermanager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) helper extension."
+        },
+        "objectscript.autoShowTerminal": {
+          "description": "Automatically show terminal when connected to docker-compose.",
+          "type": "boolean",
+          "default": false
         }
       }
     },

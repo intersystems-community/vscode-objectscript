@@ -199,7 +199,8 @@ export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
         panel.text = `${packageJson.displayName} - ERROR`;
         return;
       }
-      terminalWithDocker();
+      const { autoShowTerminal } = config();
+      autoShowTerminal && terminalWithDocker();
       if (dockerPort !== port) {
         workspaceState.update(configName + ":host", "localhost");
         workspaceState.update(configName + ":port", dockerPort);
