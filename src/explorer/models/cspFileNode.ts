@@ -20,6 +20,7 @@ export class CSPFileNode extends NodeBase {
         command: "vscode-objectscript.explorer.openCSPFile",
         title: "Open File",
       },
+      resourceUri: isLocalFile ? itemUri : undefined,
       contextValue: CSPFileNode.contextValue,
       label: `${displayName}`,
       tooltip: isLocalFile ? undefined : this.fullName,
