@@ -10,20 +10,20 @@ export class RoutineNode extends NodeBase {
 
   public getTreeItem(): vscode.TreeItem {
     const displayName: string = this.label;
+    const itemUri = DocumentContentProvider.getUri(this.fullName, this.workspaceFolder, this.namespace);
+    const isLocalFile = itemUri.scheme === "file";
 
     return {
       collapsibleState: vscode.TreeItemCollapsibleState.None,
       command: {
-        arguments: [DocumentContentProvider.getUri(this.fullName, this.workspaceFolder, this.namespace)],
+        arguments: [itemUri],
         command: "vscode-objectscript.explorer.openRoutine",
         title: "Open routine",
       },
+      resourceUri: isLocalFile ? itemUri : undefined,
       contextValue: "dataNode:routineNode",
       label: `${displayName}`,
-      // iconPath: {
-      //     light: path.join(__filename, '..', '..', '..', '..', 'images', 'light', 'routine.svg'),
-      //     dark: path.join(__filename, '..', '..', '..', '..', 'images', 'dark', 'routine.svg')
-      // }
+      tooltip: isLocalFile ? undefined : this.fullName,
     };
   }
 }

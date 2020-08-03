@@ -3,7 +3,7 @@ import { AtelierAPI } from "../api";
 import { config, FILESYSTEM_SCHEMA } from "../extension";
 import { outputChannel, outputConsole, currentFile } from "../utils";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
-import { ClassNode } from "../explorer/models/classesNode";
+import { ClassNode } from "../explorer/models/classNode";
 import { PackageNode } from "../explorer/models/packageNode";
 import { RoutineNode } from "../explorer/models/routineNode";
 import { NodeBase } from "../explorer/models/nodeBase";

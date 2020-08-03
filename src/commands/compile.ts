@@ -17,7 +17,7 @@ import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { currentFile, CurrentFile, outputChannel } from "../utils";
 import { RootNode } from "../explorer/models/rootNode";
 import { PackageNode } from "../explorer/models/packageNode";
-import { ClassNode } from "../explorer/models/classesNode";
+import { ClassNode } from "../explorer/models/classNode";
 import { RoutineNode } from "../explorer/models/routineNode";
 
 async function compileFlags(): Promise<string> {

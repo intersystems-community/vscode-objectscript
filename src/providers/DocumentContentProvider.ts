@@ -4,7 +4,7 @@ import * as url from "url";
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 
-import { getFileName } from "../commands/export";
+import { getFileName, getFolderName } from "../commands/export";
 import { config, FILESYSTEM_SCHEMA, FILESYSTEM_READONLY_SCHEMA, OBJECTSCRIPT_FILE_SCHEMA } from "../extension";
 import { currentWorkspaceFolder, workspaceFolderUri } from "../utils";
 
@@ -20,6 +20,16 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     const fileName = getFileName(root, name, atelier, addCategory);
     if (fs.existsSync(fileName)) {
       return fs.realpathSync.native(fileName);
+    }
+  }
+
+  public static getAsFolder(name: string, workspaceFolder: string, category?: string): string {
+    const { atelier, folder, addCategory } = config("export", workspaceFolder);
+
+    const root = [workspaceFolderUri(workspaceFolder).fsPath, folder].join(path.sep);
+    const folderName = getFolderName(root, name, atelier, addCategory ? category : null);
+    if (fs.existsSync(folderName)) {
+      return fs.realpathSync.native(folderName);
     }
   }
 
@@ -45,11 +55,13 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
       vfs = true;
       scheme = wFolderUri.scheme;
     } else {
-      const found = this.getAsFile(name, workspaceFolder);
-      if (found) {
-        return vscode.Uri.file(found);
-      }
       const conn = config("conn", workspaceFolder);
+      const localFile = this.getAsFile(name, workspaceFolder);
+      if (localFile && (!namespace || namespace === conn.ns)) {
+        // Exists as a local file and we aren't viewing a different namespace on the same server,
+        // so return a file:// uri that will open the local file.
+        return vscode.Uri.file(localFile);
+      }
       const { active } = conn;
       if (!active) {
         return null;
