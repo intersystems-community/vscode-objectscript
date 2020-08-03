@@ -1,5 +1,18 @@
 # Change Log
 
+## [0.8.8]
+- Fix retrieval of password when `objectscript.conn.server` defers to Server Manager.
+- Fix command completions, broken in 0.8.7.
+- Improve ObjectScript Explorer:
+    - Files that will be loaded from local workspace now show their filetype icon and a full path tooltip.
+    - Fix rare case where code would load from wrong place.
+- Skip compilation of local CSP files for now.
+- Improve handling of server modification date comparisons.
+- Fix incorrect `Studio Action "Changed Namespace" not supported` message in output channel.
+- New `objectscript.autoShowTerminal` option controlling whether terminal shows automatically when connected to docker-compose. Default is `false`.
+- Add CONTRIBUTING.md document.
+- Improve README information about username and password in settings.
+
 ## [0.8.7]
 - Use `intersystems.servers` object for more flexible connection definitions.
 - Recommend [intersystems-community.servermanager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) extension for management of `intersystems.servers` definitions.
