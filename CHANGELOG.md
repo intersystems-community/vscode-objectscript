@@ -9,6 +9,7 @@
 - Skip compilation of local CSP files for now.
 - Improve handling of server modification date comparisons.
 - Fix incorrect `Studio Action "Changed Namespace" not supported` message in output channel.
+- New `objectscript.autoShowTerminal` option controlling whether terminal shows automatically when connected to docker-compose. Default is `false`.
 - Add CONTRIBUTING.md document.
 - Improve README information about username and password in settings.
 
