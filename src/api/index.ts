@@ -8,11 +8,10 @@ import {
   getResolvedConnectionSpec,
   config,
   extensionContext,
-  FILESYSTEM_SCHEMA,
-  FILESYSTEM_READONLY_SCHEMA,
   workspaceState,
   panel,
   checkConnection,
+  schemas,
 } from "../extension";
 import { currentWorkspaceFolder, outputConsole, outputChannel } from "../utils";
 
@@ -93,7 +92,7 @@ export class AtelierAPI {
     let namespace = "";
     if (wsOrFile) {
       if (wsOrFile instanceof vscode.Uri) {
-        if (wsOrFile.scheme === FILESYSTEM_SCHEMA || wsOrFile.scheme === FILESYSTEM_READONLY_SCHEMA) {
+        if (schemas.includes(wsOrFile.scheme)) {
           workspaceFolderName = wsOrFile.authority;
           const { query } = url.parse(decodeURIComponent(wsOrFile.toString()), true);
           if (query) {
