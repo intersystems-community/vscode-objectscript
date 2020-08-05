@@ -202,7 +202,9 @@ export async function importAndCompile(askFLags = false, document?: vscode.TextD
   if (!file) {
     return;
   }
-  if (!config("conn").active) {
+
+  // Do nothing if it is a local file and objectscript.conn.active is false
+  if (document.uri.scheme === "file" && !config("conn").active) {
     return;
   }
 

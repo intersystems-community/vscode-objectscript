@@ -132,40 +132,51 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       return;
     }
     const api = new AtelierAPI(uri);
-    return this._lookupAsFile(uri)
-      .then(() => Promise.reject())
-      .catch((error) => {
-        if (error.code === "FileNotFound") {
-          return;
+    return this._lookupAsFile(uri).then(
+      () => {
+        // Weirdly, if the file exists on the server we don't actually write its content here.
+        // Instead we simply return as though we succeeded. The actual writing is done by our
+        // workspace.onDidSaveTextDocument handler.
+        return;
+      },
+      (error) => {
+        if (error.code !== "FileNotFound" || !options.create) {
+          return Promise.reject();
         }
-        return Promise.reject();
-      })
-      .then(() => {
+        // File doesn't exist on the server, and we are allowed to create it.
+        // Create content (typically a stub).
         const newContent = this.generateFileContent(fileName, content);
-        return api.putDoc(
-          fileName,
-          {
-            ...newContent,
-            mtime: Date.now(),
-          },
-          false
-        );
-      })
-      .catch((error) => {
-        if (error.error?.result?.status) {
-          throw vscode.FileSystemError.Unavailable(error.error.result.status);
-        }
-        throw vscode.FileSystemError.Unavailable(error.message);
-      })
-      .then((response) => {
-        if (response && response.result.ext && response.result.ext[0] && response.result.ext[1]) {
-          fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, uri, response.result.ext[0]);
-          fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, uri, response.result.ext[1]);
-        }
-        this._lookupAsFile(uri).then((entry) => {
-          this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
-        });
-      });
+
+        // Write it to the server
+        return api
+          .putDoc(
+            fileName,
+            {
+              ...newContent,
+              mtime: Date.now(),
+            },
+            false
+          )
+          .catch((error) => {
+            // Throw all failures
+            if (error.error?.result?.status) {
+              throw vscode.FileSystemError.Unavailable(error.error.result.status);
+            }
+            throw vscode.FileSystemError.Unavailable(error.message);
+          })
+          .then((response) => {
+            // New file has been written
+            if (response && response.result.ext && response.result.ext[0] && response.result.ext[1]) {
+              fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, uri, response.result.ext[0]);
+              fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, uri, response.result.ext[1]);
+            }
+            // Sanity check that we find it there, then make client side update things
+            this._lookupAsFile(uri).then(() => {
+              this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
+            });
+          });
+      }
+    );
   }
 
   public delete(uri: vscode.Uri, options: { recursive: boolean }): void | Thenable<void> {
