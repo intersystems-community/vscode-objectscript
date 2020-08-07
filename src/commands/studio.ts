@@ -277,11 +277,14 @@ class StudioActions {
               (actionToProcess) =>
                 actionToProcess &&
                 !afterUserAction &&
-                this.processUserAction(actionToProcess).then((answer) =>
-                  answer && (answer.msg || answer.msg === "")
-                    ? this.userAction(action, true, answer.answer, answer.msg, type)
-                    : this.userAction(action, true, answer, "", type)
-                )
+                this.processUserAction(actionToProcess).then((answer) => {
+                  // call AfterUserAction only if there is a valid answer
+                  if (answer) {
+                    answer.msg || answer.msg === ""
+                      ? this.userAction(action, true, answer.answer, answer.msg, type)
+                      : this.userAction(action, true, answer, "", type);
+                  }
+                })
             )
             .then(() => resolve())
             .catch((err) => {
