@@ -286,7 +286,9 @@ class StudioActions {
             .then(() => resolve())
             .catch((err) => {
               console.log(err);
-              outputChannel.appendLine(`Studio Action "${action.label}" not supported`);
+              outputChannel.appendLine(
+                `Studio Action "${action.label}" not supported on ${this.api.config.host}:${this.api.config.port}[${this.api.config.ns}]`
+              );
               outputChannel.show();
               reject();
             });

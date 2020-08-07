@@ -238,7 +238,10 @@ export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
       /// Use xdebug's websocket, to catch when server disconnected
       connectionSocket = new WebSocket(api.xdebugUrl());
       connectionSocket.onopen = () => {
-        fireOtherStudioAction(OtherStudioAction.ConnectedToNewNamespace);
+        fireOtherStudioAction(
+          OtherStudioAction.ConnectedToNewNamespace,
+          typeof apiTarget === "string" ? undefined : apiTarget
+        );
         panel.text = `${connInfo} - Connected`;
       };
       connectionSocket.onclose = (event) => {
