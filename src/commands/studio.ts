@@ -251,45 +251,51 @@ class StudioActions {
         title: `Executing ${afterUserAction ? "AfterUserAction" : "UserAction"}: ${action.label}`,
       },
       () => {
-        return this.api
-          .actionQuery(query, parameters)
-          .then(async (data) => {
-            if (action.save) {
-              await this.processSaveFlag(action.save);
-            }
-            if (!afterUserAction) {
-              outputConsole(data.console);
-            }
-            if (!data.result.content.length) {
-              // nothing to-do, just ignore it
-              return;
-            }
-            const actionToProcess = data.result.content.pop();
+        return new Promise((resolve, reject) => {
+          this.api
+            .actionQuery(query, parameters)
+            .then(async (data) => {
+              if (action.save) {
+                await this.processSaveFlag(action.save);
+              }
+              if (!afterUserAction) {
+                outputConsole(data.console);
+              }
+              if (!data.result.content.length) {
+                // nothing to-do, just ignore it
+                return;
+              }
+              const actionToProcess = data.result.content.pop();
 
-            // CSP pages should not have a progress bar
-            if (actionToProcess.action === 2) {
-              return;
-            }
-            return actionToProcess;
-          })
-          .then(
-            (actionToProcess) =>
-              actionToProcess &&
-              !afterUserAction &&
-              this.processUserAction(actionToProcess).then((answer) =>
-                answer && (answer.msg || answer.msg === "")
-                  ? this.userAction(action, true, answer.answer, answer.msg, type)
-                  : this.userAction(action, true, answer, "", type)
-              )
-          )
-          .catch((err) => {
-            console.log(err);
-            outputChannel.appendLine(
-              `Studio Action "${action.label}" not supported on ${this.api.config.host}:${this.api.config.port}[${this.api.config.ns}]`
-            );
-            outputChannel.show();
-            return Promise.reject();
-          });
+              // CSP pages should not have a progress bar
+              if (actionToProcess.action === 2) {
+                resolve();
+              }
+              return actionToProcess;
+            })
+            .then(
+              (actionToProcess) =>
+                actionToProcess &&
+                !afterUserAction &&
+                this.processUserAction(actionToProcess).then((answer) => {
+                  // call AfterUserAction only if there is a valid answer
+                  if (answer) {
+                    answer.msg || answer.msg === ""
+                      ? this.userAction(action, true, answer.answer, answer.msg, type)
+                      : this.userAction(action, true, answer, "", type);
+                  }
+                })
+            )
+            .then(() => resolve())
+            .catch((err) => {
+              console.log(err);
+              outputChannel.appendLine(
+                `Studio Action "${action.label}" not supported on ${this.api.config.host}:${this.api.config.port}[${this.api.config.ns}]`
+              );
+              outputChannel.show();
+              reject();
+            });
+        });
       }
     );
   }
