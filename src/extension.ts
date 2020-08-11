@@ -1,4 +1,4 @@
-export const extensionId = "daimor.vscode-objectscript";
+export const extensionId = "intersystems-community.vscode-objectscript";
 
 import vscode = require("vscode");
 
