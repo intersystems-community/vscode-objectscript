@@ -20,9 +20,9 @@ const getCategory = (fileName: string, addCategory: any | boolean): string => {
       if (new RegExp(`^${pattern}$`).test(fileName)) {
         return addCategory[pattern];
       }
-      if (addCategory[fileExt]) return addCategory[fileExt];
-      if (addCategory["*"]) return addCategory["*"];
     }
+    if (addCategory[fileExt]) return addCategory[fileExt];
+    if (addCategory["*"]) return addCategory["*"];
     return null;
   }
   switch (fileExt) {
@@ -144,7 +144,9 @@ export async function exportList(files: string[], workspaceFolder: string, names
   }
   const { atelier, folder, addCategory } = config("export", workspaceFolder);
 
-  const root = [workspaceFolderUri(workspaceFolder).fsPath, folder].join(path.sep);
+  const root = [workspaceFolderUri(workspaceFolder).fsPath, typeof folder === "string" && folder.length ? folder : null]
+    .filter(notNull)
+    .join(path.sep);
   const run = async (fileList) => {
     const errors = [];
     for (const file of fileList) {
