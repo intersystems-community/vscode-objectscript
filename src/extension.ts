@@ -59,7 +59,7 @@ import { StatusCodeError } from "request-promise/errors";
 import { AtelierAPI } from "./api";
 import { ObjectScriptDebugAdapterDescriptorFactory } from "./debug/debugAdapterFactory";
 import { ObjectScriptConfigurationProvider } from "./debug/debugConfProvider";
-import { ObjectScriptExplorerProvider } from "./explorer/explorer";
+import { ObjectScriptExplorerProvider, registerExplorerOpen } from "./explorer/explorer";
 import { WorkspaceNode } from "./explorer/models/workspaceNode";
 import { FileSystemProvider } from "./providers/FileSystemPovider/FileSystemProvider";
 import { WorkspaceSymbolProvider } from "./providers/WorkspaceSymbolProvider";
@@ -579,9 +579,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("vscode-objectscript.serverActions", serverActions),
     vscode.commands.registerCommand("vscode-objectscript.touchBar.viewOthers", viewOthers),
     vscode.commands.registerCommand("vscode-objectscript.explorer.refresh", () => explorerProvider.refresh()),
-    vscode.commands.registerCommand("vscode-objectscript.explorer.openClass", vscode.window.showTextDocument),
-    vscode.commands.registerCommand("vscode-objectscript.explorer.openRoutine", vscode.window.showTextDocument),
-    vscode.commands.registerCommand("vscode-objectscript.explorer.openCSPFile", vscode.window.showTextDocument),
+    // Register the vscode-objectscript.explorer.open command elsewhere
+    registerExplorerOpen(explorerProvider),
     vscode.commands.registerCommand("vscode-objectscript.explorer.export", (item, items) =>
       exportExplorerItem(items && items.length ? items : [item])
     ),

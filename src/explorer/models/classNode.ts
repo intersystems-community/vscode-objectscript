@@ -17,8 +17,8 @@ export class ClassNode extends NodeBase {
       collapsibleState: vscode.TreeItemCollapsibleState.None,
       command: {
         arguments: [itemUri],
-        command: "vscode-objectscript.explorer.openClass",
-        title: "Open class",
+        command: "vscode-objectscript.explorer.open",
+        title: "Open Class",
       },
       resourceUri: isLocalFile ? itemUri : undefined,
       contextValue: "dataNode:classNode",
