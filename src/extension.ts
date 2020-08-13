@@ -196,6 +196,7 @@ export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
         outputChannel.appendLine(
           `Something is wrong with your docker-compose connection settings, or your service is not running.`
         );
+        outputChannel.show(true);
         panel.text = `${packageJson.displayName} - ERROR`;
         return;
       }
@@ -222,6 +223,7 @@ export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
   if (!api.config.host || !api.config.port || !api.config.ns) {
     const message = "host, port and ns must be specified.";
     outputChannel.appendLine(message);
+    outputChannel.show(true);
     panel.text = `${packageJson.displayName} - ERROR`;
     panel.tooltip = message;
     return;
@@ -281,9 +283,11 @@ export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
         outputChannel.appendLine(
           `Authorization error: Check your credentials in Settings, and that you have sufficient privileges on the /api/atelier web application on ${connInfo}`
         );
+        outputChannel.show(true);
       } else {
-        outputChannel.appendLine(`Error: ${message}`);
+        outputChannel.appendLine(message);
         outputChannel.appendLine(`Check your server details in Settings (${connInfo}).`);
+        outputChannel.show(true);
       }
       console.error(error);
       panel.text = `${connInfo} - ERROR`;
@@ -292,6 +296,9 @@ export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
     })
     .finally(() => {
       explorerProvider.refresh();
+      if (uri.scheme === FILESYSTEM_SCHEMA || uri.scheme === FILESYSTEM_READONLY_SCHEMA) {
+        vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
+      }
     });
 }
 

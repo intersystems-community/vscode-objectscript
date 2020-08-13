@@ -558,7 +558,7 @@
           "properties": {
             "active": {
               "type": "boolean",
-              "description": "This connection is active.",
+              "description": "Whether the connection is active.",
               "default": false
             },
             "server": {
