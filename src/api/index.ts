@@ -172,7 +172,7 @@ export class AtelierAPI {
       } = getResolvedConnectionSpec(serverName, config("intersystems.servers", workspaceFolderName).get(serverName));
       this._config = {
         active: this.externalServer || conn.active,
-        apiVersion: 1,
+        apiVersion: workspaceState.get(this.configName + ":apiVersion", DEFAULT_API_VERSION),
         https: scheme === "https",
         ns: namespace || conn.ns,
         host,
