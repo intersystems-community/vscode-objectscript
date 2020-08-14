@@ -17,7 +17,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
     progress: vscode.Progress<vscode.TextSearchResult>,
     token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.TextSearchComplete> {
-    const api = new AtelierAPI();
+    const api = new AtelierAPI(options.folder);
     let counter = 0;
     if (!api.enabled) {
       return null;
