@@ -54,7 +54,6 @@ jobs:
       with:
         node-version: 12.x
     - run: npm install
-    - run: npx vscode-dts dev
     - name: lint
       if: runner.os == 'Linux'
       run: npm run lint
