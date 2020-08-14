@@ -296,7 +296,7 @@ export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
     })
     .finally(() => {
       explorerProvider.refresh();
-      if (schemes.includes(uri.scheme)) {
+      if (schemas.includes(uri.scheme)) {
         vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
       }
     });
