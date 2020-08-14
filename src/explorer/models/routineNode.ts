@@ -17,8 +17,8 @@ export class RoutineNode extends NodeBase {
       collapsibleState: vscode.TreeItemCollapsibleState.None,
       command: {
         arguments: [itemUri],
-        command: "vscode-objectscript.explorer.openRoutine",
-        title: "Open routine",
+        command: "vscode-objectscript.explorer.open",
+        title: "Open Routine",
       },
       resourceUri: isLocalFile ? itemUri : undefined,
       contextValue: "dataNode:routineNode",

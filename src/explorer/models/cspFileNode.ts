@@ -17,7 +17,7 @@ export class CSPFileNode extends NodeBase {
       collapsibleState: vscode.TreeItemCollapsibleState.None,
       command: {
         arguments: [itemUri],
-        command: "vscode-objectscript.explorer.openCSPFile",
+        command: "vscode-objectscript.explorer.open",
         title: "Open File",
       },
       resourceUri: isLocalFile ? itemUri : undefined,

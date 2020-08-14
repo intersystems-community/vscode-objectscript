@@ -5,9 +5,44 @@ import { AtelierAPI } from "../api";
 import { config } from "../extension";
 import { WorkspaceNode } from "./models/workspaceNode";
 
+// The vscode-objectscript.explorer.open command is not listed in settings.json as a contribution because it only gets invoked
+//  from the user's click on an item in the ObjectScriptExplorerProvider tree.
+// It serves as a proxy for the vscode.open command, detecting two opens of the same item in quick succession
+//  and treating the second of these as a non-preview open.
+export function registerExplorerOpen(explorerProvider: ObjectScriptExplorerProvider): vscode.Disposable {
+  return vscode.commands.registerCommand("vscode-objectscript.explorer.open", async function (uri: vscode.Uri) {
+    let usePreview = <boolean>vscode.workspace.getConfiguration("workbench.editor").get("enablePreview");
+
+    if (usePreview) {
+      usePreview = !wasDoubleClick(uri, explorerProvider);
+    }
+
+    await vscode.commands.executeCommand("vscode.open", uri, { preview: usePreview });
+  });
+}
+
+// Return true if previously called with the same arguments within the past 0.5 seconds
+function wasDoubleClick(uri: vscode.Uri, explorerProvider: ObjectScriptExplorerProvider): boolean {
+  let result = false;
+  if (explorerProvider.lastOpened) {
+    const isTheSameUri = explorerProvider.lastOpened.uri === uri;
+    const dateDiff = <number>(<any>new Date() - <any>explorerProvider.lastOpened.date);
+    result = isTheSameUri && dateDiff < 500;
+  }
+
+  explorerProvider.lastOpened = {
+    uri: uri,
+    date: new Date(),
+  };
+  return result;
+}
 export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<NodeBase> {
   public onDidChange?: vscode.Event<vscode.Uri>;
   public onDidChangeTreeData: vscode.Event<NodeBase>;
+
+  // Use for detecting doubleclick
+  public lastOpened: { uri: vscode.Uri; date: Date };
+
   private _onDidChangeTreeData: vscode.EventEmitter<NodeBase>;
   private _showExtra4Workspace: { [key: string]: string[] }[] = [];
 
