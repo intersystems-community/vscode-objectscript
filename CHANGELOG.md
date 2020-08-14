@@ -1,5 +1,19 @@
 # Change Log
 
+## [0.8.9]
+- Fix saving of isfs-type server-side editing, broken in 0.8.8.
+- Implement double-click opening from ObjectScript Explorer.
+- Make ObjectScript Explorer handle non-isfs multi-server multi-root workspace correctly.
+- Reload VS Code Explorer tree after successful connection.
+- Fix some issues with `export.addCategory` setting:
+    - Resolve error when non-string was used as folder value.
+    - If setting contains multiple patterns, check all of them, in given order.
+- Fix server-side searching of isfs-type root that uses `intersystems.servers` for its connection.
+    - Server-side searching uses a VS Code API that is still (1.48) at "proposed" stage. See [here](https://github.com/intersystems-community/vscode-objectscript/issues/126#issuecomment-674089387) for instructions on how to use this pre-release feature.
+- No longer use progress indicator when server-side source control displays a page.
+- Do not call server-side AfterUserAction if not necessary.
+- Upgrade vulnerable dependencies.
+
 ## [0.8.8]
 - Fix retrieval of password when `objectscript.conn.server` defers to Server Manager.
 - Fix command completions, broken in 0.8.7.
