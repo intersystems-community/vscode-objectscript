@@ -124,7 +124,7 @@ What do you want to do?`,
 
 function updateOthers(others: string[], baseUri: vscode.Uri) {
   let workspaceFolder = vscode.workspace.getWorkspaceFolder(baseUri);
-  if (!workspaceFolder && baseUri.scheme !== "file") {
+  if (!workspaceFolder && (baseUri.scheme === FILESYSTEM_SCHEMA || baseUri.scheme === FILESYSTEM_READONLY_SCHEMA)) {
     // hack to deal with problem seen with isfs* schemes
     workspaceFolder = vscode.workspace.getWorkspaceFolder(baseUri.with({ path: "" }));
   }
