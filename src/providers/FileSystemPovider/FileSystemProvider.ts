@@ -22,6 +22,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     this.onDidChangeFile = this._emitter.event;
   }
 
+  public fireFileChanged(uri: vscode.Uri): void {
+    this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
+  }
+
   public stat(uri: vscode.Uri): Promise<vscode.FileStat> {
     return this._lookup(uri);
   }

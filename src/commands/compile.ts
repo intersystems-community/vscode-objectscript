@@ -122,10 +122,29 @@ What do you want to do?`,
     });
 }
 
-function updateOthers(others: string[]) {
+function updateOthers(others: string[], baseUri: vscode.Uri) {
+  let workspaceFolder = vscode.workspace.getWorkspaceFolder(baseUri);
+  if (!workspaceFolder && baseUri.scheme !== "file") {
+    // hack to deal with problem seen with isfs* schemes
+    workspaceFolder = vscode.workspace.getWorkspaceFolder(baseUri.with({ path: "" }));
+  }
+  const workspaceFolderName = workspaceFolder ? workspaceFolder.name : "";
   others.forEach((item) => {
-    const uri = DocumentContentProvider.getUri(item);
-    documentContentProvider.update(uri);
+    const uri = DocumentContentProvider.getUri(item, workspaceFolderName);
+    if (uri.scheme === FILESYSTEM_SCHEMA || uri.scheme === FILESYSTEM_READONLY_SCHEMA) {
+      // Massage uri.path to change the first N-1 dots to slashes, where N is the number of slashes in baseUri.path
+      // For example, when baseUri.path is /Foo/Bar.cls and uri.path is /Foo.Bar.1.int
+      const partsToConvert = baseUri.path.split("/").length - 1;
+      const dotParts = uri.path.split(".");
+      const correctPath =
+        dotParts.length <= partsToConvert
+          ? uri.path
+          : dotParts.slice(0, partsToConvert).join("/") + "." + dotParts.slice(partsToConvert).join(".");
+      console.log(`updateOthers: uri.path=${uri.path} baseUri.path=${baseUri.path} correctPath=${correctPath}`);
+      fileSystemProvider.fireFileChanged(uri.with({ path: correctPath }));
+    } else {
+      documentContentProvider.update(uri);
+    }
   });
 }
 
@@ -145,15 +164,14 @@ export async function loadChanges(files: CurrentFile[]): Promise<any> {
           if (file.uri.scheme === "file") {
             fs.writeFileSync(file.fileName, content);
           } else if (file.uri.scheme === FILESYSTEM_SCHEMA || file.uri.scheme === FILESYSTEM_READONLY_SCHEMA) {
-            fileSystemProvider.writeFile(file.uri, Buffer.from(content), {
-              overwrite: true,
-              create: false,
-            });
+            fileSystemProvider.fireFileChanged(file.uri);
           }
         })
         .then(() => api.actionIndex([file.name]))
         .then((data) => data.result.content[0].others)
-        .then(updateOthers)
+        .then((others) => {
+          updateOthers(others, file.uri);
+        })
     )
   );
 }
@@ -191,13 +209,14 @@ async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
                 outputChannel.show(true);
               });
             }
-            return [];
+            // Even when compile failed we should still fetch server changes
+            return docs;
           })
     )
     .then(loadChanges);
 }
 
-export async function importAndCompile(askFLags = false, document?: vscode.TextDocument): Promise<any> {
+export async function importAndCompile(askFlags = false, document?: vscode.TextDocument): Promise<any> {
   const file = currentFile(document);
   if (!file) {
     return;
@@ -209,7 +228,7 @@ export async function importAndCompile(askFLags = false, document?: vscode.TextD
   }
 
   const defaultFlags = config().compileFlags;
-  const flags = askFLags ? await compileFlags() : defaultFlags;
+  const flags = askFlags ? await compileFlags() : defaultFlags;
   return importFile(file)
     .catch((error) => {
       // console.error(error);
