@@ -114,7 +114,39 @@
         },
         {
           "command": "vscode-objectscript.explorer.export",
-          "when": "vscode-objectscript.connectActive"
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.explorer.otherNamespace",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.explorer.otherNamespaceClose",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.explorer.showGenerated",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.explorer.hideGenerated",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.explorer.showSystem",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.explorer.hideSystem",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.compileFolder",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.importFolder",
+          "when": "false"
         },
         {
           "command": "vscode-objectscript.explorer.delete",
@@ -496,7 +528,7 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.importFolder",
-        "title": "Import without Compilation"
+        "title": "Import Without Compilation"
       },
       {
         "category": "ObjectScript",
