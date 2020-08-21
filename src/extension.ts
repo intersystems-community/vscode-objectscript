@@ -356,7 +356,7 @@ async function serverManager(): Promise<any> {
   }
 }
 
-export async function activate(context: vscode.ExtensionContext): Promise<void> {
+export async function activate(context: vscode.ExtensionContext): Promise<any> {
   if (!packageJson.version.includes("SNAPSHOT")) {
     reporter = new TelemetryReporter(extensionId, extensionVersion, aiKey);
   }
@@ -687,10 +687,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       new ObjectScriptClassCodeLensProvider()
     ),
 
-    /* from proposed api */
+    /* Anything we use from the VS Code proposed API */
     ...proposed
   );
   reporter && reporter.sendTelemetryEvent("extensionActivated");
+
+  // The API we export
+  const api = {
+    serverForUri(uri: vscode.Uri): any {
+      const { apiTarget } = connectionTarget(uri);
+      const api = new AtelierAPI(apiTarget);
+      const { host = "", https, port = 0, pathPrefix, username, password, ns = "" } = api.config;
+      return { scheme: https ? "https" : "http", host, port, pathPrefix, username, password, namespace: ns };
+    },
+  };
+
+  // 'export' our public API
+  return api;
 }
 
 export function deactivate(): void {
