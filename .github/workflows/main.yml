@@ -68,7 +68,7 @@ jobs:
       if: runner.os == 'Linux'
       with:
         name: vsix
-        path: ./dist/
+        path: ./dist/${{ steps.set-version.outputs.name }}.vsix
   beta:
     if: (github.event_name == 'push')
     runs-on: ubuntu-latest
@@ -142,6 +142,7 @@ jobs:
         jq '.enableProposedApi = false' package.json > "$tmp" && mv "$tmp" package.json
         npm install
         git push
+        echo ::set-output name=ovsx::`cat ./dist/.name`
     - name: Upload Release Asset
       id: upload-release-asset
       uses: actions/upload-release-asset@v1
@@ -153,8 +154,10 @@ jobs:
         asset_path: ./dist/${{ steps.set-version.outputs.name }}.vsix
         asset_name: ${{ steps.set-version.outputs.name }}.vsix
         asset_content_type: application/zip
-    - name: Publish to Marketplaces
+    - name: Publish to VSCode Marketplace
       run: |
-        ./node_modules/.bin/vsce publish -p ${{ secrets.VSCE_TOKEN }}
-        ./node_modules/.bin/ovsx publish --pat ${{ secrets.OVSX_TOKEN }}
+        [ -n "${{ secrets.VSCE_TOKEN }}" ] && ./node_modules/.bin/vsce publish -p ${{ secrets.VSCE_TOKEN }} || true
+    - name: Publish to Open VSX Registry
+      run: |
+        [ -n "${{ secrets.OVSX_TOKEN }}" ] && ./node_modules/.bin/ovsx publish --pat ${{ secrets.OVSX_TOKEN }} || true
 
