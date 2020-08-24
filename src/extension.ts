@@ -722,6 +722,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         apiVersion: active ? apiVersion : undefined,
       };
     },
+    serverDocumentUriForUri(uri: vscode.Uri): vscode.Uri {
+      const { apiTarget } = connectionTarget(uri);
+      if (typeof apiTarget === "string") {
+        // It was a file-type uri, so find its document (we hope it is open)
+        const docs = vscode.workspace.textDocuments.filter((doc) => doc.uri === uri);
+        let fileName = "";
+        if (docs.length === 1) {
+          // Found it, so work out the corresponding server-side name
+          const file = currentFile(docs[0]);
+          // For some local documents there is no server-side equivalent
+          if (file) {
+            fileName = file.name;
+          }
+        }
+        // uri.path will be "/" if no mapping exists to a server-side equivalent
+        uri = vscode.Uri.file(fileName).with({ scheme: OBJECTSCRIPT_FILE_SCHEMA, authority: apiTarget });
+      }
+      return uri;
+    },
   };
 
   // 'export' our public API
