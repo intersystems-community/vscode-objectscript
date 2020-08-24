@@ -697,8 +697,30 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     serverForUri(uri: vscode.Uri): any {
       const { apiTarget } = connectionTarget(uri);
       const api = new AtelierAPI(apiTarget);
-      const { host = "", https, port = 0, pathPrefix, username, password, ns = "" } = api.config;
-      return { scheme: https ? "https" : "http", host, port, pathPrefix, username, password, namespace: ns };
+      const {
+        serverName,
+        active,
+        host = "",
+        https,
+        port,
+        pathPrefix,
+        username,
+        password,
+        ns = "",
+        apiVersion,
+      } = api.config;
+      return {
+        serverName,
+        active,
+        scheme: https ? "https" : "http",
+        host,
+        port,
+        pathPrefix,
+        username,
+        password,
+        namespace: ns,
+        apiVersion: active ? apiVersion : undefined,
+      };
     },
   };
 
