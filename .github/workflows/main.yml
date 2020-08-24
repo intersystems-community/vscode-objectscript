@@ -25,8 +25,6 @@ jobs:
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
     - uses: actions/checkout@v2
-      with:
-        ref: master
     - run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
     - name: Set an output
       id: set-version
@@ -40,7 +38,7 @@ jobs:
         echo ::set-output name=changelog::$CHANGELOG
         git tag -l | cat
         [ $GITHUB_EVENT_NAME == 'push' ] && VERSION+=-beta && VERSION+=.$(($(git tag -l "v$VERSION.*" | sort -nt. -k4 2>/dev/null | tail -1 | cut -d. -f4)+1))
-        [ $GITHUB_EVENT_NAME == 'pull_request' ] && VERSION+=-dev
+        [ $GITHUB_EVENT_NAME == 'pull_request' ] && VERSION+=-dev.${{ github.event.pull_request.number }}
         echo ::set-output name=version::$VERSION
         NAME=$(jq -r '.name' package.json)-$VERSION
         echo ::set-output name=name::$NAME
@@ -65,7 +63,7 @@ jobs:
     - name: Build package
       if: runner.os == 'Linux'
       run: |
-        ./node_modules/.bin/vsce package -o ./dist/package.vsix
+        ./node_modules/.bin/vsce package -o ./dist/${{ steps.set-version.outputs.name }}.vsix
     - uses: actions/upload-artifact@v2
       if: runner.os == 'Linux'
       with:
@@ -108,7 +106,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/package.vsix
+        asset_path: ./dist/${{ steps.set-version.outputs.name }}.vsix
         asset_name: ${{ steps.set-version.outputs.name }}.vsix
         asset_content_type: application/zip
   publish:
@@ -152,7 +150,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./dist/package.vsix
+        asset_path: ./dist/${{ steps.set-version.outputs.name }}.vsix
         asset_name: ${{ steps.set-version.outputs.name }}.vsix
         asset_content_type: application/zip
     - name: Publish to Marketplaces
