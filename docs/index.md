@@ -5,10 +5,10 @@ nav_exclude: true
 
 # Welcome to the VS Code InterSystems ObjectScript documentation
 
-* [Introduction](Introduction)
-* [Installation](Installation)
-* [Workspace](Workspace)
-* [Settings](Settings)
-* [Configuration](Configuration)
-* [Running and Debugging](RunDebug)
-* [Server-side Editing](ServerSide)
+* [Introduction](introduction)
+* [Installation](installation)
+* [Workspace](workspace)
+* [Settings](settings)
+* [Configuration](configuration)
+* [Running and Debugging](rundebug)
+* [Server-side Editing](serverside)
