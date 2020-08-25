@@ -3,6 +3,12 @@ layout: home
 nav_exclude: true
 ---
 
-# InterSystems ObjectScript for VS Code
+# Welcome to the VS Code InterSystems ObjectScript documentation
 
-Here is some body text.
+* [Introduction](Introduction)
+* [Installation](Installation)
+* [Workspace](Workspace)
+* [Settings](Settings)
+* [Configuration](Configuration)
+* [Running and Debugging](RunDebug)
+* [Server-side Editing](ServerSide)
