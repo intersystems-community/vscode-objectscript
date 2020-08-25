@@ -6,7 +6,7 @@ nav_order: 4
 ---
 # Settings
 
-VS Code provides a number of settings that enable you to customize various aspects of its function. Many settings are general to VS Code, and you can learn about them in the [Visual Studio Code Documentation](https://code.visualstudio.com/docs). The InterSystems ObjectScript and InterSystems Server Manager extensions supply specific settings used to configure VS Code for ObjectScript development. You can learn more in the section [Configuration](../configuration).
+VS Code provides a number of settings that enable you to customize various aspects of its function. Many settings are general to VS Code, and you can learn about them in the [Visual Studio Code Documentation](https://code.visualstudio.com/docs). The InterSystems ObjectScript and InterSystems Server Manager extensions supply specific settings used to configure VS Code for ObjectScript development. You can learn more in the section [Configuration](./Configuration).
 
 There are several levels on which settings are stored and used:
 

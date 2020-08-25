@@ -10,7 +10,7 @@ In order to run or debug an ObjectScript class or routine, you must create a lau
 
 If no launch configurations are available, you are prompted to create one:
 
-![Create launch configuration.](../assets/images/CreateLaunchConfig.png "create launch configuration")
+![Create launch configuration.](./assets/images/CreateLaunchConfig.png "create launch configuration")
 
 Clicking the link creates and opens a `launch.json` file containing the following default information:
 
