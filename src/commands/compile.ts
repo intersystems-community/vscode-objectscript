@@ -94,12 +94,12 @@ What do you want to do?`,
                 return vscode.commands
                   .executeCommand(
                     "vscode.diff",
-                    file.uri,
                     vscode.Uri.file(file.name).with({
                       scheme: OBJECTSCRIPT_FILE_SCHEMA,
                       authority: file.workspaceFolder,
                     }),
-                    `Local • ${file.fileName} ↔ Server • ${file.name}`
+                    file.uri,
+                    `Server • ${file.name} ↔ Local • ${file.fileName}`
                   )
                   .then(() => Promise.reject());
               case "Overwrite on Server":
