@@ -23,12 +23,12 @@ Next, you need to install the following extensions:
 
 Run VS Code. From within the application, click the extensions button in the Activity Bar on the left edge of the VS Code window:
 
-![Extensions button.](./assets/images/extensions.png "extensions button")
+![Extensions button.](../assets/images/extensions.png "extensions button")
 
 Type `intersystems` in the search field to find these extensions in the Marketplace, as illustrated in the following screen shot:
 
-![Search in Marketplace.](./assets/images/marketplace.png "search in marketplace")
+![Search in Marketplace.](../assets/images/marketplace.png "search in marketplace")
 
 For each of the listed extensions, click the extension, then click **install**. Note that the InterSystems ObjectScript extension adds an ObjectScript button to the Activity Bar:
 
-![ObjectScript button.](./assets/images/objectscript.png "objectscript button")
+![ObjectScript button.](../assets/images/objectscript.png "objectscript button")
