@@ -14,4 +14,4 @@ A multi root workspace has a \*.code-workspace file in the root folder. The file
 
 To edit a *.code-workspace* file in VS Code using the InterSystems ObjectScript extension, select **File > Preferences > Settings** (**Code > Preferences > Settings** on Mac) and select the Workspace option. When you click **Edit in settings.json**, VS Code opens the *.code-workspace* file for that workspace.
 
-The InterSystems ObjectScript extension uses the Multi-root workspaces feature to support ObjectScript development on the InterSystems server. See [Server-side Editing](./ServerSide).
+The InterSystems ObjectScript extension uses the Multi-root workspaces feature to support ObjectScript development on the InterSystems server. See [Server-side Editing](../serverside).

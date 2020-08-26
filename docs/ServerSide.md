@@ -8,7 +8,7 @@ nav_order: 7
 
 You can configure the InterSystems ObjectScript extension to edit code directly on the server, using the [multi-root workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) VS Code feature. This type of configuration is useful in cases where source code is stored in a Version Control System (VCS) as XML, and you are using source control in Studio using Studio extensions, as provided by `%Studio.Extension.Base`. 
 
-First configure the connection to InterSystems as described in [Configuration](./Configuration).
+First configure the connection to InterSystems as described in [Configuration](../Configuration).
 
 Use **File > New File** to create a new file. Add content similar to the following example. Note that `my-project` in the `isfs://` uri, should be the same as the name of any folder where there are settings for the connection.
 

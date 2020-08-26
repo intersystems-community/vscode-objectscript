@@ -12,15 +12,15 @@ The settings that define an InterSystems IRIS server and the connection to the s
 
 First, configure one or more servers. Open the settings editor by selecting **File > Preferences > Settings** (**Code > Preferences > Settings** on Mac) from the menu. Select the **User** or **Workspace** settings level by selecting it at the top of the settings window. For example, the following screen shot shows Workspace selected:
 
-![Workspace selected.](./assets/images/ClickWorkspace.png "workspace selected")
+![Workspace selected.](../assets/images/ClickWorkspace.png "workspace selected")
 
 Find Extensions in the list in the left pane of the editor window, click to open, then select InterSystems Server Manager from the list to find the correct place in the settings UI. The following screen shot shows InterSystems Server Manager selected:
 
-![Select server manager.](./assets/images/ServerManagerSelect.png "select server manager")
+![Select server manager.](../assets/images/ServerManagerSelect.png "select server manager")
 
 And this screen shot shows Server Manager area of the edit pane:
 
-![Server manager settings.](./assets/images/ServerManagerSettings.png "server manager settings")
+![Server manager settings.](../assets/images/ServerManagerSettings.png "server manager settings")
 
 You need to edit the server configuration in the settings.json file, so your only option is to click *Edit in settings.json*. 
 
