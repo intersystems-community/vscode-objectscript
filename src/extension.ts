@@ -468,6 +468,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     diagnosticProvider.updateDiagnostics(vscode.window.activeTextEditor.document);
   }
 
+  // Gather the proposed APIs we will register to use when building with enableProposedApi = true
   const proposed = [
     packageJson.enableProposedApi && typeof vscode.workspace.registerFileSearchProvider === "function"
       ? vscode.workspace.registerFileSearchProvider(FILESYSTEM_SCHEMA, new FileSearchProvider())
