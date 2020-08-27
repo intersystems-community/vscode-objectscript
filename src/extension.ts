@@ -356,7 +356,7 @@ async function serverManager(): Promise<any> {
   }
 }
 
-export async function activate(context: vscode.ExtensionContext): Promise<void> {
+export async function activate(context: vscode.ExtensionContext): Promise<any> {
   if (!packageJson.version.includes("SNAPSHOT")) {
     reporter = new TelemetryReporter(extensionId, extensionVersion, aiKey);
   }
@@ -687,10 +687,64 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       new ObjectScriptClassCodeLensProvider()
     ),
 
-    /* from proposed api */
+    /* Anything we use from the VS Code proposed API */
     ...proposed
   );
   reporter && reporter.sendTelemetryEvent("extensionActivated");
+
+  // The API we export
+  const api = {
+    serverForUri(uri: vscode.Uri): any {
+      const { apiTarget } = connectionTarget(uri);
+      const api = new AtelierAPI(apiTarget);
+      const {
+        serverName,
+        active,
+        host = "",
+        https,
+        port,
+        pathPrefix,
+        username,
+        password,
+        ns = "",
+        apiVersion,
+      } = api.config;
+      return {
+        serverName,
+        active,
+        scheme: https ? "https" : "http",
+        host,
+        port,
+        pathPrefix,
+        username,
+        password,
+        namespace: ns,
+        apiVersion: active ? apiVersion : undefined,
+      };
+    },
+    serverDocumentUriForUri(uri: vscode.Uri): vscode.Uri {
+      const { apiTarget } = connectionTarget(uri);
+      if (typeof apiTarget === "string") {
+        // It was a file-type uri, so find its document (we hope it is open)
+        const docs = vscode.workspace.textDocuments.filter((doc) => doc.uri === uri);
+        let fileName = "";
+        if (docs.length === 1) {
+          // Found it, so work out the corresponding server-side name
+          const file = currentFile(docs[0]);
+          // For some local documents there is no server-side equivalent
+          if (file) {
+            fileName = file.name;
+          }
+        }
+        // uri.path will be "/" if no mapping exists to a server-side equivalent
+        uri = vscode.Uri.file(fileName).with({ scheme: OBJECTSCRIPT_FILE_SCHEMA, authority: apiTarget });
+      }
+      return uri;
+    },
+  };
+
+  // 'export' our public API
+  return api;
 }
 
 export function deactivate(): void {

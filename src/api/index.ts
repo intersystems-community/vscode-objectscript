@@ -20,6 +20,7 @@ const DEFAULT_API_VERSION = 1;
 import * as Atelier from "./atelier";
 
 export interface ConnectionSettings {
+  serverName: string;
   active: boolean;
   apiVersion: number;
   https: boolean;
@@ -47,7 +48,7 @@ export class AtelierAPI {
   }
 
   public get config(): ConnectionSettings {
-    const { active = false, https = false, pathPrefix = "", username } = this._config;
+    const { serverName, active = false, https = false, pathPrefix = "", username } = this._config;
     const ns = this.namespace || this._config.ns;
     const host = this.externalServer
       ? this._config.host
@@ -58,6 +59,7 @@ export class AtelierAPI {
     const password = workspaceState.get(this.configName + ":password", this._config.password);
     const apiVersion = workspaceState.get(this.configName + ":apiVersion", DEFAULT_API_VERSION);
     return {
+      serverName,
       active,
       apiVersion,
       https,
@@ -164,13 +166,14 @@ export class AtelierAPI {
       serverName = "";
     }
 
-    if (serverName && serverName.length) {
+    if (serverName !== "") {
       const {
         webServer: { scheme, host, port, pathPrefix = "" },
         username,
         password,
       } = getResolvedConnectionSpec(serverName, config("intersystems.servers", workspaceFolderName).get(serverName));
       this._config = {
+        serverName,
         active: this.externalServer || conn.active,
         apiVersion: workspaceState.get(this.configName + ":apiVersion", DEFAULT_API_VERSION),
         https: scheme === "https",
@@ -190,6 +193,7 @@ export class AtelierAPI {
       }
     } else {
       this._config = conn;
+      this._config.serverName = serverName;
     }
   }
 
