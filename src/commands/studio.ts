@@ -104,7 +104,6 @@ class StudioActions {
       case 2: // Run a CSP page/Template. The Target is the full url to the CSP page/Template
         return new Promise((resolve) => {
           let answer = "2";
-          const conn = config().conn;
           const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
           const panel = vscode.window.createWebviewPanel(
             "studioactionwebview",
@@ -122,14 +121,15 @@ class StudioActions {
           });
           panel.onDidDispose(() => resolve(answer));
 
-          const url = new URL(`http://${conn.host}:${conn.port}${target}`);
-          const api = new AtelierAPI();
-          api
+          const url = new URL(
+            `${this.api.config.https ? "https" : "http"}://${this.api.config.host}:${this.api.config.port}${target}`
+          );
+          this.api
             .actionQuery("select %Atelier_v1_Utils.General_GetCSPToken(?) token", [url.toString()])
             .then((tokenObj) => {
               const csptoken = tokenObj.result.content[0].token;
               url.searchParams.set("CSPCHD", csptoken);
-              url.searchParams.set("Namespace", conn.ns);
+              url.searchParams.set("Namespace", this.api.config.ns);
               panel.webview.html = `
               <!DOCTYPE html>
               <html lang="en">
