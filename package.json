@@ -942,6 +942,7 @@
   },
   "dependencies": {
     "await-notify": "^1.0.1",
+    "core-js": "^3.6.5",
     "glob": "^7.1.6",
     "iconv-lite": "^0.6.0",
     "mkdirp": "^1.0.4",
