@@ -28,6 +28,18 @@ async function compileFlags(): Promise<string> {
   });
 }
 
+/**
+ * For files being locally edited, get and return its mtime timestamp from workspace-state cache if present there,
+ * else get from server. May update cache.
+ * - If mtime fetched from server is later than local file mtime, or if `force` parameter is `true`, cache server mtime and return it.
+ * - Otherwise if server fetch fails, clear cache entry and return -1.
+ * - Otherwise cache local file mtime and return it.
+ *
+ * For other file types (e.g. isfs) return -1 and do not alter cache.
+ * @param file File to check.
+ * @param force If passed true, use server mtime.
+ * @return mtime timestamp or -1.
+ */
 export async function checkChangedOnServer(file: CurrentFile, force = false): Promise<number> {
   if (!file || !file.uri || schemas.includes(file.uri.scheme)) {
     return -1;
@@ -57,7 +69,6 @@ async function importFile(file: CurrentFile, ignoreConflict?: boolean): Promise<
   const api = new AtelierAPI(file.uri);
   const content = file.content.split(/\r?\n/);
   const mtime = await checkChangedOnServer(file);
-  workspaceState.update(`${file.uniqueId}:mtime`, undefined);
   ignoreConflict = ignoreConflict || mtime < 0;
   return api
     .putDoc(
@@ -70,6 +81,9 @@ async function importFile(file: CurrentFile, ignoreConflict?: boolean): Promise<
       ignoreConflict
     )
     .then(() => {
+      // Clear cache entry
+      workspaceState.update(`${file.uniqueId}:mtime`, undefined);
+      // Create fresh cache entry
       checkChangedOnServer(file, true);
     })
     .catch((error) => {
@@ -103,6 +117,9 @@ What do you want to do?`,
                   )
                   .then(() => Promise.reject());
               case "Overwrite on Server":
+                // Clear cache entry
+                workspaceState.update(`${file.uniqueId}:mtime`, undefined);
+                // Overwrite
                 return importFile(file, true);
               case "Pull Server Changes":
                 outputChannel.appendLine(`${file.name}: Loading changes from server`);
