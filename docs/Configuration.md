@@ -78,7 +78,7 @@ The components of this server definition are:
 
 ## Configuring Export from Server
 
-Select InterSystems ObjectScript from the settings editor extensions list. Find the section labeled **Objectscript: conn**.  You can edit many of the export settings in the settings editor. For others you need to edit the settings.json file.
+Select InterSystems ObjectScript from the settings editor extensions list. Find the section labeled **Objectscript: export**.  You can edit many of the export settings in the settings editor. For others you need to edit the settings.json file.
 
 You export configuration looks something like this:
 
@@ -101,8 +101,8 @@ The components of this export definition are:
 - **addCategory** - Add a category folder to the export path.
 - **atelier** - Export source code as Atelier does, with packages placed in subfolders.
 - **generated** - Export generated source code files.
-- **filter** - 
+- **filter** - An SQL filter that can be used to match the names.
 - **category** - Specifies a category of source code to export: CLS = classes; RTN = routines; CSP = csp files; OTH = other. The default is *, export everything.
-- ****noStorage** - Strip the storage XML on export. This is useful for multiple systems.
+- **noStorage** - Strip the storage XML on export. This is useful for multiple systems.
 - **dontExportIfNoChanges** - Don't update the local file if the content is identical to what is on the server.
 - **maxConcurrentConnections** - The maximum number of export connections. (0 = Unlimited)
