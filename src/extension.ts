@@ -71,6 +71,7 @@ import {
   terminalWithDocker,
   notNull,
   currentFile,
+  InputBoxManager,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentRangeFormattingEditProvider } from "./providers/DocumentRangeFormattingEditProvider";
@@ -262,21 +263,23 @@ export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
               disableConnection(configName);
             }
           } else {
-            vscode.window
-              .showInputBox({
+            InputBoxManager.showInputBox(
+              {
                 password: true,
                 placeHolder: `Not Authorized. Enter password to connect as user '${username}' to ${connInfo}`,
                 prompt: !api.externalServer ? "If no password is entered the connection will be disabled." : "",
                 ignoreFocusOut: true,
-              })
-              .then((password) => {
+              },
+              (password) => {
                 if (password) {
                   workspaceState.update(configName + ":password", password);
                   checkConnection(false, uri);
                 } else if (!api.externalServer) {
                   disableConnection(configName);
                 }
-              });
+              },
+              connInfo
+            );
           }
         }, 1000);
         message = "Not Authorized";
