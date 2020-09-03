@@ -22,7 +22,14 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     this.onDidChangeFile = this._emitter.event;
   }
 
+  // Used by import and compile to make sure we notice its changes
   public fireFileChanged(uri: vscode.Uri): void {
+    // Remove entry from our cache
+    this._lookupParentDirectory(uri).then((parent) => {
+      const name = path.basename(uri.path);
+      parent.entries.delete(name);
+    });
+    // Queue the event
     this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
   }
 
@@ -139,8 +146,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     return this._lookupAsFile(uri).then(
       () => {
         // Weirdly, if the file exists on the server we don't actually write its content here.
-        // Instead we simply return as though we succeeded. The actual writing is done by our
-        // workspace.onDidSaveTextDocument handler.
+        // Instead we simply return as though we wrote it successfully.
+        // The actual writing is done by our workspace.onDidSaveTextDocument handler.
         return;
       },
       (error) => {
@@ -195,6 +202,11 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       if (response.result.ext) {
         fireOtherStudioAction(OtherStudioAction.DeletedDocument, uri, response.result.ext);
       }
+      // Remove entry from our cache
+      this._lookupParentDirectory(uri).then((parent) => {
+        const name = path.basename(uri.path);
+        parent.entries.delete(name);
+      });
       this._fireSoon({ type: vscode.FileChangeType.Deleted, uri });
     });
   }
@@ -214,6 +226,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     });
   }
 
+  // Fetch entry (a file or directory) from cache, else from server
   private async _lookup(uri: vscode.Uri): Promise<Entry> {
     const parts = uri.path.split("/");
     let entry: Entry = this.root;
@@ -254,6 +267,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     throw vscode.FileSystemError.FileNotADirectory(uri);
   }
 
+  // Fetch from server and cache it
   private async _lookupAsFile(uri: vscode.Uri): Promise<File> {
     // Reject attempts to access files in .-folders such as .vscode and .git
     if (uri.path.match(/\/\.[^/]*\//)) {
@@ -282,6 +296,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       )
       .then((entry) =>
         this._lookupParentDirectory(uri).then((parent) => {
+          // Store in parent directory's cache
           parent.entries.set(name, entry);
           return entry;
         })
