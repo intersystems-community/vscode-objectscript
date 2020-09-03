@@ -363,7 +363,11 @@ async function serverManager(): Promise<any> {
 
 export async function activate(context: vscode.ExtensionContext): Promise<any> {
   if (!packageJson.version.includes("SNAPSHOT")) {
-    reporter = new TelemetryReporter(extensionId, extensionVersion, aiKey);
+    try {
+      reporter = new TelemetryReporter(extensionId, extensionVersion, aiKey);
+    } catch (_error) {
+      reporter = null;
+    }
   }
 
   const languages = packageJson.contributes.languages.map((lang) => lang.id);
