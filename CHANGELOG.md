@@ -1,5 +1,24 @@
 # Change Log
 
+## [0.9.1]
+- Fix problem that caused isfs-type saves to report incorrectly that server version was newer.
+- Prevent silent overwrite on retry after an import was initially canceled because of server-side difference.
+- Serialize and deduplicate initial credential prompting when a multi-server workspace is opened.
+- Make server-side extension pages launch correctly when `intersystems.servers` is used for the connection.
+- Fix _tag+line^routine_ display in status bar, and extend it from INTs to MACs.
+- Fix broken badges on extension's page.
+- Add missing 0.9.0 CHANGELOG.
+
+## [0.9.0]
+- Change publisher id to be 'intersystems-community'.
+- Refresh correctly from server after isfs-type save and compile.
+- Swap the two sides displayed by a compare invoked after local file import conflict. Server copy is now on the left, to match convention elsewhere in VS Code.
+- Fix `Import and Compile Current File`.
+- Exclude invalid commands from Command Palette.
+- New documentation site using [GitHub Pages](https://intersystems-community.github.io/vscode-objectscript/).
+- Add API functions for use by other extensions.
+- Upgrade vulnerable dependencies.
+
 ## [0.8.9]
 - Fix saving of isfs-type server-side editing, broken in 0.8.8.
 - Implement double-click opening from ObjectScript Explorer.
