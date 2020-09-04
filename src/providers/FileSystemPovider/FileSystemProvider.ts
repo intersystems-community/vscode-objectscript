@@ -7,6 +7,8 @@ import { File } from "./File";
 import { fireOtherStudioAction, OtherStudioAction } from "../../commands/studio";
 import { StudioOpenDialog } from "../../queries";
 
+declare function setTimeout(callback: (...args: any[]) => void, ms: number, ...args: any[]): NodeJS.Timeout;
+
 export type Entry = File | Directory;
 
 export class FileSystemProvider implements vscode.FileSystemProvider {
@@ -40,6 +42,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   public async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
     const parent = await this._lookupAsDirectory(uri);
     const api = new AtelierAPI(uri);
+    if (!api.active) {
+      return;
+    }
     const sql = `CALL %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)`;
     const { query } = url.parse(decodeURIComponent(uri.toString()), true);
     const type = query.type && query.type != "" ? query.type.toString() : "all";
@@ -80,7 +85,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         })
       )
       .catch((error) => {
-        console.error(error);
+        error && console.error(error);
       });
   }
 

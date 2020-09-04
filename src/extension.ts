@@ -328,6 +328,12 @@ async function serverManager(): Promise<any> {
     if (ignore) {
       return;
     }
+    try {
+      await vscode.commands.executeCommand("extension.open", extId);
+    } catch (ex) {
+      // Such command do not exists, suppose we are under Theia, it's not possible to install this extension this way
+      return;
+    }
     await vscode.window
       .showInformationMessage(
         "The InterSystems® Server Manager extension is recommended to help you define connections and store passwords securely in your keychain.",
@@ -338,8 +344,7 @@ async function serverManager(): Promise<any> {
       .then(async (action) => {
         switch (action) {
           case "Install":
-            await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`);
-            await vscode.commands.executeCommand("extension.open", extId);
+            await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`).then(null, null);
             await vscode.commands.executeCommand("workbench.extensions.installExtension", extId);
             extension = vscode.extensions.getExtension(extId);
             break;
@@ -361,13 +366,22 @@ async function serverManager(): Promise<any> {
 
 export async function activate(context: vscode.ExtensionContext): Promise<any> {
   if (!packageJson.version.includes("SNAPSHOT")) {
-    reporter = new TelemetryReporter(extensionId, extensionVersion, aiKey);
+    try {
+      reporter = new TelemetryReporter(extensionId, extensionVersion, aiKey);
+    } catch (_error) {
+      reporter = null;
+    }
   }
 
   const languages = packageJson.contributes.languages.map((lang) => lang.id);
-  workspaceState = context.workspaceState;
+  // workaround for Theia, issue https://github.com/eclipse-theia/theia/issues/8435
+  workspaceState = {
+    get: <T>(key: string, defaultValue?: T): T | undefined =>
+      context.workspaceState.get(key, defaultValue) || defaultValue,
+    update: (key: string, value: any): Thenable<void> => context.workspaceState.update(key, value),
+  };
   extensionContext = context;
-  workspaceState.update("workspaceFolder", "");
+  workspaceState.update("workspaceFolder", undefined);
 
   // Get api for servermanager extension, perhaps offering to install it
   serverManagerApi = await serverManager();
@@ -436,7 +450,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   vscode.window.onDidChangeActiveTextEditor((textEditor: vscode.TextEditor) => {
     checkConnection();
     posPanel.text = "";
-    if (textEditor.document.fileName.endsWith(".xml") && config("autoPreviewXML")) {
+    if (textEditor?.document.fileName.endsWith(".xml") && config("autoPreviewXML")) {
       return xml2doc(context, textEditor);
     }
   });

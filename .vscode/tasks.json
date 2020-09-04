@@ -12,7 +12,7 @@
   "tasks": [
     {
       "type": "npm",
-      "script": "watch",
+      "script": "webpack-dev",
       "presentation": {
         "reveal": "never"
       },
