@@ -442,13 +442,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   });
   vscode.window.onDidChangeTextEditorSelection((event: vscode.TextEditorSelectionChangeEvent) => {
     posPanel.text = "";
-    const intMatch = event.textEditor.document.fileName.match(/\/?(.*)\.int$/i);
-    if (!intMatch || event.selections.length > 1 || !event.selections[0].isEmpty) {
+    const document = event.textEditor.document;
+    if (document.languageId !== "objectscript") {
       return;
     }
+    if (event.selections.length > 1 || !event.selections[0].isEmpty) {
+      return;
+    }
+
+    const file = currentFile(document);
+    const nameMatch = file.name.match(/(.*)\.(int|mac)$/i);
+    if (!nameMatch) {
+      return;
+    }
+    const [, routine] = nameMatch;
     const line = event.selections[0].start.line;
-    const [, routine] = intMatch;
-    const { document } = event.textEditor;
     let label = "";
     let pos = 0;
     for (let i = line; i > 0; i--) {
