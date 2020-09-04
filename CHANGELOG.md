@@ -7,6 +7,8 @@
 - Make server-side extension pages launch correctly when `intersystems.servers` is used for the connection.
 - Fix _tag+line^routine_ display in status bar, and extend it from INTs to MACs.
 - Fix broken badges on extension's page.
+- Make changes for Theia compatibility.
+- Improve README.
 - Add missing 0.9.0 CHANGELOG.
 
 ## [0.9.0]
