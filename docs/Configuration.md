@@ -53,9 +53,6 @@ If you do not add a password to the server definition, anyone using the server n
 
 - **InterSystems Server Manager: Clear Password from Keychain** - remove password for selected server
 - **InterSystems Server Manager: Store Password in Keychain** - select a server and enter a password
-- **InterSystems Server Manager: Test Server Selection**
-- **InterSystems Server Manager: Test Server Selection (flush cached credentials)**
-- **InterSystems Server Manager: Test Server Selection with Details**
 
 ## Configuring a Server Connection
 
