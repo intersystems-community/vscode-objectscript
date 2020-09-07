@@ -40,6 +40,7 @@ import {
   contextSourceControlMenu,
   mainSourceControlMenu,
 } from "./commands/studio";
+import { addServerNamespaceToWorkspace } from "./commands/addServerNamespaceToWorkspace";
 
 import { getLanguageConfiguration } from "./languageConfiguration";
 
@@ -100,6 +101,7 @@ const aiKey = packageJson.aiKey;
 export const config = (setting?: string, workspaceFolderName?: string): vscode.WorkspaceConfiguration | any => {
   workspaceFolderName = workspaceFolderName || currentWorkspaceFolder();
   if (
+    vscode.workspace.workspaceFolders &&
     workspaceFolderName &&
     workspaceFolderName !== "" &&
     vscode.workspace.getConfiguration("intersystems.servers", null).has(workspaceFolderName)
@@ -107,7 +109,7 @@ export const config = (setting?: string, workspaceFolderName?: string): vscode.W
     workspaceFolderName = vscode.workspace.workspaceFolders[0].name;
   }
   let prefix: string;
-  const workspaceFolder = vscode.workspace.workspaceFolders.find(
+  const workspaceFolder = vscode.workspace.workspaceFolders?.find(
     (el) => el.name.toLowerCase() === workspaceFolderName.toLowerCase()
   );
   if (setting && setting.startsWith("intersystems")) {
@@ -409,7 +411,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   // Check once (flushing cookies) each connection used by the workspace(s)
   const toCheck = new Map<string, vscode.Uri>();
-  vscode.workspace.workspaceFolders.map((workspaceFolder) => {
+  vscode.workspace.workspaceFolders?.map((workspaceFolder) => {
     const uri = workspaceFolder.uri;
     const { configName } = connectionTarget(uri);
     toCheck.set(configName, uri);
@@ -644,8 +646,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         return explorerProvider.closeExtra4Workspace(workspaceNode.label, workspaceNode.namespace);
       }
     ),
-    vscode.commands.registerCommand("vscode-objectscript.previewXml", (...args) => {
+    vscode.commands.registerCommand("vscode-objectscript.previewXml", () => {
       xml2doc(context, window.activeTextEditor);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.addServerNamespaceToWorkspace", () => {
+      addServerNamespaceToWorkspace();
     }),
 
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPT_FILE_SCHEMA, documentContentProvider),

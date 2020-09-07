@@ -58,6 +58,7 @@
     "onCommand:vscode-objectscript.explorer.open",
     "onCommand:vscode-objectscript.compileFolder",
     "onCommand:vscode-objectscript.importFolder",
+    "onCommand:vscode-objectscript.addServerNamespaceToWorkspace",
     "onLanguage:objectscript",
     "onLanguage:objectscript-class",
     "onLanguage:objectscript-macros",
@@ -70,6 +71,12 @@
   ],
   "main": "./dist/extension",
   "contributes": {
+    "viewsWelcome": [
+      {
+        "view": "explorer",
+        "contents": "You can also create a new workspace that connects to an [InterSystems server](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager)\n[Choose Server and Namespace](command:vscode-objectscript.addServerNamespaceToWorkspace)"
+      }
+    ],
     "menus": {
       "commandPalette": [
         {
@@ -296,6 +303,11 @@
         }
       ],
       "explorer/context": [
+        {
+          "command": "vscode-objectscript.addServerNamespaceToWorkspace",
+          "when": "explorerResourceIsFolder",
+          "group": "2_workspace"
+        },
         {
           "command": "vscode-objectscript.compileFolder",
           "when": "vscode-objectscript.connectActive && resourceScheme == file",
@@ -551,6 +563,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.serverCommands.contextOther",
         "title": "Server Command Menu..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.addServerNamespaceToWorkspace",
+        "title": "Add Server Namespace to Workspace..."
       }
     ],
     "keybindings": [
