@@ -74,7 +74,7 @@
     "viewsWelcome": [
       {
         "view": "explorer",
-        "contents": "You can also create a new workspace that edits or views code directly on an [InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/)\n[Choose Server and Namespace](command:vscode-objectscript.addServerNamespaceToWorkspace)"
+        "contents": "You can also create a new workspace that edits or views code directly on an [InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/).\n[Choose Server and Namespace](command:vscode-objectscript.addServerNamespaceToWorkspace)"
       }
     ],
     "menus": {
