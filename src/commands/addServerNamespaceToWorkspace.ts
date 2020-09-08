@@ -6,7 +6,7 @@ export async function addServerNamespaceToWorkspace(): Promise<void> {
   const serverManagerApi = await getServerManagerApi();
   if (!serverManagerApi) {
     vscode.window.showErrorMessage(
-      "This command requires the [InterSystems Server Manager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) extension to be installed and enabled."
+      "Adding a server namespace to a workspace requires the [InterSystems Server Manager extension](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) to be installed and enabled."
     );
     return;
   }
