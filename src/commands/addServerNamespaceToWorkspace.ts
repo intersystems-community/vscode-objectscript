@@ -10,7 +10,7 @@ export async function addServerNamespaceToWorkspace(): Promise<void> {
     return;
   }
   // Get user's choice of server
-  const options: vscode.QuickPickOptions = { ignoreFocusOut: true };
+  const options: vscode.QuickPickOptions = {};
   const serverName: string = await serverManagerApi.pickServer(undefined, options);
   if (!serverName) {
     return;
@@ -18,10 +18,18 @@ export async function addServerNamespaceToWorkspace(): Promise<void> {
   // Get its namespace list
   let uri = vscode.Uri.parse(`isfs://${serverName}/?ns=%SYS`);
   const api = new AtelierAPI(uri);
-  const allNamespaces: string[] = await api.serverInfo().then((data) => data.result.content.namespaces);
+  const allNamespaces: string[] = await api
+    .serverInfo()
+    .then((data) => data.result.content.namespaces)
+    .catch(() => []);
   // Prepare a displayable form of its connection spec as a hint to the user
   const connSpec = await serverManagerApi.getServerSpec(serverName);
   const connDisplayString = `${connSpec.webServer.scheme}://${connSpec.webServer.host}:${connSpec.webServer.port}/${connSpec.webServer.pathPrefix}`;
+  // Handle serveInfo having failed or returned no namespaces
+  if (!allNamespaces.length) {
+    vscode.window.showErrorMessage(`No namespace list returned by server at ${connDisplayString}`);
+    return;
+  }
   // Get user's choice of namespace
   const namespace = await vscode.window.showQuickPick(allNamespaces, {
     placeHolder: `Namespace on server '${serverName}' (${connDisplayString})`,

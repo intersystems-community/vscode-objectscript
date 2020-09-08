@@ -101,7 +101,7 @@ const aiKey = packageJson.aiKey;
 export const config = (setting?: string, workspaceFolderName?: string): vscode.WorkspaceConfiguration | any => {
   workspaceFolderName = workspaceFolderName || currentWorkspaceFolder();
   if (
-    vscode.workspace.workspaceFolders &&
+    vscode.workspace.workspaceFolders?.length &&
     workspaceFolderName &&
     workspaceFolderName !== "" &&
     vscode.workspace.getConfiguration("intersystems.servers", null).has(workspaceFolderName)
