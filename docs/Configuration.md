@@ -10,7 +10,7 @@ The settings that define an InterSystems IRIS server and the connection to the s
 
 ## Configuring a Server
 
-First, configure one or more servers. Open the settings editor by selecting **File > Preferences > Settings** (**Code > Preferences > Settings** on Mac) from the menu. Select the **User** or **Workspace** settings level by selecting it at the top of the settings window. For example, the following screen shot shows Workspace selected:
+First, configure one or more servers. Open the settings editor by selecting **File > Preferences > Settings** (**Code > Preferences > Settings** on macOS) from the menu. Select the **User** or **Workspace** settings level by selecting it at the top of the settings window. For example, the following screen shot shows Workspace selected:
 
 ![Workspace selected.](../assets/images/ClickWorkspace.png "workspace selected")
 
@@ -24,7 +24,7 @@ And this screen shot shows Server Manager area of the edit pane:
 
 You need to edit the server configuration in the settings.json file, so your only option is to click *Edit in settings.json*. 
 
-To configure a server, enter code something like this:
+To configure a server, enter something like this:
 
 ```json
 "intersystems.servers": {	
@@ -41,36 +41,36 @@ To configure a server, enter code something like this:
 
 The components of this server definition are:
 
-- **test** - an arbitrary name to identify this server
+- **test** - an arbitrary name to identify this server.
 - **webServer** - The collection of properties that define the web server.
 - **scheme** - The protocol used for connections.
-- **host** - the host for this server
-- **port** - the WebServer port number for this server
+- **host** - the host for this server.
+- **port** - the WebServer port number for this server.
 - **username** - the username to use in logging in to this server.
 - **password** - password for the specified username. Entering the password in this file is acceptable only in limited situations with very low need for security. 
 
-If you do not add a password to the server definition, anyone using the server needs to supply the password. Or, you can store the password securely in the system Keychain. The InterSystems Server Manager adds the following commands for managing stored passwords to the Command Palette:
+If you do not add a password to the server definition, anyone using the server needs to supply the password. Or, you can store the password securely in the system keychain. The InterSystems Server Manager extension adds to the Command Palette the following commands for managing stored passwords:
 
-- **InterSystems Server Manager: Clear Password from Keychain** - remove password for selected server
-- **InterSystems Server Manager: Store Password in Keychain** - select a server and enter a password
+- **InterSystems Server Manager: Store Password in Keychain** - select a server and enter a password.
+- **InterSystems Server Manager: Clear Password from Keychain** - remove password for selected server.
 
 ## Configuring a Server Connection
 
-Select InterSystems ObjectScript from the settings editor extensions list. You need to edit the server configuration in the settings.json file, so your click *Edit in settings.json* under the heading **Objectscript: conn**. 
+Select InterSystems ObjectScript from the settings editor's Extensions list. You need to edit the server configuration in the settings.json file, so your click *Edit in settings.json* under the heading **Objectscript: conn**. 
 
 You should enter code something like this:
 
 ```json
 "objectscript.conn": {
+    "server": "test",
 	"ns": "USER",
-	"server": "tst",
     "active": true,
 },
 ```
 The components of this server definition are:
 
-- **ns** - namespace to use on the server
-- **server** - server name as specified in the server configuration
+- **server** - server name as specified in the server configuration.
+- **ns** - namespace to use on the server.
 - **active** - specifies whether the connection is active.
 
 ## Configuring Export from Server
@@ -100,6 +100,6 @@ The components of this export definition are:
 - **generated** - Export generated source code files.
 - **filter** - 
 - **category** - Specifies a category of source code to export: CLS = classes; RTN = routines; CSP = csp files; OTH = other. The default is *, export everything.
-- ****noStorage** - Strip the storage XML on export. This is useful for multiple systems.
+- **noStorage** - Strip the storage XML on export. This is useful for multiple systems.
 - **dontExportIfNoChanges** - Don't update the local file if the content is identical to what is on the server.
 - **maxConcurrentConnections** - The maximum number of export connections. (0 = Unlimited)
