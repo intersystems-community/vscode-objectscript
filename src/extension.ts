@@ -338,10 +338,10 @@ async function serverManager(): Promise<any> {
     }
     await vscode.window
       .showInformationMessage(
-        "The InterSystems® Server Manager extension is recommended to help you define connections and store passwords securely in your keychain.",
+        "The [InterSystems® Server Manager extension](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) is recommended to help you [define connections and store passwords securely](https://intersystems-community.github.io/vscode-objectscript/configuration/#configuring-a-server) in your keychain.",
         "Install",
-        "Skip",
-        "Ignore"
+        "Later",
+        "Never"
       )
       .then(async (action) => {
         switch (action) {
@@ -350,10 +350,10 @@ async function serverManager(): Promise<any> {
             await vscode.commands.executeCommand("workbench.extensions.installExtension", extId);
             extension = vscode.extensions.getExtension(extId);
             break;
-          case "Ignore":
+          case "Never":
             config().update("ignoreInstallServerManager", true, vscode.ConfigurationTarget.Global);
             break;
-          case "Skip":
+          case "Later":
           default:
         }
       });
