@@ -12,7 +12,7 @@ First configure the connection to InterSystems as described in [Configuration](.
 
 Use **File > New File** to create a new file. Add content similar to the following example. Note that `my-project` in the `isfs://` uri, should be the same as the name of any folder where there are settings for the connection.
 
-```js
+```json
 {
   "folders": [
     {
@@ -35,7 +35,7 @@ Save the file, giving it an arbitrary name with the extension `.code-workspace`.
 When VS Code starts next, you see two folders in the root with the names described in the .code-workspace file. Expand the `server` folder to see code on the configured server and namespace, routines and classes in one place. You can now edit this code. If you have SourceControl class, it should be configured the way, to export files in the same location which used in VS Code workspace.
 
 Example with connection to different namespaces on the same server.
-```js
+```json
 {
   "folders": [
     {

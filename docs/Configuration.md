@@ -26,7 +26,7 @@ You need to edit the server configuration in the settings.json file, so your onl
 
 To configure a server, enter code something like this:
 
-```js
+```json
 "intersystems.servers": {	
 	"test": {
 		"webServer": {
@@ -60,7 +60,7 @@ Select InterSystems ObjectScript from the settings editor extensions list. You n
 
 You should enter code something like this:
 
-```js
+```json
 "objectscript.conn": {
 	"ns": "USER",
 	"server": "tst",
@@ -79,7 +79,7 @@ Select InterSystems ObjectScript from the settings editor extensions list. Find 
 
 You export configuration looks something like this:
 
-```js
+```json
 "objectscript.export": {	
     "folder": "",
     "addCategory": true,
