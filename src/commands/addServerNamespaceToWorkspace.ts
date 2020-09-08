@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
+import { panel } from "../extension";
 
 export async function addServerNamespaceToWorkspace(): Promise<void> {
   const serverManagerApi = await getServerManagerApi();
@@ -22,6 +23,9 @@ export async function addServerNamespaceToWorkspace(): Promise<void> {
     .serverInfo()
     .then((data) => data.result.content.namespaces)
     .catch(() => []);
+  // Clear the panel entry this created
+  panel.text = "";
+  panel.tooltip = "";
   // Prepare a displayable form of its connection spec as a hint to the user
   const connSpec = await serverManagerApi.getServerSpec(serverName);
   const connDisplayString = `${connSpec.webServer.scheme}://${connSpec.webServer.host}:${connSpec.webServer.port}/${connSpec.webServer.pathPrefix}`;
