@@ -747,7 +747,7 @@
         "objectscript.showExplorer": {
           "type": "boolean",
           "default": true,
-          "description": "Show or hide the ObjectScript Explorer view."
+          "description": "Show the ObjectScript Explorer view."
         },
         "objectscript.compileFlags": {
           "type": "string",
