@@ -87,33 +87,19 @@ To edit code directly in one or more namespaces on one or more servers (local or
 
 1. Start VS Code.
 2. If your last-used folder opens, use 'Close Folder' on the 'File' menu ('Code' menu on macOS). Or if what opened was your last-used workspace, use 'Close Workspace'.
-3. Use 'Save Workspace As...' to create an empty file with a .code-workspace extension.
-4. Use the Command Palette to run 'Preferences: Open Workspace Settings (JSON)'.
-5. Add a `folders` array that defines one or more root folders for your workspace. The `uri` property of each folder specifies whether to use `isfs` or `isfs-readonly`, and which entry within `intersystems.servers` to get the connection definition from. All example here reference one named `local`. Add a `ns` query parameter to specify which namespace to access. Optionally add a `label` property to set the display name of the folder in Explorer. Optionally add a workspace-specific `settings` object to hide the ObjectScript Explorer view, which is not usually needed when working server-side in this way.
+3. On VS Code's Explorer view, click the 'Choose Server and Namespace' button. Respond to the sequence of quickpicks.
+4. Use 'Save Workspace As...' to store your workspace definition in a file with a .code-workspace extension.
 
-```json
-{
-	"folders": [
-		{
-			"name": "local:USER",
-			"uri": "isfs://local/?ns=USER"
-		},
-		{
-			"name": "local:USER (readonly)",
-			"uri": "isfs-readonly://local/?ns=USER"
-		}
-	],
-	"settings": {
-		"objectscript.showExplorer": false
-	}
-}
-```
+Optionally, customize your workspace settings to remove the ObjectScript Explorer icon from the Action Bar. The ObjectScript Explorer view is not usually needed when working server-side in this way.
 
-To access the server-side files of a web application, format your `uri` property like this:
+5. Use the Command Palette to run 'Preferences: Open Workspace Settings'.
+6. Search for `objectscript.showExplorer` and clear the checkbox of this setting.
+
+To access the server-side files of a web application, edit the JSON of your workspace definition. Get there by running the 'Preferences: Open Workspace Settings (JSON)' command. Format your `uri` property like this example for the `/csp/user` web application:
 
 ```json
     {
-      "uri": "isfs://local/csp/user/?&csp&ns=USER"
+      "uri": "isfs://local/csp/user?csp&ns=USER"
     }
 ```
 The `csp` query parameter indicates web application files are to be shown. The uri path specifies which application. The `ns` parameter must specify the same namespace the application is configured to use.
