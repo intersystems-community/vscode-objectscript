@@ -14,6 +14,7 @@ export const schemas = [
   FILESYSTEM_SCHEMA,
   FILESYSTEM_READONLY_SCHEMA,
 ];
+export const filesystemSchemas = [FILESYSTEM_SCHEMA, FILESYSTEM_READONLY_SCHEMA];
 
 import * as url from "url";
 import WebSocket = require("ws");
@@ -427,6 +428,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     }
     checkConnection(true, uri);
+  });
+
+  vscode.workspace.onDidChangeWorkspaceFolders(({ added, removed }) => {
+    const folders = vscode.workspace.workspaceFolders;
+    if (
+      folders?.length === 1 &&
+      added?.length === 1 &&
+      removed?.length === 0 &&
+      filesystemSchemas.includes(added[0].uri.scheme)
+    ) {
+      // First folder has been added and is one of the isfs types, so hide the ObjectScript Explorer for this workspace
+      vscode.workspace
+        .getConfiguration("objectscript")
+        .update("showExplorer", false, vscode.ConfigurationTarget.Workspace);
+    }
   });
 
   vscode.workspace.onDidChangeConfiguration(({ affectsConfiguration }) => {
