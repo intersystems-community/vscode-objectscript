@@ -14,6 +14,7 @@ export const schemas = [
   FILESYSTEM_SCHEMA,
   FILESYSTEM_READONLY_SCHEMA,
 ];
+export const filesystemSchemas = [FILESYSTEM_SCHEMA, FILESYSTEM_READONLY_SCHEMA];
 
 import * as url from "url";
 import WebSocket = require("ws");
@@ -40,6 +41,7 @@ import {
   contextSourceControlMenu,
   mainSourceControlMenu,
 } from "./commands/studio";
+import { addServerNamespaceToWorkspace } from "./commands/addServerNamespaceToWorkspace";
 
 import { getLanguageConfiguration } from "./languageConfiguration";
 
@@ -100,6 +102,7 @@ const aiKey = packageJson.aiKey;
 export const config = (setting?: string, workspaceFolderName?: string): vscode.WorkspaceConfiguration | any => {
   workspaceFolderName = workspaceFolderName || currentWorkspaceFolder();
   if (
+    vscode.workspace.workspaceFolders?.length &&
     workspaceFolderName &&
     workspaceFolderName !== "" &&
     vscode.workspace.getConfiguration("intersystems.servers", null).has(workspaceFolderName)
@@ -107,7 +110,7 @@ export const config = (setting?: string, workspaceFolderName?: string): vscode.W
     workspaceFolderName = vscode.workspace.workspaceFolders[0].name;
   }
   let prefix: string;
-  const workspaceFolder = vscode.workspace.workspaceFolders.find(
+  const workspaceFolder = vscode.workspace.workspaceFolders?.find(
     (el) => el.name.toLowerCase() === workspaceFolderName.toLowerCase()
   );
   if (setting && setting.startsWith("intersystems")) {
@@ -336,10 +339,10 @@ async function serverManager(): Promise<any> {
     }
     await vscode.window
       .showInformationMessage(
-        "The InterSystems® Server Manager extension is recommended to help you define connections and store passwords securely in your keychain.",
+        "The [InterSystems® Server Manager extension](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) is recommended to help you [define connections and store passwords securely](https://intersystems-community.github.io/vscode-objectscript/configuration/#configuring-a-server) in your keychain.",
         "Install",
-        "Skip",
-        "Ignore"
+        "Later",
+        "Never"
       )
       .then(async (action) => {
         switch (action) {
@@ -348,10 +351,10 @@ async function serverManager(): Promise<any> {
             await vscode.commands.executeCommand("workbench.extensions.installExtension", extId);
             extension = vscode.extensions.getExtension(extId);
             break;
-          case "Ignore":
+          case "Never":
             config().update("ignoreInstallServerManager", true, vscode.ConfigurationTarget.Global);
             break;
-          case "Skip":
+          case "Later":
           default:
         }
       });
@@ -409,7 +412,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   // Check once (flushing cookies) each connection used by the workspace(s)
   const toCheck = new Map<string, vscode.Uri>();
-  vscode.workspace.workspaceFolders.map((workspaceFolder) => {
+  vscode.workspace.workspaceFolders?.map((workspaceFolder) => {
     const uri = workspaceFolder.uri;
     const { configName } = connectionTarget(uri);
     toCheck.set(configName, uri);
@@ -425,6 +428,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     }
     checkConnection(true, uri);
+  });
+
+  vscode.workspace.onDidChangeWorkspaceFolders(({ added, removed }) => {
+    const folders = vscode.workspace.workspaceFolders;
+    if (
+      folders?.length === 1 &&
+      added?.length === 1 &&
+      removed?.length === 0 &&
+      filesystemSchemas.includes(added[0].uri.scheme)
+    ) {
+      // First folder has been added and is one of the isfs types, so hide the ObjectScript Explorer for this workspace
+      vscode.workspace
+        .getConfiguration("objectscript")
+        .update("showExplorer", false, vscode.ConfigurationTarget.Workspace);
+    }
   });
 
   vscode.workspace.onDidChangeConfiguration(({ affectsConfiguration }) => {
@@ -644,8 +662,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         return explorerProvider.closeExtra4Workspace(workspaceNode.label, workspaceNode.namespace);
       }
     ),
-    vscode.commands.registerCommand("vscode-objectscript.previewXml", (...args) => {
+    vscode.commands.registerCommand("vscode-objectscript.previewXml", () => {
       xml2doc(context, window.activeTextEditor);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.addServerNamespaceToWorkspace", () => {
+      addServerNamespaceToWorkspace();
     }),
 
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPT_FILE_SCHEMA, documentContentProvider),
