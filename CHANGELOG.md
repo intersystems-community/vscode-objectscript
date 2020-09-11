@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.9.2]
+- Implement `Add Server Namespace to Workspace...` command and surface it on folder context menus in VS Code Explorer.
+- Add `Choose Server and Namespace` button to VS Code Explorer view when no folder or workspace is open. This provides a quick way to get started with server-centric development, particularly when combined with the 'just-in-time' connection definition enhancement that arrived in version 0.0.7 of the Server Manager extension.
+
 ## [0.9.1]
 - Fix problem that caused isfs-type saves to report incorrectly that server version was newer.
 - Prevent silent overwrite on retry after an import was initially canceled because of server-side difference.
