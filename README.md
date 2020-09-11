@@ -39,7 +39,7 @@ Or install from the ObjectScript extension page on [Visual Studio Marketplace](h
 
 To be able to use many features you first need to configure the connection to your IRIS/Caché/Ensemble server(s) in your [VS Code settings](https://code.visualstudio.com/docs/getstarted/settings). If you are unfamiliar with how settings work and how they are edited, use that link.
 
-We recommend you define server connections in the `intersystems.servers` object whose structure is defined by the [InterSystems Server Manager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) helper extension. Install this extension to get assistance when editing the JSON definition. For example:
+We recommend you define server connections in the `intersystems.servers` object whose structure is defined by the [InterSystems Server Manager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) helper extension. Install this extension and consult its README about commands for easy setup of connections, plus assistance when editing the JSON definition. For example:
 
 ```json
 	"intersystems.servers": {
@@ -87,13 +87,8 @@ To edit code directly in one or more namespaces on one or more servers (local or
 
 1. Start VS Code.
 2. If your last-used folder opens, use 'Close Folder' on the 'File' menu ('Code' menu on macOS). Or if what opened was your last-used workspace, use 'Close Workspace'.
-3. On VS Code's Explorer view, click the 'Choose Server and Namespace' button. Respond to the sequence of quickpicks.
-4. Use 'Save Workspace As...' to store your workspace definition in a file with a .code-workspace extension.
-
-Optionally, customize your workspace settings to remove the ObjectScript Explorer icon from the Action Bar. The ObjectScript Explorer view is not usually needed when working server-side in this way.
-
-5. Use the Command Palette to run 'Preferences: Open Workspace Settings'.
-6. Search for `objectscript.showExplorer` and clear the checkbox of this setting.
+3. On VS Code's Explorer view, click the 'Choose Server and Namespace' button. Respond to the sequence of quickpicks. You can also define a new server connection during this process.
+4. Use 'Save Workspace As...' to store your workspace definition in a file with a `.code-workspace` extension.
 
 To access the server-side files of a web application, edit the JSON of your workspace definition. Get there by running the 'Preferences: Open Workspace Settings (JSON)' command. Format your `uri` property like this example for the `/csp/user` web application:
 
