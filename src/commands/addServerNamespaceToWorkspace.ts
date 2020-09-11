@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { panel } from "../extension";
+import { panel, resolveConnectionSpec } from "../extension";
 
 export async function addServerNamespaceToWorkspace(): Promise<void> {
   const serverManagerApi = await getServerManagerApi();
@@ -18,18 +18,30 @@ export async function addServerNamespaceToWorkspace(): Promise<void> {
   }
   // Get its namespace list
   let uri = vscode.Uri.parse(`isfs://${serverName}/?ns=%SYS`);
-  const api = new AtelierAPI(uri);
-  const allNamespaces: string[] = await api
-    .serverInfo()
-    .then((data) => data.result.content.namespaces)
-    .catch(() => []);
-  // Clear the panel entry this created
-  panel.text = "";
-  panel.tooltip = "";
+  await resolveConnectionSpec(serverName);
   // Prepare a displayable form of its connection spec as a hint to the user
   const connSpec = await serverManagerApi.getServerSpec(serverName);
   const connDisplayString = `${connSpec.webServer.scheme}://${connSpec.webServer.host}:${connSpec.webServer.port}/${connSpec.webServer.pathPrefix}`;
-  // Handle serveInfo having failed or returned no namespaces
+  // Connect and fetch namespaces
+  const api = new AtelierAPI(uri);
+  const allNamespaces: string[] | undefined = await api
+    .serverInfo()
+    .then((data) => data.result.content.namespaces)
+    .catch((reason) => {
+      // Notify user about serverInfo failure
+      vscode.window.showErrorMessage(
+        reason.message || `Failed to fetch namespace list from  server at ${connDisplayString}`
+      );
+      return undefined;
+    });
+  // Clear the panel entry created by the connection
+  panel.text = "";
+  panel.tooltip = "";
+  // Handle serverInfo failure
+  if (!allNamespaces) {
+    return;
+  }
+  // Handle serverInfo having returned no namespaces
   if (!allNamespaces.length) {
     vscode.window.showErrorMessage(`No namespace list returned by server at ${connDisplayString}`);
     return;

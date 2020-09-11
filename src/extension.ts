@@ -163,7 +163,23 @@ let serverManagerApi: any;
 // Map of the intersystems.server connection specs we have resolved via the API to that extension
 const resolvedConnSpecs = new Map<string, any>();
 
-// Accessor for the connection specs
+/**
+ * If servermanager extension is available, fetch the connection spec unless already cached.
+ * Prompt for credentials if necessary.
+ * @param serverName authority element of an isfs uri, or `objectscript.conn.server` property
+ */
+export async function resolveConnectionSpec(serverName: string): Promise<void> {
+  if (serverManagerApi && serverManagerApi.getServerSpec) {
+    if (serverName && serverName !== "" && !resolvedConnSpecs.has(serverName)) {
+      const connSpec = await serverManagerApi.getServerSpec(serverName);
+      if (connSpec) {
+        resolvedConnSpecs.set(serverName, connSpec);
+      }
+    }
+  }
+}
+
+// Accessor for the cache of resolved connection specs
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function getResolvedConnectionSpec(key: string, dflt: any): any {
   return resolvedConnSpecs.has(key) ? resolvedConnSpecs.get(key) : dflt;
@@ -418,15 +434,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     toCheck.set(configName, uri);
   });
   toCheck.forEach(async function (uri, configName) {
-    if (serverManagerApi && serverManagerApi.getServerSpec) {
-      const serverName = uri.scheme === "file" ? config("conn", configName).server : configName;
-      if (serverName && serverName !== "" && !resolvedConnSpecs.has(serverName)) {
-        const connSpec = await serverManagerApi.getServerSpec(serverName);
-        if (connSpec) {
-          resolvedConnSpecs.set(serverName, connSpec);
-        }
-      }
-    }
+    const serverName = uri.scheme === "file" ? config("conn", configName).server : configName;
+    await resolveConnectionSpec(serverName);
     checkConnection(true, uri);
   });
 
