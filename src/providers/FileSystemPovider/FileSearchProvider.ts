@@ -25,20 +25,21 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
       .getDocNames({
         filter: query.pattern,
         category,
-        generated
+        generated,
       })
       .then((data) => data.result.content)
       .then((files: DocSearchResult[]) =>
-        files.map((file) => {
-          if (category === "*" && file.cat === "CSP") {
-            return null;
-          }
-          if (!options.maxResults || ++counter <= options.maxResults) {
-            return options.folder.with({ path: `/${file.name}` });
-          } else {
-            return null;
-          }
-        })
+        files
+          .map((file) => {
+            if (category === "*" && file.cat === "CSP") {
+              return null;
+            }
+            if (!options.maxResults || ++counter <= options.maxResults) {
+              return options.folder.with({ path: `/${file.name}` });
+            } else {
+              return null;
+            }
+          })
           .filter((el) => el !== null)
       );
   }
