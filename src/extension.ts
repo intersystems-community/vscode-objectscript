@@ -536,6 +536,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       : null,
   ].filter(notNull);
 
+  if (proposed.length > 0) {
+    outputChannel.appendLine(`${extensionId} version ${extensionVersion} activating with proposed APIs available.\n`);
+    outputChannel.show(true);
+  }
+
   context.subscriptions.push(
     reporter,
     workspace.onDidChangeTextDocument((event) => {
