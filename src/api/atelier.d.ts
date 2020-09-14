@@ -56,6 +56,14 @@ export interface SearchResult {
   matches: SearchMatch[];
 }
 
+export interface DocSearchResult {
+  name: string;
+  cat: "RTN" | "CLS" | "CSP" | "OTH";
+  ts: string;
+  db: string;
+  gen: boolean;
+}
+
 export interface AtelierJob {
   pid: number;
   namespace: string;

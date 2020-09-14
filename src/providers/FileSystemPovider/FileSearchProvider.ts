@@ -1,4 +1,6 @@
 import * as vscode from "vscode";
+import { DocSearchResult } from "../../api/atelier";
+import { AtelierAPI } from "../../api";
 
 export class FileSearchProvider implements vscode.FileSearchProvider {
   /**
@@ -12,6 +14,33 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
     options: vscode.FileSearchOptions,
     token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.Uri[]> {
-    return [];
+    const category = `&${options.folder.query}&`.includes("&csp&") ? "CSP" : "*";
+    const generated = `&${options.folder.query}&`.includes("&generated=1&");
+    const api = new AtelierAPI(options.folder);
+    let counter = 0;
+    if (!api.enabled) {
+      return null;
+    }
+    return api
+      .getDocNames({
+        filter: query.pattern,
+        category,
+        generated,
+      })
+      .then((data) => data.result.content)
+      .then((files: DocSearchResult[]) =>
+        files
+          .map((file) => {
+            if (category === "*" && file.cat === "CSP") {
+              return null;
+            }
+            if (!options.maxResults || ++counter <= options.maxResults) {
+              return options.folder.with({ path: `/${file.name}` });
+            } else {
+              return null;
+            }
+          })
+          .filter((el) => el !== null)
+      );
   }
 }
