@@ -42,6 +42,7 @@ import {
   mainSourceControlMenu,
 } from "./commands/studio";
 import { addServerNamespaceToWorkspace } from "./commands/addServerNamespaceToWorkspace";
+import { connectFolderToServerNamespace } from "./commands/connectFolderToServerNamespace";
 
 import { getLanguageConfiguration } from "./languageConfiguration";
 
@@ -457,6 +458,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   vscode.workspace.onDidChangeConfiguration(({ affectsConfiguration }) => {
     if (affectsConfiguration("objectscript.conn")) {
       checkConnection(true);
+      explorerProvider.refresh();
     }
   });
   vscode.window.onDidCloseTerminal((t) => {
@@ -676,6 +678,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.commands.registerCommand("vscode-objectscript.addServerNamespaceToWorkspace", () => {
       addServerNamespaceToWorkspace();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.connectFolderToServerNamespace", () => {
+      connectFolderToServerNamespace();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.hideExplorerForWorkspace", () => {
+      vscode.workspace
+        .getConfiguration("objectscript")
+        .update("showExplorer", false, vscode.ConfigurationTarget.Workspace);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.showExplorerForWorkspace", () => {
+      vscode.workspace
+        .getConfiguration("objectscript")
+        .update("showExplorer", true, vscode.ConfigurationTarget.Workspace);
     }),
 
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPT_FILE_SCHEMA, documentContentProvider),
