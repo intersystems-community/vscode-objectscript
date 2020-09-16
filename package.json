@@ -81,7 +81,8 @@
       },
       {
         "view": "ObjectScriptExplorer",
-        "contents": "Connect a workspace folder to an [InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/) if you want to export or import ObjectScript code.\n[Choose Server and Namespace](command:vscode-objectscript.connectFolderToServerNamespace)\nOr [hide this ObjectScript view](command:vscode-objectscript.hideExplorerForWorkspace) if it is not needed for the current workspace."
+        "contents": "Connect a workspace folder to an [InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/) if you want to export or import ObjectScript code.\n[Choose Server and Namespace](command:vscode-objectscript.connectFolderToServerNamespace)\nOr [hide this ObjectScript view](command:vscode-objectscript.hideExplorerForWorkspace) if it is not needed for the current workspace.",
+        "when": "vscode-objectscript.explorerRoots == 0"
       }
     ],
     "menus": {
