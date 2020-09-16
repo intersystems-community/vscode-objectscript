@@ -59,6 +59,9 @@
     "onCommand:vscode-objectscript.compileFolder",
     "onCommand:vscode-objectscript.importFolder",
     "onCommand:vscode-objectscript.addServerNamespaceToWorkspace",
+    "onCommand:vscode-objectscript.connectFolderToServerNamespace",
+    "onCommand:vscode-objectscript.hideExplorerForWorkspace",
+    "onCommand:vscode-objectscript.showExplorerForWorkspace",
     "onLanguage:objectscript",
     "onLanguage:objectscript-class",
     "onLanguage:objectscript-macros",
@@ -74,7 +77,12 @@
     "viewsWelcome": [
       {
         "view": "explorer",
-        "contents": "You can also create a new workspace to edit or view code directly on an [InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/).\n[Choose Server and Namespace](command:vscode-objectscript.addServerNamespaceToWorkspace)"
+        "contents": "Begin local ObjectScript development by opening a folder or cloning a repository. Then switch to the new ObjectScript view in the Activity Bar.\nYou can also create a new workspace to [edit or view code directly on an InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/).\n[Choose Server and Namespace](command:vscode-objectscript.addServerNamespaceToWorkspace)"
+      },
+      {
+        "view": "ObjectScriptExplorer",
+        "contents": "Connect a workspace folder to an [InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/) if you want to export or import ObjectScript code.\n[Choose Server and Namespace](command:vscode-objectscript.connectFolderToServerNamespace)\nOr [hide this ObjectScript view](command:vscode-objectscript.hideExplorerForWorkspace) if it is not needed for the current workspace.",
+        "when": "vscode-objectscript.explorerRootCount == 0"
       }
     ],
     "menus": {
@@ -186,6 +194,14 @@
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
           "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.hideExplorerForWorkspace",
+          "when": "config.objectscript.showExplorer"
+        },
+        {
+          "command": "vscode-objectscript.showExplorerForWorkspace",
+          "when": "!config.objectscript.showExplorer"
         }
       ],
       "view/title": [
@@ -568,6 +584,21 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.addServerNamespaceToWorkspace",
         "title": "Add Server Namespace to Workspace..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.connectFolderToServerNamespace",
+        "title": "Connect Folder to Server Namespace..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.hideExplorerForWorkspace",
+        "title": "Hide Explorer for Workspace"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.showExplorerForWorkspace",
+        "title": "Show Explorer for Workspace"
       }
     ],
     "keybindings": [

@@ -2,14 +2,42 @@ import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { panel, resolveConnectionSpec } from "../extension";
 
-export async function addServerNamespaceToWorkspace(): Promise<void> {
+interface ConnSettings {
+  server: string;
+  ns: string;
+  active: boolean;
+}
+
+export async function connectFolderToServerNamespace(): Promise<void> {
   const serverManagerApi = await getServerManagerApi();
   if (!serverManagerApi) {
     vscode.window.showErrorMessage(
-      "Adding a server namespace to a workspace requires the [InterSystems Server Manager extension](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) to be installed and enabled."
+      "Connecting a folder to a server namespace requires the [InterSystems Server Manager extension](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) to be installed and enabled."
     );
     return;
   }
+  // Which folder?
+  const allFolders = vscode.workspace.workspaceFolders;
+  const items: vscode.QuickPickItem[] = allFolders
+    .filter((folder) => folder.uri.scheme === "file")
+    .map((folder) => {
+      const config = vscode.workspace.getConfiguration("objectscript", folder);
+      const conn: ConnSettings = config.get("conn");
+      return {
+        label: folder.name,
+        description: folder.uri.fsPath,
+        detail: !conn.server ? undefined : `Currently connected to ${conn.ns} on ${conn.server}`,
+      };
+    });
+  if (!items.length) {
+    vscode.window.showErrorMessage("No local folders in the workspace.");
+    return;
+  }
+  const pick =
+    items.length === 1 && !items[0].detail
+      ? items[0]
+      : await vscode.window.showQuickPick(items, { placeHolder: "Choose folder" });
+  const folder = allFolders.find((el) => el.name === pick.label);
   // Get user's choice of server
   const options: vscode.QuickPickOptions = {};
   const serverName: string = await serverManagerApi.pickServer(undefined, options);
@@ -17,7 +45,7 @@ export async function addServerNamespaceToWorkspace(): Promise<void> {
     return;
   }
   // Get its namespace list
-  let uri = vscode.Uri.parse(`isfs://${serverName}/?ns=%SYS`);
+  const uri = vscode.Uri.parse(`isfs://${serverName}/?ns=%SYS`);
   await resolveConnectionSpec(serverName);
   // Prepare a displayable form of its connection spec as a hint to the user
   const connSpec = await serverManagerApi.getServerSpec(serverName);
@@ -53,39 +81,13 @@ export async function addServerNamespaceToWorkspace(): Promise<void> {
   if (!namespace) {
     return;
   }
-  // Pick between isfs and isfs-readonly
-  const editable = await vscode.window.showQuickPick(
-    [
-      {
-        value: true,
-        label: "Editable",
-        detail: "Documents opened from this folder will be editable directly on the server.",
-      },
-      { value: false, label: "Read-only", detail: "Documents opened from this folder will be read-only." },
-    ],
-    { placeHolder: "Choose the mode of access" }
-  );
-  // Prepare the folder parameters
-  const label = editable.value ? `${serverName}:${namespace}` : `${serverName}:${namespace} (read-only)`;
-  uri = uri.with({ scheme: editable.value ? "isfs" : "isfs-readonly", query: `ns=${namespace}` });
-  // Append it to the workspace
-  const added = vscode.workspace.updateWorkspaceFolders(
-    vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length : 0,
-    0,
-    { uri, name: label }
-  );
-  // Switch to Explorer view so user sees the outcome
-  vscode.commands.executeCommand("workbench.view.explorer");
-  // Handle failure
-  if (!added) {
-    vscode.window
-      .showErrorMessage("Folder not added. Maybe it already exists on the workspace.", "Retry", "Close")
-      .then((value) => {
-        if (value === "Retry") {
-          vscode.commands.executeCommand("vscode-objectscript.addServerNamespaceToWorkspace");
-        }
-      });
-  }
+  // Update folder's config object
+  const config = vscode.workspace.getConfiguration("objectscript", folder);
+  const conn: ConnSettings = config.get("conn");
+  conn.server = serverName;
+  conn.ns = namespace;
+  conn.active = true;
+  await config.update("conn", conn);
 }
 
 async function getServerManagerApi(): Promise<any> {
