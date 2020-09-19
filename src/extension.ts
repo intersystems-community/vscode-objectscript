@@ -207,7 +207,7 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
   }
   if (!workspaceState.get(configName + ":port") && !api.externalServer) {
     try {
-      const { port: dockerPort, docker: withDocker } = portFromDockerCompose();
+      const { port: dockerPort, docker: withDocker } = await portFromDockerCompose();
       workspaceState.update(configName + ":docker", withDocker);
       if (withDocker) {
         if (!dockerPort) {

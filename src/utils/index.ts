@@ -1,7 +1,8 @@
 import fs = require("fs");
 import path = require("path");
+import { R_OK } from "constants";
 import * as url from "url";
-import { execSync } from "child_process";
+import { exec } from "child_process";
 import * as vscode from "vscode";
 import { config, schemas, workspaceState, terminals } from "../extension";
 
@@ -222,7 +223,7 @@ export function notNull(el: any): boolean {
   return el !== null;
 }
 
-export function portFromDockerCompose(): { port: number; docker: boolean } {
+export async function portFromDockerCompose(): Promise<{ port: number; docker: boolean }> {
   const { "docker-compose": dockerCompose = {} } = config("conn");
   const { service, file = "docker-compose.yml", internalPort = 52773, envFile } = dockerCompose;
   if (!internalPort || !file || !service || service === "") {
@@ -232,36 +233,50 @@ export function portFromDockerCompose(): { port: number; docker: boolean } {
   const workspaceFolderPath = workspaceFolderUri().fsPath;
   const workspaceRootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
 
-  const cwd = fs.existsSync(path.join(workspaceFolderPath, file))
-    ? workspaceFolderPath
-    : fs.existsSync(path.join(workspaceRootPath, file))
-    ? workspaceRootPath
-    : null;
+  const cwd: string = await new Promise((resolve, reject) => {
+    fs.access(path.join(workspaceFolderPath, file), R_OK, (error) => {
+      if (error) {
+        fs.access(path.join(workspaceRootPath, file), R_OK, (error) => {
+          if (error) {
+            reject(new Error(`File '${file}' not found.`));
+          } else {
+            resolve(workspaceRootPath);
+          }
+        });
+      } else {
+        resolve(workspaceFolderPath);
+      }
+    });
+  });
 
   if (!cwd) {
     return result;
   }
 
   const envFileParam = envFile ? `--env-file ${envFile}` : "";
-  const cmd = `docker-compose -f ${file} ${envFileParam} port --protocol=tcp ${service} ${internalPort}`;
+  const cmd = `docker-compose -f ${file} ${envFileParam} `;
 
-  try {
-    const serviceLine = execSync(cmd, {
-      cwd,
-    })
-      .toString()
-      .replace("/r", "")
-      .split("/n")
-      .pop();
-    const servicePortMatch = serviceLine.match(new RegExp(`:(\\d+)`));
-    if (servicePortMatch) {
-      const [, newPort] = servicePortMatch;
-      return { port: parseInt(newPort, 10), docker: true };
-    }
-  } catch (e) {
-    // nope
-  }
-  return result;
+  return new Promise((resolve, reject) => {
+    exec(`${cmd} ps --services --filter 'status=running'`, { cwd }, (error, stdout) => {
+      if (error) {
+        reject(error.message);
+      }
+      if (!stdout.replace("\r", "").split("\n").includes(service)) {
+        reject(`Service '${service}' not found in '${file}', or not running.`);
+      }
+
+      exec(`${cmd} port --protocol=tcp ${service} ${internalPort}`, { cwd }, (error, stdout) => {
+        if (error) {
+          reject(error.message);
+        }
+        const [, port] = stdout.match(/:(\d+)/) || [];
+        if (!port) {
+          reject(`Port ${internalPort} not published for service '${service}'.`);
+        }
+        resolve({ port: parseInt(port, 10), docker: true });
+      });
+    });
+  });
 }
 
 export async function terminalWithDocker(): Promise<vscode.Terminal> {
