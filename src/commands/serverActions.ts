@@ -4,13 +4,14 @@ import { connectionTarget, terminalWithDocker, currentFile } from "../utils";
 import { mainCommandMenu, mainSourceControlMenu } from "./studio";
 import { AtelierAPI } from "../api";
 
+type ServerAction = { detail: string; id: string; label: string };
 export async function serverActions(): Promise<void> {
   const { apiTarget, configName: workspaceFolder } = connectionTarget();
   const api = new AtelierAPI(apiTarget);
   const { active, host = "", ns = "", https, port = 0, username, password } = api.config;
   const { links } = config("conn");
   const nsEncoded = encodeURIComponent(ns);
-  const actions = [];
+  const actions: ServerAction[] = [];
   if (!api.externalServer) {
     actions.push({
       detail: (active ? "Disable" : "Enable") + " current connection",
@@ -25,7 +26,7 @@ export async function serverActions(): Promise<void> {
       detail: "Force attempt to connect to the server",
     });
   }
-  const connectionActionsHandler = (action) => {
+  const connectionActionsHandler = async (action: ServerAction): Promise<ServerAction> => {
     if (!action) {
       return;
     }
@@ -40,7 +41,7 @@ export async function serverActions(): Promise<void> {
         return connConfig.update("conn", { ...targetConfig, active: !active }, target);
       }
       case "refreshConnection": {
-        checkConnection(true);
+        await checkConnection(true);
         break;
       }
       default:
@@ -48,7 +49,12 @@ export async function serverActions(): Promise<void> {
     }
   };
   if (!active || !host?.length || !port || !ns.length) {
-    return vscode.window.showQuickPick(actions).then(connectionActionsHandler);
+    return vscode.window
+      .showQuickPick(actions)
+      .then(connectionActionsHandler)
+      .then(() => {
+        return;
+      });
   }
   const connInfo = `${host}:${port}[${nsEncoded}]`;
   const serverUrl = `${https ? "https" : "http"}://${host}:${port}`;

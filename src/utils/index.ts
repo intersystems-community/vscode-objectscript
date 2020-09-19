@@ -5,7 +5,24 @@ import { execSync } from "child_process";
 import * as vscode from "vscode";
 import { config, schemas, workspaceState, terminals } from "../extension";
 
-export const outputChannel = vscode.window.createOutputChannel("ObjectScript");
+let latestErrorMessage = "";
+export const outputChannel: {
+  resetError?(): void;
+  appendError?(value: string, show?: boolean): void;
+} & vscode.OutputChannel = vscode.window.createOutputChannel("ObjectScript");
+
+/// Append Error if no duplicates previous one
+outputChannel.appendError = (value: string, show = true): void => {
+  if (latestErrorMessage === value) {
+    return;
+  }
+  latestErrorMessage = value;
+  outputChannel.appendLine(value);
+  show && outputChannel.show(true);
+};
+outputChannel.resetError = (): void => {
+  latestErrorMessage = "";
+};
 
 export function outputConsole(data: string[]): void {
   data.forEach((line): void => {
