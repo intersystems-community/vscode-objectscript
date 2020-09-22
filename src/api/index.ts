@@ -302,7 +302,7 @@ export class AtelierAPI {
       }
 
       if (!response.ok) {
-        throw new Error("Unexpected error");
+        throw { statusCode: response.status, statusText: response.statusText };
       }
 
       const buffer = await response.buffer();
