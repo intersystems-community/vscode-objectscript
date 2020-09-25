@@ -123,7 +123,7 @@ export class AtelierAPI {
     return !!this._config.active && host.length > 0 && port > 0;
   }
 
-  private get cookies(): string[] {
+  public get cookies(): string[] {
     return this.cache.get("cookies", []);
   }
 

@@ -85,10 +85,13 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
   private _evalResultProperties = new Map<number, xdebug.EvalResultProperty>();
 
+  private cookies: string[] = [];
+
   public constructor() {
     super();
 
     const api = new AtelierAPI();
+    this.cookies = api.cookies;
     if (!api.active) {
       throw new Error("Connection not active");
     }
@@ -114,7 +117,11 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       supportsStepBack: false,
     };
 
-    const socket = new WebSocket(this._url);
+    const socket = new WebSocket(this._url, {
+      headers: {
+        cookie: this.cookies,
+      },
+    });
 
     const disposeConnection = (error?: Error): void => {
       this.sendEvent(new ThreadEvent("exited", this._connection.id));
@@ -130,16 +137,22 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
         this.sendEvent(new OutputEvent(data, "stdout"));
       });
 
-    await this._connection.waitForInitPacket();
+    try {
+      await this._connection.waitForInitPacket();
 
-    await this._connection.sendFeatureSetCommand("max_data", 8192);
-    await this._connection.sendFeatureSetCommand("max_children", 32);
-    await this._connection.sendFeatureSetCommand("max_depth", 2);
-    await this._connection.sendFeatureSetCommand("notify_ok", 1);
+      await this._connection.sendFeatureSetCommand("max_data", 8192);
+      await this._connection.sendFeatureSetCommand("max_children", 32);
+      await this._connection.sendFeatureSetCommand("max_depth", 2);
+      await this._connection.sendFeatureSetCommand("notify_ok", 1);
 
-    this.sendResponse(response);
+      this.sendResponse(response);
 
-    this.sendEvent(new InitializedEvent());
+      this.sendEvent(new InitializedEvent());
+    } catch (error) {
+      response.success = false;
+      response.message = "Debugger can not start";
+      this.sendResponse(response);
+    }
   }
 
   protected async launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments): Promise<void> {
@@ -147,7 +160,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
     try {
       const debugTarget = `${this._namespace}:${args.program}`;
-      await this._connection.sendFeatureSetCommand("debug_target", debugTarget);
+      await this._connection.sendFeatureSetCommand("debug_target", debugTarget, true);
 
       this._debugTargetSet.notify();
     } catch (error) {

@@ -719,8 +719,14 @@ export class Connection extends DbgpConnection {
    *  - show_hidden
    *  - notify_ok
    */
-  public async sendFeatureSetCommand(feature: string, value: string | number): Promise<FeatureSetResponse> {
-    return new FeatureSetResponse(await this._enqueueCommand("feature_set", `-n ${feature} -v ${value}`), this);
+  public async sendFeatureSetCommand(
+    feature: string,
+    value: string | number,
+    base64 = false
+  ): Promise<FeatureSetResponse> {
+    const v =
+      typeof value === "string" && base64 ? `-v_base64 ${Buffer.from(value).toString("base64")}` : `-v ${value}`;
+    return new FeatureSetResponse(await this._enqueueCommand("feature_set", `-n ${feature} ${v}`), this);
   }
 
   // ---------------------------- breakpoints ------------------------------------
