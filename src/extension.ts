@@ -17,7 +17,6 @@ export const schemas = [
 export const filesystemSchemas = [FILESYSTEM_SCHEMA, FILESYSTEM_READONLY_SCHEMA];
 
 import * as url from "url";
-import WebSocket = require("ws");
 import {
   importAndCompile,
   importFolder as importFileOrFolder,
@@ -58,7 +57,6 @@ import { ObjectScriptRoutineSymbolProvider } from "./providers/ObjectScriptRouti
 import { ObjectScriptClassCodeLensProvider } from "./providers/ObjectScriptClassCodeLensProvider";
 import { XmlContentProvider } from "./providers/XmlContentProvider";
 
-import { StatusCodeError } from "request-promise/errors";
 import { AtelierAPI } from "./api";
 import { ObjectScriptDebugAdapterDescriptorFactory } from "./debug/debugAdapterFactory";
 import { ObjectScriptConfigurationProvider } from "./debug/debugConfProvider";
@@ -157,8 +155,6 @@ export function getXmlUri(uri: vscode.Uri): vscode.Uri {
 }
 let reporter: TelemetryReporter = null;
 
-let connectionSocket: WebSocket;
-
 let serverManagerApi: any;
 
 // Map of the intersystems.server connection specs we have resolved via the API to that extension
@@ -186,7 +182,7 @@ export function getResolvedConnectionSpec(key: string, dflt: any): any {
   return resolvedConnSpecs.has(key) ? resolvedConnSpecs.get(key) : dflt;
 }
 
-export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
+export async function checkConnection(clearCookies = false, uri?: vscode.Uri): Promise<void> {
   const { apiTarget, configName } = connectionTarget(uri);
   if (clearCookies) {
     /// clean-up cached values
@@ -210,32 +206,33 @@ export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
     return;
   }
   if (!workspaceState.get(configName + ":port") && !api.externalServer) {
-    const { port: dockerPort, docker: withDocker } = portFromDockerCompose();
-    workspaceState.update(configName + ":docker", withDocker);
-    if (withDocker) {
-      if (!dockerPort) {
-        outputChannel.appendLine(
-          `Something is wrong with your docker-compose connection settings, or your service is not running.`
-        );
-        outputChannel.show(true);
-        panel.text = `${packageJson.displayName} - ERROR`;
-        return;
+    try {
+      const { port: dockerPort, docker: withDocker } = await portFromDockerCompose();
+      workspaceState.update(configName + ":docker", withDocker);
+      if (withDocker) {
+        if (!dockerPort) {
+          const errorMessage = `Something is wrong with your docker-compose connection settings, or your service is not running.`;
+          outputChannel.appendError(errorMessage);
+          panel.text = `${packageJson.displayName} - ERROR`;
+          return;
+        }
+        const { autoShowTerminal } = config();
+        autoShowTerminal && terminalWithDocker();
+        if (dockerPort !== port) {
+          workspaceState.update(configName + ":host", "localhost");
+          workspaceState.update(configName + ":port", dockerPort);
+        }
+        connInfo = `localhost:${dockerPort}[${ns}]`;
       }
-      const { autoShowTerminal } = config();
-      autoShowTerminal && terminalWithDocker();
-      if (dockerPort !== port) {
-        workspaceState.update(configName + ":host", "localhost");
-        workspaceState.update(configName + ":port", dockerPort);
-      }
-      connInfo = `localhost:${dockerPort}[${ns}]`;
+    } catch (error) {
+      outputChannel.appendError(error);
+      workspaceState.update(configName + ":docker", true);
+      return;
     }
   }
 
   if (clearCookies) {
     api.clearCookies();
-  } else if (connectionSocket && connectionSocket.url == api.xdebugUrl() && connectionSocket.OPEN) {
-    panel.text = `${connInfo} - Connected`;
-    return;
   }
 
   // Why must this be recreated here?
@@ -243,8 +240,7 @@ export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
 
   if (!api.config.host || !api.config.port || !api.config.ns) {
     const message = "host, port and ns must be specified.";
-    outputChannel.appendLine(message);
-    outputChannel.show(true);
+    outputChannel.appendError(message);
     panel.text = `${packageJson.displayName} - ERROR`;
     panel.tooltip = message;
     return;
@@ -258,22 +254,11 @@ export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
           serverVersion: info.result.content.version,
           healthshare: hasHS ? "yes" : "no",
         });
-      /// Use xdebug's websocket, to catch when server disconnected
-      connectionSocket = new WebSocket(api.xdebugUrl());
-      connectionSocket.onopen = () => {
-        fireOtherStudioAction(
-          OtherStudioAction.ConnectedToNewNamespace,
-          typeof apiTarget === "string" ? undefined : apiTarget
-        );
-        panel.text = `${connInfo} - Connected`;
-      };
-      connectionSocket.onclose = (event) => {
-        panel.text = `${connInfo} - Disconnected`;
-      };
     })
     .catch((error) => {
       let message = error.message;
-      if (error instanceof StatusCodeError && error.statusCode === 401) {
+      let errorMessage;
+      if (error.status === 401) {
         setTimeout(() => {
           const username = api.config.username;
           if (username === "") {
@@ -290,10 +275,10 @@ export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
                 prompt: !api.externalServer ? "If no password is entered the connection will be disabled." : "",
                 ignoreFocusOut: true,
               },
-              (password) => {
+              async (password) => {
                 if (password) {
                   workspaceState.update(configName + ":password", password);
-                  checkConnection(false, uri);
+                  await checkConnection(false, uri);
                 } else if (!api.externalServer) {
                   disableConnection(configName);
                 }
@@ -303,16 +288,11 @@ export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
           }
         }, 1000);
         message = "Not Authorized";
-        outputChannel.appendLine(
-          `Authorization error: Check your credentials in Settings, and that you have sufficient privileges on the /api/atelier web application on ${connInfo}`
-        );
-        outputChannel.show(true);
+        errorMessage = `Authorization error: Check your credentials in Settings, and that you have sufficient privileges on the /api/atelier web application on ${connInfo}`;
       } else {
-        outputChannel.appendLine(message);
-        outputChannel.appendLine(`Check your server details in Settings (${connInfo}).`);
-        outputChannel.show(true);
+        errorMessage = `${message}\nCheck your server details in Settings (${connInfo}).`;
       }
-      console.error(error);
+      outputChannel.appendError(errorMessage);
       panel.text = `${connInfo} - ERROR`;
       panel.tooltip = message;
       throw error;
@@ -437,7 +417,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   toCheck.forEach(async function (uri, configName) {
     const serverName = uri.scheme === "file" ? config("conn", configName).server : configName;
     await resolveConnectionSpec(serverName);
-    checkConnection(true, uri);
+    await checkConnection(true, uri);
   });
 
   vscode.workspace.onDidChangeWorkspaceFolders(({ added, removed }) => {
@@ -455,9 +435,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }
   });
 
-  vscode.workspace.onDidChangeConfiguration(({ affectsConfiguration }) => {
-    if (affectsConfiguration("objectscript.conn")) {
-      checkConnection(true);
+  vscode.workspace.onDidChangeConfiguration(async ({ affectsConfiguration }) => {
+    if (affectsConfiguration("objectscript.conn") || affectsConfiguration("intersystems.servers")) {
+      await checkConnection(true);
       explorerProvider.refresh();
     }
   });
@@ -476,8 +456,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }
   });
 
-  vscode.window.onDidChangeActiveTextEditor((textEditor: vscode.TextEditor) => {
-    checkConnection();
+  vscode.window.onDidChangeActiveTextEditor(async (textEditor: vscode.TextEditor) => {
+    await checkConnection();
     posPanel.text = "";
     if (textEditor?.document.fileName.endsWith(".xml") && config("autoPreviewXML")) {
       return xml2doc(context, textEditor);
@@ -558,7 +538,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         checkChangedOnServer(currentFile(event.document));
       }
     }),
-    window.onDidChangeActiveTextEditor((editor) => {
+    window.onDidChangeActiveTextEditor(async (editor) => {
       if (editor) {
         diagnosticProvider.updateDiagnostics(editor.document);
       }
@@ -566,7 +546,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         const workspaceFolder = currentWorkspaceFolder();
         if (workspaceFolder && workspaceFolder !== workspaceState.get<string>("workspaceFolder")) {
           workspaceState.update("workspaceFolder", workspaceFolder);
-          checkConnection();
+          await checkConnection();
         }
       }
     }),

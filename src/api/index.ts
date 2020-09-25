@@ -1,6 +1,6 @@
+import fetch from "node-fetch";
 import * as httpModule from "http";
 import * as httpsModule from "https";
-import * as request from "request-promise";
 import * as url from "url";
 import * as vscode from "vscode";
 import * as Cache from "vscode-cache";
@@ -16,7 +16,6 @@ import {
 import { currentWorkspaceFolder, outputConsole, outputChannel } from "../utils";
 
 const DEFAULT_API_VERSION = 1;
-// require("request-promise").debug = true;
 import * as Atelier from "./atelier";
 
 export interface ConnectionSettings {
@@ -35,7 +34,7 @@ export interface ConnectionSettings {
 export class AtelierAPI {
   private _config: ConnectionSettings;
   private namespace: string;
-  private configName: string;
+  public configName: string;
 
   // when FileSystemProvider used
   public externalServer = false;
@@ -193,6 +192,7 @@ export class AtelierAPI {
       }
     } else {
       this._config = conn;
+      this._config.ns = namespace || conn.ns;
       this._config.serverName = serverName;
     }
   }
@@ -214,7 +214,7 @@ export class AtelierAPI {
     headers?: any
   ): Promise<any> {
     const { active, apiVersion, host, port, username, password, https } = this.config;
-    if (!active) {
+    if (!active || !port || !host) {
       return Promise.reject();
     }
     if (minVersion > apiVersion) {
@@ -267,79 +267,84 @@ export class AtelierAPI {
     let auth;
     if (cookies.length || method === "HEAD") {
       auth = Promise.resolve(cookies);
+      headers["Authorization"] = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
     } else if (!cookies.length) {
       auth = this.request(0, "HEAD");
     }
     const connInfo = `${host}:${port}[${this.ns}]`;
-    return auth.then((cookie) => {
-      return (
-        request({
-          agent,
-          auth: { user: username, pass: password, sendImmediately: true },
-          body: ["PUT", "POST"].includes(method) ? body : null,
-          headers: {
-            ...headers,
-            Cookie: cookie,
-          },
-          json: true,
-          method,
-          resolveWithFullResponse: true,
-          simple: true,
-          uri: `${proto}://${host}:${port}${path}`,
-        })
-          // .catch(error => error.error)
-          .then((response) => this.updateCookies(response.headers["set-cookie"]).then(() => response))
-          .then((response) => {
-            panel.text = `${connInfo} - Connected`;
-            if (method === "HEAD") {
-              return this.cookies;
-            }
-            const data = response.body;
-            /// deconde encoded content
-            if (data.result && data.result.enc && data.result.content) {
-              data.result.enc = false;
-              data.result.content = Buffer.from(data.result.content.join(""), "base64");
-            }
-            if (data.console) {
-              // Let studio actions handle their console output
-              const isStudioAction =
-                data.result.content != undefined &&
-                data.result.content.length !== 0 &&
-                data.result.content[0] != undefined &&
-                data.result.content[0].action != undefined;
-              if (!isStudioAction) {
-                outputConsole(data.console);
-              }
-            }
-            if (data.result.status && data.result.status !== "") {
-              const status: string = data.result.status;
-              outputChannel.appendLine(status);
-              throw new Error(data.result.status);
-            }
-            if (data.status.summary) {
-              throw new Error(data.status.summary);
-            } else if (data.result.status) {
-              throw new Error(data.result.status);
-            } else {
-              return data;
-            }
-          })
-          .catch((error) => {
-            console.log(error.error);
-            if (error.error && error.error.code === "ECONNREFUSED") {
-              workspaceState.update(this.configName + ":host", undefined);
-              workspaceState.update(this.configName + ":port", undefined);
-              setTimeout(checkConnection, 30000);
-            } else if (error.statusCode === 401 && this.wsOrFile) {
-              setTimeout(() => {
-                checkConnection(true, typeof this.wsOrFile === "object" ? this.wsOrFile : undefined);
-              }, 1000);
-            }
-            console.error(error);
-            throw error;
-          })
-      );
-    });
+
+    try {
+      const cookie = await auth;
+      const response = await fetch(`${proto}://${host}:${port}${path}`, {
+        method,
+        agent,
+        body: ["PUT", "POST"].includes(method) ? JSON.stringify(body) : null,
+        headers: {
+          ...headers,
+          Cookie: cookie,
+        },
+        // json: true,
+        // resolveWithFullResponse: true,
+        // simple: true,
+      });
+      if (response.status === 401) {
+        if (this.wsOrFile) {
+          setTimeout(() => {
+            checkConnection(true, typeof this.wsOrFile === "object" ? this.wsOrFile : undefined);
+          }, 1000);
+        }
+        throw response;
+      }
+      await this.updateCookies(response.headers.raw()["set-cookie"] || []);
+      panel.text = `${connInfo} - Connected`;
+      if (method === "HEAD") {
+        return this.cookies;
+      }
+
+      if (!response.ok) {
+        throw { statusCode: response.status, statusText: response.statusText };
+      }
+
+      const buffer = await response.buffer();
+      const data: Atelier.Response = JSON.parse(buffer.toString("utf-8"));
+
+      /// deconde encoded content
+      if (data.result && data.result.enc && data.result.content) {
+        data.result.enc = false;
+        data.result.content = Buffer.from(data.result.content.join(""), "base64");
+      }
+      if (data.console) {
+        // Let studio actions handle their console output
+        const isStudioAction =
+          data.result.content != undefined &&
+          data.result.content.length !== 0 &&
+          data.result.content[0] != undefined &&
+          data.result.content[0].action != undefined;
+        if (!isStudioAction) {
+          outputConsole(data.console);
+        }
+      }
+      if (data.result.status && data.result.status !== "") {
+        const status: string = data.result.status;
+        outputChannel.appendLine(status);
+        throw new Error(data.result.status);
+      }
+      if (data.status.summary) {
+        throw new Error(data.status.summary);
+      } else if (data.result.status) {
+        throw new Error(data.result.status);
+      } else {
+        return data;
+      }
+    } catch (error) {
+      if (error.error && error.error.code === "ECONNREFUSED") {
+        panel.text = `${connInfo} - Disconnected`;
+        workspaceState.update(this.configName + ":host", undefined);
+        workspaceState.update(this.configName + ":port", undefined);
+        setTimeout(checkConnection, 30000);
+      }
+      throw error;
+    }
   }
 
   public serverInfo(): Promise<Atelier.Response<Atelier.Content<Atelier.ServerInfo>>> {
