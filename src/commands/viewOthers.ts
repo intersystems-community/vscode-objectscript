@@ -21,7 +21,7 @@ export async function viewOthers(): Promise<void> {
   const getOthers = (info) => {
     return info.result.content[0].others;
   };
-  const api = new AtelierAPI();
+  const api = new AtelierAPI(file.uri);
   return api
     .actionIndex([file.name])
     .then((info) => {
