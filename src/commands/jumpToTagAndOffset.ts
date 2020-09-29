@@ -1,13 +1,9 @@
 import * as vscode from "vscode";
-import { config } from "../extension";
 import { currentFile } from "../utils";
 
 export async function jumpToTagAndOffset(): Promise<void> {
   const file = currentFile();
   if (!file) {
-    return;
-  }
-  if (!config("conn").active) {
     return;
   }
   const nameMatch = file.name.match(/(.*)\.(int|mac)$/i);
