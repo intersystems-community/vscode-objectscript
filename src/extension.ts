@@ -41,6 +41,7 @@ import {
   mainSourceControlMenu,
 } from "./commands/studio";
 import { addServerNamespaceToWorkspace } from "./commands/addServerNamespaceToWorkspace";
+import { jumpToTagAndOffset } from "./commands/jumpToTagAndOffset";
 import { connectFolderToServerNamespace } from "./commands/connectFolderToServerNamespace";
 
 import { getLanguageConfiguration } from "./languageConfiguration";
@@ -398,6 +399,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   });
 
   posPanel = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
+  posPanel.command = "vscode-objectscript.jumpToTagAndOffset";
   posPanel.show();
 
   panel = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1);
@@ -613,6 +615,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           if (value) return value.label;
         });
     }),
+    vscode.commands.registerCommand("vscode-objectscript.jumpToTagAndOffset", jumpToTagAndOffset),
     vscode.commands.registerCommand("vscode-objectscript.viewOthers", viewOthers),
     vscode.commands.registerCommand("vscode-objectscript.serverCommands.sourceControl", mainSourceControlMenu),
     vscode.commands.registerCommand(

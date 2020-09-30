@@ -53,6 +53,7 @@
     "onCommand:vscode-objectscript.export",
     "onCommand:vscode-objectscript.compile",
     "onCommand:vscode-objectscript.viewOthers",
+    "onCommand:vscode-objectscript.jumpToTagAndOffset",
     "onCommand:vscode-objectscript.previewXml",
     "onCommand:vscode-objectscript.explorer.refresh",
     "onCommand:vscode-objectscript.explorer.open",
@@ -519,6 +520,11 @@
         "title": "Refresh Explorer",
         "category": "ObjectScript",
         "icon": "$(refresh)"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.jumpToTagAndOffset",
+        "title": "Jump to Tag + Offset"
       },
       {
         "category": "ObjectScript",
