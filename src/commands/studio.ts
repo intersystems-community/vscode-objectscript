@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { config, FILESYSTEM_SCHEMA } from "../extension";
-import { outputChannel, outputConsole, currentFile } from "../utils";
+import { outputChannel, outputConsole, currentFile, getServerName } from "../utils";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { ClassNode } from "../explorer/models/classNode";
 import { PackageNode } from "../explorer/models/packageNode";
@@ -68,7 +68,7 @@ class StudioActions {
     if (uriOrNode instanceof vscode.Uri) {
       const uri: vscode.Uri = uriOrNode;
       this.uri = uri;
-      this.name = this.uri.path.slice(1).replace(/\//g, ".");
+      this.name = getServerName(uri);
       this.api = new AtelierAPI(uri);
     } else if (uriOrNode) {
       const node: NodeBase = uriOrNode;

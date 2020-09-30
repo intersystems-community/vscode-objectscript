@@ -181,6 +181,37 @@ export function connectionTarget(uri?: vscode.Uri): ConnectionTarget {
   return result;
 }
 
+/**
+ * Given a URI, returns a server name for it if it is under isfs[-readonly] or null if it is not an isfs file.
+ * @param uri URI to evaluate
+ */
+export function getServerName(uri: vscode.Uri): string {
+  if (!schemas.includes(uri.scheme)) {
+    return null;
+  }
+  if (isCSP(uri)) {
+    // The full file path is the server name of the file.
+    return uri.path;
+  } else {
+    // Complex case: replace folder slashes with dots.
+    return uri.path.slice(1).replace(/\//g, ".");
+  }
+}
+
+/**
+ * Returns true if the specified URI is a CSP file under isfs, false if not.
+ * @param uri URI to test
+ */
+export function isCSP(uri: vscode.Uri): boolean {
+  return (
+    schemas.includes(uri.scheme) &&
+    uri.query
+      .split("&")
+      .map((e) => e.split("=")[0])
+      .includes("csp")
+  );
+}
+
 export function currentWorkspaceFolder(document?: vscode.TextDocument): string {
   document = document ? document : vscode.window.activeTextEditor && vscode.window.activeTextEditor.document;
   if (document) {
