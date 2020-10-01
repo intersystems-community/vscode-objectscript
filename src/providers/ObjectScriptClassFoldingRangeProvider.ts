@@ -12,7 +12,7 @@ export class ObjectScriptClassFoldingRangeProvider implements vscode.FoldingRang
       const line = document.lineAt(i);
       const prevLine = i > 0 ? document.lineAt(i - 1) : { text: "" };
 
-      // Documenation block
+      // Documentation block
       const docPattern = /\/{3}/;
       if (line.text.match(docPattern)) {
         const start = i;
