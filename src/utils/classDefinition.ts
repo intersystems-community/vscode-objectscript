@@ -44,7 +44,7 @@ export class ClassDefinition {
       return Promise.resolve(methods);
     }
     const filterScope = (method) => scope === "any" || method.scope === scope;
-    const api = new AtelierAPI();
+    const api = new AtelierAPI(this.uri);
     const getMethods = (content) => {
       const extend = [];
       content.forEach((el) => {
@@ -64,7 +64,7 @@ export class ClassDefinition {
     if (properties.length) {
       return Promise.resolve(properties);
     }
-    const api = new AtelierAPI();
+    const api = new AtelierAPI(this.uri);
     const getProperties = (content) => {
       const extend = [];
       content.forEach((el) => {
@@ -84,7 +84,7 @@ export class ClassDefinition {
     if (parameters.length) {
       return Promise.resolve(parameters);
     }
-    const api = new AtelierAPI();
+    const api = new AtelierAPI(this.uri);
     const getParameters = (content) => {
       const extend = [];
       content.forEach((el) => {
@@ -104,7 +104,7 @@ export class ClassDefinition {
     if (superList) {
       return Promise.resolve(superList);
     }
-    const api = new AtelierAPI();
+    const api = new AtelierAPI(this.uri);
     const sql = `SELECT PrimarySuper FROM %Dictionary.CompiledClass
     WHERE Name %inlist (SELECT $LISTFROMSTRING(Super, ',') FROM %Dictionary.CompiledClass WHERE Name = ?)`;
     return api
@@ -128,7 +128,7 @@ export class ClassDefinition {
     if (includeCode) {
       return Promise.resolve(includeCode);
     }
-    const api = new AtelierAPI();
+    const api = new AtelierAPI(this.uri);
     const sql = `SELECT LIST(IncludeCode) List FROM %Dictionary.CompiledClass WHERE Name %INLIST (
       SELECT $LISTFROMSTRING(PrimarySuper, '~') FROM %Dictionary.CompiledClass WHERE Name = ?)`;
     const defaultIncludes = ["%occInclude", "%occErrors"];

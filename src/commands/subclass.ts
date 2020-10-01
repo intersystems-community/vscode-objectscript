@@ -10,7 +10,7 @@ export async function subclass(): Promise<void> {
     return;
   }
   const className = file.name.split(".").slice(0, -1).join(".");
-  const api = new AtelierAPI();
+  const api = new AtelierAPI(file.uri);
   if (!api.active) {
     return;
   }
@@ -27,9 +27,14 @@ export async function subclass(): Promise<void> {
       if (!list.length) {
         return;
       }
-      vscode.window.showQuickPick(list.map((el) => el.Name)).then((item) => {
-        open(item);
-      });
+      vscode.window
+        .showQuickPick(
+          list.map((el) => el.Name),
+          { placeHolder: "Pick a subclass" }
+        )
+        .then((item) => {
+          open(item);
+        });
     })
     .catch((err) => console.error(err));
 }
