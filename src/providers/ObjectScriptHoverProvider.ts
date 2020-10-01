@@ -91,7 +91,7 @@ export class ObjectScriptHoverProvider implements vscode.HoverProvider {
 
   public documentationLink(link: string): string | null {
     if (link) {
-      return `[Online documenation](${
+      return `[Online documentation](${
         link.startsWith("http") ? "" : "https://docs.intersystems.com/irislatest"
       }${link})`;
     }
