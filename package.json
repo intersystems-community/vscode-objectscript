@@ -203,6 +203,10 @@
         {
           "command": "vscode-objectscript.showExplorerForWorkspace",
           "when": "!config.objectscript.showExplorer"
+        },
+        {
+          "command": "vscode-objectscript.jumpToTagAndOffset",
+          "when": "editorLangId == objectscript"
         }
       ],
       "view/title": [
