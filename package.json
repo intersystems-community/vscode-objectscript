@@ -290,12 +290,12 @@
         },
         {
           "command": "vscode-objectscript.serverCommands.contextSourceControl",
-          "when": "resourceScheme == isfs && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "when": "resourceScheme == isfs && vscode-objectscript.connectActive",
           "group": "objectscript@4"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
-          "when": "resourceScheme =~ /^isfs(-readonly)?$/ && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "when": "resourceScheme =~ /^isfs(-readonly)?$/ && vscode-objectscript.connectActive",
           "group": "objectscript@5"
         }
       ],
@@ -341,12 +341,12 @@
         },
         {
           "command": "vscode-objectscript.serverCommands.contextSourceControl",
-          "when": "resourceScheme == isfs && resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "when": "resourceScheme == isfs && vscode-objectscript.connectActive",
           "group": "objectscript@2"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
-          "when": "resourceScheme =~ /^isfs(-readonly)?$/ && resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "when": "resourceScheme =~ /^isfs(-readonly)?$/ && vscode-objectscript.connectActive",
           "group": "objectscript@3"
         }
       ]
