@@ -9,7 +9,7 @@ export async function viewOthers(): Promise<void> {
   if (!file) {
     return;
   }
-  if (!config("conn").active) {
+  if (file.uri.scheme === "file" && !config("conn").active) {
     return;
   }
 
