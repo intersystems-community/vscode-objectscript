@@ -71,10 +71,6 @@ export class AtelierAPI {
     };
   }
 
-  private get iris(): boolean {
-    return workspaceState.get(this.configName + ":iris", false);
-  }
-
   private transformNameIfCsp(filename: string): string {
     // If a CSP file, change from
     // \csp\user\... to
@@ -131,12 +127,9 @@ export class AtelierAPI {
   }
 
   public xdebugUrl(): string {
-    const { host, username, https, port, password, apiVersion } = this.config;
+    const { host, https, port, apiVersion } = this.config;
     const proto = https ? "wss" : "ws";
-    const auth = this.iris
-      ? `IRISUsername=${username}&IRISPassword=${password}`
-      : `CacheUserName=${username}&CachePassword=${password}`;
-    return `${proto}://${host}:${port}/api/atelier/v${apiVersion}/%25SYS/debug?${auth}`;
+    return `${proto}://${host}:${port}/api/atelier/v${apiVersion}/%25SYS/debug`;
   }
 
   public updateCookies(newCookies: string[]): Promise<any> {
