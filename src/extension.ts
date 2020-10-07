@@ -587,7 +587,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           placeHolder: "Please enter comma delimited arguments list",
         })
         .then((args) => {
-          startDebugging(args);
+          if (args) {
+            startDebugging(args);
+          }
         });
     }),
     vscode.commands.registerCommand("vscode-objectscript.pickProcess", async (config) => {
