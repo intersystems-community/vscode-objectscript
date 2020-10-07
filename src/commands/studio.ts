@@ -59,6 +59,8 @@ function getOtherStudioActionLabel(action: OtherStudioAction): string {
   return label;
 }
 
+const suppressEditListenerMap = new Map<string, boolean>();
+
 class StudioActions {
   private uri: vscode.Uri;
   private api: AtelierAPI;
@@ -85,10 +87,6 @@ class StudioActions {
     if (errorText !== "") {
       outputChannel.appendLine(errorText);
       outputChannel.show();
-    }
-    if (userAction.reload) {
-      const document = vscode.window.activeTextEditor.document;
-      loadChanges([currentFile(document)]);
     }
     if (config().studioActionDebugOutput) {
       outputChannel.appendLine(JSON.stringify(userAction));
@@ -267,6 +265,13 @@ class StudioActions {
               }
               const actionToProcess = data.result.content.pop();
 
+              if (actionToProcess.reload) {
+                const document = vscode.window.activeTextEditor.document;
+                const file = currentFile(document);
+                suppressEditListenerMap.set(file.uri.toString(), true);
+                await loadChanges([file]);
+              }
+
               // CSP pages should not have a progress bar
               if (actionToProcess.action === 2) {
                 resolve();
@@ -359,6 +364,10 @@ class StudioActions {
       label: getOtherStudioActionLabel(action),
     };
     if (action === OtherStudioAction.AttemptedEdit) {
+      if (suppressEditListenerMap.has(this.uri.toString())) {
+        suppressEditListenerMap.delete(this.uri.toString());
+        return;
+      }
       const query = "select * from %Atelier_v1_Utils.Extension_GetStatus(?)";
       this.api.actionQuery(query, [this.name]).then((statusObj) => {
         const docStatus = statusObj.result.content.pop();
