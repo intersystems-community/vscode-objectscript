@@ -59,6 +59,7 @@ function getOtherStudioActionLabel(action: OtherStudioAction): string {
   return label;
 }
 
+// Used to avoid triggering the edit listener when files are reloaded by an extension
 const suppressEditListenerMap = new Map<string, boolean>();
 
 class StudioActions {
@@ -268,6 +269,7 @@ class StudioActions {
               if (actionToProcess.reload) {
                 const document = vscode.window.activeTextEditor.document;
                 const file = currentFile(document);
+                // Avoid the reload triggering the edit listener here
                 suppressEditListenerMap.set(file.uri.toString(), true);
                 await loadChanges([file]);
               }
@@ -364,6 +366,8 @@ class StudioActions {
       label: getOtherStudioActionLabel(action),
     };
     if (action === OtherStudioAction.AttemptedEdit) {
+      // Check to see if this "attempted edit" was an action by this extension due to a reload.
+      // There's no way to detect at a higher level from the event.
       if (suppressEditListenerMap.has(this.uri.toString())) {
         suppressEditListenerMap.delete(this.uri.toString());
         return;
