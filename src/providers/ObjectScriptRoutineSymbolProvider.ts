@@ -8,7 +8,7 @@ export class ObjectScriptRoutineSymbolProvider implements vscode.DocumentSymbolP
     return new Promise((resolve) => {
       const symbols: vscode.SymbolInformation[] = [];
 
-      for (let i = 0; i < document.lineCount; i++) {
+      for (let i = 1; i < document.lineCount; i++) {
         let line = document.lineAt(i);
 
         const label = line.text.match(/^(%?\b\w+\b)/);
