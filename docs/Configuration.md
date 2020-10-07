@@ -48,7 +48,7 @@ To configure a server, enter something like this:
 			"host": "localhost",
 			"port": 52774,
 		},
-	"username": "_SYSTEM",
+	  "username": "_SYSTEM",
 	},
 },
 ```
