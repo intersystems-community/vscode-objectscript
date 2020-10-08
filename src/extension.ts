@@ -370,17 +370,11 @@ async function serverManager(): Promise<any> {
   }
 }
 
-async function languageServer(): Promise<any> {
+function languageServer(): vscode.Extension<any> {
   const extId = "intersystems.language-server";
   const extension = vscode.extensions.getExtension(extId);
 
   return extension;
-  // if (extension) {
-  //   if (!extension.isActive) {
-  //     // await extension.activate();
-  //   }
-  //   return extension.exports;
-  // }
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<any> {
@@ -540,8 +534,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     outputChannel.show(true);
   }
 
-  const languageServerExt = await languageServer();
+  const languageServerExt = languageServer();
   if (!languageServerExt) {
+    outputChannel.appendLine(`The language-server extension was not found.\n`);
+    outputChannel.show(true);
+
     if (vscode.window.activeTextEditor) {
       diagnosticProvider.updateDiagnostics(vscode.window.activeTextEditor.document);
     }
