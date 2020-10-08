@@ -99,6 +99,8 @@ const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
 const aiKey = packageJson.aiKey;
 
+const _onDidChangeConnection = new vscode.EventEmitter<void>();
+
 export const config = (setting?: string, workspaceFolderName?: string): vscode.WorkspaceConfiguration | any => {
   workspaceFolderName = workspaceFolderName || currentWorkspaceFolder();
   if (
@@ -192,6 +194,7 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     workspaceState.update(configName + ":password", undefined);
     workspaceState.update(configName + ":apiVersion", undefined);
     workspaceState.update(configName + ":docker", undefined);
+    _onDidChangeConnection.fire();
   }
   let api = new AtelierAPI(apiTarget, false);
   const { active, host = "", port = 0, ns = "" } = api.config;
@@ -224,6 +227,7 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
           workspaceState.update(configName + ":port", dockerPort);
         }
         connInfo = `localhost:${dockerPort}[${ns}]`;
+        _onDidChangeConnection.fire();
       }
     } catch (error) {
       outputChannel.appendError(error);
@@ -279,6 +283,7 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
               async (password) => {
                 if (password) {
                   workspaceState.update(configName + ":password", password);
+                  _onDidChangeConnection.fire();
                   await checkConnection(false, uri);
                 } else if (!api.externalServer) {
                   disableConnection(configName);
@@ -822,6 +827,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         uri = vscode.Uri.file(fileName).with({ scheme: OBJECTSCRIPT_FILE_SCHEMA, authority: apiTarget });
       }
       return uri;
+    },
+    onDidChangeConnection(): vscode.Event<void> {
+      return _onDidChangeConnection.event;
     },
   };
 
