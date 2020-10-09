@@ -386,45 +386,43 @@
         ]
       }
     ],
-    "//": {
-      "grammars": [
-        {
-          "language": "objectscript",
-          "scopeName": "source.objectscript",
-          "path": "syntaxes/objectscript.tmLanguage.json",
-          "embeddedLanguages": {
-            "meta.embedded.block.sql": "sql",
-            "text.html": "html",
-            "text.js": "js"
-          }
-        },
-        {
-          "language": "objectscript-class",
-          "scopeName": "source.objectscript_class",
-          "path": "syntaxes/objectscript-class.tmLanguage.json",
-          "embeddedLanguages": {
-            "meta.embedded.block.sql": "sql",
-            "meta.embedded.block.objectscript": "objectscript",
-            "text.xml": "xml",
-            "text.html": "html",
-            "text.js": "js"
-          }
-        },
-        {
-          "language": "objectscript-macros",
-          "scopeName": "source.objectscript_macros",
-          "path": "syntaxes/objectscript-macros.tmLanguage.json",
-          "embeddedLanguages": {
-            "meta.preprocessor.objectscript": "source.objectscript"
-          }
-        },
-        {
-          "language": "objectscript-csp",
-          "scopeName": "source.objectscript_csp",
-          "path": "syntaxes/objectscript-csp.tmLanguage.json"
+    "grammars": [
+      {
+        "language": "objectscript",
+        "scopeName": "source.objectscript",
+        "path": "syntaxes/objectscript.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.sql": "sql",
+          "text.html": "html",
+          "text.js": "js"
         }
-      ]
-    },
+      },
+      {
+        "language": "objectscript-class",
+        "scopeName": "source.objectscript_class",
+        "path": "syntaxes/objectscript-class.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.sql": "sql",
+          "meta.embedded.block.objectscript": "objectscript",
+          "text.xml": "xml",
+          "text.html": "html",
+          "text.js": "js"
+        }
+      },
+      {
+        "language": "objectscript-macros",
+        "scopeName": "source.objectscript_macros",
+        "path": "syntaxes/objectscript-macros.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.preprocessor.objectscript": "source.objectscript"
+        }
+      },
+      {
+        "language": "objectscript-csp",
+        "scopeName": "source.objectscript_csp",
+        "path": "syntaxes/objectscript-csp.tmLanguage.json"
+      }
+    ],
     "snippets": [
       {
         "language": "objectscript-class",
