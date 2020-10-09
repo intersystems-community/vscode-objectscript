@@ -535,6 +535,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   }
 
   const languageServerExt = languageServer();
+  const noLSsubscriptions: { dispose(): any }[] = [];
   if (!languageServerExt) {
     outputChannel.appendLine(`The language-server extension was not found.\n`);
     outputChannel.show(true);
@@ -542,7 +543,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     if (vscode.window.activeTextEditor) {
       diagnosticProvider.updateDiagnostics(vscode.window.activeTextEditor.document);
     }
-    context.subscriptions.push(
+    noLSsubscriptions.push(
       workspace.onDidChangeTextDocument((event) => {
         diagnosticProvider.updateDiagnostics(event.document);
       }),
@@ -576,10 +577,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         "#"
       )
     );
+    context.subscriptions.push(...noLSsubscriptions);
   }
 
   context.subscriptions.push(
     reporter,
+    vscode.extensions.onDidChange(() => {
+      const languageServerExt2 = languageServer();
+      if (typeof languageServerExt !== typeof languageServerExt2) {
+        noLSsubscriptions.forEach((event) => {
+          event.dispose();
+        });
+      }
+    }),
     workspace.onDidChangeTextDocument((event) => {
       if (
         event.contentChanges.length !== 0 &&
