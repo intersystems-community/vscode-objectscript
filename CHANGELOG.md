@@ -1,5 +1,18 @@
 # Change Log
 
+## [0.9.3]
+- Add quickstart button to ObjectScript Explorer view when local folder is open but no `objectscript.conn` settings are available to it.
+- Add `Jump to Tag + Offset` command for MACs and INTs, and make it available via click on statusbar field.
+- Support server-side editing of other filetypes such as HL7, LUT.
+- Output a message when proposed APIs are enabled.
+- Connect FileSearchProvider to server. When VS Code is running with the `--enable-proposed-api` switch the QuickOpen field (<kbd>Ctrl/Cmd+p</kbd>) will now search connected servers for classes, routines etc.
+- Fix various debugging issues.
+- Fix problems with `View Other`.
+- Drop first-line 'ROUTINE' entry from label list shown in breadcrumb and Outline panel.
+- Pass path of webapp (CSP) files correctly to server-side source control class.
+- Support AfterUserAction reload signal from server-side source control class.
+- Prepare to coexist with upcoming language server extension.
+
 ## [0.9.2]
 - Implement `Add Server Namespace to Workspace...` command and surface it on folder context menus in VS Code Explorer.
 - Add `Choose Server and Namespace` button to VS Code Explorer view when no folder or workspace is open. This provides a quick way to get started with server-centric development, particularly when combined with the 'just-in-time' connection definition enhancement that arrived in version 0.0.7 of the Server Manager extension.
