@@ -99,6 +99,8 @@ const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
 const aiKey = packageJson.aiKey;
 
+const _onDidChangeConnection = new vscode.EventEmitter<void>();
+
 export const config = (setting?: string, workspaceFolderName?: string): vscode.WorkspaceConfiguration | any => {
   workspaceFolderName = workspaceFolderName || currentWorkspaceFolder();
   if (
@@ -192,6 +194,7 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     workspaceState.update(configName + ":password", undefined);
     workspaceState.update(configName + ":apiVersion", undefined);
     workspaceState.update(configName + ":docker", undefined);
+    _onDidChangeConnection.fire();
   }
   let api = new AtelierAPI(apiTarget, false);
   const { active, host = "", port = 0, ns = "" } = api.config;
@@ -224,6 +227,7 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
           workspaceState.update(configName + ":port", dockerPort);
         }
         connInfo = `localhost:${dockerPort}[${ns}]`;
+        _onDidChangeConnection.fire();
       }
     } catch (error) {
       outputChannel.appendError(error);
@@ -279,6 +283,7 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
               async (password) => {
                 if (password) {
                   workspaceState.update(configName + ":password", password);
+                  _onDidChangeConnection.fire();
                   await checkConnection(false, uri);
                 } else if (!api.externalServer) {
                   disableConnection(configName);
@@ -363,6 +368,13 @@ async function serverManager(): Promise<any> {
     }
     return extension.exports;
   }
+}
+
+function languageServer(): vscode.Extension<any> {
+  const extId = "intersystems.language-server";
+  const extension = vscode.extensions.getExtension(extId);
+
+  return extension;
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<any> {
@@ -500,9 +512,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     ["file", ...schemas].reduce((acc, scheme) => acc.concat(list.map((language) => ({ scheme, language }))), []);
 
   const diagnosticProvider = new ObjectScriptDiagnosticProvider();
-  if (vscode.window.activeTextEditor) {
-    diagnosticProvider.updateDiagnostics(vscode.window.activeTextEditor.document);
-  }
 
   // Gather the proposed APIs we will register to use when building with enableProposedApi = true
   const proposed = [
@@ -525,10 +534,63 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     outputChannel.show(true);
   }
 
+  const languageServerExt = languageServer();
+  const noLSsubscriptions: { dispose(): any }[] = [];
+  if (!languageServerExt) {
+    outputChannel.appendLine(`The language-server extension was not found.\n`);
+    outputChannel.show(true);
+
+    if (vscode.window.activeTextEditor) {
+      diagnosticProvider.updateDiagnostics(vscode.window.activeTextEditor.document);
+    }
+    noLSsubscriptions.push(
+      workspace.onDidChangeTextDocument((event) => {
+        diagnosticProvider.updateDiagnostics(event.document);
+      }),
+      window.onDidChangeActiveTextEditor(async (editor) => {
+        if (editor) {
+          diagnosticProvider.updateDiagnostics(editor.document);
+        }
+      }),
+      vscode.languages.registerHoverProvider(
+        documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
+        new ObjectScriptHoverProvider()
+      ),
+      vscode.languages.registerDocumentFormattingEditProvider(
+        documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
+        new DocumentFormattingEditProvider()
+      ),
+      vscode.languages.registerDocumentRangeFormattingEditProvider(
+        documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
+        new DocumentRangeFormattingEditProvider()
+      ),
+      vscode.languages.registerDefinitionProvider(
+        documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
+        new ObjectScriptDefinitionProvider()
+      ),
+      vscode.languages.registerCompletionItemProvider(
+        documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
+        new ObjectScriptCompletionItemProvider(),
+        "$",
+        "^",
+        ".",
+        "#"
+      )
+    );
+    context.subscriptions.push(...noLSsubscriptions);
+  }
+
   context.subscriptions.push(
     reporter,
+    vscode.extensions.onDidChange(() => {
+      const languageServerExt2 = languageServer();
+      if (typeof languageServerExt !== typeof languageServerExt2) {
+        noLSsubscriptions.forEach((event) => {
+          event.dispose();
+        });
+      }
+    }),
     workspace.onDidChangeTextDocument((event) => {
-      diagnosticProvider.updateDiagnostics(event.document);
       if (
         event.contentChanges.length !== 0 &&
         event.document.uri.scheme === FILESYSTEM_SCHEMA &&
@@ -541,9 +603,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     }),
     window.onDidChangeActiveTextEditor(async (editor) => {
-      if (editor) {
-        diagnosticProvider.updateDiagnostics(editor.document);
-      }
       if (workspace.workspaceFolders && workspace.workspaceFolders.length > 1) {
         const workspaceFolder = currentWorkspaceFolder();
         if (workspaceFolder && workspaceFolder !== workspaceState.get<string>("workspaceFolder")) {
@@ -715,30 +774,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       documentSelector("objectscript"),
       new ObjectScriptFoldingRangeProvider()
     ),
-    vscode.languages.registerDefinitionProvider(
-      documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
-      new ObjectScriptDefinitionProvider()
-    ),
-    vscode.languages.registerCompletionItemProvider(
-      documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
-      new ObjectScriptCompletionItemProvider(),
-      "$",
-      "^",
-      ".",
-      "#"
-    ),
-    vscode.languages.registerHoverProvider(
-      documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
-      new ObjectScriptHoverProvider()
-    ),
-    vscode.languages.registerDocumentFormattingEditProvider(
-      documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
-      new DocumentFormattingEditProvider()
-    ),
-    vscode.languages.registerDocumentRangeFormattingEditProvider(
-      documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
-      new DocumentRangeFormattingEditProvider()
-    ),
     vscode.languages.registerWorkspaceSymbolProvider(new WorkspaceSymbolProvider()),
     vscode.debug.registerDebugConfigurationProvider("objectscript", new ObjectScriptConfigurationProvider()),
     vscode.debug.registerDebugAdapterDescriptorFactory("objectscript", debugAdapterFactory),
@@ -801,6 +836,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         uri = vscode.Uri.file(fileName).with({ scheme: OBJECTSCRIPT_FILE_SCHEMA, authority: apiTarget });
       }
       return uri;
+    },
+    onDidChangeConnection(): vscode.Event<void> {
+      return _onDidChangeConnection.event;
     },
   };
 
