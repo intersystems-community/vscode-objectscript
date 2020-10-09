@@ -6,6 +6,7 @@ import { Directory } from "./Directory";
 import { File } from "./File";
 import { fireOtherStudioAction, OtherStudioAction } from "../../commands/studio";
 import { StudioOpenDialog } from "../../queries";
+import { redirectDotvscodeRoot } from "../../utils/index";
 
 declare function setTimeout(callback: (...args: any[]) => void, ms: number, ...args: any[]): NodeJS.Timeout;
 
@@ -61,7 +62,13 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     } else {
       filter = "*.cls,*.inc,*.mac,*.int";
     }
-    const folder = csp ? (uri.path.endsWith("/") ? uri.path : uri.path + "/") : uri.path.replace(/\//g, ".");
+    const folder = !csp
+      ? uri.path.replace(/\//g, ".")
+      : uri.path === "/"
+      ? ""
+      : uri.path.endsWith("/")
+      ? uri.path
+      : uri.path + "/";
     const spec = csp ? folder + filter : folder.length > 1 ? folder.slice(1) + "/" + filter : filter;
     const dir = "1";
     const orderBy = "1";
@@ -72,9 +79,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     return api
       .actionQuery(sql, [spec, dir, orderBy, system, flat, notStudio, generated])
       .then((data) => data.result.content || [])
-      .then((data) =>
-        data.map((item: StudioOpenDialog) => {
-          const name = item.Name;
+      .then((data) => {
+        const results = data.map((item: StudioOpenDialog) => {
+          // Handle how query returns web apps
+          const name = item.Name.split("/")[0];
           const fullName = folder === "" ? name : folder + "/" + name;
           if (item.Type === "10" || item.Type === "9") {
             parent.entries.set(name, new Directory(name, fullName));
@@ -82,8 +90,37 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           } else {
             return [name, vscode.FileType.File];
           }
-        })
-      )
+        });
+        if (!csp || results.length) {
+          return results;
+        }
+        //TODO further request(s) to get the next level in CSP app names
+        // e.g. folder root is isfs://server/?ns=USER&csp
+        //  and USER namespace is the home of /csp/app1 and /csp/app2
+        // Initial expand showed the csp folder.
+        // Expand of that came here and asked Studio dialog query for /csp/*
+        // but this doesn't return app1 and app2 folders.
+        return api
+          .actionQuery(sql, ["/*.CSPALL", dir, orderBy, system, flat, notStudio, generated])
+          .then((data) => data.result.content || [])
+          .then((data) => {
+            return results;
+            /*
+            const results = data.map((item: StudioOpenDialog) => {
+              // Handle how query returns web apps
+              const name = item.Name.split("/")[0];
+              const fullName = folder === "" ? name : folder + "/" + name;
+              if (item.Type === "10" || item.Type === "9") {
+                parent.entries.set(name, new Directory(name, fullName));
+                return [name, vscode.FileType.Directory];
+              } else {
+                return [name, vscode.FileType.File];
+              }
+            });
+            return results;
+            */
+          });
+      })
       .catch((error) => {
         error && console.error(error);
       });
@@ -138,16 +175,17 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       overwrite: boolean;
     }
   ): void | Thenable<void> {
-    if (uri.path.match(/\/\.[^/]*\//)) {
+    uri = redirectDotvscodeRoot(uri);
+    if (uri.path.startsWith("/.")) {
       throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
     }
+    const api = new AtelierAPI(uri);
     const { query } = url.parse(decodeURIComponent(uri.toString()), true);
     const csp = query.csp === "" || query.csp === "1";
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     if (fileName.startsWith(".")) {
       return;
     }
-    const api = new AtelierAPI(uri);
     return this._lookupAsFile(uri).then(
       () => {
         // Weirdly, if the file exists on the server we don't actually write its content here.
@@ -274,15 +312,16 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
 
   // Fetch from server and cache it
   private async _lookupAsFile(uri: vscode.Uri): Promise<File> {
-    // Reject attempts to access files in .-folders such as .vscode and .git
-    if (uri.path.match(/\/\.[^/]*\//)) {
-      throw vscode.FileSystemError.FileNotFound("dot-folders not supported by server");
+    uri = redirectDotvscodeRoot(uri);
+    if (uri.path.startsWith("/.")) {
+      throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
     }
+
+    const api = new AtelierAPI(uri);
     const { query } = url.parse(decodeURIComponent(uri.toString()), true);
     const csp = query.csp === "" || query.csp === "1";
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     const name = path.basename(uri.path);
-    const api = new AtelierAPI(uri);
     return api
       .getDoc(fileName)
       .then((data) => data.result)

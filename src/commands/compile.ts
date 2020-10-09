@@ -251,18 +251,22 @@ export async function importAndCompile(askFlags = false, document?: vscode.TextD
       // console.error(error);
       throw error;
     })
-    .then(() => compile([file], flags));
+    .then(() => {
+      if (!file.fileName.startsWith("\\.vscode\\")) {
+        compile([file], flags);
+      }
+    });
 }
 
 // Compiles all files types in the namespace
-export async function namespaceCompile(askFLags = false): Promise<any> {
+export async function namespaceCompile(askFlags = false): Promise<any> {
   const api = new AtelierAPI();
   const fileTypes = ["*.CLS", "*.MAC", "*.INC", "*.BAS"];
   if (!config("conn").active) {
     throw new Error(`No Active Connection`);
   }
   const defaultFlags = config().compileFlags;
-  const flags = askFLags ? await compileFlags() : defaultFlags;
+  const flags = askFlags ? await compileFlags() : defaultFlags;
   if (flags === undefined) {
     // User cancelled
     return;
