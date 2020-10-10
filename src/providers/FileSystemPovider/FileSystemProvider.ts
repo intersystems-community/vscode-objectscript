@@ -80,46 +80,77 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       .actionQuery(sql, [spec, dir, orderBy, system, flat, notStudio, generated])
       .then((data) => data.result.content || [])
       .then((data) => {
-        const results = data.map((item: StudioOpenDialog) => {
-          // Handle how query returns web apps
-          const name = item.Name.split("/")[0];
-          const fullName = folder === "" ? name : folder + "/" + name;
-          if (item.Type === "10" || item.Type === "9") {
-            parent.entries.set(name, new Directory(name, fullName));
-            return [name, vscode.FileType.Directory];
-          } else {
-            return [name, vscode.FileType.File];
-          }
-        });
-        if (!csp || results.length) {
+        // If webapp '/' exists it will always list first
+        const rootWebAppExists = csp && data[0]?.Name === "/";
+        const results = data
+          .filter((item: StudioOpenDialog) =>
+            item.Type === "10" ? csp && item.Name !== "/" : item.Type === "9" ? !csp : !rootWebAppExists
+          )
+          .map((item: StudioOpenDialog) => {
+            // Handle how query returns web apps
+            const name = item.Name.split("/")[0];
+            const fullName = folder === "" ? name : csp ? folder + name : folder + "/" + name;
+            if (item.Type === "10" || item.Type === "9") {
+              parent.entries.set(name, new Directory(name, fullName));
+              return [name, vscode.FileType.Directory];
+            } else {
+              return [name, vscode.FileType.File];
+            }
+          });
+        if (!csp) {
           return results;
         }
-        //TODO further request(s) to get the next level in CSP app names
-        // e.g. folder root is isfs://server/?ns=USER&csp
-        //  and USER namespace is the home of /csp/app1 and /csp/app2
-        // Initial expand showed the csp folder.
-        // Expand of that came here and asked Studio dialog query for /csp/*
-        // but this doesn't return app1 and app2 folders.
-        return api
-          .actionQuery(sql, ["/*.CSPALL", dir, orderBy, system, flat, notStudio, generated])
-          .then((data) => data.result.content || [])
-          .then((data) => {
-            return results;
-            /*
-            const results = data.map((item: StudioOpenDialog) => {
-              // Handle how query returns web apps
-              const name = item.Name.split("/")[0];
-              const fullName = folder === "" ? name : folder + "/" + name;
-              if (item.Type === "10" || item.Type === "9") {
-                parent.entries.set(name, new Directory(name, fullName));
-                return [name, vscode.FileType.Directory];
-              } else {
-                return [name, vscode.FileType.File];
-              }
+        if (folder !== "") {
+          // For CSP-type access at least one folder down, a further root-level request is done to check for next level in CSP app names
+          // e.g. folder root is isfs://server/?ns=USER&csp
+          //  and USER namespace is the home of /csp/app1 and /csp/app2
+          // Initial expand showed the csp folder.
+          // Expand of that came here and asked Studio dialog query for /csp/*
+          // but this doesn't return app1 and app2 folders.
+          // Filter out as much as possible on the server side.
+          return api
+            .actionQuery(sql, [
+              "*,'*.inc,'*.mac,'*.dtl,'*.cls,'*.bpl,'*.int,'*.prj",
+              dir,
+              orderBy,
+              "0",
+              "0",
+              notStudio,
+              "0",
+            ])
+            .then((data) => data.result.content || [])
+            .then((data) => {
+              const piece = folder.split("/").length - 1;
+              const cspSubdirs: [string, vscode.FileType][] = data
+                .filter(
+                  (item) =>
+                    item.Type === "10" && item.Name.startsWith(folder.slice(1)) && item.Name.length >= folder.length
+                )
+                .map((item) => {
+                  const name = item.Name.split("/")[piece - 1];
+                  parent.entries.set(name, new Directory(name, folder + name));
+                  return [name, vscode.FileType.Directory];
+                });
+              return results.concat(cspSubdirs);
             });
-            return results;
-            */
-          });
+        } else if (rootWebAppExists) {
+          // Expanding the root of a CSP-type workspace folder, and earlier we found a '/' root-level webapp
+          // so we now enumerate its files.
+          return api
+            .actionQuery(sql, ["/*", dir, orderBy, "0", "0", notStudio, "0"])
+            .then((data) => data.result.content || [])
+            .then((data) => {
+              const rootAppFiles: [string, vscode.FileType][] = data
+                .filter((item) => item.Type === "5")
+                .map((item) => {
+                  return [item.Name, vscode.FileType.File];
+                });
+              return results.concat(rootAppFiles);
+            });
+        } else {
+          // Nothing else to add.
+          return results;
+        }
       })
       .catch((error) => {
         error && console.error(error);
@@ -273,14 +304,18 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   private async _lookup(uri: vscode.Uri): Promise<Entry> {
     const parts = uri.path.split("/");
     let entry: Entry = this.root;
-    for (const part of parts) {
+    //for (const part of parts) {
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
       if (!part) {
         continue;
       }
       let child: Entry | undefined;
       if (entry instanceof Directory) {
         child = entry.entries.get(part);
-        if (!part.includes(".")) {
+        // If the last element of path is dotted and is one we haven't already cached as a directory
+        // then it is assumed to be a file.
+        if (!part.includes(".") || i + 1 < parts.length) {
           const fullName = entry.name === "" ? part : entry.fullName + "/" + part;
           child = new Directory(part, fullName);
           entry.entries.set(part, child);
