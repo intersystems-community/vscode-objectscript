@@ -575,6 +575,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         "^",
         ".",
         "#"
+      ),
+      vscode.languages.registerDocumentSymbolProvider(
+        documentSelector("objectscript-class"),
+        new ObjectScriptClassSymbolProvider()
+      ),
+      vscode.languages.registerDocumentSymbolProvider(
+        documentSelector("objectscript"),
+        new ObjectScriptRoutineSymbolProvider()
       )
     );
     context.subscriptions.push(...noLSsubscriptions);
@@ -757,14 +765,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.languages.registerCodeActionsProvider(
       documentSelector("objectscript-class", "objectscript"),
       new CodeActionProvider()
-    ),
-    vscode.languages.registerDocumentSymbolProvider(
-      documentSelector("objectscript-class"),
-      new ObjectScriptClassSymbolProvider()
-    ),
-    vscode.languages.registerDocumentSymbolProvider(
-      documentSelector("objectscript"),
-      new ObjectScriptRoutineSymbolProvider()
     ),
     vscode.languages.registerFoldingRangeProvider(
       documentSelector("objectscript-class"),
