@@ -210,13 +210,13 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (uri.path.startsWith("/.")) {
       throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
     }
-    const api = new AtelierAPI(uri);
     const { query } = url.parse(decodeURIComponent(uri.toString()), true);
     const csp = query.csp === "" || query.csp === "1";
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     if (fileName.startsWith(".")) {
       return;
     }
+    const api = new AtelierAPI(uri);
     return this._lookupAsFile(uri).then(
       () => {
         // Weirdly, if the file exists on the server we don't actually write its content here.
