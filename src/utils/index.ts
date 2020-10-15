@@ -84,7 +84,6 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
   const { query } = url.parse(decodeURIComponent(uri.toString()), true);
   const csp = query.csp === "" || query.csp === "1";
   if (csp) {
-    //name = fileName.replace("\\", "/");
     name = uri.path;
   } else if (fileExt === "cls") {
     const match = content.match(/^Class (%?\w+(?:\.\w+)+)/im);

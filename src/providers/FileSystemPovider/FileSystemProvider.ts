@@ -304,7 +304,6 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   private async _lookup(uri: vscode.Uri): Promise<Entry> {
     const parts = uri.path.split("/");
     let entry: Entry = this.root;
-    //for (const part of parts) {
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
       if (!part) {
@@ -352,11 +351,11 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
     }
 
-    const api = new AtelierAPI(uri);
     const { query } = url.parse(decodeURIComponent(uri.toString()), true);
     const csp = query.csp === "" || query.csp === "1";
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     const name = path.basename(uri.path);
+    const api = new AtelierAPI(uri);
     return api
       .getDoc(fileName)
       .then((data) => data.result)
