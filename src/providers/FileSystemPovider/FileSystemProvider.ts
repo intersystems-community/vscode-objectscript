@@ -76,17 +76,36 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const flat = query.flat && query.flat.length ? query.flat.toString() : "0";
     const notStudio = "0";
     const generated = query.generated && query.generated.length ? query.generated.toString() : "0";
+    // get all web apps that have a filepath (Studio dialog used below returns REST ones too)
+    const cspApps = csp ? await api.getCSPApps().then((data) => data.result.content || []) : [];
+    const cspSubfolderMap = new Map<string, vscode.FileType>();
+    const prefix = folder === "" ? "/" : folder;
+    for (const app of cspApps) {
+      if ((app + "/").startsWith(prefix)) {
+        const subfolder = app.slice(prefix.length).split("/")[0];
+        if (subfolder) {
+          cspSubfolderMap.set(subfolder, vscode.FileType.Directory);
+        }
+      }
+    }
+    const cspSubfolders = Array.from(cspSubfolderMap.entries());
+    // Assemble the results
     return api
       .actionQuery(sql, [spec, dir, orderBy, system, flat, notStudio, generated])
       .then((data) => data.result.content || [])
       .then((data) => {
         const results = data
           .filter((item: StudioOpenDialog) =>
-            item.Type === "10" ? csp && item.Name !== "/" : item.Type === "9" ? !csp : csp ? item.Type === "5" : true
+            item.Type === "10"
+              ? csp && !item.Name.includes("/") // ignore web apps here because there may be REST ones
+              : item.Type === "9" // class package
+              ? !csp
+              : csp
+              ? item.Type === "5" // web app file
+              : true
           )
           .map((item: StudioOpenDialog) => {
-            // Handle how query returns web apps
-            const name = item.Name.split("/")[0];
+            const name = item.Name;
             const fullName = folder === "" ? name : csp ? folder + name : folder + "/" + name;
             if (item.Type === "10" || item.Type === "9") {
               parent.entries.set(name, new Directory(name, fullName));
@@ -98,43 +117,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         if (!csp) {
           return results;
         }
-        if (folder !== "") {
-          // For CSP-type access at least one folder down, a further root-level request is done to check for next level in CSP app names
-          // e.g. folder root is isfs://server/?ns=USER&csp
-          //  and USER namespace is the home of /csp/app1 and /csp/app2
-          // Initial expand showed the csp folder.
-          // Expand of that came here and asked Studio dialog query for /csp/*
-          // but this doesn't return app1 and app2 folders.
-          // Filter out as much as possible on the server side.
-          return api
-            .actionQuery(sql, [
-              "*,'*.inc,'*.mac,'*.dtl,'*.cls,'*.bpl,'*.int,'*.prj",
-              dir,
-              orderBy,
-              "0",
-              "0",
-              notStudio,
-              "0",
-            ])
-            .then((data) => data.result.content || [])
-            .then((data) => {
-              const piece = folder.split("/").length - 1;
-              const cspSubdirs: [string, vscode.FileType][] = data
-                .filter(
-                  (item) =>
-                    item.Type === "10" && item.Name.startsWith(folder.slice(1)) && item.Name.length >= folder.length
-                )
-                .map((item) => {
-                  const name = item.Name.split("/")[piece - 1];
-                  parent.entries.set(name, new Directory(name, folder + name));
-                  return [name, vscode.FileType.Directory];
-                });
-              return results.concat(cspSubdirs);
-            });
-        } else {
-          // Nothing else to add.
-          return results;
-        }
+        return results.concat(cspSubfolders);
       })
       .catch((error) => {
         error && console.error(error);
