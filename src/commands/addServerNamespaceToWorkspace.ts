@@ -2,6 +2,13 @@ import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { panel, resolveConnectionSpec } from "../extension";
 
+enum AccessMode {
+  Code,
+  WebappFiles,
+  CodeReadonly,
+  WebappFilesReadonly,
+}
+
 export async function addServerNamespaceToWorkspace(): Promise<void> {
   const serverManagerApi = await getServerManagerApi();
   if (!serverManagerApi) {
@@ -11,7 +18,7 @@ export async function addServerNamespaceToWorkspace(): Promise<void> {
     return;
   }
   // Get user's choice of server
-  const options: vscode.QuickPickOptions = {};
+  const options: vscode.QuickPickOptions = { ignoreFocusOut: true };
   const serverName: string = await serverManagerApi.pickServer(undefined, options);
   if (!serverName) {
     return;
@@ -49,25 +56,42 @@ export async function addServerNamespaceToWorkspace(): Promise<void> {
   // Get user's choice of namespace
   const namespace = await vscode.window.showQuickPick(allNamespaces, {
     placeHolder: `Namespace on server '${serverName}' (${connDisplayString})`,
+    ignoreFocusOut: true,
   });
   if (!namespace) {
     return;
   }
-  // Pick between isfs and isfs-readonly
-  const editable = await vscode.window.showQuickPick(
+  // Pick between isfs and isfs-readonly, code and web files
+  const mode = await vscode.window.showQuickPick(
     [
       {
-        value: true,
-        label: "Editable",
-        detail: "Documents opened from this folder will be editable directly on the server.",
+        value: AccessMode.Code,
+        label: `Edit Code in ${namespace}`,
+        detail: "Edit classes, routines and other code assets.",
       },
-      { value: false, label: "Read-only", detail: "Documents opened from this folder will be read-only." },
+      {
+        value: AccessMode.WebappFiles,
+        label: `Edit Web Application Files for ${namespace}`,
+        detail: "Edit files belonging to web applications that use the namespace.",
+      },
+      {
+        value: AccessMode.CodeReadonly,
+        label: `View Code in ${namespace}`,
+        detail: "Documents opened from this folder will be read-only.",
+      },
+      {
+        value: AccessMode.WebappFilesReadonly,
+        label: `View Web Application Files for ${namespace}`,
+        detail: "Documents opened from this folder will be read-only.",
+      },
     ],
-    { placeHolder: "Choose the mode of access" }
+    { placeHolder: "Choose the type of access", ignoreFocusOut: true }
   );
   // Prepare the folder parameters
-  const label = editable.value ? `${serverName}:${namespace}` : `${serverName}:${namespace} (read-only)`;
-  uri = uri.with({ scheme: editable.value ? "isfs" : "isfs-readonly", query: `ns=${namespace}` });
+  const editable = mode.value === AccessMode.Code || mode.value === AccessMode.WebappFiles;
+  const webapp = mode.value === AccessMode.WebappFiles || mode.value === AccessMode.WebappFilesReadonly;
+  const label = `${serverName}:${namespace}${webapp ? " web files" : ""}${!editable ? " (read-only)" : ""}`;
+  uri = uri.with({ scheme: editable ? "isfs" : "isfs-readonly", query: `ns=${namespace}${webapp ? "&csp" : ""}` });
   // Append it to the workspace
   const added = vscode.workspace.updateWorkspaceFolders(
     vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length : 0,
