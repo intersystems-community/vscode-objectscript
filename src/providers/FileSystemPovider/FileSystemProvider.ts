@@ -80,11 +80,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       .actionQuery(sql, [spec, dir, orderBy, system, flat, notStudio, generated])
       .then((data) => data.result.content || [])
       .then((data) => {
-        // If webapp '/' exists it will always list first
-        const rootWebAppExists = csp && data[0]?.Name === "/";
         const results = data
           .filter((item: StudioOpenDialog) =>
-            item.Type === "10" ? csp && item.Name !== "/" : item.Type === "9" ? !csp : !rootWebAppExists
+            item.Type === "10" ? csp && item.Name !== "/" : item.Type === "9" ? !csp : csp ? item.Type === "5" : true
           )
           .map((item: StudioOpenDialog) => {
             // Handle how query returns web apps
@@ -132,20 +130,6 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
                   return [name, vscode.FileType.Directory];
                 });
               return results.concat(cspSubdirs);
-            });
-        } else if (rootWebAppExists) {
-          // Expanding the root of a CSP-type workspace folder, and earlier we found a '/' root-level webapp
-          // so we now enumerate its files.
-          return api
-            .actionQuery(sql, ["/*", dir, orderBy, "0", "0", notStudio, "0"])
-            .then((data) => data.result.content || [])
-            .then((data) => {
-              const rootAppFiles: [string, vscode.FileType][] = data
-                .filter((item) => item.Type === "5")
-                .map((item) => {
-                  return [item.Name, vscode.FileType.File];
-                });
-              return results.concat(rootAppFiles);
             });
         } else {
           // Nothing else to add.
