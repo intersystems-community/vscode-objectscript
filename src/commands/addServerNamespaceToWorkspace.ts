@@ -24,7 +24,7 @@ export async function addServerNamespaceToWorkspace(): Promise<void> {
     return;
   }
   // Get its namespace list
-  let uri = vscode.Uri.parse(`isfs://${serverName}/?ns=%SYS`);
+  let uri = vscode.Uri.parse(`isfs://${serverName}/`);
   await resolveConnectionSpec(serverName);
   // Prepare a displayable form of its connection spec as a hint to the user
   const connSpec = await serverManagerApi.getServerSpec(serverName);
