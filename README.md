@@ -6,9 +6,9 @@
 [![](https://img.shields.io/badge/InterSystems-Caché-blue.svg)](https://www.intersystems.com/products/cache/)
 [![](https://img.shields.io/badge/InterSystems-Ensemble-blue.svg)](https://www.intersystems.com/products/ensemble/)
 
-# vscode-objectscript
+# InterSystems ObjectScript extension for VS Code
 
-[InterSystems](http://www.intersystems.com/our-products/) ObjectScript language support for Visual Studio Code, from the [InterSystems Developer Community](https://community.intersystems.com/).
+[InterSystems&reg;](http://www.intersystems.com) ObjectScript language support for Visual Studio Code, from the [InterSystems Developer Community](https://community.intersystems.com/).
 
 Documentation on [GitHub Pages](https://intersystems-community.github.io/vscode-objectscript/).
 
