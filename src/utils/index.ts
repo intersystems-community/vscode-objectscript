@@ -72,19 +72,19 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
       !document.fileName ||
       !document.languageId ||
       !document.languageId.startsWith("objectscript") ||
-      fileExt.match(/(csp)/i)) // Skip CSP for now, yet
+      fileExt.match(/(csp)/i)) // Skip local CSPs for now
   ) {
     return null;
   }
   const eol = document.eol || vscode.EndOfLine.LF;
-  const uri = document.uri;
+  const uri = redirectDotvscodeRoot(document.uri);
   const content = document.getText();
   let name = "";
   let ext = "";
   const { query } = url.parse(decodeURIComponent(uri.toString()), true);
   const csp = query.csp === "" || query.csp === "1";
   if (csp) {
-    name = fileName.replace("\\", "/");
+    name = uri.path;
   } else if (fileExt === "cls") {
     const match = content.match(/^Class (%?\w+(?:\.\w+)+)/im);
     if (match) {
@@ -332,4 +332,31 @@ export async function terminalWithDocker(): Promise<vscode.Terminal> {
   }
   terminal.show(true);
   return terminal;
+}
+
+/**
+ * Alter isfs-type uri.path of /.vscode/* files or subdirectories.
+ * Rewrite `/.vscode/path/to/file` as `/_vscode/XYZ/path/to/file`
+ *  where XYZ comes from the `ns` queryparam of uri.
+ * Also alter query to specify `ns=%SYS&csp=1`
+ *
+ * @returns uri, altered if necessary.
+ * @throws if `ns` queryparam is missing but required.
+ */
+export function redirectDotvscodeRoot(uri: vscode.Uri): vscode.Uri {
+  if (!schemas.includes(uri.scheme)) {
+    return uri;
+  }
+  const dotMatch = uri.path.match(/^\/(\.[^/]*)\/(.*)$/);
+  if (dotMatch && dotMatch[1] === ".vscode") {
+    const nsMatch = `&${uri.query}&`.match(/&ns=(.+)&/);
+    if (!nsMatch) {
+      throw new Error("No 'ns' query parameter on uri");
+    }
+    const namespace = nsMatch[1];
+    const newQueryString = (("&" + uri.query).replace(`ns=${namespace}`, "ns=%SYS") + "&csp=1").slice(1);
+    return uri.with({ path: `/_vscode/${namespace}/${dotMatch[2]}`, query: newQueryString });
+  } else {
+    return uri;
+  }
 }
