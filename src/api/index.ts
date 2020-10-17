@@ -43,7 +43,7 @@ export class AtelierAPI {
   public readonly wsOrFile?: string | vscode.Uri;
 
   public get ns(): string {
-    return this.namespace || this._config.ns;
+    return (this.namespace || this._config.ns).toUpperCase();
   }
 
   public get config(): ConnectionSettings {
@@ -495,5 +495,13 @@ export class AtelierAPI {
       system,
     };
     return this.request(1, "GET", `%SYS/jobs`, null, params);
+  }
+
+  // v1+
+  public getCSPApps(detail = false): Promise<Atelier.Response> {
+    const params = {
+      detail: detail ? 1 : 0,
+    };
+    return this.request(1, "GET", `%SYS/cspapps/${this.ns || ""}`, null, params);
   }
 }
