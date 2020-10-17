@@ -43,7 +43,7 @@ export class AtelierAPI {
   public readonly wsOrFile?: string | vscode.Uri;
 
   public get ns(): string {
-    return this.namespace || this._config.ns;
+    return (this.namespace || this._config.ns).toUpperCase();
   }
 
   public get config(): ConnectionSettings {
