@@ -560,7 +560,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     outputChannel.show(true);
   }
 
-  const languageServerExt = await languageServer();
+  const languageServerExt =
+    context.extensionMode && context.extensionMode !== vscode.ExtensionMode.Test ? await languageServer() : null;
   const noLSsubscriptions: { dispose(): any }[] = [];
   if (!languageServerExt) {
     outputChannel.appendLine(`The intersystems.language-server extension is not installed or has been disabled.\n`);
