@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.0.0] 19-Oct-2020
+- First production release.
+
 ## [0.9.5]
 - Fix regression in 0.9.4 that broke `Add Server Namespace to Workspace...`.
 
