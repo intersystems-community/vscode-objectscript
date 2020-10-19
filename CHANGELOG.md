@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.9.5]
+- Fix regression in 0.9.4 that broke `Add Server Namespace to Workspace...`.
+
 ## [0.9.4]
 - Support folder-level settings, snippets and debug configurations for server-side (isfs) workspace folders. This feature requires a `/_vscode` webapp using the %SYS namespace.
 - Support webapp-type roots referencing a path that is an ancestor of one or more webapps that use the target namespace. For example `isfs://server/?ns=%SYS&csp` gives access to all %SYS webapps from a single root folder.
