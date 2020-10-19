@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.9.4]
+- Support folder-level settings, snippets and debug configurations for server-side (isfs) workspace folders. This feature requires a `/_vscode` webapp using the %SYS namespace.
+- Support webapp-type roots referencing a path that is an ancestor of one or more webapps that use the target namespace. For example `isfs://server/?ns=%SYS&csp` gives access to all %SYS webapps from a single root folder.
+- Enhance `Add Server Namespace to Workspace...` command and quickstart button to add webapp-type roots.
+- Remove requirement for namespaces to be uppercase in settings.
+
 ## [0.9.3]
 - Add quickstart button to ObjectScript Explorer view when local folder is open but no `objectscript.conn` settings are available to it.
 - Add `Jump to Tag + Offset` command for MACs and INTs, and make it available via click on statusbar field.
