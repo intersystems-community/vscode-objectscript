@@ -383,7 +383,7 @@ async function languageServer(): Promise<vscode.Extension<any>> {
     }
     await vscode.window
       .showInformationMessage(
-        `Install the [InterSystems Language-Server extension](https://marketplace.visualstudio.com/items?itemName=${extId}) for best handling of ObjectScript code.`,
+        `Install the [InterSystems Language Server extension](https://marketplace.visualstudio.com/items?itemName=${extId}) for best handling of ObjectScript code.`,
         "Install",
         "Later"
       )
