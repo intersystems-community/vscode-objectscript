@@ -345,7 +345,7 @@ export class AtelierAPI {
       if (info && info.result && info.result.content && info.result.content.api > 0) {
         const data = info.result.content;
         const apiVersion = data.api;
-        if (!data.namespaces.includes(this.ns)) {
+        if (this.ns && this.ns.length && !data.namespaces.includes(this.ns)) {
           throw {
             code: "WrongNamespace",
             message: `This server does not have specified namespace '${this.ns}'.\n
