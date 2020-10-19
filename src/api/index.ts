@@ -43,7 +43,7 @@ export class AtelierAPI {
   public readonly wsOrFile?: string | vscode.Uri;
 
   public get ns(): string {
-    return (this.namespace || this._config.ns).toUpperCase();
+    return (this.namespace || this._config.ns || "").toUpperCase();
   }
 
   public get config(): ConnectionSettings {
@@ -340,16 +340,12 @@ export class AtelierAPI {
     }
   }
 
-  /**
-   * Use the serverInfo endpoint. Connection object does not need to have specified a namespace when instantiated.
-   */
   public serverInfo(): Promise<Atelier.Response<Atelier.Content<Atelier.ServerInfo>>> {
     return this.request(0, "GET").then((info) => {
       if (info && info.result && info.result.content && info.result.content.api > 0) {
         const data = info.result.content;
         const apiVersion = data.api;
-        // If this is a namespace-specific connection, throw if it doesn't exist or if the user has no access to it
-        if (this.ns && !data.namespaces.includes(this.ns.toUpperCase())) {
+        if (!data.namespaces.includes(this.ns)) {
           throw {
             code: "WrongNamespace",
             message: `This server does not have specified namespace '${this.ns}'.\n
