@@ -342,7 +342,7 @@ async function serverManager(): Promise<any> {
     }
     await vscode.window
       .showInformationMessage(
-        "The [InterSystems® Server Manager extension](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) is recommended to help you [define connections and store passwords securely](https://intersystems-community.github.io/vscode-objectscript/configuration/#configuring-a-server) in your keychain.",
+        `The [InterSystems Server Manager extension](https://marketplace.visualstudio.com/items?itemName=${extId}) is recommended to help you [define connections and store passwords securely](https://intersystems-community.github.io/vscode-objectscript/configuration/#configuring-a-server) in your keychain.`,
         "Install",
         "Later",
         "Never"
@@ -370,9 +370,35 @@ async function serverManager(): Promise<any> {
   }
 }
 
-function languageServer(): vscode.Extension<any> {
+async function languageServer(): Promise<vscode.Extension<any>> {
   const extId = "intersystems.language-server";
-  const extension = vscode.extensions.getExtension(extId);
+  let extension = vscode.extensions.getExtension(extId);
+
+  if (!extension) {
+    try {
+      await vscode.commands.executeCommand("extension.open", extId);
+    } catch (ex) {
+      // Such command do not exists, suppose we are under Theia, it's not possible to install this extension this way
+      return;
+    }
+    await vscode.window
+      .showInformationMessage(
+        `Install the [InterSystems Language Server extension](https://marketplace.visualstudio.com/items?itemName=${extId}) for best handling of ObjectScript code.`,
+        "Install",
+        "Later"
+      )
+      .then(async (action) => {
+        switch (action) {
+          case "Install":
+            await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`).then(null, null);
+            await vscode.commands.executeCommand("workbench.extensions.installExtension", extId);
+            extension = vscode.extensions.getExtension(extId);
+            break;
+          case "Later":
+          default:
+        }
+      });
+  }
 
   return extension;
 }
@@ -534,10 +560,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     outputChannel.show(true);
   }
 
-  const languageServerExt = languageServer();
+  const languageServerExt =
+    context.extensionMode && context.extensionMode !== vscode.ExtensionMode.Test ? await languageServer() : null;
   const noLSsubscriptions: { dispose(): any }[] = [];
   if (!languageServerExt) {
-    outputChannel.appendLine(`The language-server extension was not found.\n`);
+    outputChannel.appendLine(`The intersystems.language-server extension is not installed or has been disabled.\n`);
     outputChannel.show(true);
 
     if (vscode.window.activeTextEditor) {
