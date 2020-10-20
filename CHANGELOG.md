@@ -1,6 +1,6 @@
 # Change Log
 
-## [1.0.0] 19-Oct-2020
+## [1.0.1] 20-Oct-2020
 - First production release.
 
 ## [0.9.5]
