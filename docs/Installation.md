@@ -8,7 +8,7 @@ nav_order: 2
 
 ## Install VS Code
 
-Your first step is to install VS Code:
+Your first step is to install VS Code: 
 
 1. Go to the [Visual Studio Code download page](https://code.visualstudio.com/).
 2. Download an appropriate build for your platform.

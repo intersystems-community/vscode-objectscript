@@ -12,6 +12,7 @@ First configure the `intersystems.servers` entry for your server, as described i
 
 Next create a workspace for editing code direct on the server:
 
+=======
 1. Open VS Code. If a folder or workspace is already open, close it, for example by pressing <kbd>Ctrl/Cmd</kbd>+<kbd>K</kbd>, releasing that keypair, then pressing <kbd>F</kbd>.
 
 2. Open the Explorer view (<kbd>Ctrl/Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>) if it is not already visible.
