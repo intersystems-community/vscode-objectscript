@@ -67,6 +67,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         if: runner.os == 'Linux'
         with:
+          name: ${{ steps.set-version.outputs.name }}.vsix
           path: ${{ steps.set-version.outputs.name }}.vsix
       - uses: actions/upload-artifact@v2
         if: runner.os == 'Linux'
