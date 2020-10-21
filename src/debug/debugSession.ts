@@ -85,15 +85,10 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
   private _evalResultProperties = new Map<number, xdebug.EvalResultProperty>();
 
+  private cookies: string[] = [];
+
   public constructor() {
     super();
-
-    const api = new AtelierAPI();
-    if (!api.active) {
-      throw new Error("Connection not active");
-    }
-    this._namespace = api.ns;
-    this._url = api.xdebugUrl();
 
     // this debugger uses zero-based lines and columns
     this.setDebuggerLinesStartAt1(false);
@@ -114,32 +109,52 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       supportsStepBack: false,
     };
 
-    const socket = new WebSocket(this._url);
+    try {
+      const api = new AtelierAPI();
+      this.cookies = api.cookies;
+      if (!api.active) {
+        throw new Error("Connection not active");
+      }
+      this._namespace = api.ns;
+      this._url = api.xdebugUrl();
 
-    const disposeConnection = (error?: Error): void => {
-      this.sendEvent(new ThreadEvent("exited", this._connection.id));
-      this._connection.close();
-      this._connection = null;
-    };
-    this._connection = new xdebug.Connection(socket)
-      .on("warning", (warning: string) => {
-        this.sendEvent(new OutputEvent(warning + "\n"));
-      })
-      .on("close", disposeConnection)
-      .on("stdout", (data: string) => {
-        this.sendEvent(new OutputEvent(data, "stdout"));
+      await api.serverInfo();
+
+      const socket = new WebSocket(this._url, {
+        headers: {
+          cookie: this.cookies,
+        },
       });
 
-    await this._connection.waitForInitPacket();
+      const disposeConnection = (error?: Error): void => {
+        this.sendEvent(new ThreadEvent("exited", this._connection.id));
+        this._connection.close();
+        this._connection = null;
+      };
+      this._connection = new xdebug.Connection(socket)
+        .on("warning", (warning: string) => {
+          this.sendEvent(new OutputEvent(warning + "\n"));
+        })
+        .on("close", disposeConnection)
+        .on("stdout", (data: string) => {
+          this.sendEvent(new OutputEvent(data, "stdout"));
+        });
 
-    await this._connection.sendFeatureSetCommand("max_data", 8192);
-    await this._connection.sendFeatureSetCommand("max_children", 32);
-    await this._connection.sendFeatureSetCommand("max_depth", 2);
-    await this._connection.sendFeatureSetCommand("notify_ok", 1);
+      await this._connection.waitForInitPacket();
 
-    this.sendResponse(response);
+      await this._connection.sendFeatureSetCommand("max_data", 8192);
+      await this._connection.sendFeatureSetCommand("max_children", 32);
+      await this._connection.sendFeatureSetCommand("max_depth", 2);
+      await this._connection.sendFeatureSetCommand("notify_ok", 1);
 
-    this.sendEvent(new InitializedEvent());
+      this.sendResponse(response);
+
+      this.sendEvent(new InitializedEvent());
+    } catch (error) {
+      response.success = false;
+      response.message = "Debugger can not start";
+      this.sendResponse(response);
+    }
   }
 
   protected async launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments): Promise<void> {
@@ -147,7 +162,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
     try {
       const debugTarget = `${this._namespace}:${args.program}`;
-      await this._connection.sendFeatureSetCommand("debug_target", debugTarget);
+      await this._connection.sendFeatureSetCommand("debug_target", debugTarget, true);
 
       this._debugTargetSet.notify();
     } catch (error) {
@@ -313,26 +328,31 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
           const fileUri = DocumentContentProvider.getUri(routine, null, namespace).toString();
           const source = new Source(routine, fileUri);
           let line = stackFrame.line + 1;
-          if (source.name.endsWith(".cls") && stackFrame.method !== "") {
-            line = await vscode.workspace.openTextDocument(vscode.Uri.parse(source.path)).then((document) => {
-              const methodMatchPattern = new RegExp(`^(Class)?Method ${stackFrame.method}(?=[( ])`, "i");
-              for (let i = 0; i < document.lineCount; i++) {
-                const line = document.lineAt(i);
-
-                const methodMatch = line.text.match(methodMatchPattern);
-                if (methodMatch) {
-                  return i + 2 + stackFrame.methodOffset;
-                }
-              }
-            });
-          }
           const place = `${stackFrame.method}+${stackFrame.methodOffset}`;
           const stackFrameId = this._stackFrameIdCounter++;
-          this._stackFrames.set(stackFrameId, stackFrame);
+          let noSource = false;
+          try {
+            const document = await vscode.workspace.openTextDocument(vscode.Uri.parse(source.path));
+            if (source.name.endsWith(".cls") && stackFrame.method !== "") {
+              const methodMatchPattern = new RegExp(`^(Class)?Method ${stackFrame.method}(?=[( ])`, "i");
+              for (let i = 0; i < document.lineCount; i++) {
+                const codeLine = document.lineAt(i);
+
+                const methodMatch = codeLine.text.match(methodMatchPattern);
+                if (methodMatch) {
+                  line = i + 2 + stackFrame.methodOffset;
+                  break;
+                }
+              }
+            }
+            this._stackFrames.set(stackFrameId, stackFrame);
+          } catch (ex) {
+            noSource = true;
+          }
           return {
             id: stackFrameId,
             name: place,
-            source,
+            source: noSource ? null : source,
             line,
             column: 1,
           };

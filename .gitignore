@@ -6,3 +6,4 @@ out/
 dist/
 *.vsix
 vscode*.d.ts
+test-fixtures

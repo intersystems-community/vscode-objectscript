@@ -14,7 +14,7 @@ If no launch configurations are available, you are prompted to create one:
 
 Clicking the link creates and opens a `launch.json` file containing the following default information:
 
-```js
+```json
 {
     "version": "0.2.0",
     "configurations": [
@@ -35,7 +35,7 @@ These attributes are mandatory for any launch configuration:
 
 In addition, for an **objectscript** configuration, you need to supply the attribute **program**, which specifies the executable or file to run when launching the debugger, as shown in the following example:
 
-```js
+```json
 "launch": {
 	"version": "0.2.0",
 	"configurations": [

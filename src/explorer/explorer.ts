@@ -127,6 +127,7 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
           });
         }
       });
+    await vscode.commands.executeCommand("setContext", "vscode-objectscript.explorerRootCount", rootNodes.length);
     return rootNodes;
   }
 }

@@ -7,7 +7,7 @@ import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 
 export class ClassDefinition {
   public get uri(): vscode.Uri {
-    return DocumentContentProvider.getUri(this._classFileName);
+    return DocumentContentProvider.getUri(this._classFileName, this._workspaceFolder, this._namespace);
   }
 
   public static normalizeClassName(className: string, withExtension = false): string {
@@ -16,8 +16,12 @@ export class ClassDefinition {
   private _className: string;
   private _classFileName: string;
   private _cache;
+  private _workspaceFolder: string;
+  private _namespace: string;
 
-  public constructor(className: string) {
+  public constructor(className: string, workspaceFolder?: string, namespace?: string) {
+    this._workspaceFolder = workspaceFolder;
+    this._namespace = namespace;
     if (className.endsWith(".cls")) {
       className = className.replace(/\.cls$/i, "");
     }
@@ -30,6 +34,7 @@ export class ClassDefinition {
     return vscode.workspace.openTextDocument(this.uri);
   }
 
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   public store(kind: string, data: any): any {
     return this._cache.put(kind, data, 36000).then(() => data);
   }
@@ -44,7 +49,7 @@ export class ClassDefinition {
       return Promise.resolve(methods);
     }
     const filterScope = (method) => scope === "any" || method.scope === scope;
-    const api = new AtelierAPI();
+    const api = new AtelierAPI(this.uri);
     const getMethods = (content) => {
       const extend = [];
       content.forEach((el) => {
@@ -64,7 +69,7 @@ export class ClassDefinition {
     if (properties.length) {
       return Promise.resolve(properties);
     }
-    const api = new AtelierAPI();
+    const api = new AtelierAPI(this.uri);
     const getProperties = (content) => {
       const extend = [];
       content.forEach((el) => {
@@ -84,7 +89,7 @@ export class ClassDefinition {
     if (parameters.length) {
       return Promise.resolve(parameters);
     }
-    const api = new AtelierAPI();
+    const api = new AtelierAPI(this.uri);
     const getParameters = (content) => {
       const extend = [];
       content.forEach((el) => {
@@ -104,7 +109,7 @@ export class ClassDefinition {
     if (superList) {
       return Promise.resolve(superList);
     }
-    const api = new AtelierAPI();
+    const api = new AtelierAPI(this.uri);
     const sql = `SELECT PrimarySuper FROM %Dictionary.CompiledClass
     WHERE Name %inlist (SELECT $LISTFROMSTRING(Super, ',') FROM %Dictionary.CompiledClass WHERE Name = ?)`;
     return api
@@ -128,7 +133,7 @@ export class ClassDefinition {
     if (includeCode) {
       return Promise.resolve(includeCode);
     }
-    const api = new AtelierAPI();
+    const api = new AtelierAPI(this.uri);
     const sql = `SELECT LIST(IncludeCode) List FROM %Dictionary.CompiledClass WHERE Name %INLIST (
       SELECT $LISTFROMSTRING(PrimarySuper, '~') FROM %Dictionary.CompiledClass WHERE Name = ?)`;
     const defaultIncludes = ["%occInclude", "%occErrors"];

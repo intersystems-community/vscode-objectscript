@@ -6,34 +6,40 @@
 [![](https://img.shields.io/badge/InterSystems-Caché-blue.svg)](https://www.intersystems.com/products/cache/)
 [![](https://img.shields.io/badge/InterSystems-Ensemble-blue.svg)](https://www.intersystems.com/products/ensemble/)
 
-# vscode-objectscript
+# InterSystems ObjectScript extension for VS Code
 
-[InterSystems](http://www.intersystems.com/our-products/) ObjectScript language support for Visual Studio Code.
+[InterSystems&reg;](http://www.intersystems.com) ObjectScript language support for Visual Studio Code, from the [InterSystems Developer Community](https://community.intersystems.com/).
+
+Documentation on [GitHub Pages](https://intersystems-community.github.io/vscode-objectscript/).
 
 ## Features
 
 - InterSystems ObjectScript code highlighting support.
+
   ![example](https://raw.githubusercontent.com/intersystems-community/vscode-objectscript/master/images/screenshot.png)
 - Debugging ObjectScript code.
 - Intellisense support for commands, system functions, and class members.
-- Export existing sources to the working directory: press Cmd/Ctrl+Shift+P, type 'ObjectScript', press Enter.
-- Save and compile a class: press <kbd>Ctrl</kbd>+<kbd>F7</kbd> (<kbd>⌘</kbd>+<kbd>F7</kbd>) or select "ObjectScript: Import and Compile Current File" from <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> menu.
-- Direct access to edit or view server code VSCode Explorer via `isfs` and `isfs-readonly` FileSystemProviders (e.g. using a [multi-root workspace](https://code.visualstudio.com/docs/editor/multi-root-workspaces)).
-- Server Explorer view (ObjectScript: Explorer) with ability to export items to working directory. ![ServerExplorer](https://raw.githubusercontent.com/intersystems-community/vscode-objectscript/master/images/explorer.png)
+- Export existing server sources to the working directory: open Command Palette (<kbd>F1</kbd> or <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>), start typing 'ObjectScript', choose `ObjectScript: Export Sources`, press <kbd>Enter</kbd>.
+- Save and compile a class: press <kbd>Ctrl</kbd>+<kbd>F7</kbd> (<kbd>⌘</kbd>+<kbd>F7</kbd>) or select `ObjectScript: Import and Compile Current File` from Command Palette.
+- Direct access to edit or view server code in VS Code Explorer via `isfs` and `isfs-readonly` FileSystemProviders (e.g. using a [multi-root workspace](https://code.visualstudio.com/docs/editor/multi-root-workspaces)).
+- Server Explorer view (ObjectScript: Explorer) with ability to export items to working directory.
+
+  ![ServerExplorer](https://raw.githubusercontent.com/intersystems-community/vscode-objectscript/master/images/explorer.png)
 
 ## Installation
 
 Install [Visual Studio Code](https://code.visualstudio.com/) first.
 
-Open VSCode. Go to extensions and search for "ObjectScript" like it is shown on the attached screenshot and install it.
-Or install from ObjectScript extension page on [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=daimor.vscode-objectscript)
+Open VS Code. Go to Extensions view (<kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>) and search for "vscode-objectscript" and install it.
+Or install from the ObjectScript extension page on [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=intersystems-community.vscode-objectscript)
+
 ![installation](https://raw.githubusercontent.com/intersystems-community/vscode-objectscript/master/images/installation.gif)
 
 ## Configure Connection
 
-To be able to use many features you first need to configure the connection to your IRIS/Caché/Ensemble server(s) in your [VSCode settings](https://code.visualstudio.com/docs/getstarted/settings). If you are unfamiliar with how settings work and how they are edited, use that link.
+To be able to use many features you first need to configure the connection to your IRIS/Caché/Ensemble server(s) in your [VS Code settings](https://code.visualstudio.com/docs/getstarted/settings). If you are unfamiliar with how settings work and how they are edited, use that link.
 
-We recommend you define server connections in the `intersystems.servers` object whose structure is defined by the [InterSystems Server Manager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) helper extension. Install this extension to get assistance when editing the JSON definition. For example:
+We recommend you define server connections in the `intersystems.servers` object whose structure is defined by the [InterSystems Server Manager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) helper extension. Install this extension and consult its README about commands for easy setup of connections, plus assistance when editing the JSON definition. For example:
 
 ```json
 	"intersystems.servers": {
@@ -49,11 +55,11 @@ We recommend you define server connections in the `intersystems.servers` object 
   }
 ```
 
-By defining connections in your User Settings they become available for use by any workspace you open in VSCode. Alternatively, define them in workspace-specific settings.
+By defining connections in your User Settings they become available for use by any workspace you open in VS Code. Alternatively, define them in workspace-specific settings.
 
-Setting the `username` property is optional. If omitted it will be prompted for when connecting, then cached for the session..
+Setting the `username` property is optional. If omitted it will be prompted for when connecting, then cached for the session.
 
-Setting a plaintext value for the `password` property is not recommended. Instead, run the `InterSystems Server Manager: Store Password in Keychain` command from Command Palette.
+Setting a plaintext value for the `password` property is **not** recommended. Instead, run the `InterSystems Server Manager: Store Password in Keychain` command from Command Palette.
 
 If no password has been set or stored it will be prompted for when connecting, then cached for the session.
 
@@ -77,37 +83,18 @@ When the `server` property is set, any `username` or `password` properties of `o
 
 ### Server-side Editing
 
-To edit code directly in one or more namespaces on one or more servers (local or remote) we recommend creating a workspace definition file (XYZ.code-workspace) in which you specify one or more root folders that directly access namespaces via the `isfs` or `isfs-readonly` URI schemes. The only difference between these two schemes is that any file opened from a folder using the `isfs-readonly` scheme will be set as readonly in VSCode and thus protected against changing.
+To edit code directly in one or more namespaces on one or more servers (local or remote) we recommend creating a workspace definition file (for example _XYZ.code-workspace_) where you specify one or more root folders that directly access namespaces via the `isfs` or `isfs-readonly` URI schemes. The only difference between these two schemes is that any file opened from a folder using the `isfs-readonly` scheme will be set as readonly in VS Code and thus protected against changing.
 
-1. Start VSCode.
+1. Start VS Code.
 2. If your last-used folder opens, use 'Close Folder' on the 'File' menu ('Code' menu on macOS). Or if what opened was your last-used workspace, use 'Close Workspace'.
-3. Use 'Save Workspace As...' to create an empty file with a .code-workspace extension.
-4. Use the Command Palette to run 'Preferences: Open Workspace Settings (JSON)'.
-5. Add a `folders` array that defines one or more root folders for your workspace. The `uri` property of each folder specifies whether to use `isfs` or `isfs-readonly`, and which entry within `intersystems.servers` to get the connection definition from. All example here reference one named `local`. Add a `ns` query parameter to specify which namespace to access. Optionally add a `label` property to set the display name of the folder in Explorer. Optionally add a workspace-specific `settings` object to hide the ObjectScript Explorer view, which is not usually needed when working server-side in this way.
+3. On VS Code's Explorer view, click the 'Choose Server and Namespace' button. Respond to the sequence of quickpicks. You can also define a new server connection during this process.
+4. Use 'Save Workspace As...' to store your workspace definition in a file with a `.code-workspace` extension.
 
-```json
-{
-	"folders": [
-		{
-			"name": "local:USER",
-			"uri": "isfs://local/?ns=USER"
-		},
-		{
-			"name": "local:USER (readonly)",
-			"uri": "isfs-readonly://local/?ns=USER"
-		}
-	],
-	"settings": {
-		"objectscript.showExplorer": false
-	}
-}
-```
-
-To access the server-side files of a web application, format your `uri` property like this:
+To access the server-side files of a web application, edit the JSON of your workspace definition. Get there by running the 'Preferences: Open Workspace Settings (JSON)' command. Format your `uri` property like this example for the `/csp/user` web application:
 
 ```json
     {
-      "uri": "isfs://local/csp/user/?&csp&ns=USER"
+      "uri": "isfs://local/csp/user?csp&ns=USER"
     }
 ```
 The `csp` query parameter indicates web application files are to be shown. The uri path specifies which application. The `ns` parameter must specify the same namespace the application is configured to use.
@@ -139,6 +126,6 @@ GRANT EXECUTE ON %Library.RoutineMgr_StudioOpenDialog TO xxx
 
 ## Support and Training
 
-[CaretDev](https://caretdev.com/#products) provides commercial support services. [Request a Quote](https://caretdev.com/contact-us/).
+[CaretDev](https://caretdev.com/#products) provides commercial support services. [Request a quote](https://caretdev.com/contact-us/).
 
-On-line course from CaretDev - [Developing with VSCode ObjectScript – Easy Start](https://caretdev.com/courses/).
+On-line course from CaretDev - [Developing with VS Code ObjectScript – Easy Start](https://caretdev.com/courses/).

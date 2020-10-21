@@ -19,28 +19,34 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
     ]).then(([classes, routines, methods]) => [...classes, ...routines, ...methods]);
   }
 
-  public async byClasses(query: string): Promise<vscode.SymbolInformation[]> {
+  private getApi(): AtelierAPI {
+    const currentFileUri = vscode.window.activeTextEditor?.document.uri;
+    const firstFolder = vscode.workspace.workspaceFolders?.length ? vscode.workspace.workspaceFolders[0] : undefined;
+    return new AtelierAPI(currentFileUri || firstFolder?.uri || "");
+  }
+
+  private async byClasses(query: string): Promise<vscode.SymbolInformation[]> {
     query = query.toUpperCase();
     query = `*${query}*`;
     const library = query.replace(/%(\b\w+\b(?!\.))/, "%LIBRARY.$1");
     const sql = `
     SELECT TOP 10 Name ClassName FROM %Dictionary.ClassDefinition
     WHERE %SQLUPPER Name %MATCHES ? OR %SQLUPPER Name %MATCHES ?`;
-    const api = new AtelierAPI();
+    const api = this.getApi();
     const data = await api.actionQuery(sql, [library, query]);
     return data.result.content.map(({ ClassName }) => ({
       kind: vscode.SymbolKind.Class,
       location: {
-        uri: new ClassDefinition(ClassName).uri,
+        uri: new ClassDefinition(ClassName, undefined, api.ns).uri,
       },
       name: ClassName,
     }));
   }
 
-  public async byRoutines(query: string): Promise<vscode.SymbolInformation[]> {
+  private async byRoutines(query: string): Promise<vscode.SymbolInformation[]> {
     query = `*${query}*.mac,*${query}*.int`;
     const sql = `CALL %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)`;
-    const api = new AtelierAPI();
+    const api = this.getApi();
     const direction = "1";
     const orderBy = "1";
     const systemFiles = "0";
@@ -52,22 +58,22 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
     return data.result.content.map(({ Name }: StudioOpenDialog) => ({
       kind: vscode.SymbolKind.File,
       location: {
-        uri: DocumentContentProvider.getUri(Name),
+        uri: DocumentContentProvider.getUri(Name, undefined, api.ns),
       },
       name: Name,
     }));
   }
 
-  public async byMethods(query: string): Promise<vscode.SymbolInformation[]> {
+  private async byMethods(query: string): Promise<vscode.SymbolInformation[]> {
+    const api = this.getApi();
     query = query.toUpperCase();
     query = `*${query}*`;
     const getLocation = async (className, name) => {
-      const classDef = new ClassDefinition(className);
+      const classDef = new ClassDefinition(className, undefined, api.ns);
       return classDef.getMemberLocation(name);
     };
     const sql = `
       SELECT TOP 10 Parent ClassName, Name FROM %Dictionary.MethodDefinition WHERE %SQLUPPER Name %MATCHES ?`;
-    const api = new AtelierAPI();
     return api
       .actionQuery(sql, [query])
       .then((data): Promise<vscode.SymbolInformation>[] =>

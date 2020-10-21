@@ -1,5 +1,55 @@
 # Change Log
 
+## [1.0.1] 20-Oct-2020
+- First production release.
+
+## [0.9.5]
+- Fix regression in 0.9.4 that broke `Add Server Namespace to Workspace...`.
+
+## [0.9.4]
+- Support folder-level settings, snippets and debug configurations for server-side (isfs) workspace folders. This feature requires a `/_vscode` webapp using the %SYS namespace.
+- Support webapp-type roots referencing a path that is an ancestor of one or more webapps that use the target namespace. For example `isfs://server/?ns=%SYS&csp` gives access to all %SYS webapps from a single root folder.
+- Enhance `Add Server Namespace to Workspace...` command and quickstart button to add webapp-type roots.
+- Remove requirement for namespaces to be uppercase in settings.
+
+## [0.9.3]
+- Add quickstart button to ObjectScript Explorer view when local folder is open but no `objectscript.conn` settings are available to it.
+- Add `Jump to Tag + Offset` command for MACs and INTs, and make it available via click on statusbar field.
+- Support server-side editing of other filetypes such as HL7, LUT.
+- Output a message when proposed APIs are enabled.
+- Connect FileSearchProvider to server. When VS Code is running with the `--enable-proposed-api` switch the QuickOpen field (<kbd>Ctrl/Cmd+p</kbd>) will now search connected servers for classes, routines etc.
+- Fix various debugging issues.
+- Fix problems with `View Other`.
+- Drop first-line 'ROUTINE' entry from label list shown in breadcrumb and Outline panel.
+- Pass path of webapp (CSP) files correctly to server-side source control class.
+- Support AfterUserAction reload signal from server-side source control class.
+- Prepare to coexist with upcoming language server extension.
+
+## [0.9.2]
+- Implement `Add Server Namespace to Workspace...` command and surface it on folder context menus in VS Code Explorer.
+- Add `Choose Server and Namespace` button to VS Code Explorer view when no folder or workspace is open. This provides a quick way to get started with server-centric development, particularly when combined with the 'just-in-time' connection definition enhancement that arrived in version 0.0.7 of the Server Manager extension.
+
+## [0.9.1]
+- Fix problem that caused isfs-type saves to report incorrectly that server version was newer.
+- Prevent silent overwrite on retry after an import was initially canceled because of server-side difference.
+- Serialize and deduplicate initial credential prompting when a multi-server workspace is opened.
+- Make server-side extension pages launch correctly when `intersystems.servers` is used for the connection.
+- Fix _tag+line^routine_ display in status bar, and extend it from INTs to MACs.
+- Fix broken badges on extension's page.
+- Make changes for Theia compatibility.
+- Improve README.
+- Add missing 0.9.0 CHANGELOG.
+
+## [0.9.0]
+- Change publisher id to be 'intersystems-community'.
+- Refresh correctly from server after isfs-type save and compile.
+- Swap the two sides displayed by a compare invoked after local file import conflict. Server copy is now on the left, to match convention elsewhere in VS Code.
+- Fix `Import and Compile Current File`.
+- Exclude invalid commands from Command Palette.
+- New documentation site using [GitHub Pages](https://intersystems-community.github.io/vscode-objectscript/).
+- Add API functions for use by other extensions.
+- Upgrade vulnerable dependencies.
+
 ## [0.8.9]
 - Fix saving of isfs-type server-side editing, broken in 0.8.8.
 - Implement double-click opening from ObjectScript Explorer.

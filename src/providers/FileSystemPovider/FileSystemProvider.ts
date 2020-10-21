@@ -6,6 +6,9 @@ import { Directory } from "./Directory";
 import { File } from "./File";
 import { fireOtherStudioAction, OtherStudioAction } from "../../commands/studio";
 import { StudioOpenDialog } from "../../queries";
+import { redirectDotvscodeRoot } from "../../utils/index";
+
+declare function setTimeout(callback: (...args: any[]) => void, ms: number, ...args: any[]): NodeJS.Timeout;
 
 export type Entry = File | Directory;
 
@@ -22,7 +25,14 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     this.onDidChangeFile = this._emitter.event;
   }
 
+  // Used by import and compile to make sure we notice its changes
   public fireFileChanged(uri: vscode.Uri): void {
+    // Remove entry from our cache
+    this._lookupParentDirectory(uri).then((parent) => {
+      const name = path.basename(uri.path);
+      parent.entries.delete(name);
+    });
+    // Queue the event
     this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
   }
 
@@ -33,6 +43,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   public async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
     const parent = await this._lookupAsDirectory(uri);
     const api = new AtelierAPI(uri);
+    if (!api.active) {
+      return;
+    }
     const sql = `CALL %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)`;
     const { query } = url.parse(decodeURIComponent(uri.toString()), true);
     const type = query.type && query.type != "" ? query.type.toString() : "all";
@@ -49,7 +62,13 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     } else {
       filter = "*.cls,*.inc,*.mac,*.int";
     }
-    const folder = csp ? (uri.path.endsWith("/") ? uri.path : uri.path + "/") : uri.path.replace(/\//g, ".");
+    const folder = !csp
+      ? uri.path.replace(/\//g, ".")
+      : uri.path === "/"
+      ? ""
+      : uri.path.endsWith("/")
+      ? uri.path
+      : uri.path + "/";
     const spec = csp ? folder + filter : folder.length > 1 ? folder.slice(1) + "/" + filter : filter;
     const dir = "1";
     const orderBy = "1";
@@ -57,23 +76,51 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const flat = query.flat && query.flat.length ? query.flat.toString() : "0";
     const notStudio = "0";
     const generated = query.generated && query.generated.length ? query.generated.toString() : "0";
+    // get all web apps that have a filepath (Studio dialog used below returns REST ones too)
+    const cspApps = csp ? await api.getCSPApps().then((data) => data.result.content || []) : [];
+    const cspSubfolderMap = new Map<string, vscode.FileType>();
+    const prefix = folder === "" ? "/" : folder;
+    for (const app of cspApps) {
+      if ((app + "/").startsWith(prefix)) {
+        const subfolder = app.slice(prefix.length).split("/")[0];
+        if (subfolder) {
+          cspSubfolderMap.set(subfolder, vscode.FileType.Directory);
+        }
+      }
+    }
+    const cspSubfolders = Array.from(cspSubfolderMap.entries());
+    // Assemble the results
     return api
       .actionQuery(sql, [spec, dir, orderBy, system, flat, notStudio, generated])
       .then((data) => data.result.content || [])
-      .then((data) =>
-        data.map((item: StudioOpenDialog) => {
-          const name = item.Name;
-          const fullName = folder === "" ? name : folder + "/" + name;
-          if (item.Type === "10" || item.Type === "9") {
-            parent.entries.set(name, new Directory(name, fullName));
-            return [name, vscode.FileType.Directory];
-          } else {
-            return [name, vscode.FileType.File];
-          }
-        })
-      )
+      .then((data) => {
+        const results = data
+          .filter((item: StudioOpenDialog) =>
+            item.Type === "10"
+              ? csp && !item.Name.includes("/") // ignore web apps here because there may be REST ones
+              : item.Type === "9" // class package
+              ? !csp
+              : csp
+              ? item.Type === "5" // web app file
+              : true
+          )
+          .map((item: StudioOpenDialog) => {
+            const name = item.Name;
+            const fullName = folder === "" ? name : csp ? folder + name : folder + "/" + name;
+            if (item.Type === "10" || item.Type === "9") {
+              parent.entries.set(name, new Directory(name, fullName));
+              return [name, vscode.FileType.Directory];
+            } else {
+              return [name, vscode.FileType.File];
+            }
+          });
+        if (!csp) {
+          return results;
+        }
+        return results.concat(cspSubfolders);
+      })
       .catch((error) => {
-        console.error(error);
+        error && console.error(error);
       });
   }
 
@@ -126,7 +173,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       overwrite: boolean;
     }
   ): void | Thenable<void> {
-    if (uri.path.match(/\/\.[^/]*\//)) {
+    uri = redirectDotvscodeRoot(uri);
+    if (uri.path.startsWith("/.")) {
       throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
     }
     const { query } = url.parse(decodeURIComponent(uri.toString()), true);
@@ -139,8 +187,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     return this._lookupAsFile(uri).then(
       () => {
         // Weirdly, if the file exists on the server we don't actually write its content here.
-        // Instead we simply return as though we succeeded. The actual writing is done by our
-        // workspace.onDidSaveTextDocument handler.
+        // Instead we simply return as though we wrote it successfully.
+        // The actual writing is done by our workspace.onDidSaveTextDocument handler.
         return;
       },
       (error) => {
@@ -195,6 +243,11 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       if (response.result.ext) {
         fireOtherStudioAction(OtherStudioAction.DeletedDocument, uri, response.result.ext);
       }
+      // Remove entry from our cache
+      this._lookupParentDirectory(uri).then((parent) => {
+        const name = path.basename(uri.path);
+        parent.entries.delete(name);
+      });
       this._fireSoon({ type: vscode.FileChangeType.Deleted, uri });
     });
   }
@@ -214,17 +267,21 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     });
   }
 
+  // Fetch entry (a file or directory) from cache, else from server
   private async _lookup(uri: vscode.Uri): Promise<Entry> {
     const parts = uri.path.split("/");
     let entry: Entry = this.root;
-    for (const part of parts) {
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
       if (!part) {
         continue;
       }
       let child: Entry | undefined;
       if (entry instanceof Directory) {
         child = entry.entries.get(part);
-        if (!part.includes(".")) {
+        // If the last element of path is dotted and is one we haven't already cached as a directory
+        // then it is assumed to be a file.
+        if (!part.includes(".") || i + 1 < parts.length) {
           const fullName = entry.name === "" ? part : entry.fullName + "/" + part;
           child = new Directory(part, fullName);
           entry.entries.set(part, child);
@@ -254,17 +311,16 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     throw vscode.FileSystemError.FileNotADirectory(uri);
   }
 
+  // Fetch from server and cache it
   private async _lookupAsFile(uri: vscode.Uri): Promise<File> {
-    // Reject attempts to access files in .-folders such as .vscode and .git
-    if (uri.path.match(/\/\.[^/]*\//)) {
-      throw vscode.FileSystemError.FileNotFound("dot-folders not supported by server");
+    uri = redirectDotvscodeRoot(uri);
+    if (uri.path.startsWith("/.")) {
+      throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
     }
+
     const { query } = url.parse(decodeURIComponent(uri.toString()), true);
     const csp = query.csp === "" || query.csp === "1";
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
-    if (!csp && !fileName.match(/\.(cls|mac|int|inc|dfi|bpl)$/i)) {
-      throw vscode.FileSystemError.FileNotFound();
-    }
     const name = path.basename(uri.path);
     const api = new AtelierAPI(uri);
     return api
@@ -282,6 +338,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       )
       .then((entry) =>
         this._lookupParentDirectory(uri).then((parent) => {
+          // Store in parent directory's cache
           parent.entries.set(name, entry);
           return entry;
         })

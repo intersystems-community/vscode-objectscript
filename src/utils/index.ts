@@ -1,17 +1,38 @@
 import fs = require("fs");
 import path = require("path");
+import { R_OK } from "constants";
 import * as url from "url";
-import { execSync } from "child_process";
+import { exec } from "child_process";
 import * as vscode from "vscode";
 import { config, schemas, workspaceState, terminals } from "../extension";
 
-export const outputChannel = vscode.window.createOutputChannel("ObjectScript");
+let latestErrorMessage = "";
+export const outputChannel: {
+  resetError?(): void;
+  appendError?(value: string, show?: boolean): void;
+} & vscode.OutputChannel = vscode.window.createOutputChannel("ObjectScript");
+
+/// Append Error if no duplicates previous one
+outputChannel.appendError = (value: string, show = true): void => {
+  if (latestErrorMessage === value) {
+    return;
+  }
+  latestErrorMessage = value;
+  outputChannel.appendLine(value);
+  show && outputChannel.show(true);
+};
+outputChannel.resetError = (): void => {
+  latestErrorMessage = "";
+};
 
 export function outputConsole(data: string[]): void {
   data.forEach((line): void => {
     outputChannel.appendLine(line);
   });
 }
+
+import { InputBoxManager } from "./inputBoxManager";
+export { InputBoxManager };
 
 // tslint:disable-next-line: interface-name
 export interface CurrentFile {
@@ -51,19 +72,19 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
       !document.fileName ||
       !document.languageId ||
       !document.languageId.startsWith("objectscript") ||
-      fileExt.match(/(csp)/i)) // Skip CSP for now, yet
+      fileExt.match(/(csp)/i)) // Skip local CSPs for now
   ) {
     return null;
   }
   const eol = document.eol || vscode.EndOfLine.LF;
-  const uri = document.uri;
+  const uri = redirectDotvscodeRoot(document.uri);
   const content = document.getText();
   let name = "";
   let ext = "";
   const { query } = url.parse(decodeURIComponent(uri.toString()), true);
   const csp = query.csp === "" || query.csp === "1";
   if (csp) {
-    name = fileName;
+    name = uri.path;
   } else if (fileExt === "cls") {
     const match = content.match(/^Class (%?\w+(?:\.\w+)+)/im);
     if (match) {
@@ -160,6 +181,37 @@ export function connectionTarget(uri?: vscode.Uri): ConnectionTarget {
   return result;
 }
 
+/**
+ * Given a URI, returns a server name for it if it is under isfs[-readonly] or null if it is not an isfs file.
+ * @param uri URI to evaluate
+ */
+export function getServerName(uri: vscode.Uri): string {
+  if (!schemas.includes(uri.scheme)) {
+    return null;
+  }
+  if (isCSP(uri)) {
+    // The full file path is the server name of the file.
+    return uri.path;
+  } else {
+    // Complex case: replace folder slashes with dots.
+    return uri.path.slice(1).replace(/\//g, ".");
+  }
+}
+
+/**
+ * Returns true if the specified URI is a CSP file under isfs, false if not.
+ * @param uri URI to test
+ */
+export function isCSP(uri: vscode.Uri): boolean {
+  return (
+    schemas.includes(uri.scheme) &&
+    uri.query
+      .split("&")
+      .map((e) => e.split("=")[0])
+      .includes("csp")
+  );
+}
+
 export function currentWorkspaceFolder(document?: vscode.TextDocument): string {
   document = document ? document : vscode.window.activeTextEditor && vscode.window.activeTextEditor.document;
   if (document) {
@@ -202,7 +254,7 @@ export function notNull(el: any): boolean {
   return el !== null;
 }
 
-export function portFromDockerCompose(): { port: number; docker: boolean } {
+export async function portFromDockerCompose(): Promise<{ port: number; docker: boolean }> {
   const { "docker-compose": dockerCompose = {} } = config("conn");
   const { service, file = "docker-compose.yml", internalPort = 52773, envFile } = dockerCompose;
   if (!internalPort || !file || !service || service === "") {
@@ -212,36 +264,50 @@ export function portFromDockerCompose(): { port: number; docker: boolean } {
   const workspaceFolderPath = workspaceFolderUri().fsPath;
   const workspaceRootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
 
-  const cwd = fs.existsSync(path.join(workspaceFolderPath, file))
-    ? workspaceFolderPath
-    : fs.existsSync(path.join(workspaceRootPath, file))
-    ? workspaceRootPath
-    : null;
+  const cwd: string = await new Promise((resolve, reject) => {
+    fs.access(path.join(workspaceFolderPath, file), R_OK, (error) => {
+      if (error) {
+        fs.access(path.join(workspaceRootPath, file), R_OK, (error) => {
+          if (error) {
+            reject(new Error(`File '${file}' not found.`));
+          } else {
+            resolve(workspaceRootPath);
+          }
+        });
+      } else {
+        resolve(workspaceFolderPath);
+      }
+    });
+  });
 
   if (!cwd) {
     return result;
   }
 
   const envFileParam = envFile ? `--env-file ${envFile}` : "";
-  const cmd = `docker-compose -f ${file} ${envFileParam} port --protocol=tcp ${service} ${internalPort}`;
+  const cmd = `docker-compose -f ${file} ${envFileParam} `;
 
-  try {
-    const serviceLine = execSync(cmd, {
-      cwd,
-    })
-      .toString()
-      .replace("/r", "")
-      .split("/n")
-      .pop();
-    const servicePortMatch = serviceLine.match(new RegExp(`:(\\d+)`));
-    if (servicePortMatch) {
-      const [, newPort] = servicePortMatch;
-      return { port: parseInt(newPort, 10), docker: true };
-    }
-  } catch (e) {
-    // nope
-  }
-  return result;
+  return new Promise((resolve, reject) => {
+    exec(`${cmd} ps --services --filter 'status=running'`, { cwd }, (error, stdout) => {
+      if (error) {
+        reject(error.message);
+      }
+      if (!stdout.replace("\r", "").split("\n").includes(service)) {
+        reject(`Service '${service}' not found in '${file}', or not running.`);
+      }
+
+      exec(`${cmd} port --protocol=tcp ${service} ${internalPort}`, { cwd }, (error, stdout) => {
+        if (error) {
+          reject(error.message);
+        }
+        const [, port] = stdout.match(/:(\d+)/) || [];
+        if (!port) {
+          reject(`Port ${internalPort} not published for service '${service}'.`);
+        }
+        resolve({ port: parseInt(port, 10), docker: true });
+      });
+    });
+  });
 }
 
 export async function terminalWithDocker(): Promise<vscode.Terminal> {
@@ -266,4 +332,31 @@ export async function terminalWithDocker(): Promise<vscode.Terminal> {
   }
   terminal.show(true);
   return terminal;
+}
+
+/**
+ * Alter isfs-type uri.path of /.vscode/* files or subdirectories.
+ * Rewrite `/.vscode/path/to/file` as `/_vscode/XYZ/path/to/file`
+ *  where XYZ comes from the `ns` queryparam of uri.
+ * Also alter query to specify `ns=%SYS&csp=1`
+ *
+ * @returns uri, altered if necessary.
+ * @throws if `ns` queryparam is missing but required.
+ */
+export function redirectDotvscodeRoot(uri: vscode.Uri): vscode.Uri {
+  if (!schemas.includes(uri.scheme)) {
+    return uri;
+  }
+  const dotMatch = uri.path.match(/^\/(\.[^/]*)\/(.*)$/);
+  if (dotMatch && dotMatch[1] === ".vscode") {
+    const nsMatch = `&${uri.query}&`.match(/&ns=(.+)&/);
+    if (!nsMatch) {
+      throw new Error("No 'ns' query parameter on uri");
+    }
+    const namespace = nsMatch[1];
+    const newQueryString = (("&" + uri.query).replace(`ns=${namespace}`, "ns=%SYS") + "&csp=1").slice(1);
+    return uri.with({ path: `/_vscode/${namespace}/${dotMatch[2]}`, query: newQueryString });
+  } else {
+    return uri;
+  }
 }

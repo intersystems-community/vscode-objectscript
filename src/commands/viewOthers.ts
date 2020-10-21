@@ -9,7 +9,7 @@ export async function viewOthers(): Promise<void> {
   if (!file) {
     return;
   }
-  if (!config("conn").active) {
+  if (file.uri.scheme === "file" && !config("conn").active) {
     return;
   }
 
@@ -21,7 +21,7 @@ export async function viewOthers(): Promise<void> {
   const getOthers = (info) => {
     return info.result.content[0].others;
   };
-  const api = new AtelierAPI();
+  const api = new AtelierAPI(file.uri);
   return api
     .actionIndex([file.name])
     .then((info) => {

@@ -5,10 +5,10 @@ import { currentFile } from "../utils";
 import { ClassDefinition } from "../utils/classDefinition";
 
 export async function superclass(): Promise<void> {
-  if (!config("conn").active) {
+  const file = currentFile();
+  if (file.uri.scheme === "file" && !config("conn").active) {
     return;
   }
-  const file = currentFile();
   if (!file || !file.name.toLowerCase().endsWith(".cls")) {
     return;
   }
@@ -26,7 +26,7 @@ export async function superclass(): Promise<void> {
       if (!list.length) {
         return;
       }
-      vscode.window.showQuickPick(list).then((item) => {
+      vscode.window.showQuickPick(list, { placeHolder: "Pick a superclass" }).then((item) => {
         open(item);
       });
     })

@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "0.9.1-SNAPSHOT",
+  "version": "1.0.2-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "9cd75d51-697c-406c-a929-2bcf46e97c64",
   "categories": [
@@ -22,7 +22,6 @@
     "url": "https://github.com/intersystems-community/vscode-objectscript"
   },
   "license": "MIT",
-  "preview": true,
   "publisher": "intersystems-community",
   "contributors": [
     {
@@ -53,11 +52,16 @@
     "onCommand:vscode-objectscript.export",
     "onCommand:vscode-objectscript.compile",
     "onCommand:vscode-objectscript.viewOthers",
+    "onCommand:vscode-objectscript.jumpToTagAndOffset",
     "onCommand:vscode-objectscript.previewXml",
     "onCommand:vscode-objectscript.explorer.refresh",
     "onCommand:vscode-objectscript.explorer.open",
     "onCommand:vscode-objectscript.compileFolder",
     "onCommand:vscode-objectscript.importFolder",
+    "onCommand:vscode-objectscript.addServerNamespaceToWorkspace",
+    "onCommand:vscode-objectscript.connectFolderToServerNamespace",
+    "onCommand:vscode-objectscript.hideExplorerForWorkspace",
+    "onCommand:vscode-objectscript.showExplorerForWorkspace",
     "onLanguage:objectscript",
     "onLanguage:objectscript-class",
     "onLanguage:objectscript-macros",
@@ -70,6 +74,17 @@
   ],
   "main": "./dist/extension",
   "contributes": {
+    "viewsWelcome": [
+      {
+        "view": "explorer",
+        "contents": "Begin local ObjectScript development by opening a folder or cloning a repository. Then switch to the new ObjectScript view in the Activity Bar.\nYou can also create a new workspace to [edit or view code directly on an InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/).\n[Choose Server and Namespace](command:vscode-objectscript.addServerNamespaceToWorkspace)"
+      },
+      {
+        "view": "ObjectScriptExplorer",
+        "contents": "Connect a workspace folder to an [InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/) if you want to export or import ObjectScript code.\n[Choose Server and Namespace](command:vscode-objectscript.connectFolderToServerNamespace)\nOr [hide this ObjectScript view](command:vscode-objectscript.hideExplorerForWorkspace) if it is not needed for the current workspace.",
+        "when": "vscode-objectscript.explorerRootCount == 0"
+      }
+    ],
     "menus": {
       "commandPalette": [
         {
@@ -179,6 +194,18 @@
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
           "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.hideExplorerForWorkspace",
+          "when": "config.objectscript.showExplorer"
+        },
+        {
+          "command": "vscode-objectscript.showExplorerForWorkspace",
+          "when": "!config.objectscript.showExplorer"
+        },
+        {
+          "command": "vscode-objectscript.jumpToTagAndOffset",
+          "when": "editorLangId == objectscript"
         }
       ],
       "view/title": [
@@ -262,12 +289,12 @@
         },
         {
           "command": "vscode-objectscript.serverCommands.contextSourceControl",
-          "when": "resourceScheme == isfs && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "when": "resourceScheme == isfs && vscode-objectscript.connectActive",
           "group": "objectscript@4"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
-          "when": "resourceScheme =~ /^isfs(-readonly)?$/ && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "when": "resourceScheme =~ /^isfs(-readonly)?$/ && vscode-objectscript.connectActive",
           "group": "objectscript@5"
         }
       ],
@@ -297,6 +324,11 @@
       ],
       "explorer/context": [
         {
+          "command": "vscode-objectscript.addServerNamespaceToWorkspace",
+          "when": "explorerResourceIsFolder",
+          "group": "2_workspace"
+        },
+        {
           "command": "vscode-objectscript.compileFolder",
           "when": "vscode-objectscript.connectActive && resourceScheme == file",
           "group": "objectscript@1"
@@ -308,12 +340,12 @@
         },
         {
           "command": "vscode-objectscript.serverCommands.contextSourceControl",
-          "when": "resourceScheme == isfs && resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "when": "resourceScheme == isfs && vscode-objectscript.connectActive",
           "group": "objectscript@2"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
-          "when": "resourceScheme =~ /^isfs(-readonly)?$/ && resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "when": "resourceScheme =~ /^isfs(-readonly)?$/ && vscode-objectscript.connectActive",
           "group": "objectscript@3"
         }
       ]
@@ -494,6 +526,11 @@
       },
       {
         "category": "ObjectScript",
+        "command": "vscode-objectscript.jumpToTagAndOffset",
+        "title": "Jump to Tag + Offset"
+      },
+      {
+        "category": "ObjectScript",
         "command": "vscode-objectscript.viewOthers",
         "title": "View Other"
       },
@@ -551,6 +588,26 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.serverCommands.contextOther",
         "title": "Server Command Menu..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.addServerNamespaceToWorkspace",
+        "title": "Add Server Namespace to Workspace..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.connectFolderToServerNamespace",
+        "title": "Connect Folder to Server Namespace..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.hideExplorerForWorkspace",
+        "title": "Hide Explorer for Workspace"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.showExplorerForWorkspace",
+        "title": "Show Explorer for Workspace"
       }
     ],
     "keybindings": [
@@ -673,16 +730,16 @@
         },
         "objectscript.export": {
           "type": "object",
-          "description": "Export only the necessary stuff.",
+          "description": "Control what to export from the server into the local folder.",
           "scope": "resource"
         },
         "objectscript.export.folder": {
-          "description": "folder for source code",
+          "description": "Folder for source code within workspace.",
           "type": "string",
           "default": "src"
         },
         "objectscript.export.addCategory": {
-          "description": "add category folder to the export path",
+          "description": "Add a category folder to the beginning of the export path.",
           "type": [
             "boolean",
             "object"
@@ -690,32 +747,47 @@
           "default": false
         },
         "objectscript.export.atelier": {
-          "description": "export source code as Atelier it does ( packages to subfolders )",
+          "description": "Export source code as Atelier did it, with packages as subfolders.",
           "type": "boolean",
           "default": true
         },
         "objectscript.export.generated": {
-          "description": "Specifies that generated source code files should be exported",
+          "description": "Export generated source code files, such as INTs generated from classes.",
           "type": "boolean",
           "default": false
         },
         "objectscript.export.filter": {
-          "description": "SQL filter that can be used to match the names",
+          "description": "SQL filter to limit what to export.",
           "type": "string",
           "default": ""
         },
         "objectscript.export.category": {
-          "description": "Specifies a category to export: CLS = classes; RTN = routines; CSP = csp files; OTH = other. Default is *",
+          "markdownDescription": "Category of source code to export: `CLS` = classes; `RTN` = routines; `CSP` = csp files; `OTH` = other. Default is `*` = all.",
           "type": [
             "string",
             "object"
           ],
           "default": "*"
         },
+        "objectscript.export.noStorage": {
+          "description": "Strip the storage definition on export. Can be useful when working across multiple systems.",
+          "type": "boolean",
+          "default": false
+        },
+        "objectscript.export.dontExportIfNoChanges": {
+          "description": "Do not rewrite the local file if the content is identical to what came from the server.",
+          "type": "boolean",
+          "default": false
+        },
+        "objectscript.export.maxConcurrentConnections": {
+          "description": "Maximum number of concurrent export connections. (0 = unlimited)",
+          "type": "number",
+          "default": 0
+        },
         "objectscript.showExplorer": {
           "type": "boolean",
           "default": true,
-          "description": "Show or hide the Explorer."
+          "description": "Show the ObjectScript Explorer view."
         },
         "objectscript.compileFlags": {
           "type": "string",
@@ -725,26 +797,11 @@
         "objectscript.autoPreviewXML": {
           "type": "boolean",
           "default": false,
-          "description": "Automatically Preview XML Export files as UDL"
-        },
-        "objectscript.export.noStorage": {
-          "description": "Strip the storage xml on export.  (Useful for multiple systems)",
-          "type": "boolean",
-          "default": false
-        },
-        "objectscript.export.dontExportIfNoChanges": {
-          "description": "Don't update the local file on export if the content is identical to the server code",
-          "type": "boolean",
-          "default": false
-        },
-        "objectscript.export.maxConcurrentConnections": {
-          "description": "Max Export Connections (0 = Unlimited)",
-          "type": "number",
-          "default": 0
+          "description": "Automatically preview XML export files in UDL format."
         },
         "objectscript.format": {
           "type": "object",
-          "description": "Formatting settings"
+          "description": "Formatting settings."
         },
         "objectscript.format.commandCase": {
           "anyOf": [
@@ -753,7 +810,7 @@
             "lower"
           ],
           "default": "word",
-          "description": "Case for commands"
+          "description": "Case for commands."
         },
         "objectscript.format.functionCase": {
           "anyOf": [
@@ -762,22 +819,22 @@
             "lower"
           ],
           "default": "word",
-          "description": "Case for system functions/variables"
+          "description": "Case for system functions and system variables."
         },
         "objectscript.suppressCompileMessages": {
           "default": true,
           "type": "boolean",
-          "description": "Suppress popup messages about successful compile"
+          "description": "Suppress popup messages about successful compile."
         },
         "objectscript.suppressCompileErrorMessages": {
           "default": false,
           "type": "boolean",
-          "description": "Suppress popup messages about errors during compile, but keep focus on Output view"
+          "description": "Suppress popup messages about errors during compile, but still focus on Output view."
         },
         "objectscript.serverSideEditing": {
           "default": false,
           "type": "boolean",
-          "description": "Allow to edit code directly on server"
+          "description": "Allow to edit code directly on server after opening it from ObjectScript Explorer."
         },
         "objectscript.debug": {
           "type": "object"
@@ -785,12 +842,12 @@
         "objectscript.debug.debugThisMethod": {
           "type": "boolean",
           "default": true,
-          "description": "Show `Debug this method` action for ClassMethods"
+          "markdownDescription": "Show inline `Debug this method` CodeLens action for ClassMethods."
         },
         "objectscript.studioActionDebugOutput": {
           "type": "boolean",
           "default": false,
-          "description": "Output the action that VS Code should perform as requested by the server in JSON format."
+          "description": "Output in JSON format the action that VS Code should perform as requested by the server."
         },
         "objectscript.ignoreInstallServerManager": {
           "type": "boolean",
@@ -911,7 +968,6 @@
     "@types/mocha": "^7.0.2",
     "@types/node": "^14.0.14",
     "@types/request": "^2.48.5",
-    "@types/request-promise": "^4.1.46",
     "@types/ws": "^7.2.5",
     "@types/xmldom": "^0.1.29",
     "@typescript-eslint/eslint-plugin": "^3.4.0",
@@ -942,11 +998,13 @@
   },
   "dependencies": {
     "await-notify": "^1.0.1",
+    "core-js": "^3.6.5",
+    "domexception": "^2.0.1",
     "glob": "^7.1.6",
     "iconv-lite": "^0.6.0",
     "mkdirp": "^1.0.4",
+    "node-fetch": "^3.0.0-beta.9",
     "request": "^2.88.2",
-    "request-promise": "^4.2.5",
     "vscode-cache": "^0.3.0",
     "vscode-debugadapter": "^1.41.0",
     "vscode-debugprotocol": "^1.41.0",

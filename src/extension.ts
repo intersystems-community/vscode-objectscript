@@ -14,9 +14,9 @@ export const schemas = [
   FILESYSTEM_SCHEMA,
   FILESYSTEM_READONLY_SCHEMA,
 ];
+export const filesystemSchemas = [FILESYSTEM_SCHEMA, FILESYSTEM_READONLY_SCHEMA];
 
 import * as url from "url";
-import WebSocket = require("ws");
 import {
   importAndCompile,
   importFolder as importFileOrFolder,
@@ -40,6 +40,9 @@ import {
   contextSourceControlMenu,
   mainSourceControlMenu,
 } from "./commands/studio";
+import { addServerNamespaceToWorkspace } from "./commands/addServerNamespaceToWorkspace";
+import { jumpToTagAndOffset } from "./commands/jumpToTagAndOffset";
+import { connectFolderToServerNamespace } from "./commands/connectFolderToServerNamespace";
 
 import { getLanguageConfiguration } from "./languageConfiguration";
 
@@ -55,7 +58,6 @@ import { ObjectScriptRoutineSymbolProvider } from "./providers/ObjectScriptRouti
 import { ObjectScriptClassCodeLensProvider } from "./providers/ObjectScriptClassCodeLensProvider";
 import { XmlContentProvider } from "./providers/XmlContentProvider";
 
-import { StatusCodeError } from "request-promise/errors";
 import { AtelierAPI } from "./api";
 import { ObjectScriptDebugAdapterDescriptorFactory } from "./debug/debugAdapterFactory";
 import { ObjectScriptConfigurationProvider } from "./debug/debugConfProvider";
@@ -71,6 +73,7 @@ import {
   terminalWithDocker,
   notNull,
   currentFile,
+  InputBoxManager,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentRangeFormattingEditProvider } from "./providers/DocumentRangeFormattingEditProvider";
@@ -96,9 +99,12 @@ const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
 const aiKey = packageJson.aiKey;
 
+const _onDidChangeConnection = new vscode.EventEmitter<void>();
+
 export const config = (setting?: string, workspaceFolderName?: string): vscode.WorkspaceConfiguration | any => {
   workspaceFolderName = workspaceFolderName || currentWorkspaceFolder();
   if (
+    vscode.workspace.workspaceFolders?.length &&
     workspaceFolderName &&
     workspaceFolderName !== "" &&
     vscode.workspace.getConfiguration("intersystems.servers", null).has(workspaceFolderName)
@@ -106,7 +112,7 @@ export const config = (setting?: string, workspaceFolderName?: string): vscode.W
     workspaceFolderName = vscode.workspace.workspaceFolders[0].name;
   }
   let prefix: string;
-  const workspaceFolder = vscode.workspace.workspaceFolders.find(
+  const workspaceFolder = vscode.workspace.workspaceFolders?.find(
     (el) => el.name.toLowerCase() === workspaceFolderName.toLowerCase()
   );
   if (setting && setting.startsWith("intersystems")) {
@@ -152,20 +158,34 @@ export function getXmlUri(uri: vscode.Uri): vscode.Uri {
 }
 let reporter: TelemetryReporter = null;
 
-let connectionSocket: WebSocket;
-
 let serverManagerApi: any;
 
 // Map of the intersystems.server connection specs we have resolved via the API to that extension
 const resolvedConnSpecs = new Map<string, any>();
 
-// Accessor for the connection specs
+/**
+ * If servermanager extension is available, fetch the connection spec unless already cached.
+ * Prompt for credentials if necessary.
+ * @param serverName authority element of an isfs uri, or `objectscript.conn.server` property
+ */
+export async function resolveConnectionSpec(serverName: string): Promise<void> {
+  if (serverManagerApi && serverManagerApi.getServerSpec) {
+    if (serverName && serverName !== "" && !resolvedConnSpecs.has(serverName)) {
+      const connSpec = await serverManagerApi.getServerSpec(serverName);
+      if (connSpec) {
+        resolvedConnSpecs.set(serverName, connSpec);
+      }
+    }
+  }
+}
+
+// Accessor for the cache of resolved connection specs
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function getResolvedConnectionSpec(key: string, dflt: any): any {
   return resolvedConnSpecs.has(key) ? resolvedConnSpecs.get(key) : dflt;
 }
 
-export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
+export async function checkConnection(clearCookies = false, uri?: vscode.Uri): Promise<void> {
   const { apiTarget, configName } = connectionTarget(uri);
   if (clearCookies) {
     /// clean-up cached values
@@ -174,6 +194,7 @@ export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
     workspaceState.update(configName + ":password", undefined);
     workspaceState.update(configName + ":apiVersion", undefined);
     workspaceState.update(configName + ":docker", undefined);
+    _onDidChangeConnection.fire();
   }
   let api = new AtelierAPI(apiTarget, false);
   const { active, host = "", port = 0, ns = "" } = api.config;
@@ -189,32 +210,34 @@ export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
     return;
   }
   if (!workspaceState.get(configName + ":port") && !api.externalServer) {
-    const { port: dockerPort, docker: withDocker } = portFromDockerCompose();
-    workspaceState.update(configName + ":docker", withDocker);
-    if (withDocker) {
-      if (!dockerPort) {
-        outputChannel.appendLine(
-          `Something is wrong with your docker-compose connection settings, or your service is not running.`
-        );
-        outputChannel.show(true);
-        panel.text = `${packageJson.displayName} - ERROR`;
-        return;
+    try {
+      const { port: dockerPort, docker: withDocker } = await portFromDockerCompose();
+      workspaceState.update(configName + ":docker", withDocker);
+      if (withDocker) {
+        if (!dockerPort) {
+          const errorMessage = `Something is wrong with your docker-compose connection settings, or your service is not running.`;
+          outputChannel.appendError(errorMessage);
+          panel.text = `${packageJson.displayName} - ERROR`;
+          return;
+        }
+        const { autoShowTerminal } = config();
+        autoShowTerminal && terminalWithDocker();
+        if (dockerPort !== port) {
+          workspaceState.update(configName + ":host", "localhost");
+          workspaceState.update(configName + ":port", dockerPort);
+        }
+        connInfo = `localhost:${dockerPort}[${ns}]`;
+        _onDidChangeConnection.fire();
       }
-      const { autoShowTerminal } = config();
-      autoShowTerminal && terminalWithDocker();
-      if (dockerPort !== port) {
-        workspaceState.update(configName + ":host", "localhost");
-        workspaceState.update(configName + ":port", dockerPort);
-      }
-      connInfo = `localhost:${dockerPort}[${ns}]`;
+    } catch (error) {
+      outputChannel.appendError(error);
+      workspaceState.update(configName + ":docker", true);
+      return;
     }
   }
 
   if (clearCookies) {
     api.clearCookies();
-  } else if (connectionSocket && connectionSocket.url == api.xdebugUrl() && connectionSocket.OPEN) {
-    panel.text = `${connInfo} - Connected`;
-    return;
   }
 
   // Why must this be recreated here?
@@ -222,8 +245,7 @@ export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
 
   if (!api.config.host || !api.config.port || !api.config.ns) {
     const message = "host, port and ns must be specified.";
-    outputChannel.appendLine(message);
-    outputChannel.show(true);
+    outputChannel.appendError(message);
     panel.text = `${packageJson.displayName} - ERROR`;
     panel.tooltip = message;
     return;
@@ -237,22 +259,11 @@ export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
           serverVersion: info.result.content.version,
           healthshare: hasHS ? "yes" : "no",
         });
-      /// Use xdebug's websocket, to catch when server disconnected
-      connectionSocket = new WebSocket(api.xdebugUrl());
-      connectionSocket.onopen = () => {
-        fireOtherStudioAction(
-          OtherStudioAction.ConnectedToNewNamespace,
-          typeof apiTarget === "string" ? undefined : apiTarget
-        );
-        panel.text = `${connInfo} - Connected`;
-      };
-      connectionSocket.onclose = (event) => {
-        panel.text = `${connInfo} - Disconnected`;
-      };
     })
     .catch((error) => {
       let message = error.message;
-      if (error instanceof StatusCodeError && error.statusCode === 401) {
+      let errorMessage;
+      if (error.status === 401) {
         setTimeout(() => {
           const username = api.config.username;
           if (username === "") {
@@ -262,34 +273,32 @@ export function checkConnection(clearCookies = false, uri?: vscode.Uri): void {
               disableConnection(configName);
             }
           } else {
-            vscode.window
-              .showInputBox({
+            InputBoxManager.showInputBox(
+              {
                 password: true,
                 placeHolder: `Not Authorized. Enter password to connect as user '${username}' to ${connInfo}`,
                 prompt: !api.externalServer ? "If no password is entered the connection will be disabled." : "",
                 ignoreFocusOut: true,
-              })
-              .then((password) => {
+              },
+              async (password) => {
                 if (password) {
                   workspaceState.update(configName + ":password", password);
-                  checkConnection(false, uri);
+                  _onDidChangeConnection.fire();
+                  await checkConnection(false, uri);
                 } else if (!api.externalServer) {
                   disableConnection(configName);
                 }
-              });
+              },
+              connInfo
+            );
           }
         }, 1000);
         message = "Not Authorized";
-        outputChannel.appendLine(
-          `Authorization error: Check your credentials in Settings, and that you have sufficient privileges on the /api/atelier web application on ${connInfo}`
-        );
-        outputChannel.show(true);
+        errorMessage = `Authorization error: Check your credentials in Settings, and that you have sufficient privileges on the /api/atelier web application on ${connInfo}`;
       } else {
-        outputChannel.appendLine(message);
-        outputChannel.appendLine(`Check your server details in Settings (${connInfo}).`);
-        outputChannel.show(true);
+        errorMessage = `${message}\nCheck your server details in Settings (${connInfo}).`;
       }
-      console.error(error);
+      outputChannel.appendError(errorMessage);
       panel.text = `${connInfo} - ERROR`;
       panel.tooltip = message;
       throw error;
@@ -325,25 +334,30 @@ async function serverManager(): Promise<any> {
     if (ignore) {
       return;
     }
+    try {
+      await vscode.commands.executeCommand("extension.open", extId);
+    } catch (ex) {
+      // Such command do not exists, suppose we are under Theia, it's not possible to install this extension this way
+      return;
+    }
     await vscode.window
       .showInformationMessage(
-        "The InterSystems® Server Manager extension is recommended to help you define connections and store passwords securely in your keychain.",
+        `The [InterSystems Server Manager extension](https://marketplace.visualstudio.com/items?itemName=${extId}) is recommended to help you [define connections and store passwords securely](https://intersystems-community.github.io/vscode-objectscript/configuration/#configuring-a-server) in your keychain.`,
         "Install",
-        "Skip",
-        "Ignore"
+        "Later",
+        "Never"
       )
       .then(async (action) => {
         switch (action) {
           case "Install":
-            await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`);
-            await vscode.commands.executeCommand("extension.open", extId);
+            await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`).then(null, null);
             await vscode.commands.executeCommand("workbench.extensions.installExtension", extId);
             extension = vscode.extensions.getExtension(extId);
             break;
-          case "Ignore":
+          case "Never":
             config().update("ignoreInstallServerManager", true, vscode.ConfigurationTarget.Global);
             break;
-          case "Skip":
+          case "Later":
           default:
         }
       });
@@ -356,15 +370,57 @@ async function serverManager(): Promise<any> {
   }
 }
 
+async function languageServer(): Promise<vscode.Extension<any>> {
+  const extId = "intersystems.language-server";
+  let extension = vscode.extensions.getExtension(extId);
+
+  if (!extension) {
+    try {
+      await vscode.commands.executeCommand("extension.open", extId);
+    } catch (ex) {
+      // Such command do not exists, suppose we are under Theia, it's not possible to install this extension this way
+      return;
+    }
+    await vscode.window
+      .showInformationMessage(
+        `Install the [InterSystems Language Server extension](https://marketplace.visualstudio.com/items?itemName=${extId}) for best handling of ObjectScript code.`,
+        "Install",
+        "Later"
+      )
+      .then(async (action) => {
+        switch (action) {
+          case "Install":
+            await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`).then(null, null);
+            await vscode.commands.executeCommand("workbench.extensions.installExtension", extId);
+            extension = vscode.extensions.getExtension(extId);
+            break;
+          case "Later":
+          default:
+        }
+      });
+  }
+
+  return extension;
+}
+
 export async function activate(context: vscode.ExtensionContext): Promise<any> {
   if (!packageJson.version.includes("SNAPSHOT")) {
-    reporter = new TelemetryReporter(extensionId, extensionVersion, aiKey);
+    try {
+      reporter = new TelemetryReporter(extensionId, extensionVersion, aiKey);
+    } catch (_error) {
+      reporter = null;
+    }
   }
 
   const languages = packageJson.contributes.languages.map((lang) => lang.id);
-  workspaceState = context.workspaceState;
+  // workaround for Theia, issue https://github.com/eclipse-theia/theia/issues/8435
+  workspaceState = {
+    get: <T>(key: string, defaultValue?: T): T | undefined =>
+      context.workspaceState.get(key, defaultValue) || defaultValue,
+    update: (key: string, value: any): Thenable<void> => context.workspaceState.update(key, value),
+  };
   extensionContext = context;
-  workspaceState.update("workspaceFolder", "");
+  workspaceState.update("workspaceFolder", undefined);
 
   // Get api for servermanager extension, perhaps offering to install it
   serverManagerApi = await serverManager();
@@ -381,6 +437,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   });
 
   posPanel = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
+  posPanel.command = "vscode-objectscript.jumpToTagAndOffset";
   posPanel.show();
 
   panel = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1);
@@ -392,27 +449,36 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   // Check once (flushing cookies) each connection used by the workspace(s)
   const toCheck = new Map<string, vscode.Uri>();
-  vscode.workspace.workspaceFolders.map((workspaceFolder) => {
+  vscode.workspace.workspaceFolders?.map((workspaceFolder) => {
     const uri = workspaceFolder.uri;
     const { configName } = connectionTarget(uri);
     toCheck.set(configName, uri);
   });
   toCheck.forEach(async function (uri, configName) {
-    if (serverManagerApi && serverManagerApi.getServerSpec) {
-      const serverName = uri.scheme === "file" ? config("conn", configName).server : configName;
-      if (serverName && serverName !== "" && !resolvedConnSpecs.has(serverName)) {
-        const connSpec = await serverManagerApi.getServerSpec(serverName);
-        if (connSpec) {
-          resolvedConnSpecs.set(serverName, connSpec);
-        }
-      }
-    }
-    checkConnection(true, uri);
+    const serverName = uri.scheme === "file" ? config("conn", configName).server : configName;
+    await resolveConnectionSpec(serverName);
+    await checkConnection(true, uri);
   });
 
-  vscode.workspace.onDidChangeConfiguration(({ affectsConfiguration }) => {
-    if (affectsConfiguration("objectscript.conn")) {
-      checkConnection(true);
+  vscode.workspace.onDidChangeWorkspaceFolders(({ added, removed }) => {
+    const folders = vscode.workspace.workspaceFolders;
+    if (
+      folders?.length === 1 &&
+      added?.length === 1 &&
+      removed?.length === 0 &&
+      filesystemSchemas.includes(added[0].uri.scheme)
+    ) {
+      // First folder has been added and is one of the isfs types, so hide the ObjectScript Explorer for this workspace
+      vscode.workspace
+        .getConfiguration("objectscript")
+        .update("showExplorer", false, vscode.ConfigurationTarget.Workspace);
+    }
+  });
+
+  vscode.workspace.onDidChangeConfiguration(async ({ affectsConfiguration }) => {
+    if (affectsConfiguration("objectscript.conn") || affectsConfiguration("intersystems.servers")) {
+      await checkConnection(true);
+      explorerProvider.refresh();
     }
   });
   vscode.window.onDidCloseTerminal((t) => {
@@ -430,22 +496,30 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }
   });
 
-  vscode.window.onDidChangeActiveTextEditor((textEditor: vscode.TextEditor) => {
-    checkConnection();
+  vscode.window.onDidChangeActiveTextEditor(async (textEditor: vscode.TextEditor) => {
+    await checkConnection();
     posPanel.text = "";
-    if (textEditor.document.fileName.endsWith(".xml") && config("autoPreviewXML")) {
+    if (textEditor?.document.fileName.endsWith(".xml") && config("autoPreviewXML")) {
       return xml2doc(context, textEditor);
     }
   });
   vscode.window.onDidChangeTextEditorSelection((event: vscode.TextEditorSelectionChangeEvent) => {
     posPanel.text = "";
-    const intMatch = event.textEditor.document.fileName.match(/\/?(.*)\.int$/i);
-    if (!intMatch || event.selections.length > 1 || !event.selections[0].isEmpty) {
+    const document = event.textEditor.document;
+    if (document.languageId !== "objectscript") {
       return;
     }
+    if (event.selections.length > 1 || !event.selections[0].isEmpty) {
+      return;
+    }
+
+    const file = currentFile(document);
+    const nameMatch = file.name.match(/(.*)\.(int|mac)$/i);
+    if (!nameMatch) {
+      return;
+    }
+    const [, routine] = nameMatch;
     const line = event.selections[0].start.line;
-    const [, routine] = intMatch;
-    const { document } = event.textEditor;
     let label = "";
     let pos = 0;
     for (let i = line; i > 0; i--) {
@@ -464,9 +538,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     ["file", ...schemas].reduce((acc, scheme) => acc.concat(list.map((language) => ({ scheme, language }))), []);
 
   const diagnosticProvider = new ObjectScriptDiagnosticProvider();
-  if (vscode.window.activeTextEditor) {
-    diagnosticProvider.updateDiagnostics(vscode.window.activeTextEditor.document);
-  }
 
   // Gather the proposed APIs we will register to use when building with enableProposedApi = true
   const proposed = [
@@ -484,10 +555,77 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       : null,
   ].filter(notNull);
 
+  if (proposed.length > 0) {
+    outputChannel.appendLine(`${extensionId} version ${extensionVersion} activating with proposed APIs available.\n`);
+    outputChannel.show(true);
+  }
+
+  const languageServerExt =
+    context.extensionMode && context.extensionMode !== vscode.ExtensionMode.Test ? await languageServer() : null;
+  const noLSsubscriptions: { dispose(): any }[] = [];
+  if (!languageServerExt) {
+    outputChannel.appendLine(`The intersystems.language-server extension is not installed or has been disabled.\n`);
+    outputChannel.show(true);
+
+    if (vscode.window.activeTextEditor) {
+      diagnosticProvider.updateDiagnostics(vscode.window.activeTextEditor.document);
+    }
+    noLSsubscriptions.push(
+      workspace.onDidChangeTextDocument((event) => {
+        diagnosticProvider.updateDiagnostics(event.document);
+      }),
+      window.onDidChangeActiveTextEditor(async (editor) => {
+        if (editor) {
+          diagnosticProvider.updateDiagnostics(editor.document);
+        }
+      }),
+      vscode.languages.registerHoverProvider(
+        documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
+        new ObjectScriptHoverProvider()
+      ),
+      vscode.languages.registerDocumentFormattingEditProvider(
+        documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
+        new DocumentFormattingEditProvider()
+      ),
+      vscode.languages.registerDocumentRangeFormattingEditProvider(
+        documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
+        new DocumentRangeFormattingEditProvider()
+      ),
+      vscode.languages.registerDefinitionProvider(
+        documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
+        new ObjectScriptDefinitionProvider()
+      ),
+      vscode.languages.registerCompletionItemProvider(
+        documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
+        new ObjectScriptCompletionItemProvider(),
+        "$",
+        "^",
+        ".",
+        "#"
+      ),
+      vscode.languages.registerDocumentSymbolProvider(
+        documentSelector("objectscript-class"),
+        new ObjectScriptClassSymbolProvider()
+      ),
+      vscode.languages.registerDocumentSymbolProvider(
+        documentSelector("objectscript"),
+        new ObjectScriptRoutineSymbolProvider()
+      )
+    );
+    context.subscriptions.push(...noLSsubscriptions);
+  }
+
   context.subscriptions.push(
     reporter,
+    vscode.extensions.onDidChange(() => {
+      const languageServerExt2 = languageServer();
+      if (typeof languageServerExt !== typeof languageServerExt2) {
+        noLSsubscriptions.forEach((event) => {
+          event.dispose();
+        });
+      }
+    }),
     workspace.onDidChangeTextDocument((event) => {
-      diagnosticProvider.updateDiagnostics(event.document);
       if (
         event.contentChanges.length !== 0 &&
         event.document.uri.scheme === FILESYSTEM_SCHEMA &&
@@ -499,15 +637,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         checkChangedOnServer(currentFile(event.document));
       }
     }),
-    window.onDidChangeActiveTextEditor((editor) => {
-      if (editor) {
-        diagnosticProvider.updateDiagnostics(editor.document);
-      }
+    window.onDidChangeActiveTextEditor(async (editor) => {
       if (workspace.workspaceFolders && workspace.workspaceFolders.length > 1) {
         const workspaceFolder = currentWorkspaceFolder();
         if (workspaceFolder && workspaceFolder !== workspaceState.get<string>("workspaceFolder")) {
           workspaceState.update("workspaceFolder", workspaceFolder);
-          checkConnection();
+          await checkConnection();
         }
       }
     }),
@@ -546,7 +681,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           placeHolder: "Please enter comma delimited arguments list",
         })
         .then((args) => {
-          startDebugging(args);
+          if (args) {
+            startDebugging(args);
+          }
         });
     }),
     vscode.commands.registerCommand("vscode-objectscript.pickProcess", async (config) => {
@@ -574,6 +711,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           if (value) return value.label;
         });
     }),
+    vscode.commands.registerCommand("vscode-objectscript.jumpToTagAndOffset", jumpToTagAndOffset),
     vscode.commands.registerCommand("vscode-objectscript.viewOthers", viewOthers),
     vscode.commands.registerCommand("vscode-objectscript.serverCommands.sourceControl", mainSourceControlMenu),
     vscode.commands.registerCommand(
@@ -619,8 +757,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         return explorerProvider.closeExtra4Workspace(workspaceNode.label, workspaceNode.namespace);
       }
     ),
-    vscode.commands.registerCommand("vscode-objectscript.previewXml", (...args) => {
+    vscode.commands.registerCommand("vscode-objectscript.previewXml", () => {
       xml2doc(context, window.activeTextEditor);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.addServerNamespaceToWorkspace", () => {
+      addServerNamespaceToWorkspace();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.connectFolderToServerNamespace", () => {
+      connectFolderToServerNamespace();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.hideExplorerForWorkspace", () => {
+      vscode.workspace
+        .getConfiguration("objectscript")
+        .update("showExplorer", false, vscode.ConfigurationTarget.Workspace);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.showExplorerForWorkspace", () => {
+      vscode.workspace
+        .getConfiguration("objectscript")
+        .update("showExplorer", true, vscode.ConfigurationTarget.Workspace);
     }),
 
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPT_FILE_SCHEMA, documentContentProvider),
@@ -639,14 +793,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       documentSelector("objectscript-class", "objectscript"),
       new CodeActionProvider()
     ),
-    vscode.languages.registerDocumentSymbolProvider(
-      documentSelector("objectscript-class"),
-      new ObjectScriptClassSymbolProvider()
-    ),
-    vscode.languages.registerDocumentSymbolProvider(
-      documentSelector("objectscript"),
-      new ObjectScriptRoutineSymbolProvider()
-    ),
     vscode.languages.registerFoldingRangeProvider(
       documentSelector("objectscript-class"),
       new ObjectScriptClassFoldingRangeProvider()
@@ -654,30 +800,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.languages.registerFoldingRangeProvider(
       documentSelector("objectscript"),
       new ObjectScriptFoldingRangeProvider()
-    ),
-    vscode.languages.registerDefinitionProvider(
-      documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
-      new ObjectScriptDefinitionProvider()
-    ),
-    vscode.languages.registerCompletionItemProvider(
-      documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
-      new ObjectScriptCompletionItemProvider(),
-      "$",
-      "^",
-      ".",
-      "#"
-    ),
-    vscode.languages.registerHoverProvider(
-      documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
-      new ObjectScriptHoverProvider()
-    ),
-    vscode.languages.registerDocumentFormattingEditProvider(
-      documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
-      new DocumentFormattingEditProvider()
-    ),
-    vscode.languages.registerDocumentRangeFormattingEditProvider(
-      documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
-      new DocumentRangeFormattingEditProvider()
     ),
     vscode.languages.registerWorkspaceSymbolProvider(new WorkspaceSymbolProvider()),
     vscode.debug.registerDebugConfigurationProvider("objectscript", new ObjectScriptConfigurationProvider()),
@@ -741,6 +863,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         uri = vscode.Uri.file(fileName).with({ scheme: OBJECTSCRIPT_FILE_SCHEMA, authority: apiTarget });
       }
       return uri;
+    },
+    onDidChangeConnection(): vscode.Event<void> {
+      return _onDidChangeConnection.event;
     },
   };
 
