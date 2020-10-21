@@ -12,7 +12,7 @@ First configure the connection to InterSystems as described in [Configuration](.
 
 Use **File > New File** to create a new file. Add content similar to the following example. Note that `my-project` in the `isfs://` uri, should be the same as the name of any folder where there are settings for the connection.
 
-```js
+```json
 {
   "folders": [
     {
