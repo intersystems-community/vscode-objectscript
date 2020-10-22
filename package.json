@@ -746,6 +746,37 @@
           ],
           "default": false
         },
+        "objectscript.export.map": {
+          "markdownDescription": "Map file names before export with regexp pattern as a key, and replacement as a value\n (e.g. ```JSON\n {\n  \"%(.*)\": \"_$1\"\n}\n``` for % class or routines replaced to be with underscore instead).",
+          "type": "object",
+          "default": {},
+          "examples": [
+            {
+              "%(.*)": "_$1"
+            }
+          ],
+          "patternProperties": {
+            ".*": {
+              "type": "string"
+            }
+          },
+          "properties": {
+            "%(.*)": {
+              "description": "Catch any % items, with value as `_$1` will replace `%` to `_`",
+              "type": "string",
+              "examples": [
+                "_$1"
+              ]
+            },
+            "(.*)": {
+              "description": "Complete pattern, use `$1` to get matched value",
+              "type": "string",
+              "examples": [
+                "$1"
+              ]
+            }
+          }
+        },
         "objectscript.export.atelier": {
           "description": "Export source code as Atelier did it, with packages as subfolders.",
           "type": "boolean",

@@ -36,7 +36,23 @@ const getCategory = (fileName: string, addCategory: any | boolean): string => {
   }
 };
 
-export const getFileName = (folder: string, name: string, split: boolean, addCategory: boolean): string => {
+export const getFileName = (
+  folder: string,
+  name: string,
+  split: boolean,
+  addCategory: boolean,
+  map: {
+    [key: string]: string;
+  }
+): string => {
+  if (map) {
+    for (const pattern of Object.keys(map)) {
+      if (new RegExp(`^${pattern}$`).test(name)) {
+        name = name.replace(new RegExp(`^${pattern}$`), map[pattern]);
+        break;
+      }
+    }
+  }
   const fileNameArray: string[] = name.split(".");
   const fileExt = fileNameArray.pop().toLowerCase();
   const cat = addCategory ? getCategory(name, addCategory) : null;
@@ -142,7 +158,7 @@ export async function exportList(files: string[], workspaceFolder: string, names
   if (!files || !files.length) {
     vscode.window.showWarningMessage("Nothing to export");
   }
-  const { atelier, folder, addCategory } = config("export", workspaceFolder);
+  const { atelier, folder, addCategory, map } = config("export", workspaceFolder);
 
   const root = [workspaceFolderUri(workspaceFolder).fsPath, typeof folder === "string" && folder.length ? folder : null]
     .filter(notNull)
@@ -150,7 +166,7 @@ export async function exportList(files: string[], workspaceFolder: string, names
   const run = async (fileList) => {
     const errors = [];
     for (const file of fileList) {
-      await exportFile(workspaceFolder, namespace, file, getFileName(root, file, atelier, addCategory)).catch(
+      await exportFile(workspaceFolder, namespace, file, getFileName(root, file, atelier, addCategory, map)).catch(
         (error) => {
           errors.push(`${file} - ${error}`);
         }

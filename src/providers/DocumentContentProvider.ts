@@ -14,10 +14,10 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
   }
 
   public static getAsFile(name: string, workspaceFolder: string): string {
-    const { atelier, folder, addCategory } = config("export", workspaceFolder);
+    const { atelier, folder, addCategory, map } = config("export", workspaceFolder);
 
     const root = [workspaceFolderUri(workspaceFolder).fsPath, folder].join(path.sep);
-    const fileName = getFileName(root, name, atelier, addCategory);
+    const fileName = getFileName(root, name, atelier, addCategory, map);
     if (fs.existsSync(fileName)) {
       return fs.realpathSync.native(fileName);
     }

@@ -849,7 +849,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       const { apiTarget } = connectionTarget(uri);
       if (typeof apiTarget === "string") {
         // It was a file-type uri, so find its document (we hope it is open)
-        const docs = vscode.workspace.textDocuments.filter((doc) => doc.uri === uri);
+        const docs = vscode.workspace.textDocuments.filter((doc) => doc.uri.toString() === uri.toString());
         let fileName = "";
         if (docs.length === 1) {
           // Found it, so work out the corresponding server-side name
