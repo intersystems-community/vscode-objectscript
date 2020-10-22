@@ -370,11 +370,11 @@ async function serverManager(): Promise<any> {
   }
 }
 
-async function languageServer(): Promise<vscode.Extension<any>> {
+function languageServer(install = true): vscode.Extension<any> {
   const extId = "intersystems.language-server";
   let extension = vscode.extensions.getExtension(extId);
 
-  if (!extension) {
+  async function languageServerInstall() {
     try {
       await vscode.commands.executeCommand("extension.open", extId);
     } catch (ex) {
@@ -398,6 +398,10 @@ async function languageServer(): Promise<vscode.Extension<any>> {
           default:
         }
       });
+  }
+
+  if (!extension && install) {
+    languageServerInstall();
   }
 
   return extension;
@@ -561,7 +565,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   }
 
   const languageServerExt =
-    context.extensionMode && context.extensionMode !== vscode.ExtensionMode.Test ? await languageServer() : null;
+    context.extensionMode && context.extensionMode !== vscode.ExtensionMode.Test ? languageServer() : null;
   const noLSsubscriptions: { dispose(): any }[] = [];
   if (!languageServerExt) {
     outputChannel.appendLine(`The intersystems.language-server extension is not installed or has been disabled.\n`);
@@ -617,8 +621,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   context.subscriptions.push(
     reporter,
-    vscode.extensions.onDidChange(() => {
-      const languageServerExt2 = languageServer();
+    vscode.extensions.onDidChange(async () => {
+      const languageServerExt2 = languageServer(false);
       if (typeof languageServerExt !== typeof languageServerExt2) {
         noLSsubscriptions.forEach((event) => {
           event.dispose();
