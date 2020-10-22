@@ -747,7 +747,7 @@
           "default": false
         },
         "objectscript.export.map": {
-          "markdownDescription": "Map file names before export with regexp pattern as a key, and replacement as a value\n (e.g. ```JSON\n {\n  \"%(.*)\": \"_$1\"\n}\n``` for % class or routines replaced to be with underscore instead).",
+          "markdownDescription": "Map file names before export, with regexp pattern as a key and replacement as a value (e.g. `{  \"%(.*)\": \"_$1\" }` to make % classes or routines use underscore prefix instead).",
           "type": "object",
           "default": {},
           "examples": [
@@ -762,14 +762,14 @@
           },
           "properties": {
             "%(.*)": {
-              "description": "Catch any % items, with value as `_$1` will replace `%` to `_`",
+              "description": "Catch any % items. Set value to `_$1` to replace `%` prefix with `_`",
               "type": "string",
               "examples": [
                 "_$1"
               ]
             },
             "(.*)": {
-              "description": "Complete pattern, use `$1` to get matched value",
+              "description": "Match everything. Set value to `$1` to leave unchanged",
               "type": "string",
               "examples": [
                 "$1"
