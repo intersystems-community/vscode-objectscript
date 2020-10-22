@@ -39,8 +39,8 @@ export class WorkspaceNode extends NodeBase {
       "dataRootNode:classesRootNode",
       "CLS",
       this.options,
-      false
-      //new vscode.ThemeIcon("symbol-class")
+      false,
+      new vscode.ThemeIcon("symbol-class")
     );
     children.push(node);
 
@@ -50,8 +50,8 @@ export class WorkspaceNode extends NodeBase {
       "dataRootNode:routinesRootNode",
       "RTN",
       this.options,
-      false
-      //new vscode.ThemeIcon("note")
+      false,
+      new vscode.ThemeIcon("note")
     );
     children.push(node);
 
@@ -61,8 +61,8 @@ export class WorkspaceNode extends NodeBase {
       "dataRootNode:routinesRootNode",
       "INC",
       this.options,
-      false
-      //new vscode.ThemeIcon("file-symlink-file")
+      false,
+      new vscode.ThemeIcon("file-symlink-file")
     );
     children.push(node);
 
@@ -72,8 +72,8 @@ export class WorkspaceNode extends NodeBase {
       "dataRootNode:cspRootNode",
       "CSP",
       this.options,
-      false
-      //new vscode.ThemeIcon("symbol-file")
+      false,
+      new vscode.ThemeIcon("symbol-file")
     );
     children.push(node);
 
@@ -83,8 +83,8 @@ export class WorkspaceNode extends NodeBase {
       "dataRootNode:otherRootNode",
       "OTH",
       this.options,
-      false
-      //new vscode.ThemeIcon("symbol-misc")
+      false,
+      new vscode.ThemeIcon("symbol-misc")
     );
     children.push(node);
 
