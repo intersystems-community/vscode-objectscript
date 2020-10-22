@@ -98,6 +98,7 @@ import { CodeActionProvider } from "./providers/CodeActionProvider";
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
 const aiKey = packageJson.aiKey;
+const PANEL_LABEL = "ObjectScript";
 
 const _onDidChangeConnection = new vscode.EventEmitter<void>();
 
@@ -197,18 +198,19 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     _onDidChangeConnection.fire();
   }
   let api = new AtelierAPI(apiTarget, false);
-  const { active, host = "", port = 0, ns = "" } = api.config;
+  const { active, host = "", port = 0, username, ns = "" } = api.config;
   let connInfo = `${host}:${port}[${ns}]`;
   if (!host.length || !port || !ns.length) {
     connInfo = packageJson.displayName;
   }
-  panel.text = connInfo;
-  panel.tooltip = "";
   vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
   if (!active) {
-    panel.text = `${packageJson.displayName} - Disabled`;
+    panel.text = `${PANEL_LABEL} $(warning)`;
+    panel.tooltip = `Connection to ${connInfo} is disabled`;
     return;
   }
+  panel.text = connInfo;
+  panel.tooltip = `Connected as ${username}`;
   if (!workspaceState.get(configName + ":port") && !api.externalServer) {
     try {
       const { port: dockerPort, docker: withDocker } = await portFromDockerCompose();
@@ -217,7 +219,8 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
         if (!dockerPort) {
           const errorMessage = `Something is wrong with your docker-compose connection settings, or your service is not running.`;
           outputChannel.appendError(errorMessage);
-          panel.text = `${packageJson.displayName} - ERROR`;
+          panel.text = `${PANEL_LABEL} $(error)`;
+          panel.tooltip = `ERROR - ${errorMessage}`;
           return;
         }
         const { autoShowTerminal } = config();
@@ -244,10 +247,10 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
   api = new AtelierAPI(apiTarget, false);
 
   if (!api.config.host || !api.config.port || !api.config.ns) {
-    const message = "host, port and ns must be specified.";
+    const message = "'host', 'port' and 'ns' must be specified.";
     outputChannel.appendError(message);
-    panel.text = `${packageJson.displayName} - ERROR`;
-    panel.tooltip = message;
+    panel.text = `${PANEL_LABEL} $(error)`;
+    panel.tooltip = `ERROR - ${message}`;
     return;
   }
   api
@@ -293,14 +296,14 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
             );
           }
         }, 1000);
-        message = "Not Authorized";
+        message = "Not Authorized.";
         errorMessage = `Authorization error: Check your credentials in Settings, and that you have sufficient privileges on the /api/atelier web application on ${connInfo}`;
       } else {
         errorMessage = `${message}\nCheck your server details in Settings (${connInfo}).`;
       }
       outputChannel.appendError(errorMessage);
-      panel.text = `${connInfo} - ERROR`;
-      panel.tooltip = message;
+      panel.text = `${connInfo} $(error)`;
+      panel.tooltip = `ERROR - ${message}`;
       throw error;
     })
     .finally(() => {

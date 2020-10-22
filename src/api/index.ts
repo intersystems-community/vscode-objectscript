@@ -289,7 +289,8 @@ export class AtelierAPI {
         throw response;
       }
       await this.updateCookies(response.headers.raw()["set-cookie"] || []);
-      panel.text = `${connInfo} - Connected`;
+      panel.text = `${connInfo}`;
+      panel.tooltip = `Connected as ${username}`;
       if (method === "HEAD") {
         return this.cookies;
       }
@@ -331,7 +332,8 @@ export class AtelierAPI {
       }
     } catch (error) {
       if (error.error && error.error.code === "ECONNREFUSED") {
-        panel.text = `${connInfo} - Disconnected`;
+        panel.text = `${connInfo} $(debug-disconnect)`;
+        panel.tooltip = "Disconnected";
         workspaceState.update(this.configName + ":host", undefined);
         workspaceState.update(this.configName + ":port", undefined);
         setTimeout(checkConnection, 30000);
