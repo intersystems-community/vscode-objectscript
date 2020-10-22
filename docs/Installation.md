@@ -29,6 +29,6 @@ Type `intersystems` in the search field to find these extensions in the Marketpl
 
 ![Search in Marketplace.](../assets/images/marketplace.png "search in marketplace")
 
-For each of the listed extensions, click the extension, then click **install**. Note that the InterSystems ObjectScript extension adds an ObjectScript button to the Activity Bar:
+For the ObjectScript and Server Manager extensions, click the **install** button. Note that the InterSystems ObjectScript extension supplies an ObjectScript button which appears in the Activity Bar when a workspace or folder is open:
 
 ![ObjectScript button.](../assets/images/objectscript.png "objectscript button")

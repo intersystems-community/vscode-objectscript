@@ -2,107 +2,102 @@
 layout: default
 title: Configuration
 permalink: /configuration/
-nav_order: 5
+nav_order: 3
 ---
 # Configuration
 
-The settings that define an InterSystems IRIS server and the connection to the server are crucial to the functioning of VS Code in developing in ObjectScript.
+VS Code settings enable you to customize various aspects of its function. The InterSystems-provided extensions enable you to define InterSystems IRIS servers and the connections to those servers.
 
-## Configuring a Server
+## Settings
 
-First, configure one or more servers. Open the settings editor by selecting **File > Preferences > Settings** (**Code > Preferences > Settings** on Mac) from the menu. Select the **User** or **Workspace** settings level by selecting it at the top of the settings window. For example, the following screen shot shows Workspace selected:
+Many available settings are general to VS Code, and you can learn about them in the [Visual Studio Code Documentation](https://code.visualstudio.com/docs). The InterSystems Server Manager and InterSystems ObjectScript extensions supply specific settings used to configure VS Code for ObjectScript development.
+There are several levels on which settings are stored and used:
+
+- **User** - User settings are stored in a file location specific to you and apply globally to any instance of VS Code or any VS Code workspace that you open.
+- **Workspace** - Workspace settings are stored in a file inside the workspace and apply to anyone who opens the workspace.
+- **Folder** - If more than one folder is present in the workspace, you can select the folder where the settings file is stored by selecting from the Folder drop down list.
+
+For example, the following screen shot shows Workspace selected:
 
 ![Workspace selected.](../assets/images/ClickWorkspace.png "workspace selected")
 
-Find Extensions in the list in the left pane of the editor window, click to open, then select InterSystems Server Manager from the list to find the correct place in the settings UI. The following screen shot shows InterSystems Server Manager selected:
+See the VS Code documentation section [User and Workspace Settings](https://code.visualstudio.com/docs/getstarted/settings).
 
-![Select server manager.](../assets/images/ServerManagerSelect.png "select server manager")
+## Configuring a Server
 
-And this screen shot shows Server Manager area of the edit pane:
+First, configure one or more servers. Select **View > Command Palette > InterSystems Server Manager: Store Password in Keychain**. This command lets you define a new server, as well as storing a password. Click the plus sign in the upper right corner of the dialog, as shown:
+
+![Define New Server.](../assets/images/new-server.png "define new server")
+
+Provide the following values when prompted:
+
+- **Name of new server definition** - an arbitrary name to identify this server
+- **Hostname or IP address of web server** - the host for this server
+- **Port of web server** - the WebServer port number for this server
+- **Username** - the username to use in logging in to this server.
+- **Confirm connection type** - the protocol used for connections, possible values are **http** and **https**.
+
+Once you have entered these values, the server definition is stored in your user settings. At that point another prompt appears, asking for a password to store in the system Keychain. Enter the password for the username supplied earlier to complete the process.
+
+## Editing a Server Configuration
+
+If you need to modify a server configuration select **File > Preferences > Settings** (**Code > Preferences > Settings** on Mac) from the menu. Select the **User** settings level. Find **Extensions** in the list in the left pane of the editor window, click to open, then select **InterSystems Server Manager** from the list to find the **InterSystems Server Manager** area of the edit pane, as illustrated in the following screen shot:
 
 ![Server manager settings.](../assets/images/ServerManagerSettings.png "server manager settings")
 
-You need to edit the server configuration in the settings.json file, so your only option is to click *Edit in settings.json*. 
+Click *Edit in settings.json*.
 
-To configure a server, enter code something like this:
+The server configuration in *settings.json* looks similar to the following, with the values you entered when you configured the server:
 
-```js
-"intersystems.servers": {	
-	"test": {
-		"webServer": {
-			"scheme": "http",
-			"host": "localhost",
-			"port": 52774,
-		},
-	"username": "_SYSTEM",
-	},
-},
+```json
+{
+    "intersystems.servers": {
+        "iris-1": {
+            "webServer": {
+                "scheme": "http",
+                "host": "localhost",
+                "port": 52773
+            },
+            "username": "_SYSTEM"
+        }
+    }
+}
 ```
+The components of the server definition are as follows:
 
-The components of this server definition are:
-
-- **test** - an arbitrary name to identify this server
-- **webServer** - The collection of properties that define the web server.
-- **scheme** - The protocol used for connections.
+- **iris-1** - An arbitrary name to identify this server
+- **webServer** - The collection of properties that define the web server
+- **scheme** - The protocol used for connections
 - **host** - the host for this server
 - **port** - the WebServer port number for this server
-- **username** - the username to use in logging in to this server.
+- **username** - the username to use in logging in to this server
 - **password** - password for the specified username. Entering the password in this file is acceptable only in limited situations with very low need for security. 
 
-If you do not add a password to the server definition, anyone using the server needs to supply the password. Or, you can store the password securely in the system Keychain. The InterSystems Server Manager adds the following commands for managing stored passwords to the Command Palette:
+If you do not store the password securely in the system Keychain or add it to the server definition, anyone using the server needs to supply the password. The InterSystems Server Manager provides the following commands for managing stored passwords in the Command Palette:
 
-- **InterSystems Server Manager: Clear Password from Keychain** - remove password for selected server
-- **InterSystems Server Manager: Store Password in Keychain** - select a server and enter a password
-- **InterSystems Server Manager: Test Server Selection**
-- **InterSystems Server Manager: Test Server Selection (flush cached credentials)**
-- **InterSystems Server Manager: Test Server Selection with Details**
+- **InterSystems Server Manager: Clear Password from Keychain** - remove the password for a selected server
+- **InterSystems Server Manager: Store Password in Keychain** - select a server or create a new one and enter a password
 
 ## Configuring a Server Connection
 
-Select InterSystems ObjectScript from the settings editor extensions list. You need to edit the server configuration in the settings.json file, so your click *Edit in settings.json* under the heading **Objectscript: conn**. 
+Open the folder where you want client-side files to be located. Select the **ObjectScript Explorer** button which has been added to the Activity Bar. Select the **Choose Server and Namespace** button. This action opens a dialog that lets you select a server, or create a new one. Once you have selected a server and namespace, connection configuration is complete.
 
-You should enter code something like this:
+## Editing a Server Connection
 
-```js
+If you need to modify a server connection select **File > Preferences > Settings** (**Code > Preferences > Settings** on Mac) from the menu. Select the **Workspace** settings level. Search for **objectscript: conn**, and click on *Edit in settings.json*.
+
+The connection configuration looks like this:
+
+```json
 "objectscript.conn": {
 	"ns": "USER",
-	"server": "tst",
+	"server": "iris-1",
     "active": true,
 },
 ```
-The components of this server definition are:
+
+The components of this configuration are:
 
 - **ns** - namespace to use on the server
 - **server** - server name as specified in the server configuration
 - **active** - specifies whether the connection is active.
-
-## Configuring Export from Server
-
-Select InterSystems ObjectScript from the settings editor extensions list. Find the section labeled **Objectscript: export**.  You can edit many of the export settings in the settings editor. For others you need to edit the settings.json file.
-
-You export configuration looks something like this:
-
-```js
-"objectscript.export": {	
-    "folder": "",
-    "addCategory": true,
-    "atelier": true,
-    "generated": false,
-    "filter": "",
-    "category": "*",
-    "noStorage": false,
-    "dontExportIfNoChanges": false,
-    "maxConcurrentConnections": 0
-},
-```
-The components of this export definition are: 
-
-- **folder** - Folder for source code.
-- **addCategory** - Add a category folder to the export path.
-- **atelier** - Export source code as Atelier does, with packages placed in subfolders.
-- **generated** - Export generated source code files.
-- **filter** - An SQL filter that can be used to match the names.
-- **category** - Specifies a category of source code to export: CLS = classes; RTN = routines; CSP = csp files; OTH = other. The default is *, export everything.
-- **noStorage** - Strip the storage XML on export. This is useful for multiple systems.
-- **dontExportIfNoChanges** - Don't update the local file if the content is identical to what is on the server.
-- **maxConcurrentConnections** - The maximum number of export connections. (0 = Unlimited)
