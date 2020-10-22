@@ -746,6 +746,37 @@
           ],
           "default": false
         },
+        "objectscript.export.map": {
+          "markdownDescription": "Map file names before export, with regexp pattern as a key and replacement as a value (e.g. `{  \"%(.*)\": \"_$1\" }` to make % classes or routines use underscore prefix instead).",
+          "type": "object",
+          "default": {},
+          "examples": [
+            {
+              "%(.*)": "_$1"
+            }
+          ],
+					"patternProperties": {
+						"\\(.*\\)": {
+							"type": "string",
+							"pattern": "\\$1"
+						}
+					},
+					"properties": {
+						"%(.*)": {
+							"description": "Catch any % items. Set value to `_$1` to replace `%` prefix with `_`",
+							"type": "string",
+							"pattern": "\\$1",
+							"default": "_$1"
+						},
+						"(.*)": {
+							"description": "Match everything. Set value to `$1` to leave unchanged",
+							"type": "string",
+							"pattern": "\\$1",
+							"default": "$1"
+						}
+					},
+					"additionalProperties": false
+        },
         "objectscript.export.atelier": {
           "description": "Export source code as Atelier did it, with packages as subfolders.",
           "type": "boolean",
