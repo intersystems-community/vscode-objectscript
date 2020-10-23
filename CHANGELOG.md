@@ -1,5 +1,12 @@
 # Change Log
 
+## [1.0.2] 23-Oct-2020
+- Fix problem with excessive license use.
+- Install language server extension in the background.
+- Use less status bar space.
+- Add icons to first-level subfolders of ObjectScript Explorer.
+- Add `objectscript.export.map` setting.
+
 ## [1.0.1] 20-Oct-2020
 - First production release.
 
