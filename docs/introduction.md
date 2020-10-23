@@ -12,4 +12,4 @@ The InterSystems extensions enable you to use VS Code to connect to an InterSyst
 
 Development in ObjectScript involves both your local client machine, and an InterSystems IRIS server. Because both resources are required, workflow is different from that typical for many languages. Source code files are edited on the client, and saved to the local disk where they can be managed with a Version Control System. In addition, source files are exported to an InterSystems IRIS server, where they can be compiled, run, and debugged.
 
-For existing customers, the InterSystems ObjectScript extension supports Studio extensions, as provided by `%Studio.Extension.Base`. If you rely on Studio extensions such as source control hooks, you can continue to use them in VS Code.
+For existing customers, the InterSystems ObjectScript extension supports Studio extensions, as provided by `%Studio.Extension.Base`. If you rely on Studio extensions such as source control hooks, you can continue to use them in VS Code. VS Code is supported by InterSystems Cache and Ensemble 2016.2 and higher, and all versions of InterSystems IRIS.

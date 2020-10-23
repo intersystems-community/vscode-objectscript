@@ -18,6 +18,7 @@ Your first step is to install VS Code:
 
 Next, you need to install the following extensions:
 
+- InterSystems Language Server
 - InterSystems ObjectScript
 - InterSystems Server Manager
 
@@ -29,6 +30,6 @@ Type `intersystems` in the search field to find these extensions in the Marketpl
 
 ![Search in Marketplace.](../assets/images/marketplace.png "search in marketplace")
 
-For the ObjectScript and Server Manager extensions, click the **install** button. Note that the InterSystems ObjectScript extension supplies an ObjectScript button which appears in the Activity Bar when a workspace or folder is open:
+For the Language Server, ObjectScript, and Server Manager extensions, click the **install** button. Note that the InterSystems ObjectScript extension supplies an ObjectScript button which appears in the Activity Bar when a workspace or folder is open:
 
 ![ObjectScript button.](../assets/images/objectscript.png "objectscript button")
