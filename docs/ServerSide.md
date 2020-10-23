@@ -30,7 +30,7 @@ Next create a workspace for editing code direct on the server:
 
 3. When the button labeled "Choose Server and Namespace" appears, click it.
 
-4. Pick a server from your `intersystems.servers` settings object.
+4. Pick a server from your `intersystems.servers` settings object, or create a new server configuration.
 
 5. Enter credentials if prompted.
 
