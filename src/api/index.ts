@@ -18,6 +18,8 @@ import { currentWorkspaceFolder, outputConsole, outputChannel } from "../utils";
 const DEFAULT_API_VERSION = 1;
 import * as Atelier from "./atelier";
 
+let authRequest = null;
+
 export interface ConnectionSettings {
   serverName: string;
   active: boolean;
@@ -119,7 +121,8 @@ export class AtelierAPI {
   }
 
   public get cookies(): string[] {
-    return this.cache.get("cookies", []);
+    const cookies = this.cache.get("cookies", []);
+    return cookies;
   }
 
   public clearCookies(): void {
@@ -262,7 +265,10 @@ export class AtelierAPI {
       auth = Promise.resolve(cookies);
       headers["Authorization"] = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
     } else if (!cookies.length) {
-      auth = this.request(0, "HEAD");
+      if (!authRequest) {
+        authRequest = this.request(0, "HEAD");
+      }
+      auth = authRequest;
     }
     const connInfo = `${host}:${port}[${this.ns}]`;
 
@@ -292,6 +298,7 @@ export class AtelierAPI {
       panel.text = `${connInfo}`;
       panel.tooltip = `Connected as ${username}`;
       if (method === "HEAD") {
+        authRequest = null;
         return this.cookies;
       }
 
