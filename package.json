@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "1.0.2-SNAPSHOT",
+  "version": "1.0.3-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "9cd75d51-697c-406c-a929-2bcf46e97c64",
   "categories": [
@@ -755,27 +755,27 @@
               "%(.*)": "_$1"
             }
           ],
-					"patternProperties": {
-						"\\(.*\\)": {
-							"type": "string",
-							"pattern": "\\$1"
-						}
-					},
-					"properties": {
-						"%(.*)": {
-							"description": "Catch any % items. Set value to `_$1` to replace `%` prefix with `_`",
-							"type": "string",
-							"pattern": "\\$1",
-							"default": "_$1"
-						},
-						"(.*)": {
-							"description": "Match everything. Set value to `$1` to leave unchanged",
-							"type": "string",
-							"pattern": "\\$1",
-							"default": "$1"
-						}
-					},
-					"additionalProperties": false
+          "patternProperties": {
+            "\\(.*\\)": {
+              "type": "string",
+              "pattern": "\\$1"
+            }
+          },
+          "properties": {
+            "%(.*)": {
+              "description": "Catch any % items. Set value to `_$1` to replace `%` prefix with `_`",
+              "type": "string",
+              "pattern": "\\$1",
+              "default": "_$1"
+            },
+            "(.*)": {
+              "description": "Match everything. Set value to `$1` to leave unchanged",
+              "type": "string",
+              "pattern": "\\$1",
+              "default": "$1"
+            }
+          },
+          "additionalProperties": false
         },
         "objectscript.export.atelier": {
           "description": "Export source code as Atelier did it, with packages as subfolders.",
