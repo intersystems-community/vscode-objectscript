@@ -153,9 +153,9 @@ jobs:
           npm install
           git push
           echo ::set-output name=ovsx::`cat .name`
-      - uses: actions/download-artifact@v2
-        with:
-          name: ${{ steps.set-version.outputs.name }}.vsix
+      - name: Build package
+        run: |
+          npx vsce package -o ${{ steps.set-version.outputs.name }}.vsix
       - name: Upload Release Asset
         id: upload-release-asset
         uses: actions/upload-release-asset@v1
