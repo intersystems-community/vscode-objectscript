@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { panel, resolveConnectionSpec } from "../extension";
+import { panel, resolveConnectionSpec, getResolvedConnectionSpec } from "../extension";
 
 enum AccessMode {
   Code,
@@ -26,8 +26,9 @@ export async function addServerNamespaceToWorkspace(): Promise<void> {
   // Get its namespace list
   let uri = vscode.Uri.parse(`isfs://${serverName}/`);
   await resolveConnectionSpec(serverName);
-  // Prepare a displayable form of its connection spec as a hint to the user
-  const connSpec = await serverManagerApi.getServerSpec(serverName);
+  // Prepare a displayable form of its connection spec as a hint to the user.
+  // This will never return the default value (second parameter) because we only just resolved the connection spec.
+  const connSpec = getResolvedConnectionSpec(serverName, undefined);
   const connDisplayString = `${connSpec.webServer.scheme}://${connSpec.webServer.host}:${connSpec.webServer.port}/${connSpec.webServer.pathPrefix}`;
   // Connect and fetch namespaces
   const api = new AtelierAPI(uri);
