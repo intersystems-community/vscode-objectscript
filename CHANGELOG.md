@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.0.3] 24-Oct-2020
+- Fix problem that prevented 1.0.2 from publishing to Marketplace.
+
 ## [1.0.2] 23-Oct-2020
 - Fix problem with excessive license use.
 - Install language server extension in the background.
