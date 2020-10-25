@@ -454,18 +454,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   panel.command = "vscode-objectscript.serverActions";
   panel.show();
 
-  // Check once (flushing cookies) each connection used by the workspace(s)
+  // Check one time (flushing cookies) each connection that is used by the workspace.
+  // This gets any prompting for missing credentials done upfront, for simplicity.
   const toCheck = new Map<string, vscode.Uri>();
   vscode.workspace.workspaceFolders?.map((workspaceFolder) => {
     const uri = workspaceFolder.uri;
     const { configName } = connectionTarget(uri);
     toCheck.set(configName, uri);
   });
-  toCheck.forEach(async function (uri, configName) {
+  for await (const oneToCheck of toCheck) {
+    const configName = oneToCheck[0];
+    const uri = oneToCheck[1];
     const serverName = uri.scheme === "file" ? config("conn", configName).server : configName;
     await resolveConnectionSpec(serverName);
     await checkConnection(true, uri);
-  });
+  }
 
   vscode.workspace.onDidChangeWorkspaceFolders(({ added, removed }) => {
     const folders = vscode.workspace.workspaceFolders;
