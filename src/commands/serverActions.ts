@@ -9,6 +9,9 @@ export async function serverActions(): Promise<void> {
   const { apiTarget, configName: workspaceFolder } = connectionTarget();
   const api = new AtelierAPI(apiTarget);
   const { active, host = "", ns = "", https, port = 0, username, password } = api.config;
+  if (host === "") {
+    return vscode.commands.executeCommand("workbench.view.extension.ObjectScriptView");
+  }
   const { links } = config("conn");
   const nsEncoded = encodeURIComponent(ns);
   const actions: ServerAction[] = [];

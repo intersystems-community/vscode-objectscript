@@ -199,12 +199,17 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
   }
   let api = new AtelierAPI(apiTarget, false);
   const { active, host = "", port = 0, username, ns = "" } = api.config;
-  let connInfo = `${host}:${port}[${ns}]`;
-  if (!host.length || !port || !ns.length) {
-    connInfo = packageJson.displayName;
-  }
   vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
+  if (!host.length && !port && !ns.length) {
+    panel.text = `${PANEL_LABEL}`;
+    panel.tooltip = `No connection configured`;
+    return;
+  }
+  let connInfo = `${host}:${port}[${ns}]`;
   if (!active) {
+    if (!host.length || !port || !ns.length) {
+      connInfo = `incompletely specified server ${connInfo}`;
+    }
     panel.text = `${PANEL_LABEL} $(warning)`;
     panel.tooltip = `Connection to ${connInfo} is disabled`;
     return;
