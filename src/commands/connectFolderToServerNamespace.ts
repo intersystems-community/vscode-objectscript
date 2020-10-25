@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { panel, resolveConnectionSpec } from "../extension";
+import { panel, resolveConnectionSpec, getResolvedConnectionSpec } from "../extension";
 
 interface ConnSettings {
   server: string;
@@ -48,7 +48,8 @@ export async function connectFolderToServerNamespace(): Promise<void> {
   const uri = vscode.Uri.parse(`isfs://${serverName}/?ns=%SYS`);
   await resolveConnectionSpec(serverName);
   // Prepare a displayable form of its connection spec as a hint to the user
-  const connSpec = await serverManagerApi.getServerSpec(serverName);
+  // This will never return the default value (second parameter) because we only just resolved the connection spec.
+  const connSpec = getResolvedConnectionSpec(serverName, undefined);
   const connDisplayString = `${connSpec.webServer.scheme}://${connSpec.webServer.host}:${connSpec.webServer.port}/${connSpec.webServer.pathPrefix}`;
   // Connect and fetch namespaces
   const api = new AtelierAPI(uri);
