@@ -127,6 +127,9 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       });
 
       const disposeConnection = (error?: Error): void => {
+        if (!this._connection) {
+          return;
+        }
         this.sendEvent(new ThreadEvent("exited", this._connection.id));
         this._connection.close();
         this._connection = null;
