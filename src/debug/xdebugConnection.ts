@@ -308,8 +308,8 @@ export class StackFrame {
    * @param  {Connection} connection
    */
   public constructor(stackFrameNode: Element, connection: Connection) {
-    this.method = stackFrameNode.getAttribute("method");
-    this.fileUri = stackFrameNode.getAttribute("filename");
+    this.method = iconv.encode(stackFrameNode.getAttribute("method"), ENCODING) + "";
+    this.fileUri = iconv.encode(stackFrameNode.getAttribute("filename"), ENCODING) + "";
     this.type = stackFrameNode.getAttribute("type");
     this.line = parseInt(stackFrameNode.getAttribute("lineno"), 10);
     this.methodOffset = parseInt(stackFrameNode.getAttribute("methodoffset"), 10);
@@ -410,7 +410,7 @@ export abstract class BaseProperty {
 
   public constructor(propertyNode: Element) {
     if (propertyNode.hasAttribute("name")) {
-      this.name = propertyNode.getAttribute("name");
+      this.name = iconv.encode(propertyNode.getAttribute("name"), ENCODING) + "";
     }
     this.type = propertyNode.getAttribute("type");
     if (propertyNode.hasAttribute("classname")) {
@@ -424,7 +424,7 @@ export abstract class BaseProperty {
       if (encoding && encoding !== "none") {
         this.value = iconv.encode(propertyNode.textContent, encoding) + "";
       } else {
-        this.value = propertyNode.textContent;
+        this.value = iconv.encode(propertyNode.textContent, ENCODING) + "";
       }
     }
   }
