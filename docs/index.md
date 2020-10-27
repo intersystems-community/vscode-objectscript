@@ -7,8 +7,6 @@ nav_exclude: true
 
 * [Introduction](./introduction)
 * [Installation](./installation)
-* [Workspace](./workspace)
-* [Settings](./settings)
 * [Configuration](./configuration)
 * [Running and Debugging](./rundebug)
 * [Server-side Editing](./serverside)

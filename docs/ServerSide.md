@@ -2,9 +2,21 @@
 layout: default
 title: Server-side Editing
 permalink: /serverside/
-nav_order: 7
+nav_order: 5
 ---
-# Server-side Editing
+# VS Code Workspaces
+
+To work with VS Code, you need to open a workspace. A VS Code workspace is usually just the root folder of your project. Workspace settings as well as debugging and task configurations are stored in the root folder in a folder called .vscode.
+
+If you need to have more than one root folder in a VS Code workspace, use a feature called multi-root workspaces. See [Multi-root Workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) in the VS Code documentation.
+
+A multi root workspace contains a \*.code-workspace file. The file can have any name followed by *.code-workspace*, for example `test.code-workspace`. The .code-workspace file stores information about what folders are in the workspace. Other settings that would otherwise be stored in the settings.json or launch.json file can be stored in the .code-workspace file. You can optionally have a workspace file even if you are not using the multi-root feature.
+
+To edit a *.code-workspace* file in VS Code using the **InterSystems ObjectScript** extension, select **File > Preferences > Settings** (**Code > Preferences > Settings** on Mac) and select the Workspace option. When you click **Edit in settings.json**, VS Code opens the *.code-workspace* file for that workspace.
+
+The **InterSystems ObjectScript** extension uses the multi-root workspaces feature to support ObjectScript development on the InterSystems server.
+
+# Server-side Source Control
 
 You can configure the InterSystems ObjectScript extension to edit code directly on the server, using the [multi-root workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) VS Code feature. This type of configuration is useful in cases where source code is stored in a Source Code Management (SCM) product interfaced to the server. For example you might already be using the Source Control menu in InterSystems Studio or Portal, implemented by a source control class that extends `%Studio.SourceControl.Base`. 
 
@@ -12,14 +24,13 @@ First configure the `intersystems.servers` entry for your server, as described i
 
 Next create a workspace for editing code direct on the server:
 
-=======
 1. Open VS Code. If a folder or workspace is already open, close it, for example by pressing <kbd>Ctrl/Cmd</kbd>+<kbd>K</kbd>, releasing that keypair, then pressing <kbd>F</kbd>.
 
 2. Open the Explorer view (<kbd>Ctrl/Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>) if it is not already visible.
 
 3. When the button labeled "Choose Server and Namespace" appears, click it.
 
-4. Pick a server from your `intersystems.servers` settings object.
+4. Pick a server from your `intersystems.servers` settings object, or create a new server configuration.
 
 5. Enter credentials if prompted.
 
