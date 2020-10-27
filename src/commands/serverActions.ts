@@ -80,6 +80,9 @@ export async function serverActions(): Promise<void> {
     link = link
       .replace("${host}", host)
       .replace("${port}", port.toString())
+      .replace("${serverUrl}", serverUrl)
+      .replace("${serverAuth}", auth)
+      .replace("${ns}", nsEncoded)
       .replace("${namespace}", ns == "%SYS" ? "sys" : nsEncoded.toLowerCase())
       .replace("${classname}", classname);
     actions.push({

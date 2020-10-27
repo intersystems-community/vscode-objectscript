@@ -694,12 +694,20 @@
               "default": false
             },
             "links": {
-              "description": "Extra links for the server.",
+              "description": "Extra links for the server command menu.",
               "type": "object",
               "patternProperties": {
                 ".*": {
                   "type": "string",
-                  "format": "uri"
+                  "description": "Key is displayed on menu. Value is the uri to open. Several ${...} substitution symbols are supported in the value.",
+                  "anyOf": [
+                    {
+                      "format": "uri"
+                    },
+                    {
+                      "pattern": "^\\${serverUrl}\/.*"
+                    }
+                  ]
                 }
               }
             },
