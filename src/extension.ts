@@ -713,7 +713,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         );
       const list = await api.getJobs(system).then(convert);
       if (!list.length) {
-        vscode.window.showInformationMessage("No process found to attach to", {
+        vscode.window.showInformationMessage(`No attachable processes are running in ${api.ns}.`, {
           modal: true,
         });
         return;
