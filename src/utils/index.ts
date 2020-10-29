@@ -349,7 +349,7 @@ export function redirectDotvscodeRoot(uri: vscode.Uri): vscode.Uri {
   }
   const dotMatch = uri.path.match(/^\/(\.[^/]*)\/(.*)$/);
   if (dotMatch && dotMatch[1] === ".vscode") {
-    const nsMatch = `&${uri.query}&`.match(/&ns=(.+)&/);
+    const nsMatch = `&${uri.query}&`.match(/&ns=([^&]+)&/);
     if (!nsMatch) {
       throw new Error("No 'ns' query parameter on uri");
     }
