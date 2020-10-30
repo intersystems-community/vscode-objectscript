@@ -1,5 +1,14 @@
 # Change Log
 
+## [1.0.4] 30-Oct-2020
+- Wait for connection checks to complete during activation.
+- Display debugging values correctly when they contain characters above ASCII 127.
+- Fix broken server-side .vscode storage mechanism when isfs query string includes other parameters after `ns`.
+- Make status bar panel more relevant when current workspace is not associated with a server.
+- Support more ${...} substitution variables in server menu links. See PR [#444](https://github.com/intersystems-community/vscode-objectscript/pull/444) for details and [WebTerminal](https://openexchange.intersystems.com/package/WebTerminal) launch example.
+- Supply process picker default for `processId` property of new attach-type debug configuration.
+- Differentiate "Edit" and "View" options better on isfs dialog.
+
 ## [1.0.3] 24-Oct-2020
 - Fix problem that prevented 1.0.2 from publishing to Marketplace.
 
