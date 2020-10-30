@@ -18,7 +18,8 @@ import { currentWorkspaceFolder, outputConsole, outputChannel } from "../utils";
 const DEFAULT_API_VERSION = 1;
 import * as Atelier from "./atelier";
 
-let authRequest = null;
+// Map of the authRequest promises for each username@host:port target to avoid concurrency issues
+const authRequestMap = new Map<string, Promise<any>>();
 
 export interface ConnectionSettings {
   serverName: string;
@@ -260,13 +261,16 @@ export class AtelierAPI {
     path = encodeURI(`${pathPrefix}/api/atelier/${path || ""}${buildParams()}`);
 
     const cookies = this.cookies;
-    let auth;
+    const target = `${username}@${host}:${port}`;
+    let auth: Promise<any>;
+    let authRequest = authRequestMap.get(target);
     if (cookies.length || method === "HEAD") {
       auth = Promise.resolve(cookies);
       headers["Authorization"] = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
     } else if (!cookies.length) {
       if (!authRequest) {
         authRequest = this.request(0, "HEAD");
+        authRequestMap.set(target, authRequest);
       }
       auth = authRequest;
     }
@@ -287,6 +291,7 @@ export class AtelierAPI {
         // simple: true,
       });
       if (response.status === 401) {
+        authRequestMap.delete(target);
         if (this.wsOrFile) {
           setTimeout(() => {
             checkConnection(true, typeof this.wsOrFile === "object" ? this.wsOrFile : undefined);
@@ -298,7 +303,7 @@ export class AtelierAPI {
       panel.text = `${connInfo}`;
       panel.tooltip = `Connected as ${username}`;
       if (method === "HEAD") {
-        authRequest = null;
+        authRequestMap.delete(target);
         return this.cookies;
       }
 
@@ -309,7 +314,7 @@ export class AtelierAPI {
       const buffer = await response.buffer();
       const data: Atelier.Response = JSON.parse(buffer.toString("utf-8"));
 
-      /// deconde encoded content
+      /// decode encoded content
       if (data.result && data.result.enc && data.result.content) {
         data.result.enc = false;
         data.result.content = Buffer.from(data.result.content.join(""), "base64");
