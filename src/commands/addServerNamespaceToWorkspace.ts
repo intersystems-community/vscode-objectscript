@@ -77,12 +77,12 @@ export async function addServerNamespaceToWorkspace(): Promise<void> {
       },
       {
         value: AccessMode.CodeReadonly,
-        label: `View Code in ${namespace}`,
+        label: `$(lock) View Code in ${namespace}`,
         detail: "Documents opened from this folder will be read-only.",
       },
       {
         value: AccessMode.WebappFilesReadonly,
-        label: `View Web Application Files for ${namespace}`,
+        label: `$(lock) View Web Application Files for ${namespace}`,
         detail: "Documents opened from this folder will be read-only.",
       },
     ],
