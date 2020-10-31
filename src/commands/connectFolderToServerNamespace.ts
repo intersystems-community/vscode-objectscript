@@ -84,11 +84,8 @@ export async function connectFolderToServerNamespace(): Promise<void> {
   }
   // Update folder's config object
   const config = vscode.workspace.getConfiguration("objectscript", folder);
-  const conn: ConnSettings = config.get("conn");
-  conn.server = serverName;
-  conn.ns = namespace;
-  conn.active = true;
-  await config.update("conn", conn);
+  const conn: any = config.inspect("conn").workspaceFolderValue;
+  await config.update("conn", { ...conn, server: serverName, ns: namespace, active: true });
 }
 
 async function getServerManagerApi(): Promise<any> {
