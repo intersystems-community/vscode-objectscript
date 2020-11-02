@@ -69,7 +69,7 @@ async function importFile(file: CurrentFile, ignoreConflict?: boolean): Promise<
   const api = new AtelierAPI(file.uri);
   const content = file.content.split(/\r?\n/);
   const mtime = await checkChangedOnServer(file);
-  ignoreConflict = ignoreConflict || mtime < 0;
+  ignoreConflict = ignoreConflict || mtime < 0 || (file.uri.scheme === "file" && config("overwriteServerChanges"));
   return api
     .putDoc(
       file.name,
