@@ -297,7 +297,7 @@ export class AtelierAPI {
             checkConnection(true, typeof this.wsOrFile === "object" ? this.wsOrFile : undefined);
           }, 1000);
         }
-        throw response;
+        throw { statusCode: response.status, message: response.statusText };
       }
       await this.updateCookies(response.headers.raw()["set-cookie"] || []);
       panel.text = `${connInfo}`;
@@ -308,7 +308,7 @@ export class AtelierAPI {
       }
 
       if (!response.ok) {
-        throw { statusCode: response.status, statusText: response.statusText };
+        throw { statusCode: response.status, message: response.statusText };
       }
 
       const buffer = await response.buffer();
