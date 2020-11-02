@@ -833,6 +833,11 @@
           "default": "cuk",
           "description": "Compilation flags."
         },
+        "objectscript.overwriteServerChanges": {
+          "type": "boolean",
+          "default": false,
+          "description": "Overwrite a changed server version without confirmation when importing the local file."
+        },
         "objectscript.autoPreviewXML": {
           "type": "boolean",
           "default": false,
