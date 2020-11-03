@@ -586,6 +586,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           },
         })
       : null,
+    packageJson.enableProposedApi && typeof vscode.workspace.registerResourceLabelFormatter === "function"
+      ? vscode.workspace.registerResourceLabelFormatter({
+          scheme: OBJECTSCRIPT_FILE_SCHEMA,
+          formatting: {
+            label: "${path} (read-only)",
+            separator: "/",
+          },
+        })
+      : null,
   ].filter(notNull);
 
   if (proposed.length > 0) {
