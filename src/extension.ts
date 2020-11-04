@@ -1,6 +1,7 @@
 export const extensionId = "intersystems-community.vscode-objectscript";
 
 import vscode = require("vscode");
+import * as semver from "semver";
 
 import { AtelierJob } from "./api/atelier";
 const { workspace, window } = vscode;
@@ -646,6 +647,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       )
     );
     context.subscriptions.push(...noLSsubscriptions);
+  } else {
+    const lsVersion = languageServerExt.packageJSON.version;
+    // Language Server implements FoldingRangeProvider starting from 1.0.5
+    if (semver.lt(lsVersion, "1.0.5")) {
+      context.subscriptions.push(
+        vscode.languages.registerFoldingRangeProvider(
+          documentSelector("objectscript-class"),
+          new ObjectScriptClassFoldingRangeProvider()
+        ),
+        vscode.languages.registerFoldingRangeProvider(
+          documentSelector("objectscript"),
+          new ObjectScriptFoldingRangeProvider()
+        )
+      );
+    }
   }
 
   context.subscriptions.push(
@@ -825,14 +841,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.languages.registerCodeActionsProvider(
       documentSelector("objectscript-class", "objectscript"),
       new CodeActionProvider()
-    ),
-    vscode.languages.registerFoldingRangeProvider(
-      documentSelector("objectscript-class"),
-      new ObjectScriptClassFoldingRangeProvider()
-    ),
-    vscode.languages.registerFoldingRangeProvider(
-      documentSelector("objectscript"),
-      new ObjectScriptFoldingRangeProvider()
     ),
     vscode.languages.registerWorkspaceSymbolProvider(new WorkspaceSymbolProvider()),
     vscode.debug.registerDebugConfigurationProvider("objectscript", new ObjectScriptConfigurationProvider()),
