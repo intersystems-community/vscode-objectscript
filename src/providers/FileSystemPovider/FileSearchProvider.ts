@@ -34,6 +34,13 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
             if (category === "*" && file.cat === "CSP") {
               return null;
             }
+            if (file.cat !== "CSP") {
+              if (file.name.startsWith("%") && api.ns !== "%SYS") {
+                return null;
+              }
+              const nameParts = file.name.split(".");
+              file.name = nameParts.slice(0, -2).join("/") + "/" + nameParts.slice(-2).join(".");
+            }
             if (!options.maxResults || ++counter <= options.maxResults) {
               return options.folder.with({ path: `/${file.name}` });
             } else {
