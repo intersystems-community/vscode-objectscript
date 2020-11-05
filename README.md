@@ -37,23 +37,32 @@ Or install from the ObjectScript extension page on [Visual Studio Marketplace](h
 
 ## Enable Proposed APIs
 
-This extension is able to to take advantage of some VS Code APIs that have not yet been finalized. To permit this:
+This extension is able to to take advantage of some VS Code APIs that have not yet been finalized.
 
-1. From [Command Palette](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_command-palette) choose `Preferences: Configure Runtime Arguments`.
-2. In the argv.json file that opens, add this line:
-```json
-"enable-proposed-api": ["intersystems-community.vscode-objectscript"]
-```
-3. Restart VS Code.
-4. Verify that the ObjectScript channel of the Output panel reports this:
-```
-intersystems-community.vscode-objectscript version X.X.X activating with proposed APIs available.
-```
-
-The enabled features (and the APIs used) are:
+The additional features (and the APIs used) are:
 - Server-side [searching across files](https://code.visualstudio.com/docs/editor/codebasics#_search-across-files) being accessed using isfs (TextSearchProvider)
 - [Quick Open](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_quick-open) of isfs files (FileSearchProvider).
 - Improved labels (tabs, file lists, tooltips) for server-side files (ResourceLabelFormatter)
+
+To unlock these features:
+
+1. Marketplace does not allow publication of extensions that use proposed APIs. Download and install a beta version from GitHub.
+	- Go to https://github.com/intersystems-community/vscode-objectscript/releases
+	- Locate the beta immediately above the release you installed from Marketplace. For instance, if you installed `1.0.5`, look for `1.0.6-beta.1`. This will be functionally identical to the Marketplace version apart from being able to use proposed APIs.
+	- Download the VSIX file (for example `vscode-objectscript-1.0.6-beta.1.vsix`) and install it. One way to install a VSIX is to drag it from your download folder and drop it onto the list of extensions in the Extensions view of VS Code.
+
+2. From [Command Palette](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_command-palette) choose `Preferences: Configure Runtime Arguments`.
+3. In the argv.json file that opens, add this line:
+```json
+"enable-proposed-api": ["intersystems-community.vscode-objectscript"]
+```
+4. Restart VS Code.
+5. Verify that the ObjectScript channel of the Output panel reports this:
+```
+intersystems-community.vscode-objectscript version X.Y.Z-beta.1 activating with proposed APIs available.
+```
+
+After a subsequent update of the extension from Marketplace you will need to download and install the new `-beta.1` VSIX. None of the other steps above will need to be repeated.
 
 ## Configure Connection
 
