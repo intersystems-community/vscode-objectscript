@@ -35,6 +35,26 @@ Or install from the ObjectScript extension page on [Visual Studio Marketplace](h
 
 ![installation](https://raw.githubusercontent.com/intersystems-community/vscode-objectscript/master/images/installation.gif)
 
+## Enable Proposed APIs
+
+This extension is able to to take advantage of some VS Code APIs that have not yet been finalized. To permit this:
+
+1. From [Command Palette](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_command-palette) choose `Preferences: Configure Runtime Arguments`.
+2. In the argv.json file that opens, add this line:
+```json
+"enable-proposed-api": ["intersystems-community.vscode-objectscript"]
+```
+3. Restart VS Code.
+4. Verify that the ObjectScript channel of the Output panel reports this:
+```
+intersystems-community.vscode-objectscript version X.X.X activating with proposed APIs available.
+```
+
+The enabled features (and the APIs used) are:
+- Server-side [searching across files](https://code.visualstudio.com/docs/editor/codebasics#_search-across-files) being accessed using isfs (TextSearchProvider)
+- [Quick Open](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_quick-open) of isfs files (FileSearchProvider).
+- Improved labels (tabs, file lists, tooltips) for server-side files (ResourceLabelFormatter)
+
 ## Configure Connection
 
 To be able to use many features you first need to configure the connection to your IRIS/Caché/Ensemble server(s) in your [VS Code settings](https://code.visualstudio.com/docs/getstarted/settings). If you are unfamiliar with how settings work and how they are edited, use that link.
