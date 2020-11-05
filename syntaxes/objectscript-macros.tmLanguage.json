@@ -4,7 +4,7 @@
   "scopeName": "source.objectscript_macros",
   "patterns": [
     {
-      "match": "^(ROUTINE)\\s(\\b[a-zA-Z0-9.]+\\b)",
+      "match": "^(ROUTINE)\\s(\\b[\\p{Alnum}.]+\\b)",
       "captures": {
         "1": { "name": "keyword.control" },
         "2": { "name": "entity.name.class" }
@@ -23,7 +23,7 @@
     "include": {
       "patterns": [
         {
-          "begin": "^\\s*(\\#\\s*(?:(?i)include))\\s+([a-zA-Z%][a-zA-Z0-9]*)",
+          "begin": "^\\s*(\\#\\s*(?:(?i)include))\\s+([\\p{Alpha}%][\\p{Alnum}]*)",
           "end": "(?=$)",
           "beginCaptures": {
             "1": { "name": "keyword.other.objectscript" },
@@ -36,7 +36,7 @@
       "patterns": [
         {
           "name": "meta.preprocessor.objectscript",
-          "match": "^\\s*(\\#\\s*(?:(?i)dim))\\s+((?<id>[a-zA-Z%][a-zA-Z0-9]*))(?:\\s*(,)\\s*((\\g<id>)*))*(?:\\s+((?i)As)(?:\\s(\\g<id>(?:\\.\\g<id>)*)))?",
+          "match": "^\\s*(\\#\\s*(?:(?i)dim))\\s+((?<id>[\\p{Alpha}%][\\p{Alnum}]*))(?:\\s*(,)\\s*((\\g<id>)*))*(?:\\s+((?i)As)(?:\\s(\\g<id>(?:\\.\\g<id>)*)))?",
           "captures": {
             "1": { "name": "keyword.control.objectscript" },
             "2": { "name": "variable.name" },
@@ -52,7 +52,7 @@
       "patterns": [
         {
           "name": "meta.preprocessor.objectscript",
-          "begin": "^\\s*(\\#\\s*(?:(?i)define))\\s+((?<id>[%a-zA-Z0-9]*))(?:(\\()(\\s*\\g<id>\\s*((,)\\s*\\g<id>\\s*)*)(\\)))?",
+          "begin": "^\\s*(\\#\\s*(?:(?i)define))\\s+((?<id>[%\\p{Alnum}]*))(?:(\\()(\\s*\\g<id>\\s*((,)\\s*\\g<id>\\s*)*)(\\)))?",
           "beginCaptures": {
             "1": { "name": "keyword.control.objectscript" },
             "2": { "name": "entity.name.objectscript" },
@@ -76,7 +76,7 @@
       "patterns": [
         {
           "name": "meta.preprocessor.objectscript",
-          "begin": "^\\s*(\\#\\s*(?:(?i)def1arg))\\s+((?<id>[a-zA-Z%][a-zA-Z0-9]*))(?:(\\()(\\s*\\g<id>\\s*)(\\)))",
+          "begin": "^\\s*(\\#\\s*(?:(?i)def1arg))\\s+((?<id>[\\p{Alpha}%][\\p{Alnum}]*))(?:(\\()(\\s*\\g<id>\\s*)(\\)))",
           "beginCaptures": {
             "1": { "name": "keyword.control.objectscript" },
             "2": { "name": "entity.name.objectscript" },
@@ -114,7 +114,7 @@
     },
 
     "macros": {
-      "patterns": [{ "match": "\\$\\$\\$[a-zA-Z]([a-zA-Z0-9])*", "name": "support.constant" }]
+      "patterns": [{ "match": "\\$\\$\\$[\\p{Alpha}]([\\p{Alnum}])*", "name": "support.constant" }]
     },
 
     "comment-line": {

@@ -86,7 +86,8 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
   if (csp) {
     name = uri.path;
   } else if (fileExt === "cls") {
-    const match = content.match(/^Class (%?\w+(?:\.\w+)+)/im);
+    // Allow Unicode letters
+    const match = content.match(/^Class (%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
     if (match) {
       [, name, ext = "cls"] = match;
     }
