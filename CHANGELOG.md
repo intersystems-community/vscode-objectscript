@@ -4,6 +4,7 @@
 - Defer to Language Server 1.0.5+ for folding range information (#473)
 - Add `objectscript.overwriteServerChanges` setting to permit unconditional import from local file (#464)
 - Fix authentication problem introduced in 1.0.2 (#458)
+- Handle Unicode characters in identifiers (#337)
 - Avoid inappropriate transfer of user-level `objectscript.conn` settings into workspace-level settings (#460)
 - Enhancements available only when proposed APIs are enabled:
     - Improve format of results from Quick Open server-side file name search (#467)
