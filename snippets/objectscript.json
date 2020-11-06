@@ -19,6 +19,26 @@
                 "\twrite rs.ID, !",
                 "}"],
         "description": "Prepare and execute SQL Query"
-    }
+	},
+	"For": {
+		"prefix": ["For"],
+		"body": ["for $1 = $2:$3:$4 {", "\t$0", "}"]
+		},
+	
+	"For Each": {
+		"prefix": ["For"],
+		"body": ["for $1 = \"$2\",\"$3\",\"$4\" {", "\t$0", "}"]
+		},
+	
+	"Do While": {
+		"prefix": ["Do"],
+		"body": ["do {", "\t$0", "} while ($1)"]
+		},
+
+	"While": {
+		"prefix": ["While"],
+		"body": ["while ($1) {", "\t$0", "}"]
+		}
+
 
 }
