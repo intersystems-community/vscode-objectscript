@@ -56,7 +56,7 @@ To unlock these features:
 ```json
 "enable-proposed-api": ["intersystems-community.vscode-objectscript"]
 ```
-4. Restart VS Code.
+4. Close and relaunch VS Code.
 5. Verify that the ObjectScript channel of the Output panel reports this:
 ```
 intersystems-community.vscode-objectscript version X.Y.Z-beta.1 activating with proposed APIs available.
