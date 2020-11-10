@@ -33,7 +33,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
       .then((files: SearchResult[]) =>
         files.map(async (file) => {
           const fileName = file.doc;
-          const uri = DocumentContentProvider.getUri(fileName);
+          const uri = DocumentContentProvider.getUri(fileName, "", "", true, options.folder);
           const document = await vscode.workspace.openTextDocument(uri);
           return {
             ...file,

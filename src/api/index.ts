@@ -208,7 +208,9 @@ export class AtelierAPI {
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     params?: any,
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    headers?: any
+    headers?: any,
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    options?: any
   ): Promise<any> {
     const { active, apiVersion, host, port, username, password, https } = this.config;
     if (!active || !port || !host) {
@@ -326,7 +328,7 @@ export class AtelierAPI {
           data.result.content.length !== 0 &&
           data.result.content[0] != undefined &&
           data.result.content[0].action != undefined;
-        if (!isStudioAction) {
+        if (!isStudioAction && !options?.noOutput) {
           outputConsole(data.console);
         }
       }
@@ -451,7 +453,7 @@ export class AtelierAPI {
       word: false,
       ...params,
     };
-    return this.request(2, "GET", `${this.ns}/action/search`, null, params);
+    return this.request(2, "GET", `${this.ns}/action/search`, null, params, null, { noOutput: true });
   }
 
   // v1+
