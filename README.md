@@ -56,7 +56,7 @@ To unlock these features:
 ```json
 "enable-proposed-api": ["intersystems-community.vscode-objectscript"]
 ```
-4. Restart VS Code.
+4. Close and relaunch VS Code.
 5. Verify that the ObjectScript channel of the Output panel reports this:
 ```
 intersystems-community.vscode-objectscript version X.Y.Z-beta.1 activating with proposed APIs available.
@@ -71,16 +71,16 @@ To be able to use many features you first need to configure the connection to yo
 We recommend you define server connections in the `intersystems.servers` object whose structure is defined by the [InterSystems Server Manager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) helper extension. Install this extension and consult its README about commands for easy setup of connections, plus assistance when editing the JSON definition. For example:
 
 ```json
-	"intersystems.servers": {
-		"local": {
-			"webServer": {
-				"scheme": "http",
-				"host": "127.0.0.1",
-				"port": 52773
-			},
-      		"description": "My local IRIS",
-      		"username": "me"
-		}
+  "intersystems.servers": {
+    "local": {
+      "webServer": {
+        "scheme": "http",
+        "host": "127.0.0.1",
+        "port": 52773
+      },
+      "description": "My local IRIS",
+      "username": "me"
+    }
   }
 ```
 
@@ -131,9 +131,9 @@ The `csp` query parameter indicates web application files are to be shown. The u
 To see only classes in the X.Y package, format the uri like this:
 
 ```json
-		{
-			"uri": "isfs://local/X/Y?ns=USER&type=cls"
-		}
+    {
+      "uri": "isfs://local/X/Y?ns=USER&type=cls"
+    }
 ```
 
 Other query parameters that can be specified:
