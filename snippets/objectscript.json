@@ -1,44 +1,43 @@
 {
-	"ForOrder": {
-		"prefix": ["For"],
-		"body": [
+  "ForOrder": {
+    "prefix": ["For"],
+    "body": [
 			"Set ${1:key} = \"\"",
 			"For {",
 				"\tSet ${1:key} = \\$ORDER(${2:array}(${1:key}))",
 				"\tQuit:${1:key}=\"\"",
 				"\t$3 // process ${2:array}(${1:key})",
 			"}"
-		],
-		"description": "Looping Array with $Order"
-    },
-    "SQL Statement": {
-        "prefix": ["sql"],
-        "body": [
-                "Set rs = ##class(%SQL.Statement).%ExecDirect(,\"SELECT * FROM\")",
-                "While rs.%Next() {",
-                "\twrite rs.ID, !",
-                "}"],
-        "description": "Prepare and execute SQL Query"
-	},
-	"For": {
-		"prefix": ["For"],
-		"body": ["for $1 = $2:$3:$4 {", "\t$0", "}"]
-		},
-	
-	"For Each": {
-		"prefix": ["For"],
-		"body": ["for $1 = \"$2\",\"$3\",\"$4\" {", "\t$0", "}"]
-		},
-	
-	"Do While": {
-		"prefix": ["Do"],
-		"body": ["do {", "\t$0", "} while ($1)"]
-		},
-
-	"While": {
-		"prefix": ["While"],
-		"body": ["while ($1) {", "\t$0", "}"]
-		}
-
-
+    ],
+    "description": "Looping Array with $Order"
+  },
+  "SQL Statement": {
+    "prefix": ["sql"],
+    "body": [
+		"Set rs = ##class(%SQL.Statement).%ExecDirect(,\"SELECT * FROM\")",
+		"While rs.%Next() {",
+		"\twrite rs.ID, !",
+		"}"],
+    "description": "Prepare and execute SQL Query"
+  },
+  "For": {
+    "prefix": ["For"],
+    "body": ["for $1 = $2:$3:$4 {", "\t$0", "}"],
+	  "description": "Typical for loop"
+  },
+  "For Each": {
+    "prefix": ["For"],
+    "body": ["for $1 = \"$2\",\"$3\",\"$4\" {", "\t$0", "}"],
+	  "description": "Loop through list of values"
+  },
+  "Do While": {
+    "prefix": ["Do", "While"],
+    "body": ["do {", "\t$0", "} while ($1)"],
+	  "description": "Do While loop"
+  },
+  "While": {
+    "prefix": ["While"],
+    "body": ["while ($1) {", "\t$0", "}"],
+	  "description": "While loop"
+  }
 }
