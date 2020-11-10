@@ -16,7 +16,7 @@
 	"body": ["Method $1($2) As ${3:%Status}", "{", "\tset $4 = \\$\\$\\$OK", "\t$0", "\treturn $4", "}"]
   },
   "Property": {
-    "prefix": "property",
+    "prefix": "Property",
     "body": "Property $1 As ${2:%String};"
   },
   "Unique Property": {
