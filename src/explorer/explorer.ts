@@ -64,7 +64,8 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
           placeHolder: `Choose a namespace on ${api.config.host}:${api.config.port} to add to ObjectScript Explorer`,
         })
       )
-      .then((ns) => this.showExtra4Workspace(workspaceFolder, ns.label));
+      .then((ns) => this.showExtra4Workspace(workspaceFolder, ns.label))
+      .catch(() => null);
   }
 
   public showExtra4Workspace(workspaceFolder: string, ns: string): void {

@@ -255,13 +255,13 @@ export function notNull(el: any): boolean {
   return el !== null;
 }
 
-export async function portFromDockerCompose(): Promise<{ port: number; docker: boolean }> {
+export async function portFromDockerCompose(): Promise<{ port: number; docker: boolean; service?: string }> {
   const { "docker-compose": dockerCompose = {} } = config("conn");
   const { service, file = "docker-compose.yml", internalPort = 52773, envFile } = dockerCompose;
   if (!internalPort || !file || !service || service === "") {
     return { docker: false, port: null };
   }
-  const result = { port: null, docker: true };
+  const result = { port: null, docker: true, service };
   const workspaceFolderPath = workspaceFolderUri().fsPath;
   const workspaceRootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
 
@@ -305,7 +305,7 @@ export async function portFromDockerCompose(): Promise<{ port: number; docker: b
         if (!port) {
           reject(`Port ${internalPort} not published for service '${service}'.`);
         }
-        resolve({ port: parseInt(port, 10), docker: true });
+        resolve({ port: parseInt(port, 10), docker: true, service });
       });
     });
   });

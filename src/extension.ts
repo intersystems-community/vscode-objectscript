@@ -201,12 +201,15 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
   let api = new AtelierAPI(apiTarget, false);
   const { active, host = "", port = 0, username, ns = "" } = api.config;
   vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
+  if (!panel.text) {
+    panel.text = `${PANEL_LABEL}`;
+  }
   if (!host.length && !port && !ns.length) {
     panel.text = `${PANEL_LABEL}`;
     panel.tooltip = `No connection configured`;
     return;
   }
-  let connInfo = `${host}:${port}[${ns}]`;
+  let connInfo = api.connInfo;
   if (!active) {
     if (!host.length || !port || !ns.length) {
       connInfo = `incompletely specified server ${connInfo}`;
@@ -215,12 +218,12 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     panel.tooltip = `Connection to ${connInfo} is disabled`;
     return;
   }
-  panel.text = connInfo;
-  panel.tooltip = `Connected as ${username}`;
+
   if (!workspaceState.get(configName + ":port") && !api.externalServer) {
     try {
-      const { port: dockerPort, docker: withDocker } = await portFromDockerCompose();
+      const { port: dockerPort, docker: withDocker, service } = await portFromDockerCompose();
       workspaceState.update(configName + ":docker", withDocker);
+      workspaceState.update(configName + ":dockerService", service);
       if (withDocker) {
         if (!dockerPort) {
           const errorMessage = `Something is wrong with your docker-compose connection settings, or your service is not running.`;
@@ -241,6 +244,8 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     } catch (error) {
       outputChannel.appendError(error);
       workspaceState.update(configName + ":docker", true);
+      panel.text = `${PANEL_LABEL} $(error)`;
+      panel.tooltip = error;
       return;
     }
   }
@@ -262,6 +267,8 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
   api
     .serverInfo()
     .then((info) => {
+      panel.text = api.connInfo;
+      panel.tooltip = `Connected as ${username}`;
       const hasHS = info.result.content.features.find((el) => el.name === "HEALTHSHARE" && el.enabled) !== undefined;
       reporter &&
         reporter.sendTelemetryEvent("connected", {
@@ -454,11 +461,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   posPanel.show();
 
   panel = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1);
-
-  const debugAdapterFactory = new ObjectScriptDebugAdapterDescriptorFactory();
-
+  panel.text = `${PANEL_LABEL}`;
   panel.command = "vscode-objectscript.serverActions";
   panel.show();
+
+  const debugAdapterFactory = new ObjectScriptDebugAdapterDescriptorFactory();
 
   // Check one time (flushing cookies) each connection that is used by the workspace.
   // This gets any prompting for missing credentials done upfront, for simplicity.
@@ -675,6 +682,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   context.subscriptions.push(
     reporter,
+    panel,
+    posPanel,
     vscode.extensions.onDidChange(async () => {
       const languageServerExt2 = languageServer(false);
       if (typeof languageServerExt !== typeof languageServerExt2) {

@@ -32,6 +32,8 @@ export interface ConnectionSettings {
   ns: string;
   username: string;
   password: string;
+  docker: boolean;
+  dockerService?: string;
 }
 
 export class AtelierAPI {
@@ -60,6 +62,8 @@ export class AtelierAPI {
       : workspaceState.get(this.configName + ":port", this._config.port);
     const password = workspaceState.get(this.configName + ":password", this._config.password);
     const apiVersion = workspaceState.get(this.configName + ":apiVersion", DEFAULT_API_VERSION);
+    const docker = workspaceState.get(this.configName + ":docker", false);
+    const dockerService = workspaceState.get<string>(this.configName + ":dockerService");
     return {
       serverName,
       active,
@@ -71,6 +75,8 @@ export class AtelierAPI {
       ns,
       username,
       password,
+      docker,
+      dockerService,
     };
   }
 
@@ -179,6 +185,7 @@ export class AtelierAPI {
         username,
         password,
         pathPrefix,
+        docker: false,
       };
 
       // Report server as inactive when no namespace has been determined,
@@ -197,6 +204,12 @@ export class AtelierAPI {
   private get cache(): Cache {
     const { host, port } = this.config;
     return new Cache(extensionContext, `API:${host}:${port}`);
+  }
+
+  public get connInfo(): string {
+    const { host, port, docker, dockerService } = this.config;
+    const ns = this.ns.toUpperCase();
+    return (docker ? "docker" + (dockerService ? `:${dockerService}:${port}` : "") : `${host}:${port}`) + `[${ns}]`;
   }
 
   public async request(
@@ -276,7 +289,6 @@ export class AtelierAPI {
       }
       auth = authRequest;
     }
-    const connInfo = `${host}:${port}[${this.ns}]`;
 
     try {
       const cookie = await auth;
@@ -302,7 +314,7 @@ export class AtelierAPI {
         throw { statusCode: response.status, message: response.statusText };
       }
       await this.updateCookies(response.headers.raw()["set-cookie"] || []);
-      panel.text = `${connInfo}`;
+      panel.text = `${this.connInfo}`;
       panel.tooltip = `Connected as ${username}`;
       if (method === "HEAD") {
         authRequestMap.delete(target);
@@ -346,7 +358,7 @@ export class AtelierAPI {
       }
     } catch (error) {
       if (error.error && error.error.code === "ECONNREFUSED") {
-        panel.text = `${connInfo} $(debug-disconnect)`;
+        panel.text = `${this.connInfo} $(debug-disconnect)`;
         panel.tooltip = "Disconnected";
         workspaceState.update(this.configName + ":host", undefined);
         workspaceState.update(this.configName + ":port", undefined);

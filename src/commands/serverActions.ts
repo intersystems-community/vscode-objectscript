@@ -1,5 +1,12 @@
 import * as vscode from "vscode";
-import { config, workspaceState, checkConnection, FILESYSTEM_SCHEMA, FILESYSTEM_READONLY_SCHEMA } from "../extension";
+import {
+  config,
+  workspaceState,
+  checkConnection,
+  FILESYSTEM_SCHEMA,
+  FILESYSTEM_READONLY_SCHEMA,
+  explorerProvider,
+} from "../extension";
 import { connectionTarget, terminalWithDocker, currentFile } from "../utils";
 import { mainCommandMenu, mainSourceControlMenu } from "./studio";
 import { AtelierAPI } from "../api";
@@ -8,9 +15,10 @@ type ServerAction = { detail: string; id: string; label: string };
 export async function serverActions(): Promise<void> {
   const { apiTarget, configName: workspaceFolder } = connectionTarget();
   const api = new AtelierAPI(apiTarget);
-  const { active, host = "", ns = "", https, port = 0, username, password } = api.config;
-  if (host === "") {
-    return vscode.commands.executeCommand("workbench.view.extension.ObjectScriptView");
+  const { active, host = "", ns = "", https, port = 0, username, password, docker } = api.config;
+  const explorerCount = (await explorerProvider.getChildren()).length;
+  if (!explorerCount && (!docker || host === "")) {
+    await vscode.commands.executeCommand("ObjectScriptExplorer.focus");
   }
   const { links } = config("conn");
   const nsEncoded = encodeURIComponent(ns);
