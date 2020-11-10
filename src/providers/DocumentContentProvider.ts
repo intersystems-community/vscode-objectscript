@@ -33,14 +33,24 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     }
   }
 
-  public static getUri(name: string, workspaceFolder?: string, namespace?: string, vfs?: boolean): vscode.Uri {
+  public static getUri(
+    name: string,
+    workspaceFolder?: string,
+    namespace?: string,
+    vfs?: boolean,
+    wFolderUri?: vscode.Uri
+  ): vscode.Uri {
     if (vfs === undefined) {
       vfs = config("serverSideEditing");
     }
     let scheme = vfs ? FILESYSTEM_SCHEMA : OBJECTSCRIPT_FILE_SCHEMA;
-    workspaceFolder = workspaceFolder && workspaceFolder !== "" ? workspaceFolder : currentWorkspaceFolder();
     const isCsp = name.includes("/");
-    const wFolderUri = workspaceFolderUri(workspaceFolder);
+
+    // if wFolderUri was passed it takes precedence
+    if (!wFolderUri) {
+      workspaceFolder = workspaceFolder && workspaceFolder !== "" ? workspaceFolder : currentWorkspaceFolder();
+      wFolderUri = workspaceFolderUri(workspaceFolder);
+    }
     let uri: vscode.Uri;
     if (wFolderUri.scheme === FILESYSTEM_SCHEMA || wFolderUri.scheme === FILESYSTEM_READONLY_SCHEMA) {
       const fileExt = name.split(".").pop();
