@@ -279,7 +279,7 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     .catch((error) => {
       let message = error.message;
       let errorMessage;
-      if (error.status === 401) {
+      if (error.statusCode === 401) {
         setTimeout(() => {
           const username = api.config.username;
           if (username === "") {
