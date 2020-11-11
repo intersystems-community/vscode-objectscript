@@ -35,10 +35,6 @@ export class NodeBase {
     this.extraNode = extraNode;
   }
 
-  public get connInfo(): string {
-    return `${this.conn.host}:${this.conn.port}[${this.namespace}]`;
-  }
-
   public getTreeItem(): vscode.TreeItem {
     return {
       collapsibleState: vscode.TreeItemCollapsibleState.None,

@@ -19,12 +19,17 @@ export class WorkspaceNode extends NodeBase {
     const flags = [];
     this.options.generated && flags.push(":generated:");
     this.options.system && flags.push(":system:");
+    const { host, port, docker, dockerService } = this.conn;
+    const serverInfo = docker
+      ? "docker" + (dockerService ? `:${dockerService}:${port}` : "")
+      : `${host}${port ? ":" + port : ""}`;
+    const connInfo = this.extraNode
+      ? `[${this.namespace}] on ${serverInfo}`
+      : `${this.label} (${serverInfo}[${this.namespace}])`;
     return {
       collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
       contextValue: `${this.uniqueId}${flags.join("")}`,
-      label: this.extraNode
-        ? `[${this.namespace}] on ${this.conn.host}:${this.conn.port}`
-        : `${this.label} (${this.connInfo})`,
+      label: connInfo,
       iconPath: new vscode.ThemeIcon(this.extraNode ? "database" : "server-environment"),
     };
   }
