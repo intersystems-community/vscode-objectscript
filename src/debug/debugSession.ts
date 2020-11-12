@@ -569,7 +569,6 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
     response.body = {
       value: args.value,
-      variablesReference: args.variablesReference,
     };
     this.sendResponse(response);
   }
@@ -579,10 +578,11 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     response: DebugProtocol.Response,
     codeOrMessage: number | DebugProtocol.Message,
     format?: string,
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     variables?: any,
     dest?: ErrorDestination
   ): void;
-  protected sendErrorResponse(response: DebugProtocol.Response, ...rest): void {
+  protected sendErrorResponse(response: DebugProtocol.Response, ...rest: any[]): void {
     if (rest[0] instanceof Error) {
       const error = rest[0] as Error & { code?: number | string; errno?: number };
       const dest = rest[1] as ErrorDestination;
