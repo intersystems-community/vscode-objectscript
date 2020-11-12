@@ -5,19 +5,31 @@
   },
   "Class Definition with super": {
     "prefix": "Class",
-    "body": ["Class $1 Extends ${2:%Persistent}", "{", "$0", "}"]
+    "body": ["Class $1 Extends ${2|%Persistent,%SerialObject,%RegisteredObject|}", "{", "$0", "}"]
   },
   "ClassMethod definition": {
-    "prefix": "ClassMethod",
-    "body": ["ClassMethod $1($2) As ${3:%Status}", "{", "\t$0", "}"]
+	"prefix": "ClassMethod",
+	"body": ["ClassMethod $1($2) As ${3:%Status}", "{", "\tset $4 = \\$\\$\\$OK", "\t$0", "\treturn $4","}"]
   },
   "Method definition": {
-    "prefix": "Method",
-    "body": ["Method $1($2) As ${3:%Status}", "{", "\t$0", "}"]
+	"prefix": "Method",
+	"body": ["Method $1($2) As ${3:%Status}", "{", "\tset $4 = \\$\\$\\$OK", "\t$0", "\treturn $4", "}"]
   },
   "Property": {
-    "prefix": "property",
+    "prefix": "Property",
     "body": "Property $1 As ${2:%String};"
+  },
+  "Unique Property": {
+	"prefix": ["Unique", "Property"],
+	"body": ["Property $1 As ${2:%String};", "", "Index $1Index On $1 [Unique];"]
+  },
+  "Always-Computed Property": {
+	"prefix": ["Computed", "Property"],
+	"body" : ["Property $1 As ${2:%String} [Calculated, SqlComputed, SqlComputeCode =", "{set {$1} = {$3}}];"]
+  },	
+  "Date/Time Property": {
+	"prefix": ["Date", "Time", "Property"],
+	"body" : ["Property $1 as ${2|%Date,%Time|}(MINVAL = $3, MAXVAL = $4);"]
   },
   "Parameter": {
     "prefix": "Parameter",
@@ -28,34 +40,34 @@
     "body": "Index $1 On ${2:Name};"
   },
   "Unique Index": {
-		"prefix": "Index",
-		"body": "Index $1 On ${2:property} [Unique];",
-		"description": "Unique Index"
-	},
-	"Query": {
-		"prefix":["Query"],
-		"body":["Query $1($2) As %SQLQuery [ SqlProc ]","{","\t$3","}"],
-		"description": "Based on SQL statement"
-	},
-	"Trigger": {
-		"prefix": "Trigger",
-		"body": [
+    "prefix": "Index",
+    "body": "Index $1 On ${2:property} [Unique];",
+    "description": "Unique Index"
+  },
+  "Query": {
+    "prefix":["Query"],
+    "body":["Query $1($2) As %SQLQuery [ SqlProc ]","{","\tSELECT $3", "\tFROM $4", "\tWHERE $5", "\tORDER BY $6", "}"],
+    "description": "SQL statement"
+  },
+  "Trigger": {
+    "prefix": "Trigger",
+    "body": [
 			"Trigger $1 [Event=${2|INSERT,UPDATE,DELETE|}, Time=${3|BEFORE,AFTER|}, Foreach=${4|row/object,row,statement|}]",
 			"{",
 			"\t$5",
 			"}"
 			],
-		"description": "Trigger"
-	},
-	"ForeignKey": {
-		"prefix": "Foreignkey",
-		"body": "ForeignKey $1 (${2:property}) References ${3:referencedClass}(${4:refIndex});",
-		"description": "ForeignKey"
-	},
-	"Relationship": {
-		"prefix": ["Relationship"],
-		"body": "Relationship $1 As ${2:classname} [ Cardinality = ${3|one,many,parent,children|}, Inverse = ${4:correspondingProperty} ];",
-		"description": "Relationship"
+    "description": "Trigger"
+  },
+  "ForeignKey": {
+    "prefix": "Foreignkey",
+    "body": "ForeignKey $1 (${2:property}) References ${3:referencedClass}(${4:refIndex});",
+    "description": "ForeignKey"
+  },
+  "Relationship": {
+    "prefix": ["Relationship"],
+    "body": "Relationship $1 As ${2:classname} [ Cardinality = ${3|one,many,parent,children|}, Inverse = ${4:correspondingProperty} ];",
+    "description": "Relationship"
   },
   "BusinessService": {
 		"prefix": ["BusinessService","Interoperability"],
