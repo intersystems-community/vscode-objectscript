@@ -5,7 +5,7 @@
   },
   "Class Definition with super": {
     "prefix": "Class",
-    "body": ["Class $1 Extends ${2:%Persistent}", "{", "$0", "}"]
+    "body": ["Class $1 Extends ${2|%Persistent,%SerialObject,%RegisteredObject|}", "{", "$0", "}"]
   },
   "ClassMethod definition": {
 	"prefix": "ClassMethod",
