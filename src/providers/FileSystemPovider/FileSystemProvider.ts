@@ -53,6 +53,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     let filter = "";
     if (query.filter && query.filter.length) {
       filter = query.filter.toString();
+      if (!csp) {
+        // always exclude Studio projects, since we can't do anything with them
+        filter += ",'*.prj";
+      }
     } else if (csp) {
       filter = "*";
     } else if (type === "rtn") {
