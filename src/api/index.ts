@@ -357,7 +357,8 @@ export class AtelierAPI {
         return data;
       }
     } catch (error) {
-      if (error.error && error.error.code === "ECONNREFUSED") {
+      if (error.code === "ECONNREFUSED") {
+        authRequestMap.delete(target);
         panel.text = `${this.connInfo} $(debug-disconnect)`;
         panel.tooltip = "Disconnected";
         workspaceState.update(this.configName + ":host", undefined);
