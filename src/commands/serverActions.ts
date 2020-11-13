@@ -15,7 +15,7 @@ type ServerAction = { detail: string; id: string; label: string };
 export async function serverActions(): Promise<void> {
   const { apiTarget, configName: workspaceFolder } = connectionTarget();
   const api = new AtelierAPI(apiTarget);
-  const { active, host = "", ns = "", https, port = 0, username, password, docker } = api.config;
+  const { active, host = "", ns = "", https, port = 0, pathPrefix, username, password, docker } = api.config;
   const explorerCount = (await explorerProvider.getChildren()).length;
   if (!explorerCount && (!docker || host === "")) {
     await vscode.commands.executeCommand("ObjectScriptExplorer.focus");
@@ -71,7 +71,7 @@ export async function serverActions(): Promise<void> {
   const classname = file && file.name.toLowerCase().endsWith(".cls") ? file.name.slice(0, -4) : "";
   const classnameEncoded = encodeURIComponent(classname);
   const connInfo = `${host}:${port}[${nsEncoded}]`;
-  const serverUrl = `${https ? "https" : "http"}://${host}:${port}`;
+  const serverUrl = `${https ? "https" : "http"}://${host}:${port}${pathPrefix}`;
   const portalUrl = `${serverUrl}/csp/sys/UtilHome.csp?$NAMESPACE=${nsEncoded}`;
   const classRef = `${serverUrl}/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${nsEncoded}${
     classname ? "&CLASSNAME=" + classnameEncoded : ""

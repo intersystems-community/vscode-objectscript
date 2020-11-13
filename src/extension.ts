@@ -199,7 +199,7 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     _onDidChangeConnection.fire();
   }
   let api = new AtelierAPI(apiTarget, false);
-  const { active, host = "", port = 0, username, ns = "" } = api.config;
+  const { active, host = "", port = 0, pathPrefix, username, ns = "" } = api.config;
   vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
   if (!panel.text) {
     panel.text = `${PANEL_LABEL}`;
@@ -268,7 +268,7 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     .serverInfo()
     .then((info) => {
       panel.text = api.connInfo;
-      panel.tooltip = `Connected as ${username}`;
+      panel.tooltip = `Connected${pathPrefix ? " to " + pathPrefix : ""} as ${username}`;
       const hasHS = info.result.content.features.find((el) => el.name === "HEALTHSHARE" && el.enabled) !== undefined;
       reporter &&
         reporter.sendTelemetryEvent("connected", {
