@@ -330,6 +330,21 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     return api
       .getDoc(fileName)
       .then((data) => data.result)
+      .then((result) => {
+        const fileSplit = fileName.split(".");
+        const fileType = fileSplit[fileSplit.length - 1];
+        if (!csp && ["bpl", "dtl"].includes(fileType)) {
+          const partialUri = Array.isArray(result.content) ? result.content[0] : String(result.content).split("\n")[0];
+          const strippedUri = partialUri.split("&STUDIO=")[0];
+          const { https, host, port, pathPrefix } = api.config;
+          result.content = [
+            `${https ? "https" : "http"}://${host}:${port}${pathPrefix}${strippedUri}`,
+            "Use the link above to launch the external editor in your web browser.",
+            "Do not edit this document here. It cannot be saved to the server.",
+          ];
+        }
+        return result;
+      })
       .then(
         ({ ts, content }) =>
           new File(
