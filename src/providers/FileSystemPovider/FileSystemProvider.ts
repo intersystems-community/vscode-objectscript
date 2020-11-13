@@ -359,8 +359,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             name,
             fileName,
             ts,
-            Array.isArray(content) ? content.join("\n").length : String(content).length,
-            Array.isArray(content) ? content.join("\n") : String(content)
+            Array.isArray(content) ? content.join("\n").length : content.length,
+            Array.isArray(content) ? content.join("\n") : content
           )
       )
       .then((entry) =>
