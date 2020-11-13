@@ -137,9 +137,9 @@ export class AtelierAPI {
   }
 
   public xdebugUrl(): string {
-    const { host, https, port, apiVersion } = this.config;
+    const { host, https, port, apiVersion, pathPrefix } = this.config;
     const proto = https ? "wss" : "ws";
-    return `${proto}://${host}:${port}/api/atelier/v${apiVersion}/%25SYS/debug`;
+    return `${proto}://${host}:${port}${pathPrefix}/api/atelier/v${apiVersion}/%25SYS/debug`;
   }
 
   public updateCookies(newCookies: string[]): Promise<any> {
