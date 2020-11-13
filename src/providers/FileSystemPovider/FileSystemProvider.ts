@@ -193,6 +193,14 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         // Weirdly, if the file exists on the server we don't actually write its content here.
         // Instead we simply return as though we wrote it successfully.
         // The actual writing is done by our workspace.onDidSaveTextDocument handler.
+        // But first check a case for which we should fail the write and leave the document dirty if changed.
+        if (fileName.split(".").pop().toLowerCase() === "cls") {
+          return api.actionIndex([fileName]).then((result) => {
+            if (result.result.content[0].content.depl) {
+              throw new Error("Cannot overwrite a deployed class");
+            }
+          });
+        }
         return;
       },
       (error) => {
