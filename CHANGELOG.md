@@ -1,5 +1,23 @@
 # Change Log
 
+## [1.0.6] 13-Nov-2020
+- Target current class when opening documentation from Server Actions quickpick, launched by click on ObjectScript panel in status bar (#490)
+- Improve code snippets (#493)
+- Update README to state need for manual download and install of beta VSIX in order to use proposed APIs (#478)
+- Make server-side search of isfs folder (proposed API) work even when folder isn't first root in workspace (#495)
+- Fix status bar panel issues that affected Docker targets (#498)
+- Resolve failure to prompt for password (1.0.5 regression) (#503)
+- Exclude Studio project documents (.prj) from isfs tree (#501)
+- Fix variable tree cascade that occurred when value was edited during debugging (#505)
+- Show clickable url launching graphical editor for BPL and DTL documents opened from isfs folder (#508)
+    - To show .bpl and .dtl files, add `filter=*` to isfs folder's `uri` property in your `XXX.code-workspace` file.
+    - Alternatively, use `View Other` from context menu of the corresponding class.
+- Display supported image files correctly when opened from isfs web application folder (#394)
+- Prevent import from overwriting class that is in [deployed mode](https://docs.intersystems.com/iris20181/csp/docbook/Doc.View.cls?KEY=GOBJ_classes#GOBJ_deploy_classes) (#382)
+- Respect `pathPrefix` property of an `intersystems.servers` connection definition in more places:
+    - debugger connections
+    - urls on Server Actions menu
+
 ## [1.0.5] 5-Nov-2020
 - Defer to Language Server 1.0.5+ for folding range information (#473)
 - Add `objectscript.overwriteServerChanges` setting to permit unconditional import from local file (#464)
