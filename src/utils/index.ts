@@ -289,7 +289,7 @@ export async function portFromDockerCompose(): Promise<{ port: number; docker: b
   const cmd = `docker-compose -f ${file} ${envFileParam} `;
 
   return new Promise((resolve, reject) => {
-    exec(`${cmd} ps --services --filter 'status=running'`, { cwd }, (error, stdout) => {
+    exec(`${cmd} ps --services --filter status=running`, { cwd }, (error, stdout) => {
       if (error) {
         reject(error.message);
       }
