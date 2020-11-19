@@ -70,7 +70,7 @@
     "description": "Relationship"
   },
   "BusinessService": {
-		"prefix": ["BusinessService","Interoperability","ClassOperation"],
+		"prefix": ["BusinessService","Interoperability","ClassService"],
 		"body": ["Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.BusinessService",
 			"{\n",
 			"Property Adapter As ${2:Ens.InboundAdapter};\n",
@@ -84,7 +84,7 @@
 		"description": "Business Service Definition"
 	},
 	"BusinessOperation": {
-		"prefix":["BusinessOperation","Interoperability","ClassService"],
+		"prefix":["BusinessOperation","Interoperability","ClassOperation"],
 		"body": ["Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.BusinessOperation",
 		"{\n",
 		"Property Adapter As ${2:Ens.OutboundAdapter};\n",
@@ -120,7 +120,7 @@
 		"}"],
 		"description": "Production Definition"
 	},
-	"Request Class": {
+	"Request": {
 		"prefix": ["Request","Interoperability","ClassRequest"],
 		"body": [
 			"Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Request",
@@ -130,7 +130,7 @@
 		],
 		"description": "Request Message Definition"
 	},
-	"Response Class": {
+	"Response": {
 		"prefix": ["Response","Interoperability","ClassResponse"],
 		"body": [
 			"Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Response",
