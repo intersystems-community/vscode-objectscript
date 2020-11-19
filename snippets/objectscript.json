@@ -39,5 +39,14 @@
     "prefix": ["While"],
     "body": ["while ($1) {", "\t$0", "}"],
 	  "description": "While loop"
-  }
+  },
+	"ThrowOnError": {
+		"prefix": ["$$$ThrowOnError"],
+		"body": ["$$$$ThrowOnError(##class(${1:class}).${2:method}())"]
+	},
+	"Try Catch": {
+		"prefix": ["Try"],
+		"body": ["Try {", "\t$0", "}" , "Catch ex {", "\tSet tSC=ex.AsStatus()", "}"],
+		  "description": "Try Catch"
+	}
 }
