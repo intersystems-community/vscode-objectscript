@@ -70,7 +70,7 @@
     "description": "Relationship"
   },
   "BusinessService": {
-		"prefix": ["BusinessService","Interoperability"],
+		"prefix": ["BusinessService","Interoperability","ClassOperation"],
 		"body": ["Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.BusinessService",
 			"{\n",
 			"Property Adapter As ${2:Ens.InboundAdapter};\n",
@@ -84,7 +84,7 @@
 		"description": "Business Service Definition"
 	},
 	"BusinessOperation": {
-		"prefix":["BusinessOperation","Interoperability"],
+		"prefix":["BusinessOperation","Interoperability","ClassService"],
 		"body": ["Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.BusinessOperation",
 		"{\n",
 		"Property Adapter As ${2:Ens.OutboundAdapter};\n",
@@ -107,7 +107,7 @@
 		"description": "Business Operation Definition"
 	},
 	"Production": {
-		"prefix": ["Production","Interoperability"],
+		"prefix": ["Production","Interoperability","ClassProduction"],
 		"body": ["Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Production",
 		"{\n",
 		"XData ProductionDefinition",
@@ -119,5 +119,25 @@
 		"}",
 		"}"],
 		"description": "Production Definition"
+	},
+	"Request Class": {
+		"prefix": ["Request","Interoperability","ClassRequest"],
+		"body": [
+			"Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Request",
+			"{",
+			"\t$0",
+			"}"
+		],
+		"description": "Request Message Definition"
+	},
+	"Response Class": {
+		"prefix": ["Response","Interoperability","ClassResponse"],
+		"body": [
+			"Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Response",
+			"{",
+			"\t$0",
+			"}"
+		],
+		"description": "Response Message Definition"
 	}
 }
