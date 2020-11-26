@@ -8,7 +8,9 @@ import { extensionId } from "../../extension";
 
 suite("Extension Test Suite", () => {
   suiteSetup(async function () {
-    // make sure git is activated
+    // make sure extension is activated
+    const serverManager = extensions.getExtension("intersystems-community.servermanager");
+    await serverManager?.activate();
     const ext = extensions.getExtension(extensionId);
     await ext?.activate();
   });
@@ -18,7 +20,6 @@ suite("Extension Test Suite", () => {
   });
 
   test("Sample test", () => {
-    assert.equal([1, 2, 3].indexOf(5), -1);
-    assert.equal([1, 2, 3].indexOf(0), -1);
+    assert.ok("All good");
   });
 });
