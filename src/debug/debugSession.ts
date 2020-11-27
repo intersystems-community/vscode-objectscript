@@ -85,6 +85,8 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
   private _evalResultProperties = new Map<number, xdebug.EvalResultProperty>();
 
+  private _workspace: string;
+
   private cookies: string[] = [];
 
   public constructor() {
@@ -110,7 +112,10 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     };
 
     try {
-      const api = new AtelierAPI();
+      const file = currentFile();
+      this._workspace = file?.workspaceFolder;
+
+      const api = new AtelierAPI(file?.uri);
       this.cookies = api.cookies;
       if (!api.active) {
         throw new Error("Connection not active");
@@ -328,7 +333,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
           const [, namespace, name] = decodeURI(stackFrame.fileUri).match(/^dbgp:\/\/\|([^|]+)\|(.*)$/);
           const routine = name;
           // const routine = name.includes(".") ? name : name + ".int";
-          const fileUri = DocumentContentProvider.getUri(routine, null, namespace).toString();
+          const fileUri = DocumentContentProvider.getUri(routine, this._workspace, namespace).toString();
           const source = new Source(routine, fileUri);
           let line = stackFrame.line + 1;
           const place = `${stackFrame.method}+${stackFrame.methodOffset}`;
