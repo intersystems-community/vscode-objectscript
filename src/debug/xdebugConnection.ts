@@ -1,6 +1,4 @@
-// tslint:disable:max-classes-per-file
 import * as iconv from "iconv-lite";
-// import * as net from "net";
 import * as WebSocket from "ws";
 import { DbgpConnection } from "./dbgp";
 
@@ -146,7 +144,7 @@ export abstract class Breakpoint {
   public constructor(breakpointNode: Element, connection: Connection);
   /** To create a new breakpoint in derived classes */
   public constructor(type: BreakpointType);
-  public constructor(...rest) {
+  public constructor(...rest: any[]) {
     if (typeof rest[0] === "object") {
       // from XML
       const breakpointNode: Element = rest[0];
@@ -175,7 +173,7 @@ export class LineBreakpoint extends Breakpoint {
   public constructor(breakpointNode: Element, connection: Connection);
   /** contructs a line breakpoint for passing to sendSetBreakpointCommand */
   public constructor(fileUri: string, line: number);
-  public constructor(...rest) {
+  public constructor(...rest: any[]) {
     if (typeof rest[0] === "object") {
       const breakpointNode: Element = rest[0];
       const connection: Connection = rest[1];
@@ -197,7 +195,7 @@ export class ClassLineBreakpoint extends LineBreakpoint {
 
   /** contructs a line breakpoint for passing to sendSetBreakpointCommand */
   public constructor(fileUri: string, line: number, method: string, methodOffset: number);
-  public constructor(...rest) {
+  public constructor(...rest: any[]) {
     if (typeof rest[0] === "object") {
       const breakpointNode: Element = rest[0];
       const connection: Connection = rest[1];
@@ -218,7 +216,7 @@ export class RoutineLineBreakpoint extends LineBreakpoint {
 
   /** contructs a line breakpoint for passing to sendSetBreakpointCommand */
   public constructor(fileUri: string, line: number, method: string, methodOffset: number);
-  public constructor(...rest) {
+  public constructor(...rest: any[]) {
     if (typeof rest[0] === "object") {
       const breakpointNode: Element = rest[0];
       const connection: Connection = rest[1];
@@ -245,7 +243,7 @@ export class ConditionalBreakpoint extends Breakpoint {
   public constructor(breakpointNode: Element, connection: Connection);
   /** Contructs a breakpoint object for passing to sendSetBreakpointCommand */
   public constructor(expression: string, fileUri: string, line?: number);
-  public constructor(...rest) {
+  public constructor(...rest: any[]) {
     if (typeof rest[0] === "object") {
       // from XML
       const breakpointNode: Element = rest[0];
@@ -426,6 +424,13 @@ export abstract class BaseProperty {
       } else {
         this.value = iconv.encode(propertyNode.textContent, ENCODING) + "";
       }
+    }
+    if (this.value === "<UNDEFINED>") {
+      this.value = undefined;
+      this.type = "undefined";
+    }
+    if (this.type == "string" && Number(this.value).toString() === this.value) {
+      this.type = this.value.includes(".") ? "float" : "int";
     }
   }
 }

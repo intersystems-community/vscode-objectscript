@@ -222,7 +222,11 @@ export function currentWorkspaceFolder(document?: vscode.TextDocument): string {
         return vscode.workspace.getWorkspaceFolder(uri).name;
       }
     } else if (schemas.includes(uri.scheme)) {
-      return uri.authority;
+      const rootUri = uri.with({ path: "/" }).toString();
+      const foundFolder = vscode.workspace.workspaceFolders.find(
+        (workspaceFolder) => workspaceFolder.uri.toString() == rootUri
+      );
+      return foundFolder ? foundFolder.name : uri.authority;
     }
   }
   const firstFolder =
