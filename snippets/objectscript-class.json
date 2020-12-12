@@ -78,6 +78,7 @@
     "body": [
       "XData $1",
       "{",
+      "$0",
       "}"
     ],
     "description": "XData"
