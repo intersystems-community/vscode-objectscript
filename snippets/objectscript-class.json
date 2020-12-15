@@ -7,7 +7,7 @@
     "prefix": "Class",
     "body": ["Class $1 Extends ${2|%Persistent,%SerialObject,%RegisteredObject|}", "{", "$0", "}"]
   },
-  "Class Definition with mulitple superclasses": {
+  "Class Definition with multiple superclasses": {
 	"prefix": "Class",
 	"body": ["Class $1 Extends (${2|%Persistent,%SerialObject,%RegisteredObject|}, $3)", "{", "$0", "}"]
   },
