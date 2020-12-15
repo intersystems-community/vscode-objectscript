@@ -113,7 +113,7 @@
         },
         {
           "command": "vscode-objectscript.viewOthers",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.subclass",
@@ -274,7 +274,7 @@
       "editor/context": [
         {
           "command": "vscode-objectscript.viewOthers",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "when": "vscode-objectscript.connectActive",
           "group": "objectscript@1"
         },
         {
@@ -319,7 +319,7 @@
         {
           "command": "vscode-objectscript.touchBar.viewOthers",
           "group": "objectscript.viewOthers",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "vscode-objectscript.connectActive"
         }
       ],
       "explorer/context": [
