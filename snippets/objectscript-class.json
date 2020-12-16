@@ -23,6 +23,10 @@
     "prefix": "Property",
     "body": "Property $1 As ${2:%String};"
   },
+  "Projection": {
+    "prefix": "Projection",
+    "body": "Projection $1 As $2;"
+  },
   "Unique Property": {
 	"prefix": ["Unique", "Property"],
 	"body": ["Property $1 As ${2:%String};", "", "Index $1Index On $1 [Unique];"]
@@ -30,7 +34,7 @@
   "Always-Computed Property": {
 	"prefix": ["Computed", "Property"],
 	"body" : ["Property $1 As ${2:%String} [Calculated, SqlComputed, SqlComputeCode =", "{set {$1} = {$3}}];"]
-  },	
+  },
   "Date/Time Property": {
 	"prefix": ["Date", "Time", "Property"],
 	"body" : ["Property $1 as ${2|%Date,%Time|}(MINVAL = $3, MAXVAL = $4);"]
@@ -72,6 +76,16 @@
     "prefix": ["Relationship"],
     "body": "Relationship $1 As ${2:classname} [ Cardinality = ${3|one,many,parent,children|}, Inverse = ${4:correspondingProperty} ];",
     "description": "Relationship"
+  },
+  "XData": {
+    "prefix": "XData",
+    "body": [
+      "XData $1",
+      "{",
+      "$0",
+      "}"
+    ],
+    "description": "XData"
   },
   "BusinessService": {
 		"prefix": ["BusinessService","Interoperability","ClassService"],
