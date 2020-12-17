@@ -100,6 +100,13 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
     }
   } else {
     name = fileName;
+    // Need to strip leading / for custom Studio documents which should not be treated as files.
+    // e.g. For a custom Studio document Test.ZPM, the variable name would be /Test.ZPM which is
+    // not the document name. The document name is Test.ZPM so requests made to the Atelier APIs
+    // using the name with the leading / would fail to find the document.
+    if (name.charAt(0) === "/") {
+      name = name.substr(1);
+    }
   }
   if (!name) {
     return null;
