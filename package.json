@@ -833,6 +833,11 @@
           "default": "cuk",
           "description": "Compilation flags."
         },
+        "objectscript.searchAllDocTypes": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether server side search should search across all Studio Document types. Default is to only search classes, routines and include files."
+        },
         "objectscript.overwriteServerChanges": {
           "type": "boolean",
           "default": false,
