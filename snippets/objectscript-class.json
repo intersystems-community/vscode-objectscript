@@ -1,76 +1,76 @@
 {
   "Class Definition without super": {
     "prefix": "Class",
-    "body": ["Class $1", "{", "$0", "}"]
+    "body": ["/// ${1:Description}", "Class $2", "{", "$0", "}"]
   },
   "Class Definition with one superclass": {
     "prefix": "Class",
-    "body": ["Class $1 Extends ${2|%Persistent,%SerialObject,%RegisteredObject|}", "{", "$0", "}"]
+    "body": ["/// ${1:Description}", "Class $2 Extends ${3|%Persistent,%SerialObject,%RegisteredObject|}", "{", "$0", "}"]
   },
   "Class Definition with multiple superclasses": {
 	"prefix": "Class",
-	"body": ["Class $1 Extends (${2|%Persistent,%SerialObject,%RegisteredObject|}, $3)", "{", "$0", "}"]
+	"body": ["/// ${1:Description}", "Class $2 Extends (${3|%Persistent,%SerialObject,%RegisteredObject|}, $4)", "{", "$0", "}"]
   },
   "ClassMethod definition": {
 	"prefix": "ClassMethod",
-	"body": ["ClassMethod $1($2) As ${3:%Status}", "{", "\tset $4 = \\$\\$\\$OK", "\t$0", "\treturn $4","}"]
+	"body": ["/// ${1:Description}", "ClassMethod $2($3) As ${4:%Status}", "{", "\tset $5 = \\$\\$\\$OK", "\t$0", "\treturn $5","}"]
   },
   "Method definition": {
 	"prefix": "Method",
-	"body": ["Method $1($2) As ${3:%Status}", "{", "\tset $4 = \\$\\$\\$OK", "\t$0", "\treturn $4", "}"]
+	"body": ["/// ${1:Description}", "Method $2($3) As ${4:%Status}", "{", "\tset $5 = \\$\\$\\$OK", "\t$0", "\treturn $5", "}"]
   },
   "Property": {
     "prefix": "Property",
-    "body": "Property $1 As ${2:%String};"
+    "body": ["/// ${1:Description}", "Property $2 As ${3:%String};"]
   },
   "Unique Property": {
 	"prefix": ["Unique", "Property"],
-	"body": ["Property $1 As ${2:%String};", "", "Index $1Index On $1 [Unique];"]
+	"body": ["/// ${1:Description}", "Property $2 As ${3:%String};", "", "Index $2Index On $2 [Unique];"]
   },
   "Always-Computed Property": {
 	"prefix": ["Computed", "Property"],
-	"body" : ["Property $1 As ${2:%String} [Calculated, SqlComputed, SqlComputeCode =", "{set {$1} = {$3}}];"]
+	"body" : ["/// ${1:Description}", "Property $2 As ${3:%String} [Calculated, SqlComputed, SqlComputeCode =", "{set {$2} = {$4}}];"]
   },	
   "Date/Time Property": {
 	"prefix": ["Date", "Time", "Property"],
-	"body" : ["Property $1 as ${2|%Date,%Time|}(MINVAL = $3, MAXVAL = $4);"]
+	"body" : ["/// ${1:Description}", "Property $2 as ${3|%Date,%Time|}(MINVAL = $4, MAXVAL = $5);"]
   },
   "Parameter": {
     "prefix": "Parameter",
-    "body": "Parameter $1 = \"$0\";"
+    "body": ["/// ${1:Description}", "Parameter $2 = \"$0\";"]
   },
   "Index": {
     "prefix": "Index",
-    "body": "Index $1 On ${2:Name};"
+    "body": ["/// ${1:Description}", "Index $2 On ${3:property};"]
   },
   "Unique Index": {
     "prefix": "Index",
-    "body": "Index $1 On ${2:property} [Unique];",
+    "body": ["/// ${1:Description}", "Index $2 On ${3:property} [Unique];"],
     "description": "Unique Index"
   },
   "Query": {
     "prefix":["Query"],
-    "body":["Query $1($2) As %SQLQuery [ SqlProc ]","{","\tSELECT $3", "\tFROM $4", "\tWHERE $5", "\tORDER BY $6", "}"],
+    "body":["/// ${1:Description}", "Query $2($3) As %SQLQuery [ SqlProc ]","{","\tSELECT $4", "\tFROM $5", "\tWHERE $6", "\tORDER BY $7", "}"],
     "description": "SQL statement"
   },
   "Trigger": {
     "prefix": "Trigger",
-    "body": [
-			"Trigger $1 [Event=${2|INSERT,UPDATE,DELETE|}, Time=${3|BEFORE,AFTER|}, Foreach=${4|row/object,row,statement|}]",
+    "body": ["/// ${1:Description}", 
+			"Trigger $2 [Event=${3|INSERT,UPDATE,DELETE|}, Time=${4|BEFORE,AFTER|}, Foreach=${5|row/object,row,statement|}]",
 			"{",
-			"\t$5",
+			"\t$0",
 			"}"
 			],
     "description": "Trigger"
   },
   "ForeignKey": {
     "prefix": "Foreignkey",
-    "body": "ForeignKey $1 (${2:property}) References ${3:referencedClass}(${4:refIndex});",
+    "body": ["/// ${1:Description}", "ForeignKey $2(${3:property}) References ${4:referencedClass}(${5:refIndex});"],
     "description": "ForeignKey"
   },
   "Relationship": {
     "prefix": ["Relationship"],
-    "body": "Relationship $1 As ${2:classname} [ Cardinality = ${3|one,many,parent,children|}, Inverse = ${4:correspondingProperty} ];",
+    "body": ["/// ${1:Description}", "Relationship $2 As ${3:classname} [ Cardinality = ${4|one,many,parent,children|}, Inverse = ${5:correspondingProperty} ];"],
     "description": "Relationship"
   },
   "BusinessService": {
