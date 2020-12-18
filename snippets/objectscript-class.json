@@ -23,6 +23,10 @@
     "prefix": "Property",
     "body": ["/// ${1:Description}", "Property $2 As ${3:%String};"]
   },
+  "Projection": {
+    "prefix": "Projection",
+    "body": ["/// ${1:Description}", "Projection $2 As $3;"]
+  },
   "Unique Property": {
 	"prefix": ["Unique", "Property"],
 	"body": ["/// ${1:Description}", "Property $2 As ${3:%String};", "", "Index $2Index On $2 [Unique];"]
@@ -73,6 +77,18 @@
     "body": ["/// ${1:Description}", "Relationship $2 As ${3:classname} [ Cardinality = ${4|one,many,parent,children|}, Inverse = ${5:correspondingProperty} ];"],
     "description": "Relationship"
   },
+  "XData": {
+    "prefix": "XData",
+    "body": [
+	  "/// ${1:Description}",
+      "XData $2",
+      "{",
+      "$0",
+      "}"
+    ],
+    "description": "XData"
+  },
+
   "BusinessService": {
 		"prefix": ["BusinessService","Interoperability","ClassService"],
 		"body": ["Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.BusinessService",
