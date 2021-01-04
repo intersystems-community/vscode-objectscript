@@ -1,5 +1,13 @@
 # Change Log
 
+## [1.0.7] 4-Jan-2021
+- Fix issue affecting use with Docker on Windows (#516)
+- Resolve problem debugging in a multi-root workspace using isfs (#387)
+- Allow 'View other' from custom Studio documents.
+- Fix issue that prevented saving of custom Studio documents.
+- Add code snippets for Request, Response and multi-superclass class definitions, Projection, XData, Try Catch, $$$ThrowOnError macro.
+- Upgrade vulnerable dependency.
+
 ## [1.0.6] 13-Nov-2020
 - Target current class when opening documentation from Server Actions quickpick, launched by click on ObjectScript panel in status bar (#490)
 - Improve code snippets (#493)
