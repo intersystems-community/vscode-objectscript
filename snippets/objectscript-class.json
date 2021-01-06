@@ -2,7 +2,8 @@
   "Class definition without superclass": {
     "prefix": "Class",
     "body": [
-      "Class ${1:PackageName.ClassName}",
+      "/// ${1:Description}",
+      "Class ${2:PackageName.ClassName}",
       "{",
       "$0",
       "}"
@@ -11,7 +12,8 @@
   "Class definition with one superclass": {
     "prefix": "Class",
     "body": [
-      "Class ${1:PackageName.ClassName} Extends ${2|%Persistent,%SerialObject,%RegisteredObject|}",
+      "/// ${1:Description}",
+      "Class ${2:PackageName.ClassName} Extends ${3|%Persistent,%SerialObject,%RegisteredObject|}",
       "{",
       "$0",
       "}"
@@ -20,7 +22,8 @@
   "Class definition with multiple superclasses": {
     "prefix": "Class",
     "body": [
-      "Class ${1:PackageName.ClassName} Extends (${2|%Persistent,%SerialObject,%RegisteredObject|}, ${3:%XML.Adaptor})",
+      "/// ${1:Description}",
+      "Class ${2:PackageName.ClassName} Extends (${3|%Persistent,%SerialObject,%RegisteredObject|}, ${4:%XML.Adaptor})",
       "{",
       "$0",
       "}"
@@ -29,75 +32,98 @@
   "ClassMethod definition": {
     "prefix": "ClassMethod",
     "body": [
-      "ClassMethod ${1:MethodName}($2) As ${3:%Status}",
+      "/// ${1:Description}",
+      "ClassMethod ${2:MethodName}($3) As ${4:%Status}",
       "{",
-        "\tSet ${4:sc} = \\$\\$\\$OK",
+        "\tSet ${5:sc} = \\$\\$\\$OK",
         "\t${0:// do something}",
-        "\tReturn $4",
+        "\tReturn $5",
       "}"
     ]
   },
   "Method definition": {
     "prefix": "Method",
     "body": [
-      "Method ${1:MethodName}($2) As ${3:%Status}",
+      "/// ${1:Description}",
+      "Method ${2:MethodName}($3) As ${4:%Status}",
       "{",
-        "\tSet ${4:sc} = \\$\\$\\$OK",
+        "\tSet ${5:sc} = \\$\\$\\$OK",
         "\t${0:// do something}",
-        "\tReturn $4",
+        "\tReturn $5",
       "}"
     ]
   },
   "Property": {
     "prefix": "Property",
-    "body": "Property ${1:PropertyName} As ${2:%String};"
+    "body": [
+      "/// ${1:Description}",
+      "Property ${2:PropertyName} As ${3:%String};"
+    ]
   },
   "Projection": {
     "prefix": "Projection",
-    "body": "Projection ${1:ProjectionName} As ${2:PackageName.ProjectionClassName};"
+    "body": [
+      "/// ${1:Description}",
+      "Projection ${2:ProjectionName} As ${3:PackageName.ProjectionClassName};"
+    ]
   },
   "Unique Property": {
     "prefix": ["Unique", "Property"],
     "body": [
-      "Property ${1:PropertyName} As ${2:%String};",
+      "/// ${1:Description}",
+      "Property ${2:PropertyName} As ${3:%String};",
       "",
-      "Index $1Index On $1 [Unique];"
+      "Index $2Index On $2 [Unique];"
     ]
   },
   "Always-Computed Property": {
     "prefix": ["Computed", "Property"],
     "body" : [
-      "Property ${1:PropertyName} As ${2:%String} [Calculated, SqlComputed, SqlComputeCode =",
-        "\t{Set {$1} = {${3:expression}}}",
+      "/// ${1:Description}",
+      "Property ${2:PropertyName} As ${3:%String} [Calculated, SqlComputed, SqlComputeCode =",
+        "\t{Set {$2} = {${4:expression}}}",
       "];"
     ]
   },
   "Date/Time Property": {
     "prefix": ["Date", "Time", "Property"],
-    "body" : ["Property ${1:PropertyName} As ${2|%Date,%Time|}(MINVAL = $3, MAXVAL = $4);"]
+    "body" : [
+      "/// ${1:Description}",
+      "Property ${2:PropertyName} As ${3|%Date,%Time|}(MINVAL = $4, MAXVAL = $5);"
+    ]
   },
   "Parameter": {
     "prefix": "Parameter",
-    "body": "Parameter ${1:PARAMETERNAME} = \"$0\";"
+    "body": [
+      "/// ${1:Description}",
+      "Parameter ${2:PARAMETERNAME} = \"$0\";"
+    ]
   },
   "Index": {
     "prefix": "Index",
-    "body": "Index ${1:IndexName} On ${2:property};"
+    "body": [
+      "/// ${1:Description}",
+      "Index ${2:IndexName} On ${3:property};"
+    ]
   },
   "Unique Index": {
     "prefix": "Index",
-    "body": "Index ${1:IndexName} On ${2:property} [Unique];",
+    "body": [
+      "/// ${1:Description}",
+      "Index ${2:IndexName} On ${3:property} [Unique];"
+    ],
     "description": "Unique Index"
   },
   "Query": {
     "prefix":["Query"],
     "body":[
-      "Query ${1:QueryName}($2) As %SQLQuery [ SqlProc ]",
+      "/// ${1:Description}",
+      "Query ${2:QueryName}($3) As %SQLQuery [ SqlProc ]",
       "{",
-        "\tSELECT ${3:select-items}",
-        "\tFROM ${4:table-refs}",
-        "\tWHERE ${5:condition-expression}",
-        "\tORDER BY ${6:ordering-items}",
+        "\tSELECT ${4:select-items}",
+        "\tFROM ${5:table-refs}",
+        "\tWHERE ${6:condition-expression}",
+        "\tORDER BY ${7:ordering-items}",
       "}"
     ],
     "description": "SQL statement"
@@ -105,7 +131,8 @@
   "Trigger": {
     "prefix": "Trigger",
     "body": [
-      "Trigger ${1:TriggerName} [Event=${2|INSERT,UPDATE,DELETE|}, Time=${3|BEFORE,AFTER|}, Foreach=${4|row/object,row,statement|}]",
+      "/// ${1:Description}",
+      "Trigger ${2:TriggerName} [Event=${3|INSERT,UPDATE,DELETE|}, Time=${4|BEFORE,AFTER|}, Foreach=${5|row/object,row,statement|}]",
       "{",
         "\t${0:// do something}",
       "}"
@@ -114,18 +141,25 @@
   },
   "ForeignKey": {
     "prefix": "ForeignKey",
-    "body": "ForeignKey ${1:ForeignKeyName}(${2:property}) References ${3:referencedClass}(${4:refIndex});",
+    "body": [
+      "/// ${1:Description}",
+      "ForeignKey ${2:ForeignKeyName}(${3:property}) References ${4:referencedClass}(${5:refIndex});"
+    ],
     "description": "ForeignKey"
   },
   "Relationship": {
     "prefix": ["Relationship"],
-    "body": "Relationship ${1:RelationshipName} As ${2:classname} [ Cardinality = ${3|one,many,parent,children|}, Inverse = ${4:correspondingProperty} ];",
+    "body": [
+      "/// ${1:Description}",
+      "Relationship ${2:RelationshipName} As ${3:classname} [ Cardinality = ${4|one,many,parent,children|}, Inverse = ${5:correspondingProperty} ];"
+    ],
     "description": "Relationship"
   },
   "XData": {
     "prefix": "XData",
     "body": [
-      "XData ${1:XDataName}",
+      "/// ${1:Description}",
+      "XData ${2:XDataName}",
       "{",
       "$0",
       "}"
@@ -135,16 +169,17 @@
   "BusinessService": {
         "prefix": ["BusinessService","Interoperability","ClassService"],
         "body": [
-          "Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.BusinessService",
+          "/// ${1:Description}",
+          "Class ${2:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.BusinessService",
           "{",
           "",
-          "Property Adapter As ${2:Ens.InboundAdapter};",
+          "Property Adapter As ${3:Ens.InboundAdapter};",
           "",
-          "Parameter ADAPTER = \"$2\";",
+          "Parameter ADAPTER = \"$3\";",
           "",
           "Method OnProcessInput(pInput As %RegisteredObject, pOutput As %RegisteredObject) As %Status",
           "{",
-            "\t$3",
+            "\t$0",
             "\tReturn \\$\\$\\$ERROR(\\$\\$\\$NotImplemented)",
           "}",
           "}"
@@ -154,25 +189,26 @@
     "BusinessOperation": {
         "prefix":["BusinessOperation","Interoperability","ClassOperation"],
         "body": [
-          "Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.BusinessOperation",
+          "/// ${1:Description}",
+          "Class ${2:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.BusinessOperation",
           "{",
           "",
-          "Property Adapter As ${2:Ens.OutboundAdapter};",
+          "Property Adapter As ${3:Ens.OutboundAdapter};",
           "",
-          "Parameter ADAPTER = \"$2\";",
+          "Parameter ADAPTER = \"$3\";",
           "",
           "Parameter INVOCATION = \"Queue\";",
           "",
-          "Method SampleCall(pRequest As ${3:Ens.Request}, Output pResponse As ${4:Ens.Response} ) As %Status",
+          "Method SampleCall(pRequest As ${4:Ens.Request}, Output pResponse As ${5:Ens.Response} ) As %Status",
           "{",
-            "\t$5",
+            "\t$0",
             "\tReturn \\$\\$\\$ERROR(\\$\\$\\$NotImplemented)",
           "}",
           "",
           "XData MessageMap",
           "{",
           "<MapItems>",
-            "\t<MapItem MessageType=\"$3\">",
+            "\t<MapItem MessageType=\"$4\">",
               "\t\t<Method>SampleCall</Method>",
             "\t</MapItem>",
           "</MapItems>",
@@ -184,14 +220,15 @@
     "Production": {
         "prefix": ["Production","Interoperability","ClassProduction"],
         "body": [
-          "Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Production",
+          "/// ${1:Description}",
+          "Class ${2:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Production",
           "{",
           "",
           "XData ProductionDefinition",
           "{",
-            "\t<Production Name=\"$1\">",
+            "\t<Production Name=\"$2\">",
               "\t\t<ActorPoolSize>2</ActorPoolSize>",
-              "\t\t<Item ClassName=\"$2\" Name=\"$3\" PoolSize=\"1\"/>",
+              "\t\t<Item ClassName=\"$3\" Name=\"$4\" PoolSize=\"1\"/>",
             "\t</Production>",
           "}",
           "}"
@@ -201,7 +238,8 @@
     "Request": {
         "prefix": ["Request","Interoperability","ClassRequest"],
         "body": [
-          "Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Request",
+          "/// ${1:Description}",
+          "Class ${2:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Request",
           "{",
           "$0",
           "}"
@@ -211,7 +249,8 @@
     "Response": {
         "prefix": ["Response","Interoperability","ClassResponse"],
         "body": [
-          "Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Response",
+          "/// ${1:Description}",
+          "Class ${2:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Response",
           "{",
           "$0",
           "}"
