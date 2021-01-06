@@ -1,86 +1,131 @@
 {
-  "Class Definition without super": {
+  "Class definition without superclass": {
     "prefix": "Class",
-    "body": ["Class $1", "{", "$0", "}"]
+    "body": [
+      "Class ${1:PackageName.ClassName}",
+      "{",
+      "$0",
+      "}"
+    ]
   },
-  "Class Definition with one superclass": {
+  "Class definition with one superclass": {
     "prefix": "Class",
-    "body": ["Class $1 Extends ${2|%Persistent,%SerialObject,%RegisteredObject|}", "{", "$0", "}"]
+    "body": [
+      "Class ${1:PackageName.ClassName} Extends ${2|%Persistent,%SerialObject,%RegisteredObject|}",
+      "{",
+      "$0",
+      "}"
+    ]
   },
-  "Class Definition with multiple superclasses": {
-	"prefix": "Class",
-	"body": ["Class $1 Extends (${2|%Persistent,%SerialObject,%RegisteredObject|}, $3)", "{", "$0", "}"]
+  "Class definition with multiple superclasses": {
+    "prefix": "Class",
+    "body": [
+      "Class ${1:PackageName.ClassName} Extends (${2|%Persistent,%SerialObject,%RegisteredObject|}, ${3:%XML.Adaptor})",
+      "{",
+      "$0",
+      "}"
+    ]
   },
   "ClassMethod definition": {
-	"prefix": "ClassMethod",
-	"body": ["ClassMethod $1($2) As ${3:%Status}", "{", "\tset $4 = \\$\\$\\$OK", "\t$0", "\treturn $4","}"]
+    "prefix": "ClassMethod",
+    "body": [
+      "ClassMethod ${1:MethodName}($2) As ${3:%Status}",
+      "{",
+        "\tSet ${4:sc} = \\$\\$\\$OK",
+        "\t${0:// do something}",
+        "\tReturn $4",
+      "}"
+    ]
   },
   "Method definition": {
-	"prefix": "Method",
-	"body": ["Method $1($2) As ${3:%Status}", "{", "\tset $4 = \\$\\$\\$OK", "\t$0", "\treturn $4", "}"]
+    "prefix": "Method",
+    "body": [
+      "Method ${1:MethodName}($2) As ${3:%Status}",
+      "{",
+        "\tSet ${4:sc} = \\$\\$\\$OK",
+        "\t${0:// do something}",
+        "\tReturn $4",
+      "}"
+    ]
   },
   "Property": {
     "prefix": "Property",
-    "body": "Property $1 As ${2:%String};"
+    "body": "Property ${1:PropertyName} As ${2:%String};"
   },
   "Projection": {
     "prefix": "Projection",
-    "body": "Projection $1 As $2;"
+    "body": "Projection ${1:ProjectionName} As ${2:PackageName.ProjectionClassName};"
   },
   "Unique Property": {
-	"prefix": ["Unique", "Property"],
-	"body": ["Property $1 As ${2:%String};", "", "Index $1Index On $1 [Unique];"]
+    "prefix": ["Unique", "Property"],
+    "body": [
+      "Property ${1:PropertyName} As ${2:%String};",
+      "",
+      "Index $1Index On $1 [Unique];"
+    ]
   },
   "Always-Computed Property": {
-	"prefix": ["Computed", "Property"],
-	"body" : ["Property $1 As ${2:%String} [Calculated, SqlComputed, SqlComputeCode =", "{set {$1} = {$3}}];"]
+    "prefix": ["Computed", "Property"],
+    "body" : [
+      "Property ${1:PropertyName} As ${2:%String} [Calculated, SqlComputed, SqlComputeCode =",
+        "\t{Set {$1} = {${3:expression}}}",
+      "];"
+    ]
   },
   "Date/Time Property": {
-	"prefix": ["Date", "Time", "Property"],
-	"body" : ["Property $1 as ${2|%Date,%Time|}(MINVAL = $3, MAXVAL = $4);"]
+    "prefix": ["Date", "Time", "Property"],
+    "body" : ["Property ${1:PropertyName} As ${2|%Date,%Time|}(MINVAL = $3, MAXVAL = $4);"]
   },
   "Parameter": {
     "prefix": "Parameter",
-    "body": "Parameter $1 = \"$0\";"
+    "body": "Parameter ${1:PARAMETERNAME} = \"$0\";"
   },
   "Index": {
     "prefix": "Index",
-    "body": "Index $1 On ${2:Name};"
+    "body": "Index ${1:IndexName} On ${2:property};"
   },
   "Unique Index": {
     "prefix": "Index",
-    "body": "Index $1 On ${2:property} [Unique];",
+    "body": "Index ${1:IndexName} On ${2:property} [Unique];",
     "description": "Unique Index"
   },
   "Query": {
     "prefix":["Query"],
-    "body":["Query $1($2) As %SQLQuery [ SqlProc ]","{","\tSELECT $3", "\tFROM $4", "\tWHERE $5", "\tORDER BY $6", "}"],
+    "body":[
+      "Query ${1:QueryName}($2) As %SQLQuery [ SqlProc ]",
+      "{",
+        "\tSELECT ${3:select-items}",
+        "\tFROM ${4:table-refs}",
+        "\tWHERE ${5:condition-expression}",
+        "\tORDER BY ${6:ordering-items}",
+      "}"
+    ],
     "description": "SQL statement"
   },
   "Trigger": {
     "prefix": "Trigger",
     "body": [
-			"Trigger $1 [Event=${2|INSERT,UPDATE,DELETE|}, Time=${3|BEFORE,AFTER|}, Foreach=${4|row/object,row,statement|}]",
-			"{",
-			"\t$5",
-			"}"
-			],
+      "Trigger ${1:TriggerName} [Event=${2|INSERT,UPDATE,DELETE|}, Time=${3|BEFORE,AFTER|}, Foreach=${4|row/object,row,statement|}]",
+      "{",
+        "\t${0:// do something}",
+      "}"
+    ],
     "description": "Trigger"
   },
   "ForeignKey": {
-    "prefix": "Foreignkey",
-    "body": "ForeignKey $1 (${2:property}) References ${3:referencedClass}(${4:refIndex});",
+    "prefix": "ForeignKey",
+    "body": "ForeignKey ${1:ForeignKeyName}(${2:property}) References ${3:referencedClass}(${4:refIndex});",
     "description": "ForeignKey"
   },
   "Relationship": {
     "prefix": ["Relationship"],
-    "body": "Relationship $1 As ${2:classname} [ Cardinality = ${3|one,many,parent,children|}, Inverse = ${4:correspondingProperty} ];",
+    "body": "Relationship ${1:RelationshipName} As ${2:classname} [ Cardinality = ${3|one,many,parent,children|}, Inverse = ${4:correspondingProperty} ];",
     "description": "Relationship"
   },
   "XData": {
     "prefix": "XData",
     "body": [
-      "XData $1",
+      "XData ${1:XDataName}",
       "{",
       "$0",
       "}"
@@ -88,74 +133,89 @@
     "description": "XData"
   },
   "BusinessService": {
-		"prefix": ["BusinessService","Interoperability","ClassService"],
-		"body": ["Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.BusinessService",
-			"{\n",
-			"Property Adapter As ${2:Ens.InboundAdapter};\n",
-			"Parameter ADAPTER = \"${2:Ens.InboundAdapter}\";\n",
-			"Method OnProcessInput(pInput As %RegisteredObject, pOutput As %RegisteredObject) As %Status",
-			"{",
-			"\t$3",
-			"\tReturn \\$\\$\\$ERROR(\\$\\$\\$NotImplemented)",
-			"}",
-			"}"],
-		"description": "Business Service Definition"
-	},
-	"BusinessOperation": {
-		"prefix":["BusinessOperation","Interoperability","ClassOperation"],
-		"body": ["Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.BusinessOperation",
-		"{\n",
-		"Property Adapter As ${2:Ens.OutboundAdapter};\n",
-		"Parameter ADAPTER = \"${2:Ens.OutboundAdapter}\";\n",
-		"Parameter INVOCATION = \"Queue\";\n",
-		"Method SampleCall(pRequest As ${3:Ens.Request}, Output pResponse As ${4:Ens.Response} ) As %Status",
-		"{",
-		"\t$5",
-		"\tReturn \\$\\$\\$ERROR(\\$\\$\\$NotImplemented)",
-		"}\n",
-		"XData MessageMap",
-		"{",
-		"<MapItems>",
-		"\t<MapItem MessageType=\"${3:Ens.Request}\">",
-		"\t\t<Method>SampleCall</Method>",
-		"\t</MapItem>",
-		"</MapItems>",
-		"}",
-		"}"],
-		"description": "Business Operation Definition"
-	},
-	"Production": {
-		"prefix": ["Production","Interoperability","ClassProduction"],
-		"body": ["Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Production",
-		"{\n",
-		"XData ProductionDefinition",
-		"{",
-		"\t<Production Name=\"${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE}\">",
-			"\t\t<ActorPoolSize>2</ActorPoolSize>",
-			"\t\t<Item ClassName=\"$2\" Name=\"$3\" PoolSize=\"1\"/>",
-		"\t</Production>",
-		"}",
-		"}"],
-		"description": "Production Definition"
-	},
-	"Request": {
-		"prefix": ["Request","Interoperability","ClassRequest"],
-		"body": [
-			"Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Request",
-			"{",
-			"\t$0",
-			"}"
-		],
-		"description": "Request Message Definition"
-	},
-	"Response": {
-		"prefix": ["Response","Interoperability","ClassResponse"],
-		"body": [
-			"Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Response",
-			"{",
-			"\t$0",
-			"}"
-		],
-		"description": "Response Message Definition"
-	}
+        "prefix": ["BusinessService","Interoperability","ClassService"],
+        "body": [
+          "Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.BusinessService",
+          "{",
+          "",
+          "Property Adapter As ${2:Ens.InboundAdapter};",
+          "",
+          "Parameter ADAPTER = \"$2\";",
+          "",
+          "Method OnProcessInput(pInput As %RegisteredObject, pOutput As %RegisteredObject) As %Status",
+          "{",
+            "\t$3",
+            "\tReturn \\$\\$\\$ERROR(\\$\\$\\$NotImplemented)",
+          "}",
+          "}"
+        ],
+        "description": "Business Service Definition"
+    },
+    "BusinessOperation": {
+        "prefix":["BusinessOperation","Interoperability","ClassOperation"],
+        "body": [
+          "Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.BusinessOperation",
+          "{",
+          "",
+          "Property Adapter As ${2:Ens.OutboundAdapter};",
+          "",
+          "Parameter ADAPTER = \"$2\";",
+          "",
+          "Parameter INVOCATION = \"Queue\";",
+          "",
+          "Method SampleCall(pRequest As ${3:Ens.Request}, Output pResponse As ${4:Ens.Response} ) As %Status",
+          "{",
+            "\t$5",
+            "\tReturn \\$\\$\\$ERROR(\\$\\$\\$NotImplemented)",
+          "}",
+          "",
+          "XData MessageMap",
+          "{",
+          "<MapItems>",
+            "\t<MapItem MessageType=\"$3\">",
+              "\t\t<Method>SampleCall</Method>",
+            "\t</MapItem>",
+          "</MapItems>",
+          "}",
+          "}"
+        ],
+        "description": "Business Operation Definition"
+    },
+    "Production": {
+        "prefix": ["Production","Interoperability","ClassProduction"],
+        "body": [
+          "Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Production",
+          "{",
+          "",
+          "XData ProductionDefinition",
+          "{",
+            "\t<Production Name=\"$1\">",
+              "\t\t<ActorPoolSize>2</ActorPoolSize>",
+              "\t\t<Item ClassName=\"$2\" Name=\"$3\" PoolSize=\"1\"/>",
+            "\t</Production>",
+          "}",
+          "}"
+        ],
+        "description": "Production Definition"
+    },
+    "Request": {
+        "prefix": ["Request","Interoperability","ClassRequest"],
+        "body": [
+          "Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Request",
+          "{",
+          "$0",
+          "}"
+        ],
+        "description": "Request Message Definition"
+    },
+    "Response": {
+        "prefix": ["Response","Interoperability","ClassResponse"],
+        "body": [
+          "Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Response",
+          "{",
+          "$0",
+          "}"
+        ],
+        "description": "Response Message Definition"
+    }
 }
