@@ -23,7 +23,7 @@
     "prefix": "Class",
     "body": [
       "/// ${1:Description}",
-      "Class ${2:PackageName.ClassName} Extends (${3|%Persistent,%SerialObject,%RegisteredObject|}, ${4:%XML.Adaptor})",
+      "Class ${2:PackageName.ClassName} Extends (${3|%Persistent,%SerialObject,%RegisteredObject|}, ${4:%JSON.Adaptor}, ${5:%XML.Adaptor})",
       "{",
       "$0",
       "}"
