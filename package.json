@@ -42,7 +42,7 @@
     }
   ],
   "engines": {
-    "vscode": "^1.46.0"
+    "vscode": "^1.43.0"
   },
   "enableProposedApi": true,
   "activationEvents": [
