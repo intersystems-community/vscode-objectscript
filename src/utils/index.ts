@@ -350,7 +350,9 @@ export async function terminalWithDocker(): Promise<vscode.Terminal> {
  * Alter isfs-type uri.path of /.vscode/* files or subdirectories.
  * Rewrite `/.vscode/path/to/file` as `/_vscode/XYZ/path/to/file`
  *  where XYZ comes from the `ns` queryparam of uri.
- * Also alter query to specify `ns=%SYS&csp=1`
+ *  Also alter query to specify `ns=%SYS&csp=1`
+ * Also handles the alternative syntax isfs://server:namespace/
+ *  in which there is no ns queryparam
  *
  * @returns uri, altered if necessary.
  * @throws if `ns` queryparam is missing but required.
@@ -361,13 +363,24 @@ export function redirectDotvscodeRoot(uri: vscode.Uri): vscode.Uri {
   }
   const dotMatch = uri.path.match(/^\/(\.[^/]*)\/(.*)$/);
   if (dotMatch && dotMatch[1] === ".vscode") {
+    let namespace: string;
     const nsMatch = `&${uri.query}&`.match(/&ns=([^&]+)&/);
-    if (!nsMatch) {
-      throw new Error("No 'ns' query parameter on uri");
+    if (nsMatch) {
+      namespace = nsMatch[1];
+      const newQueryString = (("&" + uri.query).replace(`ns=${namespace}`, "ns=%SYS") + "&csp=1").slice(1);
+      return uri.with({ path: `/_vscode/${namespace}/${dotMatch[2]}`, query: newQueryString });
+    } else {
+      const parts = uri.authority.split(":");
+      if (parts.length === 2) {
+        namespace = parts[1];
+        return uri.with({
+          authority: `${parts[0]}:%SYS`,
+          path: `/_vscode/${namespace}/${dotMatch[2]}`,
+          query: uri.query + "&csp=1",
+        });
+      }
     }
-    const namespace = nsMatch[1];
-    const newQueryString = (("&" + uri.query).replace(`ns=${namespace}`, "ns=%SYS") + "&csp=1").slice(1);
-    return uri.with({ path: `/_vscode/${namespace}/${dotMatch[2]}`, query: newQueryString });
+    throw new Error("No namespace determined from uri");
   } else {
     return uri;
   }
