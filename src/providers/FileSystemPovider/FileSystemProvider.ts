@@ -47,7 +47,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       return;
     }
     const sql = `CALL %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)`;
-    const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+    const { query } = url.parse(uri.toString(true), true);
     const type = query.type && query.type != "" ? query.type.toString() : "all";
     const csp = query.csp === "" || query.csp === "1";
     let filter = "";
@@ -181,7 +181,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (uri.path.startsWith("/.")) {
       throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
     }
-    const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+    const { query } = url.parse(uri.toString(true), true);
     const csp = query.csp === "" || query.csp === "1";
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     if (fileName.startsWith(".")) {
@@ -244,7 +244,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public delete(uri: vscode.Uri, options: { recursive: boolean }): void | Thenable<void> {
-    const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+    const { query } = url.parse(uri.toString(true), true);
     const csp = query.csp === "" || query.csp === "1";
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     if (fileName.startsWith(".")) {
@@ -330,7 +330,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
     }
 
-    const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+    const { query } = url.parse(uri.toString(true), true);
     const csp = query.csp === "" || query.csp === "1";
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     const name = path.basename(uri.path);

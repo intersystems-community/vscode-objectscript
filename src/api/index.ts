@@ -100,10 +100,16 @@ export class AtelierAPI {
       if (wsOrFile instanceof vscode.Uri) {
         if (schemas.includes(wsOrFile.scheme)) {
           workspaceFolderName = wsOrFile.authority;
-          const { query } = url.parse(decodeURIComponent(wsOrFile.toString()), true);
-          if (query) {
-            if (query.ns && query.ns !== "") {
-              namespace = query.ns.toString();
+          const parts = workspaceFolderName.split(":");
+          if (parts.length === 2 && config("intersystems.servers").has(parts[0].toLowerCase())) {
+            workspaceFolderName = parts[0];
+            namespace = parts[1];
+          } else {
+            const { query } = url.parse(wsOrFile.toString(true), true);
+            if (query) {
+              if (query.ns && query.ns !== "") {
+                namespace = query.ns.toString();
+              }
             }
           }
         }

@@ -81,7 +81,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
   const content = document.getText();
   let name = "";
   let ext = "";
-  const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+  const { query } = url.parse(uri.toString(true), true);
   const csp = query.csp === "" || query.csp === "1";
   if (csp) {
     name = uri.path;
