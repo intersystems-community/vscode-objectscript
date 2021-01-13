@@ -167,7 +167,8 @@ export function connectionTarget(uri?: vscode.Uri): ConnectionTarget {
       }
     } else if (schemas.includes(uri.scheme)) {
       result.apiTarget = uri;
-      result.configName = uri.authority;
+      const parts = uri.authority.split(":");
+      result.configName = parts.length === 2 ? parts[0] : uri.authority;
     }
   }
 
@@ -178,7 +179,8 @@ export function connectionTarget(uri?: vscode.Uri): ConnectionTarget {
         ? vscode.workspace.workspaceFolders[0]
         : undefined;
     if (firstFolder && schemas.includes(firstFolder.uri.scheme)) {
-      result.configName = firstFolder.uri.authority;
+      const parts = firstFolder.uri.authority.split(":");
+      result.configName = parts.length === 2 ? parts[0] : firstFolder.uri.authority;
       result.apiTarget = firstFolder.uri;
     } else {
       result.configName = workspaceState.get<string>("workspaceFolder") || firstFolder ? firstFolder.name : "";
