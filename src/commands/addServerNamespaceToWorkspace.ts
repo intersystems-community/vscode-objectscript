@@ -92,7 +92,11 @@ export async function addServerNamespaceToWorkspace(): Promise<void> {
   const editable = mode.value === AccessMode.Code || mode.value === AccessMode.WebappFiles;
   const webapp = mode.value === AccessMode.WebappFiles || mode.value === AccessMode.WebappFilesReadonly;
   const label = `${serverName}:${namespace}${webapp ? " web files" : ""}${!editable ? " (read-only)" : ""}`;
-  uri = uri.with({ scheme: editable ? "isfs" : "isfs-readonly", query: `ns=${namespace}${webapp ? "&csp" : ""}` });
+  uri = uri.with({
+    scheme: editable ? "isfs" : "isfs-readonly",
+    authority: `${serverName}:${namespace}`,
+    query: `${webapp ? "csp" : ""}`,
+  });
   // Append it to the workspace
   const added = vscode.workspace.updateWorkspaceFolders(
     vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length : 0,
