@@ -363,21 +363,21 @@ export function redirectDotvscodeRoot(uri: vscode.Uri): vscode.Uri {
   if (!schemas.includes(uri.scheme)) {
     return uri;
   }
-  const dotMatch = uri.path.match(/^\/(\.[^/]*)\/(.*)$/);
+  const dotMatch = uri.path.match(/^\/(\.[^/]*)(\/.*)?$/);
   if (dotMatch && dotMatch[1] === ".vscode") {
     let namespace: string;
     const nsMatch = `&${uri.query}&`.match(/&ns=([^&]+)&/);
     if (nsMatch) {
       namespace = nsMatch[1];
       const newQueryString = (("&" + uri.query).replace(`ns=${namespace}`, "ns=%SYS") + "&csp=1").slice(1);
-      return uri.with({ path: `/_vscode/${namespace}/${dotMatch[2]}`, query: newQueryString });
+      return uri.with({ path: `/_vscode/${namespace}${dotMatch[2] || ""}`, query: newQueryString });
     } else {
       const parts = uri.authority.split(":");
       if (parts.length === 2) {
         namespace = parts[1];
         return uri.with({
           authority: `${parts[0]}:%SYS`,
-          path: `/_vscode/${namespace}/${dotMatch[2]}`,
+          path: `/_vscode/${namespace}${dotMatch[2] || ""}`,
           query: uri.query + "&csp=1",
         });
       }

@@ -41,6 +41,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
+    uri = redirectDotvscodeRoot(uri);
     const parent = await this._lookupAsDirectory(uri);
     const api = new AtelierAPI(uri);
     if (!api.active) {
@@ -129,6 +130,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public createDirectory(uri: vscode.Uri): void | Thenable<void> {
+    uri = redirectDotvscodeRoot(uri);
     const basename = path.posix.basename(uri.path);
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
     return this._lookupAsDirectory(dirname).then((parent) => {
@@ -376,6 +378,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   private async _lookupParentDirectory(uri: vscode.Uri): Promise<Directory> {
+    uri = redirectDotvscodeRoot(uri);
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
     return await this._lookupAsDirectory(dirname);
   }
