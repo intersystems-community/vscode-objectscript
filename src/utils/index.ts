@@ -81,7 +81,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
   const content = document.getText();
   let name = "";
   let ext = "";
-  const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+  const { query } = url.parse(uri.toString(true), true);
   const csp = query.csp === "" || query.csp === "1";
   if (csp) {
     name = uri.path;
@@ -100,6 +100,13 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
     }
   } else {
     name = fileName;
+    // Need to strip leading / for custom Studio documents which should not be treated as files.
+    // e.g. For a custom Studio document Test.ZPM, the variable name would be /Test.ZPM which is
+    // not the document name. The document name is Test.ZPM so requests made to the Atelier APIs
+    // using the name with the leading / would fail to find the document.
+    if (name.charAt(0) === "/") {
+      name = name.substr(1);
+    }
   }
   if (!name) {
     return null;
@@ -160,7 +167,8 @@ export function connectionTarget(uri?: vscode.Uri): ConnectionTarget {
       }
     } else if (schemas.includes(uri.scheme)) {
       result.apiTarget = uri;
-      result.configName = uri.authority;
+      const parts = uri.authority.split(":");
+      result.configName = parts.length === 2 ? parts[0] : uri.authority;
     }
   }
 
@@ -171,7 +179,8 @@ export function connectionTarget(uri?: vscode.Uri): ConnectionTarget {
         ? vscode.workspace.workspaceFolders[0]
         : undefined;
     if (firstFolder && schemas.includes(firstFolder.uri.scheme)) {
-      result.configName = firstFolder.uri.authority;
+      const parts = firstFolder.uri.authority.split(":");
+      result.configName = parts.length === 2 ? parts[0] : firstFolder.uri.authority;
       result.apiTarget = firstFolder.uri;
     } else {
       result.configName = workspaceState.get<string>("workspaceFolder") || firstFolder ? firstFolder.name : "";
@@ -343,7 +352,10 @@ export async function terminalWithDocker(): Promise<vscode.Terminal> {
  * Alter isfs-type uri.path of /.vscode/* files or subdirectories.
  * Rewrite `/.vscode/path/to/file` as `/_vscode/XYZ/path/to/file`
  *  where XYZ comes from the `ns` queryparam of uri.
- * Also alter query to specify `ns=%SYS&csp=1`
+ *  Also alter query to specify `ns=%SYS&csp=1`
+ * Also handles the alternative syntax isfs://server:namespace/
+ *  in which there is no ns queryparam
+ * For both syntaxes the namespace folder name is uppercased
  *
  * @returns uri, altered if necessary.
  * @throws if `ns` queryparam is missing but required.
@@ -352,15 +364,26 @@ export function redirectDotvscodeRoot(uri: vscode.Uri): vscode.Uri {
   if (!schemas.includes(uri.scheme)) {
     return uri;
   }
-  const dotMatch = uri.path.match(/^\/(\.[^/]*)\/(.*)$/);
+  const dotMatch = uri.path.match(/^\/(\.[^/]*)(\/.*)?$/);
   if (dotMatch && dotMatch[1] === ".vscode") {
+    let namespace: string;
     const nsMatch = `&${uri.query}&`.match(/&ns=([^&]+)&/);
-    if (!nsMatch) {
-      throw new Error("No 'ns' query parameter on uri");
+    if (nsMatch) {
+      namespace = nsMatch[1].toUpperCase();
+      const newQueryString = (("&" + uri.query).replace(`ns=${namespace}`, "ns=%SYS") + "&csp").slice(1);
+      return uri.with({ path: `/_vscode/${namespace}${dotMatch[2] || ""}`, query: newQueryString });
+    } else {
+      const parts = uri.authority.split(":");
+      if (parts.length === 2) {
+        namespace = parts[1].toUpperCase();
+        return uri.with({
+          authority: `${parts[0]}:%SYS`,
+          path: `/_vscode/${namespace}${dotMatch[2] || ""}`,
+          query: uri.query + "&csp",
+        });
+      }
     }
-    const namespace = nsMatch[1];
-    const newQueryString = (("&" + uri.query).replace(`ns=${namespace}`, "ns=%SYS") + "&csp=1").slice(1);
-    return uri.with({ path: `/_vscode/${namespace}/${dotMatch[2]}`, query: newQueryString });
+    throw new Error("No namespace determined from uri");
   } else {
     return uri;
   }

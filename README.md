@@ -163,10 +163,10 @@ Server-side development is best done using `isfs` folders. The read-only variant
 
 To modify how your folder behaves, edit the JSON of your workspace definition (_XYZ.code-workspace_ file). Get there by running the 'Preferences: Open Workspace Settings (JSON)' command. Edit your `uri` property.
 
-- The `csp` query parameter indicates web application files are to be shown. The uri path optionally specifies which application. The `ns` parameter must specify the same namespace the application is configured to use. In the following example the first folder is for the `/csp/user` web application in the USER namespace of the server named 'local' and the second gives read-only access to all web applications that reside in the %SYS namespace. The second folder also uses the optional `name` property:
+- The `csp` query parameter indicates web application files are to be shown. The uri path optionally specifies which application. The namespace suffix on the server name (preferred syntax) or the `ns` query parameter (deprecated) must specify the same namespace the application is configured to use. In the following example the first folder is for the `/csp/user` web application in the USER namespace of the server named 'local' and the second gives read-only access to all web applications that reside in the %SYS namespace. The second folder also uses the optional `name` property:
 ```json
     {
-      "uri": "isfs://local/csp/user?ns=USER&csp"
+      "uri": "isfs://local:user/csp/user?csp"
     },
     {
 			"name": "local:%SYS web files (read-only)",
@@ -178,7 +178,7 @@ To modify how your folder behaves, edit the JSON of your workspace definition (_
 
 ```json
     {
-      "uri": "isfs://local/Xxx/Yyy?ns=USER&type=cls"
+      "uri": "isfs://local:user/Xxx/Yyy?type=cls"
     }
 ```
 

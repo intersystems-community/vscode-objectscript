@@ -1,5 +1,27 @@
 # Change Log
 
+## [1.0.8] 15-Jan-2021
+- Implement `isfs://server:namespace/` syntax as an alternative to the `ns=NAMESPACE` query parameter (#450)
+- Use new isfs notation in entries created by 'Add Server Namespace to Workspace' (#554)
+- Load server-side (isfs) folder-specific snippets (#552)
+- Improve snippets:
+    - Add a ///-comment tabstop at the start of all snippets used in class definitions.
+    - Add descriptive default text to more tabstops.
+    - Add third superclass to multi-superclass snippet.
+    - Uniformly use Capitalized command names and UPPERCASE function names in ObjectScript.
+    - Standardize body layout in definitions to reflect layout of result.
+    - Tidy how duplicate tabstops are used.
+- Support searching all Studio document types when using symbol search (Cmd/Ctrl + T).
+- Upgrade vulnerable dependency.
+
+## [1.0.7] 4-Jan-2021
+- Fix issue affecting use with Docker on Windows (#516)
+- Resolve problem debugging in a multi-root workspace using isfs (#387)
+- Allow 'View other' from custom Studio documents.
+- Fix issue that prevented saving of custom Studio documents.
+- Add code snippets for Request, Response and multi-superclass class definitions, Projection, XData, Try Catch, $$$ThrowOnError macro.
+- Upgrade vulnerable dependency.
+
 ## [1.0.6] 13-Nov-2020
 - Target current class when opening documentation from Server Actions quickpick, launched by click on ObjectScript panel in status bar (#490)
 - Improve code snippets (#493)

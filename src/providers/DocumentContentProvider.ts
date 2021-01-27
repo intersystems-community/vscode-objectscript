@@ -108,7 +108,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
 
   public provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
     const api = new AtelierAPI(uri);
-    const query = url.parse(decodeURIComponent(uri.toString()), true).query;
+    const query = url.parse(uri.toString(true), true).query;
     const fileName = query && query.csp ? uri.path.substring(1) : uri.path.split("/").slice(1).join(".");
     if (query) {
       if (query.ns && query.ns !== "") {

@@ -37,18 +37,19 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
   stopOnEntry?: boolean;
 }
 
-/** converts a local path from VS Code to a server-side XDebug file URI with respect to source root settings */
-export async function convertClientPathToDebugger(localPath: string, namespace: string): Promise<string> {
-  const { protocol, pathname, query } = url.parse(decodeURIComponent(localPath), true, true);
-  let fileName = localPath;
-  if (protocol && schemas.includes(protocol.slice(0, -1))) {
+/** converts a uri from VS Code to a server-side XDebug file URI with respect to source root settings */
+async function convertClientPathToDebugger(uri: vscode.Uri, namespace: string): Promise<string> {
+  const { scheme, path } = uri;
+  const { query } = url.parse(uri.toString(true), true);
+  let fileName: string;
+  if (scheme && schemas.includes(scheme)) {
     if (query.ns && query.ns !== "") {
       namespace = query.ns.toString();
     }
-    fileName = pathname.slice(1).replace(/\//, ".");
+    fileName = path.slice(1).replace(/\//, ".");
   } else {
     fileName = await vscode.workspace
-      .openTextDocument(localPath)
+      .openTextDocument(uri)
       .then(currentFile)
       .then((curFile) => {
         return curFile.name;
@@ -241,10 +242,9 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       await this._debugTargetSet.wait(1000);
 
       const filePath = args.source.path;
-      const { protocol } = url.parse(decodeURIComponent(filePath), true, true);
-      const uri =
-        protocol && schemas.includes(protocol.slice(0, -1)) ? vscode.Uri.parse(filePath) : vscode.Uri.file(filePath);
-      const fileUri = await convertClientPathToDebugger(args.source.path, this._namespace);
+      const scheme = filePath.split(":")[0];
+      const uri = schemas.includes(scheme) ? vscode.Uri.parse(filePath) : vscode.Uri.file(filePath);
+      const fileUri = await convertClientPathToDebugger(uri, this._namespace);
       const [, fileName] = fileUri.match(/\|([^|]+)$/);
 
       const currentList = await this._connection.sendBreakpointListCommand();

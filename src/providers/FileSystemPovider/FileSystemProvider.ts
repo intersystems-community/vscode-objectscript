@@ -41,13 +41,14 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
+    uri = redirectDotvscodeRoot(uri);
     const parent = await this._lookupAsDirectory(uri);
     const api = new AtelierAPI(uri);
     if (!api.active) {
       return;
     }
     const sql = `CALL %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)`;
-    const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+    const { query } = url.parse(uri.toString(true), true);
     const type = query.type && query.type != "" ? query.type.toString() : "all";
     const csp = query.csp === "" || query.csp === "1";
     let filter = "";
@@ -129,6 +130,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public createDirectory(uri: vscode.Uri): void | Thenable<void> {
+    uri = redirectDotvscodeRoot(uri);
     const basename = path.posix.basename(uri.path);
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
     return this._lookupAsDirectory(dirname).then((parent) => {
@@ -181,7 +183,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (uri.path.startsWith("/.")) {
       throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
     }
-    const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+    const { query } = url.parse(uri.toString(true), true);
     const csp = query.csp === "" || query.csp === "1";
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     if (fileName.startsWith(".")) {
@@ -244,7 +246,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public delete(uri: vscode.Uri, options: { recursive: boolean }): void | Thenable<void> {
-    const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+    const { query } = url.parse(uri.toString(true), true);
     const csp = query.csp === "" || query.csp === "1";
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     if (fileName.startsWith(".")) {
@@ -330,7 +332,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
     }
 
-    const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+    const { query } = url.parse(uri.toString(true), true);
     const csp = query.csp === "" || query.csp === "1";
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     const name = path.basename(uri.path);
@@ -376,6 +378,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   private async _lookupParentDirectory(uri: vscode.Uri): Promise<Directory> {
+    uri = redirectDotvscodeRoot(uri);
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
     return await this._lookupAsDirectory(dirname);
   }

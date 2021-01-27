@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "1.0.7-SNAPSHOT",
+  "version": "1.0.9-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "9cd75d51-697c-406c-a929-2bcf46e97c64",
   "categories": [
@@ -42,7 +42,7 @@
     }
   ],
   "engines": {
-    "vscode": "^1.46.0"
+    "vscode": "^1.43.0"
   },
   "enableProposedApi": true,
   "activationEvents": [
@@ -113,7 +113,7 @@
         },
         {
           "command": "vscode-objectscript.viewOthers",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.subclass",
@@ -274,7 +274,7 @@
       "editor/context": [
         {
           "command": "vscode-objectscript.viewOthers",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "when": "vscode-objectscript.connectActive",
           "group": "objectscript@1"
         },
         {
@@ -319,7 +319,7 @@
         {
           "command": "vscode-objectscript.touchBar.viewOthers",
           "group": "objectscript.viewOthers",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "vscode-objectscript.connectActive"
         }
       ],
       "explorer/context": [
@@ -832,6 +832,11 @@
           "type": "string",
           "default": "cuk",
           "description": "Compilation flags."
+        },
+        "objectscript.searchAllDocTypes": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Whether [Quick Open](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_quick-open) should search across all Studio Document types. Default is to only search classes, routines and include files."
         },
         "objectscript.overwriteServerChanges": {
           "type": "boolean",
