@@ -46,7 +46,7 @@ Next create a workspace for editing code direct on the server:
 	"folders": [
 		{
 			"name": "test:USER",
-			"uri": "isfs://test/?ns=USER"
+			"uri": "isfs://test:user/"
 		}
 	],
 	"settings": {}
@@ -62,11 +62,11 @@ An example of a two-folder workspace in which the second folder gives read-only 
 	"folders": [
 		{
 			"name": "test:USER",
-			"uri": "isfs://test/?ns=USER"
+			"uri": "isfs://test:user/"
 		},
 		{
 			"name": "test:%SYS (read-only)",
-			"uri": "isfs-readonly://test/?ns=%SYS"
+			"uri": "isfs-readonly://test:%sys/"
 		}
 	],
 	"settings": {}
@@ -79,25 +79,25 @@ Root folders can be re-sequenced using drag/drop in the Explorer view, or by edi
 
 ## Web Application (CSP) Files
 
-To edit web application files (also known as CSP files) on a server, configure the uri as `isfs://myserver{csp_application}?ns=XXX&csp`
+To edit web application files (also known as CSP files) on a server, configure the uri as `isfs://myserver:xxx{csp_application}?csp`
 
-For example, the following uri gives you access to the server-side files of the `/csp/user` application. The `csp`  query parameter is mandatory and the `ns` parameter must specify the correct namespace for the web application.
+For example, the following uri gives you access to the server-side files of the `/csp/user` application. The `csp`  query parameter is mandatory and the suffix on the server name must specify the correct namespace for the web application.
 
 ```
-"uri": "isfs://myserver/csp/user?ns=USER&csp"
+"uri": "isfs://myserver:user/csp/user?csp"
 ```
 
 Changes you make to files opened from this root folder of your VS Code workspace will be saved onto the server.
 
 ## Filters and Display Options
 
-The query string of the `uri` property accepts several parameters that control filtering and display of the server-side entities.
+The query string of the `uri` property accepts several parameters that control filtering and display of the server-side entities. The examples below access the USER namespace on the server whose definition is named 'myserver'.
 
-- `isfs://myserver?ns=USER&type=cls`, shows only classes
-- `isfs://myserver?ns=USER&type=rtn`, shows only routines, mac, int and inc files
-- `isfs://myserver?ns=USER&generated=1`, shows generated files as well as not generated
-- `isfs://myserver?ns=USER&filter=%Z*.cls,%z*.cls,%Z*.mac`, comma-delimited list of search options, ignores `type`
-- `isfs://myserver?ns=USER&flat=1`, a flat list of files does not split packages as folders.
+- `isfs://myserver:user?type=cls`, shows only classes
+- `isfs://myserver:user?type=rtn`, shows only routines, mac, int and inc files
+- `isfs://myserver:user?generated=1`, shows generated files as well as not generated
+- `isfs://myserver:user?filter=%Z*.cls,%z*.cls,%Z*.mac`, comma-delimited list of search options, ignores `type`
+- `isfs://myserver:user?flat=1`, a flat list of files does not split packages as folders.
 
 The options `flat` and `generated` can be combined with each other, and with `type` or `filter`. If `filter` is specified, `type` is ignored.
 
@@ -142,16 +142,16 @@ Example with connection to different namespaces on the same server.
       "name": "server",
     },
     {
-      "uri": "isfs://myapp?ns=USER",
+      "uri": "isfs://myapp:user",
       "name": "user",
     },
     {
-      "uri": "isfs://myapp?ns=%SYS",
+      "uri": "isfs://myapp:%sys",
       "name": "system",
     },
     {
-      "uri": "isfs://user@directserver:port?ns=%SYS",
-      "name": "system",
+      "uri": "isfs://user@hostname:port?ns=%SYS",
+      "name": "system (alternative syntax)",
     }
   ],
   "settings": {
