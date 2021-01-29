@@ -39,7 +39,7 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
     const api = this.getApi();
     const direction = "1";
     const orderBy = "1";
-    const systemFiles = "0";
+    const systemFiles = "1";
     const flat = "1";
     const notStudio = "0";
     const generated = "0";
