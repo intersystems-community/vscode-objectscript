@@ -81,7 +81,7 @@ Root folders can be re-sequenced using drag/drop in the Explorer view, or by edi
 
 To edit web application files (also known as CSP files) on a server, configure the uri as `isfs://myserver:xxx{csp_application}?csp`
 
-For example, the following uri gives you access to the server-side files of the `/csp/user` application. The `csp`  query parameter is mandatory and the namespace suffix on the server name must specify the correct namespace for the web application.
+For example, the following uri gives you access to the server-side files of the `/csp/user` application. The `csp`  query parameter is mandatory and the suffix on the server name must specify the correct namespace for the web application.
 
 ```
 "uri": "isfs://myserver:user/csp/user?csp"
