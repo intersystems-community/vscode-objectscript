@@ -112,7 +112,7 @@ For more about `isfs` and `isfs-readonly` folder specifications see the [Notes](
 
 - The `/api/atelier/` web application used by this extension usually requires the authenticated user to have Use permission on the %Development resource ([read more](https://community.intersystems.com/post/using-atelier-rest-api)). One way is to assign the %Developer role to the user.
 
-- If you are getting `ERROR # 5540: SQLCODE: -99 Message: User xxx is not privileged for the operation` when you try to get or refresh class/routine/include-  lists, grant your username (or a SQL role you hold) execute permission for the following SQL Procedure in the target namespace.
+- If you are getting `ERROR # 5540: SQLCODE: -99 Message: User xxx is not privileged for the operation` when you try to get or refresh lists of classes, routines or includes, then grant user xxx (or a SQL role they hold) Execute permission for the following SQL Procedure in the target namespace.
 
 ```SQL
 GRANT EXECUTE ON %Library.RoutineMgr_StudioOpenDialog TO xxx
