@@ -391,6 +391,9 @@ function languageServer(install = true): vscode.Extension<any> {
   let extension = vscode.extensions.getExtension(extId);
 
   async function languageServerInstall() {
+    if (config("ignoreInstallLanguageServer")) {
+      return;
+    }
     try {
       await vscode.commands.executeCommand("extension.open", extId);
     } catch (ex) {
@@ -614,8 +617,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     context.extensionMode && context.extensionMode !== vscode.ExtensionMode.Test ? languageServer() : null;
   const noLSsubscriptions: { dispose(): any }[] = [];
   if (!languageServerExt) {
-    outputChannel.appendLine(`The intersystems.language-server extension is not installed or has been disabled.\n`);
-    outputChannel.show(true);
+    if (!config("ignoreInstallLanguageServer")) {
+      outputChannel.appendLine(`The intersystems.language-server extension is not installed or has been disabled.\n`);
+      outputChannel.show(true);
+    }
 
     if (vscode.window.activeTextEditor) {
       diagnosticProvider.updateDiagnostics(vscode.window.activeTextEditor.document);
