@@ -2,6 +2,7 @@
 
 ## [1.0.9] 22-Mar-2021
 - Allow system files (% classes) to be searched from non-%SYS namespace.
+- Handle `objectscript.conn.server` referencing non-existent `intersystems.servers` entry (#586)
 - Improve README.
 - Upgrade vulnerable dependencies.
 
