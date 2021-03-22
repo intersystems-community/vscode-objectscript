@@ -17,13 +17,20 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
     const category = `&${options.folder.query}&`.includes("&csp&") ? "CSP" : "*";
     const generated = `&${options.folder.query}&`.includes("&generated=1&");
     const api = new AtelierAPI(options.folder);
+    let filter = query.pattern;
+    if (category !== "CSP") {
+      if (options.folder.path !== "/") {
+        filter = options.folder.path.slice(1) + "/%" + filter;
+      }
+      filter = filter.replace("/", ".");
+    }
     let counter = 0;
     if (!api.enabled) {
       return null;
     }
     return api
       .getDocNames({
-        filter: query.pattern,
+        filter,
         category,
         generated,
       })
