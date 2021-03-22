@@ -1,5 +1,10 @@
 # Change Log
 
+## [1.0.9] 22-Mar-2021.
+- Allow system files (% classes) to be searched from non-%SYS namespace.
+- Improve README.
+- Upgrade vulnerable dependencies.
+
 ## [1.0.8] 15-Jan-2021
 - Implement `isfs://server:namespace/` syntax as an alternative to the `ns=NAMESPACE` query parameter (#450)
 - Use new isfs notation in entries created by 'Add Server Namespace to Workspace' (#554)
