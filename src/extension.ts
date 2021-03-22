@@ -262,6 +262,7 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     outputChannel.appendError(message);
     panel.text = `${PANEL_LABEL} $(error)`;
     panel.tooltip = `ERROR - ${message}`;
+    disableConnection(configName);
     return;
   }
   api
