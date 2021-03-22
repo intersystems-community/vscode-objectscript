@@ -1,6 +1,6 @@
 # Change Log
 
-## [1.0.9] 22-Mar-2021.
+## [1.0.9] 22-Mar-2021
 - Allow system files (% classes) to be searched from non-%SYS namespace.
 - Improve README.
 - Upgrade vulnerable dependencies.
