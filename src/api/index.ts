@@ -168,7 +168,7 @@ export class AtelierAPI {
     let serverName = workspaceFolderName.toLowerCase();
     if (config("intersystems.servers").has(serverName)) {
       this.externalServer = true;
-    } else if (conn.server) {
+    } else if (conn.server && config("intersystems.servers", workspaceFolderName).has(conn.server)) {
       serverName = conn.server;
     } else {
       serverName = "";
@@ -203,7 +203,7 @@ export class AtelierAPI {
     } else {
       this._config = conn;
       this._config.ns = namespace || conn.ns;
-      this._config.serverName = serverName;
+      this._config.serverName = "";
     }
   }
 
