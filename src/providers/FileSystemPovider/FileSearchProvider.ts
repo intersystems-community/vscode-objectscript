@@ -22,7 +22,7 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
       if (options.folder.path !== "/") {
         filter = options.folder.path.slice(1) + "/%" + filter;
       }
-      filter = filter.replace("/", ".");
+      filter = filter.replace(/\//g, ".");
     }
     let counter = 0;
     if (!api.enabled) {
