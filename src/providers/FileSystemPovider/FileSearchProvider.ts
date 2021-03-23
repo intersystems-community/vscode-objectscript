@@ -19,7 +19,7 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
     const type = folderQuery.type || "all";
     const category =
       folderQuery.csp === "" || folderQuery.csp === "1" ? "CSP" : type === "cls" ? "CLS" : type === "rtn" ? "RTN" : "*";
-    const generated = folderQuery.generated && folderQuery.generated === "1";
+    const generated = folderQuery.generated === "1";
     const api = new AtelierAPI(options.folder);
     let filter = query.pattern;
     if (category !== "CSP") {
@@ -49,8 +49,16 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
               if (file.name.startsWith("%") && api.ns !== "%SYS") {
                 return null;
               }
+              // Convert dotted name to slashed one, treating the likes of ABC.1.int or DEF.T1.int in the same way
+              // as the Studio dialog does.
               const nameParts = file.name.split(".");
-              file.name = nameParts.slice(0, -2).join("/") + "/" + nameParts.slice(-2).join(".");
+              const dotParts = nameParts
+                .slice(-2)
+                .join(".")
+                .match(/^[A-Z]?\d*[.](mac|int|inc)$/)
+                ? 3
+                : 2;
+              file.name = nameParts.slice(0, -dotParts).join("/") + "/" + nameParts.slice(-dotParts).join(".");
             }
             if (!options.maxResults || ++counter <= options.maxResults) {
               return options.folder.with({ path: `/${file.name}` });
