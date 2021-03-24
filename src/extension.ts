@@ -64,7 +64,7 @@ import { ObjectScriptDebugAdapterDescriptorFactory } from "./debug/debugAdapterF
 import { ObjectScriptConfigurationProvider } from "./debug/debugConfProvider";
 import { ObjectScriptExplorerProvider, registerExplorerOpen } from "./explorer/explorer";
 import { WorkspaceNode } from "./explorer/models/workspaceNode";
-import { FileSystemProvider } from "./providers/FileSystemPovider/FileSystemProvider";
+import { FileSystemProvider } from "./providers/FileSystemProvider/FileSystemProvider";
 import { WorkspaceSymbolProvider } from "./providers/WorkspaceSymbolProvider";
 import {
   connectionTarget,
@@ -80,8 +80,8 @@ import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnost
 import { DocumentRangeFormattingEditProvider } from "./providers/DocumentRangeFormattingEditProvider";
 
 /* proposed */
-import { FileSearchProvider } from "./providers/FileSystemPovider/FileSearchProvider";
-import { TextSearchProvider } from "./providers/FileSystemPovider/TextSearchProvider";
+import { FileSearchProvider } from "./providers/FileSystemProvider/FileSearchProvider";
+import { TextSearchProvider } from "./providers/FileSystemProvider/TextSearchProvider";
 
 export let fileSystemProvider: FileSystemProvider;
 export let explorerProvider: ObjectScriptExplorerProvider;
