@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as url from "url";
 import { DocSearchResult } from "../../api/atelier";
 import { AtelierAPI } from "../../api";
 
@@ -14,16 +15,26 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
     options: vscode.FileSearchOptions,
     token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.Uri[]> {
-    const category = `&${options.folder.query}&`.includes("&csp&") ? "CSP" : "*";
-    const generated = `&${options.folder.query}&`.includes("&generated=1&");
+    const folderQuery = url.parse(options.folder.toString(true), true).query;
+    const type = folderQuery.type || "all";
+    const category =
+      folderQuery.csp === "" || folderQuery.csp === "1" ? "CSP" : type === "cls" ? "CLS" : type === "rtn" ? "RTN" : "*";
+    const generated = folderQuery.generated === "1";
     const api = new AtelierAPI(options.folder);
+    let filter = query.pattern;
+    if (category !== "CSP") {
+      if (options.folder.path !== "/") {
+        filter = options.folder.path.slice(1) + "/%" + filter;
+      }
+      filter = filter.replace(/\//g, ".");
+    }
     let counter = 0;
     if (!api.enabled) {
       return null;
     }
     return api
       .getDocNames({
-        filter: query.pattern,
+        filter,
         category,
         generated,
       })
@@ -31,15 +42,23 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
       .then((files: DocSearchResult[]) =>
         files
           .map((file) => {
-            if (category === "*" && file.cat === "CSP") {
+            if (category !== "CSP" && file.cat === "CSP") {
               return null;
             }
             if (file.cat !== "CSP") {
               if (file.name.startsWith("%") && api.ns !== "%SYS") {
                 return null;
               }
+              // Convert dotted name to slashed one, treating the likes of ABC.1.int or DEF.T1.int in the same way
+              // as the Studio dialog does.
               const nameParts = file.name.split(".");
-              file.name = nameParts.slice(0, -2).join("/") + "/" + nameParts.slice(-2).join(".");
+              const dotParts = nameParts
+                .slice(-2)
+                .join(".")
+                .match(/^[A-Z]?\d*[.](mac|int|inc)$/)
+                ? 3
+                : 2;
+              file.name = nameParts.slice(0, -dotParts).join("/") + "/" + nameParts.slice(-dotParts).join(".");
             }
             if (!options.maxResults || ++counter <= options.maxResults) {
               return options.folder.with({ path: `/${file.name}` });
