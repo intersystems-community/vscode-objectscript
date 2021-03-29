@@ -78,6 +78,7 @@ import {
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentRangeFormattingEditProvider } from "./providers/DocumentRangeFormattingEditProvider";
+import { DocumentLinkProvider } from "./providers/DocumentLinkProvider";
 
 /* proposed */
 import { FileSearchProvider } from "./providers/FileSystemProvider/FileSearchProvider";
@@ -874,6 +875,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       documentSelector("objectscript-class"),
       new ObjectScriptClassCodeLensProvider()
     ),
+    vscode.languages.registerDocumentLinkProvider({ language: "objectscript-output" }, new DocumentLinkProvider()),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed
