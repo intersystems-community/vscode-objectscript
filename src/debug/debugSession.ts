@@ -82,6 +82,8 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
   private _contexts = new Map<number, xdebug.Context>();
 
+  private _contextNames: string[] = ["Private", "Public"];
+
   private _properties = new Map<number, xdebug.Property>();
 
   private _evalResultProperties = new Map<number, xdebug.EvalResultProperty>();
@@ -387,7 +389,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     scopes = contexts.map((context) => {
       const variableId = this._variableIdCounter++;
       this._contexts.set(variableId, context);
-      return new Scope(context.name, variableId);
+      return new Scope(this._contextNames[context.id], variableId);
     });
     response.body = {
       scopes,
