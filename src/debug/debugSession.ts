@@ -46,7 +46,7 @@ async function convertClientPathToDebugger(uri: vscode.Uri, namespace: string): 
     if (query.ns && query.ns !== "") {
       namespace = query.ns.toString();
     }
-    fileName = path.slice(1).replace(/\//, ".");
+    fileName = path.slice(1).replace(/\//g, ".");
   } else {
     fileName = await vscode.workspace
       .openTextDocument(uri)
