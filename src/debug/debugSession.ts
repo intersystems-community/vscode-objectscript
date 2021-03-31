@@ -548,8 +548,8 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       let variablesReference: number;
       // if the property has children, generate a variable ID and save the property (including children) so VS Code can request them
       if (result.hasChildren || result.type === "array" || result.type === "object") {
-        // variablesReference = this._variableIdCounter++;
-        // this._evalResultProperties.set(variablesReference, result);
+        variablesReference = this._variableIdCounter++;
+        this._evalResultProperties.set(variablesReference, result);
       } else {
         variablesReference = 0;
       }
