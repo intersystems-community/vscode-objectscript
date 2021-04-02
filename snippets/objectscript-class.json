@@ -186,6 +186,39 @@
         ],
         "description": "Business Service Definition"
     },
+  "BusinessProcessBPL": {
+        "prefix": ["BusinessProcess","Interoperability","ClassProcess"],
+        "body": [
+          "/// ${0:Description}",
+          "Class ${1:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.BusinessProcessBPL [ ClassType = persistent, ProcedureBlock ]",
+          "{",
+          "XData BPL [ XMLNamespace = \"http://www.intersystems.com/bpl\" ]",
+          "{",
+          "<process language='objectscript' request='Ens.Request' response='Ens.Response' height='2000' width='2000' >",
+          "\t<sequence xend='200' yend='350' >",
+          "\t\t<trace value='\"test\"' xpos='200' ypos='250' disabled=\"true\"/>",
+          "\t</sequence>",
+          "</process>",
+          "}",
+          "}"
+        ],
+        "description": "Business Process Definition"
+    },
+  "BusinessProcess": {
+        "prefix": ["BusinessProcess","Interoperability","ClassProcess"],
+        "body": [
+          "/// ${1:Description}",
+          "Class ${2:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.BusinessProcess [ ClassType = persistent, ProcedureBlock ]",
+          "{",
+          "Method OnRequest(pRequest As Ens.Request, Output pResponse As Ens.Response) As %Status",
+          "{",
+          "\t$0",
+          "\tReturn \\$\\$\\$ERROR(\\$\\$\\$NotImplemented)",
+          "}",
+          "}"
+        ],
+        "description": "Business Process Definition"
+    },
     "BusinessOperation": {
         "prefix":["BusinessOperation","Interoperability","ClassOperation"],
         "body": [
