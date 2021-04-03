@@ -994,6 +994,32 @@
           }
         ]
       }
+    ],
+    "resourceLabelFormatters": [
+      {
+        "scheme": "isfs",
+        "authority": "*",
+        "formatting": {
+          "label": "${authority}:${path}",
+          "separator": "/"
+        }
+      },
+      {
+        "scheme": "isfs-readonly",
+        "authority": "*",
+        "formatting": {
+          "label": "${authority}:${path}",
+          "separator": "/"
+        }
+      },
+      {
+        "scheme": "objectscript",
+        "authority": "*",
+        "formatting": {
+          "label": "${path} (read-only)",
+          "separator": "/"
+        }
+      }
     ]
   },
   "scripts": {
