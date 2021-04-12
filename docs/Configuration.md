@@ -6,18 +6,19 @@ nav_order: 3
 ---
 # Configuration
 
-VS Code settings enable you to customize various aspects of its function. The InterSystems-provided extensions enable you to define InterSystems IRIS servers and the connections to those servers.
+VS Code settings enable you to customize various aspects of its function. The InterSystems extensions provide settings used to configure VS Code for ObjectScript development.
 
 ## Settings
 
-Many available settings are general to VS Code, and you can learn about them in the [Visual Studio Code Documentation](https://code.visualstudio.com/docs). The InterSystems Server Manager and InterSystems ObjectScript extensions supply specific settings used to configure VS Code for ObjectScript development.
+Many available settings are general to VS Code, and you can learn about them in the [Visual Studio Code Documentation](https://code.visualstudio.com/docs). The InterSystems Server Manager and InterSystems ObjectScript extensions supply additional settings you can use to define InterSystems IRIS servers and connections to those servers.
+
 There are several levels on which settings are stored and used:
 
 - **User** - User settings are stored in a file location specific to you and apply globally to any instance of VS Code or any VS Code workspace that you open.
 - **Workspace** - Workspace settings are stored in a file inside the workspace and apply to anyone who opens the workspace.
 - **Folder** - If more than one folder is present in the workspace, you can select the folder where the settings file is stored by selecting from the Folder drop down list.
 
-For example, the following screen shot shows Workspace selected:
+For example, the following screen shot shows the Workspace level selected:
 
 ![Workspace selected.](../assets/images/ClickWorkspace.png "workspace selected")
 
@@ -25,7 +26,7 @@ See the VS Code documentation section [User and Workspace Settings](https://code
 
 ## Configuring a Server
 
-First, configure one or more servers. Select **View > Command Palette > InterSystems Server Manager: Store Password in Keychain**. This command lets you define a new server, as well as storing a password. Click the plus sign in the upper right corner of the dialog, as shown:
+First, configure one or more servers. Select **View > Command Palette > InterSystems Server Manager: Store Password in Keychain**. This command lets you define a new server and securely store a password in the system keychain. Click the plus sign in the upper right corner of the dialog, as shown:
 
 ![Define New Server.](../assets/images/new-server.png "define new server")
 
@@ -37,7 +38,9 @@ Provide the following values when prompted:
 - **Username** - the username to use in logging in to this server.
 - **Confirm connection type** - the protocol used for connections, possible values are **http** and **https**.
 
-Once you have entered these values, the server definition is stored in your user settings. At that point another prompt appears, asking for a password to store in the system Keychain. Enter the password for the username supplied earlier to complete the process.
+Once you have entered these values, the server definition is stored in your user settings. At that point another prompt appears, asking for a password to store in the system keychain. Enter the password for the username supplied earlier to complete the process. Storing a password is optional. You can terminate the process and store the server configuration by pressing either **Escape** or **Return**. If you do not store a password, users are prompted for a password each time they connect to the server.
+
+You can create a configuration for a server that is not currently running.
 
 ## Editing a Server Configuration
 
@@ -80,7 +83,15 @@ If you do not store the password securely in the system Keychain or add it to th
 
 ## Configuring a Server Connection
 
-Open the folder where you want client-side files to be located. Select the **ObjectScript Explorer** button which has been added to the Activity Bar. Select the **Choose Server and Namespace** button. This action opens a dialog that lets you select a server, or create a new one. Once you have selected a server and namespace, connection configuration is complete.
+Open the folder where you want client-side files to be located. Select the **ObjectScript Explorer** button on the Activity Bar. Select the **Choose Server and Namespace** button. This action opens a dialog that lets you select a server, or create a new one. Once you have selected a server and namespace, connection configuration is complete. VS Code adds the server and namespace to the status bar, as shown in the following screen shot.
+
+![Connection information in the status bar.](../assets/images/action-for-server-start.png "connection information in the status bar")
+
+You cannot create a connection to a server that is not running.
+
+Click on the server and namespace in the status bar to open a list of actions you can take for this server:
+
+![Select action for server.](../assets/images/action-for-server.png "select action for server")
 
 ## Editing a Server Connection
 
@@ -92,7 +103,7 @@ The connection configuration looks like this:
 "objectscript.conn": {
 	"ns": "USER",
 	"server": "iris-1",
-    "active": true,
+	"active": true,
 },
 ```
 
