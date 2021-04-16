@@ -581,33 +581,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     packageJson.enableProposedApi && typeof vscode.workspace.registerTextSearchProvider === "function"
       ? vscode.workspace.registerTextSearchProvider(FILESYSTEM_READONLY_SCHEMA, new TextSearchProvider())
       : null,
-    packageJson.enableProposedApi && typeof vscode.workspace.registerResourceLabelFormatter === "function"
-      ? vscode.workspace.registerResourceLabelFormatter({
-          scheme: FILESYSTEM_SCHEMA,
-          formatting: {
-            label: "${authority}:${path}",
-            separator: "/",
-          },
-        })
-      : null,
-    packageJson.enableProposedApi && typeof vscode.workspace.registerResourceLabelFormatter === "function"
-      ? vscode.workspace.registerResourceLabelFormatter({
-          scheme: FILESYSTEM_READONLY_SCHEMA,
-          formatting: {
-            label: "${authority}:${path}",
-            separator: "/",
-          },
-        })
-      : null,
-    packageJson.enableProposedApi && typeof vscode.workspace.registerResourceLabelFormatter === "function"
-      ? vscode.workspace.registerResourceLabelFormatter({
-          scheme: OBJECTSCRIPT_FILE_SCHEMA,
-          formatting: {
-            label: "${path} (read-only)",
-            separator: "/",
-          },
-        })
-      : null,
   ].filter(notNull);
 
   if (proposed.length > 0) {

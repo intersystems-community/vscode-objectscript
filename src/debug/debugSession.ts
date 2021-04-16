@@ -46,7 +46,7 @@ async function convertClientPathToDebugger(uri: vscode.Uri, namespace: string): 
     if (query.ns && query.ns !== "") {
       namespace = query.ns.toString();
     }
-    fileName = path.slice(1).replace(/\//, ".");
+    fileName = path.slice(1).replace(/\//g, ".");
   } else {
     fileName = await vscode.workspace
       .openTextDocument(uri)
@@ -81,6 +81,8 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
   private _variableIdCounter = 1;
 
   private _contexts = new Map<number, xdebug.Context>();
+
+  private _contextNames: string[] = ["Private", "Public", "Class"];
 
   private _properties = new Map<number, xdebug.Property>();
 
@@ -387,7 +389,11 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     scopes = contexts.map((context) => {
       const variableId = this._variableIdCounter++;
       this._contexts.set(variableId, context);
-      return new Scope(context.name, variableId);
+      if (context.id < this._contextNames.length) {
+        return new Scope(this._contextNames[context.id], variableId);
+      } else {
+        return new Scope(context.name, variableId);
+      }
     });
     response.body = {
       scopes,
