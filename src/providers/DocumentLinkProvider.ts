@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { DocumentContentProvider } from "./DocumentContentProvider";
-import { ObjectScriptClassSymbolProvider } from "./ObjectScriptClassSymbolProvider";
 
 interface StudioLink {
   uri: vscode.Uri;
@@ -58,14 +57,11 @@ export class DocumentLinkProvider implements vscode.DocumentLinkProvider {
 
     // add the offset of the method if it is a class
     if (link.methodname) {
-      console.log("running class code");
-      const symbols = await new ObjectScriptClassSymbolProvider().provideDocumentSymbols(editor.document, token);
-      const methods = symbols[0].children;
-      const matchingMethod = methods.find(
-        (method) => (method.detail === "ClassMethod" || method.detail === "Method ") && method.name === link.methodname
+      const symbols = await vscode.commands.executeCommand("vscode.executeDocumentSymbolProvider", link.uri);
+      const method = symbols[0].children.find(
+        (info) => (info.detail === "ClassMethod" || info.detail === "Method") && info.name === link.methodname
       );
-      const methodLine = matchingMethod.range.start.line;
-      offset += methodLine + 1;
+      offset += method.location.range.start.line + 1;
     }
 
     // move the cursor
