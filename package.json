@@ -387,6 +387,12 @@
         "extensions": [
           "csp"
         ]
+      },
+      {
+        "id": "objectscript-output",
+        "mimetypes": [
+          "text/x-code-output"
+        ]
       }
     ],
     "grammars": [
