@@ -831,7 +831,7 @@
         "objectscript.compileFlags": {
           "type": "string",
           "default": "cuk",
-          "description": "Compilation flags."
+          "markdownDescription": "Compilation flags. For descriptions of all available flags and qualifiers, click [here](https://docs.intersystems.com/irislatest/csp/docbook/Doc.View.cls?KEY=RCOS_vsystem#RCOS_vsystem_flags_qualifiers)."
         },
         "objectscript.searchAllDocTypes": {
           "type": "boolean",
