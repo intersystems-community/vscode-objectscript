@@ -287,9 +287,14 @@ export class AtelierAPI {
     let authRequest = authRequestMap.get(target);
     if (cookies.length || method === "HEAD") {
       auth = Promise.resolve(cookies);
-      headers["Authorization"] = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
+
+      // Only send basic authorization if username and password specified (including blank, for unauthenticated access)
+      if (typeof username === "string" && typeof password === "string") {
+        headers["Authorization"] = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
+      }
     } else if (!cookies.length) {
       if (!authRequest) {
+        // Recursion point
         authRequest = this.request(0, "HEAD");
         authRequestMap.set(target, authRequest);
       }

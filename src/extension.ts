@@ -488,15 +488,30 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     await checkConnection(true, uri);
   }
 
-  vscode.workspace.onDidChangeWorkspaceFolders(({ added, removed }) => {
+  vscode.workspace.onDidChangeWorkspaceFolders(async ({ added, removed }) => {
     const folders = vscode.workspace.workspaceFolders;
+
+    // Make sure we have a resolved connection spec for the targets of all added folders
+    const toCheck = new Map<string, vscode.Uri>();
+    added.map((workspaceFolder) => {
+      const uri = workspaceFolder.uri;
+      const { configName } = connectionTarget(uri);
+      toCheck.set(configName, uri);
+    });
+    for await (const oneToCheck of toCheck) {
+      const configName = oneToCheck[0];
+      const uri = oneToCheck[1];
+      const serverName = uri.scheme === "file" ? config("conn", configName).server : configName;
+      await resolveConnectionSpec(serverName);
+    }
+
+    // If it was just the addition of the first folder, and this is one of the isfs types, hide the ObjectScript Explorer for this workspace
     if (
       folders?.length === 1 &&
       added?.length === 1 &&
       removed?.length === 0 &&
       filesystemSchemas.includes(added[0].uri.scheme)
     ) {
-      // First folder has been added and is one of the isfs types, so hide the ObjectScript Explorer for this workspace
       vscode.workspace
         .getConfiguration("objectscript")
         .update("showExplorer", false, vscode.ConfigurationTarget.Workspace);
