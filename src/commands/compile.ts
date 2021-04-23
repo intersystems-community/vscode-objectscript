@@ -67,9 +67,16 @@ export async function checkChangedOnServer(file: CurrentFile, force = false): Pr
 
 async function importFile(file: CurrentFile, ignoreConflict?: boolean): Promise<any> {
   const api = new AtelierAPI(file.uri);
+  if (file.name.split(".").pop().toLowerCase() === "cls") {
+    const result = await api.actionIndex([file.name]);
+    if (result.result.content[0].content.depl) {
+      vscode.window.showErrorMessage("Cannot import over a deployed class");
+      return Promise.reject();
+    }
+  }
   const content = file.content.split(/\r?\n/);
   const mtime = await checkChangedOnServer(file);
-  ignoreConflict = ignoreConflict || mtime < 0;
+  ignoreConflict = ignoreConflict || mtime < 0 || (file.uri.scheme === "file" && config("overwriteServerChanges"));
   return api
     .putDoc(
       file.name,

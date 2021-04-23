@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { ClassDefinition } from "../utils/classDefinition";
 import { DocumentContentProvider } from "./DocumentContentProvider";
-import { StudioOpenDialog } from "../queries";
+import { config } from "../extension";
 
 export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
   public provideWorkspaceSymbols(
@@ -12,11 +12,10 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
     if (query.length < 3) {
       return null;
     }
-    return Promise.all([
-      this.byClasses(query),
-      this.byRoutines(query),
-      this.byMethods(query),
-    ]).then(([classes, routines, methods]) => [...classes, ...routines, ...methods]);
+    return Promise.all([this.byStudioDocuments(query), this.byMethods(query)]).then(([documents, methods]) => [
+      ...documents,
+      ...methods,
+    ]);
   }
 
   private getApi(): AtelierAPI {
@@ -25,38 +24,37 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
     return new AtelierAPI(currentFileUri || firstFolder?.uri || "");
   }
 
-  private async byClasses(query: string): Promise<vscode.SymbolInformation[]> {
-    query = query.toUpperCase();
-    query = `*${query}*`;
-    const library = query.replace(/%(\b\w+\b(?!\.))/, "%LIBRARY.$1");
-    const sql = `
-    SELECT TOP 10 Name ClassName FROM %Dictionary.ClassDefinition
-    WHERE %SQLUPPER Name %MATCHES ? OR %SQLUPPER Name %MATCHES ?`;
-    const api = this.getApi();
-    const data = await api.actionQuery(sql, [library, query]);
-    return data.result.content.map(({ ClassName }) => ({
-      kind: vscode.SymbolKind.Class,
-      location: {
-        uri: new ClassDefinition(ClassName, undefined, api.ns).uri,
-      },
-      name: ClassName,
-    }));
-  }
-
-  private async byRoutines(query: string): Promise<vscode.SymbolInformation[]> {
-    query = `*${query}*.mac,*${query}*.int`;
-    const sql = `CALL %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)`;
+  private async byStudioDocuments(query: string): Promise<vscode.SymbolInformation[]> {
+    const searchAllDocTypes = config("searchAllDocTypes");
+    if (searchAllDocTypes) {
+      // Note: This query could be expensive if there are too many files available across the namespaces
+      // configured in the current vs code workspace. However, delimiting by specific file types
+      // means custom Studio documents cannot be found. So this is a trade off
+      query = `*${query}*`;
+    } else {
+      // Default is to only search classes, routines and include files
+      query = `*${query}*.cls,*${query}*.mac,*${query}*.int,*${query}*.inc`;
+    }
+    const sql = `SELECT TOP 10 Name FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)`;
     const api = this.getApi();
     const direction = "1";
     const orderBy = "1";
-    const systemFiles = "0";
+    const systemFiles = "1";
     const flat = "1";
     const notStudio = "0";
     const generated = "0";
 
+    const kindFromName = (name: string) => {
+      const nameLowerCase = name.toLowerCase();
+      return nameLowerCase.endsWith("cls")
+        ? vscode.SymbolKind.Class
+        : nameLowerCase.endsWith("zpm")
+        ? vscode.SymbolKind.Module
+        : vscode.SymbolKind.File;
+    };
     const data = await api.actionQuery(sql, [query, direction, orderBy, systemFiles, flat, notStudio, generated]);
-    return data.result.content.map(({ Name }: StudioOpenDialog) => ({
-      kind: vscode.SymbolKind.File,
+    return data.result.content.map(({ Name }) => ({
+      kind: kindFromName(Name),
       location: {
         uri: DocumentContentProvider.getUri(Name, undefined, api.ns),
       },

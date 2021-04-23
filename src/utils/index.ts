@@ -81,12 +81,13 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
   const content = document.getText();
   let name = "";
   let ext = "";
-  const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+  const { query } = url.parse(uri.toString(true), true);
   const csp = query.csp === "" || query.csp === "1";
   if (csp) {
     name = uri.path;
   } else if (fileExt === "cls") {
-    const match = content.match(/^Class (%?\w+(?:\.\w+)+)/im);
+    // Allow Unicode letters
+    const match = content.match(/^Class (%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
     if (match) {
       [, name, ext = "cls"] = match;
     }
@@ -99,6 +100,13 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
     }
   } else {
     name = fileName;
+    // Need to strip leading / for custom Studio documents which should not be treated as files.
+    // e.g. For a custom Studio document Test.ZPM, the variable name would be /Test.ZPM which is
+    // not the document name. The document name is Test.ZPM so requests made to the Atelier APIs
+    // using the name with the leading / would fail to find the document.
+    if (name.charAt(0) === "/") {
+      name = name.substr(1);
+    }
   }
   if (!name) {
     return null;
@@ -159,7 +167,8 @@ export function connectionTarget(uri?: vscode.Uri): ConnectionTarget {
       }
     } else if (schemas.includes(uri.scheme)) {
       result.apiTarget = uri;
-      result.configName = uri.authority;
+      const parts = uri.authority.split(":");
+      result.configName = parts.length === 2 ? parts[0] : uri.authority;
     }
   }
 
@@ -170,7 +179,8 @@ export function connectionTarget(uri?: vscode.Uri): ConnectionTarget {
         ? vscode.workspace.workspaceFolders[0]
         : undefined;
     if (firstFolder && schemas.includes(firstFolder.uri.scheme)) {
-      result.configName = firstFolder.uri.authority;
+      const parts = firstFolder.uri.authority.split(":");
+      result.configName = parts.length === 2 ? parts[0] : firstFolder.uri.authority;
       result.apiTarget = firstFolder.uri;
     } else {
       result.configName = workspaceState.get<string>("workspaceFolder") || firstFolder ? firstFolder.name : "";
@@ -221,7 +231,11 @@ export function currentWorkspaceFolder(document?: vscode.TextDocument): string {
         return vscode.workspace.getWorkspaceFolder(uri).name;
       }
     } else if (schemas.includes(uri.scheme)) {
-      return uri.authority;
+      const rootUri = uri.with({ path: "/" }).toString();
+      const foundFolder = vscode.workspace.workspaceFolders.find(
+        (workspaceFolder) => workspaceFolder.uri.toString() == rootUri
+      );
+      return foundFolder ? foundFolder.name : uri.authority;
     }
   }
   const firstFolder =
@@ -254,13 +268,13 @@ export function notNull(el: any): boolean {
   return el !== null;
 }
 
-export async function portFromDockerCompose(): Promise<{ port: number; docker: boolean }> {
+export async function portFromDockerCompose(): Promise<{ port: number; docker: boolean; service?: string }> {
   const { "docker-compose": dockerCompose = {} } = config("conn");
   const { service, file = "docker-compose.yml", internalPort = 52773, envFile } = dockerCompose;
   if (!internalPort || !file || !service || service === "") {
     return { docker: false, port: null };
   }
-  const result = { port: null, docker: true };
+  const result = { port: null, docker: true, service };
   const workspaceFolderPath = workspaceFolderUri().fsPath;
   const workspaceRootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
 
@@ -288,7 +302,7 @@ export async function portFromDockerCompose(): Promise<{ port: number; docker: b
   const cmd = `docker-compose -f ${file} ${envFileParam} `;
 
   return new Promise((resolve, reject) => {
-    exec(`${cmd} ps --services --filter 'status=running'`, { cwd }, (error, stdout) => {
+    exec(`${cmd} ps --services --filter status=running`, { cwd }, (error, stdout) => {
       if (error) {
         reject(error.message);
       }
@@ -304,7 +318,7 @@ export async function portFromDockerCompose(): Promise<{ port: number; docker: b
         if (!port) {
           reject(`Port ${internalPort} not published for service '${service}'.`);
         }
-        resolve({ port: parseInt(port, 10), docker: true });
+        resolve({ port: parseInt(port, 10), docker: true, service });
       });
     });
   });
@@ -338,7 +352,10 @@ export async function terminalWithDocker(): Promise<vscode.Terminal> {
  * Alter isfs-type uri.path of /.vscode/* files or subdirectories.
  * Rewrite `/.vscode/path/to/file` as `/_vscode/XYZ/path/to/file`
  *  where XYZ comes from the `ns` queryparam of uri.
- * Also alter query to specify `ns=%SYS&csp=1`
+ *  Also alter query to specify `ns=%SYS&csp=1`
+ * Also handles the alternative syntax isfs://server:namespace/
+ *  in which there is no ns queryparam
+ * For both syntaxes the namespace folder name is uppercased
  *
  * @returns uri, altered if necessary.
  * @throws if `ns` queryparam is missing but required.
@@ -347,15 +364,26 @@ export function redirectDotvscodeRoot(uri: vscode.Uri): vscode.Uri {
   if (!schemas.includes(uri.scheme)) {
     return uri;
   }
-  const dotMatch = uri.path.match(/^\/(\.[^/]*)\/(.*)$/);
+  const dotMatch = uri.path.match(/^\/(\.[^/]*)(\/.*)?$/);
   if (dotMatch && dotMatch[1] === ".vscode") {
-    const nsMatch = `&${uri.query}&`.match(/&ns=(.+)&/);
-    if (!nsMatch) {
-      throw new Error("No 'ns' query parameter on uri");
+    let namespace: string;
+    const nsMatch = `&${uri.query}&`.match(/&ns=([^&]+)&/);
+    if (nsMatch) {
+      namespace = nsMatch[1].toUpperCase();
+      const newQueryString = (("&" + uri.query).replace(`ns=${namespace}`, "ns=%SYS") + "&csp").slice(1);
+      return uri.with({ path: `/_vscode/${namespace}${dotMatch[2] || ""}`, query: newQueryString });
+    } else {
+      const parts = uri.authority.split(":");
+      if (parts.length === 2) {
+        namespace = parts[1].toUpperCase();
+        return uri.with({
+          authority: `${parts[0]}:%SYS`,
+          path: `/_vscode/${namespace}${dotMatch[2] || ""}`,
+          query: uri.query + "&csp",
+        });
+      }
     }
-    const namespace = nsMatch[1];
-    const newQueryString = (("&" + uri.query).replace(`ns=${namespace}`, "ns=%SYS") + "&csp=1").slice(1);
-    return uri.with({ path: `/_vscode/${namespace}/${dotMatch[2]}`, query: newQueryString });
+    throw new Error("No namespace determined from uri");
   } else {
     return uri;
   }

@@ -37,18 +37,19 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
   stopOnEntry?: boolean;
 }
 
-/** converts a local path from VS Code to a server-side XDebug file URI with respect to source root settings */
-export async function convertClientPathToDebugger(localPath: string, namespace: string): Promise<string> {
-  const { protocol, pathname, query } = url.parse(decodeURIComponent(localPath), true, true);
-  let fileName = localPath;
-  if (protocol && schemas.includes(protocol.slice(0, -1))) {
+/** converts a uri from VS Code to a server-side XDebug file URI with respect to source root settings */
+async function convertClientPathToDebugger(uri: vscode.Uri, namespace: string): Promise<string> {
+  const { scheme, path } = uri;
+  const { query } = url.parse(uri.toString(true), true);
+  let fileName: string;
+  if (scheme && schemas.includes(scheme)) {
     if (query.ns && query.ns !== "") {
       namespace = query.ns.toString();
     }
-    fileName = pathname.slice(1).replace(/\//, ".");
+    fileName = path.slice(1).replace(/\//g, ".");
   } else {
     fileName = await vscode.workspace
-      .openTextDocument(localPath)
+      .openTextDocument(uri)
       .then(currentFile)
       .then((curFile) => {
         return curFile.name;
@@ -81,9 +82,13 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
   private _contexts = new Map<number, xdebug.Context>();
 
+  private _contextNames: string[] = ["Private", "Public", "Class"];
+
   private _properties = new Map<number, xdebug.Property>();
 
   private _evalResultProperties = new Map<number, xdebug.EvalResultProperty>();
+
+  private _workspace: string;
 
   private cookies: string[] = [];
 
@@ -110,7 +115,10 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     };
 
     try {
-      const api = new AtelierAPI();
+      const file = currentFile();
+      this._workspace = file?.workspaceFolder;
+
+      const api = new AtelierAPI(file?.uri);
       this.cookies = api.cookies;
       if (!api.active) {
         throw new Error("Connection not active");
@@ -236,10 +244,9 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       await this._debugTargetSet.wait(1000);
 
       const filePath = args.source.path;
-      const { protocol } = url.parse(decodeURIComponent(filePath), true, true);
-      const uri =
-        protocol && schemas.includes(protocol.slice(0, -1)) ? vscode.Uri.parse(filePath) : vscode.Uri.file(filePath);
-      const fileUri = await convertClientPathToDebugger(args.source.path, this._namespace);
+      const scheme = filePath.split(":")[0];
+      const uri = schemas.includes(scheme) ? vscode.Uri.parse(filePath) : vscode.Uri.file(filePath);
+      const fileUri = await convertClientPathToDebugger(uri, this._namespace);
       const [, fileName] = fileUri.match(/\|([^|]+)$/);
 
       const currentList = await this._connection.sendBreakpointListCommand();
@@ -328,7 +335,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
           const [, namespace, name] = decodeURI(stackFrame.fileUri).match(/^dbgp:\/\/\|([^|]+)\|(.*)$/);
           const routine = name;
           // const routine = name.includes(".") ? name : name + ".int";
-          const fileUri = DocumentContentProvider.getUri(routine, null, namespace).toString();
+          const fileUri = DocumentContentProvider.getUri(routine, this._workspace, namespace).toString();
           const source = new Source(routine, fileUri);
           let line = stackFrame.line + 1;
           const place = `${stackFrame.method}+${stackFrame.methodOffset}`;
@@ -382,7 +389,11 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     scopes = contexts.map((context) => {
       const variableId = this._variableIdCounter++;
       this._contexts.set(variableId, context);
-      return new Scope(context.name, variableId);
+      if (context.id < this._contextNames.length) {
+        return new Scope(this._contextNames[context.id], variableId);
+      } else {
+        return new Scope(context.name, variableId);
+      }
     });
     response.body = {
       scopes,
@@ -537,8 +548,8 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       let variablesReference: number;
       // if the property has children, generate a variable ID and save the property (including children) so VS Code can request them
       if (result.hasChildren || result.type === "array" || result.type === "object") {
-        // variablesReference = this._variableIdCounter++;
-        // this._evalResultProperties.set(variablesReference, result);
+        variablesReference = this._variableIdCounter++;
+        this._evalResultProperties.set(variablesReference, result);
       } else {
         variablesReference = 0;
       }
@@ -569,7 +580,6 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
     response.body = {
       value: args.value,
-      variablesReference: args.variablesReference,
     };
     this.sendResponse(response);
   }
@@ -579,10 +589,11 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     response: DebugProtocol.Response,
     codeOrMessage: number | DebugProtocol.Message,
     format?: string,
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     variables?: any,
     dest?: ErrorDestination
   ): void;
-  protected sendErrorResponse(response: DebugProtocol.Response, ...rest): void {
+  protected sendErrorResponse(response: DebugProtocol.Response, ...rest: any[]): void {
     if (rest[0] instanceof Error) {
       const error = rest[0] as Error & { code?: number | string; errno?: number };
       const dest = rest[1] as ErrorDestination;

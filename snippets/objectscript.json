@@ -1,24 +1,77 @@
 {
-	"ForOrder": {
-		"prefix": ["For"],
-		"body": [
+  "ForOrder": {
+    "prefix": ["For"],
+    "body": [
 			"Set ${1:key} = \"\"",
 			"For {",
-				"\tSet ${1:key} = \\$ORDER(${2:array}(${1:key}))",
-				"\tQuit:${1:key}=\"\"",
-				"\t$3 // process ${2:array}(${1:key})",
+				"\tSet $1 = \\$ORDER(${2:array}($1))",
+				"\tQuit:$1=\"\"",
+				"\t${3:// process $2($1)}",
 			"}"
-		],
-		"description": "Looping Array with $Order"
-    },
-    "SQL Statement": {
-        "prefix": ["sql"],
-        "body": [
-                "Set rs = ##class(%SQL.Statement).%ExecDirect(,\"SELECT * FROM\")",
-                "While rs.%Next() {",
-                "\twrite rs.ID, !",
-                "}"],
-        "description": "Prepare and execute SQL Query"
-    }
-
+    ],
+    "description": "Iterate array with $Order"
+  },
+  "SQL Statement": {
+    "prefix": ["sql"],
+    "body": [
+      "Set rs = ##class(%SQL.Statement).%ExecDirect(,\"SELECT ${1:*} FROM ${2:table}\")",
+      "While rs.%Next() {",
+        "\t${0:Write rs.ID, !}",
+      "}"
+    ],
+    "description": "Prepare and execute SQL Query, then iterate result set 'rs'"
+  },
+  "For": {
+    "prefix": ["For"],
+    "body": [
+      "For ${1:i} = ${2:1}:${3:1}:${4:9} {",
+        "\t${0:Write $1, !}",
+      "}"
+    ],
+	  "description": "Typical For loop"
+  },
+  "For Each": {
+    "prefix": ["For"],
+    "body": [
+      "For ${1:value} = \"${2:Red}\",\"${3:Green}\",\"${4:Blue}\" {",
+        "\t${0:Write $1, !}",
+      "}"
+    ],
+	  "description": "Loop through series of values"
+  },
+  "Do While": {
+    "prefix": ["Do", "While"],
+    "body": [
+      "Do {",
+        "\t$0",
+      "} While (${1:1 /* condition */})"
+    ],
+	  "description": "Do While loop"
+  },
+  "While": {
+    "prefix": ["While"],
+    "body": [
+      "While (${1:1 /* condition */}) {",
+        "\t$0",
+      "}"
+    ],
+	  "description": "While loop"
+  },
+	"ThrowOnError": {
+		"prefix": ["$$$ThrowOnError"],
+    "body": ["\\$\\$\\$ThrowOnError(##class(${1:class}).${2:method}())"],
+    "description": "Invoke classmethod, store result in variable 'sc', and Throw if an error"
+	},
+	"Try Catch": {
+		"prefix": ["Try"],
+		"body": [
+      "Try {",
+        "\t$0",
+      "}",
+      "Catch ex {",
+        "\tSet tSC=ex.AsStatus()",
+      "}"
+    ],
+		"description": "Try Catch"
+	}
 }

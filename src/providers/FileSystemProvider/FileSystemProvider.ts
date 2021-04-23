@@ -41,18 +41,23 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
+    uri = redirectDotvscodeRoot(uri);
     const parent = await this._lookupAsDirectory(uri);
     const api = new AtelierAPI(uri);
     if (!api.active) {
       return;
     }
     const sql = `CALL %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)`;
-    const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+    const { query } = url.parse(uri.toString(true), true);
     const type = query.type && query.type != "" ? query.type.toString() : "all";
     const csp = query.csp === "" || query.csp === "1";
     let filter = "";
     if (query.filter && query.filter.length) {
       filter = query.filter.toString();
+      if (!csp) {
+        // always exclude Studio projects, since we can't do anything with them
+        filter += ",'*.prj";
+      }
     } else if (csp) {
       filter = "*";
     } else if (type === "rtn") {
@@ -125,6 +130,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public createDirectory(uri: vscode.Uri): void | Thenable<void> {
+    uri = redirectDotvscodeRoot(uri);
     const basename = path.posix.basename(uri.path);
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
     return this._lookupAsDirectory(dirname).then((parent) => {
@@ -177,7 +183,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (uri.path.startsWith("/.")) {
       throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
     }
-    const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+    const { query } = url.parse(uri.toString(true), true);
     const csp = query.csp === "" || query.csp === "1";
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     if (fileName.startsWith(".")) {
@@ -189,6 +195,14 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         // Weirdly, if the file exists on the server we don't actually write its content here.
         // Instead we simply return as though we wrote it successfully.
         // The actual writing is done by our workspace.onDidSaveTextDocument handler.
+        // But first check a case for which we should fail the write and leave the document dirty if changed.
+        if (fileName.split(".").pop().toLowerCase() === "cls") {
+          return api.actionIndex([fileName]).then((result) => {
+            if (result.result.content[0].content.depl) {
+              throw new Error("Cannot overwrite a deployed class");
+            }
+          });
+        }
         return;
       },
       (error) => {
@@ -232,7 +246,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public delete(uri: vscode.Uri, options: { recursive: boolean }): void | Thenable<void> {
-    const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+    const { query } = url.parse(uri.toString(true), true);
     const csp = query.csp === "" || query.csp === "1";
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     if (fileName.startsWith(".")) {
@@ -318,7 +332,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
     }
 
-    const { query } = url.parse(decodeURIComponent(uri.toString()), true);
+    const { query } = url.parse(uri.toString(true), true);
     const csp = query.csp === "" || query.csp === "1";
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     const name = path.basename(uri.path);
@@ -326,14 +340,29 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     return api
       .getDoc(fileName)
       .then((data) => data.result)
+      .then((result) => {
+        const fileSplit = fileName.split(".");
+        const fileType = fileSplit[fileSplit.length - 1];
+        if (!csp && ["bpl", "dtl"].includes(fileType)) {
+          const partialUri = Array.isArray(result.content) ? result.content[0] : String(result.content).split("\n")[0];
+          const strippedUri = partialUri.split("&STUDIO=")[0];
+          const { https, host, port, pathPrefix } = api.config;
+          result.content = [
+            `${https ? "https" : "http"}://${host}:${port}${pathPrefix}${strippedUri}`,
+            "Use the link above to launch the external editor in your web browser.",
+            "Do not edit this document here. It cannot be saved to the server.",
+          ];
+        }
+        return result;
+      })
       .then(
         ({ ts, content }) =>
           new File(
             name,
             fileName,
             ts,
-            Array.isArray(content) ? content.join("\n").length : String(content).length,
-            Array.isArray(content) ? content.join("\n") : String(content)
+            Array.isArray(content) ? content.join("\n").length : content.length,
+            Array.isArray(content) ? content.join("\n") : content
           )
       )
       .then((entry) =>
@@ -349,6 +378,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   private async _lookupParentDirectory(uri: vscode.Uri): Promise<Directory> {
+    uri = redirectDotvscodeRoot(uri);
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
     return await this._lookupAsDirectory(dirname);
   }

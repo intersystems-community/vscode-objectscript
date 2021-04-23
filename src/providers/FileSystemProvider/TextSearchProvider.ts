@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { SearchResult, SearchMatch } from "../../api/atelier";
 import { AtelierAPI } from "../../api";
 import { DocumentContentProvider } from "../DocumentContentProvider";
+import { outputChannel } from "../../utils";
 
 export class TextSearchProvider implements vscode.TextSearchProvider {
   /**
@@ -33,13 +34,17 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
       .then((files: SearchResult[]) =>
         files.map(async (file) => {
           const fileName = file.doc;
-          const uri = DocumentContentProvider.getUri(fileName);
-          const document = await vscode.workspace.openTextDocument(uri);
-          return {
-            ...file,
-            uri,
-            document,
-          };
+          const uri = DocumentContentProvider.getUri(fileName, "", "", true, options.folder);
+          try {
+            const document = await vscode.workspace.openTextDocument(uri);
+            return {
+              ...file,
+              uri,
+              document,
+            };
+          } catch (_ex) {
+            return null;
+          }
         })
       )
       .then((files) => Promise.all(files))
@@ -70,6 +75,10 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
           });
         });
         return { limitHit: counter >= options.maxResults };
+      })
+      .catch((error) => {
+        outputChannel.appendLine(error);
+        return null;
       });
   }
 }

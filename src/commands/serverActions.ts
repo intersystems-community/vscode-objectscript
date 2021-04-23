@@ -1,5 +1,12 @@
 import * as vscode from "vscode";
-import { config, workspaceState, checkConnection, FILESYSTEM_SCHEMA, FILESYSTEM_READONLY_SCHEMA } from "../extension";
+import {
+  config,
+  workspaceState,
+  checkConnection,
+  FILESYSTEM_SCHEMA,
+  FILESYSTEM_READONLY_SCHEMA,
+  explorerProvider,
+} from "../extension";
 import { connectionTarget, terminalWithDocker, currentFile } from "../utils";
 import { mainCommandMenu, mainSourceControlMenu } from "./studio";
 import { AtelierAPI } from "../api";
@@ -8,9 +15,10 @@ type ServerAction = { detail: string; id: string; label: string };
 export async function serverActions(): Promise<void> {
   const { apiTarget, configName: workspaceFolder } = connectionTarget();
   const api = new AtelierAPI(apiTarget);
-  const { active, host = "", ns = "", https, port = 0, username, password } = api.config;
-  if (host === "") {
-    return vscode.commands.executeCommand("workbench.view.extension.ObjectScriptView");
+  const { active, host = "", ns = "", https, port = 0, pathPrefix, username, password, docker } = api.config;
+  const explorerCount = (await explorerProvider.getChildren()).length;
+  if (!explorerCount && (!docker || host === "")) {
+    await vscode.commands.executeCommand("ObjectScriptExplorer.focus");
   }
   const { links } = config("conn");
   const nsEncoded = encodeURIComponent(ns);
@@ -59,10 +67,15 @@ export async function serverActions(): Promise<void> {
         return;
       });
   }
+  const file = currentFile();
+  const classname = file && file.name.toLowerCase().endsWith(".cls") ? file.name.slice(0, -4) : "";
+  const classnameEncoded = encodeURIComponent(classname);
   const connInfo = `${host}:${port}[${nsEncoded}]`;
-  const serverUrl = `${https ? "https" : "http"}://${host}:${port}`;
+  const serverUrl = `${https ? "https" : "http"}://${host}:${port}${pathPrefix}`;
   const portalUrl = `${serverUrl}/csp/sys/UtilHome.csp?$NAMESPACE=${nsEncoded}`;
-  const classRef = `${serverUrl}/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${nsEncoded}`;
+  const classRef = `${serverUrl}/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${nsEncoded}${
+    classname ? "&CLASSNAME=" + classnameEncoded : ""
+  }`;
   const iris = workspaceState.get(workspaceFolder + ":iris", false);
   const usernameEncoded = encodeURIComponent(username);
   const passwordEncoded = encodeURIComponent(password);
@@ -70,11 +83,9 @@ export async function serverActions(): Promise<void> {
     ? `&IRISUsername=${usernameEncoded}&IRISPassword=${passwordEncoded}`
     : `&CacheUserName=${usernameEncoded}&CachePassword=${passwordEncoded}`;
   let extraLinks = 0;
-  const file = currentFile();
-  const classname = file && file.name.match(/cls$/i) ? file.name : "";
   for (const title in links) {
     let link = String(links[title]);
-    if (classname == "" && link.includes("${classname}")) {
+    if (classname == "" && (link.includes("${classname}") || link.includes("${classnameEncoded}"))) {
       continue;
     }
     link = link
@@ -84,7 +95,8 @@ export async function serverActions(): Promise<void> {
       .replace("${serverAuth}", auth)
       .replace("${ns}", nsEncoded)
       .replace("${namespace}", ns == "%SYS" ? "sys" : nsEncoded.toLowerCase())
-      .replace("${classname}", classname);
+      .replace("${classname}", classname)
+      .replace("${classnameEncoded}", classnameEncoded);
     actions.push({
       id: "extraLink" + extraLinks++,
       label: title,
@@ -99,14 +111,14 @@ export async function serverActions(): Promise<void> {
     });
   }
   actions.push({
-    detail: portalUrl,
     id: "openPortal",
     label: "Open Management Portal",
+    detail: portalUrl,
   });
   actions.push({
-    detail: classRef,
     id: "openClassReference",
-    label: "Open Class Reference",
+    label: "Open Class Reference" + (classname ? ` for ${classname}` : ""),
+    detail: classRef,
   });
   if (
     !vscode.window.activeTextEditor ||

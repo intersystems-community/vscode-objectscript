@@ -18,7 +18,8 @@ import { currentWorkspaceFolder, outputConsole, outputChannel } from "../utils";
 const DEFAULT_API_VERSION = 1;
 import * as Atelier from "./atelier";
 
-let authRequest = null;
+// Map of the authRequest promises for each username@host:port target to avoid concurrency issues
+const authRequestMap = new Map<string, Promise<any>>();
 
 export interface ConnectionSettings {
   serverName: string;
@@ -31,6 +32,8 @@ export interface ConnectionSettings {
   ns: string;
   username: string;
   password: string;
+  docker: boolean;
+  dockerService?: string;
 }
 
 export class AtelierAPI {
@@ -59,6 +62,8 @@ export class AtelierAPI {
       : workspaceState.get(this.configName + ":port", this._config.port);
     const password = workspaceState.get(this.configName + ":password", this._config.password);
     const apiVersion = workspaceState.get(this.configName + ":apiVersion", DEFAULT_API_VERSION);
+    const docker = workspaceState.get(this.configName + ":docker", false);
+    const dockerService = workspaceState.get<string>(this.configName + ":dockerService");
     return {
       serverName,
       active,
@@ -70,6 +75,8 @@ export class AtelierAPI {
       ns,
       username,
       password,
+      docker,
+      dockerService,
     };
   }
 
@@ -93,10 +100,16 @@ export class AtelierAPI {
       if (wsOrFile instanceof vscode.Uri) {
         if (schemas.includes(wsOrFile.scheme)) {
           workspaceFolderName = wsOrFile.authority;
-          const { query } = url.parse(decodeURIComponent(wsOrFile.toString()), true);
-          if (query) {
-            if (query.ns && query.ns !== "") {
-              namespace = query.ns.toString();
+          const parts = workspaceFolderName.split(":");
+          if (parts.length === 2 && config("intersystems.servers").has(parts[0].toLowerCase())) {
+            workspaceFolderName = parts[0];
+            namespace = parts[1];
+          } else {
+            const { query } = url.parse(wsOrFile.toString(true), true);
+            if (query) {
+              if (query.ns && query.ns !== "") {
+                namespace = query.ns.toString();
+              }
             }
           }
         }
@@ -130,9 +143,9 @@ export class AtelierAPI {
   }
 
   public xdebugUrl(): string {
-    const { host, https, port, apiVersion } = this.config;
+    const { host, https, port, apiVersion, pathPrefix } = this.config;
     const proto = https ? "wss" : "ws";
-    return `${proto}://${host}:${port}/api/atelier/v${apiVersion}/%25SYS/debug`;
+    return `${proto}://${host}:${port}${pathPrefix}/api/atelier/v${apiVersion}/%25SYS/debug`;
   }
 
   public updateCookies(newCookies: string[]): Promise<any> {
@@ -155,7 +168,7 @@ export class AtelierAPI {
     let serverName = workspaceFolderName.toLowerCase();
     if (config("intersystems.servers").has(serverName)) {
       this.externalServer = true;
-    } else if (conn.server) {
+    } else if (conn.server && config("intersystems.servers", workspaceFolderName).has(conn.server)) {
       serverName = conn.server;
     } else {
       serverName = "";
@@ -178,6 +191,7 @@ export class AtelierAPI {
         username,
         password,
         pathPrefix,
+        docker: false,
       };
 
       // Report server as inactive when no namespace has been determined,
@@ -189,13 +203,19 @@ export class AtelierAPI {
     } else {
       this._config = conn;
       this._config.ns = namespace || conn.ns;
-      this._config.serverName = serverName;
+      this._config.serverName = "";
     }
   }
 
   private get cache(): Cache {
     const { host, port } = this.config;
     return new Cache(extensionContext, `API:${host}:${port}`);
+  }
+
+  public get connInfo(): string {
+    const { host, port, docker, dockerService } = this.config;
+    const ns = this.ns.toUpperCase();
+    return (docker ? "docker" + (dockerService ? `:${dockerService}:${port}` : "") : `${host}:${port}`) + `[${ns}]`;
   }
 
   public async request(
@@ -207,7 +227,9 @@ export class AtelierAPI {
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     params?: any,
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    headers?: any
+    headers?: any,
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    options?: any
   ): Promise<any> {
     const { active, apiVersion, host, port, username, password, https } = this.config;
     if (!active || !port || !host) {
@@ -260,17 +282,24 @@ export class AtelierAPI {
     path = encodeURI(`${pathPrefix}/api/atelier/${path || ""}${buildParams()}`);
 
     const cookies = this.cookies;
-    let auth;
+    const target = `${username}@${host}:${port}`;
+    let auth: Promise<any>;
+    let authRequest = authRequestMap.get(target);
     if (cookies.length || method === "HEAD") {
       auth = Promise.resolve(cookies);
-      headers["Authorization"] = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
+
+      // Only send basic authorization if username and password specified (including blank, for unauthenticated access)
+      if (typeof username === "string" && typeof password === "string") {
+        headers["Authorization"] = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
+      }
     } else if (!cookies.length) {
       if (!authRequest) {
+        // Recursion point
         authRequest = this.request(0, "HEAD");
+        authRequestMap.set(target, authRequest);
       }
       auth = authRequest;
     }
-    const connInfo = `${host}:${port}[${this.ns}]`;
 
     try {
       const cookie = await auth;
@@ -287,29 +316,30 @@ export class AtelierAPI {
         // simple: true,
       });
       if (response.status === 401) {
+        authRequestMap.delete(target);
         if (this.wsOrFile) {
           setTimeout(() => {
             checkConnection(true, typeof this.wsOrFile === "object" ? this.wsOrFile : undefined);
           }, 1000);
         }
-        throw response;
+        throw { statusCode: response.status, message: response.statusText };
       }
       await this.updateCookies(response.headers.raw()["set-cookie"] || []);
-      panel.text = `${connInfo}`;
-      panel.tooltip = `Connected as ${username}`;
+      panel.text = `${this.connInfo}`;
+      panel.tooltip = `Connected${pathPrefix ? " to " + pathPrefix : ""} as ${username}`;
       if (method === "HEAD") {
-        authRequest = null;
+        authRequestMap.delete(target);
         return this.cookies;
       }
 
       if (!response.ok) {
-        throw { statusCode: response.status, statusText: response.statusText };
+        throw { statusCode: response.status, message: response.statusText };
       }
 
       const buffer = await response.buffer();
       const data: Atelier.Response = JSON.parse(buffer.toString("utf-8"));
 
-      /// deconde encoded content
+      /// decode encoded content
       if (data.result && data.result.enc && data.result.content) {
         data.result.enc = false;
         data.result.content = Buffer.from(data.result.content.join(""), "base64");
@@ -321,7 +351,7 @@ export class AtelierAPI {
           data.result.content.length !== 0 &&
           data.result.content[0] != undefined &&
           data.result.content[0].action != undefined;
-        if (!isStudioAction) {
+        if (!isStudioAction && !options?.noOutput) {
           outputConsole(data.console);
         }
       }
@@ -338,8 +368,9 @@ export class AtelierAPI {
         return data;
       }
     } catch (error) {
-      if (error.error && error.error.code === "ECONNREFUSED") {
-        panel.text = `${connInfo} $(debug-disconnect)`;
+      if (error.code === "ECONNREFUSED") {
+        authRequestMap.delete(target);
+        panel.text = `${this.connInfo} $(debug-disconnect)`;
         panel.tooltip = "Disconnected";
         workspaceState.update(this.configName + ":host", undefined);
         workspaceState.update(this.configName + ":port", undefined);
@@ -446,7 +477,7 @@ export class AtelierAPI {
       word: false,
       ...params,
     };
-    return this.request(2, "GET", `${this.ns}/action/search`, null, params);
+    return this.request(2, "GET", `${this.ns}/action/search`, null, params, null, { noOutput: true });
   }
 
   // v1+

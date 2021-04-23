@@ -8,13 +8,13 @@ export class File implements vscode.FileStat {
   public fileName: string;
   public name: string;
   public data?: Uint8Array;
-  public constructor(name: string, fileName: string, ts: string, size: number, data: string) {
+  public constructor(name: string, fileName: string, ts: string, size: number, data: string | Buffer) {
     this.type = vscode.FileType.File;
     this.ctime = new Date(ts).getTime();
     this.mtime = new Date(ts).getTime();
     this.size = size;
     this.fileName = fileName;
     this.name = name;
-    this.data = Buffer.from(data);
+    this.data = typeof data === "string" ? Buffer.from(data) : data;
   }
 }

@@ -1,6 +1,7 @@
+import * as cp from "child_process";
 import * as path from "path";
 
-import { runTests } from "vscode-test";
+import { downloadAndUnzipVSCode, resolveCliPathFromVSCodeExecutablePath, runTests } from "vscode-test";
 
 async function main() {
   try {
@@ -15,7 +16,20 @@ async function main() {
     // The path to the workspace file
     const workspace = path.resolve("test-fixtures", "test.code-workspace");
 
-    const launchArgs = ["-n", "--disable-extensions", workspace];
+    const vscodeExecutablePath = await downloadAndUnzipVSCode("stable");
+    const cliPath = resolveCliPathFromVSCodeExecutablePath(vscodeExecutablePath);
+
+    const installExtension = (extId) =>
+      cp.spawnSync(cliPath, ["--install-extension", extId], {
+        encoding: "utf-8",
+        stdio: "inherit",
+      });
+
+    // Install dependent extensions
+    installExtension("intersystems-community.servermanager");
+    installExtension("intersystems.language-server");
+
+    const launchArgs = ["-n", workspace];
 
     // Download VS Code, unzip it and run the integration test
     await runTests({ extensionDevelopmentPath, extensionTestsPath, launchArgs });

@@ -1,5 +1,71 @@
 # Change Log
 
+## [1.0.9] 22-Mar-2021
+- Allow system files (% classes) to be searched from non-%SYS namespace.
+- Handle `objectscript.conn.server` referencing non-existent `intersystems.servers` entry (#586)
+- Improve README.
+- Upgrade vulnerable dependencies.
+
+## [1.0.8] 15-Jan-2021
+- Implement `isfs://server:namespace/` syntax as an alternative to the `ns=NAMESPACE` query parameter (#450)
+- Use new isfs notation in entries created by 'Add Server Namespace to Workspace' (#554)
+- Load server-side (isfs) folder-specific snippets (#552)
+- Improve snippets:
+    - Add a ///-comment tabstop at the start of all snippets used in class definitions.
+    - Add descriptive default text to more tabstops.
+    - Add third superclass to multi-superclass snippet.
+    - Uniformly use Capitalized command names and UPPERCASE function names in ObjectScript.
+    - Standardize body layout in definitions to reflect layout of result.
+    - Tidy how duplicate tabstops are used.
+- Support searching all Studio document types when using symbol search (Cmd/Ctrl + T).
+- Upgrade vulnerable dependency.
+
+## [1.0.7] 4-Jan-2021
+- Fix issue affecting use with Docker on Windows (#516)
+- Resolve problem debugging in a multi-root workspace using isfs (#387)
+- Allow 'View other' from custom Studio documents.
+- Fix issue that prevented saving of custom Studio documents.
+- Add code snippets for Request, Response and multi-superclass class definitions, Projection, XData, Try Catch, $$$ThrowOnError macro.
+- Upgrade vulnerable dependency.
+
+## [1.0.6] 13-Nov-2020
+- Target current class when opening documentation from Server Actions quickpick, launched by click on ObjectScript panel in status bar (#490)
+- Improve code snippets (#493)
+- Update README to state need for manual download and install of beta VSIX in order to use proposed APIs (#478)
+- Make server-side search of isfs folder (proposed API) work even when folder isn't first root in workspace (#495)
+- Fix status bar panel issues that affected Docker targets (#498)
+- Resolve failure to prompt for password (1.0.5 regression) (#503)
+- Exclude Studio project documents (.prj) from isfs tree (#501)
+- Fix variable tree cascade that occurred when value was edited during debugging (#505)
+- Show clickable url launching graphical editor for BPL and DTL documents opened from isfs folder (#508)
+    - To show .bpl and .dtl files, add `filter=*` to isfs folder's `uri` property in your `XXX.code-workspace` file.
+    - Alternatively, use `View Other` from context menu of the corresponding class.
+- Display supported image files correctly when opened from isfs web application folder (#394)
+- Prevent import from overwriting class that is in [deployed mode](https://docs.intersystems.com/iris20181/csp/docbook/Doc.View.cls?KEY=GOBJ_classes#GOBJ_deploy_classes) (#382)
+- Respect `pathPrefix` property of an `intersystems.servers` connection definition in more places:
+    - debugger connections
+    - urls on Server Actions menu
+
+## [1.0.5] 5-Nov-2020
+- Defer to Language Server 1.0.5+ for folding range information (#473)
+- Add `objectscript.overwriteServerChanges` setting to permit unconditional import from local file (#464)
+- Fix authentication problem introduced in 1.0.2 (#458)
+- Handle Unicode characters in identifiers (#337)
+- Avoid inappropriate transfer of user-level `objectscript.conn` settings into workspace-level settings (#460)
+- Enhancements available only when proposed APIs are enabled:
+    - Improve format of results from Quick Open server-side file name search (#467)
+    - Add root folder label text to label of isfs file (#455)
+    - Add '(read-only)' suffix to label of non-editable file opened from ObjectScript Explorer (#471)
+
+## [1.0.4] 30-Oct-2020
+- Wait for connection checks to complete during activation.
+- Display debugging values correctly when they contain characters above ASCII 127.
+- Fix broken server-side .vscode storage mechanism when isfs query string includes other parameters after `ns`.
+- Make status bar panel more relevant when current workspace is not associated with a server.
+- Support more ${...} substitution variables in server menu links. See PR [#444](https://github.com/intersystems-community/vscode-objectscript/pull/444) for details and [WebTerminal](https://openexchange.intersystems.com/package/WebTerminal) launch example.
+- Supply process picker default for `processId` property of new attach-type debug configuration.
+- Differentiate "Edit" and "View" options better on isfs dialog.
+
 ## [1.0.3] 24-Oct-2020
 - Fix problem that prevented 1.0.2 from publishing to Marketplace.
 

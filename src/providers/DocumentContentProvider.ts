@@ -33,14 +33,24 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     }
   }
 
-  public static getUri(name: string, workspaceFolder?: string, namespace?: string, vfs?: boolean): vscode.Uri {
+  public static getUri(
+    name: string,
+    workspaceFolder?: string,
+    namespace?: string,
+    vfs?: boolean,
+    wFolderUri?: vscode.Uri
+  ): vscode.Uri {
     if (vfs === undefined) {
       vfs = config("serverSideEditing");
     }
     let scheme = vfs ? FILESYSTEM_SCHEMA : OBJECTSCRIPT_FILE_SCHEMA;
-    workspaceFolder = workspaceFolder && workspaceFolder !== "" ? workspaceFolder : currentWorkspaceFolder();
     const isCsp = name.includes("/");
-    const wFolderUri = workspaceFolderUri(workspaceFolder);
+
+    // if wFolderUri was passed it takes precedence
+    if (!wFolderUri) {
+      workspaceFolder = workspaceFolder && workspaceFolder !== "" ? workspaceFolder : currentWorkspaceFolder();
+      wFolderUri = workspaceFolderUri(workspaceFolder);
+    }
     let uri: vscode.Uri;
     if (wFolderUri.scheme === FILESYSTEM_SCHEMA || wFolderUri.scheme === FILESYSTEM_READONLY_SCHEMA) {
       const fileExt = name.split(".").pop();
@@ -98,7 +108,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
 
   public provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
     const api = new AtelierAPI(uri);
-    const query = url.parse(decodeURIComponent(uri.toString()), true).query;
+    const query = url.parse(uri.toString(true), true).query;
     const fileName = query && query.csp ? uri.path.substring(1) : uri.path.split("/").slice(1).join(".");
     if (query) {
       if (query.ns && query.ns !== "") {

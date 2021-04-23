@@ -1,6 +1,7 @@
 export const extensionId = "intersystems-community.vscode-objectscript";
 
 import vscode = require("vscode");
+import * as semver from "semver";
 
 import { AtelierJob } from "./api/atelier";
 const { workspace, window } = vscode;
@@ -63,7 +64,7 @@ import { ObjectScriptDebugAdapterDescriptorFactory } from "./debug/debugAdapterF
 import { ObjectScriptConfigurationProvider } from "./debug/debugConfProvider";
 import { ObjectScriptExplorerProvider, registerExplorerOpen } from "./explorer/explorer";
 import { WorkspaceNode } from "./explorer/models/workspaceNode";
-import { FileSystemProvider } from "./providers/FileSystemPovider/FileSystemProvider";
+import { FileSystemProvider } from "./providers/FileSystemProvider/FileSystemProvider";
 import { WorkspaceSymbolProvider } from "./providers/WorkspaceSymbolProvider";
 import {
   connectionTarget,
@@ -77,10 +78,11 @@ import {
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentRangeFormattingEditProvider } from "./providers/DocumentRangeFormattingEditProvider";
+import { DocumentLinkProvider } from "./providers/DocumentLinkProvider";
 
 /* proposed */
-import { FileSearchProvider } from "./providers/FileSystemPovider/FileSearchProvider";
-import { TextSearchProvider } from "./providers/FileSystemPovider/TextSearchProvider";
+import { FileSearchProvider } from "./providers/FileSystemProvider/FileSearchProvider";
+import { TextSearchProvider } from "./providers/FileSystemProvider/TextSearchProvider";
 
 export let fileSystemProvider: FileSystemProvider;
 export let explorerProvider: ObjectScriptExplorerProvider;
@@ -198,14 +200,17 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     _onDidChangeConnection.fire();
   }
   let api = new AtelierAPI(apiTarget, false);
-  const { active, host = "", port = 0, username, ns = "" } = api.config;
+  const { active, host = "", port = 0, pathPrefix, username, ns = "" } = api.config;
   vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
+  if (!panel.text) {
+    panel.text = `${PANEL_LABEL}`;
+  }
   if (!host.length && !port && !ns.length) {
     panel.text = `${PANEL_LABEL}`;
     panel.tooltip = `No connection configured`;
     return;
   }
-  let connInfo = `${host}:${port}[${ns}]`;
+  let connInfo = api.connInfo;
   if (!active) {
     if (!host.length || !port || !ns.length) {
       connInfo = `incompletely specified server ${connInfo}`;
@@ -214,12 +219,12 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     panel.tooltip = `Connection to ${connInfo} is disabled`;
     return;
   }
-  panel.text = connInfo;
-  panel.tooltip = `Connected as ${username}`;
+
   if (!workspaceState.get(configName + ":port") && !api.externalServer) {
     try {
-      const { port: dockerPort, docker: withDocker } = await portFromDockerCompose();
+      const { port: dockerPort, docker: withDocker, service } = await portFromDockerCompose();
       workspaceState.update(configName + ":docker", withDocker);
+      workspaceState.update(configName + ":dockerService", service);
       if (withDocker) {
         if (!dockerPort) {
           const errorMessage = `Something is wrong with your docker-compose connection settings, or your service is not running.`;
@@ -240,6 +245,8 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     } catch (error) {
       outputChannel.appendError(error);
       workspaceState.update(configName + ":docker", true);
+      panel.text = `${PANEL_LABEL} $(error)`;
+      panel.tooltip = error;
       return;
     }
   }
@@ -256,11 +263,14 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     outputChannel.appendError(message);
     panel.text = `${PANEL_LABEL} $(error)`;
     panel.tooltip = `ERROR - ${message}`;
+    disableConnection(configName);
     return;
   }
   api
     .serverInfo()
     .then((info) => {
+      panel.text = api.connInfo;
+      panel.tooltip = `Connected${pathPrefix ? " to " + pathPrefix : ""} as ${username}`;
       const hasHS = info.result.content.features.find((el) => el.name === "HEALTHSHARE" && el.enabled) !== undefined;
       reporter &&
         reporter.sendTelemetryEvent("connected", {
@@ -271,7 +281,7 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     .catch((error) => {
       let message = error.message;
       let errorMessage;
-      if (error.status === 401) {
+      if (error.statusCode === 401) {
         setTimeout(() => {
           const username = api.config.username;
           if (username === "") {
@@ -383,6 +393,9 @@ function languageServer(install = true): vscode.Extension<any> {
   let extension = vscode.extensions.getExtension(extId);
 
   async function languageServerInstall() {
+    if (config("ignoreInstallLanguageServer")) {
+      return;
+    }
     try {
       await vscode.commands.executeCommand("extension.open", extId);
     } catch (ex) {
@@ -453,11 +466,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   posPanel.show();
 
   panel = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1);
-
-  const debugAdapterFactory = new ObjectScriptDebugAdapterDescriptorFactory();
-
+  panel.text = `${PANEL_LABEL}`;
   panel.command = "vscode-objectscript.serverActions";
   panel.show();
+
+  const debugAdapterFactory = new ObjectScriptDebugAdapterDescriptorFactory();
 
   // Check one time (flushing cookies) each connection that is used by the workspace.
   // This gets any prompting for missing credentials done upfront, for simplicity.
@@ -475,15 +488,30 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     await checkConnection(true, uri);
   }
 
-  vscode.workspace.onDidChangeWorkspaceFolders(({ added, removed }) => {
+  vscode.workspace.onDidChangeWorkspaceFolders(async ({ added, removed }) => {
     const folders = vscode.workspace.workspaceFolders;
+
+    // Make sure we have a resolved connection spec for the targets of all added folders
+    const toCheck = new Map<string, vscode.Uri>();
+    added.map((workspaceFolder) => {
+      const uri = workspaceFolder.uri;
+      const { configName } = connectionTarget(uri);
+      toCheck.set(configName, uri);
+    });
+    for await (const oneToCheck of toCheck) {
+      const configName = oneToCheck[0];
+      const uri = oneToCheck[1];
+      const serverName = uri.scheme === "file" ? config("conn", configName).server : configName;
+      await resolveConnectionSpec(serverName);
+    }
+
+    // If it was just the addition of the first folder, and this is one of the isfs types, hide the ObjectScript Explorer for this workspace
     if (
       folders?.length === 1 &&
       added?.length === 1 &&
       removed?.length === 0 &&
       filesystemSchemas.includes(added[0].uri.scheme)
     ) {
-      // First folder has been added and is one of the isfs types, so hide the ObjectScript Explorer for this workspace
       vscode.workspace
         .getConfiguration("objectscript")
         .update("showExplorer", false, vscode.ConfigurationTarget.Workspace);
@@ -579,8 +607,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     context.extensionMode && context.extensionMode !== vscode.ExtensionMode.Test ? languageServer() : null;
   const noLSsubscriptions: { dispose(): any }[] = [];
   if (!languageServerExt) {
-    outputChannel.appendLine(`The intersystems.language-server extension is not installed or has been disabled.\n`);
-    outputChannel.show(true);
+    if (!config("ignoreInstallLanguageServer")) {
+      outputChannel.appendLine(`The intersystems.language-server extension is not installed or has been disabled.\n`);
+      outputChannel.show(true);
+    }
 
     if (vscode.window.activeTextEditor) {
       diagnosticProvider.updateDiagnostics(vscode.window.activeTextEditor.document);
@@ -628,10 +658,27 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       )
     );
     context.subscriptions.push(...noLSsubscriptions);
+  } else {
+    const lsVersion = languageServerExt.packageJSON.version;
+    // Language Server implements FoldingRangeProvider starting from 1.0.5
+    if (semver.lt(lsVersion, "1.0.5")) {
+      context.subscriptions.push(
+        vscode.languages.registerFoldingRangeProvider(
+          documentSelector("objectscript-class"),
+          new ObjectScriptClassFoldingRangeProvider()
+        ),
+        vscode.languages.registerFoldingRangeProvider(
+          documentSelector("objectscript"),
+          new ObjectScriptFoldingRangeProvider()
+        )
+      );
+    }
   }
 
   context.subscriptions.push(
     reporter,
+    panel,
+    posPanel,
     vscode.extensions.onDidChange(async () => {
       const languageServerExt2 = languageServer(false);
       if (typeof languageServerExt !== typeof languageServerExt2) {
@@ -808,14 +855,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       documentSelector("objectscript-class", "objectscript"),
       new CodeActionProvider()
     ),
-    vscode.languages.registerFoldingRangeProvider(
-      documentSelector("objectscript-class"),
-      new ObjectScriptClassFoldingRangeProvider()
-    ),
-    vscode.languages.registerFoldingRangeProvider(
-      documentSelector("objectscript"),
-      new ObjectScriptFoldingRangeProvider()
-    ),
     vscode.languages.registerWorkspaceSymbolProvider(new WorkspaceSymbolProvider()),
     vscode.debug.registerDebugConfigurationProvider("objectscript", new ObjectScriptConfigurationProvider()),
     vscode.debug.registerDebugAdapterDescriptorFactory("objectscript", debugAdapterFactory),
@@ -824,6 +863,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       documentSelector("objectscript-class"),
       new ObjectScriptClassCodeLensProvider()
     ),
+    vscode.languages.registerDocumentLinkProvider({ language: "objectscript-output" }, new DocumentLinkProvider()),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed
