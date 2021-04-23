@@ -42,7 +42,7 @@ Next create a workspace for editing code directly on the server:
    ![Choose an access type.](../assets/images/ss-access-type.png "choose an access type")
 1. If you want to reopen this workspace in the future, use the command **File > Save Workspace As...** to save it as a `.code-workspace` file.
 
-Note that the ObjectScript button is not vivible in the Activity Bar, because the files listed in the Explorer view are all on the server, so it is not needed for this configuration.
+Note that the ObjectScript button is not visible in the Activity Bar, because the files listed in the Explorer view are all on the server, so it is not needed for this configuration.
 
 The `.code-workspace` file is a JSON file which you can edit directly, as described in the section  [VS Code Workspaces](#code-workspaces). A simple example looks like this:
 ```json
@@ -50,17 +50,17 @@ The `.code-workspace` file is a JSON file which you can edit directly, as descri
 	"folders": [
 		{
 			"name": "iris184:USER",
-			"uri": "isfs://iris184/user"
+			"uri": "isfs://iris184:user/"
 		}
 	],
 	"settings": {}
 }
 ```
-- The `name` property provides a name for this server-side workspace.
+- The `name` property provides a name for this server-side folder.
 - The `uri` property indicates the location of resources on the server. The supplied value has three components:
    - The first component can be either `isfs` or `isfs-readonly`. These values specify that this folder is on an InterSystems IRIS server. `isfs-readonly` specifies read-only access.
    - The value following `://` specifies the name of the server.
-   - The value follosing `/` specifies the namespace.
+   - The value following the next `:` specifies the namespace (lowercase).
 
 To add more root folders to your workspace, giving you access to code in a different namespace, or on a different server, use the context menu on your existing root folder to invoke the `Add Server Namespace to Workspace...` command. This command is also available on the Command Palette.
 
@@ -70,11 +70,11 @@ An example of a two-folder workspace in which the second folder gives read-only 
 	"folders": [
 		{
 			"name": "iris184:USER",
-			"uri": "isfs://iris184/user"
+			"uri": "isfs://iris184:user/"
 		},
 		{
 			"name": "iris184:%SYS (read-only)",
-			"uri": "isfs-readonly://iris184/%sys"
+			"uri": "isfs-readonly://iris184:%sys/"
 		}
 	],
 	"settings": {}
