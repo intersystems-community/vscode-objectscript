@@ -32,6 +32,7 @@ export function outputConsole(data: string[]): void {
 }
 
 import { InputBoxManager } from "./inputBoxManager";
+import { getCategory } from "../commands/export";
 export { InputBoxManager };
 
 // tslint:disable-next-line: interface-name
@@ -55,6 +56,44 @@ export interface ConnectionTarget {
   configName: string;
 }
 
+/**
+ * Determine the server name of a local non-ObjectScript file (any file that's not CLS,MAC,INT,INC).
+ * @param localPath The full path to the file on disk.
+ * @param workspace The workspace the file is in.
+ */
+function getServerDocName(localPath: string, workspace: string): string {
+  var result = localPath;
+  const workspacePath = workspaceFolderUri(workspace).fsPath;
+  result = result.replace(workspacePath+path.sep,'');
+  const { folder, addCategory } = config("export", workspace);
+  result = result.replace(folder+path.sep,'');
+  const cat = addCategory ? getCategory(localPath, addCategory) : null;
+  if (cat !== null) {
+    result = result.replace(cat+path.sep,'');
+  }
+  return result.replace(path.sep,"/");
+}
+
+/**
+ * Determine if this non-InterSystems local file is importable
+ * (i.e. is part of a CSP application).
+ * @param file The file to check.
+ */
+export function isImportableLocalFile(file: vscode.TextDocument): boolean {
+  var result = false;
+  const workspace = currentWorkspaceFolder(file);
+  const workspacePath = workspaceFolderUri(workspace).fsPath;
+  const { folder, addCategory } = config("export", workspace);
+  const filePathNoWorkspaceArr = file.fileName.replace(workspacePath+path.sep,'').split(path.sep);
+  const cat = addCategory ? getCategory(file.fileName, addCategory) : null;
+  if (filePathNoWorkspaceArr[0] === folder) {
+    if (cat === null || (cat !== null && filePathNoWorkspaceArr[1] === cat)) {
+      result = true;
+    }
+  }
+  return result;
+}
+
 export function currentFile(document?: vscode.TextDocument): CurrentFile {
   document =
     document ||
@@ -72,9 +111,12 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
       !document.fileName ||
       !document.languageId ||
       !document.languageId.startsWith("objectscript") ||
-      fileExt.match(/(csp)/i)) // Skip local CSPs for now
+      document.languageId === "objectscript-output")
   ) {
-    return null;
+    // This is a non-InterSystems local file, so check if we can import it
+    if (!isImportableLocalFile(document)) {
+      return null;
+    }
   }
   const eol = document.eol || vscode.EndOfLine.LF;
   const uri = redirectDotvscodeRoot(document.uri);
@@ -99,7 +141,12 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
       [name, ext = "mac"] = path.basename(document.fileName).split(".");
     }
   } else {
-    name = fileName;
+    if (document.uri.scheme === "file") {
+      name = getServerDocName(fileName,currentWorkspaceFolder(document));
+    }
+    else {
+      name = fileName;
+    }
     // Need to strip leading / for custom Studio documents which should not be treated as files.
     // e.g. For a custom Studio document Test.ZPM, the variable name would be /Test.ZPM which is
     // not the document name. The document name is Test.ZPM so requests made to the Atelier APIs

@@ -218,7 +218,7 @@
       "view/item/context": [
         {
           "command": "vscode-objectscript.explorer.export",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:(?!(cspApplication|cspFileNode))/"
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
         },
         {
           "command": "vscode-objectscript.explorer.export",
@@ -385,7 +385,8 @@
           "ObjectScript CSP"
         ],
         "extensions": [
-          "csp"
+          ".csp",
+          ".csr"
         ]
       },
       {

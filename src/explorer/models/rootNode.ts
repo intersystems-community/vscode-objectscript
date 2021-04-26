@@ -155,7 +155,8 @@ export class RootNode extends NodeBase {
   }
 
   public getItems4Export(): Promise<string[]> {
-    const path = this instanceof PackageNode ? this.fullName + "/" : "";
-    return this.getList(path, "ALL", true).then((data) => data.map((el) => el.Name));
+    const path = this instanceof PackageNode || this.isCsp ? this.fullName + "/" : "";
+    const cat = this.isCsp ? "CSP" : "ALL";
+    return this.getList(path, cat, true).then((data) => data.map((el) => el.Name));
   }
 }

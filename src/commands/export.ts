@@ -13,7 +13,7 @@ const filesFilter = (file: any) => {
   return true;
 };
 
-const getCategory = (fileName: string, addCategory: any | boolean): string => {
+export const getCategory = (fileName: string, addCategory: any | boolean): string => {
   const fileExt = fileName.split(".").pop().toLowerCase();
   if (typeof addCategory === "object") {
     for (const pattern of Object.keys(addCategory)) {
@@ -45,22 +45,31 @@ export const getFileName = (
     [key: string]: string;
   }
 ): string => {
-  if (map) {
-    for (const pattern of Object.keys(map)) {
-      if (new RegExp(`^${pattern}$`).test(name)) {
-        name = name.replace(new RegExp(`^${pattern}$`), map[pattern]);
-        break;
+  if (name.includes("/")) {
+    // This is a file from a web application
+    const nameArr: string[] = name.split("/");
+    const cat = addCategory ? getCategory(name, addCategory) : null;
+    return [folder, cat, ...nameArr].filter(notNull).join(path.sep);
+  }
+  else {
+    // This is a class, routine or include file
+    if (map) {
+      for (const pattern of Object.keys(map)) {
+        if (new RegExp(`^${pattern}$`).test(name)) {
+          name = name.replace(new RegExp(`^${pattern}$`), map[pattern]);
+          break;
+        }
       }
     }
+    const fileNameArray: string[] = name.split(".");
+    const fileExt = fileNameArray.pop().toLowerCase();
+    const cat = addCategory ? getCategory(name, addCategory) : null;
+    if (split) {
+      const fileName = [folder, cat, ...fileNameArray].filter(notNull).join(path.sep);
+      return [fileName, fileExt].join(".");
+    }
+    return [folder, cat, name].filter(notNull).join(path.sep);
   }
-  const fileNameArray: string[] = name.split(".");
-  const fileExt = fileNameArray.pop().toLowerCase();
-  const cat = addCategory ? getCategory(name, addCategory) : null;
-  if (split) {
-    const fileName = [folder, cat, ...fileNameArray].filter(notNull).join(path.sep);
-    return [fileName, fileExt].join(".");
-  }
-  return [folder, cat, name].filter(notNull).join(path.sep);
 };
 
 export const getFolderName = (folder: string, name: string, split: boolean, cat: string = null): string => {
@@ -122,26 +131,48 @@ export async function exportFile(
 
         return promise
           .then((res: any) => {
-            let joinedContent = content instanceof Buffer ? content.toString("utf-8") : (content || []).join("\n");
-            let isSkipped = "";
-
-            if (res.found) {
-              joinedContent = res.content.toString("utf8");
-            }
-
-            if (dontExportIfNoChanges && fs.existsSync(fileName)) {
-              const existingContent = fs.readFileSync(fileName, "utf8");
-              // stringify to harmonise the text encoding.
-              if (JSON.stringify(joinedContent) !== JSON.stringify(existingContent)) {
-                fs.writeFileSync(fileName, joinedContent);
-              } else {
-                isSkipped = " => skipped - no changes.";
+            if (Buffer.isBuffer(content)) {
+              // This is a binary file
+              let isSkipped = "";
+              
+              if (dontExportIfNoChanges && fs.existsSync(fileName)) {
+                const existingContent = fs.readFileSync(fileName);
+                if (content.equals(existingContent)) {
+                  fs.writeFileSync(fileName, content);
+                }
+                else {
+                  isSkipped = " => skipped - no changes.";
+                }
               }
-            } else {
-              fs.writeFileSync(fileName, joinedContent);
-            }
+              else {
+                fs.writeFileSync(fileName, content);
+              }
 
-            log(`Success ${isSkipped}`);
+              log(`Success ${isSkipped}`);
+            }
+            else {
+              // This is a text file
+              let joinedContent = content.join("\n");
+              let isSkipped = "";
+
+              if (res.found) {
+                joinedContent = res.content.toString("utf8");
+              }
+
+              if (dontExportIfNoChanges && fs.existsSync(fileName)) {
+                const existingContent = fs.readFileSync(fileName, "utf8");
+                // stringify to harmonise the text encoding.
+                if (JSON.stringify(joinedContent) !== JSON.stringify(existingContent)) {
+                  fs.writeFileSync(fileName, joinedContent);
+                } else {
+                  isSkipped = " => skipped - no changes.";
+                }
+              } else {
+                fs.writeFileSync(fileName, joinedContent);
+              }
+
+              log(`Success ${isSkipped}`);
+            }
           })
           .catch((error) => {
             throw error;

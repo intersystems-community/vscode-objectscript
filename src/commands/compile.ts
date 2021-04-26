@@ -11,10 +11,9 @@ import {
   OBJECTSCRIPT_FILE_SCHEMA,
   fileSystemProvider,
   workspaceState,
-  schemas,
 } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
-import { currentFile, CurrentFile, outputChannel } from "../utils";
+import { currentFile, CurrentFile, currentWorkspaceFolder, outputChannel, workspaceFolderUri } from "../utils";
 import { RootNode } from "../explorer/models/rootNode";
 import { PackageNode } from "../explorer/models/packageNode";
 import { ClassNode } from "../explorer/models/classNode";
@@ -41,7 +40,7 @@ async function compileFlags(): Promise<string> {
  * @return mtime timestamp or -1.
  */
 export async function checkChangedOnServer(file: CurrentFile, force = false): Promise<number> {
-  if (!file || !file.uri || schemas.includes(file.uri.scheme)) {
+  if (!file || !file.uri) {
     return -1;
   }
   const api = new AtelierAPI(file.uri);
@@ -315,20 +314,31 @@ function importFiles(files, noCompile = false) {
 }
 
 export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<any> {
-  const folder = uri.fsPath;
-  if (fs.lstatSync(folder).isFile()) {
-    return importFiles([folder], noCompile);
+  const uripath = uri.fsPath;
+  if (fs.lstatSync(uripath).isFile()) {
+    return importFiles([uripath], noCompile);
+  }
+  var globpattern = "*.{cls,inc,int,mac}";
+  const workspace = currentWorkspaceFolder();
+  const workspacePath = workspaceFolderUri(workspace).fsPath;
+  const { folder } = config("export", workspace);
+  const folderPathNoWorkspaceArr = uripath.replace(workspacePath+path.sep,'').split(path.sep);
+  if (folderPathNoWorkspaceArr[0] === folder) {
+    // This folder is in the export tree, so import all files
+    // We need to include eveything becuase CSP applications can
+    // include non-InterSystems files
+    globpattern = "*";
   }
   glob(
-    "*.{cls,inc,mac,int}",
+    globpattern,
     {
-      cwd: folder,
+      cwd: uripath,
       matchBase: true,
       nocase: true,
     },
     (_error, files) =>
       importFiles(
-        files.map((name) => path.join(folder, name)),
+        files.map((name) => path.join(uripath, name)),
         noCompile
       )
   );
