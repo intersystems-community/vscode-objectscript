@@ -1,5 +1,17 @@
 # Change Log
 
+## [1.0.10] 26-Apr-2021
+- Avoid prompting for already-saved password (#61)
+- Constrain QuickOpen list contents when `isfs` folder path targets a specific package (#581)
+- Show `isfs` folder label in breadcrumb even without proposed APIs enabled (#599)
+- Improve information about compiler flags (#532)
+- Add clickable links to compilation error text in Output pane (386)
+- Relabel Variables folders in debugger to be `Private` and `Public` instead of `Local` and `Global` (#482)
+- Fix debugging breakpoint command message when class has multiple packages (#597)
+- Support expansion of orefs in debugger Variables pane provided server-side API version implements the necessary support (#598)
+- Improve README.
+- Upgrade vulnerable dependencies.
+
 ## [1.0.9] 22-Mar-2021
 - Allow system files (% classes) to be searched from non-%SYS namespace.
 - Handle `objectscript.conn.server` referencing non-existent `intersystems.servers` entry (#586)
