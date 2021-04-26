@@ -318,11 +318,11 @@ export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<
   if (fs.lstatSync(uripath).isFile()) {
     return importFiles([uripath], noCompile);
   }
-  var globpattern = "*.{cls,inc,int,mac}";
+  let globpattern = "*.{cls,inc,int,mac}";
   const workspace = currentWorkspaceFolder();
   const workspacePath = workspaceFolderUri(workspace).fsPath;
   const { folder } = config("export", workspace);
-  const folderPathNoWorkspaceArr = uripath.replace(workspacePath+path.sep,'').split(path.sep);
+  const folderPathNoWorkspaceArr = uripath.replace(workspacePath + path.sep, "").split(path.sep);
   if (folderPathNoWorkspaceArr[0] === folder) {
     // This folder is in the export tree, so import all files
     // We need to include eveything becuase CSP applications can

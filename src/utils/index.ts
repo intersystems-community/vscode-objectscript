@@ -62,16 +62,16 @@ export interface ConnectionTarget {
  * @param workspace The workspace the file is in.
  */
 function getServerDocName(localPath: string, workspace: string): string {
-  var result = localPath;
+  let result = localPath;
   const workspacePath = workspaceFolderUri(workspace).fsPath;
-  result = result.replace(workspacePath+path.sep,'');
+  result = result.replace(workspacePath + path.sep, "");
   const { folder, addCategory } = config("export", workspace);
-  result = result.replace(folder+path.sep,'');
+  result = result.replace(folder + path.sep, "");
   const cat = addCategory ? getCategory(localPath, addCategory) : null;
   if (cat !== null) {
-    result = result.replace(cat+path.sep,'');
+    result = result.replace(cat + path.sep, "");
   }
-  return result.replace(path.sep,"/");
+  return result.replace(path.sep, "/");
 }
 
 /**
@@ -80,11 +80,11 @@ function getServerDocName(localPath: string, workspace: string): string {
  * @param file The file to check.
  */
 export function isImportableLocalFile(file: vscode.TextDocument): boolean {
-  var result = false;
+  let result = false;
   const workspace = currentWorkspaceFolder(file);
   const workspacePath = workspaceFolderUri(workspace).fsPath;
   const { folder, addCategory } = config("export", workspace);
-  const filePathNoWorkspaceArr = file.fileName.replace(workspacePath+path.sep,'').split(path.sep);
+  const filePathNoWorkspaceArr = file.fileName.replace(workspacePath + path.sep, "").split(path.sep);
   const cat = addCategory ? getCategory(file.fileName, addCategory) : null;
   if (filePathNoWorkspaceArr[0] === folder) {
     if (cat === null || (cat !== null && filePathNoWorkspaceArr[1] === cat)) {
@@ -142,9 +142,8 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
     }
   } else {
     if (document.uri.scheme === "file") {
-      name = getServerDocName(fileName,currentWorkspaceFolder(document));
-    }
-    else {
+      name = getServerDocName(fileName, currentWorkspaceFolder(document));
+    } else {
       name = fileName;
     }
     // Need to strip leading / for custom Studio documents which should not be treated as files.

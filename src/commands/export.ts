@@ -50,8 +50,7 @@ export const getFileName = (
     const nameArr: string[] = name.split("/");
     const cat = addCategory ? getCategory(name, addCategory) : null;
     return [folder, cat, ...nameArr].filter(notNull).join(path.sep);
-  }
-  else {
+  } else {
     // This is a class, routine or include file
     if (map) {
       for (const pattern of Object.keys(map)) {
@@ -134,23 +133,18 @@ export async function exportFile(
             if (Buffer.isBuffer(content)) {
               // This is a binary file
               let isSkipped = "";
-              
               if (dontExportIfNoChanges && fs.existsSync(fileName)) {
                 const existingContent = fs.readFileSync(fileName);
                 if (content.equals(existingContent)) {
                   fs.writeFileSync(fileName, content);
-                }
-                else {
+                } else {
                   isSkipped = " => skipped - no changes.";
                 }
-              }
-              else {
+              } else {
                 fs.writeFileSync(fileName, content);
               }
-
               log(`Success ${isSkipped}`);
-            }
-            else {
+            } else {
               // This is a text file
               let joinedContent = content.join("\n");
               let isSkipped = "";

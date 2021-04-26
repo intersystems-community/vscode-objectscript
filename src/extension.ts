@@ -75,7 +75,7 @@ import {
   notNull,
   currentFile,
   InputBoxManager,
-  isImportableLocalFile
+  isImportableLocalFile,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentRangeFormattingEditProvider } from "./providers/DocumentRangeFormattingEditProvider";
@@ -522,10 +522,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       if (documentBeingProcessed !== file) {
         return importAndCompile(false, file);
       }
-    }
-    else if (file.uri.scheme === "file") {
+    } else if (file.uri.scheme === "file") {
       if (isImportableLocalFile(file)) {
-        // This local file is in the exported file tree, so it's a non-InterSystems file that's 
+        // This local file is in the exported file tree, so it's a non-InterSystems file that's
         // part of a CSP application, so import it on save
         return importFileOrFolder(file.uri, true);
       }
