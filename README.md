@@ -50,14 +50,13 @@ This extension is able to to take advantage of some VS Code APIs that have not y
 The additional features (and the APIs used) are:
 - Server-side [searching across files](https://code.visualstudio.com/docs/editor/codebasics#_search-across-files) being accessed using isfs (_TextSearchProvider_)
 - [Quick Open](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_quick-open) of isfs files (_FileSearchProvider_).
-- Improved labels (tabs, file lists, tooltips) for server-side files (_ResourceLabelFormatter_)
 
 To unlock these features (optional):
 
 1. Download and install a beta version from GitHub. This is necessary because Marketplace does not allow publication of extensions that use proposed APIs.
 	- Go to https://github.com/intersystems-community/vscode-objectscript/releases
-	- Locate the beta immediately above the release you installed from Marketplace. For instance, if you installed `1.0.6`, look for `1.0.7-beta.1`. This will be functionally identical to the Marketplace version apart from being able to use proposed APIs.
-	- Download the VSIX file (for example `vscode-objectscript-1.0.7-beta.1.vsix`) and install it. One way to install a VSIX is to drag it from your download folder and drop it onto the list of extensions in the Extensions view of VS Code.
+	- Locate the beta immediately above the release you installed from Marketplace. For instance, if you installed `1.0.10`, look for `1.0.11-beta.1`. This will be functionally identical to the Marketplace version apart from being able to use proposed APIs.
+	- Download the VSIX file (for example `vscode-objectscript-1.0.11-beta.1.vsix`) and install it. One way to install a VSIX is to drag it from your download folder and drop it onto the list of extensions in the Extensions view of VS Code.
 
 2. From [Command Palette](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_command-palette) choose `Preferences: Configure Runtime Arguments`.
 3. In the argv.json file that opens, add this line:
@@ -78,7 +77,7 @@ To be able to use many features you first need to configure the connection to yo
 
 We recommend you define server connections in the `intersystems.servers` object whose structure is defined by the [InterSystems Server Manager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) helper extension.
 
-Install that extension and consult its documentation about commands for easy setup of connections, plus assistance when editing the JSON definition directly.
+Install that extension and consult its documentation about its UI and commands for easy setup of connections, plus assistance when editing the JSON definition directly.
 
 For more tips about the `intersystems.servers` object, see the [Notes](#Notes) section below.
 
@@ -101,14 +100,16 @@ To edit code directly in one or more namespaces on one or more servers (local or
 
 1. Start VS Code.
 2. If your last-used folder opens, use 'Close Folder' on the 'File' menu ('Code' menu on macOS). Or if what opened was your last-used workspace, use 'Close Workspace'.
-3. On VS Code's Explorer view (<kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>), click the 'Choose Server and Namespace' button. Respond to the sequence of quickpicks. You can also define a new server connection during this process.
-4. Use 'Save Workspace As...' to store your workspace definition in a file with a `.code-workspace` extension.
+3. On VS Code's Explorer view (<kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>), click the 'Manage Servers' button which is contributed by the Server Manager extension.
+4. Find your target server in the tree, or use the '+' button to add a new server.
+5. Expand the server and its 'Namespaces' folder, then click on the 'pencil' icon for editing access to the namespace or the 'eye' icon for viewing access. If you want to work with web application files rather than classes and routines, hold down the <kbd>Alt</kbd>/<kbd>Option</kbd> key when clicking the button.
+6. Use 'Save Workspace As...' to store your workspace definition in a file with a `.code-workspace` extension.
 
 For more about `isfs` and `isfs-readonly` folder specifications see the [Notes](#Notes) section below.
 
 ## Notes
 
-- Connection-related output appears in the "Output" view while switched to the "ObjectScript" channel using the drop-down menu on the view titlebar.
+- Connection-related output appears in the 'Output' view while switched to the 'ObjectScript' channel using the drop-down menu on the view titlebar.
 
 - The `/api/atelier/` web application used by this extension usually requires the authenticated user to have Use permission on the %Development resource ([read more](https://community.intersystems.com/post/using-atelier-rest-api)). One way is to assign the %Developer role to the user.
 
@@ -163,7 +164,7 @@ This settings object is primarily relevant when doing client-side development.
 ### More about `isfs` and `isfs-readonly` workspace folders
 Server-side development is best done using `isfs` folders. The read-only variant `isfs-readonly` is also useful when doing client-side development, since it enables server-side searching of your codebase.
 
-To modify how your folder behaves, edit the JSON of your workspace definition (_XYZ.code-workspace_ file). Get there by running the 'Preferences: Open Workspace Settings (JSON)' command. Edit your `uri` property.
+To modify how your folder behaves, edit the JSON of your workspace definition (_XYZ.code-workspace_ file). Get there by using the 'Edit Settings' option from the context menu of Server Manager's 'Servers' view, or by running the 'Preferences: Open Workspace Settings (JSON)' command from the Command Palette. Edit your `uri` property.
 
 - The `csp` query parameter indicates web application files are to be shown. The uri path optionally specifies which application. The namespace suffix on the server name (preferred syntax) or the `ns` query parameter (deprecated) must specify the same namespace the application is configured to use. In the following example the first folder is for the `/csp/user` web application in the USER namespace of the server named 'local' and the second gives read-only access to all web applications that reside in the %SYS namespace. The second folder also uses the optional `name` property:
 ```json
@@ -171,7 +172,7 @@ To modify how your folder behaves, edit the JSON of your workspace definition (_
       "uri": "isfs://local:user/csp/user?csp"
     },
     {
-			"name": "local:%SYS web files (read-only)",
+      "name": "local:%SYS web files (read-only)",
       "uri": "isfs-readonly://local/?ns=%SYS&csp"
     }
 ```
