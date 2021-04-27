@@ -77,7 +77,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const spec = csp ? folder + filter : folder.length > 1 ? folder.slice(1) + "/" + filter : filter;
     const dir = "1";
     const orderBy = "1";
-    const system = api.ns === "%SYS" ? "1" : "0";
+    const system = query.system && query.system.length ? query.system.toString() : api.ns === "%SYS" ? "1" : "0";
     const flat = query.flat && query.flat.length ? query.flat.toString() : "0";
     const notStudio = "0";
     const generated = query.generated && query.generated.length ? query.generated.toString() : "0";

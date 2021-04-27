@@ -189,6 +189,7 @@ To modify how your folder behaves, edit the JSON of your workspace definition (_
   - `type=cls` to show only classes, or `type=rtn` to show only routines.
   - `flat=1` to flatten the hierarchy.
   - `generated=1` to show generated items.
+  - `system=1` to show system (%) items. Without this parameter these are only shown for the %SYS namespace.
   - `filter=filterspec` to use a filter specification formatted in the same way as used in InterSystems Studio's File Open dialog (e.g. `filter=Ensem*.inc`).
 
 ## Support and Training
