@@ -321,10 +321,9 @@ export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<
   let globpattern = "*.{cls,inc,int,mac}";
   const workspace = currentWorkspaceFolder();
   const workspacePath = workspaceFolderUri(workspace).fsPath;
-  const { folder } = config("export", workspace);
   const folderPathNoWorkspaceArr = uripath.replace(workspacePath + path.sep, "").split(path.sep);
-  if (folderPathNoWorkspaceArr[0] === folder) {
-    // This folder is in the export tree, so import all files
+  if (folderPathNoWorkspaceArr.includes("csp")) {
+    // This folder is a CSP application, so import all files
     // We need to include eveything becuase CSP applications can
     // include non-InterSystems files
     globpattern = "*";

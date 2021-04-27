@@ -32,7 +32,6 @@ export function outputConsole(data: string[]): void {
 }
 
 import { InputBoxManager } from "./inputBoxManager";
-import { getCategory } from "../commands/export";
 export { InputBoxManager };
 
 // tslint:disable-next-line: interface-name
@@ -62,16 +61,9 @@ export interface ConnectionTarget {
  * @param workspace The workspace the file is in.
  */
 function getServerDocName(localPath: string, workspace: string): string {
-  let result = localPath;
   const workspacePath = workspaceFolderUri(workspace).fsPath;
-  result = result.replace(workspacePath + path.sep, "");
-  const { folder, addCategory } = config("export", workspace);
-  result = result.replace(folder + path.sep, "");
-  const cat = addCategory ? getCategory(localPath, addCategory) : null;
-  if (cat !== null) {
-    result = result.replace(cat + path.sep, "");
-  }
-  return result.replace(path.sep, "/");
+  const filePathNoWorkspaceArr = localPath.replace(workspacePath + path.sep, "").split(path.sep);
+  return filePathNoWorkspaceArr.slice(filePathNoWorkspaceArr.indexOf("csp")).join("/");
 }
 
 /**
@@ -80,18 +72,10 @@ function getServerDocName(localPath: string, workspace: string): string {
  * @param file The file to check.
  */
 export function isImportableLocalFile(file: vscode.TextDocument): boolean {
-  let result = false;
   const workspace = currentWorkspaceFolder(file);
   const workspacePath = workspaceFolderUri(workspace).fsPath;
-  const { folder, addCategory } = config("export", workspace);
   const filePathNoWorkspaceArr = file.fileName.replace(workspacePath + path.sep, "").split(path.sep);
-  const cat = addCategory ? getCategory(file.fileName, addCategory) : null;
-  if (filePathNoWorkspaceArr[0] === folder) {
-    if (cat === null || (cat !== null && filePathNoWorkspaceArr[1] === cat)) {
-      result = true;
-    }
-  }
-  return result;
+  return filePathNoWorkspaceArr.includes("csp");
 }
 
 export function currentFile(document?: vscode.TextDocument): CurrentFile {
@@ -142,6 +126,10 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
     }
   } else {
     if (document.uri.scheme === "file") {
+      if (fileExt.match(/(csp|csr)/i) && !isImportableLocalFile(document)) {
+        // This is a csp or csr file that's not in a csp directory
+        return null;
+      }
       name = getServerDocName(fileName, currentWorkspaceFolder(document));
     } else {
       name = fileName;
