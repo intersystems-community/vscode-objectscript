@@ -112,6 +112,11 @@ export class AtelierAPI {
               }
             }
           }
+        } else {
+          const wsFolderOfFile = vscode.workspace.getWorkspaceFolder(wsOrFile);
+          if (wsFolderOfFile) {
+            workspaceFolderName = wsFolderOfFile.name;
+          }
         }
       } else {
         workspaceFolderName = wsOrFile;
