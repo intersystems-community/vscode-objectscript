@@ -24,6 +24,7 @@ import {
   namespaceCompile,
   compileExplorerItem,
   checkChangedOnServer,
+  compileOnly,
 } from "./commands/compile";
 import { deleteItem } from "./commands/delete";
 import { exportAll, exportExplorerItem } from "./commands/export";
@@ -864,6 +865,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       new ObjectScriptClassCodeLensProvider()
     ),
     vscode.languages.registerDocumentLinkProvider({ language: "objectscript-output" }, new DocumentLinkProvider()),
+    vscode.commands.registerCommand("vscode-objectscript.compileOnly", () => compileOnly(false)),
+    vscode.commands.registerCommand("vscode-objectscript.compileOnlyWithFlags", () => compileOnly(true)),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed

@@ -265,6 +265,43 @@ export async function importAndCompile(askFlags = false, document?: vscode.TextD
     });
 }
 
+export async function compileOnly(askFlags = false, document?: vscode.TextDocument): Promise<any> {
+  document =
+    document ||
+    (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document
+      ? vscode.window.activeTextEditor.document
+      : null);
+
+  if (!document) {
+    return;
+  }
+
+  const file = currentFile(document);
+  if (!file) {
+    return;
+  }
+
+  // Do nothing if it is a local file and objectscript.conn.active is false
+  if (file.uri.scheme === "file" && !config("conn").active) {
+    return;
+  }
+
+  if (document.isDirty) {
+    // Don't compile if document is dirty
+    vscode.window.showWarningMessage(
+      "Cannot compile '" + file.name + "' because it has unpersisted changes.",
+      "Dismiss"
+    );
+    return;
+  }
+
+  const defaultFlags = config().compileFlags;
+  const flags = askFlags ? await compileFlags() : defaultFlags;
+  if (!file.fileName.startsWith("\\.vscode\\")) {
+    compile([file], flags);
+  }
+}
+
 // Compiles all files types in the namespace
 export async function namespaceCompile(askFlags = false): Promise<any> {
   const api = new AtelierAPI();
