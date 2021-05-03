@@ -240,7 +240,11 @@ async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
     .then(loadChanges);
 }
 
-export async function importAndCompile(askFlags = false, document?: vscode.TextDocument): Promise<any> {
+export async function importAndCompile(
+  askFlags = false,
+  document?: vscode.TextDocument,
+  compileFile = true
+): Promise<any> {
   const file = currentFile(document);
   if (!file) {
     return;
@@ -260,7 +264,15 @@ export async function importAndCompile(askFlags = false, document?: vscode.TextD
     })
     .then(() => {
       if (!file.fileName.startsWith("\\.vscode\\")) {
-        compile([file], flags);
+        if (compileFile) {
+          compile([file], flags);
+        } else {
+          if (file.uri.scheme === FILESYSTEM_SCHEMA || file.uri.scheme === FILESYSTEM_READONLY_SCHEMA) {
+            // Fire the file changed event to avoid VSCode alerting the user on the next save that
+            // "The content of the file is newer."
+            fileSystemProvider.fireFileChanged(file.uri);
+          }
+        }
       }
     });
 }
