@@ -913,6 +913,11 @@
           "description": "Automatically show terminal when connected to docker-compose.",
           "type": "boolean",
           "default": false
+        },
+        "objectscript.compileOnSave": {
+          "description": "Automatically compile an InterSystems file when saved in the editor.",
+          "type": "boolean",
+          "default": true
         }
       }
     },

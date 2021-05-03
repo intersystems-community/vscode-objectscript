@@ -534,7 +534,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   workspace.onDidSaveTextDocument((file) => {
     if (schemas.includes(file.uri.scheme) || languages.includes(file.languageId)) {
       if (documentBeingProcessed !== file) {
-        return importAndCompile(false, file);
+        return importAndCompile(false, file, config("compileOnSave"));
       }
     }
   });
