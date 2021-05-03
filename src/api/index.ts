@@ -426,13 +426,16 @@ export class AtelierAPI {
   // api v1+
   public getDoc(name: string, format?: string): Promise<Atelier.Response<Atelier.Document>> {
     let params = {};
+    if (!format && config("multilineMethodArgs") && this._config.apiVersion >= 4) {
+      format = "udl-multiline";
+    }
     if (format) {
       params = {
         format,
       };
     }
     name = this.transformNameIfCsp(name);
-    return this.request(1, "GET", `${this.ns}/doc/${name}`, params);
+    return this.request(1, "GET", `${this.ns}/doc/${name}`, null, params);
   }
 
   // api v1+
