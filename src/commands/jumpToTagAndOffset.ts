@@ -16,20 +16,20 @@ export async function jumpToTagAndOffset(): Promise<void> {
     return;
   }
 
-  // Build map of labels in routine
-  const map = new Map();
-  const options = [];
-  for (let i = 0; i < document.lineCount; i++) {
-    const labelMatch = document.lineAt(i).text.match(/^(%?\w+).*/);
-    if (labelMatch) {
-      map.set(labelMatch[1], i);
-      options.push(labelMatch[1]);
-    }
-  }
-
-  const items: vscode.QuickPickItem[] = options.map((option) => {
-    return { label: option };
-  });
+  // Get the labels from the document symbol provider
+  const map = new Map<string, number>();
+  const symbols: vscode.DocumentSymbol[] = await vscode.commands.executeCommand(
+    "vscode.executeDocumentSymbolProvider",
+    document.uri
+  );
+  const items: vscode.QuickPickItem[] = symbols
+    .filter((symbol) => symbol.kind === vscode.SymbolKind.Method)
+    .map((symbol) => {
+      map.set(symbol.name, symbol.range.start.line);
+      return {
+        label: symbol.name,
+      };
+    });
   const quickPick = vscode.window.createQuickPick();
   quickPick.title = "Jump to Tag + Offset";
   quickPick.items = items;
@@ -50,7 +50,7 @@ export async function jumpToTagAndOffset(): Promise<void> {
         return;
       }
     } else {
-      offset += parseInt(map.get(parts[0]), 10);
+      offset += map.get(parts[0]);
     }
     if (parts.length > 1) {
       offset += parseInt(parts[1], 10);
