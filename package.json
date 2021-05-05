@@ -206,6 +206,14 @@
         {
           "command": "vscode-objectscript.jumpToTagAndOffset",
           "when": "editorLangId == objectscript"
+        },
+        {
+          "command": "vscode-objectscript.compileOnly",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.compileOnlyWithFlags",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         }
       ],
       "view/title": [
@@ -296,6 +304,11 @@
           "command": "vscode-objectscript.serverCommands.contextOther",
           "when": "resourceScheme =~ /^isfs(-readonly)?$/ && vscode-objectscript.connectActive",
           "group": "objectscript@5"
+        },
+        {
+          "command": "vscode-objectscript.compileOnly",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "group": "objectscript@6"
         }
       ],
       "editor/title": [
@@ -614,6 +627,16 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.showExplorerForWorkspace",
         "title": "Show Explorer for Workspace"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.compileOnly",
+        "title": "Compile Current File"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.compileOnlyWithFlags",
+        "title": "Compile Current File with Specified Flags..."
       }
     ],
     "keybindings": [

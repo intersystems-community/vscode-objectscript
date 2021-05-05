@@ -24,6 +24,7 @@ import {
   namespaceCompile,
   compileExplorerItem,
   checkChangedOnServer,
+  compileOnly,
 } from "./commands/compile";
 import { deleteItem } from "./commands/delete";
 import { exportAll, exportExplorerItem } from "./commands/export";
@@ -863,6 +864,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       documentSelector("objectscript-class"),
       new ObjectScriptClassCodeLensProvider()
     ),
+    vscode.commands.registerCommand("vscode-objectscript.compileOnly", () => compileOnly(false)),
+    vscode.commands.registerCommand("vscode-objectscript.compileOnlyWithFlags", () => compileOnly(true)),
     vscode.languages.registerDocumentLinkProvider(
       { language: "vscode-objectscript-output" },
       new DocumentLinkProvider()
