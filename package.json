@@ -389,7 +389,7 @@
         ]
       },
       {
-        "id": "objectscript-output",
+        "id": "vscode-objectscript-output",
         "mimetypes": [
           "text/x-code-output"
         ]

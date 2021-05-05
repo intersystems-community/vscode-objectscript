@@ -863,7 +863,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       documentSelector("objectscript-class"),
       new ObjectScriptClassCodeLensProvider()
     ),
-    vscode.languages.registerDocumentLinkProvider({ language: "objectscript-output" }, new DocumentLinkProvider()),
+    vscode.languages.registerDocumentLinkProvider(
+      { language: "vscode-objectscript-output" },
+      new DocumentLinkProvider()
+    ),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed
