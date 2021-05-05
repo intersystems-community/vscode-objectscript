@@ -535,7 +535,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   workspace.onDidSaveTextDocument((file) => {
     if (schemas.includes(file.uri.scheme) || languages.includes(file.languageId)) {
       if (documentBeingProcessed !== file) {
-        return importAndCompile(false, file);
+        return importAndCompile(false, file, config("compileOnSave"));
       }
     }
   });
@@ -864,9 +864,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       documentSelector("objectscript-class"),
       new ObjectScriptClassCodeLensProvider()
     ),
-    vscode.languages.registerDocumentLinkProvider({ language: "objectscript-output" }, new DocumentLinkProvider()),
     vscode.commands.registerCommand("vscode-objectscript.compileOnly", () => compileOnly(false)),
     vscode.commands.registerCommand("vscode-objectscript.compileOnlyWithFlags", () => compileOnly(true)),
+    vscode.languages.registerDocumentLinkProvider(
+      { language: "vscode-objectscript-output" },
+      new DocumentLinkProvider()
+    ),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed

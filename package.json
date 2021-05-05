@@ -402,7 +402,7 @@
         ]
       },
       {
-        "id": "objectscript-output",
+        "id": "vscode-objectscript-output",
         "mimetypes": [
           "text/x-code-output"
         ]
@@ -934,6 +934,16 @@
         },
         "objectscript.autoShowTerminal": {
           "description": "Automatically show terminal when connected to docker-compose.",
+          "type": "boolean",
+          "default": false
+        },
+        "objectscript.compileOnSave": {
+          "description": "Automatically compile an InterSystems file when saved in the editor.",
+          "type": "boolean",
+          "default": true
+        },
+        "objectscript.multilineMethodArgs": {
+          "markdownDescription": "List method arguments on multiple lines, if the server supports it. **NOTE:** Only supported on IRIS 2019.1.2, 2020.1.1+, 2021.1.0+ and subsequent versions! On all other versions, this setting will have no effect.",
           "type": "boolean",
           "default": false
         }
