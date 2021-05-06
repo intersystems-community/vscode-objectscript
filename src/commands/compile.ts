@@ -94,11 +94,6 @@ async function importFile(file: CurrentFile, ignoreConflict?: boolean): Promise<
       checkChangedOnServer(file, true);
     })
     .catch((error) => {
-      if (error.statusCode == 400) {
-        outputChannel.appendLine(error.error.result.status);
-        vscode.window.showErrorMessage(error.error.result.status);
-        return Promise.reject();
-      }
       if (error.statusCode == 409) {
         return vscode.window
           .showErrorMessage(
@@ -140,9 +135,18 @@ What do you want to do?`,
             }
             return Promise.reject();
           });
+      } else {
+        if (error.errorText && error.errorText !== "") {
+          outputChannel.appendLine("\n" + error.errorText);
+          vscode.window.showErrorMessage(
+            `Failed to save file '${file.name}' on the server. Check output channel for details.`,
+            "Dismiss"
+          );
+        } else {
+          vscode.window.showErrorMessage(`Failed to save file '${file.name}' on the server.`, "Dismiss");
+        }
+        return Promise.reject();
       }
-      vscode.window.showErrorMessage(error.message);
-      return Promise.reject();
     });
 }
 

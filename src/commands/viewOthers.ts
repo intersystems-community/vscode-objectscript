@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { config } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
-import { currentFile } from "../utils";
+import { currentFile, outputChannel } from "../utils";
 
 export async function viewOthers(): Promise<void> {
   const file = currentFile();
@@ -145,6 +145,7 @@ export async function viewOthers(): Promise<void> {
     .then((info) => {
       const listOthers = getOthers(info) || [];
       if (!listOthers.length) {
+        vscode.window.showInformationMessage("There are no other documents to open.", "Dismiss");
         return;
       }
       if (listOthers.length === 1) {
@@ -155,5 +156,12 @@ export async function viewOthers(): Promise<void> {
         });
       }
     })
-    .catch((err) => console.error(err));
+    .catch((err) => {
+      if (err.errorText && err.errorText !== "") {
+        outputChannel.appendLine("\n" + err.errorText);
+        vscode.window.showErrorMessage(`Failed to get other documents. Check output channel for details.`, "Dismiss");
+      } else {
+        vscode.window.showErrorMessage(`Failed to get other documents.`, "Dismiss");
+      }
+    });
 }
