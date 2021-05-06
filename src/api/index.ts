@@ -13,7 +13,7 @@ import {
   checkConnection,
   schemas,
 } from "../extension";
-import { currentWorkspaceFolder, outputConsole, outputChannel } from "../utils";
+import { currentWorkspaceFolder, outputConsole } from "../utils";
 
 const DEFAULT_API_VERSION = 1;
 import * as Atelier from "./atelier";
@@ -337,18 +337,16 @@ export class AtelierAPI {
         return this.cookies;
       }
 
-      if (!response.ok) {
-        throw { statusCode: response.status, message: response.statusText };
-      }
-
       const buffer = await response.buffer();
       const data: Atelier.Response = JSON.parse(buffer.toString("utf-8"));
 
-      /// decode encoded content
+      // Decode encoded content
       if (data.result && data.result.enc && data.result.content) {
         data.result.enc = false;
         data.result.content = Buffer.from(data.result.content.join(""), "base64");
       }
+
+      // Handle console output
       if (data.console) {
         // Let studio actions handle their console output
         const isStudioAction =
@@ -360,18 +358,21 @@ export class AtelierAPI {
           outputConsole(data.console);
         }
       }
+
+      // Handle any errors
+      if (data.status.summary !== "") {
+        // This is a 500 server error or a query request with malformed SQL
+        throw { statusCode: response.status, message: response.statusText, errorText: data.status.summary };
+      }
       if (data.result.status && data.result.status !== "") {
-        const status: string = data.result.status;
-        outputChannel.appendLine(status);
-        throw new Error(data.result.status);
+        // This is a 4XX error on a doc request
+        throw { statusCode: response.status, message: response.statusText, errorText: data.result.status };
       }
-      if (data.status.summary) {
-        throw new Error(data.status.summary);
-      } else if (data.result.status) {
-        throw new Error(data.result.status);
-      } else {
-        return data;
+      if (response.status >= 400) {
+        // The request errored out, but didn't give us an error string back
+        throw { statusCode: response.status, message: response.statusText, errorText: "" };
       }
+      return data;
     } catch (error) {
       if (error.code === "ECONNREFUSED") {
         authRequestMap.delete(target);

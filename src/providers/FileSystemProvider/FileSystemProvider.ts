@@ -225,8 +225,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           )
           .catch((error) => {
             // Throw all failures
-            if (error.error?.result?.status) {
-              throw vscode.FileSystemError.Unavailable(error.error.result.status);
+            if (error.errorText && error.errorText !== "") {
+              throw vscode.FileSystemError.Unavailable(error.errorText);
             }
             throw vscode.FileSystemError.Unavailable(error.message);
           })
