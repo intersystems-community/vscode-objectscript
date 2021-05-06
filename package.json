@@ -214,6 +214,10 @@
         {
           "command": "vscode-objectscript.compileOnlyWithFlags",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.editOthers",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         }
       ],
       "view/title": [
@@ -286,29 +290,34 @@
           "group": "objectscript@1"
         },
         {
+          "command": "vscode-objectscript.editOthers",
+          "when": "resourceScheme == file && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "group": "objectscript@2"
+        },
+        {
           "command": "vscode-objectscript.compile",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
-          "group": "objectscript@2"
+          "group": "objectscript@3"
         },
         {
           "command": "vscode-objectscript.previewXml",
           "when": "editorLangId =~ /^xml/",
-          "group": "objectscript@3"
+          "group": "objectscript@4"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextSourceControl",
           "when": "resourceScheme == isfs && vscode-objectscript.connectActive",
-          "group": "objectscript@4"
+          "group": "objectscript@5"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
           "when": "resourceScheme =~ /^isfs(-readonly)?$/ && vscode-objectscript.connectActive",
-          "group": "objectscript@5"
+          "group": "objectscript@6"
         },
         {
           "command": "vscode-objectscript.compileOnly",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
-          "group": "objectscript@6"
+          "group": "objectscript@7"
         }
       ],
       "editor/title": [
@@ -637,6 +646,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.compileOnlyWithFlags",
         "title": "Compile Current File with Specified Flags..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.editOthers",
+        "title": "Edit Other"
       }
     ],
     "keybindings": [

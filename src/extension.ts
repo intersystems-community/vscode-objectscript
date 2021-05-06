@@ -775,7 +775,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         });
     }),
     vscode.commands.registerCommand("vscode-objectscript.jumpToTagAndOffset", jumpToTagAndOffset),
-    vscode.commands.registerCommand("vscode-objectscript.viewOthers", viewOthers),
+    vscode.commands.registerCommand("vscode-objectscript.viewOthers", () => viewOthers(false)),
     vscode.commands.registerCommand("vscode-objectscript.serverCommands.sourceControl", mainSourceControlMenu),
     vscode.commands.registerCommand(
       "vscode-objectscript.serverCommands.contextSourceControl",
@@ -786,7 +786,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.subclass", subclass),
     vscode.commands.registerCommand("vscode-objectscript.superclass", superclass),
     vscode.commands.registerCommand("vscode-objectscript.serverActions", serverActions),
-    vscode.commands.registerCommand("vscode-objectscript.touchBar.viewOthers", viewOthers),
+    vscode.commands.registerCommand("vscode-objectscript.touchBar.viewOthers", () => viewOthers(false)),
     vscode.commands.registerCommand("vscode-objectscript.explorer.refresh", () => explorerProvider.refresh()),
     // Register the vscode-objectscript.explorer.open command elsewhere
     registerExplorerOpen(explorerProvider),
@@ -870,6 +870,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       { language: "vscode-objectscript-output" },
       new DocumentLinkProvider()
     ),
+    vscode.commands.registerCommand("vscode-objectscript.editOthers", () => viewOthers(true)),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed
