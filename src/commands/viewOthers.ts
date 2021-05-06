@@ -4,7 +4,7 @@ import { config } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { currentFile } from "../utils";
 
-export async function viewOthers(): Promise<void> {
+export async function viewOthers(forceEditable = false): Promise<void> {
   const file = currentFile();
   if (!file) {
     return;
@@ -13,7 +13,7 @@ export async function viewOthers(): Promise<void> {
     return;
   }
 
-  const open = async (item: string) => {
+  const open = async (item: string, forceEditable: boolean) => {
     const colonidx: number = item.indexOf(":");
     if (colonidx !== -1) {
       // A location is appened to the name of the other document
@@ -22,7 +22,12 @@ export async function viewOthers(): Promise<void> {
       // Split the document name form the location
       let loc = item.slice(colonidx + 1);
       item = item.slice(0, colonidx);
-      const uri = DocumentContentProvider.getUri(item);
+      let uri: vscode.Uri;
+      if (forceEditable) {
+        uri = DocumentContentProvider.getUri(item, undefined, undefined, forceEditable);
+      } else {
+        uri = DocumentContentProvider.getUri(item);
+      }
 
       if (item.endsWith(".cls")) {
         // Locations in classes are of the format method+offset+namespace
@@ -74,7 +79,12 @@ export async function viewOthers(): Promise<void> {
       }
       vscode.window.showTextDocument(uri, options);
     } else {
-      const uri = DocumentContentProvider.getUri(item);
+      let uri: vscode.Uri;
+      if (forceEditable) {
+        uri = DocumentContentProvider.getUri(item, undefined, undefined, forceEditable);
+      } else {
+        uri = DocumentContentProvider.getUri(item);
+      }
       vscode.window.showTextDocument(uri);
     }
   };
@@ -148,10 +158,10 @@ export async function viewOthers(): Promise<void> {
         return;
       }
       if (listOthers.length === 1) {
-        open(listOthers[0]);
+        open(listOthers[0], forceEditable);
       } else {
         vscode.window.showQuickPick(listOthers).then((item) => {
-          open(item);
+          open(item, forceEditable);
         });
       }
     })
