@@ -936,6 +936,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     onDidChangeConnection(): vscode.Event<void> {
       return _onDidChangeConnection.event;
     },
+    getUriForDocument(document: string): vscode.Uri {
+      return DocumentContentProvider.getUri(document);
+    },
   };
 
   // 'export' our public API
