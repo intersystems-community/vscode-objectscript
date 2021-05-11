@@ -93,12 +93,25 @@ export async function viewOthers(forceEditable = false): Promise<void> {
     return info.result.content[0].others;
   };
 
+  const methodLangIsCOS = (line: string): boolean => {
+    let result = true;
+    const keywordsmatch: RegExpMatchArray = line.slice(line.indexOf("[")).match(/language += +([a-z]+)/i);
+    if (keywordsmatch !== null && keywordsmatch[1] !== "objectscript") {
+      result = false;
+    }
+    return result;
+  };
+
   const api = new AtelierAPI(file.uri);
   let indexarg: string = file.name;
   const cursorpos: vscode.Position = vscode.window.activeTextEditor.selection.active;
   const fileExt: string = file.name.split(".").pop().toLowerCase();
 
-  if (api.config.apiVersion >= 4 && (fileExt === "cls" || fileExt === "mac" || fileExt === "int")) {
+  if (
+    api.config.apiVersion >= 4 &&
+    (fileExt === "cls" || fileExt === "mac" || fileExt === "int") &&
+    !/^%sqlcq/i.test(indexarg)
+  ) {
     // Send the server the current position in the document appended to the name if it supports it
     let symbols: vscode.DocumentSymbol[] = await vscode.commands.executeCommand(
       "vscode.executeDocumentSymbolProvider",
@@ -127,6 +140,7 @@ export async function viewOthers(forceEditable = false): Promise<void> {
         // The current position is in a symbol that we can convert into a label+offset that the server understands
         let offset: number = cursorpos.line - currentSymbol.selectionRange.start.line;
 
+        let isObjectScript = true;
         if (fileExt === "cls") {
           // Need to find the actual start of the method
           const currentdoc: vscode.TextDocument = vscode.window.activeTextEditor.document;
@@ -139,13 +153,30 @@ export async function viewOthers(forceEditable = false): Promise<void> {
             if (methodlinetext.endsWith("{")) {
               // This is the last line of the method definition, so count from here
               offset = cursorpos.line - methodlinenum;
+
+              // Look for the Language compiler keyword
+              if (methodlinetext.indexOf("[") !== -1) {
+                // Compiler keywords are on this line
+                isObjectScript = methodLangIsCOS(methodlinetext);
+              } else {
+                // Check the previous line for compiler keywords
+                const prevlinetext: string = currentdoc.lineAt(methodlinenum - 1).text.trim();
+                if (prevlinetext.indexOf("[") !== -1) {
+                  // Compiler keywords are on this line
+                  isObjectScript = methodLangIsCOS(prevlinetext);
+                }
+              }
+
               break;
             }
           }
         }
 
         offset = offset < 0 ? 0 : offset;
-        indexarg = indexarg + ":" + currentSymbol.name + "+" + offset;
+        if (isObjectScript) {
+          // Only provide label+offset if method language is ObjectScript
+          indexarg = indexarg + ":" + currentSymbol.name + "+" + offset;
+        }
       }
     }
   }
