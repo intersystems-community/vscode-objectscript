@@ -8,11 +8,11 @@ nav_order: 2
 
 ## Install VS Code
 
-Your first step is to install VS Code: 
+Your first step is to install VS Code:
 
 1. Go to the [Visual Studio Code download page](https://code.visualstudio.com/).
-2. Download an appropriate build for your platform.
-3. Open the downloaded file and follow the installation instructions.
+1. Download an appropriate build for your platform.
+1. Open the downloaded file and follow the installation instructions.
 
 ## Install the InterSystems ObjectScript Extensions
 
@@ -30,6 +30,4 @@ Type `intersystems` in the search field to find these extensions in the Marketpl
 
 ![Search in Marketplace.](../assets/images/marketplace.png "search in marketplace")
 
-You can install all the required extensions in one step by clicking on the **Install** button for the InterSystems ObjectScript Extension Pack. You can also install each extension separately by clicking the **install** button for the required extension. Note that the InterSystems ObjectScript extension supplies an ObjectScript button which appears in the Activity Bar when a workspace or folder is open:
-
-![ObjectScript button.](../assets/images/objectscript.png "objectscript button")
+You can install all the required extensions in one step by clicking on the **Install** button for the InterSystems ObjectScript Extension Pack. You can also install each extension separately by clicking the **install** button for the required extension. 

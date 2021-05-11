@@ -7,6 +7,7 @@ nav_exclude: true
 
 * [Introduction](./introduction)
 * [Installation](./installation)
+* [InterSystems Extensions UI](./extensionui)
 * [Configuration](./configuration)
 * [Running and Debugging](./rundebug)
 * [Server-side Editing](./serverside)

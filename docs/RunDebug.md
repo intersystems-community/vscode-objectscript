@@ -2,7 +2,7 @@
 layout: default
 title: Running and Debugging
 permalink: /rundebug/
-nav_order: 4
+nav_order: 5
 ---
 # Running and Debugging
 
