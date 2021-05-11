@@ -751,7 +751,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           placeHolder: "Please enter comma delimited arguments list",
         })
         .then((args) => {
-          if (args) {
+          if (args != undefined && args != null) {
             startDebugging(args);
           }
         });
