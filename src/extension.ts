@@ -163,6 +163,8 @@ export function getXmlUri(uri: vscode.Uri): vscode.Uri {
 }
 let reporter: TelemetryReporter = null;
 
+export let checkingConnection = false;
+
 let serverManagerApi: any;
 
 // Map of the intersystems.server connection specs we have resolved via the API to that extension
@@ -191,6 +193,11 @@ export function getResolvedConnectionSpec(key: string, dflt: any): any {
 }
 
 export async function checkConnection(clearCookies = false, uri?: vscode.Uri): Promise<void> {
+  // Do nothing if already checking the connection
+  if (checkingConnection) {
+    return;
+  }
+
   const { apiTarget, configName } = connectionTarget(uri);
   if (clearCookies) {
     /// clean-up cached values
@@ -268,7 +275,8 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     disableConnection(configName);
     return;
   }
-  api
+  checkingConnection = true;
+  return api
     .serverInfo()
     .then((info) => {
       panel.text = api.connInfo;
@@ -279,6 +287,7 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
           serverVersion: info.result.content.version,
           healthshare: hasHS ? "yes" : "no",
         });
+      return;
     })
     .catch((error) => {
       let message = error.message;
@@ -324,10 +333,13 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
       throw error;
     })
     .finally(() => {
-      explorerProvider.refresh();
-      if (uri && schemas.includes(uri.scheme)) {
-        vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
-      }
+      checkingConnection = false;
+      setTimeout(() => {
+        explorerProvider.refresh();
+        if (uri && schemas.includes(uri.scheme)) {
+          vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
+        }
+      }, 20);
     });
 }
 
@@ -487,7 +499,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     const uri = oneToCheck[1];
     const serverName = uri.scheme === "file" ? config("conn", configName).server : configName;
     await resolveConnectionSpec(serverName);
-    await checkConnection(true, uri);
+    // Ignore any failure
+    checkConnection(true, uri).finally();
   }
 
   vscode.workspace.onDidChangeWorkspaceFolders(async ({ added, removed }) => {
@@ -522,8 +535,34 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   vscode.workspace.onDidChangeConfiguration(async ({ affectsConfiguration }) => {
     if (affectsConfiguration("objectscript.conn") || affectsConfiguration("intersystems.servers")) {
-      await checkConnection(true);
+      if (affectsConfiguration("intersystems.servers")) {
+        // Gather the server names previously resolved
+        const resolvedServers: string[] = [];
+        resolvedConnSpecs.forEach((v, k) => resolvedServers.push(k));
+        // Clear the cache
+        resolvedConnSpecs.clear();
+        // Resolve them again, sequentially in case user needs to be prompted for credentials
+        for await (const serverName of resolvedServers) {
+          await resolveConnectionSpec(serverName);
+        }
+      }
+      // Check connections sequentially for each workspace folder
+      let refreshFilesExplorer = false;
+      for await (const folder of vscode.workspace.workspaceFolders) {
+        if (schemas.includes(folder.uri.scheme)) {
+          refreshFilesExplorer = true;
+        }
+        try {
+          await checkConnection(true, folder.uri);
+        } catch (_) {
+          continue;
+        }
+      }
       explorerProvider.refresh();
+      if (refreshFilesExplorer) {
+        // This unavoidably switches to the File Explorer view, so only do it if isfs folders were found
+        vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
+      }
     }
   });
   vscode.window.onDidCloseTerminal((t) => {
@@ -548,7 +587,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   });
 
   vscode.window.onDidChangeActiveTextEditor(async (textEditor: vscode.TextEditor) => {
-    await checkConnection();
+    await checkConnection(false, textEditor?.document.uri);
     posPanel.text = "";
     if (textEditor?.document.fileName.endsWith(".xml") && config("autoPreviewXML")) {
       return xml2doc(context, textEditor);
@@ -712,7 +751,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         const workspaceFolder = currentWorkspaceFolder();
         if (workspaceFolder && workspaceFolder !== workspaceState.get<string>("workspaceFolder")) {
           workspaceState.update("workspaceFolder", workspaceFolder);
-          await checkConnection();
+          await checkConnection(false, editor?.document.uri);
         }
       }
     }),
