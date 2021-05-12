@@ -12,6 +12,7 @@ import {
   panel,
   checkConnection,
   schemas,
+  checkingConnection,
 } from "../extension";
 import { currentWorkspaceFolder, outputConsole } from "../utils";
 
@@ -143,8 +144,8 @@ export class AtelierAPI {
     return cookies;
   }
 
-  public clearCookies(): void {
-    this.cache.set("cookies", []);
+  public async clearCookies(): Promise<void> {
+    await this.cache.put("cookies", []);
   }
 
   public xdebugUrl(): string {
@@ -153,7 +154,7 @@ export class AtelierAPI {
     return `${proto}://${host}:${port}${pathPrefix}/api/atelier/v${apiVersion}/%25SYS/debug`;
   }
 
-  public updateCookies(newCookies: string[]): Promise<any> {
+  public async updateCookies(newCookies: string[]): Promise<void> {
     const cookies = this.cache.get("cookies", []);
     newCookies.forEach((cookie) => {
       const [cookieName] = cookie.split("=");
@@ -164,7 +165,7 @@ export class AtelierAPI {
         cookies.push(cookie);
       }
     });
-    return this.cache.put("cookies", cookies);
+    await this.cache.put("cookies", cookies);
   }
 
   private setConnection(workspaceFolderName: string, namespace?: string): void {
@@ -322,7 +323,7 @@ export class AtelierAPI {
       });
       if (response.status === 401) {
         authRequestMap.delete(target);
-        if (this.wsOrFile) {
+        if (this.wsOrFile && !checkingConnection) {
           setTimeout(() => {
             checkConnection(true, typeof this.wsOrFile === "object" ? this.wsOrFile : undefined);
           }, 1000);
@@ -380,7 +381,12 @@ export class AtelierAPI {
         panel.tooltip = "Disconnected";
         workspaceState.update(this.configName + ":host", undefined);
         workspaceState.update(this.configName + ":port", undefined);
-        setTimeout(checkConnection, 30000);
+        if (!checkingConnection) {
+          setTimeout(checkConnection, 30000);
+        }
+      } else if (error.code === "EPROTO") {
+        // This can happen if https was configured but didn't work
+        authRequestMap.delete(target);
       }
       throw error;
     }
