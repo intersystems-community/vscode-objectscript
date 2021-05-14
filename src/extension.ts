@@ -336,7 +336,10 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
       checkingConnection = false;
       setTimeout(() => {
         explorerProvider.refresh();
-        if (uri && schemas.includes(uri.scheme)) {
+        // Refreshing Files Explorer also switches to it, so only do this if the uri is part of the workspace,
+        // otherwise files opened from ObjectScript Explorer (objectscript:// or isfs:// depending on the "objectscript.serverSideEditing" setting)
+        // will cause an unwanted switch.
+        if (uri && schemas.includes(uri.scheme) && vscode.workspace.getWorkspaceFolder(uri)) {
           vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
         }
       }, 20);
