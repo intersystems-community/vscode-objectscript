@@ -60,7 +60,7 @@ Expand the target server, then expand its **Namespaces**  folder. Hover over the
 
 ![Namespace edit buttons.](../assets/images/namespace-buttons.png "namespace edit buttons")
 
-- Click the **edit pencil** button to add an isfs://server:namespace/ folder to your VS Code workspace.
+- Click the **edit pencil** button to add an *isfs://server:namespace/* folder to your VS Code workspace.
 - Click the **viewing eye** button to add an isfs-readonly://server:namespace/ folder to your VS Code workspace.
 - Hold the **alt** or **option** key while clicking the edit or view button if you want to add a folder that gives you access to server-side web application files (for example, CSP files).
 
