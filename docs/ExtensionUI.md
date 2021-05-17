@@ -44,7 +44,7 @@ Only one Simple Browser tab can be open at a time, so launching a second server'
 
 If the server version is InterSystems IRIS 2020.1.1 or later you need to change a setting on the suite of web applications that implement Management Portal. The Simple Browser is not be permitted to store the Portal's session management cookies, so the Portal must be willing to fall back to using the CSPCHD query parameter mechanism.
 
-In the management portal, select **System Administration > Security > Applications > Web Applications**. Enter `/csp/sys` in the **filter** field to find the five web applications whose path begins with `/csp/sys`.
+In Management Portal, select **System Administration > Security > Applications > Web Applications**. Enter `/csp/sys` in the **filter** field to find the five web applications whose path begins with `/csp/sys`.
 
 ![Portal web app list.](../assets/images/five-web-apps.png "portal web app list")
 
