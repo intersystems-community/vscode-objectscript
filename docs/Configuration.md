@@ -2,15 +2,28 @@
 layout: default
 title: Configuration
 permalink: /configuration/
-nav_order: 3
+nav_order: 4
 ---
-# Configuration
+# Configuration 
 
 VS Code settings enable you to customize various aspects of its function. The InterSystems extensions provide settings used to configure VS Code for ObjectScript development.
 
+{: #code-workspaces}
+## VS Code Workspaces 
+
+To work with VS Code, you need to open a workspace. In the simplest setup, a VS Code workspace is just the root folder of your project. Workspace settings and task configurations are stored in the root folder in the `settings.json` file in a folder called `.vscode`. Debugging launch configurations are stored in `launch.json`, also in `.vscode`.
+
+If you need to have more than one root folder in a VS Code workspace, use a feature called multi-root workspaces. See [Multi-root Workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) in the VS Code documentation.
+
+A multi-root workspace is defined by a `*.code-workspace` file. The file can have any name followed by *.code-workspace*, for example `test.code-workspace`. The `*.code-workspace` file stores information about what folders are in the workspace, and may also store other settings that would otherwise be stored in the settings.json or launch.json files. Settings in a folder's `.vscode/settings.json` or `.vscode/launch.json` will override those in the `*.code-workspace` file, so be careful to use one or the other unless you truly need to leverage this flexibility. You can have a workspace file even if you are only working with a single root folder. Indeed. if you are [working server-side](../serverside/) you will always be using a workspace file.
+
+To edit **InterSystems ObjectScript** extension settings in a `*.code-workspace` file in VS Code, open the workspace using **File > Open Workspace...**, select **File > Preferences > Settings** (**Code > Preferences > Settings** on Mac) and select the Workspace tab. Search for **objectscript: conn**, and click on *Edit in settings.json*. VS Code opens the `*.code-workspace` file for that workspace.
+
+The **InterSystems ObjectScript** extension uses the multi-root workspaces feature to support ObjectScript development directly in namespaces on InterSystems servers.
+
 ## Settings
 
-Many available settings are general to VS Code, and you can learn about them in the [Visual Studio Code Documentation](https://code.visualstudio.com/docs). The InterSystems Server Manager and InterSystems ObjectScript extensions supply additional settings you can use to define InterSystems IRIS servers and connections to those servers.
+Many available settings are general to VS Code, and you can learn about them in the [Visual Studio Code Documentation](https://code.visualstudio.com/docs). The InterSystems Server Manager, InterSystems ObjectScript and InterSystems Language Server extensions supply additional settings you can use to define InterSystems IRIS servers and the behavior of connections to those servers.
 
 There are several levels on which settings are stored and used:
 
@@ -24,6 +37,7 @@ For example, the following screen shot shows the Workspace level selected:
 
 See the VS Code documentation section [User and Workspace Settings](https://code.visualstudio.com/docs/getstarted/settings).
 
+{: #config-server}
 ## Configuring a Server
 
 First, configure one or more servers. Select **View > Command Palette > InterSystems Server Manager: Store Password in Keychain**. This command lets you define a new server and securely store a password in the system keychain. Click the plus sign in the upper right corner of the dialog, as shown:
@@ -40,6 +54,8 @@ Provide the following values when prompted:
 
 Once you have entered these values, the server definition is stored in your user settings. At that point another prompt appears, asking for a password to store in the system keychain. Enter the password for the username supplied earlier to complete the process. Storing a password is optional. You can terminate the process and store the server configuration by pressing either **Escape** or **Return**. If you do not store a password, users are prompted for a password each time they connect to the server.
 
+To remove a password from the keychain, Select **View > Command Palette > InterSystems Server Manager: Clear Password from Keychain**. The commands to both store and clear passwords are also available from the server context menu in the InterSystems Tools view.
+
 You can create a configuration for a server that is not currently running.
 
 ## Editing a Server Configuration
@@ -49,6 +65,10 @@ If you need to modify a server configuration select **File > Preferences > Setti
 ![Server manager settings.](../assets/images/ServerManagerSettings.png "server manager settings")
 
 Click *Edit in settings.json*.
+
+The InterSystems Tools view provides an alternate path to this `settings.json` file. Click the `...` button and select **Edit Settings**. 
+
+![Edit settings.](../assets/images/edit-settings.png "edit settings")
 
 The server configuration in *settings.json* looks similar to the following, with the values you entered when you configured the server:
 
