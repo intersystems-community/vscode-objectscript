@@ -23,7 +23,7 @@ The **InterSystems ObjectScript** extension uses the multi-root workspaces featu
 
 ## Settings
 
-Many available settings are general to VS Code, and you can learn about them in the [Visual Studio Code Documentation](https://code.visualstudio.com/docs). The InterSystems Server Manager and InterSystems ObjectScript extensions supply additional settings you can use to define InterSystems IRIS servers and connections to those servers.
+Many available settings are general to VS Code, and you can learn about them in the [Visual Studio Code Documentation](https://code.visualstudio.com/docs). The InterSystems Server Manager, InterSystems ObjectScript and InterSystems Language Server extensions supply additional settings you can use to define InterSystems IRIS servers and the behavior of connections to those servers.
 
 There are several levels on which settings are stored and used:
 
