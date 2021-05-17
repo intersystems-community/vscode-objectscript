@@ -98,7 +98,7 @@ On Windows, the Server Manager can create connection entries for all connections
 
 ## ObjectScript View
 
-The InterSystems ObjectScript extension supplies an ObjectScript view. The button to select this view appears in the Activity Bar only when a workspace or folder is open:
+The InterSystems ObjectScript extension supplies an ObjectScript view container. The button to select this appears in the Activity Bar only when a folder or a workspace that includes a client-side folder is open:
 
 ![ObjectScript button.](../assets/images/objectscript.png "objectscript button")
 
