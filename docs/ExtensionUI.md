@@ -17,7 +17,7 @@ Select the Explorer view button in the Activity Bar to open the view.
 The Explorer view is a standard VS Code view. InterSystems extensions add the following items to context menus in the this view:
 
 - **Add Server Namespace to Workspace...** - in context menu of folders
-- **Import and Compile** - in context menu of folders and files
+- **Import and Compile** - in context menu of folders and files when you are connected to an InterSystems server
 - **Import Without Compilation** - in context menu of folders and files
 
 ## InterSystems Tools View
