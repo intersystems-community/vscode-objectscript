@@ -32,7 +32,7 @@ This view shows server resources in a tree format.
 
 ![Server tree view.](../assets/images/server-tree-view.png "server tree view")
 
-As you can see, the view groups servers into a variety of folders, such as currently in use, favorites, and recently used. Within the view, you can perform operations on the servers. When you move the cursor over a server listing, you see controls to mark the server as a favorite, and open the management portal for the server in either the simple browser in a VS Code tab, or an external browser:
+As you can see, the view groups servers into a variety of folders, such as currently in use, favorites, and recently used. Within the view, you can perform operations on the servers. When you move the cursor over a server listing, command buttons appear which let you mark the server as a favorite, or open the Management Portal for the server in either the simple browser in a VS Code tab or in an external browser:
 
 - ![Add to starred.](../assets/images/add-to-starred.png "add to starred")
 - ![Open management portal in tab.](../assets/images/management-portal-tab.png "open management portal the simple browser in VS Code")
