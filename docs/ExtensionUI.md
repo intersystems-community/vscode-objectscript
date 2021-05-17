@@ -36,7 +36,7 @@ As you can see, the view groups servers into a variety of folders, such as curre
 
 - ![Add to starred.](../assets/images/add-to-starred.png "add to starred")
 - ![Open Management Portal in tab.](../assets/images/management-portal-tab.png "open management portal in the simple browser in VS Code")
-- ![Open management portal in browser.](../assets/images/management-portal-browser.png "open management portal in browser")
+- ![Open Management Portal in browser.](../assets/images/management-portal-browser.png "open management portal in browser")
 
 Notes About the VS Code Simple Browser
 
