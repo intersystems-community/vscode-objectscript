@@ -84,7 +84,7 @@ The server definition is added to your user-level *settings.json* file and also 
 
 Servers listed in the InterSystems Tools view provide a context menu which provides access to several commands, including storing and clearing passwords in the keychain.
 
-![Server conext menu.](../assets/images/server-context-menu.png "server context menu")
+![Server context menu.](../assets/images/server-context-menu.png "server context menu")
 
 A submenu enables you to set the color of the icon to the left of the server name. The following screen shot shows this menu, and the icon color set to red.
 
