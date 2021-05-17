@@ -117,3 +117,13 @@ The ObjectScript view provides the following items:
 The InterSystems IRIS documentation section [Extending Studio](https://docs.intersystems.com/irislatest/csp/docbook/Doc.View.cls?KEY=ASC#ASC_Hooks_extending_studio ) describes how to configure menus for source code control and other purposes. Entries from menus named **%SourceMenu** and **%SourceContext** appear in the **Server Source Control...** quickpick provided the source control class doesn't disable the entry, for example, disabling checkout if it knows that the file is already checked out.
 
 Entries from menus with any other name appear in the **Server Command Menu...**.
+
+## Views and View Containers
+
+Technically the 'InterSystems Tools' and 'Explorer' entities described above are what VS Code calls [view containers](https://code.visualstudio.com/api/extension-capabilities/extending-workbench#view-container). Each contains a single view:
+- in container **InterSystems Tools** is view **Servers**
+- in container **ObjectScript** is view **Explorer**
+
+When a VS Code container has only a single view in it the view header merges with the container header, with the two names separated by a colon.
+
+Views can be dragged between containers, so for example you could move Explorer off its ObjectScript container and onto the InterSystems Tools container. Or move Servers onto the ObjectScript container. Or move either of them onto VS Code's main Explorer container.
