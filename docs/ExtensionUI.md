@@ -38,7 +38,7 @@ As you can see, the view groups servers into a variety of folders, such as curre
 - ![Open Management Portal in tab.](../assets/images/management-portal-tab.png "open management portal in the simple browser in VS Code")
 - ![Open Management Portal in browser.](../assets/images/management-portal-browser.png "open management portal in browser")
 
-Notes About the VS Code Simple Browser
+#### Notes About the VS Code Simple Browser
 
 Only one Simple Browser tab can be open at a time, so launching a second server's Management Portal replaces the previous one.
 
