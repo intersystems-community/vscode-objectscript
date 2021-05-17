@@ -62,7 +62,7 @@ Expand the target server, then expand its **Namespaces**  folder. Hover over the
 
 - Click the **edit pencil** button to add an isfs://server:namespace/ folder to your VS Code workspace.
 - Click the **viewing eye** button to add an isfs-readonly://server:namespace/ folder to your VS Code workspace.
-- Hold the **alt** or **option** key while clicking the edit or view button to add a folder that gives you access to server-side web application files (for example, CSP files).
+- Hold the **alt** or **option** key while clicking the edit or view button if you want to add a folder that gives you access to server-side web application files (for example, CSP files).
 
 Once you have added a server-side namespace to the workspace, VS Code opens the Explorer view showing the added namespace. The following screen shot shows the **Sample** and **User** packages in the **src** folder on the client, and the **Sample** and **User** packages in the **USER** namespace on the server, with read-only access.
 
