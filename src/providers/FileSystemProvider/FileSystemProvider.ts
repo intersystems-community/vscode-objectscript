@@ -7,6 +7,7 @@ import { File } from "./File";
 import { fireOtherStudioAction, OtherStudioAction } from "../../commands/studio";
 import { StudioOpenDialog } from "../../queries";
 import { redirectDotvscodeRoot } from "../../utils/index";
+import { studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
 
 declare function setTimeout(callback: (...args: any[]) => void, ms: number, ...args: any[]): NodeJS.Timeout;
 
@@ -47,26 +48,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (!api.active) {
       return;
     }
-    const sql = `CALL %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)`;
     const { query } = url.parse(uri.toString(true), true);
-    const type = query.type && query.type != "" ? query.type.toString() : "all";
     const csp = query.csp === "" || query.csp === "1";
-    let filter = "";
-    if (query.filter && query.filter.length) {
-      filter = query.filter.toString();
-      if (!csp) {
-        // always exclude Studio projects, since we can't do anything with them
-        filter += ",'*.prj";
-      }
-    } else if (csp) {
-      filter = "*";
-    } else if (type === "rtn") {
-      filter = "*.inc,*.mac,*.int";
-    } else if (type === "cls") {
-      filter = "*.cls";
-    } else {
-      filter = "*.cls,*.inc,*.mac,*.int";
-    }
     const folder = !csp
       ? uri.path.replace(/\//g, ".")
       : uri.path === "/"
@@ -74,13 +57,6 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       : uri.path.endsWith("/")
       ? uri.path
       : uri.path + "/";
-    const spec = csp ? folder + filter : folder.length > 1 ? folder.slice(1) + "/" + filter : filter;
-    const dir = "1";
-    const orderBy = "1";
-    const system = api.ns === "%SYS" ? "1" : "0";
-    const flat = query.flat && query.flat.length ? query.flat.toString() : "0";
-    const notStudio = "0";
-    const generated = query.generated && query.generated.length ? query.generated.toString() : "0";
     // get all web apps that have a filepath (Studio dialog used below returns REST ones too)
     const cspApps = csp ? await api.getCSPApps().then((data) => data.result.content || []) : [];
     const cspSubfolderMap = new Map<string, vscode.FileType>();
@@ -94,9 +70,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       }
     }
     const cspSubfolders = Array.from(cspSubfolderMap.entries());
-    // Assemble the results
-    return api
-      .actionQuery(sql, [spec, dir, orderBy, system, flat, notStudio, generated])
+    return studioOpenDialogFromURI(uri)
       .then((data) => data.result.content || [])
       .then((data) => {
         const results = data
