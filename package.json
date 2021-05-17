@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "1.0.11-SNAPSHOT",
+  "version": "1.0.12-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "9cd75d51-697c-406c-a929-2bcf46e97c64",
   "categories": [
@@ -206,6 +206,18 @@
         {
           "command": "vscode-objectscript.jumpToTagAndOffset",
           "when": "editorLangId == objectscript"
+        },
+        {
+          "command": "vscode-objectscript.compileOnly",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.compileOnlyWithFlags",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.editOthers",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         }
       ],
       "view/title": [
@@ -218,7 +230,7 @@
       "view/item/context": [
         {
           "command": "vscode-objectscript.explorer.export",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:(?!(cspApplication|cspFileNode))/"
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
         },
         {
           "command": "vscode-objectscript.explorer.export",
@@ -278,24 +290,34 @@
           "group": "objectscript@1"
         },
         {
+          "command": "vscode-objectscript.editOthers",
+          "when": "resourceScheme == file && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "group": "objectscript@2"
+        },
+        {
           "command": "vscode-objectscript.compile",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
-          "group": "objectscript@2"
+          "group": "objectscript@3"
         },
         {
           "command": "vscode-objectscript.previewXml",
           "when": "editorLangId =~ /^xml/",
-          "group": "objectscript@3"
+          "group": "objectscript@4"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextSourceControl",
           "when": "resourceScheme == isfs && vscode-objectscript.connectActive",
-          "group": "objectscript@4"
+          "group": "objectscript@5"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
           "when": "resourceScheme =~ /^isfs(-readonly)?$/ && vscode-objectscript.connectActive",
-          "group": "objectscript@5"
+          "group": "objectscript@6"
+        },
+        {
+          "command": "vscode-objectscript.compileOnly",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "group": "objectscript@7"
         }
       ],
       "editor/title": [
@@ -385,11 +407,12 @@
           "ObjectScript CSP"
         ],
         "extensions": [
-          "csp"
+          ".csp",
+          ".csr"
         ]
       },
       {
-        "id": "objectscript-output",
+        "id": "vscode-objectscript-output",
         "mimetypes": [
           "text/x-code-output"
         ]
@@ -614,6 +637,21 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.showExplorerForWorkspace",
         "title": "Show Explorer for Workspace"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.compileOnly",
+        "title": "Compile Current File"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.compileOnlyWithFlags",
+        "title": "Compile Current File with Specified Flags..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.editOthers",
+        "title": "Edit Other"
       }
     ],
     "keybindings": [
@@ -911,6 +949,16 @@
         },
         "objectscript.autoShowTerminal": {
           "description": "Automatically show terminal when connected to docker-compose.",
+          "type": "boolean",
+          "default": false
+        },
+        "objectscript.compileOnSave": {
+          "description": "Automatically compile an InterSystems file when saved in the editor.",
+          "type": "boolean",
+          "default": true
+        },
+        "objectscript.multilineMethodArgs": {
+          "markdownDescription": "List method arguments on multiple lines, if the server supports it. **NOTE:** Only supported on IRIS 2019.1.2, 2020.1.1+, 2021.1.0+ and subsequent versions! On all other versions, this setting will have no effect.",
           "type": "boolean",
           "default": false
         }

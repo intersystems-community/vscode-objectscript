@@ -11,10 +11,9 @@ import {
   OBJECTSCRIPT_FILE_SCHEMA,
   fileSystemProvider,
   workspaceState,
-  schemas,
 } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
-import { currentFile, CurrentFile, outputChannel } from "../utils";
+import { currentFile, CurrentFile, currentWorkspaceFolder, outputChannel, workspaceFolderUri } from "../utils";
 import { RootNode } from "../explorer/models/rootNode";
 import { PackageNode } from "../explorer/models/packageNode";
 import { ClassNode } from "../explorer/models/classNode";
@@ -41,7 +40,7 @@ async function compileFlags(): Promise<string> {
  * @return mtime timestamp or -1.
  */
 export async function checkChangedOnServer(file: CurrentFile, force = false): Promise<number> {
-  if (!file || !file.uri || schemas.includes(file.uri.scheme)) {
+  if (!file || !file.uri) {
     return -1;
   }
   const api = new AtelierAPI(file.uri);
@@ -94,11 +93,6 @@ async function importFile(file: CurrentFile, ignoreConflict?: boolean): Promise<
       checkChangedOnServer(file, true);
     })
     .catch((error) => {
-      if (error.statusCode == 400) {
-        outputChannel.appendLine(error.error.result.status);
-        vscode.window.showErrorMessage(error.error.result.status);
-        return Promise.reject();
-      }
       if (error.statusCode == 409) {
         return vscode.window
           .showErrorMessage(
@@ -140,9 +134,18 @@ What do you want to do?`,
             }
             return Promise.reject();
           });
+      } else {
+        if (error.errorText && error.errorText !== "") {
+          outputChannel.appendLine("\n" + error.errorText);
+          vscode.window.showErrorMessage(
+            `Failed to save file '${file.name}' on the server. Check output channel for details.`,
+            "Dismiss"
+          );
+        } else {
+          vscode.window.showErrorMessage(`Failed to save file '${file.name}' on the server.`, "Dismiss");
+        }
+        return Promise.reject();
       }
-      vscode.window.showErrorMessage(error.message);
-      return Promise.reject();
     });
 }
 
@@ -240,7 +243,11 @@ async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
     .then(loadChanges);
 }
 
-export async function importAndCompile(askFlags = false, document?: vscode.TextDocument): Promise<any> {
+export async function importAndCompile(
+  askFlags = false,
+  document?: vscode.TextDocument,
+  compileFile = true
+): Promise<any> {
   const file = currentFile(document);
   if (!file) {
     return;
@@ -260,9 +267,54 @@ export async function importAndCompile(askFlags = false, document?: vscode.TextD
     })
     .then(() => {
       if (!file.fileName.startsWith("\\.vscode\\")) {
-        compile([file], flags);
+        if (compileFile) {
+          compile([file], flags);
+        } else {
+          if (file.uri.scheme === FILESYSTEM_SCHEMA || file.uri.scheme === FILESYSTEM_READONLY_SCHEMA) {
+            // Fire the file changed event to avoid VSCode alerting the user on the next save that
+            // "The content of the file is newer."
+            fileSystemProvider.fireFileChanged(file.uri);
+          }
+        }
       }
     });
+}
+
+export async function compileOnly(askFlags = false, document?: vscode.TextDocument): Promise<any> {
+  document =
+    document ||
+    (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document
+      ? vscode.window.activeTextEditor.document
+      : null);
+
+  if (!document) {
+    return;
+  }
+
+  const file = currentFile(document);
+  if (!file) {
+    return;
+  }
+
+  // Do nothing if it is a local file and objectscript.conn.active is false
+  if (file.uri.scheme === "file" && !config("conn").active) {
+    return;
+  }
+
+  if (document.isDirty) {
+    // Don't compile if document is dirty
+    vscode.window.showWarningMessage(
+      "Cannot compile '" + file.name + "' because it has unpersisted changes.",
+      "Dismiss"
+    );
+    return;
+  }
+
+  const defaultFlags = config().compileFlags;
+  const flags = askFlags ? await compileFlags() : defaultFlags;
+  if (!file.fileName.startsWith("\\.vscode\\")) {
+    compile([file], flags);
+  }
 }
 
 // Compiles all files types in the namespace
@@ -315,20 +367,30 @@ function importFiles(files, noCompile = false) {
 }
 
 export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<any> {
-  const folder = uri.fsPath;
-  if (fs.lstatSync(folder).isFile()) {
-    return importFiles([folder], noCompile);
+  const uripath = uri.fsPath;
+  if (fs.lstatSync(uripath).isFile()) {
+    return importFiles([uripath], noCompile);
+  }
+  let globpattern = "*.{cls,inc,int,mac}";
+  const workspace = currentWorkspaceFolder();
+  const workspacePath = workspaceFolderUri(workspace).fsPath;
+  const folderPathNoWorkspaceArr = uripath.replace(workspacePath + path.sep, "").split(path.sep);
+  if (folderPathNoWorkspaceArr.includes("csp")) {
+    // This folder is a CSP application, so import all files
+    // We need to include eveything becuase CSP applications can
+    // include non-InterSystems files
+    globpattern = "*";
   }
   glob(
-    "*.{cls,inc,mac,int}",
+    globpattern,
     {
-      cwd: folder,
+      cwd: uripath,
       matchBase: true,
       nocase: true,
     },
     (_error, files) =>
       importFiles(
-        files.map((name) => path.join(folder, name)),
+        files.map((name) => path.join(uripath, name)),
         noCompile
       )
   );

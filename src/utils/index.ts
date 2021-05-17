@@ -55,6 +55,29 @@ export interface ConnectionTarget {
   configName: string;
 }
 
+/**
+ * Determine the server name of a local non-ObjectScript file (any file that's not CLS,MAC,INT,INC).
+ * @param localPath The full path to the file on disk.
+ * @param workspace The workspace the file is in.
+ */
+function getServerDocName(localPath: string, workspace: string): string {
+  const workspacePath = workspaceFolderUri(workspace).fsPath;
+  const filePathNoWorkspaceArr = localPath.replace(workspacePath + path.sep, "").split(path.sep);
+  return filePathNoWorkspaceArr.slice(filePathNoWorkspaceArr.indexOf("csp")).join("/");
+}
+
+/**
+ * Determine if this non-InterSystems local file is importable
+ * (i.e. is part of a CSP application).
+ * @param file The file to check.
+ */
+export function isImportableLocalFile(file: vscode.TextDocument): boolean {
+  const workspace = currentWorkspaceFolder(file);
+  const workspacePath = workspaceFolderUri(workspace).fsPath;
+  const filePathNoWorkspaceArr = file.fileName.replace(workspacePath + path.sep, "").split(path.sep);
+  return filePathNoWorkspaceArr.includes("csp");
+}
+
 export function currentFile(document?: vscode.TextDocument): CurrentFile {
   document =
     document ||
@@ -72,9 +95,12 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
       !document.fileName ||
       !document.languageId ||
       !document.languageId.startsWith("objectscript") ||
-      fileExt.match(/(csp)/i)) // Skip local CSPs for now
+      document.languageId === "objectscript-output")
   ) {
-    return null;
+    // This is a non-InterSystems local file, so check if we can import it
+    if (!isImportableLocalFile(document)) {
+      return null;
+    }
   }
   const eol = document.eol || vscode.EndOfLine.LF;
   const uri = redirectDotvscodeRoot(document.uri);
@@ -99,7 +125,15 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
       [name, ext = "mac"] = path.basename(document.fileName).split(".");
     }
   } else {
-    name = fileName;
+    if (document.uri.scheme === "file") {
+      if (fileExt.match(/(csp|csr)/i) && !isImportableLocalFile(document)) {
+        // This is a csp or csr file that's not in a csp directory
+        return null;
+      }
+      name = getServerDocName(fileName, currentWorkspaceFolder(document));
+    } else {
+      name = fileName;
+    }
     // Need to strip leading / for custom Studio documents which should not be treated as files.
     // e.g. For a custom Studio document Test.ZPM, the variable name would be /Test.ZPM which is
     // not the document name. The document name is Test.ZPM so requests made to the Atelier APIs

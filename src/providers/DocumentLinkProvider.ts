@@ -64,10 +64,10 @@ export class DocumentLinkProvider implements vscode.DocumentLinkProvider {
       offset += method.location.range.start.line + 1;
     }
 
-    // move the cursor
-    const cursor = editor.selection.active;
-    const newPosition = cursor.with(offset, 0);
-    editor.selection = new vscode.Selection(newPosition, newPosition);
+    const line = editor.document.lineAt(offset);
+    const range = new vscode.Range(line.range.start, line.range.start);
+    editor.selection = new vscode.Selection(range.start, range.start);
+    editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
 
     return new vscode.DocumentLink(link.range, link.uri);
   }

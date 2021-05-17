@@ -12,8 +12,9 @@ import {
   panel,
   checkConnection,
   schemas,
+  checkingConnection,
 } from "../extension";
-import { currentWorkspaceFolder, outputConsole, outputChannel } from "../utils";
+import { currentWorkspaceFolder, outputConsole } from "../utils";
 
 const DEFAULT_API_VERSION = 1;
 import * as Atelier from "./atelier";
@@ -143,8 +144,8 @@ export class AtelierAPI {
     return cookies;
   }
 
-  public clearCookies(): void {
-    this.cache.set("cookies", []);
+  public async clearCookies(): Promise<void> {
+    await this.cache.put("cookies", []);
   }
 
   public xdebugUrl(): string {
@@ -153,7 +154,7 @@ export class AtelierAPI {
     return `${proto}://${host}:${port}${pathPrefix}/api/atelier/v${apiVersion}/%25SYS/debug`;
   }
 
-  public updateCookies(newCookies: string[]): Promise<any> {
+  public async updateCookies(newCookies: string[]): Promise<void> {
     const cookies = this.cache.get("cookies", []);
     newCookies.forEach((cookie) => {
       const [cookieName] = cookie.split("=");
@@ -164,7 +165,7 @@ export class AtelierAPI {
         cookies.push(cookie);
       }
     });
-    return this.cache.put("cookies", cookies);
+    await this.cache.put("cookies", cookies);
   }
 
   private setConnection(workspaceFolderName: string, namespace?: string): void {
@@ -322,7 +323,7 @@ export class AtelierAPI {
       });
       if (response.status === 401) {
         authRequestMap.delete(target);
-        if (this.wsOrFile) {
+        if (this.wsOrFile && !checkingConnection) {
           setTimeout(() => {
             checkConnection(true, typeof this.wsOrFile === "object" ? this.wsOrFile : undefined);
           }, 1000);
@@ -337,18 +338,16 @@ export class AtelierAPI {
         return this.cookies;
       }
 
-      if (!response.ok) {
-        throw { statusCode: response.status, message: response.statusText };
-      }
-
       const buffer = await response.buffer();
       const data: Atelier.Response = JSON.parse(buffer.toString("utf-8"));
 
-      /// decode encoded content
+      // Decode encoded content
       if (data.result && data.result.enc && data.result.content) {
         data.result.enc = false;
         data.result.content = Buffer.from(data.result.content.join(""), "base64");
       }
+
+      // Handle console output
       if (data.console) {
         // Let studio actions handle their console output
         const isStudioAction =
@@ -360,18 +359,21 @@ export class AtelierAPI {
           outputConsole(data.console);
         }
       }
+
+      // Handle any errors
+      if (data.status.summary !== "") {
+        // This is a 500 server error or a query request with malformed SQL
+        throw { statusCode: response.status, message: response.statusText, errorText: data.status.summary };
+      }
       if (data.result.status && data.result.status !== "") {
-        const status: string = data.result.status;
-        outputChannel.appendLine(status);
-        throw new Error(data.result.status);
+        // This is a 4XX error on a doc request
+        throw { statusCode: response.status, message: response.statusText, errorText: data.result.status };
       }
-      if (data.status.summary) {
-        throw new Error(data.status.summary);
-      } else if (data.result.status) {
-        throw new Error(data.result.status);
-      } else {
-        return data;
+      if (response.status >= 400) {
+        // The request errored out, but didn't give us an error string back
+        throw { statusCode: response.status, message: response.statusText, errorText: "" };
       }
+      return data;
     } catch (error) {
       if (error.code === "ECONNREFUSED") {
         authRequestMap.delete(target);
@@ -379,7 +381,12 @@ export class AtelierAPI {
         panel.tooltip = "Disconnected";
         workspaceState.update(this.configName + ":host", undefined);
         workspaceState.update(this.configName + ":port", undefined);
-        setTimeout(checkConnection, 30000);
+        if (!checkingConnection) {
+          setTimeout(checkConnection, 30000);
+        }
+      } else if (error.code === "EPROTO") {
+        // This can happen if https was configured but didn't work
+        authRequestMap.delete(target);
       }
       throw error;
     }
@@ -426,13 +433,16 @@ export class AtelierAPI {
   // api v1+
   public getDoc(name: string, format?: string): Promise<Atelier.Response<Atelier.Document>> {
     let params = {};
+    if (!format && config("multilineMethodArgs") && this._config.apiVersion >= 4) {
+      format = "udl-multiline";
+    }
     if (format) {
       params = {
         format,
       };
     }
     name = this.transformNameIfCsp(name);
-    return this.request(1, "GET", `${this.ns}/doc/${name}`, params);
+    return this.request(1, "GET", `${this.ns}/doc/${name}`, null, params);
   }
 
   // api v1+

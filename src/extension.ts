@@ -24,6 +24,7 @@ import {
   namespaceCompile,
   compileExplorerItem,
   checkChangedOnServer,
+  compileOnly,
 } from "./commands/compile";
 import { deleteItem } from "./commands/delete";
 import { exportAll, exportExplorerItem } from "./commands/export";
@@ -75,6 +76,7 @@ import {
   notNull,
   currentFile,
   InputBoxManager,
+  isImportableLocalFile,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentRangeFormattingEditProvider } from "./providers/DocumentRangeFormattingEditProvider";
@@ -161,6 +163,8 @@ export function getXmlUri(uri: vscode.Uri): vscode.Uri {
 }
 let reporter: TelemetryReporter = null;
 
+export let checkingConnection = false;
+
 let serverManagerApi: any;
 
 // Map of the intersystems.server connection specs we have resolved via the API to that extension
@@ -189,6 +193,11 @@ export function getResolvedConnectionSpec(key: string, dflt: any): any {
 }
 
 export async function checkConnection(clearCookies = false, uri?: vscode.Uri): Promise<void> {
+  // Do nothing if already checking the connection
+  if (checkingConnection) {
+    return;
+  }
+
   const { apiTarget, configName } = connectionTarget(uri);
   if (clearCookies) {
     /// clean-up cached values
@@ -266,7 +275,8 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     disableConnection(configName);
     return;
   }
-  api
+  checkingConnection = true;
+  return api
     .serverInfo()
     .then((info) => {
       panel.text = api.connInfo;
@@ -277,6 +287,7 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
           serverVersion: info.result.content.version,
           healthshare: hasHS ? "yes" : "no",
         });
+      return;
     })
     .catch((error) => {
       let message = error.message;
@@ -322,10 +333,16 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
       throw error;
     })
     .finally(() => {
-      explorerProvider.refresh();
-      if (uri && schemas.includes(uri.scheme)) {
-        vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
-      }
+      checkingConnection = false;
+      setTimeout(() => {
+        explorerProvider.refresh();
+        // Refreshing Files Explorer also switches to it, so only do this if the uri is part of the workspace,
+        // otherwise files opened from ObjectScript Explorer (objectscript:// or isfs:// depending on the "objectscript.serverSideEditing" setting)
+        // will cause an unwanted switch.
+        if (uri && schemas.includes(uri.scheme) && vscode.workspace.getWorkspaceFolder(uri)) {
+          vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
+        }
+      }, 20);
     });
 }
 
@@ -485,7 +502,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     const uri = oneToCheck[1];
     const serverName = uri.scheme === "file" ? config("conn", configName).server : configName;
     await resolveConnectionSpec(serverName);
-    await checkConnection(true, uri);
+    // Ignore any failure
+    checkConnection(true, uri).finally();
   }
 
   vscode.workspace.onDidChangeWorkspaceFolders(async ({ added, removed }) => {
@@ -520,8 +538,34 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   vscode.workspace.onDidChangeConfiguration(async ({ affectsConfiguration }) => {
     if (affectsConfiguration("objectscript.conn") || affectsConfiguration("intersystems.servers")) {
-      await checkConnection(true);
+      if (affectsConfiguration("intersystems.servers")) {
+        // Gather the server names previously resolved
+        const resolvedServers: string[] = [];
+        resolvedConnSpecs.forEach((v, k) => resolvedServers.push(k));
+        // Clear the cache
+        resolvedConnSpecs.clear();
+        // Resolve them again, sequentially in case user needs to be prompted for credentials
+        for await (const serverName of resolvedServers) {
+          await resolveConnectionSpec(serverName);
+        }
+      }
+      // Check connections sequentially for each workspace folder
+      let refreshFilesExplorer = false;
+      for await (const folder of vscode.workspace.workspaceFolders) {
+        if (schemas.includes(folder.uri.scheme)) {
+          refreshFilesExplorer = true;
+        }
+        try {
+          await checkConnection(true, folder.uri);
+        } catch (_) {
+          continue;
+        }
+      }
       explorerProvider.refresh();
+      if (refreshFilesExplorer) {
+        // This unavoidably switches to the File Explorer view, so only do it if isfs folders were found
+        vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
+      }
     }
   });
   vscode.window.onDidCloseTerminal((t) => {
@@ -534,13 +578,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   workspace.onDidSaveTextDocument((file) => {
     if (schemas.includes(file.uri.scheme) || languages.includes(file.languageId)) {
       if (documentBeingProcessed !== file) {
-        return importAndCompile(false, file);
+        return importAndCompile(false, file, config("compileOnSave"));
+      }
+    } else if (file.uri.scheme === "file") {
+      if (isImportableLocalFile(file)) {
+        // This local file is in the exported file tree, so it's a non-InterSystems file that's
+        // part of a CSP application, so import it on save
+        return importFileOrFolder(file.uri, true);
       }
     }
   });
 
   vscode.window.onDidChangeActiveTextEditor(async (textEditor: vscode.TextEditor) => {
-    await checkConnection();
+    await checkConnection(false, textEditor?.document.uri);
     posPanel.text = "";
     if (textEditor?.document.fileName.endsWith(".xml") && config("autoPreviewXML")) {
       return xml2doc(context, textEditor);
@@ -704,7 +754,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         const workspaceFolder = currentWorkspaceFolder();
         if (workspaceFolder && workspaceFolder !== workspaceState.get<string>("workspaceFolder")) {
           workspaceState.update("workspaceFolder", workspaceFolder);
-          await checkConnection();
+          await checkConnection(false, editor?.document.uri);
         }
       }
     }),
@@ -743,7 +793,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           placeHolder: "Please enter comma delimited arguments list",
         })
         .then((args) => {
-          if (args) {
+          if (args != undefined && args != null) {
             startDebugging(args);
           }
         });
@@ -774,7 +824,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         });
     }),
     vscode.commands.registerCommand("vscode-objectscript.jumpToTagAndOffset", jumpToTagAndOffset),
-    vscode.commands.registerCommand("vscode-objectscript.viewOthers", viewOthers),
+    vscode.commands.registerCommand("vscode-objectscript.viewOthers", () => viewOthers(false)),
     vscode.commands.registerCommand("vscode-objectscript.serverCommands.sourceControl", mainSourceControlMenu),
     vscode.commands.registerCommand(
       "vscode-objectscript.serverCommands.contextSourceControl",
@@ -785,7 +835,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.subclass", subclass),
     vscode.commands.registerCommand("vscode-objectscript.superclass", superclass),
     vscode.commands.registerCommand("vscode-objectscript.serverActions", serverActions),
-    vscode.commands.registerCommand("vscode-objectscript.touchBar.viewOthers", viewOthers),
+    vscode.commands.registerCommand("vscode-objectscript.touchBar.viewOthers", () => viewOthers(false)),
     vscode.commands.registerCommand("vscode-objectscript.explorer.refresh", () => explorerProvider.refresh()),
     // Register the vscode-objectscript.explorer.open command elsewhere
     registerExplorerOpen(explorerProvider),
@@ -863,7 +913,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       documentSelector("objectscript-class"),
       new ObjectScriptClassCodeLensProvider()
     ),
-    vscode.languages.registerDocumentLinkProvider({ language: "objectscript-output" }, new DocumentLinkProvider()),
+    vscode.commands.registerCommand("vscode-objectscript.compileOnly", () => compileOnly(false)),
+    vscode.commands.registerCommand("vscode-objectscript.compileOnlyWithFlags", () => compileOnly(true)),
+    vscode.languages.registerDocumentLinkProvider(
+      { language: "vscode-objectscript-output" },
+      new DocumentLinkProvider()
+    ),
+    vscode.commands.registerCommand("vscode-objectscript.editOthers", () => viewOthers(true)),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed
@@ -921,6 +977,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     },
     onDidChangeConnection(): vscode.Event<void> {
       return _onDidChangeConnection.event;
+    },
+    getUriForDocument(document: string): vscode.Uri {
+      return DocumentContentProvider.getUri(document);
     },
   };
 

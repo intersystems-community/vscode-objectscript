@@ -1,5 +1,25 @@
 # Change Log
 
+## [1.0.11] 12-May-2021
+- Support client-side web app (CSP) workflow as long as web app path is in the `/csp/*` space (#147, #449)
+- Add compile-only commands 'Compile Current File' and 'Compile Current File with Specified Flags...' (#595)
+- Add 'Edit Other' command plus menu option below 'View Other' (#309)
+- Report server-side errors from imports and isfs saves (#391)
+- Use web app token when authenticating with Management Portal and Class Reference.
+- Permit empty argument list in 'Debug this' (#642)
+- Add `objectscript.compileOnSave` setting to turn off post-save compile (#594)
+- Treat `system=1` parameter on non-%SYS `isfs` folder spec as signal to include %-items (#623)
+- Add `objectscript.multilineMethodArgs` setting to use UDL parameter supported on servers with API version 4+ (#457)
+- Add snippets for business processes.
+- Prevent leading space in front of Class keyword from blocking import (#613)
+- Import into the correct namespace when working with multi-root workspace (#535)
+- Refactor 'Jump to Line' to use DocumentSymbolProvider.
+- Improve 'View Other' when working with servers supporting API version 4+ (#363)
+- Support Language Server enhancement that opens local copy of file when using 'Go to Definition' in client-side editing mode.
+- Update connections when settings are changed (#608)
+- Improve documentation.
+- Upgrade vulnerable dependencies.
+
 ## [1.0.10] 26-Apr-2021
 - Avoid prompting for already-saved password (#61)
 - Constrain QuickOpen list contents when `isfs` folder path targets a specific package (#581)
@@ -35,7 +55,7 @@
 ## [1.0.7] 4-Jan-2021
 - Fix issue affecting use with Docker on Windows (#516)
 - Resolve problem debugging in a multi-root workspace using isfs (#387)
-- Allow 'View other' from custom Studio documents.
+- Allow 'View Other' from custom Studio documents.
 - Fix issue that prevented saving of custom Studio documents.
 - Add code snippets for Request, Response and multi-superclass class definitions, Projection, XData, Try Catch, $$$ThrowOnError macro.
 - Upgrade vulnerable dependency.

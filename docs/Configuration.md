@@ -11,7 +11,7 @@ VS Code settings enable you to customize various aspects of its function. The In
 {: #code-workspaces}
 ## VS Code Workspaces 
 
-To work with VS Code, you need to open a workspace. A VS Code workspace can be just the root folder of your project. Workspace settings and task configurations are stored in the root folder in the `settings.json` file in a folder called `.vscode`. Debugging launch configurations are stored in `launch.json`, also in `.vscode`.
+To work with VS Code, you need to open a workspace. In the simplest setup, a VS Code workspace is just the root folder of your project. Workspace settings and task configurations are stored in the root folder in the `settings.json` file in a folder called `.vscode`. Debugging launch configurations are stored in `launch.json`, also in `.vscode`.
 
 If you need to have more than one root folder in a VS Code workspace, use a feature called multi-root workspaces. See [Multi-root Workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) in the VS Code documentation.
 

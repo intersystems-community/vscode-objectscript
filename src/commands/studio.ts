@@ -100,7 +100,7 @@ class StudioActions {
         return vscode.window
           .showWarningMessage(target, { modal: true }, "Yes", "No")
           .then((answer) => (answer === "Yes" ? "1" : answer === "No" ? "0" : "2"));
-      case 2: // Run a CSP page/Template. The Target is the full url to the CSP page/Template
+      case 2: // Run a CSP page/Template. The Target is the full path of CSP page/template on the connected server
         return new Promise((resolve) => {
           let answer = "2";
           const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
@@ -120,16 +120,19 @@ class StudioActions {
           });
           panel.onDidDispose(() => resolve(answer));
 
+          const config = this.api.config;
           const url = new URL(
-            `${this.api.config.https ? "https" : "http"}://${this.api.config.host}:${this.api.config.port}${target}`
+            `${config.https ? "https" : "http"}://${config.host}:${config.port}${config.pathPrefix}${target}`
           );
-          this.api
-            .actionQuery("select %Atelier_v1_Utils.General_GetCSPToken(?) token", [url.toString()])
-            .then((tokenObj) => {
-              const csptoken = tokenObj.result.content[0].token;
-              url.searchParams.set("CSPCHD", csptoken);
-              url.searchParams.set("Namespace", this.api.config.ns);
-              panel.webview.html = `
+
+          // Do this ourself instead of using our new getCSPToken wrapper function, because that function reuses tokens which causes issues with
+          // webview when server is 2020.1.1 or greater, as session cookie scope is typically Strict, meaning that the webview
+          // cannot store the cookie. Consequence is web sessions may build up (they get a 900 second timeout)
+          this.api.actionQuery("select %Atelier_v1_Utils.General_GetCSPToken(?) token", [target]).then((tokenObj) => {
+            const csptoken = tokenObj.result.content[0].token;
+            url.searchParams.set("CSPCHD", csptoken);
+            url.searchParams.set("Namespace", this.api.config.ns);
+            panel.webview.html = `
               <!DOCTYPE html>
               <html lang="en">
               <head>
@@ -157,7 +160,7 @@ class StudioActions {
               </body>
               </html>
               `;
-            });
+          });
         });
       case 3: // Run an EXE on the client.
         throw new Error("processUserAction: Run EXE (Action=5) not supported");
