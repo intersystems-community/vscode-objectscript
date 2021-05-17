@@ -17,7 +17,7 @@ If you need to have more than one root folder in a VS Code workspace, use a feat
 
 A multi root workspace contains a `*.code-workspace` file. The file can have any name followed by *.code-workspace*, for example `test.code-workspace`. The `*.code-workspace` file stores information about what folders are in the workspace and other settings that would otherwise be stored in the settings.json or launch.json files. Settings in `settings.json` or `launch.json` will override those in the `*.code-workspace` file, so be careful to use one or the other unless you truly need to leverage this flexibility. You can optionally have a workspace file even if you are not using the multi-root feature.
 
-To edit a `*.code-workspace` file in VS Code using the **InterSystems ObjectScript** extension, select **File > Preferences > Settings** (**Code > Preferences > Settings** on Mac) and select the Workspace level. Search for **objectscript: conn**, and click on *Edit in settings.json*. VS Code opens the `*.code-workspace` file for that workspace.
+To edit **InterSystems ObjectScript** extension settings in a `*.code-workspace` file in VS Code, open the workspace using **File > Open Workspace...**, select **File > Preferences > Settings** (**Code > Preferences > Settings** on Mac) and select the Workspace tab. Search for **objectscript: conn**, and click on *Edit in settings.json*. VS Code opens the `*.code-workspace` file for that workspace.
 
 The **InterSystems ObjectScript** extension uses the multi-root workspaces feature to support ObjectScript development on the InterSystems server.
 
