@@ -40,21 +40,22 @@ See the VS Code documentation section [User and Workspace Settings](https://code
 {: #config-server}
 ## Configuring a Server
 
-First, configure one or more servers. Select **View > Command Palette > InterSystems Server Manager: Store Password in Keychain**. This command lets you define a new server and securely store a password in the system keychain. Click the plus sign in the upper right corner of the dialog, as shown:
+First, configure one or more servers. You can use the plus sign (`+`) at the top of the InterSystems Tools view to add a server. For more information on this view, see the section [InterSystems Tools View](../extensionui#intersystems-tools-view).
 
-![Define New Server.](../assets/images/new-server.png "define new server")
+![Add server.](../assets/images/add-server.png "add server")
 
 Provide the following values when prompted:
 
-- **Name of new server definition** - an arbitrary name to identify this server
-- **Hostname or IP address of web server** - the host for this server
-- **Port of web server** - the WebServer port number for this server
+- **Name of new server definition** - an arbitrary name to identify this server.
+- **Description (optional)** - a brief description of the server.
+- **Hostname or IP address of web server** - the host for this server.
+- **Port of web server** - the WebServer port number for this server.
 - **Username** - the username to use in logging in to this server.
 - **Confirm connection type** - the protocol used for connections, possible values are **http** and **https**.
 
-Once you have entered these values, the server definition is stored in your user settings. At that point another prompt appears, asking for a password to store in the system keychain. Enter the password for the username supplied earlier to complete the process. Storing a password is optional. You can terminate the process and store the server configuration by pressing either **Escape** or **Return**. If you do not store a password, users are prompted for a password each time they connect to the server.
+Once you have entered these values, the server definition is stored in your user-level `settings.json` file, and the server appears at the top of the **Recent** folder in the InterSystems Tools view.
 
-To remove a password from the keychain, Select **View > Command Palette > InterSystems Server Manager: Clear Password from Keychain**. The commands to both store and clear passwords are also available from the server context menu in the InterSystems Tools view.
+If you want to store a password for this server definition, select **Store Password in Keychain** from the context menu for the server in the InterSystems Tools view.  If you do not store a password, users are prompted for a password each time they connect to the server. To remove a password from the keychain, Select **Clear Password from Keychain** from the server context menu. For more information, see [Server Context Menu](../extensionui#server-context-menu).
 
 You can create a configuration for a server that is not currently running.
 
