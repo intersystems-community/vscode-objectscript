@@ -20,6 +20,7 @@ The Explorer view is a standard VS Code view. InterSystems extensions add the fo
 - **Import and Compile** - in context menu of folders and files when you are connected to an InterSystems server
 - **Import Without Compilation** - in context menu of folders and files when you are connected to an InterSystems server
 
+{: #intersystems-tools-view}
 ## InterSystems Tools View
 
 The InterSystems Server Manager extension supplies an InterSystems Tools view. Select the InterSystems Tools view button in the Activity Bar to open the view.
@@ -74,12 +75,9 @@ If you are already doing client-side editing of your code, for example, managing
 
 ### Adding a Server
 
-You can use the plus sign (`+`) at the top of the view to add a server. This control provides an additional entry point to the process described in the section [Configuring a Server](../configuration/#config-server).
+You can use the plus sign (`+`) at the top of the view to add a server as described in the section [Configuring a Server](../configuration/#config-server).
 
-![Add server.](../assets/images/add-server.png "add server")
-
-The server definition is added to your user-level *settings.json* file and also appears at the top of the 'Recent' folder.
-
+{: #server-context-menu}
 ### Server Context Menu
 
 Servers listed in the InterSystems Tools view provide a context menu which provides access to several commands, including storing and clearing passwords in the keychain.
