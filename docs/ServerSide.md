@@ -50,7 +50,7 @@ The `.code-workspace` file is a JSON file which you can edit directly, as descri
    - The value following `/` specifies the name of the server.
    - The value following `:` specifies the namespace (lowercase).
 
-The string `isfs` which appears in the **uri** for folders configured for server-side editing is an abbreviation created by InterSystems which stands for **InterSystems File Service**. It implements the VS Code [FileSystemProvider API](https://code.visualstudio.com/api/references/vscode-api#FileSystemProvider), which let's you make any remote location look like a local one. It works well for making artefacts in an InterSystems IRIS database namespace look like local files.
+The string `isfs` which appears in the **uri** for folders configured for server-side editing is an abbreviation created by InterSystems which stands for **InterSystems File Service**. It implements the VS Code [FileSystemProvider API](https://code.visualstudio.com/api/references/vscode-api#FileSystemProvider), which lets you make any remote location look like a local one. It works well for making artefacts in an InterSystems IRIS namespace look like local files.
 
 To add more root folders to your workspace, giving you access to code in a different namespace, or on a different server, use the context menu on your existing root folder to invoke the `Add Server Namespace to Workspace...` command. This command is also available on the Command Palette.
 
