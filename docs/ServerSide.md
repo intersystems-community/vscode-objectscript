@@ -110,7 +110,7 @@ You can also create a folder-specific snippets file via **Preferences: Configure
 To edit the server-side namespace-specific files for all namespaces directly through VS Code, add an isfs-type root folder with the following uri:
 
 ```
-isfs://servername/_vscode?ns=%SYS&csp
+isfs://servername:%sys/_vscode?csp
 ```
 
 For a single namespace (for example, USER):
