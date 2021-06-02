@@ -116,7 +116,7 @@ isfs://servername:%sys/_vscode?csp
 For a single namespace (for example, USER):
 
 ```
-isfs://servername/_vscode/USER?ns=%SYS&csp
+isfs://servername:%sys/_vscode/USER?csp
 ```
 
 ## Web Application (CSP) Files
