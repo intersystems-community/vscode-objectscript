@@ -457,6 +457,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   const languages = packageJson.contributes.languages.map((lang) => lang.id);
   // workaround for Theia, issue https://github.com/eclipse-theia/theia/issues/8435
   workspaceState = {
+    keys: context.workspaceState.keys,
     get: <T>(key: string, defaultValue?: T): T | undefined =>
       context.workspaceState.get(key, defaultValue) || defaultValue,
     update: (key: string, value: any): Thenable<void> => context.workspaceState.update(key, value),

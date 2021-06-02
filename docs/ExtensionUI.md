@@ -4,6 +4,7 @@ title: InterSystems Extensions UI
 permalink: /extensionui/
 nav_order: 3
 ---
+
 # InterSystems Extensions User Interface
 
 The InterSystems extensions add additional capability to the VS Code user interface to support development in ObjectScript. These additions are based on the standard VS Code UI, which is described in the section [User Interface](https://code.visualstudio.com/docs/getstarted/userinterface) in the VS Code documentation.
@@ -63,7 +64,7 @@ Expand the target server, then expand its **Namespaces**  folder. Hover over the
 
 - Click the **edit pencil** button to add an *isfs://server:namespace/* folder to your VS Code workspace.
 - Click the **viewing eye** button to add an *isfs-readonly://server:namespace/* folder to your VS Code workspace.
-- Hold the **alt** or **option** key while clicking the edit or view button if you want to add a folder that gives you access to server-side web application files (for example, CSP files).
+- Hold the **alt** or **option** key while clicking the edit or view button to add a folder that gives you access to server-side web application files (for example, CSP files).
 
 Once you have added a server-side namespace to the workspace, VS Code opens the Explorer view showing the added namespace. The following screen shot shows the **Sample** and **User** packages in the **src** folder on the client, and the **Sample** and **User** packages in the **USER** namespace on the server, with read-only access.
 
@@ -118,9 +119,10 @@ Entries from menus with any other name appear in the **Server Command Menu...**.
 
 ## Views and View Containers
 
-Technically the 'InterSystems Tools' and 'Explorer' entities described above are what VS Code calls [view containers](https://code.visualstudio.com/api/extension-capabilities/extending-workbench#view-container). Each contains a single view:
-- in container **InterSystems Tools** is view **Servers**
-- in container **ObjectScript** is view **Explorer**
+Technically the **InterSystems Tools** and **ObjectScript** entities described above are what VS Code calls [view containers](https://code.visualstudio.com/api/extension-capabilities/extending-workbench#view-container). Each contains a single view:
+
+- In container **InterSystems Tools** is view **Servers**
+- In container **ObjectScript** is view **Explorer**
 
 When a VS Code container has only a single view in it the view header merges with the container header, with the two names separated by a colon.
 

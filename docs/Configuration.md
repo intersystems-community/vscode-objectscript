@@ -15,7 +15,7 @@ To work with VS Code, you need to open a workspace. In the simplest setup, a VS 
 
 If you need to have more than one root folder in a VS Code workspace, use a feature called multi-root workspaces. See [Multi-root Workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) in the VS Code documentation.
 
-A multi-root workspace is defined by a `*.code-workspace` file. The file can have any name followed by *.code-workspace*, for example `test.code-workspace`. The `*.code-workspace` file stores information about what folders are in the workspace, and may also store other settings that would otherwise be stored in the settings.json or launch.json files. Settings in a folder's `.vscode/settings.json` or `.vscode/launch.json` will override those in the `*.code-workspace` file, so be careful to use one or the other unless you truly need to leverage this flexibility. You can have a workspace file even if you are only working with a single root folder. Indeed. if you are [working server-side](../serverside/) you will always be using a workspace file.
+A multi-root workspace is defined by a `*.code-workspace` file. The file can have any name followed by *.code-workspace*, for example `test.code-workspace`. The `*.code-workspace` file stores information about what folders are in the workspace, and may also store other settings that would otherwise be stored in the settings.json or launch.json files. Settings in a folder's `.vscode/settings.json` or `.vscode/launch.json` will override those in the `*.code-workspace` file, so be careful to use one or the other unless you truly need to leverage this flexibility. You can have a workspace file even if you are only working with a single root folder. Indeed, if you are [working server-side](../serverside/) you will always be using a workspace file.
 
 To edit **InterSystems ObjectScript** extension settings in a `*.code-workspace` file in VS Code, open the workspace using **File > Open Workspace...**, select **File > Preferences > Settings** (**Code > Preferences > Settings** on Mac) and select the Workspace tab. Search for **objectscript: conn**, and click on *Edit in settings.json*. VS Code opens the `*.code-workspace` file for that workspace.
 
@@ -23,7 +23,7 @@ The **InterSystems ObjectScript** extension uses the multi-root workspaces featu
 
 ## Settings
 
-Many available settings are general to VS Code, and you can learn about them in the [Visual Studio Code Documentation](https://code.visualstudio.com/docs). The InterSystems Server Manager, InterSystems ObjectScript and InterSystems Language Server extensions supply additional settings you can use to define InterSystems IRIS servers and the behavior of connections to those servers.
+Many available settings are general to VS Code, and you can learn about them in the [Visual Studio Code Documentation](https://code.visualstudio.com/docs). The InterSystems Server Manager, InterSystems ObjectScript, and InterSystems Language Server extensions supply additional settings you can use to define InterSystems IRIS servers and connections to those servers.
 
 There are several levels on which settings are stored and used:
 
