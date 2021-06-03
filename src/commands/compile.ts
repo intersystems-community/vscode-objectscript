@@ -229,10 +229,8 @@ async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
             return docs;
           })
           .catch((error: Error) => {
-            outputChannel.appendLine(error.message);
-            outputChannel.show(true);
             if (!config("suppressCompileErrorMessages")) {
-              vscode.window.showErrorMessage(error.message, "Show details").then((data) => {
+              vscode.window.showErrorMessage("Compilation failed. Check output channel for details.", "Dismiss").then((data) => {
                 outputChannel.show(true);
               });
             }
