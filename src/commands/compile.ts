@@ -230,9 +230,11 @@ async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
           })
           .catch((error: Error) => {
             if (!config("suppressCompileErrorMessages")) {
-              vscode.window.showErrorMessage("Compilation failed. Check output channel for details.", "Dismiss").then((data) => {
-                outputChannel.show(true);
-              });
+              vscode.window
+                .showErrorMessage("Compilation failed. Check output channel for details.", "Dismiss")
+                .then((data) => {
+                  outputChannel.show(true);
+                });
             }
             // Even when compile failed we should still fetch server changes
             return docs;
