@@ -362,7 +362,7 @@ export class AtelierAPI {
 
       // Handle any errors
       if (data.status.summary !== "") {
-        // This is a 500 server error or a query request with malformed SQL
+        // This is a 500 server error, a query request with malformed SQL or a failed compile (which will have a 200 OK status)
         throw { statusCode: response.status, message: response.statusText, errorText: data.status.summary };
       }
       if (data.result.status && data.result.status !== "") {
