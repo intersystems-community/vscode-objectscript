@@ -1,5 +1,13 @@
 # Change Log
 
+## [1.0.12] 10-Jun-2021
+- Allow extension to work in untrusted workspaces.
+- Don't switch to File Explorer view when opening a file from ObjectScript Explorer (#651)
+- Scroll to correct line after an Output panel link is clicked (#657)
+- Handle compilation errors better (#673)
+- Improve documentation.
+- Upgrade vulnerable dependencies.
+
 ## [1.0.11] 12-May-2021
 - Support client-side web app (CSP) workflow as long as web app path is in the `/csp/*` space (#147, #449)
 - Add compile-only commands 'Compile Current File' and 'Compile Current File with Specified Flags...' (#595)
