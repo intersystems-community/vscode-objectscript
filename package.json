@@ -23,6 +23,11 @@
   },
   "license": "MIT",
   "publisher": "intersystems-community",
+  "capabilities": {
+		"untrustedWorkspaces": {
+			"supported": true
+		}
+	},
   "contributors": [
     {
       "name": "Dmitry Maslennikov",
