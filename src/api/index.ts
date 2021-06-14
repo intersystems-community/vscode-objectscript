@@ -338,6 +338,11 @@ export class AtelierAPI {
         return this.cookies;
       }
 
+      // Not Modified
+      if (response.status === 304) {
+        throw { statusCode: response.status, message: response.statusText };
+      }
+
       const buffer = await response.buffer();
       const data: Atelier.Response = JSON.parse(buffer.toString("utf-8"));
 
@@ -431,7 +436,7 @@ export class AtelierAPI {
   }
 
   // api v1+
-  public getDoc(name: string, format?: string): Promise<Atelier.Response<Atelier.Document>> {
+  public getDoc(name: string, format?: string, mtime?: number): Promise<Atelier.Response<Atelier.Document>> {
     let params = {};
     if (!format && config("multilineMethodArgs") && this._config.apiVersion >= 4) {
       format = "udl-multiline";
@@ -442,7 +447,11 @@ export class AtelierAPI {
       };
     }
     name = this.transformNameIfCsp(name);
-    return this.request(1, "GET", `${this.ns}/doc/${name}`, null, params);
+    const headers = {};
+    if (mtime && mtime > 0) {
+      headers["IF_NONE_MATCH"] = new Date(mtime).toISOString().replace(/T|Z/g, " ").trim();
+    }
+    return this.request(1, "GET", `${this.ns}/doc/${name}`, null, params, headers);
   }
 
   // api v1+

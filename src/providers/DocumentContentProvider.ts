@@ -6,7 +6,7 @@ import { AtelierAPI } from "../api";
 
 import { getFileName, getFolderName } from "../commands/export";
 import { config, FILESYSTEM_SCHEMA, FILESYSTEM_READONLY_SCHEMA, OBJECTSCRIPT_FILE_SCHEMA } from "../extension";
-import { currentWorkspaceFolder, workspaceFolderUri } from "../utils";
+import { currentWorkspaceFolder, uriOfWorkspaceFolder } from "../utils";
 
 export class DocumentContentProvider implements vscode.TextDocumentContentProvider {
   public get onDidChange(): vscode.Event<vscode.Uri> {
@@ -16,7 +16,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
   public static getAsFile(name: string, workspaceFolder: string): string {
     const { atelier, folder, addCategory, map } = config("export", workspaceFolder);
 
-    const root = [workspaceFolderUri(workspaceFolder).fsPath, folder].join(path.sep);
+    const root = [uriOfWorkspaceFolder(workspaceFolder).fsPath, folder].join(path.sep);
     const fileName = getFileName(root, name, atelier, addCategory, map);
     if (fs.existsSync(fileName)) {
       return fs.realpathSync.native(fileName);
@@ -26,7 +26,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
   public static getAsFolder(name: string, workspaceFolder: string, category?: string): string {
     const { atelier, folder, addCategory } = config("export", workspaceFolder);
 
-    const root = [workspaceFolderUri(workspaceFolder).fsPath, folder].join(path.sep);
+    const root = [uriOfWorkspaceFolder(workspaceFolder).fsPath, folder].join(path.sep);
     const folderName = getFolderName(root, name, atelier, addCategory ? category : null);
     if (fs.existsSync(folderName)) {
       return fs.realpathSync.native(folderName);
@@ -49,7 +49,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     // if wFolderUri was passed it takes precedence
     if (!wFolderUri) {
       workspaceFolder = workspaceFolder && workspaceFolder !== "" ? workspaceFolder : currentWorkspaceFolder();
-      wFolderUri = workspaceFolderUri(workspaceFolder);
+      wFolderUri = uriOfWorkspaceFolder(workspaceFolder);
     }
     let uri: vscode.Uri;
     if (wFolderUri.scheme === FILESYSTEM_SCHEMA || wFolderUri.scheme === FILESYSTEM_READONLY_SCHEMA) {

@@ -3,7 +3,7 @@ import path = require("path");
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { config } from "../extension";
-import { mkdirSyncRecursive, notNull, outputChannel, workspaceFolderUri } from "../utils";
+import { mkdirSyncRecursive, notNull, outputChannel, uriOfWorkspaceFolder } from "../utils";
 import { NodeBase } from "../explorer/models/nodeBase";
 
 const filesFilter = (file: any) => {
@@ -185,7 +185,10 @@ export async function exportList(files: string[], workspaceFolder: string, names
   }
   const { atelier, folder, addCategory, map } = config("export", workspaceFolder);
 
-  const root = [workspaceFolderUri(workspaceFolder).fsPath, typeof folder === "string" && folder.length ? folder : null]
+  const root = [
+    uriOfWorkspaceFolder(workspaceFolder).fsPath,
+    typeof folder === "string" && folder.length ? folder : null,
+  ]
     .filter(notNull)
     .join(path.sep);
   const run = async (fileList) => {
