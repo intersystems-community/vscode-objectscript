@@ -61,7 +61,7 @@ export interface ConnectionTarget {
  * @param workspace The workspace the file is in.
  */
 function getServerDocName(localPath: string, workspace: string): string {
-  const workspacePath = workspaceFolderUri(workspace).fsPath;
+  const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
   const filePathNoWorkspaceArr = localPath.replace(workspacePath + path.sep, "").split(path.sep);
   return filePathNoWorkspaceArr.slice(filePathNoWorkspaceArr.indexOf("csp")).join("/");
 }
@@ -73,7 +73,7 @@ function getServerDocName(localPath: string, workspace: string): string {
  */
 export function isImportableLocalFile(file: vscode.TextDocument): boolean {
   const workspace = currentWorkspaceFolder(file);
-  const workspacePath = workspaceFolderUri(workspace).fsPath;
+  const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
   const filePathNoWorkspaceArr = file.fileName.replace(workspacePath + path.sep, "").split(path.sep);
   return filePathNoWorkspaceArr.includes("csp");
 }
@@ -259,18 +259,7 @@ export function isCSP(uri: vscode.Uri): boolean {
 export function currentWorkspaceFolder(document?: vscode.TextDocument): string {
   document = document ? document : vscode.window.activeTextEditor && vscode.window.activeTextEditor.document;
   if (document) {
-    const uri = document.uri;
-    if (uri.scheme === "file") {
-      if (vscode.workspace.getWorkspaceFolder(uri)) {
-        return vscode.workspace.getWorkspaceFolder(uri).name;
-      }
-    } else if (schemas.includes(uri.scheme)) {
-      const rootUri = uri.with({ path: "/" }).toString();
-      const foundFolder = vscode.workspace.workspaceFolders.find(
-        (workspaceFolder) => workspaceFolder.uri.toString() == rootUri
-      );
-      return foundFolder ? foundFolder.name : uri.authority;
-    }
+    return workspaceFolderOfUri(document.uri);
   }
   const firstFolder =
     vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length
@@ -283,7 +272,21 @@ export function currentWorkspaceFolder(document?: vscode.TextDocument): string {
   }
 }
 
-export function workspaceFolderUri(workspaceFolder: string = currentWorkspaceFolder()): vscode.Uri {
+export function workspaceFolderOfUri(uri: vscode.Uri): string {
+  if (uri.scheme === "file") {
+    if (vscode.workspace.getWorkspaceFolder(uri)) {
+      return vscode.workspace.getWorkspaceFolder(uri).name;
+    }
+  } else if (schemas.includes(uri.scheme)) {
+    const rootUri = uri.with({ path: "/" }).toString();
+    const foundFolder = vscode.workspace.workspaceFolders.find(
+      (workspaceFolder) => workspaceFolder.uri.toString() == rootUri
+    );
+    return foundFolder ? foundFolder.name : uri.authority;
+  }
+}
+
+export function uriOfWorkspaceFolder(workspaceFolder: string = currentWorkspaceFolder()): vscode.Uri {
   return (
     vscode.workspace.workspaceFolders.find((el): boolean => el.name.toLowerCase() === workspaceFolder.toLowerCase()) ||
     vscode.workspace.workspaceFolders.find((el): boolean => el.uri.authority == workspaceFolder)
@@ -309,7 +312,7 @@ export async function portFromDockerCompose(): Promise<{ port: number; docker: b
     return { docker: false, port: null };
   }
   const result = { port: null, docker: true, service };
-  const workspaceFolderPath = workspaceFolderUri().fsPath;
+  const workspaceFolderPath = uriOfWorkspaceFolder().fsPath;
   const workspaceRootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
 
   const cwd: string = await new Promise((resolve, reject) => {

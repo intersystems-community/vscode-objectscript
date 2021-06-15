@@ -13,7 +13,7 @@ import {
   workspaceState,
 } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
-import { currentFile, CurrentFile, currentWorkspaceFolder, outputChannel, workspaceFolderUri } from "../utils";
+import { currentFile, CurrentFile, currentWorkspaceFolder, outputChannel, uriOfWorkspaceFolder } from "../utils";
 import { RootNode } from "../explorer/models/rootNode";
 import { PackageNode } from "../explorer/models/packageNode";
 import { ClassNode } from "../explorer/models/classNode";
@@ -137,10 +137,17 @@ What do you want to do?`,
       } else {
         if (error.errorText && error.errorText !== "") {
           outputChannel.appendLine("\n" + error.errorText);
-          vscode.window.showErrorMessage(
-            `Failed to save file '${file.name}' on the server. Check output channel for details.`,
-            "Dismiss"
-          );
+          vscode.window
+            .showErrorMessage(
+              `Failed to save file '${file.name}' on the server. Check 'ObjectScript' output channel for details.`,
+              "Show",
+              "Dismiss"
+            )
+            .then((action) => {
+              if (action === "Show") {
+                outputChannel.show(true);
+              }
+            });
         } else {
           vscode.window.showErrorMessage(`Failed to save file '${file.name}' on the server.`, "Dismiss");
         }
@@ -231,9 +238,15 @@ async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
           .catch((error: Error) => {
             if (!config("suppressCompileErrorMessages")) {
               vscode.window
-                .showErrorMessage("Compilation failed. Check output channel for details.", "Dismiss")
-                .then((data) => {
-                  outputChannel.show(true);
+                .showErrorMessage(
+                  "Compilation failed. Check 'ObjectScript' output channel for details.",
+                  "Show",
+                  "Dismiss"
+                )
+                .then((action) => {
+                  if (action === "Show") {
+                    outputChannel.show(true);
+                  }
                 });
             }
             // Even when compile failed we should still fetch server changes
@@ -373,7 +386,7 @@ export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<
   }
   let globpattern = "*.{cls,inc,int,mac}";
   const workspace = currentWorkspaceFolder();
-  const workspacePath = workspaceFolderUri(workspace).fsPath;
+  const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
   const folderPathNoWorkspaceArr = uripath.replace(workspacePath + path.sep, "").split(path.sep);
   if (folderPathNoWorkspaceArr.includes("csp")) {
     // This folder is a CSP application, so import all files
