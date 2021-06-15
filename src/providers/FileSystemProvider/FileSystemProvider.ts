@@ -203,12 +203,16 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         // The actual writing is done by our workspace.onDidSaveTextDocument handler.
         // But first check a case for which we should fail the write and leave the document dirty if changed.
         if (fileName.split(".").pop().toLowerCase() === "cls") {
-          return api.actionIndex([fileName]).then((result) => {
+          api.actionIndex([fileName]).then((result) => {
             if (result.result.content[0].content.depl) {
               throw new Error("Cannot overwrite a deployed class");
             }
           });
         }
+        // Set a -1 mtime cache entry so the actual write by the workspace.onDidSaveTextDocument handler always overwrites.
+        // By the time we get here VS Code's built-in conflict resolution mechanism will already have interacted with the user.
+        const uniqueId = `${workspaceFolderOfUri(uri)}:${fileName}`;
+        workspaceState.update(`${uniqueId}:mtime`, -1);
         return;
       },
       (error) => {
