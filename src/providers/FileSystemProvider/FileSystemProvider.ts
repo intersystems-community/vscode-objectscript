@@ -149,7 +149,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
     return this._lookupAsFile(uri).then((file: File) => {
       // Update cache entry
-      const uniqueId = `${workspaceFolderOfUri(uri)}:${file.name}`;
+      const uniqueId = `${workspaceFolderOfUri(uri)}:${file.fileName}`;
       workspaceState.update(`${uniqueId}:mtime`, file.mtime);
       return file.data;
     });
