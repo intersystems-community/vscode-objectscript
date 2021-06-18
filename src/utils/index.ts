@@ -259,7 +259,11 @@ export function isCSP(uri: vscode.Uri): boolean {
 export function currentWorkspaceFolder(document?: vscode.TextDocument): string {
   document = document ? document : vscode.window.activeTextEditor && vscode.window.activeTextEditor.document;
   if (document) {
-    return workspaceFolderOfUri(document.uri);
+    const folder = workspaceFolderOfUri(document.uri);
+    // document might not be part of the workspace (e.g. the XXX.code-workspace JSON file)
+    if (folder) {
+      return folder;
+    }
   }
   const firstFolder =
     vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length
@@ -284,6 +288,7 @@ export function workspaceFolderOfUri(uri: vscode.Uri): string {
     );
     return foundFolder ? foundFolder.name : uri.authority;
   }
+  return "";
 }
 
 export function uriOfWorkspaceFolder(workspaceFolder: string = currentWorkspaceFolder()): vscode.Uri {
