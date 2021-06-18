@@ -1,9 +1,16 @@
-**
-!dist/
-!snippets/
-!images/
-!syntaxes/
-!README.md
+# Run 'vsce ls' to verify that the following lines exclude everything not needed
+# in the VSIX. It used to be possible to use a whitelisting technique here
+# but vsce@1.92.0 broke it (see https://github.com/microsoft/vscode-vsce/issues/576)
+
+/*
+!/dist
+/dist/*.map
+!/images
+!/snippets
+!/syntaxes
 !CHANGELOG.md
-!*.json
-!*.jsonc
+!language-configuration-class.jsonc
+!language-configuration.json
+!LICENSE
+!package.json
+!README.md
