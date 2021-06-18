@@ -295,9 +295,12 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   private async _lookup(uri: vscode.Uri): Promise<Entry> {
     if (uri.path === "/") {
       const api = new AtelierAPI(uri);
-      if (!api.active) {
-        throw vscode.FileSystemError.Unavailable(`${uri.toString()} is unavailable`);
-      }
+      await api
+        .serverInfo()
+        .then()
+        .catch(() => {
+          throw vscode.FileSystemError.Unavailable(`${uri.toString()} is unavailable`);
+        });
     }
     const parts = uri.path.split("/");
     let entry: Entry = this.root;
