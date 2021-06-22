@@ -2,57 +2,58 @@
 layout: default
 title: Server-side Editing
 permalink: /serverside/
-nav_order: 5
+nav_order: 6
 ---
-# VS Code Workspaces
 
-To work with VS Code, you need to open a workspace. A VS Code workspace is usually just the root folder of your project. Workspace settings as well as debugging and task configurations are stored in the root folder in a folder called .vscode.
+# Server-side Editing 
 
-If you need to have more than one root folder in a VS Code workspace, use a feature called multi-root workspaces. See [Multi-root Workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) in the VS Code documentation.
+You can configure the InterSystems ObjectScript extension to edit code directly on the server, using the [multi-root workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) VS Code feature. This type of configuration is useful in cases where source code is stored in a Source Code Management (SCM) product interfaced to the server. For example you might already be using the Source Control menu in InterSystems Studio or Portal, implemented by a source control class that extends `%Studio.SourceControl.Base`.
 
-A multi root workspace contains a \*.code-workspace file. The file can have any name followed by *.code-workspace*, for example `test.code-workspace`. The .code-workspace file stores information about what folders are in the workspace. Other settings that would otherwise be stored in the settings.json or launch.json file can be stored in the .code-workspace file. You can optionally have a workspace file even if you are not using the multi-root feature.
+{: #config-server-side}
+## Configuring for Server-side Editing
 
-To edit a *.code-workspace* file in VS Code using the **InterSystems ObjectScript** extension, select **File > Preferences > Settings** (**Code > Preferences > Settings** on Mac) and select the Workspace option. When you click **Edit in settings.json**, VS Code opens the *.code-workspace* file for that workspace.
+First configure the `intersystems.servers` entry for your server, as described in [Configuring a Server](../configuration#config-server).
 
-The **InterSystems ObjectScript** extension uses the multi-root workspaces feature to support ObjectScript development on the InterSystems server.
+Next create a workspace for editing code directly on the server:
 
-# Server-side Source Control
+1. Open VS Code. You must perform the following steps starting with no folder or workspace open, so if a folder or workspace is already open, close it.
+1. Open the Explorer view if it is not already visible.
+1. Click the button labeled **Choose Server and Namespace** in the Explorer view, as shown in the following screen shot:
 
-You can configure the InterSystems ObjectScript extension to edit code directly on the server, using the [multi-root workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) VS Code feature. This type of configuration is useful in cases where source code is stored in a Source Code Management (SCM) product interfaced to the server. For example you might already be using the Source Control menu in InterSystems Studio or Portal, implemented by a source control class that extends `%Studio.SourceControl.Base`. 
+    ![Explorer view.](../assets/images/ss-explorer-view.png "explorer view")
+1. Pick a server from the list, or click the **+** sign to create a new server configuration:
 
-First configure the `intersystems.servers` entry for your server, as described in [Configuration](../configuration).
+   ![Choose a server.](../assets/images/ss-choose-server.png "choose a server")
+1. Enter credentials if prompted.
+1. Pick a namespace from the list retrieved from the target server:
 
-Next create a workspace for editing code direct on the server:
+   ![Choose a namespace.](../assets/images/ss-choose-namespace.png "choose a namespace")
+1. Pick an access mode from the list:
 
-1. Open VS Code. If a folder or workspace is already open, close it, for example by pressing <kbd>Ctrl/Cmd</kbd>+<kbd>K</kbd>, releasing that keypair, then pressing <kbd>F</kbd>.
+   ![Choose an access type.](../assets/images/ss-access-type.png "choose an access type")
+1. If you want to reopen this workspace in the future, use the command **File > Save Workspace As...** to save it as a `.code-workspace` file.
 
-2. Open the Explorer view (<kbd>Ctrl/Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>) if it is not already visible.
+Note that the ObjectScript button is not visible in the Activity Bar. Because the files listed in the Explorer view are all on the server, it is not needed for this configuration.
 
-3. When the button labeled "Choose Server and Namespace" appears, click it.
-
-4. Pick a server from your `intersystems.servers` settings object, or create a new server configuration.
-
-5. Enter credentials if prompted.
-
-6. Pick a namespace from the list retrieved from the target server.
-
-7. Pick an access mode (Editable or Read-only).
-
-8. If you want to reopen this workspace in future, save it as a `.code-workspace` file.
-
-> Pro tip: The .code-workspace file you just created is a JSON file which can be edited directly. The Command Palette command `Preferences: Open Workspace Settings (JSON)` gets you there quickly. A simple example looks like this:
+The `.code-workspace` file is a JSON file which you can edit directly, as described in the section  [VS Code Workspaces](../configuration/#code-workspaces). A simple example looks like this:
 ```json
 {
 	"folders": [
 		{
-			"name": "test:USER",
-			"uri": "isfs://test:user/"
+			"name": "iris184:USER",
+			"uri": "isfs://iris184:user"
 		}
 	],
 	"settings": {}
 }
 ```
-> The `name` property sets how the root folder is labeled and can be edited to suit your needs.
+- The `name` property provides a name for this server-side folder.
+- The `uri` property indicates the location of resources on the server. The supplied value has three components:
+   - The first component can be either `isfs` or `isfs-readonly`. These values specify that this folder is on an InterSystems IRIS server. `isfs-readonly` specifies read-only access.
+   - The value following `/` specifies the name of the server.
+   - The value following `:` specifies the namespace (lowercase).
+
+The string `isfs` which appears in the **uri** for folders configured for server-side editing is an abbreviation created by InterSystems which stands for **InterSystems File Service**. It implements the VS Code [FileSystemProvider API](https://code.visualstudio.com/api/references/vscode-api#FileSystemProvider), which lets you make any remote location look like a local one. It works well for making artefacts in an InterSystems IRIS namespace look like local files.
 
 To add more root folders to your workspace, giving you access to code in a different namespace, or on a different server, use the context menu on your existing root folder to invoke the `Add Server Namespace to Workspace...` command. This command is also available on the Command Palette.
 
@@ -61,12 +62,12 @@ An example of a two-folder workspace in which the second folder gives read-only 
 {
 	"folders": [
 		{
-			"name": "test:USER",
-			"uri": "isfs://test:user/"
+			"name": "iris184:USER",
+			"uri": "isfs://iris184:user"
 		},
 		{
-			"name": "test:%SYS (read-only)",
-			"uri": "isfs-readonly://test:%sys/"
+			"name": "iris184:%SYS (read-only)",
+			"uri": "isfs-readonly://iris184:%sys"
 		}
 	],
 	"settings": {}
@@ -76,6 +77,47 @@ An example of a two-folder workspace in which the second folder gives read-only 
 Workspaces can also consist of a mixture of server-side folders and local folders. Use the context menu's `Add Folder to Workspace...` option to add a local folder.
 
 Root folders can be re-sequenced using drag/drop in the Explorer view, or by editing the order their definition objects appear within the `folders` array in the JSON.
+
+## Configuring Storage for Folder-specific Settings
+
+When you use VS Code to edit source code on the client, the settings model allows you to specify  folder-specific settings in a `.vscode\settings.json` file located in a workspace root folder. These settings take precedence when you work under that workspace root folder.
+
+If you use an isfs-type workspace to operate directly in a namespace on a server, you need to configure that server to support storing and serving up the `.vscode\settings.json` file. The `.vscode` subfolder of a workspace root folder also stores folder-specific code snippets and debug configurations. These are available when using this configuration.
+
+Use the **Management Portal** to create a web application named **_vscode** on the server. Select **System Administration > Security > Applications > Web Applications**, then **Create New Web Application**:
+
+![Create a web application.](../assets/images/web-app.png "create a web application")
+
+Enter the following values:
+
+- **Name** - /_vscode
+- **Description** - enter a brief description
+- **Namespace** - select **%SYS**
+- **Enable Application** - select
+- **Enable** - select **CSP/ZEN**
+- **Allowed Authentication Methods** - select **Password**
+- **CSP File Settings: Physical Path** - enter a physical path appropriate for your platform and install folder
+- **CSP File Settings: Web Settings** - Clear **Auto Compile**
+
+Be sure to save the configuration. If you have an isfs-type workspace root folder that connects to a namespace on this server, it can now write and read folder-specific settings:
+
+![The server settings folder.](../assets/images/ss-settings-folder.png "the server settings folder")
+
+You can also create a folder-specific snippets file via **Preferences: Configure User Snippets**:
+
+![server-side snippets.](../assets/images/ss-snippets.png "server-side snippets")
+
+To edit the server-side namespace-specific files for all namespaces directly through VS Code, add an isfs-type root folder with the following uri:
+
+```
+isfs://servername:%sys/_vscode?csp
+```
+
+For a single namespace (for example, USER):
+
+```
+isfs://servername:%sys/_vscode/USER?csp
+```
 
 ## Web Application (CSP) Files
 

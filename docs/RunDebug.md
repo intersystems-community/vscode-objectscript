@@ -2,17 +2,32 @@
 layout: default
 title: Running and Debugging
 permalink: /rundebug/
-nav_order: 4
+nav_order: 5
 ---
 # Running and Debugging
 
-In order to run or debug an ObjectScript class or routine, you must create a launch configuration. Click the run button in the Activity Bar:
+The InterSystems ObjectScript Extension provides support for ObjectScript debugging. It takes advantage of the debugging capabilities built into VS Code, so you may find these VS Code documentation resources useful:
+
+- [Node.js debugging in VS Code](https://code.visualstudio.com/docs/editor/debugging)
+- [Debugging](https://code.visualstudio.com/docs/editor/debugging)
+
+## Launch Configurations
+
+In order to run or debug an ObjectScript class or routine, you must create a launch configuration. Some other languages default to running the currently active file, but to run ObjectScript, you must specify the routine or ClassMethod to use.
+
+Click the run button in the Activity Bar:
+
+![Run button.](../assets/images/run.png "run button")
 
 If no launch configurations are available, you are prompted to create one:
 
 ![Create launch configuration.](../assets/images/CreateLaunchConfig.png "create launch configuration")
 
-Clicking the link creates and opens a `launch.json` file containing the following default information:
+Clicking the link opens a dialog containing a list of debug environments. Select **ObjectScript Debug**. 
+
+![Select debug environment.](../assets/images/debug-environment.png "select debug environment")
+
+Once you have chosen a debug environment, VS Code creates and opens a `launch.json` file containing the following default content:
 
 ```json
 {
@@ -33,7 +48,7 @@ These attributes are mandatory for any launch configuration:
 - **request** - Identifies the type of action for this launch configuration. Possible values are `launch` and `attach`.
 - **name** - An arbitrary name to identify the configuration. This name appears in the Start Debugging drop down list.
 
-In addition, for an **objectscript** configuration, you need to supply the attribute **program**, which specifies the executable or file to run when launching the debugger, as shown in the following example:
+In addition, for an **objectscript** configuration, you need to supply the attribute **program**, which specifies the routine or ClassMethod to run when launching the debugger, as shown in the following example:
 
 ```json
 "launch": {
@@ -49,10 +64,19 @@ In addition, for an **objectscript** configuration, you need to supply the attri
 		{
 			"type": "objectscript",
 			"request": "launch",
-			"name": "ObjectScript Debug GoodbyWorld",
-			"program": "##class(Test.MyOtherClass).GoodbyWorld()",
+			"name": "ObjectScript Debug GoodbyeWorld",
+			"program": "##class(Test.MyOtherClass).GoodbyeWorld()",
 		},
 	]
 	}
 ```
 
+## Launching a ClassMethod or Routine
+
+You can select a launch configuration from the list VS Code provides in the Run and Debug field at the top of the debug side bar:
+
+![Select launch configuration.](../assets/images/select-config.png "select launch configuration")
+
+Clicking on the green arrow runs the currently selected launch configuration.
+
+Debugging commands and items on the **Run** menu function much as they do for other languages supported by VS Code. For information on VS Code debugging, see the documentation resources listed at the start of this section. 
