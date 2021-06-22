@@ -55,7 +55,7 @@ export function studioOpenDialogFromURI(
   const dir = "1";
   const orderBy = "1";
   const generated = query.generated && query.generated.length ? query.generated.toString() : "0";
-  const system = api.ns === "%SYS" ? "1" : "0";
+  const system = query.system && query.system.length ? query.system.toString() : api.ns === "%SYS" ? "1" : "0";
   let flat = query.flat && query.flat.length ? query.flat.toString() : "0";
   if (overrides && overrides.flat) flat = "1";
   return api.actionQuery(sql, [spec, dir, orderBy, system, flat, notStudio, generated, overrides.filter]);
