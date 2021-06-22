@@ -200,7 +200,17 @@ export async function viewOthers(forceEditable = false): Promise<void> {
     .catch((err) => {
       if (err.errorText && err.errorText !== "") {
         outputChannel.appendLine("\n" + err.errorText);
-        vscode.window.showErrorMessage(`Failed to get other documents. Check output channel for details.`, "Dismiss");
+        vscode.window
+          .showErrorMessage(
+            `Failed to get other documents. Check 'ObjectScript' output channel for details.`,
+            "Show",
+            "Dismiss"
+          )
+          .then((action) => {
+            if (action === "Show") {
+              outputChannel.show(true);
+            }
+          });
       } else {
         vscode.window.showErrorMessage(`Failed to get other documents.`, "Dismiss");
       }

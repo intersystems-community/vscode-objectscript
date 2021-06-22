@@ -10,8 +10,8 @@ export class File implements vscode.FileStat {
   public data?: Uint8Array;
   public constructor(name: string, fileName: string, ts: string, size: number, data: string | Buffer) {
     this.type = vscode.FileType.File;
-    this.ctime = new Date(ts).getTime();
-    this.mtime = new Date(ts).getTime();
+    this.ctime = Number(new Date(ts + "Z"));
+    this.mtime = this.ctime;
     this.size = size;
     this.fileName = fileName;
     this.name = name;
