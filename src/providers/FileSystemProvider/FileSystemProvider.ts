@@ -6,8 +6,9 @@ import { Directory } from "./Directory";
 import { File } from "./File";
 import { fireOtherStudioAction, OtherStudioAction } from "../../commands/studio";
 import { StudioOpenDialog } from "../../queries";
-import { redirectDotvscodeRoot } from "../../utils/index";
 import { studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
+import { redirectDotvscodeRoot, workspaceFolderOfUri } from "../../utils/index";
+import { workspaceState } from "../../extension";
 
 declare function setTimeout(callback: (...args: any[]) => void, ms: number, ...args: any[]): NodeJS.Timeout;
 
@@ -120,7 +121,12 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
-    return this._lookupAsFile(uri).then((file: File) => file.data);
+    return this._lookupAsFile(uri).then((file: File) => {
+      // Update cache entry
+      const uniqueId = `${workspaceFolderOfUri(uri)}:${file.fileName}`;
+      workspaceState.update(`${uniqueId}:mtime`, file.mtime);
+      return file.data;
+    });
   }
 
   private generateFileContent(fileName: string, content: Buffer): { content: string[]; enc: boolean } {
@@ -171,12 +177,16 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         // The actual writing is done by our workspace.onDidSaveTextDocument handler.
         // But first check a case for which we should fail the write and leave the document dirty if changed.
         if (fileName.split(".").pop().toLowerCase() === "cls") {
-          return api.actionIndex([fileName]).then((result) => {
+          api.actionIndex([fileName]).then((result) => {
             if (result.result.content[0].content.depl) {
               throw new Error("Cannot overwrite a deployed class");
             }
           });
         }
+        // Set a -1 mtime cache entry so the actual write by the workspace.onDidSaveTextDocument handler always overwrites.
+        // By the time we get here VS Code's built-in conflict resolution mechanism will already have interacted with the user.
+        const uniqueId = `${workspaceFolderOfUri(uri)}:${fileName}`;
+        workspaceState.update(`${uniqueId}:mtime`, -1);
         return;
       },
       (error) => {
@@ -199,8 +209,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           )
           .catch((error) => {
             // Throw all failures
-            if (error.error?.result?.status) {
-              throw vscode.FileSystemError.Unavailable(error.error.result.status);
+            if (error.errorText && error.errorText !== "") {
+              throw vscode.FileSystemError.Unavailable(error.errorText);
             }
             throw vscode.FileSystemError.Unavailable(error.message);
           })
@@ -281,8 +291,12 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         } else {
           throw vscode.FileSystemError.FileNotFound(uri);
         }
+      } else if (child instanceof File) {
+        // Return cached copy unless changed, in which case return updated one
+        return this._lookupAsFile(uri, child);
+      } else {
+        entry = child;
       }
-      entry = child;
     }
     return entry;
   }
@@ -299,8 +313,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     throw vscode.FileSystemError.FileNotADirectory(uri);
   }
 
-  // Fetch from server and cache it
-  private async _lookupAsFile(uri: vscode.Uri): Promise<File> {
+  // Fetch from server and cache it, optionally the passed cached copy if unchanged on server
+  private async _lookupAsFile(uri: vscode.Uri, cachedFile?: File): Promise<File> {
     uri = redirectDotvscodeRoot(uri);
     if (uri.path.startsWith("/.")) {
       throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
@@ -312,7 +326,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const name = path.basename(uri.path);
     const api = new AtelierAPI(uri);
     return api
-      .getDoc(fileName)
+      .getDoc(fileName, undefined, cachedFile?.mtime)
       .then((data) => data.result)
       .then((result) => {
         const fileSplit = fileName.split(".");
@@ -347,6 +361,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         })
       )
       .catch((error) => {
+        if (error?.statusCode === 304 && cachedFile) {
+          return cachedFile;
+        }
         throw vscode.FileSystemError.FileNotFound(uri);
       });
   }

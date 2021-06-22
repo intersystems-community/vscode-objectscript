@@ -10,12 +10,13 @@ import {
 import { connectionTarget, terminalWithDocker, currentFile } from "../utils";
 import { mainCommandMenu, mainSourceControlMenu } from "./studio";
 import { AtelierAPI } from "../api";
+import { getCSPToken } from "../utils/getCSPToken";
 
-type ServerAction = { detail: string; id: string; label: string };
+type ServerAction = { detail: string; id: string; label: string; rawLink?: string };
 export async function serverActions(): Promise<void> {
   const { apiTarget, configName: workspaceFolder } = connectionTarget();
   const api = new AtelierAPI(apiTarget);
-  const { active, host = "", ns = "", https, port = 0, pathPrefix, username, password, docker } = api.config;
+  const { active, host = "", ns = "", https, port = 0, pathPrefix, docker } = api.config;
   const explorerCount = (await explorerProvider.getChildren()).length;
   if (!explorerCount && (!docker || host === "")) {
     await vscode.commands.executeCommand("ObjectScriptExplorer.focus");
@@ -70,29 +71,24 @@ export async function serverActions(): Promise<void> {
   const file = currentFile();
   const classname = file && file.name.toLowerCase().endsWith(".cls") ? file.name.slice(0, -4) : "";
   const classnameEncoded = encodeURIComponent(classname);
-  const connInfo = `${host}:${port}[${nsEncoded}]`;
+  const connInfo = `${host}:${port}${pathPrefix}[${nsEncoded}]`;
   const serverUrl = `${https ? "https" : "http"}://${host}:${port}${pathPrefix}`;
-  const portalUrl = `${serverUrl}/csp/sys/UtilHome.csp?$NAMESPACE=${nsEncoded}`;
-  const classRef = `${serverUrl}/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${nsEncoded}${
+  const portalPath = `/csp/sys/UtilHome.csp?$NAMESPACE=${nsEncoded}`;
+  const classRef = `/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${nsEncoded}${
     classname ? "&CLASSNAME=" + classnameEncoded : ""
   }`;
-  const iris = workspaceState.get(workspaceFolder + ":iris", false);
-  const usernameEncoded = encodeURIComponent(username);
-  const passwordEncoded = encodeURIComponent(password);
-  const auth = iris
-    ? `&IRISUsername=${usernameEncoded}&IRISPassword=${passwordEncoded}`
-    : `&CacheUserName=${usernameEncoded}&CachePassword=${passwordEncoded}`;
   let extraLinks = 0;
   for (const title in links) {
-    let link = String(links[title]);
-    if (classname == "" && (link.includes("${classname}") || link.includes("${classnameEncoded}"))) {
+    const rawLink = String(links[title]);
+    // Skip link if it requires a classname and we don't currently have one
+    if (classname == "" && (rawLink.includes("${classname}") || rawLink.includes("${classnameEncoded}"))) {
       continue;
     }
-    link = link
+    const link = rawLink
       .replace("${host}", host)
       .replace("${port}", port.toString())
       .replace("${serverUrl}", serverUrl)
-      .replace("${serverAuth}", auth)
+      .replace("${serverAuth}", "")
       .replace("${ns}", nsEncoded)
       .replace("${namespace}", ns == "%SYS" ? "sys" : nsEncoded.toLowerCase())
       .replace("${classname}", classname)
@@ -101,6 +97,7 @@ export async function serverActions(): Promise<void> {
       id: "extraLink" + extraLinks++,
       label: title,
       detail: link,
+      rawLink,
     });
   }
   if (workspaceState.get(workspaceFolder + ":docker", false)) {
@@ -113,12 +110,12 @@ export async function serverActions(): Promise<void> {
   actions.push({
     id: "openPortal",
     label: "Open Management Portal",
-    detail: portalUrl,
+    detail: serverUrl + portalPath,
   });
   actions.push({
     id: "openClassReference",
     label: "Open Class Reference" + (classname ? ` for ${classname}` : ""),
-    detail: classRef,
+    detail: serverUrl + classRef,
   });
   if (
     !vscode.window.activeTextEditor ||
@@ -141,17 +138,21 @@ export async function serverActions(): Promise<void> {
       placeHolder: `Select action for server: ${connInfo}`,
     })
     .then(connectionActionsHandler)
-    .then((action) => {
+    .then(async (action) => {
       if (!action) {
         return;
       }
       switch (action.id) {
         case "openPortal": {
-          vscode.env.openExternal(vscode.Uri.parse(portalUrl + auth));
+          const token = await getCSPToken(api, portalPath);
+          const urlString = `${serverUrl}${portalPath}&CSPCHD=${token}`;
+          vscode.env.openExternal(vscode.Uri.parse(urlString));
           break;
         }
         case "openClassReference": {
-          vscode.env.openExternal(vscode.Uri.parse(classRef + auth));
+          const token = await getCSPToken(api, classRef);
+          const urlString = `${serverUrl}${classRef}&CSPCHD=${token}`;
+          vscode.env.openExternal(vscode.Uri.parse(urlString));
           break;
         }
         case "openDockerTerminal": {
@@ -167,7 +168,15 @@ export async function serverActions(): Promise<void> {
           break;
         }
         default: {
-          vscode.env.openExternal(vscode.Uri.parse(action.detail));
+          let urlString = action.detail;
+          if (action.rawLink?.startsWith("${serverUrl}")) {
+            const path = vscode.Uri.parse(urlString).path;
+            const token = await getCSPToken(api, path);
+            if (token.length > 0) {
+              urlString += `&CSPCHD=${token}`;
+            }
+          }
+          vscode.env.openExternal(vscode.Uri.parse(urlString));
         }
       }
     });

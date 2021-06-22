@@ -55,6 +55,29 @@ export interface ConnectionTarget {
   configName: string;
 }
 
+/**
+ * Determine the server name of a local non-ObjectScript file (any file that's not CLS,MAC,INT,INC).
+ * @param localPath The full path to the file on disk.
+ * @param workspace The workspace the file is in.
+ */
+function getServerDocName(localPath: string, workspace: string): string {
+  const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
+  const filePathNoWorkspaceArr = localPath.replace(workspacePath + path.sep, "").split(path.sep);
+  return filePathNoWorkspaceArr.slice(filePathNoWorkspaceArr.indexOf("csp")).join("/");
+}
+
+/**
+ * Determine if this non-InterSystems local file is importable
+ * (i.e. is part of a CSP application).
+ * @param file The file to check.
+ */
+export function isImportableLocalFile(file: vscode.TextDocument): boolean {
+  const workspace = currentWorkspaceFolder(file);
+  const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
+  const filePathNoWorkspaceArr = file.fileName.replace(workspacePath + path.sep, "").split(path.sep);
+  return filePathNoWorkspaceArr.includes("csp");
+}
+
 export function currentFile(document?: vscode.TextDocument): CurrentFile {
   document =
     document ||
@@ -72,9 +95,12 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
       !document.fileName ||
       !document.languageId ||
       !document.languageId.startsWith("objectscript") ||
-      fileExt.match(/(csp)/i)) // Skip local CSPs for now
+      document.languageId === "objectscript-output")
   ) {
-    return null;
+    // This is a non-InterSystems local file, so check if we can import it
+    if (!isImportableLocalFile(document)) {
+      return null;
+    }
   }
   const eol = document.eol || vscode.EndOfLine.LF;
   const uri = redirectDotvscodeRoot(document.uri);
@@ -87,7 +113,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
     name = uri.path;
   } else if (fileExt === "cls") {
     // Allow Unicode letters
-    const match = content.match(/^Class (%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
+    const match = content.match(/^[ \t]*Class (%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
     if (match) {
       [, name, ext = "cls"] = match;
     }
@@ -99,7 +125,15 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
       [name, ext = "mac"] = path.basename(document.fileName).split(".");
     }
   } else {
-    name = fileName;
+    if (document.uri.scheme === "file") {
+      if (fileExt.match(/(csp|csr)/i) && !isImportableLocalFile(document)) {
+        // This is a csp or csr file that's not in a csp directory
+        return null;
+      }
+      name = getServerDocName(fileName, currentWorkspaceFolder(document));
+    } else {
+      name = fileName;
+    }
     // Need to strip leading / for custom Studio documents which should not be treated as files.
     // e.g. For a custom Studio document Test.ZPM, the variable name would be /Test.ZPM which is
     // not the document name. The document name is Test.ZPM so requests made to the Atelier APIs
@@ -225,17 +259,10 @@ export function isCSP(uri: vscode.Uri): boolean {
 export function currentWorkspaceFolder(document?: vscode.TextDocument): string {
   document = document ? document : vscode.window.activeTextEditor && vscode.window.activeTextEditor.document;
   if (document) {
-    const uri = document.uri;
-    if (uri.scheme === "file") {
-      if (vscode.workspace.getWorkspaceFolder(uri)) {
-        return vscode.workspace.getWorkspaceFolder(uri).name;
-      }
-    } else if (schemas.includes(uri.scheme)) {
-      const rootUri = uri.with({ path: "/" }).toString();
-      const foundFolder = vscode.workspace.workspaceFolders.find(
-        (workspaceFolder) => workspaceFolder.uri.toString() == rootUri
-      );
-      return foundFolder ? foundFolder.name : uri.authority;
+    const folder = workspaceFolderOfUri(document.uri);
+    // document might not be part of the workspace (e.g. the XXX.code-workspace JSON file)
+    if (folder) {
+      return folder;
     }
   }
   const firstFolder =
@@ -249,7 +276,22 @@ export function currentWorkspaceFolder(document?: vscode.TextDocument): string {
   }
 }
 
-export function workspaceFolderUri(workspaceFolder: string = currentWorkspaceFolder()): vscode.Uri {
+export function workspaceFolderOfUri(uri: vscode.Uri): string {
+  if (uri.scheme === "file") {
+    if (vscode.workspace.getWorkspaceFolder(uri)) {
+      return vscode.workspace.getWorkspaceFolder(uri).name;
+    }
+  } else if (schemas.includes(uri.scheme)) {
+    const rootUri = uri.with({ path: "/" }).toString();
+    const foundFolder = vscode.workspace.workspaceFolders.find(
+      (workspaceFolder) => workspaceFolder.uri.toString() == rootUri
+    );
+    return foundFolder ? foundFolder.name : uri.authority;
+  }
+  return "";
+}
+
+export function uriOfWorkspaceFolder(workspaceFolder: string = currentWorkspaceFolder()): vscode.Uri {
   return (
     vscode.workspace.workspaceFolders.find((el): boolean => el.name.toLowerCase() === workspaceFolder.toLowerCase()) ||
     vscode.workspace.workspaceFolders.find((el): boolean => el.uri.authority == workspaceFolder)
@@ -275,7 +317,7 @@ export async function portFromDockerCompose(): Promise<{ port: number; docker: b
     return { docker: false, port: null };
   }
   const result = { port: null, docker: true, service };
-  const workspaceFolderPath = workspaceFolderUri().fsPath;
+  const workspaceFolderPath = uriOfWorkspaceFolder().fsPath;
   const workspaceRootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
 
   const cwd: string = await new Promise((resolve, reject) => {
