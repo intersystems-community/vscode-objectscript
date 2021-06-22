@@ -173,7 +173,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
           items: items.map((el) => {
             return {
               ...el,
-              label: this._formatter.function(el.label),
+              label: this._formatter.function(el.label as string),
               insertText: this._formatter.function(el.insertText),
               range,
             };
@@ -183,7 +183,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
         return this.listStructuredSystemVariables(search, textAfter.length > 0).map((el) => {
           return {
             ...el,
-            label: this._formatter.function(el.label),
+            label: this._formatter.function(el.label as string),
             range,
           };
         });
