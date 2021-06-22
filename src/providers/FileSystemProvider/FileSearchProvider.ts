@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
 import * as url from "url";
-import { DocSearchResult } from "../../api/atelier";
 import { AtelierAPI } from "../../api";
+import { StudioOpenDialog } from "../../queries";
+import { studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
 
 export class FileSearchProvider implements vscode.FileSearchProvider {
   /**
@@ -15,58 +16,56 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
     options: vscode.FileSearchOptions,
     token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.Uri[]> {
-    const folderQuery = url.parse(options.folder.toString(true), true).query;
-    const type = folderQuery.type || "all";
-    const category =
-      folderQuery.csp === "" || folderQuery.csp === "1" ? "CSP" : type === "cls" ? "CLS" : type === "rtn" ? "RTN" : "*";
-    const generated = folderQuery.generated === "1";
-    const api = new AtelierAPI(options.folder);
+    const uri = url.parse(options.folder.toString(true), true);
+    const csp = uri.query.csp === "" || uri.query.csp === "1";
     let filter = query.pattern;
-    if (category !== "CSP") {
+    if (!csp) {
       if (options.folder.path !== "/") {
         filter = options.folder.path.slice(1) + "/%" + filter;
       }
       filter = filter.replace(/\//g, ".");
     }
-    let counter = 0;
-    if (!api.enabled) {
-      return null;
+    if (filter.length) {
+      filter = "Name Like '%" + filter + "%'";
+    } else {
+      // When this is called without a query.pattern, every file is supposed to be returned, so do not provide a filter
+      filter = "";
     }
-    return api
-      .getDocNames({
-        filter,
-        category,
-        generated,
+    let counter = 0;
+    return studioOpenDialogFromURI(options.folder, { flat: true, filter: filter })
+      .then((data) => {
+        return data.result.content;
       })
-      .then((data) => data.result.content)
-      .then((files: DocSearchResult[]) =>
-        files
-          .map((file) => {
-            if (category !== "CSP" && file.cat === "CSP") {
+      .then((data: StudioOpenDialog[]) => {
+        const api = new AtelierAPI(options.folder);
+        return data
+          .map((item: StudioOpenDialog) => {
+            // item.Type only matters here if it is 5 (CSP)
+            if (item.Type == "5" && !csp) {
               return null;
             }
-            if (file.cat !== "CSP") {
-              if (file.name.startsWith("%") && api.ns !== "%SYS") {
+            if (item.Type !== "5") {
+              if (item.Name.startsWith("%") && api.ns !== "%SYS") {
                 return null;
               }
               // Convert dotted name to slashed one, treating the likes of ABC.1.int or DEF.T1.int in the same way
               // as the Studio dialog does.
-              const nameParts = file.name.split(".");
+              const nameParts = item.Name.split(".");
               const dotParts = nameParts
                 .slice(-2)
                 .join(".")
                 .match(/^[A-Z]?\d*[.](mac|int|inc)$/)
                 ? 3
                 : 2;
-              file.name = nameParts.slice(0, -dotParts).join("/") + "/" + nameParts.slice(-dotParts).join(".");
+              item.Name = nameParts.slice(0, -dotParts).join("/") + "/" + nameParts.slice(-dotParts).join(".");
             }
             if (!options.maxResults || ++counter <= options.maxResults) {
-              return options.folder.with({ path: `/${file.name}` });
+              return vscode.Uri.parse(`${options.folder.scheme}://${options.folder.authority}/${item.Name}`, true);
             } else {
               return null;
             }
           })
-          .filter((el) => el !== null)
-      );
+          .filter((el) => el !== null);
+      });
   }
 }
