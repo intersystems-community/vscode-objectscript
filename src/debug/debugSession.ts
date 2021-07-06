@@ -112,6 +112,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       supportsSetVariable: true,
       supportsConditionalBreakpoints: false, // TODO
       supportsStepBack: false,
+      supportsDataBreakpoints: true,
     };
 
     try {
@@ -306,6 +307,81 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       // send back the actual breakpoint positions
       response.body = {
         breakpoints: vscodeBreakpoints,
+      };
+    } catch (error) {
+      this.sendErrorResponse(response, error);
+      return;
+    }
+
+    this.sendResponse(response);
+  }
+
+  protected dataBreakpointInfoRequest(
+    response: DebugProtocol.DataBreakpointInfoResponse,
+    args: DebugProtocol.DataBreakpointInfoArguments
+  ): void {
+    if (args.variablesReference !== undefined && (args.variablesReference === 1 || args.variablesReference === 2)) {
+      // This is a private or public local variable
+      response.body = {
+        dataId: args.name,
+        description: args.name,
+      };
+    } else {
+      // This is an object property or array element, or args.variablesReference is undefined
+      response.body = {
+        dataId: null,
+        description: "Can only set a watchpoint on a local variable",
+      };
+    }
+
+    this.sendResponse(response);
+  }
+
+  protected async setDataBreakpointsRequest(
+    response: DebugProtocol.SetDataBreakpointsResponse,
+    args: DebugProtocol.SetDataBreakpointsArguments
+  ): Promise<void> {
+    try {
+      await this._debugTargetSet.wait(1000);
+
+      const currentList = await this._connection.sendBreakpointListCommand();
+      currentList.breakpoints
+        .filter((breakpoint) => {
+          if (breakpoint instanceof xdebug.Watchpoint) {
+            return true;
+          }
+          return false;
+        })
+        .map((breakpoint) => {
+          this._connection.sendBreakpointRemoveCommand(breakpoint);
+        });
+
+      let xdebugWatchpoints: xdebug.Watchpoint[] = [];
+      xdebugWatchpoints = await Promise.all(
+        args.breakpoints.map(async (breakpoint) => {
+          return new xdebug.Watchpoint(breakpoint.dataId);
+        })
+      );
+
+      const vscodeWatchpoints: DebugProtocol.Breakpoint[] = [];
+      await Promise.all(
+        xdebugWatchpoints.map(async (breakpoint, index) => {
+          try {
+            await this._connection.sendBreakpointSetCommand(breakpoint);
+            vscodeWatchpoints[index] = { verified: true, instructionReference: breakpoint.variable };
+          } catch (error) {
+            vscodeWatchpoints[index] = {
+              verified: false,
+              instructionReference: breakpoint.variable,
+              message: error.message,
+            };
+          }
+        })
+      );
+
+      // send back the watchpoints
+      response.body = {
+        breakpoints: vscodeWatchpoints,
       };
     } catch (error) {
       this.sendErrorResponse(response, error);
