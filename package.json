@@ -785,6 +785,11 @@
             }
           }
         },
+        "objectscript.serverSourceControl.disableActionTriggers": {
+          "description": "Prevent server-side source control action triggers from firing.",
+          "type": "boolean",
+          "scope": "resource"
+        },
         "objectscript.export": {
           "type": "object",
           "description": "Control what to export from the server into the local folder.",
