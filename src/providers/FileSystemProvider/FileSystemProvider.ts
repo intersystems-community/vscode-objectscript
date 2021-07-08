@@ -7,7 +7,7 @@ import { File } from "./File";
 import { fireOtherStudioAction, OtherStudioAction } from "../../commands/studio";
 import { StudioOpenDialog } from "../../queries";
 import { studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
-import { redirectDotvscodeRoot, workspaceFolderOfUri } from "../../utils/index";
+import { outputChannel, redirectDotvscodeRoot, workspaceFolderOfUri } from "../../utils/index";
 import { workspaceState } from "../../extension";
 
 declare function setTimeout(callback: (...args: any[]) => void, ms: number, ...args: any[]): NodeJS.Timeout;
@@ -100,7 +100,17 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         return results.concat(cspSubfolders);
       })
       .catch((error) => {
-        error && console.error(error);
+        if (error) {
+          console.log(error);
+          if (error.errorText.includes(" #5540:")) {
+            const message = `User '${api.config.username}' cannot list ${
+              csp ? "web application" : "namespace"
+            } contents. To resolve this, execute the following SQL in the ${api.config.ns.toUpperCase()} namespace:\n\t GRANT EXECUTE ON %Library.RoutineMgr_StudioOpenDialog TO ${
+              api.config.username
+            }`;
+            outputChannel.appendError(message);
+          }
+        }
       });
   }
 
