@@ -47,7 +47,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const parent = await this._lookupAsDirectory(uri);
     const api = new AtelierAPI(uri);
     if (!api.active) {
-      return;
+      throw vscode.FileSystemError.Unavailable(`${uri.toString()} is unavailable`);
     }
     const { query } = url.parse(uri.toString(true), true);
     const csp = query.csp === "" || query.csp === "1";
@@ -277,6 +277,15 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
 
   // Fetch entry (a file or directory) from cache, else from server
   private async _lookup(uri: vscode.Uri): Promise<Entry> {
+    if (uri.path === "/") {
+      const api = new AtelierAPI(uri);
+      await api
+        .serverInfo()
+        .then()
+        .catch(() => {
+          throw vscode.FileSystemError.Unavailable(`${uri.toString()} is unavailable`);
+        });
+    }
     const parts = uri.path.split("/");
     let entry: Entry = this.root;
     for (let i = 0; i < parts.length; i++) {
