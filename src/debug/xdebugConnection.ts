@@ -128,6 +128,9 @@ export abstract class Breakpoint {
       case "conditional":
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         return new ConditionalBreakpoint(breakpointNode, connection);
+      case "watch":
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define
+        return new Watchpoint(breakpointNode, connection);
       default:
         throw new Error(`Invalid type ${breakpointNode.getAttribute("type")}`);
     }
@@ -256,6 +259,29 @@ export class ConditionalBreakpoint extends Breakpoint {
       this.expression = rest[0];
       this.fileUri = rest[1];
       this.line = rest[2];
+    }
+  }
+}
+
+/** class for watch breakpoints. Returned from a breakpoint_list or passed to sendBreakpointSetCommand */
+export class Watchpoint extends Breakpoint {
+  /** The variable to watch */
+  public variable: string;
+  /** Constructs a breakpoint object from an XML node from a XDebug response */
+  public constructor(breakpointNode: Element, connection: Connection);
+  /** Contructs a breakpoint object for passing to sendSetBreakpointCommand */
+  public constructor(variable: string);
+  public constructor(...rest: any[]) {
+    if (typeof rest[0] === "object") {
+      // from XML
+      const breakpointNode: Element = rest[0];
+      const connection: Connection = rest[1];
+      super(breakpointNode, connection);
+      this.variable = breakpointNode.getAttribute("expression"); // Base64 encoded?
+    } else {
+      // from arguments
+      super("watch");
+      this.variable = rest[0];
     }
   }
 }
@@ -738,7 +764,7 @@ export class Connection extends DbgpConnection {
 
   /**
    * Sends a breakpoint_set command that sets a breakpoint.
-   * @param {Breakpoint} breakpoint - an instance of LineBreakpoint, ConditionalBreakpoint or ExceptionBreakpoint
+   * @param {Breakpoint} breakpoint - an instance of LineBreakpoint, ConditionalBreakpoint, ExceptionBreakpoint or Watchpoint
    * @returns Promise.<BreakpointSetResponse>
    */
   public async sendBreakpointSetCommand(breakpoint: Breakpoint): Promise<BreakpointSetResponse> {
@@ -760,6 +786,14 @@ export class Connection extends DbgpConnection {
         args += ` -n ${breakpoint.line}`;
       }
       data = breakpoint.expression;
+    } else if (breakpoint instanceof Watchpoint) {
+      data = breakpoint.variable;
+
+      // These placeholders are needed due to a bug on the server
+      // They have no effect on the watchpoint functionality
+      args += ` -f PLACEHOLDER`;
+      args += ` -m PLACEHOLDER`;
+      args += ` -n PLACEHOLDER`;
     }
     return new BreakpointSetResponse(await this._enqueueCommand("breakpoint_set", args, data), this);
   }
