@@ -459,7 +459,7 @@ export async function _contextMenu(sourceControl: boolean, node: PackageNode | C
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vscode.Uri, userAction?): Promise<void> {
-  if (vscode.workspace.getConfiguration("objectscript.serverSourceControl", uri)?.get("disableActionTriggers")) {
+  if (vscode.workspace.getConfiguration("objectscript.serverSourceControl", uri)?.get("disableOtherActionTriggers")) {
     return;
   }
   const studioActions = new StudioActions(uri);

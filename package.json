@@ -785,8 +785,8 @@
             }
           }
         },
-        "objectscript.serverSourceControl.disableActionTriggers": {
-          "description": "Prevent server-side source control action triggers from firing.",
+        "objectscript.serverSourceControl.disableOtherActionTriggers": {
+          "description": "Prevent server-side source control 'other action' triggers from firing.",
           "type": "boolean",
           "scope": "resource"
         },
