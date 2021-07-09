@@ -31,7 +31,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
         case: query.isCaseSensitive,
         // If options.maxResults is null the search is supposed to return an unlimited number of results
         // Since there's no way for us to pass "unlimited" to the server, I choose a very large number
-        max: options.maxResults !== null ? options.maxResults : 100000,
+        max: options.maxResults ?? 100000,
       })
       .then((data) => data.result)
       .then((files: SearchResult[]) =>
