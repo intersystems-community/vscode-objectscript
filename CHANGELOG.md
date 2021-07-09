@@ -1,5 +1,15 @@
 # Change Log
 
+## [1.0.13] 09-Jul-2021
+- Add Watchpoint support to debugging (#697)
+- Make QuickOpen respect any `filter=xxx` query parameter on the isfs folder definition (#593)
+- Fix unexpected alerts about server-side copy being newer when working with isfs (#683)
+- Always run isfs dialog's serverInfo request in the %SYS namespace (#682)
+- Fix "Cannot read property 'toLowerCase' of undefined" error on startup (#693)
+- Report problem if isfs workspace definition points to non-existent server definition (#695)
+- Give clearer messages if user has insufficient privilege on the server (#678)
+- Allow opting out of 'Other Studio Action' server-side source control calls (#691)
+
 ## [1.0.12] 10-Jun-2021
 - Allow extension to work in untrusted workspaces.
 - Don't switch to File Explorer view when opening a file from ObjectScript Explorer (#651)
