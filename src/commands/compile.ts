@@ -338,7 +338,7 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
     throw new Error(`No Active Connection`);
   }
   const confirm = await vscode.window.showWarningMessage(
-    `Compiling all files in namespace '${api.ns}' is expensive! Are you sure you want to proceed?`,
+    `Compiling all files in namespace '${api.ns}' might be expensive. Are you sure you want to proceed?`,
     "Cancel",
     "Confirm"
   );
