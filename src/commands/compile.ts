@@ -337,6 +337,15 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
   if (!config("conn").active) {
     throw new Error(`No Active Connection`);
   }
+  const confirm = await vscode.window.showWarningMessage(
+    `Compiling all files in namespace '${api.ns}' is expensive! Are you sure you want to proceed?`,
+    "Cancel",
+    "Confirm"
+  );
+  if (confirm !== "Confirm") {
+    // Don't compile without confirmation
+    return;
+  }
   const defaultFlags = config().compileFlags;
   const flags = askFlags ? await compileFlags() : defaultFlags;
   if (flags === undefined) {
