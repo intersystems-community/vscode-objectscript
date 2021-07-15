@@ -321,6 +321,13 @@ export class AtelierAPI {
         // resolveWithFullResponse: true,
         // simple: true,
       });
+      if (response.status === 503) {
+        // User likely ran out of licenses
+        throw {
+          statusCode: response.status,
+          message: `The server at ${host}:${port} is unavailable. Check License Usage.`,
+        };
+      }
       if (response.status === 401) {
         authRequestMap.delete(target);
         if (this.wsOrFile && !checkingConnection) {
