@@ -283,19 +283,29 @@ class StudioActions {
               }
               return actionToProcess;
             })
-            .then(
-              (actionToProcess) =>
-                actionToProcess &&
+            .then((actionToProcess) => {
+              const attemptedEditLabel = getOtherStudioActionLabel(OtherStudioAction.AttemptedEdit);
+              if (afterUserAction && actionToProcess.errorText !== "") {
+                if (action.label === attemptedEditLabel) {
+                  vscode.commands.executeCommand("undo");
+                }
+                outputChannel.appendLine(actionToProcess.errorText);
+                outputChannel.show();
+              }
+              actionToProcess &&
                 !afterUserAction &&
                 this.processUserAction(actionToProcess).then((answer) => {
+                  if ((action.label = attemptedEditLabel) && answer !== "1") {
+                    vscode.commands.executeCommand("undo");
+                  }
                   // call AfterUserAction only if there is a valid answer
                   if (answer) {
                     answer.msg || answer.msg === ""
                       ? this.userAction(action, true, answer.answer, answer.msg, type)
                       : this.userAction(action, true, answer, "", type);
                   }
-                })
-            )
+                });
+            })
             .then(() => resolve())
             .catch((err) => {
               console.log(err);
@@ -379,7 +389,6 @@ class StudioActions {
       this.api.actionQuery(query, [this.name]).then((statusObj) => {
         const docStatus = statusObj.result.content.pop();
         if (docStatus && !docStatus.editable) {
-          vscode.commands.executeCommand("undo");
           this.userAction(actionObject, false, "", "", 1);
         }
       });
