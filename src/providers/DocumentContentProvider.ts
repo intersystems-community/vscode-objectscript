@@ -64,6 +64,12 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
       });
       vfs = true;
       scheme = wFolderUri.scheme;
+      // If this is a class or routine, remove the CSP query param if it's present
+      if (uri.query === "csp" && /cls|mac|int|inc/i.test(fileExt)) {
+        uri = uri.with({
+          query: "",
+        });
+      }
     } else {
       const conn = config("conn", workspaceFolder);
       const localFile = this.getAsFile(name, workspaceFolder);
