@@ -1,12 +1,18 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { config } from "../extension";
+import { currentBplDtlClassDoc } from "../providers/bplDtlEditor";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { currentFile, outputChannel } from "../utils";
+import { BplDtlEditorProvider } from "../providers/bplDtlEditor";
 
 export async function viewOthers(forceEditable = false): Promise<void> {
   const file = currentFile();
   if (!file) {
+    // BPL/DTL files are not supported for the standard view other method
+    if (currentBplDtlClassDoc) {
+      vscode.window.showTextDocument(currentBplDtlClassDoc);
+    }
     return;
   }
   if (file.uri.scheme === "file" && !config("conn").active) {
@@ -77,7 +83,11 @@ export async function viewOthers(forceEditable = false): Promise<void> {
         const linenum: number = +loc.slice(1);
         options.selection = new vscode.Range(linenum, 0, linenum, 0);
       }
-      vscode.window.showTextDocument(uri, options);
+      if (item.endsWith(".bpl") || item.endsWith("dtl")) {
+        vscode.commands.executeCommand("vscode.openWith", uri, BplDtlEditorProvider.viewType);
+      } else {
+        vscode.window.showTextDocument(uri, options);
+      }
     } else {
       let uri: vscode.Uri;
       if (forceEditable) {
@@ -85,7 +95,11 @@ export async function viewOthers(forceEditable = false): Promise<void> {
       } else {
         uri = DocumentContentProvider.getUri(item);
       }
-      vscode.window.showTextDocument(uri);
+      if (item.endsWith(".bpl") || item.endsWith("dtl")) {
+        vscode.commands.executeCommand("vscode.openWith", uri, BplDtlEditorProvider.viewType);
+      } else {
+        vscode.window.showTextDocument(uri);
+      }
     }
   };
 

@@ -1059,6 +1059,21 @@
         ]
       }
     ],
+    "customEditors": [
+      {
+        "viewType": "vscode-objectscript.bplDtlEditor",
+        "displayName": "BPL Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.bpl"
+          },
+          {
+            "filenamePattern": "*.dtl"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
     "resourceLabelFormatters": [
       {
         "scheme": "isfs",

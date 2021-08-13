@@ -98,6 +98,7 @@ export let xmlContentProvider: XmlContentProvider;
 
 import TelemetryReporter from "vscode-extension-telemetry";
 import { CodeActionProvider } from "./providers/CodeActionProvider";
+import { BplDtlEditorProvider } from "./providers/bplDtlEditor";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -578,7 +579,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   workspace.onDidSaveTextDocument((file) => {
     if (schemas.includes(file.uri.scheme) || languages.includes(file.languageId)) {
-      if (documentBeingProcessed !== file) {
+      const fileExt = file.fileName.split(".").pop();
+      if (documentBeingProcessed !== file && !["bpl", "dtl"].includes(fileExt)) {
         return importAndCompile(false, file, config("compileOnSave"));
       }
     } else if (file.uri.scheme === "file") {
@@ -921,6 +923,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       new DocumentLinkProvider()
     ),
     vscode.commands.registerCommand("vscode-objectscript.editOthers", () => viewOthers(true)),
+    BplDtlEditorProvider.register(),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed
