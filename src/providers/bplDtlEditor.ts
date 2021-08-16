@@ -3,7 +3,7 @@ import { AtelierAPI } from "../api";
 import { currentFile } from "../utils/index";
 import { DocumentContentProvider } from "./DocumentContentProvider";
 import { loadChanges } from "../commands/compile";
-import { Response } from "../api/Atelier";
+import { Response } from "../api/atelier";
 
 // Custom text documents cannot be accessed through vscode.window.activeTextEditor
 // so they must be kept track of manually for the view other command
