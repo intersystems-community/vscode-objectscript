@@ -176,7 +176,7 @@ class StudioActions {
       }
       case 5: // Studio will open the documents listed in Target
         target.split(",").forEach((element) => {
-          let classname = element;
+          let classname: string = element;
           let method: string;
           let offset = 0;
           if (element.includes(":")) {
@@ -200,9 +200,10 @@ class StudioActions {
                 const line = document.lineAt(i);
                 if (isCorrectMethod(line.text)) {
                   if (!line.text.endsWith("{")) offset++;
-                  const cursor = newEditor.selection.active;
-                  const newPosition = cursor.with(i + offset, 0);
-                  newEditor.selection = new vscode.Selection(newPosition, newPosition);
+                  const targetLine = document.lineAt(i + offset);
+                  const range = new vscode.Range(targetLine.range.start, targetLine.range.start);
+                  newEditor.selection = new vscode.Selection(range.start, range.start);
+                  newEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
                   break;
                 }
               }
