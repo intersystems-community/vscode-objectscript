@@ -107,6 +107,10 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
           query: `ns=${namespace}`,
         });
       }
+    } else if (isCsp) {
+      uri = uri.with({
+        query: "csp=1",
+      });
     }
     return uri;
   }
