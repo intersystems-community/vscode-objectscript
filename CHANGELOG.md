@@ -1,5 +1,16 @@
 # Change Log
 
+## [1.0.14] 20-Sep-2021
+- Require confirmation before compiling all code in namespace (#677)
+- Respect `maxResults` parameter when running server-side search (#713)
+- Handle multiple spaces between `Class` keyword and classname (#717)
+- Report license starvation connection error properly (#721)
+- Display AfterUserAction errors reported by server-side source control (#701)
+- Preserve user edit if it triggered a successful checkout in server-side source control (#703)
+- Fix failing `Go to Definition` from CSP file when working with isfs (#727)
+- Support 'Open Document' action by server-side source control (#731)
+- Upgrade vulnerable dependency.
+
 ## [1.0.13] 09-Jul-2021
 - Add Watchpoint support to debugging (#697)
 - Make QuickOpen respect any `filter=xxx` query parameter on the isfs folder definition (#593)
