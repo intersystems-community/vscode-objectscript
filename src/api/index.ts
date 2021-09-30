@@ -312,7 +312,7 @@ export class AtelierAPI {
       const response = await fetch(`${proto}://${host}:${port}${path}`, {
         method,
         agent,
-        body: ["PUT", "POST"].includes(method) ? JSON.stringify(body) : null,
+        body: ["PUT", "POST"].includes(method) ? (typeof body !== "string" ? JSON.stringify(body) : body) : null,
         headers: {
           ...headers,
           Cookie: cookie,
@@ -531,7 +531,7 @@ export class AtelierAPI {
   }
 
   public cvtXmlUdl(source: string): Promise<Atelier.Response> {
-    return this.request(1, "POST", `${this.ns}/`, source, {}, { "Content-Type": "application/xml" });
+    return this.request(1, "POST", `${this.ns}/cvt/xml/doc`, source, {}, { "Content-Type": "application/xml" });
   }
 
   // v2+
