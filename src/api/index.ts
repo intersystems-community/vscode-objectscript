@@ -1,4 +1,8 @@
-import fetch from "node-fetch";
+// import fetch from "node-fetch";
+// mod.cjs
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+const fetch = (...args) => import("node-fetch").then(({ default: fetch }) => fetch(...args));
 import * as httpModule from "http";
 import * as httpsModule from "https";
 import * as url from "url";

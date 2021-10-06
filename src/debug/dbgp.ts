@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import * as WebSocket from "ws";
 import * as iconv from "iconv-lite";
-import { DOMParser } from "xmldom";
+import { DOMParser } from "@xmldom/xmldom";
 
 /** The encoding all XDebug messages are encoded with */
 export const ENCODING = "iso-8859-1";

@@ -3,7 +3,8 @@ import vscode = require("vscode");
 import { ObjectScriptDebugSession } from "./debugSession";
 
 export class ObjectScriptDebugAdapterDescriptorFactory
-  implements vscode.DebugAdapterDescriptorFactory, vscode.Disposable {
+  implements vscode.DebugAdapterDescriptorFactory, vscode.Disposable
+{
   private server?: net.Server;
 
   public createDebugAdapterDescriptor(

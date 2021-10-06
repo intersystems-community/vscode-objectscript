@@ -341,7 +341,8 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       className = text.split(" ").pop();
     }
     // tslint:disable-next-line: max-line-length
-    pattern = /(?:(Extends |CompileAfter *=|DependsOn *=|PropertyClass *=) *\(? *)((%?[a-zA-Z0-9]*(?:\.[a-zA-Z0-9]*)*)(, *%?[a-zA-Z0-9]*(?:\.[a-zA-Z0-9]*)*|, *)*.?)?/i;
+    pattern =
+      /(?:(Extends |CompileAfter *=|DependsOn *=|PropertyClass *=) *\(? *)((%?[a-zA-Z0-9]*(?:\.[a-zA-Z0-9]*)*)(, *%?[a-zA-Z0-9]*(?:\.[a-zA-Z0-9]*)*|, *)*.?)?/i;
     if (
       !range &&
       // && (!document.getWordRangeAtPosition(position, /\bExtends\b\s*/i))

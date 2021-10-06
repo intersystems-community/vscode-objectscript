@@ -406,44 +406,42 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     const stack = await this._connection.sendStackGetCommand();
 
     const stackFrames = await Promise.all(
-      stack.stack.map(
-        async (stackFrame: xdebug.StackFrame, index): Promise<StackFrame> => {
-          const [, namespace, name] = decodeURI(stackFrame.fileUri).match(/^dbgp:\/\/\|([^|]+)\|(.*)$/);
-          const routine = name;
-          // const routine = name.includes(".") ? name : name + ".int";
-          const fileUri = DocumentContentProvider.getUri(routine, this._workspace, namespace).toString();
-          const source = new Source(routine, fileUri);
-          let line = stackFrame.line + 1;
-          const place = `${stackFrame.method}+${stackFrame.methodOffset}`;
-          const stackFrameId = this._stackFrameIdCounter++;
-          let noSource = false;
-          try {
-            const document = await vscode.workspace.openTextDocument(vscode.Uri.parse(source.path));
-            if (source.name.endsWith(".cls") && stackFrame.method !== "") {
-              const methodMatchPattern = new RegExp(`^(Class)?Method ${stackFrame.method}(?=[( ])`, "i");
-              for (let i = 0; i < document.lineCount; i++) {
-                const codeLine = document.lineAt(i);
+      stack.stack.map(async (stackFrame: xdebug.StackFrame, index): Promise<StackFrame> => {
+        const [, namespace, name] = decodeURI(stackFrame.fileUri).match(/^dbgp:\/\/\|([^|]+)\|(.*)$/);
+        const routine = name;
+        // const routine = name.includes(".") ? name : name + ".int";
+        const fileUri = DocumentContentProvider.getUri(routine, this._workspace, namespace).toString();
+        const source = new Source(routine, fileUri);
+        let line = stackFrame.line + 1;
+        const place = `${stackFrame.method}+${stackFrame.methodOffset}`;
+        const stackFrameId = this._stackFrameIdCounter++;
+        let noSource = false;
+        try {
+          const document = await vscode.workspace.openTextDocument(vscode.Uri.parse(source.path));
+          if (source.name.endsWith(".cls") && stackFrame.method !== "") {
+            const methodMatchPattern = new RegExp(`^(Class)?Method ${stackFrame.method}(?=[( ])`, "i");
+            for (let i = 0; i < document.lineCount; i++) {
+              const codeLine = document.lineAt(i);
 
-                const methodMatch = codeLine.text.match(methodMatchPattern);
-                if (methodMatch) {
-                  line = i + 2 + stackFrame.methodOffset;
-                  break;
-                }
+              const methodMatch = codeLine.text.match(methodMatchPattern);
+              if (methodMatch) {
+                line = i + 2 + stackFrame.methodOffset;
+                break;
               }
             }
-            this._stackFrames.set(stackFrameId, stackFrame);
-          } catch (ex) {
-            noSource = true;
           }
-          return {
-            id: stackFrameId,
-            name: place,
-            source: noSource ? null : source,
-            line,
-            column: 1,
-          };
+          this._stackFrames.set(stackFrameId, stackFrame);
+        } catch (ex) {
+          noSource = true;
         }
-      )
+        return {
+          id: stackFrameId,
+          name: place,
+          source: noSource ? null : source,
+          line,
+          column: 1,
+        };
+      })
     );
 
     response.body = {
