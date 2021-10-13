@@ -57,7 +57,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
       const fileName = name
         .split(".")
         .slice(0, -1)
-        .join(fileExt.match(/cls/i) ? "/" : ".");
+        .join(/cls|mac|int|inc/i.test(fileExt) ? "/" : ".");
       name = fileName + "." + fileExt;
       uri = wFolderUri.with({
         path: `/${name}`,
