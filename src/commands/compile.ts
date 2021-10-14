@@ -14,10 +14,8 @@ import {
 } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { currentFile, CurrentFile, currentWorkspaceFolder, outputChannel, uriOfWorkspaceFolder } from "../utils";
-import { RootNode } from "../explorer/models/rootNode";
 import { PackageNode } from "../explorer/models/packageNode";
-import { ClassNode } from "../explorer/models/classNode";
-import { RoutineNode } from "../explorer/models/routineNode";
+import { NodeBase } from "../explorer/models/nodeBase";
 
 async function compileFlags(): Promise<string> {
   const defaultFlags = config().compileFlags;
@@ -418,20 +416,24 @@ export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<
   );
 }
 
-export async function compileExplorerItem(node: RootNode | PackageNode | ClassNode | RoutineNode): Promise<any> {
-  const { workspaceFolder, namespace } = node;
+export async function compileExplorerItems(nodes: NodeBase[]): Promise<any> {
+  const { workspaceFolder, namespace } = nodes[0];
   const flags = config().compileFlags;
   const api = new AtelierAPI(workspaceFolder);
   api.setNamespace(namespace);
-  let docs = [node.fullName];
-  if (node instanceof PackageNode) {
-    switch (node.category) {
-      case "RTN":
-        docs = [node.fullName + ".*.mac"];
-        break;
-      case "CLS":
-        docs = [node.fullName + ".*.cls"];
-        break;
+  const docs = [];
+  for (const node of nodes) {
+    if (node instanceof PackageNode) {
+      switch (node.category) {
+        case "RTN":
+          docs.push(node.fullName + ".*.mac");
+          break;
+        case "CLS":
+          docs.push(node.fullName + ".*.cls");
+          break;
+      }
+    } else {
+      docs.push(node.fullName);
     }
   }
   return api.actionCompile(docs, flags);

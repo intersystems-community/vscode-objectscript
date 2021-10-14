@@ -22,12 +22,12 @@ import {
   importAndCompile,
   importFolder as importFileOrFolder,
   namespaceCompile,
-  compileExplorerItem,
+  compileExplorerItems,
   checkChangedOnServer,
   compileOnly,
 } from "./commands/compile";
-import { deleteItem } from "./commands/delete";
-import { exportAll, exportExplorerItem } from "./commands/export";
+import { deleteExplorerItems } from "./commands/delete";
+import { exportAll, exportExplorerItems } from "./commands/export";
 import { serverActions } from "./commands/serverActions";
 import { subclass } from "./commands/subclass";
 import { superclass } from "./commands/superclass";
@@ -841,10 +841,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     // Register the vscode-objectscript.explorer.open command elsewhere
     registerExplorerOpen(explorerProvider),
     vscode.commands.registerCommand("vscode-objectscript.explorer.export", (item, items) =>
-      exportExplorerItem(items && items.length ? items : [item])
+      exportExplorerItems(items && items.length ? items : [item])
     ),
-    vscode.commands.registerCommand("vscode-objectscript.explorer.delete", deleteItem),
-    vscode.commands.registerCommand("vscode-objectscript.explorer.compile", compileExplorerItem),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.delete", (item, items) =>
+      deleteExplorerItems(items && items.length ? items : [item])
+    ),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.compile", (item, items) =>
+      compileExplorerItems(items && items.length ? items : [item])
+    ),
     vscode.commands.registerCommand("vscode-objectscript.explorer.showGenerated", (workspaceNode: WorkspaceNode) => {
       workspaceState.update(`ExplorerGenerated:${workspaceNode.uniqueId}`, true);
       return explorerProvider.refresh();
