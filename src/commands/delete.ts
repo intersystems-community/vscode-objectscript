@@ -1,21 +1,21 @@
 import * as vscode from "vscode";
 
 import { AtelierAPI } from "../api";
-import { ClassNode } from "../explorer/models/classNode";
 import { PackageNode } from "../explorer/models/packageNode";
 import { RootNode } from "../explorer/models/rootNode";
-import { RoutineNode } from "../explorer/models/routineNode";
+import { NodeBase } from "../explorer/models/nodeBase";
 import { explorerProvider } from "../extension";
 import { outputChannel } from "../utils";
 import { OtherStudioAction, fireOtherStudioAction } from "./studio";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 
-function deleteList(items: string[], workspaceFolder: string): Promise<any> {
+function deleteList(items: string[], workspaceFolder: string, namespace: string): Promise<any> {
   if (!items || !items.length) {
-    vscode.window.showWarningMessage("Nothing to export");
+    vscode.window.showWarningMessage("Nothing to delete");
   }
 
   const api = new AtelierAPI(workspaceFolder);
+  api.setNamespace(namespace);
   return Promise.all(items.map((item) => api.deleteDoc(item))).then((files) => {
     files.forEach((file) => {
       if (file.result.ext) {
@@ -27,18 +27,34 @@ function deleteList(items: string[], workspaceFolder: string): Promise<any> {
   });
 }
 
-export async function deleteItem(node: RootNode | PackageNode | ClassNode | RoutineNode): Promise<any> {
-  const workspaceFolder = node.workspaceFolder;
-  const nodesList = node instanceof RootNode ? node.getChildren(node) : Promise.resolve([node]);
-  return nodesList
-    .then((nodes) =>
-      nodes.reduce(
+export async function deleteExplorerItems(nodes: NodeBase[]): Promise<any> {
+  const { workspaceFolder, namespace } = nodes[0];
+  const nodesPromiseList: Promise<NodeBase[]>[] = [];
+  for (const node of nodes) {
+    nodesPromiseList.push(node instanceof RootNode ? node.getChildren(node) : Promise.resolve([node]));
+  }
+  return Promise.all(nodesPromiseList)
+    .then((nodesList) => nodesList.flat())
+    .then((allNodes) =>
+      allNodes.reduce<string[]>(
         (list, subNode) => list.concat(subNode instanceof PackageNode ? subNode.getClasses() : [subNode.fullName]),
         []
       )
     )
-    .then((items) => {
-      deleteList(items, workspaceFolder);
+    .then(async (items) => {
+      if (nodes.length > 1) {
+        // Ask the user to confirm if they're deleting more than one explorer node
+        const confirm = await vscode.window.showWarningMessage(
+          `About to delete ${items.length} documents. Are you sure you want to proceed?`,
+          "Cancel",
+          "Confirm"
+        );
+        if (confirm !== "Confirm") {
+          // Don't delete without confirmation
+          return;
+        }
+      }
+      deleteList(items, workspaceFolder, namespace);
       explorerProvider.refresh();
     });
 }

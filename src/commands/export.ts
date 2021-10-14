@@ -239,7 +239,7 @@ export async function exportAll(workspaceFolder?: string): Promise<any> {
   });
 }
 
-export async function exportExplorerItem(nodes: NodeBase[]): Promise<any> {
+export async function exportExplorerItems(nodes: NodeBase[]): Promise<any> {
   const node = nodes[0];
   const origNamespace = config("conn", node.workspaceFolder).ns;
   if (origNamespace !== node.namespace) {
