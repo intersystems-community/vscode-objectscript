@@ -355,7 +355,17 @@ export class AtelierAPI {
       }
 
       const buffer = await response.buffer();
-      const data: Atelier.Response = JSON.parse(buffer.toString("utf-8"));
+
+      const responseString = buffer.toString("utf-8");
+      if (!responseString.startsWith("{")) {
+        outputConsole(["", `Non-JSON response to ${path}`, ...responseString.split("\r\n")]);
+        throw {
+          statusCode: 500,
+          message: `Non-JSON response to ${path} request. View 'ObjectScript' channel on OUTPUT tab of Panel for details.`,
+        };
+      }
+
+      const data: Atelier.Response = JSON.parse(responseString);
 
       // Decode encoded content
       if (data.result && data.result.enc && data.result.content) {
