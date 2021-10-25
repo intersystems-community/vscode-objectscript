@@ -131,6 +131,7 @@ class StudioActions {
           this.api.actionQuery("select %Atelier_v1_Utils.General_GetCSPToken(?) token", [target]).then((tokenObj) => {
             const csptoken = tokenObj.result.content[0].token;
             url.searchParams.set("CSPCHD", csptoken);
+            url.searchParams.set("CSPSHARE", "1");
             url.searchParams.set("Namespace", this.api.config.ns);
             panel.webview.html = `
               <!DOCTYPE html>
