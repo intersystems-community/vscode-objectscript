@@ -73,7 +73,7 @@ export class DocumaticPreviewPanel {
     const webviewFolderUri: vscode.Uri = vscode.Uri.joinPath(extensionUri, "webview");
 
     // Create the documatic preview webview
-    const panel = vscode.window.createWebviewPanel(this.viewType, `Preview ${clsname}.cls`, vscode.ViewColumn.Beside, {
+    const panel = vscode.window.createWebviewPanel(this.viewType, `Preview ${clsname}.cls`, {preserveFocus: true, viewColumn: vscode.ViewColumn.Beside}, {
       enableScripts: true,
       enableCommandUris: true,
       localResourceRoots: [webviewFolderUri],
