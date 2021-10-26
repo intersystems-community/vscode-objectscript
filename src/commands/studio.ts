@@ -162,8 +162,17 @@ class StudioActions {
               `;
           });
         });
-      case 3: // Run an EXE on the client.
-        throw new Error("processUserAction: Run EXE (Action=5) not supported");
+      case 3: {
+        // Run an EXE on the client.
+        const urlRegex = /^(ht|f)tp(s?):\/\//gim;
+        if (target.search(urlRegex) === 0) {
+          // Allow target that is a URL to be opened in an external browser
+          vscode.env.openExternal(vscode.Uri.parse(target));
+          break;
+        } else {
+          throw new Error("processUserAction: Run EXE (Action=3) not supported");
+        }
+      }
       case 4: {
         // Insert the text in Target in the current document at the current selection point
         const editor = vscode.window.activeTextEditor;
