@@ -75,7 +75,7 @@ export class DocumaticPreviewPanel {
     // Create the documatic preview webview
     const panel = vscode.window.createWebviewPanel(
       this.viewType,
-      `Preview ${clsname}.cls`,
+      `Doc for ${clsname}.cls`,
       { preserveFocus: true, viewColumn: vscode.ViewColumn.Beside },
       {
         enableScripts: true,
@@ -250,7 +250,7 @@ export class DocumaticPreviewPanel {
 
           // Update the editor and panel title
           this._editor = editor;
-          this._panel.title = `Preview ${clsname}.cls`;
+          this._panel.title = `Doc for ${clsname}.cls`;
 
           // Update the root DocumentSymbol
           this._rootSymbol = (
