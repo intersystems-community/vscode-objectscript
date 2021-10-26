@@ -1,13 +1,13 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { config, FILESYSTEM_SCHEMA } from "../extension";
-import { outputChannel, outputConsole, currentFile, getServerName } from "../utils";
+import { outputChannel, outputConsole, getServerName } from "../utils";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { ClassNode } from "../explorer/models/classNode";
 import { PackageNode } from "../explorer/models/packageNode";
 import { RoutineNode } from "../explorer/models/routineNode";
 import { NodeBase } from "../explorer/models/nodeBase";
-import { importAndCompile, loadChanges } from "./compile";
+import { importAndCompile } from "./compile";
 
 export let documentBeingProcessed: vscode.TextDocument = null;
 
@@ -131,6 +131,7 @@ class StudioActions {
           this.api.actionQuery("select %Atelier_v1_Utils.General_GetCSPToken(?) token", [target]).then((tokenObj) => {
             const csptoken = tokenObj.result.content[0].token;
             url.searchParams.set("CSPCHD", csptoken);
+            url.searchParams.set("CSPSHARE", "1");
             url.searchParams.set("Namespace", this.api.config.ns);
             panel.webview.html = `
               <!DOCTYPE html>
@@ -280,41 +281,38 @@ class StudioActions {
               const actionToProcess = data.result.content.pop();
 
               if (actionToProcess.reload) {
-                const document = vscode.window.activeTextEditor.document;
-                const file = currentFile(document);
                 // Avoid the reload triggering the edit listener here
-                suppressEditListenerMap.set(file.uri.toString(), true);
-                await loadChanges([file]);
+                suppressEditListenerMap.set(this.uri.toString(), true);
+                await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
               }
 
               // CSP pages should not have a progress bar
               if (actionToProcess.action === 2) {
                 resolve();
               }
-              return actionToProcess;
-            })
-            .then((actionToProcess) => {
+
               const attemptedEditLabel = getOtherStudioActionLabel(OtherStudioAction.AttemptedEdit);
               if (afterUserAction && actionToProcess.errorText !== "") {
                 if (action.label === attemptedEditLabel) {
-                  vscode.commands.executeCommand("undo");
+                  suppressEditListenerMap.set(this.uri.toString(), true);
+                  await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
                 }
                 outputChannel.appendLine(actionToProcess.errorText);
                 outputChannel.show();
               }
-              actionToProcess &&
-                !afterUserAction &&
-                this.processUserAction(actionToProcess).then((answer) => {
-                  if ((action.label = attemptedEditLabel) && answer !== "1") {
-                    vscode.commands.executeCommand("undo");
-                  }
-                  // call AfterUserAction only if there is a valid answer
-                  if (answer) {
-                    answer.msg || answer.msg === ""
-                      ? this.userAction(action, true, answer.answer, answer.msg, type)
-                      : this.userAction(action, true, answer, "", type);
-                  }
-                });
+              if (actionToProcess && !afterUserAction) {
+                const answer = await this.processUserAction(actionToProcess);
+                // call AfterUserAction only if there is a valid answer
+                if ((action.label = attemptedEditLabel) && answer !== "1") {
+                  suppressEditListenerMap.set(this.uri.toString(), true);
+                  await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
+                }
+                if (answer) {
+                  answer.msg || answer.msg === ""
+                    ? this.userAction(action, true, answer.answer, answer.msg, type)
+                    : this.userAction(action, true, answer, "", type);
+                }
+              }
             })
             .then(() => resolve())
             .catch((err) => {
