@@ -45,6 +45,7 @@ import {
 import { addServerNamespaceToWorkspace } from "./commands/addServerNamespaceToWorkspace";
 import { jumpToTagAndOffset } from "./commands/jumpToTagAndOffset";
 import { connectFolderToServerNamespace } from "./commands/connectFolderToServerNamespace";
+import { DocumaticPreviewPanel } from "./commands/documaticPreviewPanel";
 
 import { getLanguageConfiguration } from "./languageConfiguration";
 
@@ -925,6 +926,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       new DocumentLinkProvider()
     ),
     vscode.commands.registerCommand("vscode-objectscript.editOthers", () => viewOthers(true)),
+    vscode.commands.registerCommand("vscode-objectscript.showClassDocumentationPreview", () =>
+      DocumaticPreviewPanel.create(context.extensionUri)
+    ),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed

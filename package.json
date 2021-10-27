@@ -130,7 +130,7 @@
         },
         {
           "command": "vscode-objectscript.previewXml",
-          "when": "editorLangId = xml && vscode-objectscript.connectActive"
+          "when": "editorLangId == xml && vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.explorer.export",
@@ -223,6 +223,10 @@
         {
           "command": "vscode-objectscript.editOthers",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.showClassDocumentationPreview",
+          "when": "editorLangId == objectscript-class"
         }
       ],
       "view/title": [
@@ -335,6 +339,18 @@
           "command": "vscode-objectscript.serverCommands.other",
           "group": "navigation@2",
           "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/"
+        },
+        {
+          "command": "vscode-objectscript.showClassDocumentationPreview",
+          "group": "navigation@3",
+          "when": "editorLangId == objectscript-class"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "vscode-objectscript.showClassDocumentationPreview",
+          "group": "1_open",
+          "when": "resourceLangId == objectscript-class"
         }
       ],
       "touchBar": [
@@ -657,6 +673,12 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.editOthers",
         "title": "Edit Other"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.showClassDocumentationPreview",
+        "title": "Show Class Documentation Preview",
+        "icon": "$(open-preview)"
       }
     ],
     "keybindings": [
