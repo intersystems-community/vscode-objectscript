@@ -110,10 +110,6 @@ Open the folder where you want client-side files to be located. Select the **Obj
 
 You cannot create a connection to a server that is not running.
 
-Click on the server and namespace in the status bar to open a list of actions you can take for this server:
-
-![Select action for server.](../assets/images/action-for-server.png "select action for server")
-
 ## Editing a Server Connection
 
 If you need to modify a server connection select **File > Preferences > Settings** (**Code > Preferences > Settings** on Mac) from the menu. Select the **Workspace** settings level. Search for **objectscript: conn**, and click on *Edit in settings.json*.
@@ -133,3 +129,34 @@ The components of this configuration are:
 - **ns** - namespace to use on the server
 - **server** - server name as specified in the server configuration
 - **active** - specifies whether the connection is active.
+
+## Add Custom Entries to the Server Actions Menu
+
+Click on the server and namespace in the status bar to open a list of actions you can take for this server:
+
+![Select action for server.](../assets/images/action-for-server.png "select action for server")
+
+You can add custom entries to this list using the `objectscript.conn.links` configuration object, which contains key-value pairs where the key is the label displayed in the menu and the value is the uri to open. The following variables are available for substitution in the uri:
+
+- **${host}** - The hostname of the connected server. For example, `localhost`
+- **${port}** - The port of the connected server. For example, `52773`
+- **${serverUrl}** - The full connection string for the server. For example, `http://localhost:52773/pathPrefix`
+- **${ns}** - The namespace that we are connected to, URL encoded. For example, `%25SYS` or `USER`
+- **${namespace}** - The raw `ns` parameter of the connection. For example, `sys` or `user`
+- **${classname}** - The name of the currently opened class, or the empty string if the currently opened document is not a class.
+- **${classnameEncoded}** - `${classname}` URL encoded.
+
+An example links configuration looks like this:
+
+```json
+"objectscript.conn": {
+    "links": {
+        "Portal Explorer": "${serverUrl}/csp/sys/exp/%25CSP.UI.Portal.ClassList.zen?$NAMESPACE=${ns}",
+        "SOAP Wizard": "${serverUrl}/isc/studio/templates/%25ZEN.Template.AddInWizard.SOAPWizard.cls?$NAMESPACE=${ns}"
+    },
+}
+```
+
+And the resulting Server Actions Menu looks like this:
+
+![Server actions with custom links.](../assets/images/server-actions-with-links.png "server actions menu with custom links")
