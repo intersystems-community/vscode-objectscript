@@ -818,7 +818,7 @@
           "scope": "resource"
         },
         "objectscript.export.folder": {
-          "description": "Folder for source code within workspace.",
+          "description": "Folder for exported source code within workspace.",
           "type": "string",
           "default": "src"
         },
@@ -907,7 +907,7 @@
         "objectscript.compileFlags": {
           "type": "string",
           "default": "cuk",
-          "markdownDescription": "Compilation flags. For descriptions of all available flags and qualifiers, click [here](https://docs.intersystems.com/irislatest/csp/docbook/Doc.View.cls?KEY=RCOS_vsystem#RCOS_vsystem_flags_qualifiers)."
+          "markdownDescription": "Compilation flags. Common compilation flags are ***b*** (compile dependent classes), ***k*** (keep generated source code) and ***u*** (skip related up-to-date documents). For descriptions of all available flags and qualifiers, click [here](https://docs.intersystems.com/irislatest/csp/docbook/Doc.View.cls?KEY=RCOS_vsystem#RCOS_vsystem_flags_qualifiers)."
         },
         "objectscript.searchAllDocTypes": {
           "type": "boolean",
@@ -959,7 +959,7 @@
         "objectscript.serverSideEditing": {
           "default": false,
           "type": "boolean",
-          "description": "Allow to edit code directly on server after opening it from ObjectScript Explorer."
+          "description": "Allow editing code directly on the server after opening it from ObjectScript Explorer."
         },
         "objectscript.debug": {
           "type": "object"
@@ -977,7 +977,7 @@
         "objectscript.ignoreInstallServerManager": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Do not offer to install the [intersystems-community.servermanager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) helper extension."
+          "markdownDescription": "Do not offer to install the [intersystems-community.servermanager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) extension."
         },
         "objectscript.autoShowTerminal": {
           "description": "Automatically show terminal when connected to docker-compose.",

@@ -37,6 +37,8 @@ For example, the following screen shot shows the Workspace level selected:
 
 See the VS Code documentation section [User and Workspace Settings](https://code.visualstudio.com/docs/getstarted/settings).
 
+See the [Settings Reference page](../settings/) for a list of all settings contributed by the extensions in the pack.
+
 {: #config-server}
 ## Configuring a Server
 
@@ -102,6 +104,7 @@ If you do not store the password securely in the system Keychain or add it to th
 - **InterSystems Server Manager: Clear Password from Keychain** - remove the password for a selected server
 - **InterSystems Server Manager: Store Password in Keychain** - select a server or create a new one and enter a password
 
+{: #config-server-conn}
 ## Configuring a Server Connection
 
 Open the folder where you want client-side files to be located. Select the **ObjectScript Explorer** button on the Activity Bar. Select the **Choose Server and Namespace** button. This action opens a dialog that lets you select a server, or create a new one. Once you have selected a server and namespace, connection configuration is complete. VS Code adds the server and namespace to the status bar, as shown in the following screen shot.
@@ -130,6 +133,7 @@ The components of this configuration are:
 - **server** - server name as specified in the server configuration
 - **active** - specifies whether the connection is active.
 
+{: #server-actions-menu}
 ## Add Custom Entries to the Server Actions Menu
 
 Click on the server and namespace in the status bar to open a list of actions you can take for this server:
@@ -144,7 +148,7 @@ You can add custom entries to this list using the `objectscript.conn.links` conf
 - **${ns}** - The namespace that we are connected to, URL encoded. For example, `%25SYS` or `USER`
 - **${namespace}** - The raw `ns` parameter of the connection. For example, `sys` or `user`
 - **${classname}** - The name of the currently opened class, or the empty string if the currently opened document is not a class.
-- **${classnameEncoded}** - `${classname}` URL encoded.
+- **${classnameEncoded}** - URL encoded version of **\${classname}**.
 
 An example links configuration looks like this:
 
