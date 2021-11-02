@@ -19,10 +19,34 @@ export function getLanguageConfiguration(lang: string): LanguageConfiguration {
         ? [
             {
               beforeText: /^\/\/\//,
-              afterText: /.*/,
               action: { indentAction: IndentAction.None, appendText: "/// " },
             },
           ]
-        : [],
+        : [
+            {
+              beforeText: /^\s\/\/\//,
+              action: { indentAction: IndentAction.None, appendText: "/// " },
+            },
+            {
+              beforeText: /^\s\/\/[^/]?/,
+              action: { indentAction: IndentAction.None, appendText: "// " },
+            },
+            {
+              beforeText: /^\s;;/,
+              action: { indentAction: IndentAction.None, appendText: ";; " },
+            },
+            {
+              beforeText: /^\s;[^;]?/,
+              action: { indentAction: IndentAction.None, appendText: "; " },
+            },
+            {
+              beforeText: /^\s#;/,
+              action: { indentAction: IndentAction.None, appendText: "#; " },
+            },
+            {
+              beforeText: /^\s##;/,
+              action: { indentAction: IndentAction.None, appendText: "##; " },
+            },
+          ],
   };
 }
