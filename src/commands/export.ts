@@ -2,7 +2,7 @@ import fs = require("fs");
 import path = require("path");
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { config } from "../extension";
+import { config, explorerProvider } from "../extension";
 import { mkdirSyncRecursive, notNull, outputChannel, uriOfWorkspaceFolder } from "../utils";
 import { NodeBase } from "../explorer/models/nodeBase";
 
@@ -261,6 +261,6 @@ Would you like to continue?`,
   }
   const { workspaceFolder, namespace } = node;
   return Promise.all(nodes.map((node) => node.getItems4Export())).then((items) => {
-    return exportList(items.flat(), workspaceFolder, namespace);
+    return exportList(items.flat(), workspaceFolder, namespace).then(() => explorerProvider.refresh());
   });
 }
