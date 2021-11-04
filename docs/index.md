@@ -11,3 +11,4 @@ nav_exclude: true
 * [Configuration](./configuration)
 * [Running and Debugging](./rundebug)
 * [Server-side Editing](./serverside)
+* [Settings Reference](./settings)

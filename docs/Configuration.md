@@ -37,6 +37,8 @@ For example, the following screen shot shows the Workspace level selected:
 
 See the VS Code documentation section [User and Workspace Settings](https://code.visualstudio.com/docs/getstarted/settings).
 
+See the [Settings Reference page](../settings/) for a list of all settings contributed by the extensions in the pack.
+
 {: #config-server}
 ## Configuring a Server
 
@@ -102,6 +104,7 @@ If you do not store the password securely in the system Keychain or add it to th
 - **InterSystems Server Manager: Clear Password from Keychain** - remove the password for a selected server
 - **InterSystems Server Manager: Store Password in Keychain** - select a server or create a new one and enter a password
 
+{: #config-server-conn}
 ## Configuring a Server Connection
 
 Open the folder where you want client-side files to be located. Select the **ObjectScript Explorer** button on the Activity Bar. Select the **Choose Server and Namespace** button. This action opens a dialog that lets you select a server, or create a new one. Once you have selected a server and namespace, connection configuration is complete. VS Code adds the server and namespace to the status bar, as shown in the following screen shot.
@@ -109,10 +112,6 @@ Open the folder where you want client-side files to be located. Select the **Obj
 ![Connection information in the status bar.](../assets/images/action-for-server-start.png "connection information in the status bar")
 
 You cannot create a connection to a server that is not running.
-
-Click on the server and namespace in the status bar to open a list of actions you can take for this server:
-
-![Select action for server.](../assets/images/action-for-server.png "select action for server")
 
 ## Editing a Server Connection
 
@@ -133,3 +132,35 @@ The components of this configuration are:
 - **ns** - namespace to use on the server
 - **server** - server name as specified in the server configuration
 - **active** - specifies whether the connection is active.
+
+{: #server-actions-menu}
+## Add Custom Entries to the Server Actions Menu
+
+Click on the server and namespace in the status bar to open a list of actions you can take for this server:
+
+![Select action for server.](../assets/images/action-for-server.png "select action for server")
+
+You can add custom entries to this list using the `objectscript.conn.links` configuration object, which contains key-value pairs where the key is the label displayed in the menu and the value is the uri to open. The following variables are available for substitution in the uri:
+
+- **${host}** - The hostname of the connected server. For example, `localhost`
+- **${port}** - The port of the connected server. For example, `52773`
+- **${serverUrl}** - The full connection string for the server. For example, `http://localhost:52773/pathPrefix`
+- **${ns}** - The namespace that we are connected to, URL encoded. For example, `%25SYS` or `USER`
+- **${namespace}** - The raw `ns` parameter of the connection. For example, `sys` or `user`
+- **${classname}** - The name of the currently opened class, or the empty string if the currently opened document is not a class.
+- **${classnameEncoded}** - URL encoded version of **\${classname}**.
+
+An example links configuration looks like this:
+
+```json
+"objectscript.conn": {
+    "links": {
+        "Portal Explorer": "${serverUrl}/csp/sys/exp/%25CSP.UI.Portal.ClassList.zen?$NAMESPACE=${ns}",
+        "SOAP Wizard": "${serverUrl}/isc/studio/templates/%25ZEN.Template.AddInWizard.SOAPWizard.cls?$NAMESPACE=${ns}"
+    },
+}
+```
+
+And the resulting Server Actions Menu looks like this:
+
+![Server actions with custom links.](../assets/images/server-actions-with-links.png "server actions menu with custom links")
