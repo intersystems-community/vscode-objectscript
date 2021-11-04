@@ -143,12 +143,12 @@ export abstract class Breakpoint {
   public state: BreakpointState;
   /** The connection this breakpoint is set on */
   public connection: Connection;
-  /** A numeric value used to determine if the breakpoint should pause execution or be skipped. */
-  public hitCount?: string;
+  /** The value of the `hitCondition` property of the input `DebugProtocol.SourceBreakpoint` */
+  public hitCondition?: string;
   /** Constructs a breakpoint object from an XML node from a XDebug response */
   public constructor(breakpointNode: Element, connection: Connection);
   /** To create a new breakpoint in derived classes */
-  public constructor(type: BreakpointType, hitCount?: string);
+  public constructor(type: BreakpointType, hitCondition?: string);
   public constructor(...rest: any[]) {
     if (typeof rest[0] === "object") {
       // from XML
@@ -159,7 +159,7 @@ export abstract class Breakpoint {
       this.state = breakpointNode.getAttribute("state") as BreakpointState;
     } else {
       this.type = rest[0];
-      this.hitCount = rest[1];
+      this.hitCondition = rest[1];
       this.state = "enabled";
     }
   }
@@ -178,7 +178,7 @@ export class LineBreakpoint extends Breakpoint {
   /** constructs a line breakpoint from an XML node */
   public constructor(breakpointNode: Element, connection: Connection);
   /** contructs a line breakpoint for passing to sendSetBreakpointCommand */
-  public constructor(fileUri: string, line: number, hitCount?: string);
+  public constructor(fileUri: string, line: number, hitCondition?: string);
   public constructor(...rest: any[]) {
     if (typeof rest[0] === "object") {
       const breakpointNode: Element = rest[0];
@@ -200,7 +200,7 @@ export class ClassLineBreakpoint extends LineBreakpoint {
   public methodOffset: number;
 
   /** contructs a line breakpoint for passing to sendSetBreakpointCommand */
-  public constructor(fileUri: string, line: number, method: string, methodOffset: number, hitCount?: string);
+  public constructor(fileUri: string, line: number, method: string, methodOffset: number, hitCondition?: string);
   public constructor(...rest: any[]) {
     if (typeof rest[0] === "object") {
       const breakpointNode: Element = rest[0];
@@ -221,7 +221,7 @@ export class RoutineLineBreakpoint extends LineBreakpoint {
   public methodOffset: number;
 
   /** contructs a line breakpoint for passing to sendSetBreakpointCommand */
-  public constructor(fileUri: string, line: number, method: string, methodOffset: number, hitCount?: string);
+  public constructor(fileUri: string, line: number, method: string, methodOffset: number, hitCondition?: string);
   public constructor(...rest: any[]) {
     if (typeof rest[0] === "object") {
       const breakpointNode: Element = rest[0];
@@ -248,7 +248,7 @@ export class ConditionalBreakpoint extends Breakpoint {
   /** Constructs a breakpoint object from an XML node from a XDebug response */
   public constructor(breakpointNode: Element, connection: Connection);
   /** Contructs a breakpoint object for passing to sendSetBreakpointCommand */
-  public constructor(expression: string, fileUri: string, line?: number, hitCount?: string);
+  public constructor(expression: string, fileUri: string, line?: number, hitCondition?: string);
   public constructor(...rest: any[]) {
     if (typeof rest[0] === "object") {
       // from XML
@@ -277,7 +277,7 @@ export class ClassConditionalBreakpoint extends ConditionalBreakpoint {
     line: number,
     method: string,
     methodOffset: number,
-    hitCount?: string
+    hitCondition?: string
   );
   public constructor(...rest: any[]) {
     if (typeof rest[0] === "object") {
@@ -304,7 +304,7 @@ export class RoutineConditionalBreakpoint extends ConditionalBreakpoint {
     line: number,
     method: string,
     methodOffset: number,
-    hitCount?: string
+    hitCondition?: string
   );
   public constructor(...rest: any[]) {
     if (typeof rest[0] === "object") {
@@ -854,8 +854,8 @@ export class Connection extends DbgpConnection {
       args += ` -m PLACEHOLDER`;
       args += ` -n PLACEHOLDER`;
     }
-    if (breakpoint.hitCount) {
-      args += ` -h ${breakpoint.hitCount}`;
+    if (breakpoint.hitCondition) {
+      args += ` -h ${breakpoint.hitCondition}`;
     }
     return new BreakpointSetResponse(await this._enqueueCommand("breakpoint_set", args, data), this);
   }
