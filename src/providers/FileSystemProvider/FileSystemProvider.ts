@@ -185,13 +185,26 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         // Weirdly, if the file exists on the server we don't actually write its content here.
         // Instead we simply return as though we wrote it successfully.
         // The actual writing is done by our workspace.onDidSaveTextDocument handler.
-        // But first check a case for which we should fail the write and leave the document dirty if changed.
+        // But first check cases for which we should fail the write and leave the document dirty if changed.
         if (fileName.split(".").pop().toLowerCase() === "cls") {
+          // Check if the class is deployed
           api.actionIndex([fileName]).then((result) => {
             if (result.result.content[0].content.depl) {
               throw new Error("Cannot overwrite a deployed class");
             }
           });
+          // Check if the class name and file name match
+          let clsname = "";
+          const match = content.toString().match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
+          if (match) {
+            [, clsname] = match;
+          }
+          if (clsname === "") {
+            throw new Error("Cannot save a malformed class");
+          }
+          if (fileName.slice(0, -4) !== clsname) {
+            throw new Error("Cannot save an isfs class where the class name and file name do not match");
+          }
         }
         // Set a -1 mtime cache entry so the actual write by the workspace.onDidSaveTextDocument handler always overwrites.
         // By the time we get here VS Code's built-in conflict resolution mechanism will already have interacted with the user.
