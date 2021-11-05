@@ -323,12 +323,12 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       await Promise.all(
         xdebugBreakpoints.map(async (breakpoint, index) => {
           try {
-            if (breakpoint.hitCondition && !/^\d+$/.test(breakpoint.hitCondition)) {
-              // The user-defined hitCondition wasn't an integer
+            if (breakpoint.hitCondition && !/^[1-9]\d*$/.test(breakpoint.hitCondition)) {
+              // The user-defined hitCondition wasn't a positive integer
               vscodeBreakpoints[index] = {
                 verified: false,
                 line: breakpoint.line,
-                message: "Hit Count must be an integer",
+                message: "Hit Count must be a positive integer",
               };
             } else {
               await this._connection.sendBreakpointSetCommand(breakpoint);
