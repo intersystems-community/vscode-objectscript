@@ -143,10 +143,12 @@ export abstract class Breakpoint {
   public state: BreakpointState;
   /** The connection this breakpoint is set on */
   public connection: Connection;
+  /** The value of the `hitCondition` property of the input `DebugProtocol.SourceBreakpoint` */
+  public hitCondition?: string;
   /** Constructs a breakpoint object from an XML node from a XDebug response */
   public constructor(breakpointNode: Element, connection: Connection);
   /** To create a new breakpoint in derived classes */
-  public constructor(type: BreakpointType);
+  public constructor(type: BreakpointType, hitCondition?: string);
   public constructor(...rest: any[]) {
     if (typeof rest[0] === "object") {
       // from XML
@@ -157,6 +159,7 @@ export abstract class Breakpoint {
       this.state = breakpointNode.getAttribute("state") as BreakpointState;
     } else {
       this.type = rest[0];
+      this.hitCondition = rest[1].trim();
       this.state = "enabled";
     }
   }
@@ -175,7 +178,7 @@ export class LineBreakpoint extends Breakpoint {
   /** constructs a line breakpoint from an XML node */
   public constructor(breakpointNode: Element, connection: Connection);
   /** contructs a line breakpoint for passing to sendSetBreakpointCommand */
-  public constructor(fileUri: string, line: number);
+  public constructor(fileUri: string, line: number, hitCondition?: string);
   public constructor(...rest: any[]) {
     if (typeof rest[0] === "object") {
       const breakpointNode: Element = rest[0];
@@ -185,7 +188,7 @@ export class LineBreakpoint extends Breakpoint {
       this.fileUri = breakpointNode.getAttribute("filename");
     } else {
       // construct from arguments
-      super("line");
+      super("line", rest[2]);
       this.fileUri = rest[0];
       this.line = rest[1];
     }
@@ -197,7 +200,7 @@ export class ClassLineBreakpoint extends LineBreakpoint {
   public methodOffset: number;
 
   /** contructs a line breakpoint for passing to sendSetBreakpointCommand */
-  public constructor(fileUri: string, line: number, method: string, methodOffset: number);
+  public constructor(fileUri: string, line: number, method: string, methodOffset: number, hitCondition?: string);
   public constructor(...rest: any[]) {
     if (typeof rest[0] === "object") {
       const breakpointNode: Element = rest[0];
@@ -206,7 +209,7 @@ export class ClassLineBreakpoint extends LineBreakpoint {
       this.line = parseInt(breakpointNode.getAttribute("lineno"), 10);
       this.fileUri = breakpointNode.getAttribute("filename");
     } else {
-      super(rest[0], rest[1]);
+      super(rest[0], rest[1], rest[4]);
       this.method = rest[2];
       this.methodOffset = rest[3];
     }
@@ -218,7 +221,7 @@ export class RoutineLineBreakpoint extends LineBreakpoint {
   public methodOffset: number;
 
   /** contructs a line breakpoint for passing to sendSetBreakpointCommand */
-  public constructor(fileUri: string, line: number, method: string, methodOffset: number);
+  public constructor(fileUri: string, line: number, method: string, methodOffset: number, hitCondition?: string);
   public constructor(...rest: any[]) {
     if (typeof rest[0] === "object") {
       const breakpointNode: Element = rest[0];
@@ -227,7 +230,7 @@ export class RoutineLineBreakpoint extends LineBreakpoint {
       this.line = parseInt(breakpointNode.getAttribute("lineno"), 10);
       this.fileUri = breakpointNode.getAttribute("filename");
     } else {
-      super(rest[0], rest[1]);
+      super(rest[0], rest[1], rest[4]);
       this.method = rest[2];
       this.methodOffset = rest[3];
     }
@@ -245,7 +248,7 @@ export class ConditionalBreakpoint extends Breakpoint {
   /** Constructs a breakpoint object from an XML node from a XDebug response */
   public constructor(breakpointNode: Element, connection: Connection);
   /** Contructs a breakpoint object for passing to sendSetBreakpointCommand */
-  public constructor(expression: string, fileUri: string, line?: number);
+  public constructor(expression: string, fileUri: string, line?: number, hitCondition?: string);
   public constructor(...rest: any[]) {
     if (typeof rest[0] === "object") {
       // from XML
@@ -255,10 +258,64 @@ export class ConditionalBreakpoint extends Breakpoint {
       this.expression = breakpointNode.getAttribute("expression"); // Base64 encoded?
     } else {
       // from arguments
-      super("conditional");
+      super("conditional", rest[3]);
       this.expression = rest[0];
       this.fileUri = rest[1];
       this.line = rest[2];
+    }
+  }
+}
+
+export class ClassConditionalBreakpoint extends ConditionalBreakpoint {
+  public method: string;
+  public methodOffset: number;
+
+  /** contructs a conditional breakpoint for passing to sendSetBreakpointCommand */
+  public constructor(
+    expression: string,
+    fileUri: string,
+    line: number,
+    method: string,
+    methodOffset: number,
+    hitCondition?: string
+  );
+  public constructor(...rest: any[]) {
+    if (typeof rest[0] === "object") {
+      const breakpointNode: Element = rest[0];
+      const connection: Connection = rest[1];
+      super(breakpointNode, connection);
+      this.expression = breakpointNode.getAttribute("expression"); // Base64 encoded?
+    } else {
+      super(rest[0], rest[1], rest[2], rest[5]);
+      this.method = rest[3];
+      this.methodOffset = rest[4];
+    }
+  }
+}
+
+export class RoutineConditionalBreakpoint extends ConditionalBreakpoint {
+  public method: string;
+  public methodOffset: number;
+
+  /** contructs a conditional breakpoint for passing to sendSetBreakpointCommand */
+  public constructor(
+    expression: string,
+    fileUri: string,
+    line: number,
+    method: string,
+    methodOffset: number,
+    hitCondition?: string
+  );
+  public constructor(...rest: any[]) {
+    if (typeof rest[0] === "object") {
+      const breakpointNode: Element = rest[0];
+      const connection: Connection = rest[1];
+      super(breakpointNode, connection);
+      this.expression = breakpointNode.getAttribute("expression"); // Base64 encoded?
+    } else {
+      super(rest[0], rest[1], rest[2], rest[5]);
+      this.method = rest[3];
+      this.methodOffset = rest[4];
     }
   }
 }
@@ -782,8 +839,10 @@ export class Connection extends DbgpConnection {
       }
     } else if (breakpoint instanceof ConditionalBreakpoint) {
       args += ` -f ${breakpoint.fileUri}`;
-      if (typeof breakpoint.line === "number") {
-        args += ` -n ${breakpoint.line}`;
+      if (breakpoint instanceof ClassConditionalBreakpoint) {
+        args += ` -m ${breakpoint.method} -n ${breakpoint.methodOffset}`;
+      } else if (breakpoint instanceof RoutineConditionalBreakpoint) {
+        args += ` -n ${breakpoint.methodOffset}`;
       }
       data = breakpoint.expression;
     } else if (breakpoint instanceof Watchpoint) {
@@ -794,6 +853,9 @@ export class Connection extends DbgpConnection {
       args += ` -f PLACEHOLDER`;
       args += ` -m PLACEHOLDER`;
       args += ` -n PLACEHOLDER`;
+    }
+    if (breakpoint.hitCondition) {
+      args += ` -h ${breakpoint.hitCondition}`;
     }
     return new BreakpointSetResponse(await this._enqueueCommand("breakpoint_set", args, data), this);
   }

@@ -110,7 +110,8 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       supportsConfigurationDoneRequest: true,
       supportsEvaluateForHovers: true,
       supportsSetVariable: true,
-      supportsConditionalBreakpoints: false, // TODO
+      supportsConditionalBreakpoints: true,
+      supportsHitConditionalBreakpoints: true,
       supportsStepBack: false,
       supportsDataBreakpoints: true,
     };
@@ -266,9 +267,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       xdebugBreakpoints = await Promise.all(
         args.breakpoints.map(async (breakpoint) => {
           const line = breakpoint.line;
-          if (breakpoint.condition) {
-            return new xdebug.ConditionalBreakpoint(breakpoint.condition, fileUri, line);
-          } else if (fileName.endsWith("cls")) {
+          if (fileName.endsWith("cls")) {
             return await vscode.workspace.openTextDocument(uri).then((document) => {
               const methodMatchPattern = new RegExp(`^(?:Class)?Method ([^(]+)(?=[( ])`, "i");
               for (let i = line; line > 0; i--) {
@@ -276,14 +275,46 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
                 const methodMatch = lineOfCode.match(methodMatchPattern);
                 if (methodMatch) {
                   const [, methodName] = methodMatch;
-                  return new xdebug.ClassLineBreakpoint(fileUri, line, methodName, line - i - 2);
+                  if (breakpoint.condition) {
+                    return new xdebug.ClassConditionalBreakpoint(
+                      breakpoint.condition,
+                      fileUri,
+                      line,
+                      methodName,
+                      line - i - 2,
+                      breakpoint.hitCondition
+                    );
+                  } else {
+                    return new xdebug.ClassLineBreakpoint(
+                      fileUri,
+                      line,
+                      methodName,
+                      line - i - 2,
+                      breakpoint.hitCondition
+                    );
+                  }
                 }
               }
             });
           } else if (filePath.endsWith("mac") || filePath.endsWith("int")) {
-            return new xdebug.RoutineLineBreakpoint(fileUri, line, "", line - 1);
+            if (breakpoint.condition) {
+              return new xdebug.RoutineConditionalBreakpoint(
+                breakpoint.condition,
+                fileUri,
+                line,
+                "",
+                line - 1,
+                breakpoint.hitCondition
+              );
+            } else {
+              return new xdebug.RoutineLineBreakpoint(fileUri, line, "", line - 1, breakpoint.hitCondition);
+            }
           } else {
-            return new xdebug.LineBreakpoint(fileUri, line);
+            if (breakpoint.condition) {
+              return new xdebug.ConditionalBreakpoint(breakpoint.condition, fileUri, line, breakpoint.hitCondition);
+            } else {
+              return new xdebug.LineBreakpoint(fileUri, line, breakpoint.hitCondition);
+            }
           }
         })
       );
@@ -292,8 +323,17 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       await Promise.all(
         xdebugBreakpoints.map(async (breakpoint, index) => {
           try {
-            await this._connection.sendBreakpointSetCommand(breakpoint);
-            vscodeBreakpoints[index] = { verified: true, line: breakpoint.line };
+            if (breakpoint.hitCondition && !/^[1-9]\d*$/.test(breakpoint.hitCondition)) {
+              // The user-defined hitCondition wasn't a positive integer
+              vscodeBreakpoints[index] = {
+                verified: false,
+                line: breakpoint.line,
+                message: "Hit Count must be a positive integer",
+              };
+            } else {
+              await this._connection.sendBreakpointSetCommand(breakpoint);
+              vscodeBreakpoints[index] = { verified: true, line: breakpoint.line };
+            }
           } catch (error) {
             vscodeBreakpoints[index] = {
               verified: false,
