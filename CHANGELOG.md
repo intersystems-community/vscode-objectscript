@@ -1,5 +1,23 @@
 # Change Log
 
+## [1.1.0] 08-Nov-2021
+- Enhancements
+    - Add 'Show Class Documentation Preview' button and command.
+    - Improve how line comment markers carry over when newline is entered (#541)
+    - Allow server-side source control class UserAction method call with Action=3 to launch an http/s  or ftp/s URL in the external browser (contributed by @a-boertien).
+    - Add support for conditional breakpoints.
+    - Improve documentation.
+- Fixes
+    - Prevent save of isfs class if filename doesn't match the class it defines (#410)
+    - Refresh ObjectScript Explorer after export (#502)
+    - Improve message when `/api/atelier` web application is disabled or missing (#752)
+    - Correctly handle dots in routine names, preventing two copies of the same routine from being opened concurrently (#748)
+    - Handle multiple selections when performing compile or delete from ObjectScript Explorer (#746)
+    - Revert document instead of attempting an undo when server-side source control signals this is necessary.
+    - Resolve issue causing unusable authentication page after CSP timeout.
+    - Fix XML to UDL conversion.
+    - Upgrade vulnerable dependencies.
+
 ## [1.0.14] 20-Sep-2021
 - Require confirmation before compiling all code in namespace (#677)
 - Respect `maxResults` parameter when running server-side search (#713)
