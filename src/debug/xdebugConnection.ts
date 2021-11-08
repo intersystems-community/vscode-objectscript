@@ -159,7 +159,9 @@ export abstract class Breakpoint {
       this.state = breakpointNode.getAttribute("state") as BreakpointState;
     } else {
       this.type = rest[0];
-      this.hitCondition = rest[1].trim();
+      if (rest[1] !== undefined) {
+        this.hitCondition = rest[1].trim();
+      }
       this.state = "enabled";
     }
   }
