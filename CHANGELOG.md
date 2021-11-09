@@ -2,7 +2,7 @@
 
 ## [1.1.1] 09-Nov-2021
 - Fixes
-    - Debugger: Conditional breakpoint with condition but no hitCondition cannot be set (#766)
+    - Debugger: Breakpoint with no hitCondition cannot be set (#766)
 
 ## [1.1.0] 08-Nov-2021
 - Enhancements
