@@ -49,7 +49,7 @@
   "engines": {
     "vscode": "^1.43.0"
   },
-  "enableProposedApi": true,
+  "enabledApiProposals": ["fileSearchProvider", "textSearchProvider"],
   "activationEvents": [
     "onDebug",
     "workspaceContains:*.cls",
