@@ -1120,8 +1120,7 @@
     "test": "node ./out/test/runTest.js",
     "lint": "eslint src/**",
     "lint-fix": "eslint --fix src/**",
-    "download-api": "vscode-dts dev",
-    "postdownload-api": "vscode-dts master",
+    "download-api": "vscode-dts dev fileSearchProvider textSearchProvider",
     "postinstall": "npm run download-api"
   },
   "devDependencies": {
@@ -1129,6 +1128,7 @@
     "@types/mocha": "^7.0.2",
     "@types/node": "^14.0.14",
     "@types/request": "^2.48.5",
+    "@types/vscode": "^1.62.0",
     "@types/ws": "^7.2.5",
     "@types/xmldom": "^0.1.29",
     "@typescript-eslint/eslint-plugin": "^4.32.0",
@@ -1152,7 +1152,7 @@
     "typescript": "^4.4.3",
     "vsce": "^1.93.0",
     "vscode-debugadapter-testsupport": "^1.41.0",
-    "vscode-dts": "^0.3.1",
+    "vscode-dts": "latest",
     "vscode-test": "^1.4.0",
     "webpack": "^5.27.1",
     "webpack-cli": "^4.5.0"
