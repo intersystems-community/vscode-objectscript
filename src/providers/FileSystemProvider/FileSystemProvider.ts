@@ -88,7 +88,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             const name = item.Name;
             const fullName = folder === "" ? name : csp ? folder + name : folder + "/" + name;
             if (item.Type === "10" || item.Type === "9") {
-              parent.entries.set(name, new Directory(name, fullName));
+              if (!parent.entries.has(name)) {
+                parent.entries.set(name, new Directory(name, fullName));
+              }
               return [name, vscode.FileType.Directory];
             } else {
               return [name, vscode.FileType.File];
@@ -131,7 +133,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
-    return this._lookupAsFile(uri).then((file: File) => {
+    // Use _lookup() instead of _lookupAsFile() so we send
+    // our cached mtime with the GET /doc request if we have it
+    return this._lookup(uri).then((file: File) => {
       // Update cache entry
       const uniqueId = `${workspaceFolderOfUri(uri)}:${file.fileName}`;
       workspaceState.update(`${uniqueId}:mtime`, file.mtime);
@@ -180,7 +184,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       return;
     }
     const api = new AtelierAPI(uri);
-    return this._lookupAsFile(uri).then(
+    // Use _lookup() instead of _lookupAsFile() so we send
+    // our cached mtime with the GET /doc request if we have it
+    return this._lookup(uri).then(
       () => {
         // Weirdly, if the file exists on the server we don't actually write its content here.
         // Instead we simply return as though we wrote it successfully.
@@ -311,7 +317,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         child = entry.entries.get(part);
         // If the last element of path is dotted and is one we haven't already cached as a directory
         // then it is assumed to be a file.
-        if (!part.includes(".") || i + 1 < parts.length) {
+        if ((!part.includes(".") || i + 1 < parts.length) && !child) {
           const fullName = entry.name === "" ? part : entry.fullName + "/" + part;
           child = new Directory(part, fullName);
           entry.entries.set(part, child);
