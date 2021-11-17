@@ -7,23 +7,23 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
   private sql: string =
     "SELECT * FROM (" +
     "SELECT Name, Parent->ID AS Parent, 'method' AS Type FROM %Dictionary.MethodDefinition" +
-    " UNION ALL " +
+    " UNION ALL %PARALLEL " +
     "SELECT Name, Parent->ID AS Parent, 'property' AS Type FROM %Dictionary.PropertyDefinition" +
-    " UNION ALL " +
+    " UNION ALL %PARALLEL " +
     "SELECT Name, Parent->ID AS Parent, 'parameter' AS Type FROM %Dictionary.ParameterDefinition" +
-    " UNION ALL " +
+    " UNION ALL %PARALLEL " +
     "SELECT Name, Parent->ID AS Parent, 'index' AS Type FROM %Dictionary.IndexDefinition" +
-    " UNION ALL " +
+    " UNION ALL %PARALLEL " +
     "SELECT Name, Parent->ID AS Parent, 'foreignkey' AS Type FROM %Dictionary.ForeignKeyDefinition" +
-    " UNION ALL " +
+    " UNION ALL %PARALLEL " +
     "SELECT Name, Parent->ID AS Parent, 'xdata' AS Type FROM %Dictionary.XDataDefinition" +
-    " UNION ALL " +
+    " UNION ALL %PARALLEL " +
     "SELECT Name, Parent->ID AS Parent, 'query' AS Type FROM %Dictionary.QueryDefinition" +
-    " UNION ALL " +
+    " UNION ALL %PARALLEL " +
     "SELECT Name, Parent->ID AS Parent, 'trigger' AS Type FROM %Dictionary.TriggerDefinition" +
-    " UNION ALL " +
+    " UNION ALL %PARALLEL " +
     "SELECT Name, Parent->ID AS Parent, 'storage' AS Type FROM %Dictionary.StorageDefinition" +
-    " UNION ALL " +
+    " UNION ALL %PARALLEL " +
     "SELECT Name, Parent->ID AS Parent, 'projection' AS Type FROM %Dictionary.ProjectionDefinition" +
     ") WHERE %SQLUPPER Name %MATCHES ?";
 
@@ -42,16 +42,23 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
       const result = [];
       const uris: Map<string, vscode.Uri> = new Map();
       for (const element of data.result.content) {
-        let kind: vscode.SymbolKind = vscode.SymbolKind.Property;
-        if (element.Type === "method" || element.Type === "query") {
-          kind = vscode.SymbolKind.Method;
-        } else if (element.Type === "parameter") {
-          kind = vscode.SymbolKind.Constant;
-        } else if (element.Type === "index") {
-          kind = vscode.SymbolKind.Key;
-        } else if (element.Type === "xdata" || element.Type === "storage") {
-          kind = vscode.SymbolKind.Struct;
-        }
+        const kind: vscode.SymbolKind = (() => {
+          switch (element.Type) {
+            case "query":
+            case "method":
+              return vscode.SymbolKind.Method;
+            case "parameter":
+              return vscode.SymbolKind.Constant;
+            case "index":
+              return vscode.SymbolKind.Key;
+            case "xdata":
+            case "storage":
+              return vscode.SymbolKind.Struct;
+            case "property":
+            default:
+              return vscode.SymbolKind.Property;
+          }
+        })();
 
         let uri: vscode.Uri;
         if (uris.has(element.Parent)) {
