@@ -1,85 +1,98 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { ClassDefinition } from "../utils/classDefinition";
+import { currentWorkspaceFolder } from "../utils";
 import { DocumentContentProvider } from "./DocumentContentProvider";
-import { config } from "../extension";
 
 export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
-  public provideWorkspaceSymbols(
-    query: string,
-    token: vscode.CancellationToken
-  ): vscode.ProviderResult<vscode.SymbolInformation[]> {
-    if (query.length < 3) {
+  private sql: string =
+    "SELECT * FROM (" +
+    "SELECT Name, Parent->ID AS Parent, 'method' AS Type FROM %Dictionary.MethodDefinition" +
+    " UNION ALL %PARALLEL " +
+    "SELECT Name, Parent->ID AS Parent, 'property' AS Type FROM %Dictionary.PropertyDefinition" +
+    " UNION ALL %PARALLEL " +
+    "SELECT Name, Parent->ID AS Parent, 'parameter' AS Type FROM %Dictionary.ParameterDefinition" +
+    " UNION ALL %PARALLEL " +
+    "SELECT Name, Parent->ID AS Parent, 'index' AS Type FROM %Dictionary.IndexDefinition" +
+    " UNION ALL %PARALLEL " +
+    "SELECT Name, Parent->ID AS Parent, 'foreignkey' AS Type FROM %Dictionary.ForeignKeyDefinition" +
+    " UNION ALL %PARALLEL " +
+    "SELECT Name, Parent->ID AS Parent, 'xdata' AS Type FROM %Dictionary.XDataDefinition" +
+    " UNION ALL %PARALLEL " +
+    "SELECT Name, Parent->ID AS Parent, 'query' AS Type FROM %Dictionary.QueryDefinition" +
+    " UNION ALL %PARALLEL " +
+    "SELECT Name, Parent->ID AS Parent, 'trigger' AS Type FROM %Dictionary.TriggerDefinition" +
+    " UNION ALL %PARALLEL " +
+    "SELECT Name, Parent->ID AS Parent, 'storage' AS Type FROM %Dictionary.StorageDefinition" +
+    " UNION ALL %PARALLEL " +
+    "SELECT Name, Parent->ID AS Parent, 'projection' AS Type FROM %Dictionary.ProjectionDefinition" +
+    ") WHERE %SQLUPPER Name %MATCHES ?";
+
+  public provideWorkspaceSymbols(query: string): vscode.ProviderResult<vscode.SymbolInformation[]> {
+    if (query.length === 0) {
       return null;
     }
-    return Promise.all([this.byStudioDocuments(query), this.byMethods(query)]).then(([documents, methods]) => [
-      ...documents,
-      ...methods,
-    ]);
-  }
-
-  private getApi(): AtelierAPI {
-    const currentFileUri = vscode.window.activeTextEditor?.document.uri;
-    const firstFolder = vscode.workspace.workspaceFolders?.length ? vscode.workspace.workspaceFolders[0] : undefined;
-    return new AtelierAPI(currentFileUri || firstFolder?.uri || "");
-  }
-
-  private async byStudioDocuments(query: string): Promise<vscode.SymbolInformation[]> {
-    const searchAllDocTypes = config("searchAllDocTypes");
-    if (searchAllDocTypes) {
-      // Note: This query could be expensive if there are too many files available across the namespaces
-      // configured in the current vs code workspace. However, delimiting by specific file types
-      // means custom Studio documents cannot be found. So this is a trade off
-      query = `*${query}*`;
-    } else {
-      // Default is to only search classes, routines and include files
-      query = `*${query}*.cls,*${query}*.mac,*${query}*.int,*${query}*.inc`;
+    let pattern = "";
+    for (let i = 0; i < query.length; i++) {
+      const char = query.charAt(i);
+      pattern += char === "*" || char === "?" ? `*\\${char}` : `*${char}`;
     }
-    const sql = `SELECT TOP 10 Name FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)`;
-    const api = this.getApi();
-    const direction = "1";
-    const orderBy = "1";
-    const systemFiles = "1";
-    const flat = "1";
-    const notStudio = "0";
-    const generated = "0";
+    const workspace = currentWorkspaceFolder();
+    const api = new AtelierAPI(workspace);
+    return api.actionQuery(this.sql, [pattern.toUpperCase() + "*"]).then((data) => {
+      const result = [];
+      const uris: Map<string, vscode.Uri> = new Map();
+      for (const element of data.result.content) {
+        const kind: vscode.SymbolKind = (() => {
+          switch (element.Type) {
+            case "query":
+            case "method":
+              return vscode.SymbolKind.Method;
+            case "parameter":
+              return vscode.SymbolKind.Constant;
+            case "index":
+              return vscode.SymbolKind.Key;
+            case "xdata":
+            case "storage":
+              return vscode.SymbolKind.Struct;
+            case "property":
+            default:
+              return vscode.SymbolKind.Property;
+          }
+        })();
 
-    const kindFromName = (name: string) => {
-      const nameLowerCase = name.toLowerCase();
-      return nameLowerCase.endsWith("cls")
-        ? vscode.SymbolKind.Class
-        : nameLowerCase.endsWith("zpm")
-        ? vscode.SymbolKind.Module
-        : vscode.SymbolKind.File;
-    };
-    const data = await api.actionQuery(sql, [query, direction, orderBy, systemFiles, flat, notStudio, generated]);
-    return data.result.content.map(({ Name }) => ({
-      kind: kindFromName(Name),
-      location: {
-        uri: DocumentContentProvider.getUri(Name, undefined, api.ns),
-      },
-      name: Name,
-    }));
+        let uri: vscode.Uri;
+        if (uris.has(element.Parent)) {
+          uri = uris.get(element.Parent);
+        } else {
+          uri = DocumentContentProvider.getUri(`${element.Parent}.cls`, workspace);
+          uris.set(element.Parent, uri);
+        }
+
+        result.push({
+          name: element.Name,
+          containerName:
+            element.Type === "foreignkey" ? "ForeignKey" : element.Type.charAt(0).toUpperCase() + element.Type.slice(1),
+          kind,
+          location: {
+            uri,
+          },
+        });
+      }
+      return result;
+    });
   }
 
-  private async byMethods(query: string): Promise<vscode.SymbolInformation[]> {
-    const api = this.getApi();
-    query = query.toUpperCase();
-    query = `*${query}*`;
-    const getLocation = async (className, name) => {
-      const classDef = new ClassDefinition(className, undefined, api.ns);
-      return classDef.getMemberLocation(name);
-    };
-    const sql = `
-      SELECT TOP 10 Parent ClassName, Name FROM %Dictionary.MethodDefinition WHERE %SQLUPPER Name %MATCHES ?`;
-    return api
-      .actionQuery(sql, [query])
-      .then((data): Promise<vscode.SymbolInformation>[] =>
-        data.result.content.map(
-          async ({ ClassName, Name }): Promise<vscode.SymbolInformation> =>
-            new vscode.SymbolInformation(Name, vscode.SymbolKind.Method, ClassName, await getLocation(ClassName, Name))
-        )
-      )
-      .then((data) => Promise.all(data));
+  resolveWorkspaceSymbol(symbol: vscode.SymbolInformation): vscode.ProviderResult<vscode.SymbolInformation> {
+    return vscode.commands
+      .executeCommand<vscode.DocumentSymbol[]>("vscode.executeDocumentSymbolProvider", symbol.location.uri)
+      .then((docSymbols) => {
+        for (const docSymbol of docSymbols[0].children) {
+          if (docSymbol.name === symbol.name && docSymbol.kind === symbol.kind) {
+            symbol.location.range = docSymbol.selectionRange;
+            break;
+          }
+        }
+        return symbol;
+      });
   }
 }
