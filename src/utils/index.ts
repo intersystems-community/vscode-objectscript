@@ -238,7 +238,13 @@ export function getServerName(uri: vscode.Uri): string {
     return uri.path;
   } else {
     // Complex case: replace folder slashes with dots.
-    return uri.path.slice(1).replace(/\//g, ".");
+    const filePath = uri.path.slice(1);
+    let serverName = filePath.replace(/\//g, ".");
+    if (!filePath.split("/").pop().includes(".")) {
+      // This is a package so add the .PKG extension
+      serverName += ".PKG";
+    }
+    return serverName;
   }
 }
 
