@@ -396,6 +396,21 @@ export async function terminalWithDocker(): Promise<vscode.Terminal> {
   return terminal;
 }
 
+export async function shellWithDocker(): Promise<vscode.Terminal> {
+  const { "docker-compose": dockerCompose } = config("conn");
+  const { service, file = "docker-compose.yml" } = dockerCompose;
+  const workspace = currentWorkspaceFolder();
+
+  const terminalName = `Shell:${workspace}`;
+  let terminal = terminals.find((t) => t.name == terminalName && t.exitStatus == undefined);
+  if (!terminal) {
+    terminal = vscode.window.createTerminal(terminalName, "docker-compose", ["-f", file, "exec", service, "/bin/bash"]);
+    terminals.push(terminal);
+  }
+  terminal.show(true);
+  return terminal;
+}
+
 /**
  * Alter isfs-type uri.path of /.vscode/* files or subdirectories.
  * Rewrite `/.vscode/path/to/file` as `/_vscode/XYZ/path/to/file`
