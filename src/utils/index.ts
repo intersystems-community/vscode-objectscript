@@ -404,13 +404,7 @@ export async function shellWithDocker(): Promise<vscode.Terminal> {
   const terminalName = `Shell:${workspace}`;
   let terminal = terminals.find((t) => t.name == terminalName && t.exitStatus == undefined);
   if (!terminal) {
-    terminal = vscode.window.createTerminal(terminalName, "docker-compose", [
-      "-f",
-      file,
-      "exec",
-      service,
-      "/bin/bash"
-    ]);
+    terminal = vscode.window.createTerminal(terminalName, "docker-compose", ["-f", file, "exec", service, "/bin/bash"]);
     terminals.push(terminal);
   }
   terminal.show(true);
