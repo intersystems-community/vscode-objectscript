@@ -77,6 +77,40 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
         // Exists as a local file and we aren't viewing a different namespace on the same server,
         // so return a file:// uri that will open the local file.
         return vscode.Uri.file(localFile);
+      } else {
+        // The local file doesn't exist in this folder, so check any other
+        // local folders in this workspace if it's a multi-root workspace
+        const wFolders = vscode.workspace.workspaceFolders;
+        if (wFolders && wFolders.length > 1) {
+          // This is a multi-root workspace
+          for (const wFolder of wFolders) {
+            if (wFolder.uri.scheme === "file" && wFolder.name !== workspaceFolder) {
+              // This isn't the folder that we checked originally
+              const wFolderConn = config("conn", wFolder.name);
+              const compareConns = (): boolean => {
+                if (wFolderConn.ns === conn.ns) {
+                  if (wFolderConn.server && conn.server) {
+                    if (wFolderConn.server === conn.server) {
+                      return true;
+                    }
+                  } else if (!wFolderConn.server && !conn.server) {
+                    if (wFolderConn.host === conn.host && wFolderConn.port === conn.port) {
+                      return true;
+                    }
+                  }
+                }
+                return false;
+              };
+              if (compareConns() && (!namespace || namespace === wFolderConn.ns)) {
+                // This folder is connected to the same server:ns combination as the original folder
+                const wFolderFile = this.getAsFile(name, wFolder.name);
+                if (wFolderFile) {
+                  return vscode.Uri.file(wFolderFile);
+                }
+              }
+            }
+          }
+        }
       }
       const { active } = conn;
       if (!active) {
