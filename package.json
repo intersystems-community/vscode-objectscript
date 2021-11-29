@@ -82,11 +82,13 @@
     "onDebugInitialConfigurations"
   ],
   "main": "./dist/extension",
+  "browser": "./dist/web-extension",
   "contributes": {
     "viewsWelcome": [
       {
         "view": "explorer",
-        "contents": "Begin local ObjectScript development by opening a folder or cloning a repository. Then switch to the new ObjectScript view in the Activity Bar.\nYou can also create a new workspace to [edit or view code directly on an InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/).\n[Choose Server and Namespace](command:vscode-objectscript.addServerNamespaceToWorkspace)"
+        "contents": "Begin local ObjectScript development by opening a folder or cloning a repository. Then switch to the new ObjectScript view in the Activity Bar.\nYou can also create a new workspace to [edit or view code directly on an InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/).\n[Choose Server and Namespace](command:vscode-objectscript.addServerNamespaceToWorkspace)",
+        "when": "!isWeb"
       },
       {
         "view": "ObjectScriptExplorer",
@@ -494,7 +496,8 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.export",
-        "title": "Export Sources"
+        "title": "Export Sources",
+        "enablement": "!isWeb"
       },
       {
         "category": "ObjectScript",
@@ -586,16 +589,19 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.viewOthers",
+        "enablement": "vscode-objectscript.connectActive",
         "title": "View Other"
       },
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.subclass",
+        "enablement": "vscode-objectscript.connectActive",
         "title": "Go to Subclass..."
       },
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.superclass",
+        "enablement": "vscode-objectscript.connectActive",
         "title": "Go to Superclass..."
       },
       {
@@ -609,7 +615,8 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.serverActions",
-        "title": "Server Actions..."
+        "title": "Server Actions...",
+        "enablement": "!isWeb"
       },
       {
         "category": "ObjectScript",
@@ -646,17 +653,20 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.addServerNamespaceToWorkspace",
-        "title": "Add Server Namespace to Workspace..."
+        "title": "Add Server Namespace to Workspace...",
+        "enablement": "!isWeb"
       },
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.connectFolderToServerNamespace",
-        "title": "Connect Folder to Server Namespace..."
+        "title": "Connect Folder to Server Namespace...",
+        "enablement": "!isWeb"
       },
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.hideExplorerForWorkspace",
-        "title": "Hide Explorer for Workspace"
+        "title": "Hide Explorer for Workspace",
+        "enablement": "!isWeb"
       },
       {
         "category": "ObjectScript",
@@ -682,6 +692,7 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.showClassDocumentationPreview",
         "title": "Show Class Documentation Preview",
+        "enablement": "!isWeb",
         "icon": "$(open-preview)"
       }
     ],
@@ -690,19 +701,19 @@
         "command": "vscode-objectscript.compile",
         "key": "Ctrl+F7",
         "mac": "Cmd+F7",
-        "when": "editorLangId =~ /^objectscript/"
+        "when": "!isWeb && editorLangId =~ /^objectscript/"
       },
       {
         "command": "vscode-objectscript.compileAll",
         "key": "Ctrl+Shift+F7",
         "mac": "Cmd+Shift+F7",
-        "when": "editorLangId =~ /^objectscript/"
+        "when": "!isWeb && editorLangId =~ /^objectscript/"
       },
       {
         "command": "vscode-objectscript.viewOthers",
         "key": "Ctrl+Shift+V",
         "mac": "Cmd+Shift+V",
-        "when": "editorLangId =~ /^objectscript/"
+        "when": "!isWeb && editorLangId =~ /^objectscript/"
       }
     ],
     "configuration": {
@@ -819,89 +830,91 @@
         "objectscript.export": {
           "type": "object",
           "description": "Control what to export from the server into the local folder.",
-          "scope": "resource"
-        },
-        "objectscript.export.folder": {
-          "description": "Folder for exported source code within workspace.",
-          "type": "string",
-          "default": "src"
-        },
-        "objectscript.export.addCategory": {
-          "description": "Add a category folder to the beginning of the export path.",
-          "type": [
-            "boolean",
-            "object"
-          ],
-          "default": false
-        },
-        "objectscript.export.map": {
-          "markdownDescription": "Map file names before export, with regexp pattern as a key and replacement as a value (e.g. `{  \"%(.*)\": \"_$1\" }` to make % classes or routines use underscore prefix instead).",
-          "type": "object",
-          "default": {},
-          "examples": [
-            {
-              "%(.*)": "_$1"
-            }
-          ],
-          "patternProperties": {
-            "\\(.*\\)": {
-              "type": "string",
-              "pattern": "\\$1"
-            }
-          },
+          "scope": "resource",
           "properties": {
-            "%(.*)": {
-              "description": "Catch any % items. Set value to `_$1` to replace `%` prefix with `_`",
+            "folder": {
+              "description": "Folder for exported source code within workspace.",
               "type": "string",
-              "pattern": "\\$1",
-              "default": "_$1"
+              "default": "src"
             },
-            "(.*)": {
-              "description": "Match everything. Set value to `$1` to leave unchanged",
+            "addCategory": {
+              "description": "Add a category folder to the beginning of the export path.",
+              "type": [
+                "boolean",
+                "object"
+              ],
+              "default": false
+            },
+            "map": {
+              "markdownDescription": "Map file names before export, with regexp pattern as a key and replacement as a value (e.g. `{  \"%(.*)\": \"_$1\" }` to make % classes or routines use underscore prefix instead).",
+              "type": "object",
+              "default": {},
+              "examples": [
+                {
+                  "%(.*)": "_$1"
+                }
+              ],
+              "patternProperties": {
+                "\\(.*\\)": {
+                  "type": "string",
+                  "pattern": "\\$1"
+                }
+              },
+              "properties": {
+                "%(.*)": {
+                  "description": "Catch any % items. Set value to `_$1` to replace `%` prefix with `_`",
+                  "type": "string",
+                  "pattern": "\\$1",
+                  "default": "_$1"
+                },
+                "(.*)": {
+                  "description": "Match everything. Set value to `$1` to leave unchanged",
+                  "type": "string",
+                  "pattern": "\\$1",
+                  "default": "$1"
+                }
+              },
+              "additionalProperties": false
+            },
+            "atelier": {
+              "description": "Export source code as Atelier did it, with packages as subfolders.",
+              "type": "boolean",
+              "default": true
+            },
+            "generated": {
+              "description": "Export generated source code files, such as INTs generated from classes.",
+              "type": "boolean",
+              "default": false
+            },
+            "filter": {
+              "description": "SQL filter to limit what to export.",
               "type": "string",
-              "pattern": "\\$1",
-              "default": "$1"
+              "default": ""
+            },
+            "category": {
+              "markdownDescription": "Category of source code to export: `CLS` = classes; `RTN` = routines; `CSP` = csp files; `OTH` = other. Default is `*` = all.",
+              "type": [
+                "string",
+                "object"
+              ],
+              "default": "*"
+            },
+            "noStorage": {
+              "description": "Strip the storage definition on export. Can be useful when working across multiple systems.",
+              "type": "boolean",
+              "default": false
+            },
+            "dontExportIfNoChanges": {
+              "description": "Do not rewrite the local file if the content is identical to what came from the server.",
+              "type": "boolean",
+              "default": false
+            },
+            "maxConcurrentConnections": {
+              "description": "Maximum number of concurrent export connections. (0 = unlimited)",
+              "type": "number",
+              "default": 0
             }
-          },
-          "additionalProperties": false
-        },
-        "objectscript.export.atelier": {
-          "description": "Export source code as Atelier did it, with packages as subfolders.",
-          "type": "boolean",
-          "default": true
-        },
-        "objectscript.export.generated": {
-          "description": "Export generated source code files, such as INTs generated from classes.",
-          "type": "boolean",
-          "default": false
-        },
-        "objectscript.export.filter": {
-          "description": "SQL filter to limit what to export.",
-          "type": "string",
-          "default": ""
-        },
-        "objectscript.export.category": {
-          "markdownDescription": "Category of source code to export: `CLS` = classes; `RTN` = routines; `CSP` = csp files; `OTH` = other. Default is `*` = all.",
-          "type": [
-            "string",
-            "object"
-          ],
-          "default": "*"
-        },
-        "objectscript.export.noStorage": {
-          "description": "Strip the storage definition on export. Can be useful when working across multiple systems.",
-          "type": "boolean",
-          "default": false
-        },
-        "objectscript.export.dontExportIfNoChanges": {
-          "description": "Do not rewrite the local file if the content is identical to what came from the server.",
-          "type": "boolean",
-          "default": false
-        },
-        "objectscript.export.maxConcurrentConnections": {
-          "description": "Maximum number of concurrent export connections. (0 = unlimited)",
-          "type": "number",
-          "default": 0
+          }
         },
         "objectscript.showExplorer": {
           "type": "boolean",
@@ -925,25 +938,27 @@
         },
         "objectscript.format": {
           "type": "object",
-          "description": "Formatting settings."
-        },
-        "objectscript.format.commandCase": {
-          "anyOf": [
-            "word",
-            "upper",
-            "lower"
-          ],
-          "default": "word",
-          "description": "Case for commands."
-        },
-        "objectscript.format.functionCase": {
-          "anyOf": [
-            "word",
-            "upper",
-            "lower"
-          ],
-          "default": "word",
-          "description": "Case for system functions and system variables."
+          "description": "Formatting settings.",
+          "properties": {
+            "commandCase": {
+              "anyOf": [
+                "word",
+                "upper",
+                "lower"
+              ],
+              "default": "word",
+              "description": "Case for commands."
+            },
+            "functionCase": {
+              "anyOf": [
+                "word",
+                "upper",
+                "lower"
+              ],
+              "default": "word",
+              "description": "Case for system functions and system variables."
+            }
+          }
         },
         "objectscript.suppressCompileMessages": {
           "default": true,
@@ -959,9 +974,6 @@
           "default": false,
           "type": "boolean",
           "description": "Allow editing code directly on the server after opening it from ObjectScript Explorer."
-        },
-        "objectscript.debug": {
-          "type": "object"
         },
         "objectscript.debug.debugThisMethod": {
           "type": "boolean",
@@ -1000,7 +1012,7 @@
         {
           "id": "ObjectScriptExplorer",
           "name": "Explorer",
-          "when": "workspaceFolderCount != 0 && config.objectscript.showExplorer == true"
+          "when": "!isWeb && workspaceFolderCount != 0 && config.objectscript.showExplorer == true"
         }
       ]
     },
@@ -1027,6 +1039,7 @@
         "label": "ObjectScript Debug",
         "program": "./out/debug/debugAdapter.js",
         "runtime": "node",
+        "when": "!isWeb",
         "configurationAttributes": {
           "launch": {
             "required": [],
@@ -1145,6 +1158,7 @@
     "mocha": "^8.1.1",
     "nock": "^13.0.0",
     "ovsx": "latest",
+    "path-browserify": "^1.0.1",
     "prettier": "^2.0.5",
     "tape": "^5.0.1",
     "ts-loader": "^7.0.5",
