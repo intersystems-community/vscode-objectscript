@@ -4,7 +4,7 @@
 - Enhancements
   - Overhaul `WorkspaceSymbolProvider` (#772)
   - Add `Open Shell in Docker` option to Server Actions menu (#778)
-  - Premilinary web extension support (#782)
+  - Preliminary web extension support (#782)
   - Check all local folders in multi-root workspace for local copy of file (#785)
 - Fixes
   - Fix `FileSystemProvider` mtime caching (#770)
