@@ -60,7 +60,7 @@ To unlock these features (optional):
 	- Download the VSIX file (for example `vscode-objectscript-1.1.3-beta.1.vsix`) and install it. One way to install a VSIX is to drag it from your download folder and drop it onto the list of extensions in the Extensions view of VS Code.
 
 2. From [Command Palette](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_command-palette) choose `Preferences: Configure Runtime Arguments`.
-3. In the argv.json file that opens, add this line:
+3. In the argv.json file that opens, add this line (required for both Stable and Insiders versions of VS Code):
 ```json
 "enable-proposed-api": ["intersystems-community.vscode-objectscript"]
 ```
