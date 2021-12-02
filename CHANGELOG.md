@@ -1,5 +1,18 @@
 # Change Log
 
+## [1.2.0] 02-Dec-2021
+- Enhancements
+  - Overhaul `WorkspaceSymbolProvider` (#772)
+  - Add `Open Shell in Docker` option to Server Actions menu (#778)
+  - Preliminary web extension support (#782)
+  - Check all local folders in multi-root workspace for local copy of file (#785)
+- Fixes
+  - Fix `FileSystemProvider` mtime caching (#770)
+  - Comply with new VS Code policy for scoping access to VS Code proposed API (#771)
+  - Append .pkg to package name when passed to source control / server command extensions (#776)
+  - Improve error messaging for Studio Actions (#784)
+  - Upgrade vulnerable dependencies (#787)
+
 ## [1.1.1] 09-Nov-2021
 - Fixes
     - Debugger: Breakpoint with no hitCondition cannot be set (#766)
