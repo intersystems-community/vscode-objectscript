@@ -1,6 +1,6 @@
 # Change Log
 
-## [1.1.2] 30-Nov-2021
+## [1.2.0] 02-Dec-2021
 - Enhancements
   - Overhaul `WorkspaceSymbolProvider` (#772)
   - Add `Open Shell in Docker` option to Server Actions menu (#778)
