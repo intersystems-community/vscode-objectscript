@@ -149,8 +149,8 @@ jobs:
           git add package.json
           git commit -m 'auto bump version with release'
           jq --arg version "$VERSION" '.version = $version' package.json > "$tmp" && mv "$tmp" package.json
-          jq 'del(.enableProposedApi,.enabledApiProposals)' package.json > "$tmp" && mv "$tmp" package.json
           npm install
+          jq 'del(.enableProposedApi,.enabledApiProposals)' package.json > "$tmp" && mv "$tmp" package.json
           git push
       - name: Build package
         run: |
