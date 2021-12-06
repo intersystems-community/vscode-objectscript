@@ -831,6 +831,12 @@
           "type": "object",
           "description": "Control what to export from the server into the local folder.",
           "scope": "resource",
+          "default": {
+            "folder": "src",
+            "addCategory": false,
+            "map": {},
+            "atelier": true
+          },
           "properties": {
             "folder": {
               "description": "Folder for exported source code within workspace.",
