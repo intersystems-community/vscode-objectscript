@@ -835,26 +835,29 @@
             "folder": "src",
             "addCategory": false,
             "map": {},
-            "atelier": true
+            "atelier": true,
+            "generated": false,
+            "filter": "",
+            "category": "*",
+            "noStorage": false,
+            "dontExportIfNoChanges": false,
+            "maxConcurrentConnections": 0
           },
           "properties": {
             "folder": {
               "description": "Folder for exported source code within workspace.",
-              "type": "string",
-              "default": "src"
+              "type": "string"
             },
             "addCategory": {
               "description": "Add a category folder to the beginning of the export path.",
               "type": [
                 "boolean",
                 "object"
-              ],
-              "default": false
+              ]
             },
             "map": {
               "markdownDescription": "Map file names before export, with regexp pattern as a key and replacement as a value (e.g. `{  \"%(.*)\": \"_$1\" }` to make % classes or routines use underscore prefix instead).",
               "type": "object",
-              "default": {},
               "examples": [
                 {
                   "%(.*)": "_$1"
@@ -884,41 +887,34 @@
             },
             "atelier": {
               "description": "Export source code as Atelier did it, with packages as subfolders.",
-              "type": "boolean",
-              "default": true
+              "type": "boolean"
             },
             "generated": {
               "description": "Export generated source code files, such as INTs generated from classes.",
-              "type": "boolean",
-              "default": false
+              "type": "boolean"
             },
             "filter": {
               "description": "SQL filter to limit what to export.",
-              "type": "string",
-              "default": ""
+              "type": "string"
             },
             "category": {
               "markdownDescription": "Category of source code to export: `CLS` = classes; `RTN` = routines; `CSP` = csp files; `OTH` = other. Default is `*` = all.",
               "type": [
                 "string",
                 "object"
-              ],
-              "default": "*"
+              ]
             },
             "noStorage": {
               "description": "Strip the storage definition on export. Can be useful when working across multiple systems.",
-              "type": "boolean",
-              "default": false
+              "type": "boolean"
             },
             "dontExportIfNoChanges": {
               "description": "Do not rewrite the local file if the content is identical to what came from the server.",
-              "type": "boolean",
-              "default": false
+              "type": "boolean"
             },
             "maxConcurrentConnections": {
               "description": "Maximum number of concurrent export connections. (0 = unlimited)",
-              "type": "number",
-              "default": 0
+              "type": "number"
             }
           }
         },
