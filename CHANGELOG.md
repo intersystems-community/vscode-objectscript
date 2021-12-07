@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.2.2] 07-Dec-2021
+- Fixes
+  - Exporting not working with new version 1.2.1 (#799)
+
 ## [1.2.0] 02-Dec-2021
 - Enhancements
   - Overhaul `WorkspaceSymbolProvider` (#772)
