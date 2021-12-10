@@ -316,10 +316,14 @@ class StudioActions {
             })
             .then(() => resolve())
             .catch((err) => {
-              console.log(err);
               outputChannel.appendLine(
-                `Studio Action "${action.label}" not supported on ${this.api.config.host}:${this.api.config.port}[${this.api.config.ns}]`
+                `Executing Studio Action "${action.label}" on ${this.api.config.host}:${this.api.config.port}[${
+                  this.api.config.ns
+                }] failed${err.errorText && err.errorText !== "" ? " with the following error:" : "."}`
               );
+              if (err.errorText && err.errorText !== "") {
+                outputChannel.appendLine("\n" + err.errorText);
+              }
               outputChannel.show();
               reject();
             });

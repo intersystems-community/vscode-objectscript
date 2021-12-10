@@ -50,7 +50,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v1
         with:
-          node-version: 12.x
+          node-version: 14.x
       - run: npm install
       - name: lint
         if: runner.os == 'Linux'
@@ -135,7 +135,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v1
         with:
-          node-version: 12.x
+          node-version: 14.x
       - name: Prepare build
         id: set-version
         run: |
@@ -149,8 +149,8 @@ jobs:
           git add package.json
           git commit -m 'auto bump version with release'
           jq --arg version "$VERSION" '.version = $version' package.json > "$tmp" && mv "$tmp" package.json
-          jq '.enableProposedApi = false' package.json > "$tmp" && mv "$tmp" package.json
           npm install
+          jq 'del(.enableProposedApi,.enabledApiProposals)' package.json > "$tmp" && mv "$tmp" package.json
           git push
       - name: Build package
         run: |

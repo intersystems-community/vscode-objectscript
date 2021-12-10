@@ -38,4 +38,52 @@ const config = {
     ],
   },
 };
-module.exports = config;
+
+const browserConfig = /** @type WebpackConfig */ {
+  mode: "none",
+  target: "webworker", // web extensions run in a webworker context
+  entry: {
+    "web-extension": "./src/web-extension.ts",
+  },
+  output: {
+    filename: "[name].js",
+    // eslint-disable-next-line no-undef
+    path: path.join(__dirname, "./dist"),
+    libraryTarget: "commonjs",
+  },
+  resolve: {
+    mainFields: ["browser", "module", "main"],
+    extensions: [".ts", ".js"],
+    alias: {
+      // replace the node based resolver with the browser version
+      "./ModuleResolver": "./BrowserModuleResolver",
+    },
+    fallback: {
+      // eslint-disable-next-line no-undef
+      path: require.resolve("path-browserify"),
+      os: false,
+    },
+  },
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: "ts-loader",
+          },
+        ],
+      },
+    ],
+  },
+  externals: {
+    vscode: "commonjs vscode", // ignored because it doesn't exist
+  },
+  performance: {
+    hints: false,
+  },
+  devtool: "source-map",
+};
+
+module.exports = [config, browserConfig];
