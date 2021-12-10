@@ -958,6 +958,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     serverForUri(uri: vscode.Uri): any {
       const { apiTarget } = connectionTarget(uri);
       const api = new AtelierAPI(apiTarget);
+
+      // We explicitly no longer expose the password.
+      // API client extensions can use Server Manager 3's authentication provider to get this,
+      // which will require user consent.
+      api.config.password = undefined;
+
       const {
         serverName,
         active,
