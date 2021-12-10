@@ -14,6 +14,12 @@
 
 - Guidance on [reporting issues](https://community.intersystems.com/post/using-intersystems-objectscript-vs-code-how-report-issues). This guidance also appears in a later section of this document.
 
+## Pre-Release Information
+
+This is a pre-release which improves security as follows:
+- Uses the authentication provider in Server Manager version 3 to retrieve connection passwords in a way which requires explicit consent from the VS Code user.
+- No longer returns a connection's password in the result of the `serverForUri` API.
+
 ## Features
 
 - InterSystems ObjectScript code highlighting support.
@@ -183,7 +189,7 @@ This settings object is useful for both client-side and server-side development.
 
 - Setting the `username` property is optional. If omitted it will be prompted for when connecting, then cached for the session.
 
-- Setting a plaintext value for the `password` property is **not** recommended. Instead, run the `InterSystems Server Manager: Store Password in Keychain` command from Command Palette.
+- Setting a plaintext value for the `password` property is **not** recommended. Instead, install the InterSystems Server Manager extension and use that to store your password securely.
 
 - If no password has been set or stored it will be prompted for when connecting, then cached for the session.
 
