@@ -29,7 +29,7 @@ async function main() {
     installExtension("intersystems-community.servermanager");
     installExtension("intersystems.language-server");
 
-    const launchArgs = ["-n", workspace];
+    const launchArgs = ["-n", workspace, "--enable-proposed-api", "intersystems-community.vscode-objectscript"];
 
     // Download VS Code, unzip it and run the integration test
     await runTests({ extensionDevelopmentPath, extensionTestsPath, launchArgs });
