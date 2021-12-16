@@ -30,6 +30,7 @@ export const getCategory = (fileName: string, addCategory: any | boolean): strin
     case "int":
     case "inc":
     case "mac":
+    case "dfi":
       return fileExt;
     default:
       return "oth";
@@ -51,17 +52,26 @@ export const getFileName = (
     const cat = addCategory ? getCategory(name, addCategory) : null;
     return [folder, cat, ...nameArr].filter(notNull).join(path.sep);
   } else {
-    // This is a class, routine or include file
-    if (map) {
-      for (const pattern of Object.keys(map)) {
-        if (new RegExp(`^${pattern}$`).test(name)) {
-          name = name.replace(new RegExp(`^${pattern}$`), map[pattern]);
-          break;
+    let fileNameArray: string[];
+    let fileExt: string;
+    if (/\.dfi$/i.test(name)) {
+      // This is a DFI file
+      fileNameArray = name.split("-");
+      fileNameArray.push(fileNameArray.pop().slice(0, -4));
+      fileExt = "dfi";
+    } else {
+      // This is a class, routine or include file
+      if (map) {
+        for (const pattern of Object.keys(map)) {
+          if (new RegExp(`^${pattern}$`).test(name)) {
+            name = name.replace(new RegExp(`^${pattern}$`), map[pattern]);
+            break;
+          }
         }
       }
+      fileNameArray = name.split(".");
+      fileExt = fileNameArray.pop().toLowerCase();
     }
-    const fileNameArray: string[] = name.split(".");
-    const fileExt = fileNameArray.pop().toLowerCase();
     const cat = addCategory ? getCategory(name, addCategory) : null;
     if (split) {
       const fileName = [folder, cat, ...fileNameArray].filter(notNull).join(path.sep);
