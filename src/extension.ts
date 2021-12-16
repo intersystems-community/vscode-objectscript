@@ -962,20 +962,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       // We explicitly no longer expose the password.
       // API client extensions can use Server Manager 3's authentication provider to get this,
       // which will require user consent.
-      api.config.password = undefined;
 
-      const {
-        serverName,
-        active,
-        host = "",
-        https,
-        port,
-        pathPrefix,
-        username,
-        password,
-        ns = "",
-        apiVersion,
-      } = api.config;
+      const { serverName, active, host = "", https, port, pathPrefix, username, ns = "", apiVersion } = api.config;
       return {
         serverName,
         active,
@@ -984,7 +972,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         port,
         pathPrefix,
         username,
-        password,
+        password: undefined,
         namespace: ns,
         apiVersion: active ? apiVersion : undefined,
       };
