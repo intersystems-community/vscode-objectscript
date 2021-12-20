@@ -75,7 +75,8 @@ class StudioActions {
       this.api = new AtelierAPI(uri);
     } else if (uriOrNode) {
       const node: NodeBase = uriOrNode;
-      this.api = new AtelierAPI();
+      this.api = new AtelierAPI(node.workspaceFolder);
+      this.api.setNamespace(node.namespace);
       this.name = node instanceof PackageNode ? node.fullName + ".PKG" : node.fullName;
     } else {
       this.api = new AtelierAPI();
