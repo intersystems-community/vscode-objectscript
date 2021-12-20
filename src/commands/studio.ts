@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { config, FILESYSTEM_SCHEMA } from "../extension";
+import { config, filesystemSchemas } from "../extension";
 import { outputChannel, outputConsole, getServerName } from "../utils";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { ClassNode } from "../explorer/models/classNode";
@@ -454,7 +454,7 @@ export async function mainSourceControlMenu(uri?: vscode.Uri): Promise<void> {
 
 async function _mainMenu(sourceControl: boolean, uri?: vscode.Uri): Promise<void> {
   uri = uri || vscode.window.activeTextEditor?.document.uri;
-  if (uri && uri.scheme !== FILESYSTEM_SCHEMA) {
+  if (uri && !filesystemSchemas.includes(uri.scheme)) {
     return;
   }
   const studioActions = new StudioActions(uri);
@@ -471,7 +471,7 @@ export async function contextSourceControlMenu(node: PackageNode | ClassNode | R
 
 export async function _contextMenu(sourceControl: boolean, node: PackageNode | ClassNode | RoutineNode): Promise<void> {
   const nodeOrUri = node || vscode.window.activeTextEditor?.document.uri;
-  if (!nodeOrUri || (nodeOrUri instanceof vscode.Uri && nodeOrUri.scheme !== FILESYSTEM_SCHEMA)) {
+  if (!nodeOrUri || (nodeOrUri instanceof vscode.Uri && !filesystemSchemas.includes(nodeOrUri.scheme))) {
     return;
   }
   const studioActions = new StudioActions(nodeOrUri);
