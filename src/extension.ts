@@ -634,18 +634,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   const diagnosticProvider = new ObjectScriptDiagnosticProvider();
 
-  // Gather the proposed APIs we will register to use when building with enableProposedApi = true
+  // Gather the proposed APIs we will register to use when building with enabledApiProposals != []
   const proposed = [
-    packageJson.enableProposedApi && typeof vscode.workspace.registerFileSearchProvider === "function"
+    packageJson.enabledApiProposals.includes("fileSearchProvider") &&
+    typeof vscode.workspace.registerFileSearchProvider === "function"
       ? vscode.workspace.registerFileSearchProvider(FILESYSTEM_SCHEMA, new FileSearchProvider())
       : null,
-    packageJson.enableProposedApi && typeof vscode.workspace.registerFileSearchProvider === "function"
+    packageJson.enabledApiProposals.includes("fileSearchProvider") &&
+    typeof vscode.workspace.registerFileSearchProvider === "function"
       ? vscode.workspace.registerFileSearchProvider(FILESYSTEM_READONLY_SCHEMA, new FileSearchProvider())
       : null,
-    packageJson.enableProposedApi && typeof vscode.workspace.registerTextSearchProvider === "function"
+    packageJson.enabledApiProposals.includes("textSearchProvider") &&
+    typeof vscode.workspace.registerTextSearchProvider === "function"
       ? vscode.workspace.registerTextSearchProvider(FILESYSTEM_SCHEMA, new TextSearchProvider())
       : null,
-    packageJson.enableProposedApi && typeof vscode.workspace.registerTextSearchProvider === "function"
+    packageJson.enabledApiProposals.includes("textSearchProvider") &&
+    typeof vscode.workspace.registerTextSearchProvider === "function"
       ? vscode.workspace.registerTextSearchProvider(FILESYSTEM_READONLY_SCHEMA, new TextSearchProvider())
       : null,
   ].filter(notNull);
