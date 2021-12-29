@@ -22,7 +22,6 @@ Here is the simplest `settings.json` file contents:
 ```json
 {
     "objectscript.conn": {
-        "server": "iris",
         "ns": "USER",
         "active": true, 
         "host": "localhost", 
@@ -32,7 +31,19 @@ Here is the simplest `settings.json` file contents:
 }
 ```
 
-If you need ObjectScript compilation flags other than the default, add an `"objectscript.compileFlags"` property to `settings.json` (more compileFlags options are [covered here](/vscode-objectscript/settings/):
+However, a better strategy is to let the InterSystems Server manager handle the server connection information as described [later](#config-server). That extension also allows you to store your password securely, so please use it. Then in `settings.json` you only need to specify the server name:
+
+```json
+{
+    "objectscript.conn": {
+        "server": "iris",
+        "ns": "USER",
+        "active": true
+    }
+}
+```
+
+If you need ObjectScript compilation flags other than the default, add an `"objectscript.compileFlags"` property to `settings.json` (more compileFlags options are [covered here](/vscode-objectscript/settings/)):
 
 {: #code-workspace-compileFlags}
 
@@ -42,15 +53,12 @@ If you need ObjectScript compilation flags other than the default, add an `"obje
         "server": "iris",
         "ns": "USER",
         "active": true, 
-        "host": "localhost", 
-        "port": 52773, 
-        "username": "_SYSTEM" 
     },
     "objectscript.compileFlags": "cuk/compileembedded=1"
 }
 ```
 
-Here is the simplest `launch.json` file contents, which debugs the method `Test` in the class `Example.Service`, passing 2 parameters as input:
+Here is the simplest `launch.json` file contents, which debugs the method `Test` in the class `Example.Service`, passing 2 parameters as input (see ["Running and Debugging"](/vscode-objectscript/rundebug/) for more information):
 
 {: #code-workspace-simple-debug}
 
