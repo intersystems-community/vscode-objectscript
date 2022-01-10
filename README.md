@@ -24,7 +24,7 @@
 - Export of existing server sources into a working folder:
   - open Command Palette (<kbd>F1</kbd> or <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>)
   - start typing 'ObjectScript'
-  - choose `ObjectScript: Export Sources`
+  - choose `ObjectScript: Export Code from Server`
   - press <kbd>Enter</kbd>
 - Save and compile a class:
   - press <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>F7</kbd>
