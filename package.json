@@ -506,7 +506,7 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.export",
-        "title": "Export Files",
+        "title": "Export Code from Server",
         "enablement": "!isWeb"
       },
       {
@@ -708,7 +708,7 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.exportCurrentFile",
-        "title": "Export Current File",
+        "title": "Export Current File from Server",
         "enablement": "!isWeb"
       }
     ],

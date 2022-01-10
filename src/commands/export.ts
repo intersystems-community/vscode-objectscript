@@ -216,7 +216,7 @@ export async function exportAll(): Promise<any> {
     .map((el) => el.name);
   if (workspaceList.length > 1) {
     const selection = await vscode.window.showQuickPick(workspaceList, {
-      placeHolder: "Select the workspace to export files to.",
+      placeHolder: "Select the workspace folder to export files to.",
     });
     if (selection === undefined) {
       return;
@@ -226,7 +226,7 @@ export async function exportAll(): Promise<any> {
     workspaceFolder = workspaceList.pop();
   } else {
     vscode.window.showInformationMessage(
-      "There are no folders in the current workspace that files can be exported to.",
+      "There are no folders in the current workspace that code can be exported to.",
       "Dismiss"
     );
     return;
@@ -277,7 +277,7 @@ export async function exportAll(): Promise<any> {
       files = await vscode.window.showQuickPick(files, {
         canPickMany: true,
         ignoreFocusOut: true,
-        placeHolder: "Click a file to exclude it. Press 'Escape' to cancel export.",
+        placeHolder: "Uncheck a file to exclude it. Press 'Escape' to cancel export.",
         title: "Files to Export",
       });
       if (files === undefined) {
