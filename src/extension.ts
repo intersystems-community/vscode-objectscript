@@ -27,7 +27,7 @@ import {
   compileOnly,
 } from "./commands/compile";
 import { deleteExplorerItems } from "./commands/delete";
-import { exportAll, exportExplorerItems } from "./commands/export";
+import { exportAll, exportCurrentFile, exportExplorerItems } from "./commands/export";
 import { serverActions } from "./commands/serverActions";
 import { subclass } from "./commands/subclass";
 import { superclass } from "./commands/superclass";
@@ -933,6 +933,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.showClassDocumentationPreview", () =>
       DocumaticPreviewPanel.create(context.extensionUri)
     ),
+    vscode.commands.registerCommand("vscode-objectscript.exportCurrentFile", exportCurrentFile),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed

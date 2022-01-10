@@ -233,6 +233,10 @@
         {
           "command": "vscode-objectscript.showClassDocumentationPreview",
           "when": "editorLangId == objectscript-class"
+        },
+        {
+          "command": "vscode-objectscript.exportCurrentFile",
+          "when": "resourceScheme == objectscript && vscode-objectscript.connectActive"
         }
       ],
       "view/title": [
@@ -333,6 +337,11 @@
           "command": "vscode-objectscript.compileOnly",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
           "group": "objectscript@7"
+        },
+        {
+          "command": "vscode-objectscript.exportCurrentFile",
+          "when": "resourceScheme == objectscript && vscode-objectscript.connectActive",
+          "group": "objectscript@8"
         }
       ],
       "editor/title": [
@@ -497,7 +506,7 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.export",
-        "title": "Export Sources",
+        "title": "Export Code from Server",
         "enablement": "!isWeb"
       },
       {
@@ -695,6 +704,12 @@
         "title": "Show Class Documentation Preview",
         "enablement": "!isWeb",
         "icon": "$(open-preview)"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.exportCurrentFile",
+        "title": "Export Current File from Server",
+        "enablement": "!isWeb"
       }
     ],
     "keybindings": [
@@ -895,7 +910,7 @@
               "type": "boolean"
             },
             "filter": {
-              "description": "SQL filter to limit what to export.",
+              "markdownDescription": "SQL filter to limit what to export. The filter is applied to document names using the [LIKE predicate](https://irisdocs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_like) (i.e. `Name LIKE '%filter%'`).",
               "type": "string"
             },
             "category": {
