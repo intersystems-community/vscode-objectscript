@@ -304,7 +304,7 @@ class StudioActions {
               if (actionToProcess && !afterUserAction) {
                 const answer = await this.processUserAction(actionToProcess);
                 // call AfterUserAction only if there is a valid answer
-                if ((action.label = attemptedEditLabel) && answer !== "1") {
+                if (action.label === attemptedEditLabel && answer !== "1") {
                   suppressEditListenerMap.set(this.uri.toString(), true);
                   await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
                 }
