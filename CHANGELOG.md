@@ -1,5 +1,19 @@
 # Change Log
 
+## [1.4.0] 14-Jan-2022
+- Enhancements
+  - Improve client-side DFI workflow (#808)
+  - Provide `WorkspaceSymbols` for all servers in workspace (#815)
+  - Improve behavior when no Source Control class is enabled (#817)
+  - Improve exporting (#818)
+- Fixes
+  - Hide 'vscode-objectscript-output' language from selector (#806)
+  - Properly map method offsets when debugging a class with multiline method arguments (#807)
+  - Fix `Attempted Edit` Studio Action condition (#810)
+  - Show menu options from correct namespace for Studio Actions in ObjectScript Explorer (#812)
+  - Properly return menu options for the `Server Command Menu` for `isfs-readonly` files (#813)
+  - Fix proposed API registration (#814)
+
 ## [1.2.2] 07-Dec-2021
 - Fixes
   - Exporting not working with new version 1.2.1 (#799)
