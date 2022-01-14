@@ -2,16 +2,9 @@ import fs = require("fs");
 import path = require("path");
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { config, explorerProvider } from "../extension";
-import { mkdirSyncRecursive, notNull, outputChannel, uriOfWorkspaceFolder } from "../utils";
+import { config, explorerProvider, OBJECTSCRIPT_FILE_SCHEMA, schemas } from "../extension";
+import { currentFile, mkdirSyncRecursive, notNull, outputChannel, uriOfWorkspaceFolder } from "../utils";
 import { NodeBase } from "../explorer/models/nodeBase";
-
-const filesFilter = (file: any) => {
-  if (file.cat === "CSP" || file.name.startsWith("%") || file.name.startsWith("INFORMATION.")) {
-    return false;
-  }
-  return true;
-};
 
 export const getCategory = (fileName: string, addCategory: any | boolean): string => {
   const fileExt = fileName.split(".").pop().toLowerCase();
@@ -30,6 +23,7 @@ export const getCategory = (fileName: string, addCategory: any | boolean): strin
     case "int":
     case "inc":
     case "mac":
+    case "dfi":
       return fileExt;
     default:
       return "oth";
@@ -51,17 +45,26 @@ export const getFileName = (
     const cat = addCategory ? getCategory(name, addCategory) : null;
     return [folder, cat, ...nameArr].filter(notNull).join(path.sep);
   } else {
-    // This is a class, routine or include file
-    if (map) {
-      for (const pattern of Object.keys(map)) {
-        if (new RegExp(`^${pattern}$`).test(name)) {
-          name = name.replace(new RegExp(`^${pattern}$`), map[pattern]);
-          break;
+    let fileNameArray: string[];
+    let fileExt: string;
+    if (/\.dfi$/i.test(name)) {
+      // This is a DFI file
+      fileNameArray = name.split("-");
+      fileNameArray.push(fileNameArray.pop().slice(0, -4));
+      fileExt = "dfi";
+    } else {
+      // This is a class, routine or include file
+      if (map) {
+        for (const pattern of Object.keys(map)) {
+          if (new RegExp(`^${pattern}$`).test(name)) {
+            name = name.replace(new RegExp(`^${pattern}$`), map[pattern]);
+            break;
+          }
         }
       }
+      fileNameArray = name.split(".");
+      fileExt = fileNameArray.pop().toLowerCase();
     }
-    const fileNameArray: string[] = name.split(".");
-    const fileExt = fileNameArray.pop().toLowerCase();
     const cat = addCategory ? getCategory(name, addCategory) : null;
     if (split) {
       const fileName = [folder, cat, ...fileNameArray].filter(notNull).join(path.sep);
@@ -216,27 +219,86 @@ export async function exportList(files: string[], workspaceFolder: string, names
   );
 }
 
-export async function exportAll(workspaceFolder?: string): Promise<any> {
-  if (!workspaceFolder) {
-    const list = vscode.workspace.workspaceFolders
-      .filter((folder) => config("conn", folder.name).active)
-      .map((el) => el.name);
-    if (list.length > 1) {
-      return vscode.window.showQuickPick(list).then((folder) => (folder ? exportAll : null));
-    } else {
-      workspaceFolder = list.pop();
+export async function exportAll(): Promise<any> {
+  let workspaceFolder: string;
+  const workspaceList = vscode.workspace.workspaceFolders
+    .filter((folder) => !schemas.includes(folder.uri.scheme) && config("conn", folder.name).active)
+    .map((el) => el.name);
+  if (workspaceList.length > 1) {
+    const selection = await vscode.window.showQuickPick(workspaceList, {
+      placeHolder: "Select the workspace folder to export files to.",
+    });
+    if (selection === undefined) {
+      return;
     }
+    workspaceFolder = selection;
+  } else if (workspaceList.length === 1) {
+    workspaceFolder = workspaceList.pop();
+  } else {
+    vscode.window.showInformationMessage(
+      "There are no folders in the current workspace that code can be exported to.",
+      "Dismiss"
+    );
+    return;
   }
   if (!config("conn", workspaceFolder).active) {
     return;
   }
   const api = new AtelierAPI(workspaceFolder);
   outputChannel.show(true);
-  const { category, generated, filter, ns } = config("export", workspaceFolder);
-  const files = (data) => data.result.content.filter(filesFilter).map((file) => file.name);
-  return api.getDocNames({ category, generated, filter }).then((data) => {
-    return exportList(files(data), workspaceFolder, ns);
-  });
+  const { category, generated, filter } = config("export", workspaceFolder);
+  // Replicate the behavior of getDocNames() but use StudioOpenDialog for better performance
+  let filterStr = "";
+  switch (category) {
+    case "CLS":
+      filterStr = "Type = 4";
+      break;
+    case "CSP":
+      filterStr = "Type %INLIST $LISTFROMSTRING('5,6')";
+      break;
+    case "OTH":
+      filterStr = "Type NOT %INLIST $LISTFROMSTRING('0,1,2,3,4,5,6,11,12')";
+      break;
+    case "RTN":
+      filterStr = "Type %INLIST $LISTFROMSTRING('0,1,2,3,11,12')";
+      break;
+  }
+  if (filter !== "") {
+    if (filterStr !== "") {
+      filterStr += " AND ";
+    }
+    filterStr += `Name LIKE '%${filter}%'`;
+  }
+  return api
+    .actionQuery("SELECT Name FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?)", [
+      "*",
+      "1",
+      "1",
+      api.config.ns.toLowerCase() === "%sys" ? "1" : "0",
+      "1",
+      "0",
+      generated ? "1" : "0",
+      filterStr,
+    ])
+    .then(async (data) => {
+      let files: vscode.QuickPickItem[] = data.result.content.map((file) => {
+        return { label: file.Name, picked: true };
+      });
+      files = await vscode.window.showQuickPick(files, {
+        canPickMany: true,
+        ignoreFocusOut: true,
+        placeHolder: "Uncheck a file to exclude it. Press 'Escape' to cancel export.",
+        title: "Files to Export",
+      });
+      if (files === undefined) {
+        return;
+      }
+      return exportList(
+        files.map((file) => file.label),
+        workspaceFolder,
+        api.config.ns
+      );
+    });
 }
 
 export async function exportExplorerItems(nodes: NodeBase[]): Promise<any> {
@@ -263,4 +325,19 @@ Would you like to continue?`,
   return Promise.all(nodes.map((node) => node.getItems4Export())).then((items) => {
     return exportList(items.flat(), workspaceFolder, namespace).then(() => explorerProvider.refresh());
   });
+}
+
+export async function exportCurrentFile(): Promise<any> {
+  const openEditor = vscode.window.activeTextEditor;
+  if (openEditor === undefined) {
+    // Need an open document to export
+    return;
+  }
+  const openDoc = openEditor.document;
+  if (openDoc.uri.scheme !== OBJECTSCRIPT_FILE_SCHEMA) {
+    // Only export files opened from the explorer
+    return;
+  }
+  const api = new AtelierAPI(openDoc.uri);
+  return exportList([currentFile(openDoc).name], api.configName, api.config.ns);
 }

@@ -30,7 +30,7 @@ This is a pre-release which improves security as follows:
 - Export of existing server sources into a working folder:
   - open Command Palette (<kbd>F1</kbd> or <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>)
   - start typing 'ObjectScript'
-  - choose `ObjectScript: Export Sources`
+  - choose `ObjectScript: Export Code from Server`
   - press <kbd>Enter</kbd>
 - Save and compile a class:
   - press <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>F7</kbd>
@@ -62,8 +62,8 @@ To unlock these features (optional):
 
 1. Download and install a beta version from GitHub. This is necessary because Marketplace does not allow publication of extensions that use proposed APIs.
 	- Go to https://github.com/intersystems-community/vscode-objectscript/releases
-	- Locate the beta immediately above the release you installed from Marketplace. For instance, if you installed `1.2.2`, look for `1.2.3-beta.1`. This will be functionally identical to the Marketplace version apart from being able to use proposed APIs.
-	- Download the VSIX file (for example `vscode-objectscript-1.2.3-beta.1.vsix`) and install it. One way to install a VSIX is to drag it from your download folder and drop it onto the list of extensions in the Extensions view of VS Code.
+	- Locate the beta immediately above the release you installed from Marketplace. For instance, if you installed `1.4.0`, look for `1.4.1-beta.1`. This will be functionally identical to the Marketplace version apart from being able to use proposed APIs.
+	- Download the VSIX file (for example `vscode-objectscript-1.4.1-beta.1.vsix`) and install it. One way to install a VSIX is to drag it from your download folder and drop it onto the list of extensions in the Extensions view of VS Code.
 
 2. From [Command Palette](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_command-palette) choose `Preferences: Configure Runtime Arguments`.
 3. In the argv.json file that opens, add this line (required for both Stable and Insiders versions of VS Code):
