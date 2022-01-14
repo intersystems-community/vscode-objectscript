@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.4.1] 14-Jan-2022
+- Fixes
+  - Version 1.4.0 is failing to activate (#827)
+
 ## [1.4.0] 14-Jan-2022
 - Enhancements
   - Make `Ctrl / Cmd+T` lookup (Open Symbol by Name) check all servers connected to a multi-root workspace (#815)
