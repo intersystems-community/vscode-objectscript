@@ -11,7 +11,7 @@ The InterSystems ObjectScript Extension provides support for ObjectScript debugg
 - [Debugging Intro Video](https://code.visualstudio.com/docs/introvideos/debugging)
 - [Debugging User Guide](https://code.visualstudio.com/docs/editor/debugging)
 
-Also, InterSystems Learning Services has produced [a short video](https://learning.intersystems.com/course/view.php?id=1795&ssoPass=1) that walks through the steps in this documentation page that you may find useful.
+Also, InterSystems Learning Services has produced [a short video](https://learning.intersystems.com/course/view.php?id=1795&ssoPass=1) which walks through the steps in this documentation page that you may find useful.
 
 ## Debug Configurations
 
