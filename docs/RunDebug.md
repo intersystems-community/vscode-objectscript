@@ -11,6 +11,8 @@ The InterSystems ObjectScript Extension provides support for ObjectScript debugg
 - [Debugging Intro Video](https://code.visualstudio.com/docs/introvideos/debugging)
 - [Debugging User Guide](https://code.visualstudio.com/docs/editor/debugging)
 
+Also, InterSystems Learning Services has produced [a short video](https://learning.intersystems.com/course/view.php?id=1795&ssoPass=1) that walks through the steps in this documentation page that you may find useful.
+
 ## Debug Configurations
 
 In order to run or debug an ObjectScript class or routine or attach to a running process, you must create a debug configuration. Some other languages default to running the currently active file, but to run ObjectScript, you must specify the routine or ClassMethod to use or the running process to attach to.
