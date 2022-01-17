@@ -490,6 +490,11 @@
         "language": "objectscript-csp",
         "scopeName": "source.objectscript_csp",
         "path": "syntaxes/objectscript-csp.tmLanguage.json"
+      },
+      {
+        "language": "vscode-objectscript-output",
+        "scopeName": "source.vscode_objectscript_output",
+        "path": "syntaxes/vscode-objectscript-output.tmLanguage.json"
       }
     ],
     "snippets": [
