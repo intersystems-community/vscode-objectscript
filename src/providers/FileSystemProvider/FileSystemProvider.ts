@@ -192,7 +192,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         // Instead we simply return as though we wrote it successfully.
         // The actual writing is done by our workspace.onDidSaveTextDocument handler.
         // But first check cases for which we should fail the write and leave the document dirty if changed.
-        if (fileName.split(".").pop().toLowerCase() === "cls") {
+        if (!csp && fileName.split(".").pop().toLowerCase() === "cls") {
           // Check if the class is deployed
           api.actionIndex([fileName]).then((result) => {
             if (result.result.content[0].content.depl) {
