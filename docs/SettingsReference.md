@@ -45,7 +45,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.export.atelier"` | Export source code as Atelier did it, with packages as subfolders. | `boolean` | `true` | |
 | `"objectscript.export.category"` | Category of source code to export: `CLS` = classes; `RTN` = routines; `CSP` = csp files; `OTH` = other. Default is `*` = all. | `string` or `object` | `"*"` | |
 | `"objectscript.export.dontExportIfNoChanges"` | Do not rewrite the local file if the content is identical to what came from the server. | `boolean` | `false` | |
-| `"objectscript.export.filter"` | SQL filter to limit what to export. | `string` | `""` | |
+| `"objectscript.export.filter"` | SQL filter to limit what to export. | `string` | `""` | The filter is applied to document names using the [LIKE predicate](https://irisdocs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_like) (i.e. `Name LIKE '%filter%'`). |
 | `"objectscript.export.folder"` | Folder for exported source code within workspace. | `string` | `"src"` | |
 | `"objectscript.export.generated"` | Export generated source code files, such as INTs generated from classes. | `boolean` | `false` | |
 | `"objectscript.export.map"` | Map file names before export, with regexp pattern as a key and replacement as a value. | `object` | `{}` | For example, `{  \"%(.*)\": \"_$1\" }` to make % classes or routines use underscore prefix instead. |

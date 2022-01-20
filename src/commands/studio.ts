@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { config, FILESYSTEM_SCHEMA } from "../extension";
+import { config, filesystemSchemas } from "../extension";
 import { outputChannel, outputConsole, getServerName } from "../utils";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { ClassNode } from "../explorer/models/classNode";
@@ -75,7 +75,8 @@ class StudioActions {
       this.api = new AtelierAPI(uri);
     } else if (uriOrNode) {
       const node: NodeBase = uriOrNode;
-      this.api = new AtelierAPI();
+      this.api = new AtelierAPI(node.workspaceFolder);
+      this.api.setNamespace(node.namespace);
       this.name = node instanceof PackageNode ? node.fullName + ".PKG" : node.fullName;
     } else {
       this.api = new AtelierAPI();
@@ -303,7 +304,7 @@ class StudioActions {
               if (actionToProcess && !afterUserAction) {
                 const answer = await this.processUserAction(actionToProcess);
                 // call AfterUserAction only if there is a valid answer
-                if ((action.label = attemptedEditLabel) && answer !== "1") {
+                if (action.label === attemptedEditLabel && answer !== "1") {
                   suppressEditListenerMap.set(this.uri.toString(), true);
                   await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
                 }
@@ -317,9 +318,11 @@ class StudioActions {
             .then(() => resolve())
             .catch((err) => {
               outputChannel.appendLine(
-                `Executing Studio Action "${action.label}" on ${this.api.config.host}:${this.api.config.port}[${
-                  this.api.config.ns
-                }] failed${err.errorText && err.errorText !== "" ? " with the following error:" : "."}`
+                `Executing Studio Action "${action.label}" on ${this.api.config.host}:${this.api.config.port}${
+                  this.api.config.pathPrefix
+                }[${this.api.config.ns}] failed${
+                  err.errorText && err.errorText !== "" ? " with the following error:" : "."
+                }`
               );
               if (err.errorText && err.errorText !== "") {
                 outputChannel.appendLine("\n" + err.errorText);
@@ -442,6 +445,20 @@ class StudioActions {
       }
     }
   }
+
+  public async isSourceControlEnabled(): Promise<boolean> {
+    return this.api
+      .actionQuery("SELECT %Atelier_v1_Utils.Extension_ExtensionEnabled() AS Enabled", [])
+      .then((data) => data.result.content)
+      .then((content) => (content && content.length ? content[0].Enabled : false));
+  }
+
+  public getServerInfo() {
+    return {
+      server: `${this.api.config.host}:${this.api.config.port}${this.api.config.pathPrefix}`,
+      namespace: this.api.config.ns,
+    };
+  }
 }
 
 export async function mainCommandMenu(uri?: vscode.Uri): Promise<void> {
@@ -454,11 +471,21 @@ export async function mainSourceControlMenu(uri?: vscode.Uri): Promise<void> {
 
 async function _mainMenu(sourceControl: boolean, uri?: vscode.Uri): Promise<void> {
   uri = uri || vscode.window.activeTextEditor?.document.uri;
-  if (uri && uri.scheme !== FILESYSTEM_SCHEMA) {
+  if (uri && !filesystemSchemas.includes(uri.scheme)) {
     return;
   }
   const studioActions = new StudioActions(uri);
-  return studioActions && studioActions.getMenu(StudioMenuType.Main, sourceControl);
+  if (studioActions) {
+    if (await studioActions.isSourceControlEnabled()) {
+      return studioActions.getMenu(StudioMenuType.Main, sourceControl);
+    } else {
+      const serverInfo = studioActions.getServerInfo();
+      vscode.window.showInformationMessage(
+        `No source control class is configured for namespace "${serverInfo.namespace}" on server ${serverInfo.server}.`,
+        "Dismiss"
+      );
+    }
+  }
 }
 
 export async function contextCommandMenu(node: PackageNode | ClassNode | RoutineNode): Promise<void> {
@@ -471,11 +498,21 @@ export async function contextSourceControlMenu(node: PackageNode | ClassNode | R
 
 export async function _contextMenu(sourceControl: boolean, node: PackageNode | ClassNode | RoutineNode): Promise<void> {
   const nodeOrUri = node || vscode.window.activeTextEditor?.document.uri;
-  if (!nodeOrUri || (nodeOrUri instanceof vscode.Uri && nodeOrUri.scheme !== FILESYSTEM_SCHEMA)) {
+  if (!nodeOrUri || (nodeOrUri instanceof vscode.Uri && !filesystemSchemas.includes(nodeOrUri.scheme))) {
     return;
   }
   const studioActions = new StudioActions(nodeOrUri);
-  return studioActions && studioActions.getMenu(StudioMenuType.Context, sourceControl);
+  if (studioActions) {
+    if (await studioActions.isSourceControlEnabled()) {
+      return studioActions.getMenu(StudioMenuType.Context, sourceControl);
+    } else {
+      const serverInfo = studioActions.getServerInfo();
+      vscode.window.showInformationMessage(
+        `No source control class is configured for namespace "${serverInfo.namespace}" on server ${serverInfo.server}.`,
+        "Dismiss"
+      );
+    }
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -484,5 +521,9 @@ export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vsc
     return;
   }
   const studioActions = new StudioActions(uri);
-  return studioActions && studioActions.fireOtherStudioAction(action, userAction);
+  return (
+    studioActions &&
+    (await studioActions.isSourceControlEnabled()) &&
+    studioActions.fireOtherStudioAction(action, userAction)
+  );
 }
