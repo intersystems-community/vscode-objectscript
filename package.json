@@ -1189,7 +1189,7 @@
     "glob": "^7.1.6",
     "iconv-lite": "^0.6.0",
     "mkdirp": "^1.0.4",
-    "node-fetch": "3.1.1",
+    "node-fetch-cjs": "3.1.1",
     "vscode-cache": "^0.3.0",
     "vscode-debugadapter": "^1.41.0",
     "vscode-debugprotocol": "^1.41.0",
