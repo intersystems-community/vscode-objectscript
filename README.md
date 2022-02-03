@@ -18,7 +18,7 @@
 
 This is a pre-release which improves security as follows:
 - Uses the authentication provider in Server Manager version 3 to retrieve connection passwords in a way which requires explicit consent from the VS Code user.
-- No longer returns a connection's password in the result of the `serverForUri` API.
+- No longer returns a named server connection's password in the result of the `serverForUri` API.
 
 ## Features
 

@@ -1,5 +1,17 @@
 # Change Log
 
+## [1.5.2022020301] 03-Feb-2022 pre-release
+- Fixes
+  - Allow `serverForUri` to return password for unnamed server (#837)
+- Enhancements
+  - Use CI for publishing pre-releases
+
+## [1.5.2022011402] 14-Jan-2022 pre-release #2
+Add 1.4.1 changes
+
+## [1.5.2022011401] 14-Jan-2022 pre-release
+Add 1.4.0 changes.
+
 ## [1.4.1] 14-Jan-2022
 - Fixes
   - Version 1.4.0 is failing to activate (#827)
@@ -17,6 +29,16 @@
   - Fix `Attempted Edit` Studio Action handling (#781)
   - Properly return options for the Server Command menu for isfs-readonly files (#811)
   - Remove `vscode-objectscript-output` language from selector (#805)
+
+## [1.5.2021121601] 16-Dec-2021 pre-release
+- Fixes
+  - Correctly remove password from `serverForUri` response.
+  - Remove `vscode-objectscript-output` language from selector (#805)
+
+## [1.5.2021121001] 10-Dec-2021 pre-release
+- Enhancements
+  - Use the authentication provider in Server Manager version 3 to retrieve connection passwords in a way which requires explicit consent from the VS Code user.
+  - No longer return connection's password in result of `serverForUri` API.
 
 ## [1.2.2] 07-Dec-2021
 - Fixes
