@@ -968,11 +968,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       const { apiTarget } = connectionTarget(uri);
       const api = new AtelierAPI(apiTarget);
 
-      // We explicitly no longer expose the password.
+      // We explicitly no longer expose the password for named servers.
       // API client extensions can use Server Manager 3's authentication provider to get this,
       // which will require user consent.
 
-      const { serverName, active, host = "", https, port, pathPrefix, username, ns = "", apiVersion } = api.config;
+      const {
+        serverName,
+        active,
+        host = "",
+        https,
+        port,
+        pathPrefix,
+        username,
+        password,
+        ns = "",
+        apiVersion,
+      } = api.config;
       return {
         serverName,
         active,
@@ -981,7 +992,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         port,
         pathPrefix,
         username,
-        password: undefined,
+        password: serverName === "" ? password : undefined,
         namespace: ns,
         apiVersion: active ? apiVersion : undefined,
       };
