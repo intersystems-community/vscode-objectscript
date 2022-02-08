@@ -489,3 +489,53 @@ export function redirectDotvscodeRoot(uri: vscode.Uri): vscode.Uri {
     return uri;
   }
 }
+
+// ---------------------------------------------------------------------
+// Source: https://github.com/amsterdamharu/lib/blob/master/src/index.js
+
+const promiseLike = (x) => x !== undefined && typeof x.then === "function";
+const ifPromise = (fn) => (x) => promiseLike(x) ? x.then(fn) : fn(x);
+
+/*
+  causes a promise returning function not to be called
+  until less than max are active
+  usage example:
+  max2 = throttle(2);
+  urls = [url1,url2,url3...url100]
+  Promise.all(//even though a 100 promises are created, only 2 are active
+    urls.map(max2(fetch))
+  )
+*/
+const throttle = (max: number): ((fn: any) => (arg: any) => Promise<any>) => {
+  let que = [];
+  let queIndex = -1;
+  let running = 0;
+  const wait = (resolve, fn, arg) => () => resolve(ifPromise(fn)(arg)) || true; //should always return true
+  const nextInQue = () => {
+    ++queIndex;
+    if (typeof que[queIndex] === "function") {
+      return que[queIndex]();
+    } else {
+      que = [];
+      queIndex = -1;
+      running = 0;
+      return "Does not matter, not used";
+    }
+  };
+  const queItem = (fn, arg) => new Promise((resolve, reject) => que.push(wait(resolve, fn, arg)));
+  return (fn) => (arg) => {
+    const p = queItem(fn, arg).then((x) => nextInQue() && x);
+    running++;
+    if (running <= max) {
+      nextInQue();
+    }
+    return p;
+  };
+};
+
+// ---------------------------------------------------------------------
+
+/**
+ * Wrap around each promise in array to avoid overloading the server.
+ */
+export const throttleRequests = throttle(50);
