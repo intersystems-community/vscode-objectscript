@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as url from "url";
 import { SearchResult, SearchMatch } from "../../api/atelier";
 import { AtelierAPI } from "../../api";
 import { DocumentContentProvider } from "../DocumentContentProvider";
@@ -47,6 +48,9 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
     if (token.isCancellationRequested) {
       return;
     }
+    const queryParams = url.parse(options.folder.toString(true), true).query;
+    const sysStr = queryParams.system && queryParams.system.length ? queryParams.system.toString() : "0";
+    const genStr = queryParams.generated && queryParams.generated.length ? queryParams.generated.toString() : "0";
     return api
       .actionSearch({
         query: query.pattern,
@@ -54,6 +58,8 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
         word: query.isWordMatch,
         case: query.isCaseSensitive,
         files: fileSpecFromURI(options.folder),
+        sys: sysStr === "1" || (sysStr === "0" && api.ns === "%SYS"),
+        gen: genStr === "1",
         // If options.maxResults is null the search is supposed to return an unlimited number of results
         // Since there's no way for us to pass "unlimited" to the server, I chose a very large number
         max: options.maxResults ?? 100000,
