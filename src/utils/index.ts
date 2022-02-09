@@ -113,6 +113,39 @@ export function isImportableLocalFile(file: vscode.TextDocument): boolean {
   return false;
 }
 
+export function currentFileFromContent(fileName: string, content: string): CurrentFile {
+  const uri = vscode.Uri.file(fileName);
+  const workspaceFolder = workspaceFolderOfUri(uri);
+  let name = "";
+  let ext = "";
+  if (fileName.split(".").pop().toLowerCase() === "cls") {
+    // Allow Unicode letters
+    const match = content.match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
+    if (match) {
+      [, name, ext = "cls"] = match;
+    }
+  } else {
+    const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i);
+    if (match) {
+      [, name, ext = "mac"] = match;
+    } else {
+      [name, ext = "mac"] = path.basename(fileName).split(".");
+    }
+  }
+  name = `${name}.${ext}`;
+  const firstLF = content.indexOf("\n");
+
+  return {
+    content,
+    fileName,
+    uri,
+    workspaceFolder,
+    name,
+    uniqueId: `${workspaceFolder}:${name}`,
+    eol: firstLF > 0 && content[firstLF - 1] === "\r" ? vscode.EndOfLine.CRLF : vscode.EndOfLine.LF,
+  };
+}
+
 export function currentFile(document?: vscode.TextDocument): CurrentFile {
   document =
     document ||
