@@ -143,24 +143,42 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     });
   }
 
-  private generateFileContent(fileName: string, content: Buffer): { content: string[]; enc: boolean } {
+  private generateFileContent(fileName: string, sourceContent: Buffer): { content: string[]; enc: boolean } {
+    const sourceLines = sourceContent.toString().split("\n");
     const fileExt = fileName.split(".").pop().toLowerCase();
     if (fileExt === "cls") {
       const className = fileName.split(".").slice(0, -1).join(".");
+      const content: string[] = [];
+      const preamble: string[] = [];
+
+      // If content was provided (e.g. when copying a file), use all lines except for
+      // the Class x.y one. Replace that with one to match fileName.
+      while (sourceLines.length > 0) {
+        const nextLine = sourceLines.shift();
+        if (nextLine.startsWith("Class ")) {
+          content.push(...preamble, `Class ${className}`, ...sourceLines);
+          break;
+        }
+        preamble.push(nextLine);
+      }
+      if (content.length === 0) {
+        content.push(`Class ${className}`, "{", "}");
+      }
       return {
-        content: [`Class ${className} {}`],
+        content,
         enc: false,
       };
     } else if (["int", "inc", "mac"].includes(fileExt)) {
+      sourceLines.shift();
       const routineName = fileName.split(".").slice(0, -1).join(".");
       const routineType = `[ type = ${fileExt}]`;
       return {
-        content: [`ROUTINE ${routineName} ${routineType}`],
+        content: [`ROUTINE ${routineName} ${routineType}`, ...sourceLines],
         enc: false,
       };
     }
     return {
-      content: [content.toString("base64")],
+      content: [sourceContent.toString("base64")],
       enc: true,
     };
   }
@@ -266,24 +284,28 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       return;
     }
     const api = new AtelierAPI(uri);
-    return api.deleteDoc(fileName).then((response) => {
-      if (response.result.ext) {
-        fireOtherStudioAction(OtherStudioAction.DeletedDocument, uri, response.result.ext);
+    return api.deleteDoc(fileName).then(
+      (response) => {
+        if (response.result.ext) {
+          fireOtherStudioAction(OtherStudioAction.DeletedDocument, uri, response.result.ext);
+        }
+        // Remove entry from our cache
+        this._lookupParentDirectory(uri).then((parent) => {
+          const name = path.basename(uri.path);
+          parent.entries.delete(name);
+        });
+        this._fireSoon({ type: vscode.FileChangeType.Deleted, uri });
+      },
+      (error) => {
+        if (error.statusCode === 200 && error.errorText !== "") {
+          error.message = error.errorText;
+        }
+        throw error;
       }
-      // Remove entry from our cache
-      this._lookupParentDirectory(uri).then((parent) => {
-        const name = path.basename(uri.path);
-        parent.entries.delete(name);
-      });
-      this._fireSoon({ type: vscode.FileChangeType.Deleted, uri });
-    });
+    );
   }
 
   public rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): void | Thenable<void> {
-    throw new Error("Not implemented");
-    return;
-  }
-  public copy?(source: vscode.Uri, destination: vscode.Uri, options: { overwrite: boolean }): void | Thenable<void> {
     throw new Error("Not implemented");
     return;
   }
