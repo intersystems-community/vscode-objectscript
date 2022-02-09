@@ -15,7 +15,7 @@ declare function setTimeout(callback: (...args: any[]) => void, ms: number, ...a
 export type Entry = File | Directory;
 
 export class FileSystemProvider implements vscode.FileSystemProvider {
-  public root = new Directory("", "");
+  private superRoot = new Directory("", "");
 
   public readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]>;
 
@@ -86,9 +86,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           )
           .map((item: StudioOpenDialog) => {
             const name = item.Name;
-            const fullName = folder === "" ? name : csp ? folder + name : folder + "/" + name;
             if (item.Type === "10" || item.Type === "9") {
               if (!parent.entries.has(name)) {
+                const fullName = folder === "" ? name : csp ? folder + name : folder + "/" + name;
                 parent.entries.set(name, new Directory(name, fullName));
               }
               return [name, vscode.FileType.Directory];
@@ -99,7 +99,15 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         if (!csp) {
           return results;
         }
-        return results.concat(cspSubfolders);
+        cspSubfolders.forEach((value) => {
+          const name = value[0];
+          if (!parent.entries.has(name)) {
+            const fullName = folder + name;
+            parent.entries.set(name, new Directory(name, fullName));
+          }
+          results.push(value);
+        });
+        return results;
       })
       .catch((error) => {
         if (error) {
@@ -283,18 +291,30 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (fileName.startsWith(".")) {
       return;
     }
+    if (!fileName.includes(".")) {
+      throw new Error(`${csp ? "Folder" : "Package"} deletion not implemented`);
+    }
     const api = new AtelierAPI(uri);
     return api.deleteDoc(fileName).then(
-      (response) => {
+      async (response) => {
         if (response.result.ext) {
           fireOtherStudioAction(OtherStudioAction.DeletedDocument, uri, response.result.ext);
         }
-        // Remove entry from our cache
-        this._lookupParentDirectory(uri).then((parent) => {
-          const name = path.basename(uri.path);
-          parent.entries.delete(name);
-        });
-        this._fireSoon({ type: vscode.FileChangeType.Deleted, uri });
+        // Remove entry from our cache, plus any now-empty ancestor entries
+        let thisUri = vscode.Uri.parse(uri.toString(), true);
+        const events: vscode.FileChangeEvent[] = [];
+        while (thisUri.path !== "/") {
+          events.push({ type: vscode.FileChangeType.Deleted, uri: thisUri });
+          const parentDir = await this._lookupParentDirectory(thisUri);
+          const name = path.basename(thisUri.path);
+          parentDir.entries.delete(name);
+          if (!csp && parentDir.entries.size === 0) {
+            thisUri = thisUri.with({ path: path.posix.dirname(thisUri.path) });
+          } else {
+            break;
+          }
+        }
+        this._fireSoon(...events);
       },
       (error) => {
         if (error.statusCode === 200 && error.errorText !== "") {
@@ -306,7 +326,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): void | Thenable<void> {
-    throw new Error("Not implemented");
+    throw new Error("Move / rename is not implemented");
     return;
   }
 
@@ -318,8 +338,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
 
   // Fetch entry (a file or directory) from cache, else from server
   private async _lookup(uri: vscode.Uri): Promise<Entry> {
+    const api = new AtelierAPI(uri);
     if (uri.path === "/") {
-      const api = new AtelierAPI(uri);
       await api
         .serverInfo()
         .then()
@@ -327,8 +347,14 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           throw vscode.FileSystemError.Unavailable(`${uri.toString()} is unavailable`);
         });
     }
+    const config = api.config;
+    const rootName = `${config.username}@${config.host}:${config.port}${config.pathPrefix}/${config.ns.toUpperCase()}`;
+    let entry: Entry = this.superRoot.entries.get(rootName);
+    if (!entry) {
+      entry = new Directory(rootName, "");
+      this.superRoot.entries.set(rootName, entry);
+    }
     const parts = uri.path.split("/");
-    let entry: Entry = this.root;
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
       if (!part) {
@@ -339,10 +365,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         child = entry.entries.get(part);
         // If the last element of path is dotted and is one we haven't already cached as a directory
         // then it is assumed to be a file.
-        if ((!part.includes(".") || i + 1 < parts.length) && !child) {
-          const fullName = entry.name === "" ? part : entry.fullName + "/" + part;
-          child = new Directory(part, fullName);
-          entry.entries.set(part, child);
+        if (!child && (!part.includes(".") || i + 1 < parts.length)) {
+          throw vscode.FileSystemError.FileNotFound(uri);
         }
       }
       if (!child) {
