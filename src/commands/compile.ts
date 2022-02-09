@@ -380,8 +380,8 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
 
 function importFiles(files, noCompile = false) {
   return Promise.all<CurrentFile>(
-    files.map((file) =>
-      throttleRequests(
+    files.map(
+      throttleRequests((file) =>
         fs.promises
           .readFile(file, { encoding: "utf8" })
           .then((content) => currentFileFromContent(file, content))
