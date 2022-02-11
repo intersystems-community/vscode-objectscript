@@ -113,6 +113,39 @@ export function isImportableLocalFile(file: vscode.TextDocument): boolean {
   return false;
 }
 
+export function currentFileFromContent(fileName: string, content: string): CurrentFile {
+  const uri = vscode.Uri.file(fileName);
+  const workspaceFolder = workspaceFolderOfUri(uri);
+  let name = "";
+  let ext = "";
+  if (fileName.split(".").pop().toLowerCase() === "cls") {
+    // Allow Unicode letters
+    const match = content.match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
+    if (match) {
+      [, name, ext = "cls"] = match;
+    }
+  } else {
+    const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i);
+    if (match) {
+      [, name, ext = "mac"] = match;
+    } else {
+      [name, ext = "mac"] = path.basename(fileName).split(".");
+    }
+  }
+  name = `${name}.${ext}`;
+  const firstLF = content.indexOf("\n");
+
+  return {
+    content,
+    fileName,
+    uri,
+    workspaceFolder,
+    name,
+    uniqueId: `${workspaceFolder}:${name}`,
+    eol: firstLF > 0 && content[firstLF - 1] === "\r" ? vscode.EndOfLine.CRLF : vscode.EndOfLine.LF,
+  };
+}
+
 export function currentFile(document?: vscode.TextDocument): CurrentFile {
   document =
     document ||
@@ -489,3 +522,53 @@ export function redirectDotvscodeRoot(uri: vscode.Uri): vscode.Uri {
     return uri;
   }
 }
+
+// ---------------------------------------------------------------------
+// Source: https://github.com/amsterdamharu/lib/blob/master/src/index.js
+
+const promiseLike = (x) => x !== undefined && typeof x.then === "function";
+const ifPromise = (fn) => (x) => promiseLike(x) ? x.then(fn) : fn(x);
+
+/*
+  causes a promise returning function not to be called
+  until less than max are active
+  usage example:
+  max2 = throttle(2);
+  urls = [url1,url2,url3...url100]
+  Promise.all(//even though a 100 promises are created, only 2 are active
+    urls.map(max2(fetch))
+  )
+*/
+const throttle = (max: number): ((fn: any) => (arg: any) => Promise<any>) => {
+  let que = [];
+  let queIndex = -1;
+  let running = 0;
+  const wait = (resolve, fn, arg) => () => resolve(ifPromise(fn)(arg)) || true; //should always return true
+  const nextInQue = () => {
+    ++queIndex;
+    if (typeof que[queIndex] === "function") {
+      return que[queIndex]();
+    } else {
+      que = [];
+      queIndex = -1;
+      running = 0;
+      return "Does not matter, not used";
+    }
+  };
+  const queItem = (fn, arg) => new Promise((resolve, reject) => que.push(wait(resolve, fn, arg)));
+  return (fn) => (arg) => {
+    const p = queItem(fn, arg).then((x) => nextInQue() && x);
+    running++;
+    if (running <= max) {
+      nextInQue();
+    }
+    return p;
+  };
+};
+
+// ---------------------------------------------------------------------
+
+/**
+ * Wrap around each promise in array to avoid overloading the server.
+ */
+export const throttleRequests = throttle(50);

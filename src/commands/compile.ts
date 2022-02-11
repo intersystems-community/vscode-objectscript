@@ -13,7 +13,15 @@ import {
   workspaceState,
 } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
-import { currentFile, CurrentFile, currentWorkspaceFolder, outputChannel, uriOfWorkspaceFolder } from "../utils";
+import {
+  currentFile,
+  CurrentFile,
+  currentFileFromContent,
+  currentWorkspaceFolder,
+  outputChannel,
+  throttleRequests,
+  uriOfWorkspaceFolder,
+} from "../utils";
 import { PackageNode } from "../explorer/models/packageNode";
 import { NodeBase } from "../explorer/models/nodeBase";
 
@@ -372,16 +380,18 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
 
 function importFiles(files, noCompile = false) {
   return Promise.all<CurrentFile>(
-    files.map((file) =>
-      vscode.workspace
-        .openTextDocument(file)
-        .then(currentFile)
-        .then((curFile) =>
-          importFile(curFile).then((data) => {
-            outputChannel.appendLine("Imported file: " + curFile.fileName);
-            return curFile;
-          })
-        )
+    files.map(
+      throttleRequests((file) =>
+        fs.promises
+          .readFile(file, { encoding: "utf8" })
+          .then((content) => currentFileFromContent(file, content))
+          .then((curFile) =>
+            importFile(curFile).then((data) => {
+              outputChannel.appendLine("Imported file: " + curFile.fileName);
+              return curFile;
+            })
+          )
+      )
     )
   ).then(noCompile ? Promise.resolve : compile);
 }
