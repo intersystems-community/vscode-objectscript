@@ -52,7 +52,8 @@
   "enableProposedApi": true,
   "enabledApiProposals": [
     "fileSearchProvider",
-    "textSearchProvider"
+    "textSearchProvider",
+    "outputChannelLanguage"
   ],
   "activationEvents": [
     "onDebug",
@@ -451,7 +452,7 @@
         "id": "vscode-objectscript-output",
         "aliases": [],
         "mimetypes": [
-          "text/x-code-output"
+          "text/x-vscode-objectscript-output"
         ]
       }
     ],

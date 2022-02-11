@@ -36,6 +36,14 @@
       "name": "entity.name.class"
     },
     {
+      "match": "(?<=^(?:Class|Routine|File|Table) )\\S+(?= is up-to-date\\.)",
+      "name": "entity.name.class"
+    },
+    {
+      "match": "\\S+(?= is up to date\\. Compile of this item skipped\\.)",
+      "name": "entity.name.class"
+    },
+    {
       "match": "(?<=^\\s*ERROR\\:\\s*)\\S+",
       "name": "entity.name.class"
     },
