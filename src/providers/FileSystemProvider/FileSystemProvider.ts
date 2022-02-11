@@ -292,7 +292,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       return;
     }
     if (!fileName.includes(".")) {
-      throw new Error(`${csp ? "Folder" : "Package"} deletion not implemented`);
+      throw new Error(`${csp ? "Folder" : "Package"} deletion is not supported on server`);
     }
     const api = new AtelierAPI(uri);
     return api.deleteDoc(fileName).then(
@@ -317,7 +317,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         this._fireSoon(...events);
       },
       (error) => {
-        if (error.statusCode === 200 && error.errorText !== "") {
+        if (error.errorText !== "") {
           error.message = error.errorText;
         }
         throw error;
@@ -326,8 +326,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): void | Thenable<void> {
-    throw new Error("Move / rename is not implemented");
-    return;
+    throw new Error("Move / rename is not supported on server");
   }
 
   public watch(uri: vscode.Uri): vscode.Disposable {
