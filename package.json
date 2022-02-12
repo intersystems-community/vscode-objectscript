@@ -450,10 +450,7 @@
       },
       {
         "id": "vscode-objectscript-output",
-        "aliases": [],
-        "mimetypes": [
-          "text/x-vscode-objectscript-output"
-        ]
+        "aliases": []
       }
     ],
     "grammars": [
