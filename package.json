@@ -73,6 +73,7 @@
     "onCommand:vscode-objectscript.hideExplorerForWorkspace",
     "onCommand:vscode-objectscript.showExplorerForWorkspace",
     "onLanguage:objectscript",
+    "onLanguage:objectscript-int",
     "onLanguage:objectscript-class",
     "onLanguage:objectscript-macros",
     "onLanguage:xml",
@@ -416,7 +417,15 @@
           "ObjectScript"
         ],
         "extensions": [
-          ".mac",
+          ".mac"
+        ]
+      },
+      {
+        "id": "objectscript-int",
+        "aliases": [
+          "ObjectScript INT"
+        ],
+        "extensions": [
           ".int"
         ]
       },
@@ -465,6 +474,11 @@
         }
       },
       {
+        "language": "objectscript-int",
+        "scopeName": "source.objectscript",
+        "path": "syntaxes/objectscript.tmLanguage.json"
+      },
+      {
         "language": "objectscript-class",
         "scopeName": "source.objectscript_class",
         "path": "syntaxes/objectscript-class.tmLanguage.json",
@@ -503,6 +517,10 @@
       {
         "language": "objectscript",
         "path": "./snippets/objectscript.json"
+      },
+      {
+        "language": "objectscript-int",
+        "path": "./snippets/objectscript-int.json"
       }
     ],
     "commands": [
@@ -1049,6 +1067,9 @@
     "breakpoints": [
       {
         "language": "objectscript"
+      },
+      {
+        "language": "objectscript-int"
       },
       {
         "language": "objectscript-class"
