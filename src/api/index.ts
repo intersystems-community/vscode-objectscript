@@ -390,7 +390,8 @@ export class AtelierAPI {
         throw { statusCode: response.status, message: response.statusText, errorText: data.status.summary };
       }
       if (data.result.status && data.result.status !== "") {
-        // This is a 4XX error on a doc request
+        // This could be a 4XX error on a doc request
+        // or a 200 from a deleteDoc request for which server-side source control blocked deletion
         throw { statusCode: response.status, message: response.statusText, errorText: data.result.status };
       }
       if (response.status >= 400) {
