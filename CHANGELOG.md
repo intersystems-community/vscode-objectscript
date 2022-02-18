@@ -1,5 +1,23 @@
 # Change Log
 
+## [1.4.1] 14-Jan-2022
+- Fixes
+  - Version 1.4.0 is failing to activate (#827)
+
+## [1.4.0] 14-Jan-2022
+- Enhancements
+  - Make `Ctrl / Cmd+T` lookup (Open Symbol by Name) check all servers connected to a multi-root workspace (#815)
+  - Improve exporting (#818)
+  - Improve client-side DFI workflow (#808)
+  - Improve behavior when no Source Control class is enabled (#171)
+- Fixes
+  - Displace incorrectly-published pre-release version.
+  - Point to correct line when debugging through code with multi-line method arguments (#804)
+  - Show menu options from correct namespace for `Studio Actions` in ObjectScript Explorer (#812)
+  - Fix `Attempted Edit` Studio Action handling (#781)
+  - Properly return options for the Server Command menu for isfs-readonly files (#811)
+  - Remove `vscode-objectscript-output` language from selector (#805)
+
 ## [1.2.2] 07-Dec-2021
 - Fixes
   - Exporting not working with new version 1.2.1 (#799)

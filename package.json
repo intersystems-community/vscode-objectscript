@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "1.2.3-SNAPSHOT",
+  "version": "1.4.2-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "9cd75d51-697c-406c-a929-2bcf46e97c64",
   "categories": [
@@ -52,7 +52,8 @@
   "enableProposedApi": true,
   "enabledApiProposals": [
     "fileSearchProvider",
-    "textSearchProvider"
+    "textSearchProvider",
+    "outputChannelLanguage"
   ],
   "activationEvents": [
     "onDebug",
@@ -72,6 +73,7 @@
     "onCommand:vscode-objectscript.hideExplorerForWorkspace",
     "onCommand:vscode-objectscript.showExplorerForWorkspace",
     "onLanguage:objectscript",
+    "onLanguage:objectscript-int",
     "onLanguage:objectscript-class",
     "onLanguage:objectscript-macros",
     "onLanguage:xml",
@@ -415,7 +417,15 @@
           "ObjectScript"
         ],
         "extensions": [
-          ".mac",
+          ".mac"
+        ]
+      },
+      {
+        "id": "objectscript-int",
+        "aliases": [
+          "ObjectScript INT"
+        ],
+        "extensions": [
           ".int"
         ],
         "icon": {
@@ -465,10 +475,7 @@
       },
       {
         "id": "vscode-objectscript-output",
-        "aliases": [],
-        "mimetypes": [
-          "text/x-code-output"
-        ]
+        "aliases": []
       }
     ],
     "grammars": [
@@ -481,6 +488,11 @@
           "text.html": "html",
           "text.js": "js"
         }
+      },
+      {
+        "language": "objectscript-int",
+        "scopeName": "source.objectscript",
+        "path": "syntaxes/objectscript.tmLanguage.json"
       },
       {
         "language": "objectscript-class",
@@ -506,6 +518,11 @@
         "language": "objectscript-csp",
         "scopeName": "source.objectscript_csp",
         "path": "syntaxes/objectscript-csp.tmLanguage.json"
+      },
+      {
+        "language": "vscode-objectscript-output",
+        "scopeName": "source.vscode_objectscript_output",
+        "path": "syntaxes/vscode-objectscript-output.tmLanguage.json"
       }
     ],
     "snippets": [
@@ -516,6 +533,10 @@
       {
         "language": "objectscript",
         "path": "./snippets/objectscript.json"
+      },
+      {
+        "language": "objectscript-int",
+        "path": "./snippets/objectscript-int.json"
       }
     ],
     "commands": [
@@ -1064,6 +1085,9 @@
         "language": "objectscript"
       },
       {
+        "language": "objectscript-int"
+      },
+      {
         "language": "objectscript-class"
       }
     ],
@@ -1205,7 +1229,7 @@
     "glob": "^7.1.6",
     "iconv-lite": "^0.6.0",
     "mkdirp": "^1.0.4",
-    "node-fetch": "3.0.0",
+    "node-fetch-cjs": "3.1.1",
     "vscode-cache": "^0.3.0",
     "vscode-debugadapter": "^1.41.0",
     "vscode-debugprotocol": "^1.41.0",

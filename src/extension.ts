@@ -601,7 +601,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   vscode.window.onDidChangeTextEditorSelection((event: vscode.TextEditorSelectionChangeEvent) => {
     posPanel.text = "";
     const document = event.textEditor.document;
-    if (document.languageId !== "objectscript") {
+    if (!["objectscript", "objectscript-int"].includes(document.languageId)) {
       return;
     }
     if (event.selections.length > 1 || !event.selections[0].isEmpty) {
@@ -636,18 +636,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   // Gather the proposed APIs we will register to use when building with enabledApiProposals != []
   const proposed = [
+    typeof packageJson.enabledApiProposals === "object" &&
     packageJson.enabledApiProposals.includes("fileSearchProvider") &&
     typeof vscode.workspace.registerFileSearchProvider === "function"
       ? vscode.workspace.registerFileSearchProvider(FILESYSTEM_SCHEMA, new FileSearchProvider())
       : null,
+    typeof packageJson.enabledApiProposals === "object" &&
     packageJson.enabledApiProposals.includes("fileSearchProvider") &&
     typeof vscode.workspace.registerFileSearchProvider === "function"
       ? vscode.workspace.registerFileSearchProvider(FILESYSTEM_READONLY_SCHEMA, new FileSearchProvider())
       : null,
+    typeof packageJson.enabledApiProposals === "object" &&
     packageJson.enabledApiProposals.includes("textSearchProvider") &&
     typeof vscode.workspace.registerTextSearchProvider === "function"
       ? vscode.workspace.registerTextSearchProvider(FILESYSTEM_SCHEMA, new TextSearchProvider())
       : null,
+    typeof packageJson.enabledApiProposals === "object" &&
     packageJson.enabledApiProposals.includes("textSearchProvider") &&
     typeof vscode.workspace.registerTextSearchProvider === "function"
       ? vscode.workspace.registerTextSearchProvider(FILESYSTEM_READONLY_SCHEMA, new TextSearchProvider())
@@ -681,23 +685,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         }
       }),
       vscode.languages.registerHoverProvider(
-        documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
+        documentSelector("objectscript-class", "objectscript", "objectscript-int", "objectscript-macros"),
         new ObjectScriptHoverProvider()
       ),
       vscode.languages.registerDocumentFormattingEditProvider(
-        documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
+        documentSelector("objectscript-class", "objectscript", "objectscript-int", "objectscript-macros"),
         new DocumentFormattingEditProvider()
       ),
       vscode.languages.registerDocumentRangeFormattingEditProvider(
-        documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
+        documentSelector("objectscript-class", "objectscript", "objectscript-int", "objectscript-macros"),
         new DocumentRangeFormattingEditProvider()
       ),
       vscode.languages.registerDefinitionProvider(
-        documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
+        documentSelector("objectscript-class", "objectscript", "objectscript-int", "objectscript-macros"),
         new ObjectScriptDefinitionProvider()
       ),
       vscode.languages.registerCompletionItemProvider(
-        documentSelector("objectscript-class", "objectscript", "objectscript-macros"),
+        documentSelector("objectscript-class", "objectscript", "objectscript-int", "objectscript-macros"),
         new ObjectScriptCompletionItemProvider(),
         "$",
         "^",
@@ -709,7 +713,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         new ObjectScriptClassSymbolProvider()
       ),
       vscode.languages.registerDocumentSymbolProvider(
-        documentSelector("objectscript"),
+        documentSelector("objectscript", "objectscript-int"),
         new ObjectScriptRoutineSymbolProvider()
       )
     );
@@ -724,7 +728,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           new ObjectScriptClassFoldingRangeProvider()
         ),
         vscode.languages.registerFoldingRangeProvider(
-          documentSelector("objectscript"),
+          documentSelector("objectscript", "objectscript-int"),
           new ObjectScriptFoldingRangeProvider()
         )
       );
