@@ -106,7 +106,7 @@ In this case settings are stored in a file with a `*.code-workspace` suffix. The
 
 You can have a workspace file even if you are only working with a single root folder. Indeed, if you are [working server-side](../serverside/) you will always be using a workspace file.
 
-To edit **InterSystems ObjectScript** extension settings in a `*.code-workspace` file in VS Code, open the workspace using **File > Open Workspace...**, select **File > Preferences > Settings** (**Code > Preferences > Settings** on Mac) and select the Workspace tab. Search for **objectscript: conn**, and click on *Edit in settings.json*. VS Code opens the `*.code-workspace` file for that workspace.
+To edit **InterSystems ObjectScript** extension settings in a `*.code-workspace` file in VS Code, open the workspace using **File > Open Workspace from File...**, select **File > Preferences > Settings** (**Code > Preferences > Settings** on Mac) and select the Workspace tab. Search for **objectscript: conn**, and click on *Edit in settings.json*. VS Code opens the `*.code-workspace` file for that workspace.
 
 The **InterSystems ObjectScript** extension uses the multi-root workspaces feature to support ObjectScript development directly in namespaces on InterSystems servers.
 
