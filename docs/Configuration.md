@@ -94,7 +94,7 @@ If you want to debug a running process, `launch.json` should have a section like
 }
 ```
 
-Note that `"configurations"` is an array, so you can have multiple configurations and choose the one to use from a dropdown menu in the Debug pane.
+Note that `"configurations"` is an array, so you can define multiple configurations and choose the one to use from a dropdown menu in the Debug pane.
 
 {: #code-workspaces}
 
