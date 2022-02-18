@@ -70,7 +70,7 @@ Here is the simplest `launch.json` file content, with which you can debug the me
             "type": "objectscript",
             "request": "launch",
             "name": "Example.Service.Test", 
-            "program": "##class(Example.Service).Test(<methodparam1>,<methodparam2>)"
+            "program": "##class(Example.Service).Test(\"answer\",42)"
         }
     ]
 }
