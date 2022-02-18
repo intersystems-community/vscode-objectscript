@@ -43,7 +43,7 @@ However, a better strategy is to let the [InterSystems Server Manager](https://m
 }
 ```
 
-If you need ObjectScript compilation flags other than the default, add an `"objectscript.compileFlags"` property to `settings.json` (more compileFlags options are [covered here](/vscode-objectscript/settings/)):
+If you need ObjectScript compilation flags other than the default ones, add an `"objectscript.compileFlags"` property to `settings.json` (more compileFlags information is [available here](/vscode-objectscript/settings#vscode-objectscript)):
 
 {: #code-workspace-compileFlags}
 
