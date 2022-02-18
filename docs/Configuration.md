@@ -31,7 +31,7 @@ Here is the simplest `settings.json` file content for an ObjectScript project:
 }
 ```
 
-However, a better strategy is to let the InterSystems Server manager handle the server connection information as described [later](#config-server). That extension also allows you to store your password securely, so please use it. Then in `settings.json` you only need to specify the server name:
+However, a better strategy is to let the [InterSystems Server Manager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) handle the server connection information as described [later](#config-server). That extension also allows you to store your password securely, so please use it. Then in `settings.json` you only need to specify the server name, which you set up in Server Manager:
 
 ```json
 {
