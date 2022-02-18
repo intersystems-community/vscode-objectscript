@@ -45,7 +45,7 @@ export interface ServerInfo {
 
 export interface SearchMatch {
   text: string;
-  line?: number;
+  line?: string | number;
   member?: string;
   attr?: string;
   attrline?: number;

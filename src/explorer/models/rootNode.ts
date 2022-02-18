@@ -6,7 +6,6 @@ import { RoutineNode } from "./routineNode";
 import { AtelierAPI } from "../../api";
 import { ClassNode } from "./classNode";
 import { CSPFileNode } from "./cspFileNode";
-import { StudioOpenDialog } from "../../queries";
 
 type IconPath =
   | string
@@ -58,9 +57,12 @@ export class RootNode extends NodeBase {
     return this.getItems(path, this._category);
   }
 
-  public getList(path: string, category: string, flat: boolean): Promise<(StudioOpenDialog & { fullName: string })[]> {
-    const sql = "CALL %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)";
-    // const sql = "CALL %Library.RoutineMgr_StudioOpenDialog(?,,,,,,?)";
+  public getList(
+    path: string,
+    category: string,
+    flat: boolean
+  ): Promise<{ Name: string; Type: string; fullName: string }[]> {
+    const sql = "SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)";
     let spec = "";
     switch (category) {
       case "CLS":
@@ -102,7 +104,7 @@ export class RootNode extends NodeBase {
         return content;
       })
       .then((data) =>
-        data.map((el: StudioOpenDialog) => {
+        data.map((el: { Name: string; Type: number }) => {
           let fullName = el.Name;
           if (this instanceof PackageNode) {
             fullName = this.fullName + "." + el.Name;
@@ -110,7 +112,8 @@ export class RootNode extends NodeBase {
             fullName = this.fullName + "/" + el.Name;
           }
           return {
-            ...el,
+            Name: el.Name,
+            Type: String(el.Type),
             fullName,
           };
         })

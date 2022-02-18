@@ -4,13 +4,19 @@ import { R_OK } from "constants";
 import * as url from "url";
 import { exec } from "child_process";
 import * as vscode from "vscode";
-import { config, schemas, workspaceState, terminals } from "../extension";
+import { config, schemas, workspaceState, terminals, extensionId } from "../extension";
+import { getCategory } from "../commands/export";
+const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 
 let latestErrorMessage = "";
 export const outputChannel: {
   resetError?(): void;
   appendError?(value: string, show?: boolean): void;
-} & vscode.OutputChannel = vscode.window.createOutputChannel("ObjectScript");
+} & vscode.OutputChannel =
+  typeof packageJson.enabledApiProposals === "object" &&
+  packageJson.enabledApiProposals.includes("outputChannelLanguage")
+    ? vscode.window.createOutputChannel("ObjectScript", "vscode-objectscript-output")
+    : vscode.window.createOutputChannel("ObjectScript");
 
 /// Append Error if no duplicates previous one
 outputChannel.appendError = (value: string, show = true): void => {
@@ -59,23 +65,90 @@ export interface ConnectionTarget {
  * Determine the server name of a local non-ObjectScript file (any file that's not CLS,MAC,INT,INC).
  * @param localPath The full path to the file on disk.
  * @param workspace The workspace the file is in.
+ * @param fileExt The extension of the file.
  */
-function getServerDocName(localPath: string, workspace: string): string {
+function getServerDocName(localPath: string, workspace: string, fileExt: string): string {
   const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
   const filePathNoWorkspaceArr = localPath.replace(workspacePath + path.sep, "").split(path.sep);
-  return filePathNoWorkspaceArr.slice(filePathNoWorkspaceArr.indexOf("csp")).join("/");
+  if (fileExt !== "dfi") {
+    return filePathNoWorkspaceArr.slice(filePathNoWorkspaceArr.indexOf("csp")).join("/");
+  }
+  const { atelier, folder, addCategory } = config("export", workspace);
+  const root = [
+    typeof folder === "string" && folder.length ? folder : null,
+    addCategory ? getCategory(localPath, addCategory) : null,
+  ]
+    .filter(notNull)
+    .join(path.sep);
+  let filePath = filePathNoWorkspaceArr.join(path.sep).slice(root.length + path.sep.length);
+  if (atelier) {
+    filePath = filePath.replaceAll(path.sep, "-");
+  }
+  return filePath;
 }
 
 /**
- * Determine if this non-InterSystems local file is importable
- * (i.e. is part of a CSP application).
+ * Determine if this non-ObjectScript local file is importable
+ * (i.e. is part of a CSP application or is a DFI file).
  * @param file The file to check.
  */
 export function isImportableLocalFile(file: vscode.TextDocument): boolean {
   const workspace = currentWorkspaceFolder(file);
   const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
   const filePathNoWorkspaceArr = file.fileName.replace(workspacePath + path.sep, "").split(path.sep);
-  return filePathNoWorkspaceArr.includes("csp");
+  if (filePathNoWorkspaceArr.includes("csp")) {
+    return true;
+  } else if (file.uri.path.toLowerCase().endsWith(".dfi")) {
+    // This is a DFI file, so make sure it matches our export settings
+    const { atelier, folder, addCategory } = config("export", workspace);
+    const expectedRoot = [
+      typeof folder === "string" && folder.length ? folder : null,
+      addCategory ? getCategory(file.fileName, addCategory) : null,
+    ]
+      .filter(notNull)
+      .join(path.sep);
+    let filePath = filePathNoWorkspaceArr.join(path.sep);
+    if (filePath.startsWith(expectedRoot)) {
+      filePath = filePath.slice(expectedRoot.length + path.sep.length);
+      if ((atelier && !filePath.includes("-")) || !atelier) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+export function currentFileFromContent(fileName: string, content: string): CurrentFile {
+  const uri = vscode.Uri.file(fileName);
+  const workspaceFolder = workspaceFolderOfUri(uri);
+  let name = "";
+  let ext = "";
+  if (fileName.split(".").pop().toLowerCase() === "cls") {
+    // Allow Unicode letters
+    const match = content.match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
+    if (match) {
+      [, name, ext = "cls"] = match;
+    }
+  } else {
+    const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i);
+    if (match) {
+      [, name, ext = "mac"] = match;
+    } else {
+      [name, ext = "mac"] = path.basename(fileName).split(".");
+    }
+  }
+  name = `${name}.${ext}`;
+  const firstLF = content.indexOf("\n");
+
+  return {
+    content,
+    fileName,
+    uri,
+    workspaceFolder,
+    name,
+    uniqueId: `${workspaceFolder}:${name}`,
+    eol: firstLF > 0 && content[firstLF - 1] === "\r" ? vscode.EndOfLine.CRLF : vscode.EndOfLine.LF,
+  };
 }
 
 export function currentFile(document?: vscode.TextDocument): CurrentFile {
@@ -130,7 +203,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
         // This is a csp or csr file that's not in a csp directory
         return null;
       }
-      name = getServerDocName(fileName, currentWorkspaceFolder(document));
+      name = getServerDocName(fileName, currentWorkspaceFolder(document), fileExt);
     } else {
       name = fileName;
     }
@@ -347,7 +420,8 @@ export async function portFromDockerCompose(): Promise<{ port: number; docker: b
   }
 
   const envFileParam = envFile ? `--env-file ${envFile}` : "";
-  const cmd = `docker-compose -f ${file} ${envFileParam} `;
+  const exe = process.platform === "win32" ? "docker-compose.exe" : "docker-compose";
+  const cmd = `${exe} -f ${file} ${envFileParam} `;
 
   return new Promise((resolve, reject) => {
     exec(`${cmd} ps --services --filter status=running`, { cwd }, (error, stdout) => {
@@ -380,7 +454,8 @@ export async function terminalWithDocker(): Promise<vscode.Terminal> {
   const terminalName = `ObjectScript:${workspace}`;
   let terminal = terminals.find((t) => t.name == terminalName && t.exitStatus == undefined);
   if (!terminal) {
-    terminal = vscode.window.createTerminal(terminalName, "docker-compose", [
+    const exe = process.platform === "win32" ? "docker-compose.exe" : "docker-compose";
+    terminal = vscode.window.createTerminal(terminalName, exe, [
       "-f",
       file,
       "exec",
@@ -404,7 +479,8 @@ export async function shellWithDocker(): Promise<vscode.Terminal> {
   const terminalName = `Shell:${workspace}`;
   let terminal = terminals.find((t) => t.name == terminalName && t.exitStatus == undefined);
   if (!terminal) {
-    terminal = vscode.window.createTerminal(terminalName, "docker-compose", ["-f", file, "exec", service, "/bin/bash"]);
+    const exe = process.platform === "win32" ? "docker-compose.exe" : "docker-compose";
+    terminal = vscode.window.createTerminal(terminalName, exe, ["-f", file, "exec", service, "/bin/bash"]);
     terminals.push(terminal);
   }
   terminal.show(true);
@@ -451,3 +527,53 @@ export function redirectDotvscodeRoot(uri: vscode.Uri): vscode.Uri {
     return uri;
   }
 }
+
+// ---------------------------------------------------------------------
+// Source: https://github.com/amsterdamharu/lib/blob/master/src/index.js
+
+const promiseLike = (x) => x !== undefined && typeof x.then === "function";
+const ifPromise = (fn) => (x) => promiseLike(x) ? x.then(fn) : fn(x);
+
+/*
+  causes a promise returning function not to be called
+  until less than max are active
+  usage example:
+  max2 = throttle(2);
+  urls = [url1,url2,url3...url100]
+  Promise.all(//even though a 100 promises are created, only 2 are active
+    urls.map(max2(fetch))
+  )
+*/
+const throttle = (max: number): ((fn: any) => (arg: any) => Promise<any>) => {
+  let que = [];
+  let queIndex = -1;
+  let running = 0;
+  const wait = (resolve, fn, arg) => () => resolve(ifPromise(fn)(arg)) || true; //should always return true
+  const nextInQue = () => {
+    ++queIndex;
+    if (typeof que[queIndex] === "function") {
+      return que[queIndex]();
+    } else {
+      que = [];
+      queIndex = -1;
+      running = 0;
+      return "Does not matter, not used";
+    }
+  };
+  const queItem = (fn, arg) => new Promise((resolve, reject) => que.push(wait(resolve, fn, arg)));
+  return (fn) => (arg) => {
+    const p = queItem(fn, arg).then((x) => nextInQue() && x);
+    running++;
+    if (running <= max) {
+      nextInQue();
+    }
+    return p;
+  };
+};
+
+// ---------------------------------------------------------------------
+
+/**
+ * Wrap around each promise in array to avoid overloading the server.
+ */
+export const throttleRequests = throttle(50);

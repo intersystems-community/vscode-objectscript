@@ -304,7 +304,7 @@ class StudioActions {
               if (actionToProcess && !afterUserAction) {
                 const answer = await this.processUserAction(actionToProcess);
                 // call AfterUserAction only if there is a valid answer
-                if ((action.label = attemptedEditLabel) && answer !== "1") {
+                if (action.label === attemptedEditLabel && answer !== "1") {
                   suppressEditListenerMap.set(this.uri.toString(), true);
                   await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
                 }
@@ -318,9 +318,11 @@ class StudioActions {
             .then(() => resolve())
             .catch((err) => {
               outputChannel.appendLine(
-                `Executing Studio Action "${action.label}" on ${this.api.config.host}:${this.api.config.port}[${
-                  this.api.config.ns
-                }] failed${err.errorText && err.errorText !== "" ? " with the following error:" : "."}`
+                `Executing Studio Action "${action.label}" on ${this.api.config.host}:${this.api.config.port}${
+                  this.api.config.pathPrefix
+                }[${this.api.config.ns}] failed${
+                  err.errorText && err.errorText !== "" ? " with the following error:" : "."
+                }`
               );
               if (err.errorText && err.errorText !== "") {
                 outputChannel.appendLine("\n" + err.errorText);
@@ -443,6 +445,20 @@ class StudioActions {
       }
     }
   }
+
+  public async isSourceControlEnabled(): Promise<boolean> {
+    return this.api
+      .actionQuery("SELECT %Atelier_v1_Utils.Extension_ExtensionEnabled() AS Enabled", [])
+      .then((data) => data.result.content)
+      .then((content) => (content && content.length ? content[0].Enabled : false));
+  }
+
+  public getServerInfo() {
+    return {
+      server: `${this.api.config.host}:${this.api.config.port}${this.api.config.pathPrefix}`,
+      namespace: this.api.config.ns,
+    };
+  }
 }
 
 export async function mainCommandMenu(uri?: vscode.Uri): Promise<void> {
@@ -459,7 +475,17 @@ async function _mainMenu(sourceControl: boolean, uri?: vscode.Uri): Promise<void
     return;
   }
   const studioActions = new StudioActions(uri);
-  return studioActions && studioActions.getMenu(StudioMenuType.Main, sourceControl);
+  if (studioActions) {
+    if (await studioActions.isSourceControlEnabled()) {
+      return studioActions.getMenu(StudioMenuType.Main, sourceControl);
+    } else {
+      const serverInfo = studioActions.getServerInfo();
+      vscode.window.showInformationMessage(
+        `No source control class is configured for namespace "${serverInfo.namespace}" on server ${serverInfo.server}.`,
+        "Dismiss"
+      );
+    }
+  }
 }
 
 export async function contextCommandMenu(node: PackageNode | ClassNode | RoutineNode): Promise<void> {
@@ -476,7 +502,17 @@ export async function _contextMenu(sourceControl: boolean, node: PackageNode | C
     return;
   }
   const studioActions = new StudioActions(nodeOrUri);
-  return studioActions && studioActions.getMenu(StudioMenuType.Context, sourceControl);
+  if (studioActions) {
+    if (await studioActions.isSourceControlEnabled()) {
+      return studioActions.getMenu(StudioMenuType.Context, sourceControl);
+    } else {
+      const serverInfo = studioActions.getServerInfo();
+      vscode.window.showInformationMessage(
+        `No source control class is configured for namespace "${serverInfo.namespace}" on server ${serverInfo.server}.`,
+        "Dismiss"
+      );
+    }
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -485,5 +521,9 @@ export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vsc
     return;
   }
   const studioActions = new StudioActions(uri);
-  return studioActions && studioActions.fireOtherStudioAction(action, userAction);
+  return (
+    studioActions &&
+    (await studioActions.isSourceControlEnabled()) &&
+    studioActions.fireOtherStudioAction(action, userAction)
+  );
 }
