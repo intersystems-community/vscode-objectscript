@@ -13,7 +13,7 @@ VS Code settings enable you to customize various aspects of its behavior. The In
 
 ## Basic Configuration
 
-VS Code has a concept of a workspace, which is a set of directories you want to use when you're working on a particular project. In the simplest setup when you are working within a single directory, a VS Code workspace is just the root folder of your project. In this case you keep your settings in two files inside a `.vscode` directory located at the root of your project. Those two files are `settings.json`, which contains most configuration settings, and `launch.json`, which contains debugging configurations.
+VS Code has a concept of a [workspace](https://code.visualstudio.com/docs/editor/workspaces), which is a set of directories you want to use when you're working on a particular project. In the simplest setup when you are working within a single directory, a VS Code workspace is just the root folder of your project. In this case you keep workspace-specific settings in two files inside a `.vscode` directory located at the root of your project. Those two files are `settings.json`, which contains most configuration settings, and `launch.json`, which contains debugging configurations.
 
 Here is the simplest `settings.json` file contents:
 
