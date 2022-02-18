@@ -7,7 +7,7 @@ nav_order: 4
 
 # Configuration
 
-VS Code settings enable you to customize various aspects of its function. The InterSystems extensions provide settings used to configure VS Code for ObjectScript development.
+VS Code settings enable you to customize various aspects of its behavior. The InterSystems extensions provide settings used to configure VS Code for ObjectScript development.
 
 {: #code-configuration-basic}
 
