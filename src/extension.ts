@@ -18,6 +18,7 @@ export const schemas = [
 export const filesystemSchemas = [FILESYSTEM_SCHEMA, FILESYSTEM_READONLY_SCHEMA];
 
 import * as url from "url";
+import path = require("path");
 import {
   importAndCompile,
   importFolder as importFileOrFolder,
@@ -27,7 +28,7 @@ import {
   compileOnly,
 } from "./commands/compile";
 import { deleteExplorerItems } from "./commands/delete";
-import { exportAll, exportCurrentFile, exportExplorerItems } from "./commands/export";
+import { exportAll, exportCurrentFile, exportExplorerItems, getCategory } from "./commands/export";
 import { serverActions } from "./commands/serverActions";
 import { subclass } from "./commands/subclass";
 import { superclass } from "./commands/superclass";
@@ -66,7 +67,7 @@ import { ObjectScriptDebugAdapterDescriptorFactory } from "./debug/debugAdapterF
 import { ObjectScriptConfigurationProvider } from "./debug/debugConfProvider";
 import { ObjectScriptExplorerProvider, registerExplorerOpen } from "./explorer/explorer";
 import { WorkspaceNode } from "./explorer/models/workspaceNode";
-import { FileSystemProvider } from "./providers/FileSystemProvider/FileSystemProvider";
+import { FileSystemProvider, generateFileContent } from "./providers/FileSystemProvider/FileSystemProvider";
 import { WorkspaceSymbolProvider } from "./providers/WorkspaceSymbolProvider";
 import {
   connectionTarget,
@@ -78,6 +79,8 @@ import {
   currentFile,
   InputBoxManager,
   isImportableLocalFile,
+  workspaceFolderOfUri,
+  uriOfWorkspaceFolder,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentRangeFormattingEditProvider } from "./providers/DocumentRangeFormattingEditProvider";
@@ -938,6 +941,33 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       DocumaticPreviewPanel.create(context.extensionUri)
     ),
     vscode.commands.registerCommand("vscode-objectscript.exportCurrentFile", exportCurrentFile),
+    vscode.workspace.onDidCreateFiles((e: vscode.FileCreateEvent) =>
+      Promise.all(
+        e.files
+          .filter((f) => !filesystemSchemas.includes(f.scheme))
+          .filter((f) => ["cls", "inc", "int", "mac"].includes(f.path.split(".").pop().toLowerCase()))
+          .map(async (f) => {
+            // Determine the file name
+            const workspace = workspaceFolderOfUri(f);
+            const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
+            const filePathNoWorkspaceArr = f.fsPath.replace(workspacePath + path.sep, "").split(path.sep);
+            const { folder, addCategory } = config("export", workspace);
+            const expectedFolder = typeof folder === "string" && folder.length ? folder : null;
+            if (expectedFolder !== null && filePathNoWorkspaceArr[0] === expectedFolder) {
+              filePathNoWorkspaceArr.shift();
+            }
+            const expectedCat = addCategory ? getCategory(f.fsPath, addCategory) : null;
+            if (expectedCat !== null && filePathNoWorkspaceArr[0] === expectedCat) {
+              filePathNoWorkspaceArr.shift();
+            }
+            const fileName = filePathNoWorkspaceArr.join(".");
+            // Generate the new content
+            const newContent = generateFileContent(fileName, Buffer.from(await vscode.workspace.fs.readFile(f)));
+            // Write the new content to the file
+            return vscode.workspace.fs.writeFile(f, new TextEncoder().encode(newContent.content.join("\n")));
+          })
+      )
+    ),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed
