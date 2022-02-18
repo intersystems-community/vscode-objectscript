@@ -58,7 +58,7 @@ If you need ObjectScript compilation flags other than the default ones, add an `
 }
 ```
 
-Here is the simplest `launch.json` file contents, which debugs the method `Test` in the class `Example.Service`, passing 2 parameters as input (see ["Running and Debugging"](/vscode-objectscript/rundebug/) for more information):
+Here is the simplest `launch.json` file content, with which you can debug the method `Test` in the class `Example.Service`, passing 2 parameters as input (see ["Running and Debugging"](/vscode-objectscript/rundebug/) for more information):
 
 {: #code-workspace-simple-debug}
 
