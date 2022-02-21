@@ -14,6 +14,46 @@ declare function setTimeout(callback: (...args: any[]) => void, ms: number, ...a
 
 export type Entry = File | Directory;
 
+export function generateFileContent(fileName: string, sourceContent: Buffer): { content: string[]; enc: boolean } {
+  const sourceLines = sourceContent.toString().split("\n");
+  const fileExt = fileName.split(".").pop().toLowerCase();
+  if (fileExt === "cls") {
+    const className = fileName.split(".").slice(0, -1).join(".");
+    const content: string[] = [];
+    const preamble: string[] = [];
+
+    // If content was provided (e.g. when copying a file), use all lines except for
+    // the Class x.y one. Replace that with one to match fileName.
+    while (sourceLines.length > 0) {
+      const nextLine = sourceLines.shift();
+      if (nextLine.startsWith("Class ")) {
+        content.push(...preamble, `Class ${className}`, ...sourceLines);
+        break;
+      }
+      preamble.push(nextLine);
+    }
+    if (content.length === 0) {
+      content.push(`Class ${className}`, "{", "}");
+    }
+    return {
+      content,
+      enc: false,
+    };
+  } else if (["int", "inc", "mac"].includes(fileExt)) {
+    sourceLines.shift();
+    const routineName = fileName.split(".").slice(0, -1).join(".");
+    const routineType = `[ type = ${fileExt}]`;
+    return {
+      content: [`ROUTINE ${routineName} ${routineType}`, ...sourceLines],
+      enc: false,
+    };
+  }
+  return {
+    content: [sourceContent.toString("base64")],
+    enc: true,
+  };
+}
+
 export class FileSystemProvider implements vscode.FileSystemProvider {
   private superRoot = new Directory("", "");
 
@@ -151,46 +191,6 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     });
   }
 
-  private generateFileContent(fileName: string, sourceContent: Buffer): { content: string[]; enc: boolean } {
-    const sourceLines = sourceContent.toString().split("\n");
-    const fileExt = fileName.split(".").pop().toLowerCase();
-    if (fileExt === "cls") {
-      const className = fileName.split(".").slice(0, -1).join(".");
-      const content: string[] = [];
-      const preamble: string[] = [];
-
-      // If content was provided (e.g. when copying a file), use all lines except for
-      // the Class x.y one. Replace that with one to match fileName.
-      while (sourceLines.length > 0) {
-        const nextLine = sourceLines.shift();
-        if (nextLine.startsWith("Class ")) {
-          content.push(...preamble, `Class ${className}`, ...sourceLines);
-          break;
-        }
-        preamble.push(nextLine);
-      }
-      if (content.length === 0) {
-        content.push(`Class ${className}`, "{", "}");
-      }
-      return {
-        content,
-        enc: false,
-      };
-    } else if (["int", "inc", "mac"].includes(fileExt)) {
-      sourceLines.shift();
-      const routineName = fileName.split(".").slice(0, -1).join(".");
-      const routineType = `[ type = ${fileExt}]`;
-      return {
-        content: [`ROUTINE ${routineName} ${routineType}`, ...sourceLines],
-        enc: false,
-      };
-    }
-    return {
-      content: [sourceContent.toString("base64")],
-      enc: true,
-    };
-  }
-
   public writeFile(
     uri: vscode.Uri,
     content: Buffer,
@@ -250,7 +250,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         }
         // File doesn't exist on the server, and we are allowed to create it.
         // Create content (typically a stub).
-        const newContent = this.generateFileContent(fileName, content);
+        const newContent = generateFileContent(fileName, content);
 
         // Write it to the server
         return api
