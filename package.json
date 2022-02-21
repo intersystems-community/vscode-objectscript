@@ -57,8 +57,8 @@
   ],
   "activationEvents": [
     "onDebug",
-    "workspaceContains:*.cls",
-    "workspaceContains:*.mac",
+    "workspaceContains:**/*.cls",
+    "workspaceContains:**/*.mac",
     "onCommand:vscode-objectscript.export",
     "onCommand:vscode-objectscript.compile",
     "onCommand:vscode-objectscript.viewOthers",
