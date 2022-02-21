@@ -418,7 +418,11 @@
         ],
         "extensions": [
           ".mac"
-        ]
+        ],
+        "icon": {
+          "dark": "./images/fileIcon.svg",
+          "light": "./images/fileIcon.svg"
+        }
       },
       {
         "id": "objectscript-int",
@@ -427,7 +431,11 @@
         ],
         "extensions": [
           ".int"
-        ]
+        ],
+        "icon": {
+          "dark": "./images/fileIcon.svg",
+          "light": "./images/fileIcon.svg"
+        }
       },
       {
         "id": "objectscript-class",
@@ -436,7 +444,11 @@
         ],
         "extensions": [
           ".cls"
-        ]
+        ],
+        "icon": {
+          "dark": "./images/fileIcon.svg",
+          "light": "./images/fileIcon.svg"
+        }
       },
       {
         "id": "objectscript-macros",
@@ -445,7 +457,11 @@
         ],
         "extensions": [
           ".inc"
-        ]
+        ],
+        "icon": {
+          "dark": "./images/fileIcon.svg",
+          "light": "./images/fileIcon.svg"
+        }
       },
       {
         "id": "objectscript-csp",
@@ -455,7 +471,11 @@
         "extensions": [
           ".csp",
           ".csr"
-        ]
+        ],
+        "icon": {
+          "dark": "./images/fileIcon.svg",
+          "light": "./images/fileIcon.svg"
+        }
       },
       {
         "id": "vscode-objectscript-output",
