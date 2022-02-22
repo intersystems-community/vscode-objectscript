@@ -138,7 +138,7 @@ The query string of the `uri` property accepts several parameters that control f
 - `isfs://myserver:user?type=cls`, shows only classes
 - `isfs://myserver:user?type=rtn`, shows only routines, mac, int and inc files
 - `isfs://myserver:user?generated=1`, shows generated files as well as not generated
-- `isfs://myserver:user?filter=%Z*.cls,%z*.cls,%Z*.mac`, comma-delimited list of search options, ignores `type`
+- `isfs://myserver:user?filter=%Z*.mac,%z*.mac`, comma-delimited list of search options, ignores `type`. The default is `*.cls,*.inc,*.mac,*.int`. To see all files, use `*`.
 - `isfs://myserver:user?flat=1`, a flat list of files does not split packages as folders.
 
 The options `flat` and `generated` can be combined with each other, and with `type` or `filter`. If `filter` is specified, `type` is ignored.
