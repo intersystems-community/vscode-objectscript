@@ -69,6 +69,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
         if (token.isCancellationRequested) {
           return;
         }
+        const decoder = new TextDecoder();
         const result = await Promise.allSettled(
           files.map(
             throttleRequests(async (file: SearchResult) => {
@@ -76,7 +77,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
                 throw new vscode.CancellationError();
               }
               const uri = DocumentContentProvider.getUri(file.doc, "", "", true, options.folder);
-              const content = await api.getDoc(file.doc).then((data) => <string[]>data.result.content);
+              const content = decoder.decode(await vscode.workspace.fs.readFile(uri)).split("\n");
               // Find all lines that we have matches on
               const lines = file.matches
                 .map((match: SearchMatch) => {
