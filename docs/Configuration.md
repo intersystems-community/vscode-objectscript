@@ -4,20 +4,109 @@ title: Configuration
 permalink: /configuration/
 nav_order: 4
 ---
-# Configuration 
 
-VS Code settings enable you to customize various aspects of its function. The InterSystems extensions provide settings used to configure VS Code for ObjectScript development.
+# Configuration
+
+VS Code settings enable you to customize various aspects of its behavior. The InterSystems extensions provide settings used to configure VS Code for ObjectScript development.
+
+{: #code-configuration-basic}
+
+## Basic Configuration
+
+VS Code has a concept of a [workspace](https://code.visualstudio.com/docs/editor/workspaces), which is a set of directories you want to use when you're working on a particular project. In the simplest setup when you are working within a single directory, a VS Code workspace is just the root folder of your project. In this case you keep workspace-specific settings in two files inside a `.vscode` directory located at the root of your project. Those two files are `settings.json`, which contains most configuration settings, and `launch.json`, which contains debugging configurations.
+
+Here is the simplest `settings.json` file content for an ObjectScript project:
+
+{: #code-workspace-simple}
+
+```json
+{
+    "objectscript.conn": {
+        "ns": "USER",
+        "active": true, 
+        "host": "localhost", 
+        "port": 52773, 
+        "username": "_SYSTEM" 
+    }
+}
+```
+
+However, a better strategy is to let the [InterSystems Server Manager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) handle the server connection information as described [later](#config-server). That extension also allows you to store your password securely, so please use it. Then in `settings.json` you only need to specify the server name, which you set up in Server Manager:
+
+```json
+{
+    "objectscript.conn": {
+        "server": "iris",
+        "ns": "USER",
+        "active": true
+    }
+}
+```
+
+If you need ObjectScript compilation flags other than the default ones, add an `"objectscript.compileFlags"` property to `settings.json` (more compileFlags information is [available here](/vscode-objectscript/settings#vscode-objectscript)):
+
+{: #code-workspace-compileFlags}
+
+```json
+{
+    "objectscript.conn": {
+        "server": "iris",
+        "ns": "USER",
+        "active": true, 
+    },
+    "objectscript.compileFlags": "cuk/compileembedded=1"
+}
+```
+
+Here is the simplest `launch.json` file content, with which you can debug the method `Test` in the class `Example.Service`, passing 2 parameters as input (see ["Running and Debugging"](/vscode-objectscript/rundebug/) for more information):
+
+{: #code-workspace-simple-debug}
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "objectscript",
+            "request": "launch",
+            "name": "Example.Service.Test", 
+            "program": "##class(Example.Service).Test(\"answer\",42)"
+        }
+    ]
+}
+```
+
+If you want to debug a running process, `launch.json` should have a section like this, which will present a dropdown menu of running processes:
+
+{: #code-workspace-simple-debug-process}
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "objectscript",
+            "request": "attach",
+            "name": "Example-attach-to-process", 
+            "processId": "${command:PickProcess}"
+        }
+    ]
+}
+```
+
+Note that `"configurations"` is an array, so you can define multiple configurations and choose the one to use from a dropdown menu in the Debug pane.
 
 {: #code-workspaces}
-## VS Code Workspaces 
 
-To work with VS Code, you need to open a workspace. In the simplest setup, a VS Code workspace is just the root folder of your project. Workspace settings and task configurations are stored in the root folder in the `settings.json` file in a folder called `.vscode`. Debugging launch configurations are stored in `launch.json`, also in `.vscode`.
+## VS Code Workspaces
 
-If you need to have more than one root folder in a VS Code workspace, use a feature called multi-root workspaces. See [Multi-root Workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) in the VS Code documentation.
+If your project requires more than a single root folder, you need to use a feature called multi-root workspaces. See [Multi-root Workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) in the VS Code documentation.
 
-A multi-root workspace is defined by a `*.code-workspace` file. The file can have any name followed by *.code-workspace*, for example `test.code-workspace`. The `*.code-workspace` file stores information about what folders are in the workspace, and may also store other settings that would otherwise be stored in the settings.json or launch.json files. Settings in a folder's `.vscode/settings.json` or `.vscode/launch.json` will override those in the `*.code-workspace` file, so be careful to use one or the other unless you truly need to leverage this flexibility. You can have a workspace file even if you are only working with a single root folder. Indeed, if you are [working server-side](../serverside/) you will always be using a workspace file.
+In this case settings are stored in a file with a `*.code-workspace` suffix. The filename's extension must be *.code-workspace*, for example `test.code-workspace`. This workspace file can be located anywhere. It defines what root folders the workspace consists of, and may also store other settings that would otherwise be stored in `settings.json` or `launch.json`. Settings in a root folder's `.vscode/settings.json` or `.vscode/launch.json` will override those in the workspace file, so be careful to use one or the other unless you truly need to leverage this flexibility.
 
-To edit **InterSystems ObjectScript** extension settings in a `*.code-workspace` file in VS Code, open the workspace using **File > Open Workspace...**, select **File > Preferences > Settings** (**Code > Preferences > Settings** on Mac) and select the Workspace tab. Search for **objectscript: conn**, and click on *Edit in settings.json*. VS Code opens the `*.code-workspace` file for that workspace.
+You can have a workspace file even if you are only working with a single root folder. Indeed, if you are [working server-side](../serverside/) you will always be using a workspace file.
+
+To edit **InterSystems ObjectScript** extension settings in a `*.code-workspace` file in VS Code, open the workspace using **File > Open Workspace from File...**, select **File > Preferences > Settings** (**Code > Preferences > Settings** on Mac) and select the Workspace tab. Search for **objectscript: conn**, and click on *Edit in settings.json*. VS Code opens the `*.code-workspace` file for that workspace.
 
 The **InterSystems ObjectScript** extension uses the multi-root workspaces feature to support ObjectScript development directly in namespaces on InterSystems servers.
 

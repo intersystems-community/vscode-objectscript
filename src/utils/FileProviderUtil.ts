@@ -2,20 +2,12 @@ import * as vscode from "vscode";
 import * as url from "url";
 import { AtelierAPI } from "../api";
 
-export function studioOpenDialogFromURI(
-  uri: vscode.Uri,
-  overrides: { flat?: boolean; filter?: string; type?: string } = { flat: false, filter: "", type: "" }
-): Promise<any> {
-  const api = new AtelierAPI(uri);
-  if (!api.active) {
-    return;
-  }
-  const sql = `CALL %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?)`;
+export function fileSpecFromURI(uri: vscode.Uri, overrideType?: string): string {
   const { query } = url.parse(uri.toString(true), true);
   const csp = query.csp === "" || query.csp === "1";
   const type =
-    overrides.type && overrides.type != ""
-      ? overrides.type
+    overrideType && overrideType != ""
+      ? overrideType
       : query.type && query.type != ""
       ? query.type.toString()
       : csp
@@ -50,7 +42,20 @@ export function studioOpenDialogFromURI(
   } else {
     specOpts = "*.cls,*.inc,*.mac,*.int";
   }
-  const spec = csp ? folder + specOpts : folder.length > 1 ? folder.slice(1) + "/" + specOpts : specOpts;
+  return csp ? folder + specOpts : folder.length > 1 ? folder.slice(1) + "/" + specOpts : specOpts;
+}
+
+export function studioOpenDialogFromURI(
+  uri: vscode.Uri,
+  overrides: { flat?: boolean; filter?: string; type?: string } = { flat: false, filter: "", type: "" }
+): Promise<any> {
+  const api = new AtelierAPI(uri);
+  if (!api.active) {
+    return;
+  }
+  const sql = `CALL %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?)`;
+  const { query } = url.parse(uri.toString(true), true);
+  const spec = fileSpecFromURI(uri, overrides.type);
   const notStudio = "0";
   const dir = "1";
   const orderBy = "1";
