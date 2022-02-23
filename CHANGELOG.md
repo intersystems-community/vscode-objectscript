@@ -2,6 +2,7 @@
 
 ## [1.4.2] 23-Feb-2022
 - Enhancements
+  - Generate content when a new local class or routine is created (#867)
   - Add file icons (#822)
   - Support file copying in Explorer, with some [limitations](https://github.com/intersystems-community/vscode-objectscript/issues/854#issuecomment-1036318435) (#857)
   - Colorize text in Output channel when using VS Code 1.65 with proposed APIs enabled (#831)
