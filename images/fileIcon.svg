@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32px" height="32px" viewBox="0 0 24 32" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 61.2 (89653) - https://sketch.com -->
+    <title>Product icon</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <polygon id="path-1" points="0 0.90625 7.25 0.90625 7.25 27.1875 0 27.1875"></polygon>
+    </defs>
+    <g id="Symbols" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="components/header-no-burger" transform="translate(-7.000000, -10.000000)">
+            <g id="left" transform="translate(-1.000000, 4.000000)">
+                <g id="logos/icon-HS" transform="translate(8.000000, 6.000000)">
+                    <g id="Icon" stroke-width="1">
+                        <polygon id="Fill-1" points="0 32 32 32 32 0 0 0"></polygon>
+                    </g>
+                    <g id="Group-26" stroke-width="1" transform="translate(8.156250, 1.812500)">
+                        <mask id="mask-2" fill="white">
+                            <use xlink:href="#path-1"></use>
+                        </mask>
+                        <g id="Clip-25"></g>
+                        <polygon id="Fill-24" fill="#323694" mask="url(#mask-2)" points="3.625 2.6957654 0 0.90625 0 23.6084692 7.25 27.1875 7.25 23.1881793 3.625 21.3994848"></polygon>
+                    </g>
+                    <polygon id="Fill-27" fill="#00B4AE" points="15.40625 25.335428 19.03125 27.1875 19.03125 3.70074728 11.78125 0 11.78125 4.13637908 15.40625 5.98675272"></polygon>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

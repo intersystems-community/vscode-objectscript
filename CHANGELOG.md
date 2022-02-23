@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.5.2022022301] 23-Feb-2022 pre-release
+Add 1.4.2 changes
+
 ## [1.5.2022020301] 03-Feb-2022 pre-release
 - Fixes
   - Allow `serverForUri` to return password for unnamed server (#837)
@@ -11,6 +14,21 @@ Add 1.4.1 changes
 
 ## [1.5.2022011401] 14-Jan-2022 pre-release
 Add 1.4.0 changes.
+
+## [1.4.2] 23-Feb-2022
+- Enhancements
+  - Generate content when a new local class or routine is created (#867)
+  - Add file icons (#822)
+  - Support file copying in Explorer, with some [limitations](https://github.com/intersystems-community/vscode-objectscript/issues/854#issuecomment-1036318435) (#857)
+  - Colorize text in Output channel when using VS Code 1.65 with proposed APIs enabled (#831)
+  - Improve server-side searching (requires proposed API enabled - see README) (#852)
+  - Add a distinct languageId (`objectscript-int`) for INT routines (#823)
+- Fixes
+  - Make `Open Terminal in Docker` command work with newer Docker versions (#734)
+  - Fix case where Quick Open (which requires proposed API) could open a file more than once (#861)
+  - Avoid unnecessary Language Server work when importing or compiling a folder (#858, #859)
+  - Activate extension correctly based on file-extensions present in workspace (#868)
+  - Upgrade vulnerable dependencies
 
 ## [1.4.1] 14-Jan-2022
 - Fixes

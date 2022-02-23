@@ -1,8 +1,9 @@
 import * as vscode from "vscode";
 import * as url from "url";
-import { AtelierAPI } from "../../api";
 import { StudioOpenDialog } from "../../queries";
 import { studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
+import { notNull } from "../../utils";
+import { DocumentContentProvider } from "../DocumentContentProvider";
 
 export class FileSearchProvider implements vscode.FileSearchProvider {
   /**
@@ -32,40 +33,26 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
       filter = "";
     }
     let counter = 0;
+    if (token.isCancellationRequested) {
+      return;
+    }
     return studioOpenDialogFromURI(options.folder, { flat: true, filter: filter })
       .then((data) => {
         return data.result.content;
       })
       .then((data: StudioOpenDialog[]) => {
-        const api = new AtelierAPI(options.folder);
         return data
           .map((item: StudioOpenDialog) => {
-            // item.Type only matters here if it is 5 (CSP)
-            if (item.Type == "5" && !csp) {
+            if (token.isCancellationRequested) {
               return null;
             }
-            if (item.Type !== "5") {
-              if (item.Name.startsWith("%") && api.ns !== "%SYS") {
-                return null;
-              }
-              // Convert dotted name to slashed one, treating the likes of ABC.1.int or DEF.T1.int in the same way
-              // as the Studio dialog does.
-              const nameParts = item.Name.split(".");
-              const dotParts = nameParts
-                .slice(-2)
-                .join(".")
-                .match(/^[A-Z]?\d*[.](mac|int|inc)$/)
-                ? 3
-                : 2;
-              item.Name = nameParts.slice(0, -dotParts).join("/") + "/" + nameParts.slice(-dotParts).join(".");
-            }
             if (!options.maxResults || ++counter <= options.maxResults) {
-              return vscode.Uri.parse(`${options.folder.scheme}://${options.folder.authority}/${item.Name}`, true);
+              return DocumentContentProvider.getUri(item.Name, "", "", true, options.folder);
             } else {
               return null;
             }
           })
-          .filter((el) => el !== null);
+          .filter(notNull);
       });
   }
 }

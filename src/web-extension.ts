@@ -25,6 +25,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     ),
     vscode.languages.setLanguageConfiguration("objectscript-class", getLanguageConfiguration("class")),
     vscode.languages.setLanguageConfiguration("objectscript", getLanguageConfiguration("routine")),
+    vscode.languages.setLanguageConfiguration("objectscript-int", getLanguageConfiguration("routine")),
     vscode.languages.setLanguageConfiguration("objectscript-macros", getLanguageConfiguration("routine"))
   );
 }
