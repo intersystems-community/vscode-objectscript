@@ -738,7 +738,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }
   }
 
-  // The URI's of all classes that have been opened. Used when objectscript.openClassContracted is true.
+  // The URIs of all classes that have been opened. Used when objectscript.openClassContracted is true.
   const openedClasses: string[] = [];
 
   context.subscriptions.push(
