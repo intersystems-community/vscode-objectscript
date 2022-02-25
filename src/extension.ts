@@ -738,9 +738,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }
   }
 
-  // The URIs of all classes that have been opened. Used when objectscript.openClassContracted is true.
-  const openedClasses: string[] = [];
-
   context.subscriptions.push(
     reporter,
     panel,
@@ -972,14 +969,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       )
     ),
     vscode.window.onDidChangeActiveTextEditor((editor: vscode.TextEditor) => {
+      const openedClasses: string[] = workspaceState.get("openedClasses") ?? [];
       if (
         config("openClassContracted") &&
         editor &&
         editor.document.languageId === "objectscript-class" &&
         !openedClasses.includes(editor.document.uri.toString())
       ) {
-        openedClasses.push(editor.document.uri.toString());
         vscode.commands.executeCommand("editor.foldAll");
+        openedClasses.push(editor.document.uri.toString());
+        workspaceState.update("openedClasses", openedClasses);
+      }
+    }),
+    vscode.workspace.onDidCloseTextDocument((doc: vscode.TextDocument) => {
+      const openedClasses: string[] = workspaceState.get("openedClasses") ?? [];
+      const idx = openedClasses.indexOf(doc.uri.toString());
+      if (idx > -1) {
+        openedClasses.splice(openedClasses.indexOf(doc.uri.toString()), 1);
+        workspaceState.update("openedClasses", openedClasses);
       }
     }),
 
