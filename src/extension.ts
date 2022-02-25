@@ -449,6 +449,9 @@ function languageServer(install = true): vscode.Extension<any> {
   return extension;
 }
 
+// The URIs of all classes that have been opened. Used when objectscript.openClassContracted is true.
+let openedClasses: string[];
+
 export async function activate(context: vscode.ExtensionContext): Promise<any> {
   if (!packageJson.version.includes("SNAPSHOT")) {
     try {
@@ -738,6 +741,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }
   }
 
+  openedClasses = workspaceState.get("openedClasses") ?? [];
+
   context.subscriptions.push(
     reporter,
     panel,
@@ -969,7 +974,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       )
     ),
     vscode.window.onDidChangeActiveTextEditor((editor: vscode.TextEditor) => {
-      const openedClasses: string[] = workspaceState.get("openedClasses") ?? [];
       if (
         config("openClassContracted") &&
         editor &&
@@ -978,15 +982,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       ) {
         vscode.commands.executeCommand("editor.foldAll");
         openedClasses.push(editor.document.uri.toString());
-        workspaceState.update("openedClasses", openedClasses);
       }
     }),
     vscode.workspace.onDidCloseTextDocument((doc: vscode.TextDocument) => {
-      const openedClasses: string[] = workspaceState.get("openedClasses") ?? [];
       const idx = openedClasses.indexOf(doc.uri.toString());
       if (idx > -1) {
         openedClasses.splice(openedClasses.indexOf(doc.uri.toString()), 1);
-        workspaceState.update("openedClasses", openedClasses);
       }
     }),
 
@@ -1057,6 +1058,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 }
 
 export function deactivate(): void {
+  if (workspaceState) {
+    workspaceState.update("openedClasses", openedClasses);
+  }
   // This will ensure all pending events get flushed
   reporter && reporter.dispose();
   if (terminals) {
