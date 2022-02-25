@@ -369,7 +369,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             throw vscode.FileSystemError.FileNotFound(uri);
           }
           // Caller granted us permission to create structures for intermediate directories not yet seen.
-          // This arises when ObjectScript Explorer uses isfs to enable server-side editing. See https://github.com/intersystems-community/vscode-objectscript/issues/879
+          // This arises when ObjectScript Explorer uses isfs to enable server-side editing, and when reloading a workspace
+          // in which isfs documents were previously open.
+          // See https://github.com/intersystems-community/vscode-objectscript/issues/879
           const fullName = entry.name === "" ? part : entry.fullName + "/" + part;
           child = new Directory(part, fullName);
           entry.entries.set(part, child);
