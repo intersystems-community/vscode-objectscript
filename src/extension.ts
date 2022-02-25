@@ -738,6 +738,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }
   }
 
+  // The URI's of all classes that have been opened. Used when objectscript.openClassContracted is true.
+  const openedClasses: string[] = [];
+
   context.subscriptions.push(
     reporter,
     panel,
@@ -968,6 +971,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           })
       )
     ),
+    vscode.window.onDidChangeActiveTextEditor((editor: vscode.TextEditor) => {
+      if (
+        config("openClassContracted") &&
+        editor &&
+        editor.document.languageId === "objectscript-class" &&
+        !openedClasses.includes(editor.document.uri.toString())
+      ) {
+        openedClasses.push(editor.document.uri.toString());
+        vscode.commands.executeCommand("editor.foldAll");
+      }
+    }),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed
