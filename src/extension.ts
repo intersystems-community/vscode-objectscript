@@ -974,20 +974,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       )
     ),
     vscode.window.onDidChangeActiveTextEditor((editor: vscode.TextEditor) => {
+      const uri: string = editor.document.uri.toString();
       if (
         config("openClassContracted") &&
         editor &&
         editor.document.languageId === "objectscript-class" &&
-        !openedClasses.includes(editor.document.uri.toString())
+        !openedClasses.includes(uri)
       ) {
         vscode.commands.executeCommand("editor.foldAll");
-        openedClasses.push(editor.document.uri.toString());
+        openedClasses.push(uri);
       }
     }),
     vscode.workspace.onDidCloseTextDocument((doc: vscode.TextDocument) => {
-      const idx = openedClasses.indexOf(doc.uri.toString());
+      const uri: string = doc.uri.toString();
+      const idx: number = openedClasses.indexOf(uri);
       if (idx > -1) {
-        openedClasses.splice(openedClasses.indexOf(doc.uri.toString()), 1);
+        openedClasses.splice(idx, 1);
       }
     }),
 
