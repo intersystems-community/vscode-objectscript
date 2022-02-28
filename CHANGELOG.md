@@ -1,5 +1,11 @@
 # Change Log
 
+## [1.4.3] 28-Feb-2022
+- Enhancements
+  - Add `objectscript.openClassContracted` setting (#876)
+- Fixes
+  - Fix 1.4.2 regression that broke server-side editing from ObjectScript Explorer and reloading of open documents when reopening isfs workspaces (#879)
+
 ## [1.4.2] 23-Feb-2022
 - Enhancements
   - Generate content when a new local class or routine is created (#867)
