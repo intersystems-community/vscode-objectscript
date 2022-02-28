@@ -182,6 +182,7 @@ jobs:
           [ -n "${{ secrets.VSCE_TOKEN }}" ] && \
             npx vsce publish --packagePath ${{ steps.set-version.outputs.name }}.vsix -p ${{ secrets.VSCE_TOKEN }} || true
       - name: Publish to Open VSX Registry
+        timeout-minutes: 15
         run: |
           [ -n "${{ secrets.OVSX_TOKEN }}" ] && \
             npx ovsx publish ${{ steps.set-version.outputs.name }}.vsix --pat ${{ secrets.OVSX_TOKEN }} || true
