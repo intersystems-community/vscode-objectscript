@@ -183,7 +183,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
     // Use _lookup() instead of _lookupAsFile() so we send
     // our cached mtime with the GET /doc request if we have it
-    return this._lookup(uri).then((file: File) => {
+    return this._lookup(uri, true).then((file: File) => {
       // Update cache entry
       const uniqueId = `${workspaceFolderOfUri(uri)}:${file.fileName}`;
       workspaceState.update(`${uniqueId}:mtime`, file.mtime);
@@ -336,7 +336,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   // Fetch entry (a file or directory) from cache, else from server
-  private async _lookup(uri: vscode.Uri): Promise<Entry> {
+  private async _lookup(uri: vscode.Uri, fillInPath?: boolean): Promise<Entry> {
     const api = new AtelierAPI(uri);
     if (uri.path === "/") {
       await api
@@ -363,9 +363,18 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       if (entry instanceof Directory) {
         child = entry.entries.get(part);
         // If the last element of path is dotted and is one we haven't already cached as a directory
-        // then it is assumed to be a file.
+        // then it is assumed to be a file. Treat all other cases as a directory we haven't yet explored.
         if (!child && (!part.includes(".") || i + 1 < parts.length)) {
-          throw vscode.FileSystemError.FileNotFound(uri);
+          if (!fillInPath) {
+            throw vscode.FileSystemError.FileNotFound(uri);
+          }
+          // Caller granted us permission to create structures for intermediate directories not yet seen.
+          // This arises when ObjectScript Explorer uses isfs to enable server-side editing, and when reloading a workspace
+          // in which isfs documents were previously open.
+          // See https://github.com/intersystems-community/vscode-objectscript/issues/879
+          const fullName = entry.name === "" ? part : entry.fullName + "/" + part;
+          child = new Directory(part, fullName);
+          entry.entries.set(part, child);
         }
       }
       if (!child) {
@@ -389,7 +398,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (uri.path.startsWith("/node_modules")) {
       throw vscode.FileSystemError.FileNotADirectory(uri);
     }
-    const entry = await this._lookup(uri);
+    const entry = await this._lookup(uri, true);
     if (entry instanceof Directory) {
       return entry;
     }

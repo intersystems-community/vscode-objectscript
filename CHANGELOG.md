@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.5.2022022801] 28-Feb-2022 pre-release
+Add 1.4.3 changes
+
 ## [1.5.2022022301] 23-Feb-2022 pre-release
 Add 1.4.2 changes
 
@@ -14,6 +17,11 @@ Add 1.4.1 changes
 
 ## [1.5.2022011401] 14-Jan-2022 pre-release
 Add 1.4.0 changes.
+## [1.4.3] 28-Feb-2022
+- Enhancements
+  - Add `objectscript.openClassContracted` setting (#876)
+- Fixes
+  - Fix 1.4.2 regression that broke server-side editing from ObjectScript Explorer and reloading of open documents when reopening isfs workspaces (#879)
 
 ## [1.4.2] 23-Feb-2022
 - Enhancements
