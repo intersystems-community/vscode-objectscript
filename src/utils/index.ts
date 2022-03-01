@@ -121,23 +121,36 @@ export function isImportableLocalFile(file: vscode.TextDocument): boolean {
 export function currentFileFromContent(fileName: string, content: string): CurrentFile {
   const uri = vscode.Uri.file(fileName);
   const workspaceFolder = workspaceFolderOfUri(uri);
+  const fileExt = fileName.split(".").pop().toLowerCase();
   let name = "";
   let ext = "";
-  if (fileName.split(".").pop().toLowerCase() === "cls") {
+  if (fileExt === "cls") {
     // Allow Unicode letters
     const match = content.match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
     if (match) {
       [, name, ext = "cls"] = match;
     }
-  } else {
+  } else if (fileExt.match(/(mac|int|inc)/i)) {
     const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i);
     if (match) {
       [, name, ext = "mac"] = match;
     } else {
       [name, ext = "mac"] = path.basename(fileName).split(".");
     }
+  } else {
+    name = getServerDocName(fileName, workspaceFolder, fileExt);
+    // Need to strip leading / for custom Studio documents which should not be treated as files.
+    // e.g. For a custom Studio document Test.ZPM, the variable name would be /Test.ZPM which is
+    // not the document name. The document name is Test.ZPM so requests made to the Atelier APIs
+    // using the name with the leading / would fail to find the document.
+    if (name.charAt(0) === "/") {
+      name = name.slice(1);
+    }
   }
-  name = `${name}.${ext}`;
+  if (!name) {
+    return null;
+  }
+  name += ext ? "." + ext.toLowerCase() : "";
   const firstLF = content.indexOf("\n");
 
   return {
@@ -212,7 +225,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
     // not the document name. The document name is Test.ZPM so requests made to the Atelier APIs
     // using the name with the leading / would fail to find the document.
     if (name.charAt(0) === "/") {
-      name = name.substr(1);
+      name = name.slice(1);
     }
   }
   if (!name) {
