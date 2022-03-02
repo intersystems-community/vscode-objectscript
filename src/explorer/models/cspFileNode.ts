@@ -33,7 +33,7 @@ export class CSPFileNode extends NodeBase {
       resourceUri: isLocalFile && !showServerCopy ? itemUri : undefined,
       contextValue: CSPFileNode.contextValue,
       label: `${displayName}`,
-      tooltip: isLocalFile ? undefined : this.fullName,
+      tooltip: isLocalFile && !showServerCopy ? undefined : this.fullName,
     };
   }
 }

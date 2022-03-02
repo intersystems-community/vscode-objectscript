@@ -33,7 +33,7 @@ export class ClassNode extends NodeBase {
       resourceUri: isLocalFile && !showServerCopy ? itemUri : undefined,
       contextValue: "dataNode:classNode",
       label: `${displayName}`,
-      tooltip: isLocalFile ? undefined : this.fullName,
+      tooltip: isLocalFile && !showServerCopy ? undefined : this.fullName,
     };
   }
 }

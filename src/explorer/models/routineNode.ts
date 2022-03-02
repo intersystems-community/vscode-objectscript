@@ -33,7 +33,7 @@ export class RoutineNode extends NodeBase {
       resourceUri: isLocalFile && !showServerCopy ? itemUri : undefined,
       contextValue: "dataNode:routineNode",
       label: `${displayName}`,
-      tooltip: isLocalFile ? undefined : this.fullName,
+      tooltip: isLocalFile && !showServerCopy ? undefined : this.fullName,
     };
   }
 }
