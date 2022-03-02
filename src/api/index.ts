@@ -246,6 +246,7 @@ export class AtelierAPI {
     if (minVersion > apiVersion) {
       return Promise.reject(`${path} not supported by API version ${apiVersion}`);
     }
+    const originalPath = path;
     if (minVersion && minVersion > 0) {
       path = `v${apiVersion}/${path}`;
     }
@@ -398,6 +399,18 @@ export class AtelierAPI {
         // The request errored out, but didn't give us an error string back
         throw { statusCode: response.status, message: response.statusText, errorText: "" };
       }
+
+      // Handle headers for the /work endpoints by storing the header values in the result object
+      if (originalPath && originalPath.endsWith("/work") && method == "POST") {
+        // This is a POST /work request, so we need to get the Location header
+        data.result.location = response.headers.get("Location");
+      } else if (originalPath && /^[^/]+\/work\/[^/]+$/.test(originalPath)) {
+        // This is a GET or DELETE /work request, so we need to check the Retry-After header
+        if (response.headers.has("Retry-After")) {
+          data.result.retryafter = response.headers.get("Retry-After");
+        }
+      }
+
       return data;
     } catch (error) {
       if (error.code === "ECONNREFUSED") {
@@ -587,5 +600,87 @@ export class AtelierAPI {
       detail: detail ? 1 : 0,
     };
     return this.request(1, "GET", `%SYS/cspapps/${this.ns || ""}`, null, params);
+  }
+
+  // v1+
+  private queueAsync(request: any): Promise<Atelier.Response> {
+    return this.request(1, "POST", `${this.ns}/work`, request);
+  }
+
+  // v1+
+  private pollAsync(id: string): Promise<Atelier.Response> {
+    return this.request(1, "GET", `${this.ns}/work/${id}`);
+  }
+
+  // v1+
+  private cancelAsync(id: string): Promise<Atelier.Response> {
+    return this.request(1, "DELETE", `${this.ns}/work/${id}`);
+  }
+
+  /**
+   * Calls `cancelAsync()` repeatedly until the cancellation is confirmed.
+   * The wait time between requests is 1 second.
+   */
+  private async verifiedCancel(id: string): Promise<Atelier.Response> {
+    let cancelResp = await this.cancelAsync(id);
+    while (cancelResp.result.retryafter) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1000);
+      });
+      cancelResp = await this.cancelAsync(id);
+    }
+    return cancelResp;
+  }
+
+  /**
+   * Recursive function that calls `pollAsync()` repeatedly until we get a result or the user cancels the request.
+   * The wait time between requests starts at 50ms and increases exponentially, with a max wait of 30 seconds.
+   */
+  private async getAsyncResult(id: string, wait: number, token: vscode.CancellationToken): Promise<Atelier.Response> {
+    const pollResp = await this.pollAsync(id);
+    if (token.isCancellationRequested) {
+      // The user cancelled the request, so cancel it on the server
+      return this.verifiedCancel(id);
+    }
+    if (pollResp.result.retryafter) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, wait);
+      });
+      if (token.isCancellationRequested) {
+        // The user cancelled the request, so cancel it on the server
+        return this.verifiedCancel(id);
+      }
+      const nextWait = wait < 25000 ? wait ** 1.1 : 30000;
+      return this.getAsyncResult(id, nextWait, token);
+    }
+    return pollResp;
+  }
+
+  /**
+   * Use the undocumented /work endpoints to compile `docs` asynchronously.
+   */
+  public async asyncCompile(
+    docs: string[],
+    token: vscode.CancellationToken,
+    flags?: string,
+    source = false
+  ): Promise<Atelier.Response> {
+    // Queue the compile request
+    return this.queueAsync({
+      request: "compile",
+      documents: docs.map((doc) => this.transformNameIfCsp(doc)),
+      source,
+      flags,
+    }).then((queueResp) => {
+      // Request was successfully queued, so get the ID
+      const id: string = queueResp.result.location;
+      if (token.isCancellationRequested) {
+        // The user cancelled the request, so cancel it on the server
+        return this.verifiedCancel(id);
+      }
+
+      // Poll until we get a result or the user cancels the request
+      return this.getAsyncResult(id, 50, token);
+    });
   }
 }
