@@ -1074,7 +1074,7 @@
           "default": false
         },
         "objectscript.explorer.alwaysShowServerCopy": {
-          "description": "Always show the server copy of a document in the ObjectScript Explorer, like the Atelier Server Explorer tab.",
+          "description": "Always show the server copy of a document in the ObjectScript Explorer.",
           "type": "boolean",
           "default": false
         }
