@@ -634,7 +634,7 @@ export class AtelierAPI {
 
   /**
    * Recursive function that calls `pollAsync()` repeatedly until we get a result or the user cancels the request.
-   * The wait time between requests starts at 50ms and increases exponentially, with a max wait of 30 seconds.
+   * The wait time between requests starts at 50ms and increases exponentially, with a max wait of 15 seconds.
    */
   private async getAsyncResult(id: string, wait: number, token: vscode.CancellationToken): Promise<Atelier.Response> {
     const pollResp = await this.pollAsync(id);
@@ -650,8 +650,7 @@ export class AtelierAPI {
         // The user cancelled the request, so cancel it on the server
         return this.verifiedCancel(id);
       }
-      const nextWait = wait < 25000 ? wait ** 1.1 : 30000;
-      return this.getAsyncResult(id, nextWait, token);
+      return this.getAsyncResult(id, wait < 10000 ? wait ** 1.075 : 15000, token);
     }
     return pollResp;
   }
