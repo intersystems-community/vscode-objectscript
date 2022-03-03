@@ -28,7 +28,7 @@ import {
   compileOnly,
 } from "./commands/compile";
 import { deleteExplorerItems } from "./commands/delete";
-import { exportAll, exportCurrentFile, exportExplorerItems, getCategory } from "./commands/export";
+import { exportAll, exportCurrentFile, exportExplorerItems, exportStudioProject, getCategory } from "./commands/export";
 import { serverActions } from "./commands/serverActions";
 import { subclass } from "./commands/subclass";
 import { superclass } from "./commands/superclass";
@@ -992,6 +992,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         openedClasses.splice(idx, 1);
       }
     }),
+    vscode.commands.registerCommand("vscode-objectscript.exportStudioProject", exportStudioProject),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed

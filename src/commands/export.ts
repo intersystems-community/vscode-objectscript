@@ -5,6 +5,7 @@ import { AtelierAPI } from "../api";
 import { config, explorerProvider, OBJECTSCRIPT_FILE_SCHEMA, schemas } from "../extension";
 import { currentFile, mkdirSyncRecursive, notNull, outputChannel, uriOfWorkspaceFolder } from "../utils";
 import { NodeBase } from "../explorer/models/nodeBase";
+import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 
 export const getCategory = (fileName: string, addCategory: any | boolean): string => {
   const fileExt = fileName.split(".").pop().toLowerCase();
@@ -219,26 +220,28 @@ export async function exportList(files: string[], workspaceFolder: string, names
   );
 }
 
-export async function exportAll(): Promise<any> {
-  let workspaceFolder: string;
+async function pickWorkspaceFolder(): Promise<string | undefined> {
   const workspaceList = vscode.workspace.workspaceFolders
     .filter((folder) => !schemas.includes(folder.uri.scheme) && config("conn", folder.name).active)
     .map((el) => el.name);
   if (workspaceList.length > 1) {
-    const selection = await vscode.window.showQuickPick(workspaceList, {
+    return vscode.window.showQuickPick(workspaceList, {
       placeHolder: "Select the workspace folder to export files to.",
     });
-    if (selection === undefined) {
-      return;
-    }
-    workspaceFolder = selection;
   } else if (workspaceList.length === 1) {
-    workspaceFolder = workspaceList.pop();
+    return workspaceList.pop();
   } else {
     vscode.window.showInformationMessage(
       "There are no folders in the current workspace that code can be exported to.",
       "Dismiss"
     );
+    return undefined;
+  }
+}
+
+export async function exportAll(): Promise<any> {
+  const workspaceFolder = await pickWorkspaceFolder();
+  if (workspaceFolder === undefined) {
     return;
   }
   if (!config("conn", workspaceFolder).active) {
@@ -340,4 +343,143 @@ export async function exportCurrentFile(): Promise<any> {
   }
   const api = new AtelierAPI(openDoc.uri);
   return exportList([currentFile(openDoc).name], api.configName, api.config.ns);
+}
+
+export async function exportStudioProject(): Promise<any> {
+  const workspaceFolder = await pickWorkspaceFolder();
+  if (workspaceFolder === undefined) {
+    return;
+  }
+  if (!config("conn", workspaceFolder).active) {
+    return;
+  }
+  const api = new AtelierAPI(workspaceFolder);
+  const ns = api.config.ns.toUpperCase();
+  outputChannel.show(true);
+  const projects: string[] = await api
+    .actionQuery("SELECT Name FROM %Studio.Project_ProjectList()", [])
+    .then((data) => data.result.content.map((prj) => prj.Name));
+  if (projects.length === 0) {
+    vscode.window.showInformationMessage(`Namespace ${ns} contains no Studio projects.`, "Dismiss");
+    return;
+  }
+  const project = await vscode.window.showQuickPick(projects, {
+    placeHolder: "Select the project to export files from.",
+  });
+  if (project === undefined) {
+    return;
+  }
+  await api
+    .actionQuery("SELECT Name, Type FROM %Studio.Project_ProjectItemsList(?)", [project])
+    .then((data) => data.result.content)
+    .then((items: { Name: string; Type: string }[]) => {
+      return Promise.all(
+        items
+          .filter((item) => item.Type !== "PKG" && item.Type !== "GBL")
+          .map(async (item): Promise<string | string[]> => {
+            if (item.Type === "MAC" || item.Type === "CSP") {
+              return item.Name;
+            } else if (item.Type === "CLS") {
+              return `${item.Name}.cls`;
+            } else {
+              // We need to use StudioOpenDialog to get all files in this CSP DIR
+              return api
+                .actionQuery("SELECT Name FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)", [
+                  `${item.Name}/*`,
+                  "1",
+                  "1",
+                  ns === "%SYS" ? "1" : "0",
+                  "1",
+                  "0",
+                  config("export", workspaceFolder).generated ? "1" : "0",
+                ])
+                .then((data) => data.result.content.map((f) => f.Name));
+            }
+          })
+      );
+    })
+    .then((docs) => {
+      return exportList(docs.flat(), workspaceFolder, ns);
+    })
+    .then(async () => {
+      return vscode.window
+        .showInformationMessage(
+          `Successfully exported files from project '${project}'. Would you also like to export breakpoints?`,
+          "Yes",
+          "No"
+        )
+        .then(async (answer) => {
+          if (answer === "Yes") {
+            api
+              .actionQuery("SELECT Routine, Offset, Condition FROM %Studio.Project_BreakPointsList(?)", [project])
+              .then((data) => data.result.content)
+              .then(async (iscbps: { Routine: string; Offset: string; Condition: string }[]) =>
+                vscode.debug.addBreakpoints(
+                  await Promise.all(
+                    iscbps.map(async (iscbp): Promise<vscode.SourceBreakpoint | null> => {
+                      const uri = DocumentContentProvider.getUri(iscbp.Routine, workspaceFolder, ns);
+                      if (uri.scheme !== "file") {
+                        // Don't set breakpoints for files that we didn't export
+                        return null;
+                      }
+                      if (iscbp.Routine.split(".").pop().toLowerCase() === "cls") {
+                        const offsetArr = iscbp.Offset.split("+");
+                        const offsetLine = offsetArr.pop();
+                        const label = offsetArr.join("+");
+                        let docLine = -1;
+                        let symbols: vscode.DocumentSymbol[];
+                        try {
+                          symbols = (
+                            await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
+                              "vscode.executeDocumentSymbolProvider",
+                              uri
+                            )
+                          )[0].children;
+                        } catch {
+                          // Computing the document symbols failed
+                          return null;
+                        }
+                        for (const symbol of symbols) {
+                          if (symbol.name === label) {
+                            const content: string[] = new TextDecoder()
+                              .decode(await vscode.workspace.fs.readFile(uri))
+                              .split("\n");
+                            for (
+                              let methodlinenum = symbol.selectionRange.start.line;
+                              methodlinenum <= symbol.range.end.line;
+                              methodlinenum++
+                            ) {
+                              // Find the offset of this breakpoint in the method
+                              const methodlinetext: string = content[methodlinenum].trim();
+                              if (methodlinetext.endsWith("{")) {
+                                docLine = methodlinenum + Number(offsetLine);
+                                break;
+                              }
+                            }
+                            break;
+                          }
+                        }
+                        if (docLine === -1) {
+                          // We couldn't map the label+offset to a line in the document
+                          return null;
+                        }
+                        return new vscode.SourceBreakpoint(
+                          new vscode.Location(uri, new vscode.Position(docLine, 0)),
+                          true,
+                          iscbp.Condition
+                        );
+                      } else {
+                        return new vscode.SourceBreakpoint(
+                          new vscode.Location(uri, new vscode.Position(Number(iscbp.Offset) - 1, 0)),
+                          true,
+                          iscbp.Condition
+                        );
+                      }
+                    })
+                  ).then((vscbps) => vscbps.filter(notNull))
+                )
+              );
+          }
+        });
+    });
 }

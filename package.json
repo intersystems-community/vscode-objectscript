@@ -755,6 +755,12 @@
         "command": "vscode-objectscript.exportCurrentFile",
         "title": "Export Current File from Server",
         "enablement": "!isWeb"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.exportStudioProject",
+        "title": "Export Studio Project Contents from Server",
+        "enablement": "!isWeb"
       }
     ],
     "keybindings": [
