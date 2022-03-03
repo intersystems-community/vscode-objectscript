@@ -363,7 +363,7 @@ export class AtelierAPI {
         throw {
           statusCode: response.status,
           message: response.statusText,
-          errorText: `Non-JSON response to ${path} request.`,
+          errorText: `Non-JSON response to ${path} request. Is the web server suppressing detailed errors?`,
         };
       }
 
