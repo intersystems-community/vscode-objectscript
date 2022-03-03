@@ -327,7 +327,8 @@ export class AtelierAPI {
         // User likely ran out of licenses
         throw {
           statusCode: response.status,
-          message: `The server at ${host}:${port} is unavailable. Check License Usage.`,
+          message: response.statusText,
+          errorText: `The server at ${host}:${port} is unavailable. Check License Usage.`,
         };
       }
       if (response.status === 401) {
@@ -355,15 +356,16 @@ export class AtelierAPI {
       const buffer = await response.buffer();
 
       const responseString = buffer.toString("utf-8");
-      if (!responseString.startsWith("{")) {
-        outputConsole(["", `Non-JSON response to ${path}`, ...responseString.split("\r\n")]);
+      let data: Atelier.Response;
+      try {
+        data = JSON.parse(responseString);
+      } catch {
         throw {
-          statusCode: 500,
-          message: `Non-JSON response to ${path} request. View 'ObjectScript' channel on OUTPUT tab of Panel for details.`,
+          statusCode: response.status,
+          message: response.statusText,
+          errorText: `Non-JSON response to ${path} request. Is the web server suppressing detailed errors?`,
         };
       }
-
-      const data: Atelier.Response = JSON.parse(responseString);
 
       // Decode encoded content
       if (data.result && data.result.enc && data.result.content) {
