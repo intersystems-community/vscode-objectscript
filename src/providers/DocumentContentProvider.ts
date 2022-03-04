@@ -60,7 +60,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
         .join(/cls|mac|int|inc/i.test(fileExt) ? "/" : ".");
       name = fileName + "." + fileExt;
       uri = wFolderUri.with({
-        path: `/${name}`,
+        path: !name.startsWith("/") ? `/${name}` : name,
       });
       vfs = true;
       scheme = wFolderUri.scheme;
@@ -70,6 +70,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
           query: "",
         });
       }
+      return uri;
     } else {
       const conn = config("conn", workspaceFolder);
       const localFile = this.getAsFile(name, workspaceFolder);
