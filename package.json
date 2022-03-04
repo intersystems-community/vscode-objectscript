@@ -76,6 +76,7 @@
     "onCommand:vscode-objectscript.connectFolderToServerNamespace",
     "onCommand:vscode-objectscript.hideExplorerForWorkspace",
     "onCommand:vscode-objectscript.showExplorerForWorkspace",
+    "onCommand:vscode-objectscript.exportStudioProject",
     "onLanguage:objectscript",
     "onLanguage:objectscript-int",
     "onLanguage:objectscript-class",

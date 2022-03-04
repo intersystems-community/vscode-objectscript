@@ -356,19 +356,24 @@ export async function exportStudioProject(): Promise<any> {
   const api = new AtelierAPI(workspaceFolder);
   const ns = api.config.ns.toUpperCase();
   outputChannel.show(true);
-  const projects: string[] = await api
-    .actionQuery("SELECT Name FROM %Studio.Project_ProjectList()", [])
-    .then((data) => data.result.content.map((prj) => prj.Name));
+  const projects: vscode.QuickPickItem[] = await api
+    .actionQuery("SELECT Name, Description FROM %Studio.Project", [])
+    .then((data) =>
+      data.result.content.map((prj) => {
+        return { label: prj.Name, detail: prj.Description };
+      })
+    );
   if (projects.length === 0) {
     vscode.window.showInformationMessage(`Namespace ${ns} contains no Studio projects.`, "Dismiss");
     return;
   }
-  const project = await vscode.window.showQuickPick(projects, {
-    placeHolder: "Select the project to export files from.",
+  const projectQPI = await vscode.window.showQuickPick(projects, {
+    placeHolder: "Select the project to export from.",
   });
-  if (project === undefined) {
+  if (projectQPI === undefined) {
     return;
   }
+  const project: string = projectQPI.label;
   await api
     .actionQuery("SELECT Name, Type FROM %Studio.Project_ProjectItemsList(?)", [project])
     .then((data) => data.result.content)
@@ -404,7 +409,7 @@ export async function exportStudioProject(): Promise<any> {
     .then(async () => {
       return vscode.window
         .showInformationMessage(
-          `Successfully exported files from project '${project}'. Would you also like to export breakpoints?`,
+          `Successfully exported files from project '${project}'. Export breakpoints?`,
           "Yes",
           "No"
         )
@@ -426,32 +431,23 @@ export async function exportStudioProject(): Promise<any> {
                         const offsetArr = iscbp.Offset.split("+");
                         const offsetLine = offsetArr.pop();
                         const label = offsetArr.join("+");
+                        const regex = new RegExp(`^(Class|Client)?Method[ \t]+${label}`, "i");
                         let docLine = -1;
-                        let symbols: vscode.DocumentSymbol[];
+                        let content: string[];
                         try {
-                          symbols = (
-                            await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
-                              "vscode.executeDocumentSymbolProvider",
-                              uri
-                            )
-                          )[0].children;
+                          content = new TextDecoder().decode(await vscode.workspace.fs.readFile(uri)).split("\n");
                         } catch {
-                          // Computing the document symbols failed
+                          // Reading the file content failed
                           return null;
                         }
-                        for (const symbol of symbols) {
-                          if (symbol.name === label) {
-                            const content: string[] = new TextDecoder()
-                              .decode(await vscode.workspace.fs.readFile(uri))
-                              .split("\n");
-                            for (
-                              let methodlinenum = symbol.selectionRange.start.line;
-                              methodlinenum <= symbol.range.end.line;
-                              methodlinenum++
-                            ) {
+                        for (let i = 0; i < content.length; i++) {
+                          let line = content[i].trim();
+                          if (regex.test(line)) {
+                            // This is the correct method
+                            for (let methodlinenum = i; methodlinenum < content.length; methodlinenum++) {
                               // Find the offset of this breakpoint in the method
-                              const methodlinetext: string = content[methodlinenum].trim();
-                              if (methodlinetext.endsWith("{")) {
+                              line = content[methodlinenum].trim();
+                              if (line.endsWith("{")) {
                                 docLine = methodlinenum + Number(offsetLine);
                                 break;
                               }
