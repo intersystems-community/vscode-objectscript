@@ -353,9 +353,7 @@ export class AtelierAPI {
         throw { statusCode: response.status, message: response.statusText };
       }
 
-      const buffer = await response.buffer();
-
-      const responseString = buffer.toString("utf-8");
+      const responseString = new TextDecoder().decode(await response.arrayBuffer());
       let data: Atelier.Response;
       try {
         data = JSON.parse(responseString);
