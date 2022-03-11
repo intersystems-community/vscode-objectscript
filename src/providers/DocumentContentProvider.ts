@@ -133,10 +133,17 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     }
     const params = new URLSearchParams(uri.query);
     if (namespace && namespace !== "") {
-      if (isCsp && !params.has("csp")) {
-        uri = uri.with({
-          query: `ns=${namespace}&csp=1`,
-        });
+      if (isCsp) {
+        if (params.has("csp")) {
+          params.set("ns", namespace);
+          uri = uri.with({
+            query: params.toString(),
+          });
+        } else {
+          uri = uri.with({
+            query: `ns=${namespace}&csp=1`,
+          });
+        }
       } else {
         uri = uri.with({
           query: `ns=${namespace}`,
