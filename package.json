@@ -1203,7 +1203,7 @@
     "test": "node ./out/test/runTest.js",
     "lint": "eslint src/**",
     "lint-fix": "eslint --fix src/**",
-    "download-api": "vscode-dts dev",
+    "download-api": "vscode-dts dev 1.65.0",
     "postinstall": "npm run download-api"
   },
   "devDependencies": {
