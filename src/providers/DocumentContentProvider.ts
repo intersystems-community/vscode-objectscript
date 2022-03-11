@@ -61,7 +61,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
         .join(/cls|mac|int|inc/i.test(fileExt) ? "/" : ".");
       name = fileName + "." + fileExt;
       uri = wFolderUri.with({
-        path: `/${name}`,
+        path: !name.startsWith("/") ? `/${name}` : name,
       });
       vfs = true;
       scheme = wFolderUri.scheme;
@@ -136,17 +136,25 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
         });
       }
     }
+    const params = new URLSearchParams(uri.query);
     if (namespace && namespace !== "") {
       if (isCsp) {
-        uri = uri.with({
-          query: `ns=${namespace}&csp=1`,
-        });
+        if (params.has("csp")) {
+          params.set("ns", namespace);
+          uri = uri.with({
+            query: params.toString(),
+          });
+        } else {
+          uri = uri.with({
+            query: `ns=${namespace}&csp=1`,
+          });
+        }
       } else {
         uri = uri.with({
           query: `ns=${namespace}`,
         });
       }
-    } else if (isCsp) {
+    } else if (isCsp && !params.has("csp")) {
       uri = uri.with({
         query: "csp=1",
       });
