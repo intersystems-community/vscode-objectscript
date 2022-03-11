@@ -70,7 +70,6 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
           query: "",
         });
       }
-      return uri;
     } else {
       const conn = config("conn", workspaceFolder);
       const localFile = this.getAsFile(name, workspaceFolder);
@@ -132,8 +131,9 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
         });
       }
     }
+    const params = new URLSearchParams(uri.query);
     if (namespace && namespace !== "") {
-      if (isCsp) {
+      if (isCsp && !params.has("csp")) {
         uri = uri.with({
           query: `ns=${namespace}&csp=1`,
         });
@@ -142,7 +142,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
           query: `ns=${namespace}`,
         });
       }
-    } else if (isCsp) {
+    } else if (isCsp && !params.has("csp")) {
       uri = uri.with({
         query: "csp=1",
       });
