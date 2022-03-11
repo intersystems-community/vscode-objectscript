@@ -38,7 +38,8 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     workspaceFolder?: string,
     namespace?: string,
     vfs?: boolean,
-    wFolderUri?: vscode.Uri
+    wFolderUri?: vscode.Uri,
+    forceServerCopy = false
   ): vscode.Uri {
     if (vfs === undefined) {
       vfs = config("serverSideEditing");
@@ -72,46 +73,50 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
       }
     } else {
       const conn = config("conn", workspaceFolder);
-      const localFile = this.getAsFile(name, workspaceFolder);
-      if (localFile && (!namespace || namespace === conn.ns)) {
-        // Exists as a local file and we aren't viewing a different namespace on the same server,
-        // so return a file:// uri that will open the local file.
-        return vscode.Uri.file(localFile);
-      } else {
-        // The local file doesn't exist in this folder, so check any other
-        // local folders in this workspace if it's a multi-root workspace
-        const wFolders = vscode.workspace.workspaceFolders;
-        if (wFolders && wFolders.length > 1) {
-          // This is a multi-root workspace
-          for (const wFolder of wFolders) {
-            if (wFolder.uri.scheme === "file" && wFolder.name !== workspaceFolder) {
-              // This isn't the folder that we checked originally
-              const wFolderConn = config("conn", wFolder.name);
-              const compareConns = (): boolean => {
-                if (wFolderConn.ns === conn.ns) {
-                  if (wFolderConn.server && conn.server) {
-                    if (wFolderConn.server === conn.server) {
-                      return true;
-                    }
-                  } else if (!wFolderConn.server && !conn.server) {
-                    if (wFolderConn.host === conn.host && wFolderConn.port === conn.port) {
-                      return true;
+      if (!forceServerCopy) {
+        // Look for the document in the local file system
+        const localFile = this.getAsFile(name, workspaceFolder);
+        if (localFile && (!namespace || namespace === conn.ns)) {
+          // Exists as a local file and we aren't viewing a different namespace on the same server,
+          // so return a file:// uri that will open the local file.
+          return vscode.Uri.file(localFile);
+        } else {
+          // The local file doesn't exist in this folder, so check any other
+          // local folders in this workspace if it's a multi-root workspace
+          const wFolders = vscode.workspace.workspaceFolders;
+          if (wFolders && wFolders.length > 1) {
+            // This is a multi-root workspace
+            for (const wFolder of wFolders) {
+              if (wFolder.uri.scheme === "file" && wFolder.name !== workspaceFolder) {
+                // This isn't the folder that we checked originally
+                const wFolderConn = config("conn", wFolder.name);
+                const compareConns = (): boolean => {
+                  if (wFolderConn.ns === conn.ns) {
+                    if (wFolderConn.server && conn.server) {
+                      if (wFolderConn.server === conn.server) {
+                        return true;
+                      }
+                    } else if (!wFolderConn.server && !conn.server) {
+                      if (wFolderConn.host === conn.host && wFolderConn.port === conn.port) {
+                        return true;
+                      }
                     }
                   }
-                }
-                return false;
-              };
-              if (compareConns() && (!namespace || namespace === wFolderConn.ns)) {
-                // This folder is connected to the same server:ns combination as the original folder
-                const wFolderFile = this.getAsFile(name, wFolder.name);
-                if (wFolderFile) {
-                  return vscode.Uri.file(wFolderFile);
+                  return false;
+                };
+                if (compareConns() && (!namespace || namespace === wFolderConn.ns)) {
+                  // This folder is connected to the same server:ns combination as the original folder
+                  const wFolderFile = this.getAsFile(name, wFolder.name);
+                  if (wFolderFile) {
+                    return vscode.Uri.file(wFolderFile);
+                  }
                 }
               }
             }
           }
         }
       }
+
       const { active } = conn;
       if (!active) {
         return null;
