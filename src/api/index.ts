@@ -176,7 +176,11 @@ export class AtelierAPI {
     let serverName = workspaceFolderName.toLowerCase();
     if (config("intersystems.servers").has(serverName)) {
       this.externalServer = true;
-    } else if (conn.server && config("intersystems.servers", workspaceFolderName).has(conn.server)) {
+    } else if (
+      !conn["docker-compose"] &&
+      conn.server &&
+      config("intersystems.servers", workspaceFolderName).has(conn.server)
+    ) {
       serverName = conn.server;
     } else {
       serverName = "";
