@@ -4,7 +4,7 @@ import { R_OK } from "constants";
 import * as url from "url";
 import { exec } from "child_process";
 import * as vscode from "vscode";
-import { config, schemas, workspaceState, terminals, extensionId } from "../extension";
+import { config, schemas, workspaceState, terminals, extensionId, extensionContext } from "../extension";
 import { getCategory } from "../commands/export";
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 
@@ -403,11 +403,18 @@ export function notNull(el: any): boolean {
 }
 
 export async function portFromDockerCompose(): Promise<{ port: number; docker: boolean; service?: string }> {
+  // When running remotely, behave as if there is no docker-compose object within objectscript.conn
+  if (extensionContext.extension.extensionKind === vscode.ExtensionKind.Workspace) {
+    return { docker: false, port: null };
+  }
+
+  // Seek a valid docker-compose object within objectscript.conn
   const { "docker-compose": dockerCompose = {} } = config("conn");
   const { service, file = "docker-compose.yml", internalPort = 52773, envFile } = dockerCompose;
   if (!internalPort || !file || !service || service === "") {
     return { docker: false, port: null };
   }
+
   const result = { port: null, docker: true, service };
   const workspaceFolderPath = uriOfWorkspaceFolder().fsPath;
   const workspaceRootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
