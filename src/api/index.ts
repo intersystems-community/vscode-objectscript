@@ -16,7 +16,7 @@ import {
   schemas,
   checkingConnection,
 } from "../extension";
-import { currentWorkspaceFolder, outputConsole } from "../utils";
+import { currentWorkspaceFolder, outputChannel, outputConsole } from "../utils";
 
 const DEFAULT_API_VERSION = 1;
 import * as Atelier from "./atelier";
@@ -622,6 +622,9 @@ export class AtelierAPI {
    * The wait time between requests is 1 second.
    */
   private async verifiedCancel(id: string): Promise<Atelier.Response> {
+    outputChannel.appendLine(
+      "\nWARNING: Compilation was cancelled. Partially-compiled documents may result in unexpected behavior."
+    );
     let cancelResp = await this.cancelAsync(id);
     while (cancelResp.result.retryafter) {
       await new Promise((resolve) => {
