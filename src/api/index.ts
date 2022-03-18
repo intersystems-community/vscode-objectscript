@@ -177,10 +177,12 @@ export class AtelierAPI {
     if (config("intersystems.servers").has(serverName)) {
       this.externalServer = true;
     } else if (
-      !conn["docker-compose"] &&
+      !(conn["docker-compose"] && extensionContext.extension.extensionKind !== vscode.ExtensionKind.Workspace) &&
       conn.server &&
       config("intersystems.servers", workspaceFolderName).has(conn.server)
     ) {
+      // Connect to the server named in objectscript.conn
+      // unless a docker-compose conn object exists and this extension isn't running remotely (i.e. within the dev container)
       serverName = conn.server;
     } else {
       serverName = "";
