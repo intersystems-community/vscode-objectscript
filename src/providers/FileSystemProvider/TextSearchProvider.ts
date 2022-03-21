@@ -168,7 +168,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
                       }
                     }
                   }
-                  return typeof line === "number" ? line : null;
+                  return typeof line === "number" ? (file.doc.includes("/") ? line - 1 : line) : null;
                 })
                 .filter(notNull);
               // Filter out duplicates and compute all matches for each one

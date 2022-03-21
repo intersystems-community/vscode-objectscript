@@ -24,6 +24,7 @@ import {
 } from "../utils";
 import { PackageNode } from "../explorer/models/packageNode";
 import { NodeBase } from "../explorer/models/nodeBase";
+import { RootNode } from "../explorer/models/rootNode";
 
 async function compileFlags(): Promise<string> {
   const defaultFlags = config().compileFlags;
@@ -180,7 +181,7 @@ function updateOthers(others: string[], baseUri: vscode.Uri) {
         dotParts.length <= partsToConvert
           ? uri.path
           : dotParts.slice(0, partsToConvert).join("/") + "." + dotParts.slice(partsToConvert).join(".");
-      console.log(`updateOthers: uri.path=${uri.path} baseUri.path=${baseUri.path} correctPath=${correctPath}`);
+      //console.log(`updateOthers: uri.path=${uri.path} baseUri.path=${baseUri.path} correctPath=${correctPath}`);
       fileSystemProvider.fireFileChanged(uri.with({ path: correctPath }));
     } else {
       documentContentProvider.update(uri);
@@ -222,14 +223,15 @@ async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
   return vscode.window
     .withProgress(
       {
-        cancellable: false,
+        cancellable: true,
         location: vscode.ProgressLocation.Notification,
         title: `Compiling: ${docs.length === 1 ? docs.map((el) => el.name).join(", ") : docs.length + " files"}`,
       },
-      () =>
+      (progress, token: vscode.CancellationToken) =>
         api
-          .actionCompile(
+          .asyncCompile(
             docs.map((el) => el.name),
+            token,
             flags
           )
           .then((data) => {
@@ -237,11 +239,11 @@ async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
             if (data.status && data.status.errors && data.status.errors.length) {
               throw new Error(`${info}Compile error`);
             } else if (!config("suppressCompileMessages")) {
-              vscode.window.showInformationMessage(`${info}Compilation succeeded`, "Hide");
+              vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
             }
             return docs;
           })
-          .catch((error: Error) => {
+          .catch(() => {
             if (!config("suppressCompileErrorMessages")) {
               vscode.window
                 .showErrorMessage(
@@ -255,7 +257,7 @@ async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
                   }
                 });
             }
-            // Even when compile failed we should still fetch server changes
+            // Always fetch server changes, even when compile failed or got cancelled
             return docs;
           })
     )
@@ -344,7 +346,7 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
     throw new Error(`No Active Connection`);
   }
   const confirm = await vscode.window.showWarningMessage(
-    `Compiling all files in namespace '${api.ns}' might be expensive. Are you sure you want to proceed?`,
+    `Compiling all files in namespace ${api.ns} might be expensive. Are you sure you want to proceed?`,
     "Cancel",
     "Confirm"
   );
@@ -360,21 +362,40 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
   }
   vscode.window.withProgress(
     {
-      cancellable: false,
+      cancellable: true,
       location: vscode.ProgressLocation.Notification,
-      title: `Compiling Namespace: ${api.ns}`,
+      title: `Compiling namespace ${api.ns}`,
     },
-    async () => {
-      const data = await api.actionCompile(fileTypes, flags);
-      if (data.status && data.status.errors && data.status.errors.length) {
-        // console.error(data.status.summary);
-        throw new Error(`Compiling Namespace: ${api.ns} Error`);
-      } else {
-        vscode.window.showInformationMessage(`Compiling Namespace: ${api.ns} Success`);
-      }
-      const file = currentFile();
-      return loadChanges([file]);
-    }
+    (progress, token: vscode.CancellationToken) =>
+      api
+        .asyncCompile(fileTypes, token, flags)
+        .then((data) => {
+          if (data.status && data.status.errors && data.status.errors.length) {
+            throw new Error(`Compiling Namespace: ${api.ns} Error`);
+          } else if (!config("suppressCompileMessages")) {
+            vscode.window.showInformationMessage(`Compiling namespace ${api.ns} succeeded.`, "Dismiss");
+          }
+        })
+        .catch(() => {
+          if (!config("suppressCompileErrorMessages")) {
+            vscode.window
+              .showErrorMessage(
+                `Compiling namespace ${api.ns} failed. Check 'ObjectScript' output channel for details.`,
+                "Show",
+                "Dismiss"
+              )
+              .then((action) => {
+                if (action === "Show") {
+                  outputChannel.show(true);
+                }
+              });
+          }
+        })
+        .then(() => {
+          // Always fetch server changes, even when compile failed or got cancelled
+          const file = currentFile();
+          return loadChanges([file]);
+        })
   );
 }
 
@@ -442,9 +463,43 @@ export async function compileExplorerItems(nodes: NodeBase[]): Promise<any> {
           docs.push(node.fullName + ".*.cls");
           break;
       }
+    } else if (node instanceof RootNode && node.contextValue === "dataNode:cspApplication") {
+      docs.push(node.fullName + "/*");
     } else {
       docs.push(node.fullName);
     }
   }
-  return api.actionCompile(docs, flags);
+  return vscode.window.withProgress(
+    {
+      cancellable: true,
+      location: vscode.ProgressLocation.Notification,
+      title: `Compiling ${nodes.length === 1 ? nodes[0].fullName : nodes.length + " nodes"}`,
+    },
+    (progress, token: vscode.CancellationToken) =>
+      api
+        .asyncCompile(docs, token, flags)
+        .then((data) => {
+          const info = nodes.length > 1 ? "" : `${nodes[0].fullName}: `;
+          if (data.status && data.status.errors && data.status.errors.length) {
+            throw new Error(`${info}Compile error`);
+          } else if (!config("suppressCompileMessages")) {
+            vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
+          }
+        })
+        .catch(() => {
+          if (!config("suppressCompileErrorMessages")) {
+            vscode.window
+              .showErrorMessage(
+                `Compilation failed. Check 'ObjectScript' output channel for details.`,
+                "Show",
+                "Dismiss"
+              )
+              .then((action) => {
+                if (action === "Show") {
+                  outputChannel.show(true);
+                }
+              });
+          }
+        })
+  );
 }

@@ -4,7 +4,7 @@ import { R_OK } from "constants";
 import * as url from "url";
 import { exec } from "child_process";
 import * as vscode from "vscode";
-import { config, schemas, workspaceState, terminals, extensionId } from "../extension";
+import { config, schemas, workspaceState, terminals, extensionId, extensionContext } from "../extension";
 import { getCategory } from "../commands/export";
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 
@@ -121,23 +121,36 @@ export function isImportableLocalFile(file: vscode.TextDocument): boolean {
 export function currentFileFromContent(fileName: string, content: string): CurrentFile {
   const uri = vscode.Uri.file(fileName);
   const workspaceFolder = workspaceFolderOfUri(uri);
+  const fileExt = fileName.split(".").pop().toLowerCase();
   let name = "";
   let ext = "";
-  if (fileName.split(".").pop().toLowerCase() === "cls") {
+  if (fileExt === "cls") {
     // Allow Unicode letters
     const match = content.match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
     if (match) {
       [, name, ext = "cls"] = match;
     }
-  } else {
+  } else if (fileExt.match(/(mac|int|inc)/i)) {
     const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i);
     if (match) {
       [, name, ext = "mac"] = match;
     } else {
       [name, ext = "mac"] = path.basename(fileName).split(".");
     }
+  } else {
+    name = getServerDocName(fileName, workspaceFolder, fileExt);
+    // Need to strip leading / for custom Studio documents which should not be treated as files.
+    // e.g. For a custom Studio document Test.ZPM, the variable name would be /Test.ZPM which is
+    // not the document name. The document name is Test.ZPM so requests made to the Atelier APIs
+    // using the name with the leading / would fail to find the document.
+    if (name.charAt(0) === "/") {
+      name = name.slice(1);
+    }
   }
-  name = `${name}.${ext}`;
+  if (!name) {
+    return null;
+  }
+  name += ext ? "." + ext.toLowerCase() : "";
   const firstLF = content.indexOf("\n");
 
   return {
@@ -212,7 +225,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
     // not the document name. The document name is Test.ZPM so requests made to the Atelier APIs
     // using the name with the leading / would fail to find the document.
     if (name.charAt(0) === "/") {
-      name = name.substr(1);
+      name = name.slice(1);
     }
   }
   if (!name) {
@@ -390,11 +403,18 @@ export function notNull(el: any): boolean {
 }
 
 export async function portFromDockerCompose(): Promise<{ port: number; docker: boolean; service?: string }> {
+  // When running remotely, behave as if there is no docker-compose object within objectscript.conn
+  if (extensionContext.extension.extensionKind === vscode.ExtensionKind.Workspace) {
+    return { docker: false, port: null };
+  }
+
+  // Seek a valid docker-compose object within objectscript.conn
   const { "docker-compose": dockerCompose = {} } = config("conn");
   const { service, file = "docker-compose.yml", internalPort = 52773, envFile } = dockerCompose;
   if (!internalPort || !file || !service || service === "") {
     return { docker: false, port: null };
   }
+
   const result = { port: null, docker: true, service };
   const workspaceFolderPath = uriOfWorkspaceFolder().fsPath;
   const workspaceRootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;

@@ -12,7 +12,7 @@
 
 - Documentation on [GitHub Pages](https://intersystems-community.github.io/vscode-objectscript/).
 
-- Guidance on [reporting issues](https://community.intersystems.com/post/using-intersystems-objectscript-vs-code-how-report-issues). This guidance also appears in a later section of this document.
+- Guidance on [reporting issues](https://intersystems-community.github.io/vscode-objectscript/feedback/).
 
 ## Pre-Release Information
 
@@ -62,8 +62,8 @@ To unlock these features (optional):
 
 1. Download and install a beta version from GitHub. This is necessary because Marketplace does not allow publication of extensions that use proposed APIs.
 	- Go to https://github.com/intersystems-community/vscode-objectscript/releases
-	- Locate the beta immediately above the release you installed from Marketplace. For instance, if you installed `1.4.3`, look for `1.4.4-beta.1`. This will be functionally identical to the Marketplace version apart from being able to use proposed APIs.
-	- Download the VSIX file (for example `vscode-objectscript-1.4.4-beta.1.vsix`) and install it. One way to install a VSIX is to drag it from your download folder and drop it onto the list of extensions in the Extensions view of VS Code.
+	- Locate the beta immediately above the release you installed from Marketplace. For instance, if you installed `1.4.4`, look for `1.4.5-beta.1`. This will be functionally identical to the Marketplace version apart from being able to use proposed APIs.
+	- Download the VSIX file (for example `vscode-objectscript-1.4.5-beta.1.vsix`) and install it. One way to install a VSIX is to drag it from your download folder and drop it onto the list of extensions in the Extensions view of VS Code.
 
 2. From [Command Palette](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_command-palette) choose `Preferences: Configure Runtime Arguments`.
 3. In the argv.json file that opens, add this line (required for both Stable and Insiders versions of VS Code):
@@ -113,47 +113,6 @@ To edit code directly in one or more namespaces on one or more servers (local or
 6. Use 'Save Workspace As...' to store your workspace definition in a file with a `.code-workspace` extension.
 
 For more about `isfs` and `isfs-readonly` folder specifications see the [Notes](#Notes) section below.
-
-## Reporting Issues
-
-[InterSystems ObjectScript for VS Code](https://intersystems-community.github.io/vscode-objectscript/) consists of three collaborating VS Code extensions. This modular architecture also means there are three different GitHub repositories where issues can be created. Fortunately VS Code itself helps with the task. You will need a GitHub account. Here's how:
-
-1. From the Help menu in VS Code choose 'Report Issue'. Alternatively, open the Command Palette and run `Help: Report Issue...`.
-
-2. When the dialog appears, use the first dropdown to classify your issue:
-    - Bug Report
-    - Feature Request
-    - Performance Issue
-
-3. In the second dropdown pick 'An extension'
-
-4. The third dropdown lets you pick one of your installed extensions. You can type a few characters to find the right entry. For example, `isls` quickly selects "InterSystems Language Server".
-
-   Which one to choose? Here's a guide:
-   - InterSystems Language Server
-        - code coloring
-        - Intellisense
-   - InterSystems ObjectScript
-        - export, import and compile
-        - ObjectScript Explorer (browsing namespace contents)
-        - direct server-side editing using `isfs://` folders in a workspace
-        - integration with server-side source control etc
-   -  InterSystems Server Manager
-        - Server Browser on the InterSystems Tools view
-        - password management in local keychain
-        - definition and selection of entries in `intersystems.servers`
-
-    If unsure, pick InterSystems ObjectScript.
-
-5. Type a descriptive one-line summary of your issue. The dialog may offer a list of existing issues which could be duplicates. If you don't find one that covers yours, proceed.
-
-6. Enter details. If your VS Code is authenticated to GitHub the dialog's button is captioned "Create on GitHub" and clicking it will open the issue, then load it in your browser so you can edit it. Otherwise it reads "Preview on GitHub" and launches a browser page where you must complete and submit your report.
-
-   Tips for use on the GitHub page:
-
-    - Paste images from your clipboard directly into the report field. For hard-to-describe issues an animated GIF or a short MP4 gets bonus points. The `Developer: Toggle Screencast Mode` in VS Code can help your recording make more sense.
-    - Link to other issues by prefixing the target number with #
-    - Remember that whatever you post here is visible to anyone on the Internet. Mask/remove confidential information. Be polite.
 
 ## Notes
 
