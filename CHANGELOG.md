@@ -1,5 +1,18 @@
 # Change Log
 
+## [1.4.4] 21-Mar-2022
+- Enhancements
+  - Compile asynchronously to avoid timing out (#890)
+  - Add `objectscript.explorer.alwaysShowServerCopy` setting to make ObjectScript Explorer always open server-side code, even when local copy exists (#494)
+  - Move issue reporting instructions from README to [documentation](https://intersystems-community.github.io/vscode-objectscript/feedback/) (#874)
+- Fixes
+  - Fix syncing of local CSP files (#886)
+  - Stop logging `Non-JSON response` messages to Output (#853)
+  - Fix server-side searching of CSP files (requires proposed API enabled - see README) (#896)
+  - User-level `server` setting in `objectscript.conn` no longer overrides a workspace-level `docker-compose` setting (#898)
+  - Ignore `objectscript.conn.docker-compose` when running in dev container (#900)
+  - Upgrade vulnerable dependencies.
+
 ## [1.4.3] 28-Feb-2022
 - Enhancements
   - Add `objectscript.openClassContracted` setting (#876)
@@ -19,7 +32,7 @@
   - Fix case where Quick Open (which requires proposed API) could open a file more than once (#861)
   - Avoid unnecessary Language Server work when importing or compiling a folder (#858, #859)
   - Activate extension correctly based on file-extensions present in workspace (#868)
-  - Upgrade vulnerable dependencies
+  - Upgrade vulnerable dependencies.
 
 ## [1.4.1] 14-Jan-2022
 - Fixes
