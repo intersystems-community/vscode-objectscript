@@ -16,7 +16,7 @@ import {
   schemas,
   checkingConnection,
 } from "../extension";
-import { currentWorkspaceFolder, outputConsole } from "../utils";
+import { currentWorkspaceFolder, outputChannel, outputConsole } from "../utils";
 
 const DEFAULT_API_VERSION = 1;
 import * as Atelier from "./atelier";
@@ -176,7 +176,13 @@ export class AtelierAPI {
     let serverName = workspaceFolderName.toLowerCase();
     if (config("intersystems.servers").has(serverName)) {
       this.externalServer = true;
-    } else if (conn.server && config("intersystems.servers", workspaceFolderName).has(conn.server)) {
+    } else if (
+      !(conn["docker-compose"] && extensionContext.extension.extensionKind !== vscode.ExtensionKind.Workspace) &&
+      conn.server &&
+      config("intersystems.servers", workspaceFolderName).has(conn.server)
+    ) {
+      // Connect to the server named in objectscript.conn
+      // unless a docker-compose conn object exists and this extension isn't running remotely (i.e. within the dev container)
       serverName = conn.server;
     } else {
       serverName = "";
@@ -246,6 +252,7 @@ export class AtelierAPI {
     if (minVersion > apiVersion) {
       return Promise.reject(`${path} not supported by API version ${apiVersion}`);
     }
+    const originalPath = path;
     if (minVersion && minVersion > 0) {
       path = `v${apiVersion}/${path}`;
     }
@@ -327,7 +334,8 @@ export class AtelierAPI {
         // User likely ran out of licenses
         throw {
           statusCode: response.status,
-          message: `The server at ${host}:${port} is unavailable. Check License Usage.`,
+          message: response.statusText,
+          errorText: `The server at ${host}:${port} is unavailable. Check License Usage.`,
         };
       }
       if (response.status === 401) {
@@ -352,18 +360,17 @@ export class AtelierAPI {
         throw { statusCode: response.status, message: response.statusText };
       }
 
-      const buffer = await response.buffer();
-
-      const responseString = buffer.toString("utf-8");
-      if (!responseString.startsWith("{")) {
-        outputConsole(["", `Non-JSON response to ${path}`, ...responseString.split("\r\n")]);
+      const responseString = new TextDecoder().decode(await response.arrayBuffer());
+      let data: Atelier.Response;
+      try {
+        data = JSON.parse(responseString);
+      } catch {
         throw {
-          statusCode: 500,
-          message: `Non-JSON response to ${path} request. View 'ObjectScript' channel on OUTPUT tab of Panel for details.`,
+          statusCode: response.status,
+          message: response.statusText,
+          errorText: `Non-JSON response to ${path} request. Is the web server suppressing detailed errors?`,
         };
       }
-
-      const data: Atelier.Response = JSON.parse(responseString);
 
       // Decode encoded content
       if (data.result && data.result.enc && data.result.content) {
@@ -398,6 +405,18 @@ export class AtelierAPI {
         // The request errored out, but didn't give us an error string back
         throw { statusCode: response.status, message: response.statusText, errorText: "" };
       }
+
+      // Handle headers for the /work endpoints by storing the header values in the result object
+      if (originalPath && originalPath.endsWith("/work") && method == "POST") {
+        // This is a POST /work request, so we need to get the Location header
+        data.result.location = response.headers.get("Location");
+      } else if (originalPath && /^[^/]+\/work\/[^/]+$/.test(originalPath)) {
+        // This is a GET or DELETE /work request, so we need to check the Retry-After header
+        if (response.headers.has("Retry-After")) {
+          data.result.retryafter = response.headers.get("Retry-After");
+        }
+      }
+
       return data;
     } catch (error) {
       if (error.code === "ECONNREFUSED") {
@@ -587,5 +606,89 @@ export class AtelierAPI {
       detail: detail ? 1 : 0,
     };
     return this.request(1, "GET", `%SYS/cspapps/${this.ns || ""}`, null, params);
+  }
+
+  // v1+
+  private queueAsync(request: any): Promise<Atelier.Response> {
+    return this.request(1, "POST", `${this.ns}/work`, request);
+  }
+
+  // v1+
+  private pollAsync(id: string): Promise<Atelier.Response> {
+    return this.request(1, "GET", `${this.ns}/work/${id}`);
+  }
+
+  // v1+
+  private cancelAsync(id: string): Promise<Atelier.Response> {
+    return this.request(1, "DELETE", `${this.ns}/work/${id}`);
+  }
+
+  /**
+   * Calls `cancelAsync()` repeatedly until the cancellation is confirmed.
+   * The wait time between requests is 1 second.
+   */
+  private async verifiedCancel(id: string): Promise<Atelier.Response> {
+    outputChannel.appendLine(
+      "\nWARNING: Compilation was cancelled. Partially-compiled documents may result in unexpected behavior."
+    );
+    let cancelResp = await this.cancelAsync(id);
+    while (cancelResp.result.retryafter) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1000);
+      });
+      cancelResp = await this.cancelAsync(id);
+    }
+    return cancelResp;
+  }
+
+  /**
+   * Recursive function that calls `pollAsync()` repeatedly until we get a result or the user cancels the request.
+   * The wait time between requests starts at 50ms and increases exponentially, with a max wait of 15 seconds.
+   */
+  private async getAsyncResult(id: string, wait: number, token: vscode.CancellationToken): Promise<Atelier.Response> {
+    const pollResp = await this.pollAsync(id);
+    if (token.isCancellationRequested) {
+      // The user cancelled the request, so cancel it on the server
+      return this.verifiedCancel(id);
+    }
+    if (pollResp.result.retryafter) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, wait);
+      });
+      if (token.isCancellationRequested) {
+        // The user cancelled the request, so cancel it on the server
+        return this.verifiedCancel(id);
+      }
+      return this.getAsyncResult(id, wait < 10000 ? wait ** 1.075 : 15000, token);
+    }
+    return pollResp;
+  }
+
+  /**
+   * Use the undocumented /work endpoints to compile `docs` asynchronously.
+   */
+  public async asyncCompile(
+    docs: string[],
+    token: vscode.CancellationToken,
+    flags?: string,
+    source = false
+  ): Promise<Atelier.Response> {
+    // Queue the compile request
+    return this.queueAsync({
+      request: "compile",
+      documents: docs.map((doc) => this.transformNameIfCsp(doc)),
+      source,
+      flags,
+    }).then((queueResp) => {
+      // Request was successfully queued, so get the ID
+      const id: string = queueResp.result.location;
+      if (token.isCancellationRequested) {
+        // The user cancelled the request, so cancel it on the server
+        return this.verifiedCancel(id);
+      }
+
+      // Poll until we get a result or the user cancels the request
+      return this.getAsyncResult(id, 50, token);
+    });
   }
 }

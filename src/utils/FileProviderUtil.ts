@@ -34,7 +34,7 @@ export function fileSpecFromURI(uri: vscode.Uri, overrideType?: string): string 
     }
   } // otherwise, reference the type to get the desired files.
   else if (csp) {
-    specOpts = "*";
+    specOpts = folder.length > 1 ? "*" : "*.cspall";
   } else if (type === "rtn") {
     specOpts = "*.inc,*.mac,*.int";
   } else if (type === "cls") {

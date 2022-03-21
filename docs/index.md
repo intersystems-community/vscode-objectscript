@@ -12,3 +12,4 @@ nav_exclude: true
 * [Running and Debugging](./rundebug)
 * [Server-side Editing](./serverside)
 * [Settings Reference](./settings)
+* [Reporting Issues](./feedback)

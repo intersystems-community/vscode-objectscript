@@ -41,6 +41,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.compileOnSave"` | Automatically compile an InterSystems file when saved in the editor. | `boolean` | `true` | |
 | `"objectscript.conn"` | Configures the active server connection. | `object` | `undefined` | See the [Configuration page](../configuration/#config-server-conn) for more details on configuring server connections. |
 | `"objectscript.debug.debugThisMethod"` | Show inline `Debug this method` CodeLens action for ClassMethods. | `boolean` | `true` | |
+| `"objectscript.explorer.alwaysShowServerCopy"` | Always show the server copy of a document in the ObjectScript Explorer. | `boolean` | `false` | |
 | `"objectscript.export.addCategory"` | Add a category folder to the beginning of the export path. | `boolean` or `object` | `false` | |
 | `"objectscript.export.atelier"` | Export source code as Atelier did it, with packages as subfolders. | `boolean` | `true` | |
 | `"objectscript.export.category"` | Category of source code to export: `CLS` = classes; `RTN` = routines; `CSP` = csp files; `OTH` = other. Default is `*` = all. | `string` or `object` | `"*"` | |
