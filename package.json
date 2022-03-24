@@ -1069,7 +1069,7 @@
           "default": false
         },
         "objectscript.openClassContracted": {
-          "description": "Automatically collapse all folding ranges when a class is opened for the first time.",
+          "description": "Automatically collapse all class member folding ranges when a class is opened for the first time.",
           "type": "boolean",
           "default": false
         },

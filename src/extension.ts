@@ -981,7 +981,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         editor.document.languageId === "objectscript-class" &&
         !openedClasses.includes(uri)
       ) {
-        vscode.commands.executeCommand("editor.foldAll");
+        vscode.commands.executeCommand("editor.foldLevel1");
         openedClasses.push(uri);
       }
     }),
