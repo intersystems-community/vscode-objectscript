@@ -128,8 +128,6 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       this._namespace = api.ns;
       this._url = api.xdebugUrl();
 
-      await api.serverInfo();
-
       const socket = new WebSocket(this._url, {
         headers: {
           cookie: this.cookies,
@@ -164,8 +162,14 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
       this.sendEvent(new InitializedEvent());
     } catch (error) {
+      let message = "Failed to start the debug session. ";
+      if (error instanceof Error && error.message == "Connection not active") {
+        message += "Server connection is inactive.";
+      } else {
+        message += "Check that the InterSystems server's web server supports WebSockets.";
+      }
       response.success = false;
-      response.message = "Debugger can not start";
+      response.message = message;
       this.sendResponse(response);
     }
   }
