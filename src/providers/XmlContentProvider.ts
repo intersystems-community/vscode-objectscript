@@ -11,9 +11,9 @@ export class XmlContentProvider implements vscode.TextDocumentContentProvider {
   }
 
   public provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
-    return vscode.workspace.fs
-      .readFile(vscode.Uri.file(uri.fragment))
-      .then((bytes) => new TextDecoder().decode(bytes))
+    return vscode.workspace
+      .openTextDocument(vscode.Uri.file(uri.fragment))
+      .then((document) => document.getText())
       .then((text) => {
         return this._api
           .cvtXmlUdl(text)
