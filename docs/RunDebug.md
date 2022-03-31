@@ -110,4 +110,6 @@ Clicking on the green arrow runs the currently selected debug configuration.
 
 When starting **objectscript launch** debug session, make sure that the file containing the **program** that you are debugging is open in your editor and is the active tab. VS Code will start a debug session with the server of the file in the active editor (the tab that the user is focused on).
 
+This extension uses WebSockets to communicate with the InterSystems server during debugging. If you are experiencing issues when trying to start a debugging session, check that the InterSystems server's web server allows WebSocket connections.
+
 Debugging commands and items on the **Run** menu function much as they do for other languages supported by VS Code. For information on VS Code debugging, see the documentation resources listed at the start of this section. 
