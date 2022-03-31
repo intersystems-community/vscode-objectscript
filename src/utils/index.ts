@@ -4,19 +4,14 @@ import { R_OK } from "constants";
 import * as url from "url";
 import { exec } from "child_process";
 import * as vscode from "vscode";
-import { config, schemas, workspaceState, terminals, extensionId, extensionContext } from "../extension";
+import { config, schemas, workspaceState, terminals, extensionContext } from "../extension";
 import { getCategory } from "../commands/export";
-const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 
 let latestErrorMessage = "";
 export const outputChannel: {
   resetError?(): void;
   appendError?(value: string, show?: boolean): void;
-} & vscode.OutputChannel =
-  typeof packageJson.enabledApiProposals === "object" &&
-  packageJson.enabledApiProposals.includes("outputChannelLanguage")
-    ? vscode.window.createOutputChannel("ObjectScript", "vscode-objectscript-output")
-    : vscode.window.createOutputChannel("ObjectScript");
+} & vscode.OutputChannel = vscode.window.createOutputChannel("ObjectScript", "vscode-objectscript-output");
 
 /// Append Error if no duplicates previous one
 outputChannel.appendError = (value: string, show = true): void => {
