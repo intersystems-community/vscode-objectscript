@@ -1,14 +1,13 @@
 import * as path from "path";
 import * as vscode from "vscode";
-import * as url from "url";
 import { AtelierAPI } from "../../api";
 import { Directory } from "./Directory";
 import { File } from "./File";
 import { fireOtherStudioAction, OtherStudioAction } from "../../commands/studio";
-import { StudioOpenDialog } from "../../queries";
-import { studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
+import { projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
 import { outputChannel, redirectDotvscodeRoot, workspaceFolderOfUri } from "../../utils/index";
-import { workspaceState } from "../../extension";
+import { config, workspaceState } from "../../extension";
+import { addIsfsFileToProject, modifyProject } from "../../commands/project";
 
 declare function setTimeout(callback: (...args: any[]) => void, ms: number, ...args: any[]): NodeJS.Timeout;
 
@@ -54,6 +53,62 @@ export function generateFileContent(fileName: string, sourceContent: Buffer): { 
   };
 }
 
+/**
+ * This map contains all csp files contained in a directory
+ * within a workspace folder that has a `project` query parameter.
+ * The key is the URI for the folder. The value is an array of names of
+ * csp files contained within the folder.
+ * @example
+ * cspFilesInProjectFolder.get(`isfs://iris:user/csp/user/?project=test`) = ["menu.csp"]
+ */
+const cspFilesInProjectFolder: Map<string, string[]> = new Map();
+
+/**
+ * Check if this file is a web application file.
+ */
+export function isCSPFile(uri: vscode.Uri): boolean {
+  const params = new URLSearchParams(uri.query);
+  let csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
+  if (params.has("project") && params.get("project").length) {
+    // Projects can contain both CSP and non-CSP files
+    // Read the cache of found CSP files to determine if this is one
+    const parent = uri
+      .with({
+        path: path.dirname(uri.path),
+      })
+      .toString();
+    csp = cspFilesInProjectFolder.has(parent) && cspFilesInProjectFolder.get(parent).includes(path.basename(uri.path));
+    if (!csp) {
+      // Read the parent directory and file is not CSP OR haven't read the parent directory yet
+      // Use the file extension to guess if it's a web app file
+      const additionalExts: string[] = config("projects.webAppFileExtensions", workspaceFolderOfUri(uri));
+      csp = [
+        "csp",
+        "csr",
+        "ts",
+        "js",
+        "css",
+        "scss",
+        "sass",
+        "less",
+        "html",
+        "json",
+        "md",
+        "markdown",
+        "png",
+        "svg",
+        "jpeg",
+        "jpg",
+        "ico",
+        "xml",
+        "txt",
+        ...additionalExts,
+      ].includes(uri.path.split(".").pop().toLowerCase());
+    }
+  }
+  return csp;
+}
+
 export class FileSystemProvider implements vscode.FileSystemProvider {
   private superRoot = new Directory("", "");
 
@@ -89,8 +144,43 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (!api.active) {
       throw vscode.FileSystemError.Unavailable(`${uri.toString()} is unavailable`);
     }
-    const { query } = url.parse(uri.toString(true), true);
-    const csp = query.csp === "" || query.csp === "1";
+    const params = new URLSearchParams(uri.query);
+    if (params.has("project") && params.get("project").length) {
+      // Get all items in the project
+      return projectContentsFromUri(uri).then((entries) =>
+        entries.map((entry) => {
+          const csp = ["CSP", "DIR"].includes(entry.Type);
+          if (!entry.Name.includes(".")) {
+            if (!parent.entries.has(entry.Name)) {
+              const folder = !csp
+                ? uri.path.replace(/\//g, ".")
+                : uri.path === "/"
+                ? ""
+                : uri.path.endsWith("/")
+                ? uri.path
+                : uri.path + "/";
+              const fullName = folder === "" ? entry.Name : csp ? folder + entry.Name : folder + "/" + entry.Name;
+              parent.entries.set(entry.Name, new Directory(entry.Name, fullName));
+            }
+            return [entry.Name, vscode.FileType.Directory];
+          } else {
+            if (csp) {
+              // Projects can contain both CSP and non-CSP files
+              // Update the cache of found CSP files to include this file
+              const mapkey = uri.toString();
+              let mapvalue: string[] = [];
+              if (cspFilesInProjectFolder.has(mapkey)) {
+                mapvalue = cspFilesInProjectFolder.get(mapkey);
+              }
+              mapvalue.push(entry.Name);
+              cspFilesInProjectFolder.set(mapkey, mapvalue);
+            }
+            return [entry.Name, vscode.FileType.File];
+          }
+        })
+      );
+    }
+    const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
     const folder = !csp
       ? uri.path.replace(/\//g, ".")
       : uri.path === "/"
@@ -115,18 +205,18 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       .then((data) => data.result.content || [])
       .then((data) => {
         const results = data
-          .filter((item: StudioOpenDialog) =>
-            item.Type === "10"
+          .filter((item: { Name: string; Type: number }) =>
+            item.Type == 10
               ? csp && !item.Name.includes("/") // ignore web apps here because there may be REST ones
-              : item.Type === "9" // class package
+              : item.Type == 9 // class package
               ? !csp
               : csp
-              ? item.Type === "5" // web app file
+              ? item.Type == 5 // web app file
               : true
           )
-          .map((item: StudioOpenDialog) => {
+          .map((item: { Name: string; Type: number }) => {
             const name = item.Name;
-            if (item.Type === "10" || item.Type === "9") {
+            if (item.Type == 10 || item.Type == 9) {
               if (!parent.entries.has(name)) {
                 const fullName = folder === "" ? name : csp ? folder + name : folder + "/" + name;
                 parent.entries.set(name, new Directory(name, fullName));
@@ -203,8 +293,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (uri.path.startsWith("/.")) {
       throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
     }
-    const { query } = url.parse(uri.toString(true), true);
-    const csp = query.csp === "" || query.csp === "1";
+    const csp = isCSPFile(uri);
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     if (fileName.startsWith(".")) {
       return;
@@ -267,13 +356,18 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             if (error.errorText && error.errorText !== "") {
               throw vscode.FileSystemError.Unavailable(error.errorText);
             }
-            throw vscode.FileSystemError.Unavailable(error.message);
+            throw vscode.FileSystemError.Unavailable(uri);
           })
-          .then((response) => {
+          .then(async (response) => {
             // New file has been written
             if (response && response.result.ext && response.result.ext[0] && response.result.ext[1]) {
               fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, uri, response.result.ext[0]);
               fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, uri, response.result.ext[1]);
+            }
+            const params = new URLSearchParams(uri.query);
+            if (params.has("project") && params.get("project").length) {
+              // Add this document to the project if required
+              await addIsfsFileToProject(params.get("project"), uri, fileName, csp, api);
             }
             // Sanity check that we find it there, then make client side update things
             this._lookupAsFile(uri).then(() => {
@@ -285,13 +379,12 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public delete(uri: vscode.Uri, options: { recursive: boolean }): void | Thenable<void> {
-    const { query } = url.parse(uri.toString(true), true);
-    const csp = query.csp === "" || query.csp === "1";
+    const csp = isCSPFile(uri);
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     if (fileName.startsWith(".")) {
       return;
     }
-    if (!fileName.includes(".")) {
+    if (!uri.path.includes(".")) {
       throw new Error(`${csp ? "Folder" : "Package"} deletion is not supported on server`);
     }
     const api = new AtelierAPI(uri);
@@ -315,6 +408,29 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           }
         }
         this._fireSoon(...events);
+        const params = new URLSearchParams(uri.query);
+        if (params.has("project") && params.get("project").length) {
+          if (csp) {
+            // Remove this file from our CSP files cache
+            const parentUriStr = uri
+              .with({
+                path: path.dirname(uri.path),
+              })
+              .toString();
+            const mapvalue = cspFilesInProjectFolder.get(parentUriStr);
+            const idx = mapvalue.indexOf(path.basename(uri.path));
+            if (idx != -1) {
+              mapvalue.splice(idx, 1);
+              if (mapvalue.length) {
+                cspFilesInProjectFolder.set(parentUriStr, mapvalue);
+              } else {
+                cspFilesInProjectFolder.delete(parentUriStr);
+              }
+            }
+          }
+          // Remove this document from the project if required
+          await modifyProject(uri, "remove");
+        }
       },
       (error) => {
         if (error.errorText !== "") {
@@ -342,8 +458,11 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       await api
         .serverInfo()
         .then()
-        .catch(() => {
-          throw vscode.FileSystemError.Unavailable(`${uri.toString()} is unavailable`);
+        .catch((error) => {
+          if (error.errorText && error.errorText !== "") {
+            throw vscode.FileSystemError.Unavailable(error.errorText);
+          }
+          throw vscode.FileSystemError.Unavailable(uri);
         });
     }
     const config = api.config;
@@ -411,11 +530,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (uri.path.startsWith("/.")) {
       throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
     }
-
-    const { query } = url.parse(uri.toString(true), true);
-    const csp = query.csp === "" || query.csp === "1";
-    const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
+    const csp = isCSPFile(uri);
     const name = path.basename(uri.path);
+    const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     const api = new AtelierAPI(uri);
     return api
       .getDoc(fileName, undefined, cachedFile?.mtime)
@@ -455,6 +572,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       .catch((error) => {
         if (error?.statusCode === 304 && cachedFile) {
           return cachedFile;
+        }
+        if (error.errorText && error.errorText !== "") {
+          throw vscode.FileSystemError.FileNotFound(error.errorText);
         }
         throw vscode.FileSystemError.FileNotFound(uri);
       });

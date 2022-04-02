@@ -6,6 +6,7 @@ import { exec } from "child_process";
 import * as vscode from "vscode";
 import { config, schemas, workspaceState, terminals, extensionContext } from "../extension";
 import { getCategory } from "../commands/export";
+import { isCSPFile } from "../providers/FileSystemProvider/FileSystemProvider";
 
 let latestErrorMessage = "";
 export const outputChannel: {
@@ -314,7 +315,7 @@ export function getServerName(uri: vscode.Uri): string {
   if (!schemas.includes(uri.scheme)) {
     return null;
   }
-  if (isCSP(uri)) {
+  if (isCSPFile(uri)) {
     // The full file path is the server name of the file.
     return uri.path;
   } else {
@@ -327,20 +328,6 @@ export function getServerName(uri: vscode.Uri): string {
     }
     return serverName;
   }
-}
-
-/**
- * Returns true if the specified URI is a CSP file under isfs, false if not.
- * @param uri URI to test
- */
-export function isCSP(uri: vscode.Uri): boolean {
-  return (
-    schemas.includes(uri.scheme) &&
-    uri.query
-      .split("&")
-      .map((e) => e.split("=")[0])
-      .includes("csp")
-  );
 }
 
 export function currentWorkspaceFolder(document?: vscode.TextDocument): string {

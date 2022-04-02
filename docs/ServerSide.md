@@ -28,12 +28,24 @@ Next create a workspace for editing code directly on the server:
 1. Pick a namespace from the list retrieved from the target server:
 
    ![Choose a namespace.](../assets/images/ss-choose-namespace.png "choose a namespace")
+1. Pick if this folder should show a project's contents:
+
+   ![Choose if project.](../assets/images/ss-is-project.png "choose if project")
+1. If yes, pick the project from the list, or click the **+** sign to create a new one:
+
+   ![Choose project.](../assets/images/ss-pick-project.png "choose project")
 1. Pick an access mode from the list:
 
+  If no project was selected:
+
    ![Choose an access type.](../assets/images/ss-access-type.png "choose an access type")
+
+  If a project was selected:
+  
+   ![Choose an access type (project).](../assets/images/ss-access-type-project.png "choose an access type (project")
 1. If you want to reopen this workspace in the future, use the command **File > Save Workspace As...** to save it as a `.code-workspace` file.
 
-Note that the ObjectScript button is not visible in the Activity Bar. Because the files listed in the Explorer view are all on the server, it is not needed for this configuration.
+Note that the ObjectScript Explorer view is not visible in the ObjectScript view container. Because the files listed in the Explorer view are all on the server, the ObjectScript Explorer is not needed for this configuration.
 
 The `.code-workspace` file is a JSON file which you can edit directly, as described in the section  [VS Code Workspaces](../configuration/#code-workspaces). A simple example looks like this:
 ```json
@@ -136,10 +148,11 @@ Changes you make to files opened from this root folder of your VS Code workspace
 The query string of the `uri` property accepts several parameters that control filtering and display of the server-side entities. The examples below access the USER namespace on the server whose definition is named 'myserver'.
 
 - `isfs://myserver:user?type=cls`, shows only classes
-- `isfs://myserver:user?type=rtn`, shows only routines, mac, int and inc files
+- `isfs://myserver:user?type=rtn`, shows only mac, int and inc files
 - `isfs://myserver:user?generated=1`, shows generated files as well as not generated
 - `isfs://myserver:user?filter=%Z*.mac,%z*.mac`, comma-delimited list of search options, ignores `type`. The default is `*.cls,*.inc,*.mac,*.int`. To see all files, use `*`.
-- `isfs://myserver:user?flat=1`, a flat list of files does not split packages as folders.
+- `isfs://myserver:user?flat=1`, a flat list of files. Does not split packages as folders. Cannot be combined with `csp`.
+- `isfs://myserver:user?project=prjname`, shows only files in project `prjname`. Cannot be combined with any other parameter.
 
 The options `flat` and `generated` can be combined with each other, and with `type` or `filter`. If `filter` is specified, `type` is ignored.
 

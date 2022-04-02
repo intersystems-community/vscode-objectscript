@@ -13,3 +13,4 @@ nav_exclude: true
 * [Server-side Editing](./serverside)
 * [Settings Reference](./settings)
 * [Reporting Issues](./feedback)
+* [Working with Projects](./projects)

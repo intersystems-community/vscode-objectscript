@@ -67,6 +67,7 @@
     "onCommand:vscode-objectscript.jumpToTagAndOffset",
     "onCommand:vscode-objectscript.previewXml",
     "onCommand:vscode-objectscript.explorer.refresh",
+    "onCommand:vscode-objectscript.explorer.project.refresh",
     "onCommand:vscode-objectscript.explorer.open",
     "onCommand:vscode-objectscript.compileFolder",
     "onCommand:vscode-objectscript.importFolder",
@@ -74,12 +75,17 @@
     "onCommand:vscode-objectscript.connectFolderToServerNamespace",
     "onCommand:vscode-objectscript.hideExplorerForWorkspace",
     "onCommand:vscode-objectscript.showExplorerForWorkspace",
+    "onCommand:vscode-objectscript.createProject",
+    "onCommand:vscode-objectscript.deleteProject",
+    "onCommand:vscode-objectscript.addToProject",
+    "onCommand:vscode-objectscript.removeFromProject",
     "onLanguage:objectscript",
     "onLanguage:objectscript-int",
     "onLanguage:objectscript-class",
     "onLanguage:objectscript-macros",
     "onLanguage:xml",
     "onView:ObjectScriptExplorer",
+    "onView:ObjectScriptProjectsExplorer",
     "onFileSystem:isfs",
     "onFileSystem:isfs-readonly",
     "onFileSystem:objectscript",
@@ -95,8 +101,18 @@
       },
       {
         "view": "ObjectScriptExplorer",
-        "contents": "Connect a workspace folder to an [InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/) if you want to export or import ObjectScript code.\n[Choose Server and Namespace](command:vscode-objectscript.connectFolderToServerNamespace)\nOr [hide this ObjectScript view](command:vscode-objectscript.hideExplorerForWorkspace) if it is not needed for the current workspace.",
+        "contents": "Connect a local workspace folder to an [InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/) if you want to export or import ObjectScript code.\n[Choose Server and Namespace](command:vscode-objectscript.connectFolderToServerNamespace)\nOr [hide this ObjectScript view](command:vscode-objectscript.hideExplorerForWorkspace) if it is not needed for the current workspace.",
         "when": "vscode-objectscript.explorerRootCount == 0"
+      },
+      {
+        "view": "ObjectScriptProjectsExplorer",
+        "contents": "To view or edit projects, create a virual workspace folder to [edit or view code directly on an InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/).\n[Add Server Namespace to Workspace](command:vscode-objectscript.addServerNamespaceToWorkspace)",
+        "when": "vscode-objectscript.projectsExplorerRootCount == 0"
+      },
+      {
+        "view": "ObjectScriptProjectsExplorer",
+        "contents": "To view or edit projects, create a virual workspace folder to [edit or view code directly on an InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/).\n[Add Server Namespace to Workspace](command:vscode-objectscript.addServerNamespaceToWorkspace)\nOr connect a local workspace folder to an [InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/).\n[Choose Server and Namespace](command:vscode-objectscript.connectFolderToServerNamespace)",
+        "when": "vscode-objectscript.projectsExplorerRootCount == 0 && workspaceFolderCount > 0"
       }
     ],
     "menus": {
@@ -190,6 +206,10 @@
           "when": "vscode-objectscript.connectActive"
         },
         {
+          "command": "vscode-objectscript.explorer.project.refresh",
+          "when": "vscode-objectscript.connectActive"
+        },
+        {
           "command": "vscode-objectscript.compileFolder",
           "when": "false"
         },
@@ -240,6 +260,26 @@
         {
           "command": "vscode-objectscript.exportCurrentFile",
           "when": "resourceScheme == objectscript && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.explorer.project.exportProjectContents",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.explorer.project.compileProjectContents",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.explorer.project.openOtherServerNs",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.explorer.project.closeOtherServerNs",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.explorer.project.addWorkspaceFolderForProject",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -247,32 +287,48 @@
           "command": "vscode-objectscript.explorer.refresh",
           "when": "view == ObjectScriptExplorer",
           "group": "navigation"
+        },
+        {
+          "command": "vscode-objectscript.explorer.project.refresh",
+          "when": "view == ObjectScriptProjectsExplorer",
+          "group": "navigation"
+        },
+        {
+          "command": "vscode-objectscript.explorer.project.openOtherServerNs",
+          "when": "view == ObjectScriptProjectsExplorer && vscode-objectscript.projectsExplorerRootCount > 0",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
         {
           "command": "vscode-objectscript.explorer.export",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/",
+          "group": "1_objectscript_modify"
         },
         {
           "command": "vscode-objectscript.explorer.export",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataRootNode:(?!cspRootNode)/"
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataRootNode:(?!cspRootNode)/",
+          "group": "1_objectscript_modify"
         },
         {
           "command": "vscode-objectscript.explorer.delete",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/",
+          "group": "1_objectscript_modify"
         },
         {
           "command": "vscode-objectscript.explorer.compile",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/",
+          "group": "1_objectscript_modify"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextSourceControl",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
+          "when": "view =~ /^ObjectScript(Projects)?Explorer$/ && viewItem =~ /^dataNode:/",
+          "group": "9_objectscript_servercommand@1"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
+          "when": "view =~ /^ObjectScript(Projects)?Explorer$/ && viewItem =~ /^dataNode:/",
+          "group": "9_objectscript_servercommand@2"
         },
         {
           "command": "vscode-objectscript.explorer.otherNamespace",
@@ -302,6 +358,46 @@
         {
           "command": "vscode-objectscript.explorer.hideSystem",
           "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode.*:system:/",
+          "group": "inline@10"
+        },
+        {
+          "command": "vscode-objectscript.addToProject",
+          "when": "view == ObjectScriptProjectsExplorer && viewItem =~ /^(dataNode:projectNode|dataRootNode)/",
+          "group": "5_objectscript_prj@1"
+        },
+        {
+          "command": "vscode-objectscript.removeFromProject",
+          "when": "view == ObjectScriptProjectsExplorer && viewItem =~ /^dataNode:/",
+          "group": "5_objectscript_prj@2"
+        },
+        {
+          "command": "vscode-objectscript.createProject",
+          "when": "view == ObjectScriptProjectsExplorer && viewItem =~ /^projectsServerNsNode/",
+          "group": "5_objectscript_prj@3"
+        },
+        {
+          "command": "vscode-objectscript.deleteProject",
+          "when": "view == ObjectScriptProjectsExplorer && viewItem == dataNode:projectNode",
+          "group": "5_objectscript_prj@4"
+        },
+        {
+          "command": "vscode-objectscript.explorer.project.exportProjectContents",
+          "when": "view == ObjectScriptProjectsExplorer && viewItem == dataNode:projectNode",
+          "group": "5_objectscript_prj@5"
+        },
+        {
+          "command": "vscode-objectscript.explorer.project.compileProjectContents",
+          "when": "view == ObjectScriptProjectsExplorer && viewItem == dataNode:projectNode",
+          "group": "5_objectscript_prj@6"
+        },
+        {
+          "command": "vscode-objectscript.explorer.project.addWorkspaceFolderForProject",
+          "when": "view == ObjectScriptProjectsExplorer && viewItem == dataNode:projectNode",
+          "group": "5_objectscript_prj@7"
+        },
+        {
+          "command": "vscode-objectscript.explorer.project.closeOtherServerNs",
+          "when": "view == ObjectScriptProjectsExplorer && viewItem == projectsServerNsNode:extra",
           "group": "inline@10"
         }
       ],
@@ -392,22 +488,32 @@
         {
           "command": "vscode-objectscript.compileFolder",
           "when": "vscode-objectscript.connectActive && resourceScheme == file",
-          "group": "objectscript@1"
+          "group": "objectscript_modify@1"
         },
         {
           "command": "vscode-objectscript.importFolder",
           "when": "vscode-objectscript.connectActive && resourceScheme == file",
-          "group": "objectscript@1"
+          "group": "objectscript_modify@1"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextSourceControl",
           "when": "resourceScheme == isfs && vscode-objectscript.connectActive",
-          "group": "objectscript@2"
+          "group": "objectscript_servercommand@1"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
           "when": "resourceScheme =~ /^isfs(-readonly)?$/ && vscode-objectscript.connectActive",
-          "group": "objectscript@3"
+          "group": "objectscript_servercommand@2"
+        },
+        {
+          "command": "vscode-objectscript.addToProject",
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && explorerResourceIsRoot",
+          "group": "objectscript_prj@1"
+        },
+        {
+          "command": "vscode-objectscript.removeFromProject",
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/",
+          "group": "objectscript_prj@2"
         }
       ]
     },
@@ -633,6 +739,12 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "vscode-objectscript.explorer.project.refresh",
+        "title": "Refresh Projects Explorer",
+        "category": "ObjectScript",
+        "icon": "$(refresh)"
+      },
+      {
         "category": "ObjectScript",
         "command": "vscode-objectscript.jumpToTagAndOffset",
         "title": "Jump to Tag + Offset"
@@ -745,6 +857,53 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.exportCurrentFile",
         "title": "Export Current File from Server"
+      },
+      {
+        "command": "vscode-objectscript.addToProject",
+        "title": "Add to Project",
+        "category": "ObjectScript"
+      },
+      {
+        "command": "vscode-objectscript.removeFromProject",
+        "title": "Remove from Project",
+        "category": "ObjectScript"
+      },
+      {
+        "command": "vscode-objectscript.createProject",
+        "title": "Create Project",
+        "category": "ObjectScript"
+      },
+      {
+        "command": "vscode-objectscript.deleteProject",
+        "title": "Delete Project",
+        "category": "ObjectScript"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.explorer.project.exportProjectContents",
+        "title": "Export Project Contents"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.explorer.project.compileProjectContents",
+        "title": "Compile Project Contents"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.explorer.project.openOtherServerNs",
+        "title": "View Projects in Another Server Namespace",
+        "icon": "$(add)"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.explorer.project.closeOtherServerNs",
+        "title": "Close Server Namespace",
+        "icon": "$(remove)"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.explorer.project.addWorkspaceFolderForProject",
+        "title": "Add Workspace Folder For Project"
       }
     ],
     "keybindings": [
@@ -1067,6 +1226,16 @@
           "description": "Always show the server copy of a document in the ObjectScript Explorer.",
           "type": "boolean",
           "default": false
+        },
+        "objectscript.projects.webAppFileExtensions": {
+          "markdownDescription": "When browsing a virtual workspace folder that has a project query parameter, all files with these extensions will be automatically treated as web application files. Extensions added here will be appended to the default list and  should **NOT** include a dot. See the [Settings Reference documentation page](https://intersystems-community.github.io/vscode-objectscript/settings/#vscode-objectscript) for a list of extensions included by default.",
+          "type": "array",
+          "default": [],
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[^.]+$"
+          }
         }
       }
     },
@@ -1075,7 +1244,14 @@
         {
           "id": "ObjectScriptExplorer",
           "name": "Explorer",
+          "contextualTitle": "ObjectScript Explorer",
           "when": "workspaceFolderCount != 0 && config.objectscript.showExplorer == true"
+        },
+        {
+          "id": "ObjectScriptProjectsExplorer",
+          "name": "Projects",
+          "contextualTitle": "InterSystems Projects",
+          "when": "workspaceFolderCount != 0"
         }
       ]
     },

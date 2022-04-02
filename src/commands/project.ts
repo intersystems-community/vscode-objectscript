@@ -1,0 +1,1209 @@
+import * as vscode from "vscode";
+import { AtelierAPI } from "../api";
+import { ClassNode } from "../explorer/models/classNode";
+import { CSPFileNode } from "../explorer/models/cspFileNode";
+import { NodeBase } from "../explorer/models/nodeBase";
+import { ProjectNode } from "../explorer/models/projectNode";
+import { ProjectRootNode } from "../explorer/models/projectRootNode";
+import { RoutineNode } from "../explorer/models/routineNode";
+import { config, filesystemSchemas, projectsExplorerProvider, schemas } from "../extension";
+import { compareConns, DocumentContentProvider } from "../providers/DocumentContentProvider";
+import { isCSPFile } from "../providers/FileSystemProvider/FileSystemProvider";
+import { notNull, outputChannel } from "../utils";
+import { pickServerAndNamespace } from "./addServerNamespaceToWorkspace";
+import { exportList } from "./export";
+import { fireOtherStudioAction, OtherStudioAction } from "./studio";
+
+export interface ProjectItem {
+  Name: string;
+  Type: string;
+}
+
+export async function pickProject(api: AtelierAPI): Promise<string | undefined> {
+  const server =
+    api.config.serverName && api.config.serverName !== ""
+      ? api.config.serverName
+      : `${api.config.host}:${api.config.port}${api.config.pathPrefix}`;
+  const ns = api.config.ns.toUpperCase();
+  const projects: vscode.QuickPickItem[] = await api
+    .actionQuery("SELECT Name, Description FROM %Studio.Project", [])
+    .then((data) =>
+      data.result.content.map((prj) => {
+        return { label: prj.Name, detail: prj.Description };
+      })
+    );
+  if (projects.length === 0) {
+    const create = await vscode.window.showQuickPick(["Yes", "No"], {
+      ignoreFocusOut: true,
+      placeHolder: `Namespace ${ns} on server '${server}' contains no projects. Create one?`,
+    });
+    if (create == "Yes") {
+      return createProject(undefined, api);
+    }
+    return;
+  }
+  return new Promise<string | undefined>((resolve) => {
+    let result: string;
+    let resolveOnHide = true;
+    const quickPick = vscode.window.createQuickPick();
+    quickPick.title = `Select a project in namespace ${ns} on server '${server}', or click '+' to add one.`;
+    quickPick.ignoreFocusOut = true;
+    quickPick.items = projects;
+    quickPick.buttons = [{ iconPath: new vscode.ThemeIcon("add"), tooltip: "Create new project" }];
+
+    async function addAndResolve() {
+      resolveOnHide = false;
+      // Create new project
+      await createProject(undefined, api).then((value) => {
+        if (value) {
+          // Resolve and tidy up
+          resolve(value);
+          quickPick.hide();
+          quickPick.dispose();
+        }
+      });
+    }
+    quickPick.onDidChangeSelection((items) => {
+      result = items[0].label;
+    });
+    quickPick.onDidChangeValue((value) => {
+      if (value === "+") {
+        addAndResolve();
+      }
+    });
+    quickPick.onDidTriggerButton((button) => {
+      addAndResolve();
+    });
+    quickPick.onDidAccept(() => {
+      resolve(result);
+      quickPick.hide();
+      quickPick.dispose();
+    });
+    quickPick.onDidHide(() => {
+      // flag used by addAndResolve to prevent resolve here
+      if (resolveOnHide) {
+        resolve(undefined);
+      }
+      quickPick.dispose();
+    });
+    quickPick.show();
+  });
+}
+
+/**
+ * Creates a new project.
+ * @param node Argument passed when called as a command.
+ * @param api Only passed when called from `pickProject()`. If passed, `node` is ignored.
+ */
+export async function createProject(node: NodeBase | undefined, api?: AtelierAPI): Promise<string | undefined> {
+  if (api == undefined) {
+    if (node instanceof NodeBase) {
+      api = new AtelierAPI(node.workspaceFolderUri);
+      api.setNamespace(node.namespace);
+    } else {
+      // Have the user pick a server and namespace
+      const picks = await pickServerAndNamespace();
+      if (picks == undefined) {
+        return;
+      }
+      const { serverName, namespace } = picks;
+      api = new AtelierAPI(vscode.Uri.parse(`isfs://${serverName}:${namespace}/`));
+    }
+  }
+  const taken: string[] = await api
+    .actionQuery("SELECT Name FROM %Studio.Project", [])
+    .then((data) => data.result.content.map((prj) => prj.Name.toLowerCase()));
+  const name = await vscode.window.showInputBox({
+    prompt: "Enter a name for the new project",
+    validateInput: (value: string) => {
+      if (taken.includes(value.toLowerCase())) {
+        return "A project with this name already exists";
+      }
+      if (value.length > 64) {
+        return "Name cannot be longer than 64 characters";
+      }
+      return null;
+    },
+  });
+  if (name && name.length) {
+    const desc = await vscode.window.showInputBox({ prompt: "Optionally, enter a description" });
+    if (desc !== undefined) {
+      try {
+        // Create the project
+        await api.actionQuery("INSERT INTO %Studio.Project (Name,Description) VALUES (?,?)", [name, desc]);
+      } catch (error) {
+        let message = `Failed to create project '${name}'.`;
+        if (error && error.errorText && error.errorText !== "") {
+          outputChannel.appendLine("\n" + error.errorText);
+          outputChannel.show(true);
+          message += " Check 'ObjectScript' output channel for details.";
+        }
+        vscode.window.showErrorMessage(message, "Dismiss");
+        return;
+      }
+
+      // Refresh the explorer
+      projectsExplorerProvider.refresh();
+
+      try {
+        // Fire the source control hooks
+        const uri =
+          node instanceof NodeBase
+            ? node.workspaceFolder != undefined
+              ? DocumentContentProvider.getUri(`${name}.PRJ`, node.workspaceFolder, node.namespace)
+              : DocumentContentProvider.getUri(`${name}.PRJ`, undefined, undefined, true, node.workspaceFolderUri)
+            : DocumentContentProvider.getUri(
+                `${name}.PRJ`,
+                "",
+                "",
+                true,
+                vscode.Uri.parse(`isfs://${api.config.serverName}:${api.config.ns}/`)
+              );
+        await fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, uri);
+        await fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, uri);
+      } catch (error) {
+        let message = `Failed to fire source control hooks for '${name}.PRJ'.`;
+        if (error && error.errorText && error.errorText !== "") {
+          outputChannel.appendLine("\n" + error.errorText);
+          outputChannel.show(true);
+          message += " Check 'ObjectScript' output channel for details.";
+        }
+        vscode.window.showErrorMessage(message, "Dismiss");
+      }
+      return name;
+    }
+  }
+}
+
+export async function deleteProject(node: ProjectNode | undefined): Promise<any> {
+  let api: AtelierAPI;
+  let project: string;
+  if (node instanceof ProjectNode) {
+    api = new AtelierAPI(node.workspaceFolderUri);
+    api.setNamespace(node.namespace);
+    project = node.label;
+  } else {
+    // Have the user pick a server and namespace and a project
+    const picks = await pickServerAndNamespace();
+    if (picks == undefined) {
+      return;
+    }
+    const { serverName, namespace } = picks;
+    api = new AtelierAPI(vscode.Uri.parse(`isfs://${serverName}:${namespace}/`));
+    project = await pickProject(api);
+  }
+  if (project === undefined) {
+    return;
+  }
+
+  try {
+    // Delete the project
+    await api.actionQuery("DELETE FROM %Studio.Project WHERE Name = ?", [project]);
+  } catch (error) {
+    let message = `Failed to delete project '${project}'.`;
+    if (error && error.errorText && error.errorText !== "") {
+      outputChannel.appendLine("\n" + error.errorText);
+      outputChannel.show(true);
+      message += " Check 'ObjectScript' output channel for details.";
+    }
+    return vscode.window.showErrorMessage(message, "Dismiss");
+  }
+
+  // Refresh the explorer
+  projectsExplorerProvider.refresh();
+
+  // Ask the user if they want us to clean up an orphaned isfs folder
+  const prjFolderIdx = isfsFolderForProject(project, node ?? api.configName);
+  if (prjFolderIdx != -1) {
+    const remove = await vscode.window.showInformationMessage(
+      `The current workspace contains a virtual folder linked to deleted project '${project}'. Remove this folder?`,
+      "Yes",
+      "No"
+    );
+    if (remove == "Yes") {
+      vscode.workspace.updateWorkspaceFolders(prjFolderIdx, 1);
+    }
+  }
+
+  try {
+    // Fire the source control hook
+    const prjUri =
+      node instanceof ProjectNode
+        ? node.workspaceFolder != undefined
+          ? DocumentContentProvider.getUri(`${project}.PRJ`, node.workspaceFolder, node.namespace)
+          : DocumentContentProvider.getUri(`${project}.PRJ`, undefined, undefined, true, node.workspaceFolderUri)
+        : DocumentContentProvider.getUri(
+            `${project}.PRJ`,
+            "",
+            "",
+            true,
+            vscode.Uri.parse(`isfs://${api.config.serverName}:${api.config.ns}/`)
+          );
+    await fireOtherStudioAction(OtherStudioAction.DeletedDocument, prjUri);
+  } catch (error) {
+    let message = `Failed to fire source control hook for '${project}.PRJ'.`;
+    if (error && error.errorText && error.errorText !== "") {
+      outputChannel.appendLine("\n" + error.errorText);
+      outputChannel.show(true);
+      message += " Check 'ObjectScript' output channel for details.";
+    }
+    vscode.window.showErrorMessage(message, "Dismiss");
+  }
+}
+
+/**
+ * @param Name The name of the item to add.
+ * @param Type The type of the item to add. Either "MAC", "CLS", "PKG", "CSP", "DIR" or "OTH".
+ * @param items The items currently in the project.
+ */
+function addProjectItem(
+  Name: string,
+  Type: string,
+  items: ProjectItem[]
+): { add: ProjectItem[]; remove: ProjectItem[] } {
+  const add: ProjectItem[] = [];
+  const remove: ProjectItem[] = [];
+
+  if (Type == "MAC" && items.findIndex((item) => item.Name.toLowerCase() == Name.toLowerCase()) == -1) {
+    add.push({ Name, Type });
+  } else if (
+    Type == "CLS" &&
+    // Class isn't included by name
+    items.findIndex((item) => item.Type == "CLS" && item.Name.toLowerCase() == Name.toLowerCase()) == -1 &&
+    // Class's package isn't included
+    items.findIndex((item) => item.Type == "PKG" && Name.toLowerCase().startsWith(`${item.Name}.`.toLowerCase())) == -1
+  ) {
+    add.push({ Name, Type });
+  } else if (
+    Type == "PKG" && // Package or its superpackages aren't included
+    items.findIndex(
+      (item) => item.Type == "PKG" && `${Name.toLowerCase()}.`.startsWith(`${item.Name}.`.toLowerCase())
+    ) == -1
+  ) {
+    add.push({ Name, Type });
+    // Remove any subpackages or classes that are in this package
+    remove.push(
+      ...items.filter(
+        (item) =>
+          (item.Type == "CLS" || item.Type == "PKG") && item.Name.toLowerCase().startsWith(`${Name.toLowerCase()}.`)
+      )
+    );
+  } else if (
+    Type == "CSP" &&
+    // File isn't included by name
+    items.findIndex((item) => item.Type == "CSP" && item.Name.toLowerCase() == Name.toLowerCase()) == -1 &&
+    // File's directory isn't included
+    items.findIndex((item) => item.Type == "DIR" && Name.toLowerCase().startsWith(`${item.Name}/`.toLowerCase())) == -1
+  ) {
+    add.push({ Name, Type });
+  } else if (
+    Type == "DIR" && // Folder or its parents aren't included
+    items.findIndex(
+      (item) => item.Type == "DIR" && `${Name.toLowerCase()}/`.startsWith(`${item.Name}/`.toLowerCase())
+    ) == -1
+  ) {
+    add.push({ Name, Type });
+    // Remove any subfolders or CSP items that are in this folder
+    remove.push(
+      ...items.filter(
+        (item) =>
+          (item.Type == "CSP" || item.Type == "DIR") && item.Name.toLowerCase().startsWith(`${Name.toLowerCase()}/`)
+      )
+    );
+  } else if (Type == "OTH" && items.findIndex((item) => item.Name.toLowerCase() == Name.toLowerCase()) == -1) {
+    add.push({ Name, Type });
+  }
+
+  return { add, remove };
+}
+
+/**
+ * @param Name The name of the item to remove.
+ * @param Type The type of the item to remove. Either "MAC", "CLS", "PKG", "CSP", "DIR" or "OTH".
+ * @param items The items currently in the project.
+ */
+export function removeProjectItem(Name: string, Type: string, items: ProjectItem[]): ProjectItem[] {
+  const remove: ProjectItem[] = [];
+
+  if (Type == "MAC" && items.findIndex((item) => item.Name.toLowerCase() == Name.toLowerCase()) != -1) {
+    remove.push({ Name, Type });
+  } else if (
+    Type == "CLS" &&
+    items.findIndex((item) => item.Type == "CLS" && item.Name.toLowerCase() == Name.toLowerCase()) != -1
+  ) {
+    remove.push({ Name, Type });
+  } else if (Type == "PKG") {
+    if (items.findIndex((item) => item.Type == "PKG" && item.Name.toLowerCase() == Name.toLowerCase()) != -1) {
+      // Package is included by name
+      remove.push({ Name, Type });
+    } else {
+      // Remove any subpackages or classes that are in this package
+      remove.push(
+        ...items.filter(
+          (item) =>
+            (item.Type == "CLS" || item.Type == "PKG") && item.Name.toLowerCase().startsWith(`${Name.toLowerCase()}.`)
+        )
+      );
+    }
+  } else if (
+    Type == "CSP" &&
+    items.findIndex((item) => item.Type == "CSP" && item.Name.toLowerCase() == Name.toLowerCase()) != -1
+  ) {
+    remove.push({ Name, Type });
+  } else if (Type == "DIR") {
+    if (items.findIndex((item) => item.Type == "DIR" && item.Name.toLowerCase() == Name.toLowerCase()) != -1) {
+      // Directory is included by name
+      remove.push({ Name, Type });
+    } else {
+      // Remove any subdirectories or files that are in this directory
+      remove.push(
+        ...items.filter(
+          (item) =>
+            (item.Type == "CSP" || item.Type == "DIR") && item.Name.toLowerCase().startsWith(`${Name.toLowerCase()}/`)
+        )
+      );
+    }
+  } else if (Type == "OTH" && items.findIndex((item) => item.Name.toLowerCase() == Name.toLowerCase()) != -1) {
+    remove.push({ Name, Type });
+  }
+
+  return remove;
+}
+
+interface PickAdditionsItem extends vscode.QuickPickItem {
+  /** The full name of this item, including its parent(s). */
+  fullName: string;
+}
+
+function sodItemToPickAdditionsItem(
+  item: { Name: string; Type?: number },
+  parent?: string,
+  parentPad?: number
+): PickAdditionsItem {
+  const result: PickAdditionsItem = { label: item.Name, fullName: item.Name };
+  // Add the icon
+  if (item.Type == undefined || item.Type == 0) {
+    if (item.Name.endsWith(".inc")) {
+      result.label = "$(file-symlink-file) " + result.label;
+    } else if (item.Name.endsWith(".int") || item.Name.endsWith(".mac")) {
+      result.label = "$(note) " + result.label;
+    } else {
+      result.label = "$(symbol-misc) " + result.label;
+    }
+  } else {
+    if (item.Type == 10) {
+      result.label = "$(folder) " + result.label;
+    } else if (item.Type == 9) {
+      result.label = "$(package) " + result.label;
+    } else if (item.Type == 4) {
+      result.label = "$(symbol-class) " + result.label;
+    } else {
+      result.label = "$(symbol-file) " + result.label;
+    }
+  }
+  if (parent) {
+    // Update the full name and label padding if this is a nested item
+    let delim = ".";
+    if (parent.includes("/")) {
+      delim = "/";
+    }
+    result.fullName = parent + delim + item.Name;
+    result.label = " ".repeat(parentPad + 2) + result.label;
+    result.description = result.fullName;
+  }
+  if (item.Type && (item.Type == 9 || item.Type == 10)) {
+    // Add the expand button if this is a package or directory
+    result.buttons = [
+      {
+        iconPath: new vscode.ThemeIcon("chevron-left"),
+        tooltip: "Expand",
+      },
+    ];
+  }
+  return result;
+}
+
+async function pickAdditions(
+  api: AtelierAPI,
+  project: string,
+  items: ProjectItem[],
+  category?: string
+): Promise<string[]> {
+  let query: string;
+  let parameters: string[];
+  let sys: "0" | "1" = "0";
+  let gen: "0" | "1" = "0";
+  if (category == "RTN") {
+    query =
+      "SELECT Name FROM %Library.RoutineMgr_StudioOpenDialog('*.mac,*.int',1,1,?,1,0,?) " +
+      "WHERE Name NOT IN (SELECT Name FROM %Studio.Project_ProjectItemsList(?,1) WHERE Type = 'MAC')";
+    parameters = [sys, gen, project];
+  } else if (category == "INC") {
+    query =
+      "SELECT Name FROM %Library.RoutineMgr_StudioOpenDialog('*.inc',1,1,?,1,0,?) " +
+      "WHERE Name NOT IN (SELECT Name FROM %Studio.Project_ProjectItemsList(?,1) WHERE Type = 'MAC')";
+    parameters = [sys, gen, project];
+  } else if (category == "OTH") {
+    query =
+      "SELECT Name FROM %Library.RoutineMgr_StudioOpenDialog('*.other',1,1,?,1,0,?) " +
+      "WHERE Name NOT IN (SELECT Name FROM %Studio.Project_ProjectItemsList(?,1))";
+    parameters = [sys, gen, project];
+  } else if (category == "CLS") {
+    query =
+      "SELECT sod.Name, sod.Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,?,0,0,?) AS sod " +
+      "LEFT JOIN %Studio.Project_ProjectItemsList(?) AS pil ON (pil.Type = 'PKG' AND ?||sod.Name = pil.Name) OR " +
+      "(pil.Type = 'CLS' AND ?||sod.Name = pil.Name||'.cls') WHERE pil.ID IS NULL";
+    parameters = ["*.cls", sys, gen, project, "", ""];
+  } else if (category == "CSP") {
+    query =
+      "SELECT sod.Name, sod.Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,?,0,0,?) AS sod " +
+      "LEFT JOIN %Studio.Project_ProjectItemsList(?,1) AS pil ON (pil.Type = 'CSP' OR pil.Type = 'DIR') " +
+      "AND ?||sod.Name = pil.Name WHERE pil.ID IS NULL";
+    parameters = ["*", sys, gen, project, ""];
+  } else {
+    query =
+      "SELECT Name, NULL AS Type FROM %Library.RoutineMgr_StudioOpenDialog('*.mac,*.int,*.inc,*.other',1,1,?,1,0,?) " +
+      "WHERE Name NOT IN (SELECT Name FROM %Studio.Project_ProjectItemsList(?,1)) " +
+      "UNION " +
+      "SELECT sod.Name, sod.Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,?,0,0,?) AS sod " +
+      "LEFT JOIN %Studio.Project_ProjectItemsList(?) AS pil ON (pil.Type = 'PKG' AND ?||sod.Name = pil.Name) OR " +
+      "(pil.Type = 'CLS' AND ?||sod.Name = pil.Name||'.cls') WHERE pil.ID IS NULL";
+    parameters = [sys, gen, project, "*.cls", sys, gen, project, "", ""];
+  }
+
+  return new Promise<string[]>((resolve) => {
+    let result: string[] = [];
+    const quickPick = vscode.window.createQuickPick<PickAdditionsItem>();
+    quickPick.title = `Select items to add to project '${project}'.`;
+    quickPick.ignoreFocusOut = true;
+    quickPick.canSelectMany = true;
+    quickPick.keepScrollPosition = true;
+    quickPick.matchOnDescription = true;
+    quickPick.buttons = [
+      { iconPath: new vscode.ThemeIcon("library"), tooltip: "Show system items" },
+      { iconPath: new vscode.ThemeIcon("server-process"), tooltip: "Show generated items" },
+    ];
+
+    const getCSPRootItems = (): Promise<PickAdditionsItem[]> => {
+      return api.getCSPApps().then((data) =>
+        data.result.content
+          .map((i: string) => {
+            const app = i.slice(1);
+            if (items.findIndex((pi) => pi.Type == "DIR" && pi.Name == app) == -1) {
+              return {
+                label: "$(folder) " + app,
+                fullName: app,
+                buttons: [
+                  {
+                    iconPath: new vscode.ThemeIcon("chevron-left"),
+                    tooltip: "Expand",
+                  },
+                ],
+              };
+            }
+            return null;
+          })
+          .filter(notNull)
+      );
+    };
+    const getRootItems = (): Promise<void> => {
+      let itemsPromise: Promise<PickAdditionsItem[]>;
+      if (category != undefined && category != "CSP") {
+        itemsPromise = api
+          .actionQuery(query, parameters)
+          .then((data) => data.result.content.map((i) => sodItemToPickAdditionsItem(i)));
+      } else if (category == "CSP") {
+        itemsPromise = getCSPRootItems();
+      } else {
+        itemsPromise = api.actionQuery(query, parameters).then((data) => {
+          const rootitems: PickAdditionsItem[] = data.result.content.map((i) => sodItemToPickAdditionsItem(i));
+          return getCSPRootItems().then((csprootitems) =>
+            rootitems.concat(csprootitems).sort((a, b) => {
+              const labelA = a.label.split(" ")[1].toLowerCase();
+              const labelB = b.label.split(" ")[1].toLowerCase();
+              if (labelA.toLowerCase() < labelB.toLowerCase()) return -1;
+              if (labelA.toLowerCase() > labelB.toLowerCase()) return 1;
+              return 0;
+            })
+          );
+        });
+      }
+
+      return itemsPromise
+        .then((items) => {
+          quickPick.items = items;
+          quickPick.busy = false;
+        })
+        .catch((error) => {
+          quickPick.hide();
+          let message = `Failed to get namespace contents.`;
+          if (error && error.errorText && error.errorText !== "") {
+            outputChannel.appendLine("\n" + error.errorText);
+            outputChannel.show(true);
+            message += " Check 'ObjectScript' output channel for details.";
+          }
+          vscode.window.showErrorMessage(message, "Dismiss");
+        });
+    };
+    const expandItem = (itemIdx: number): Promise<void> => {
+      const selected = quickPick.selectedItems;
+      const item = quickPick.items[itemIdx];
+      quickPick.items[itemIdx].buttons = [
+        {
+          iconPath: new vscode.ThemeIcon("chevron-down"),
+          tooltip: "Collapse",
+        },
+      ];
+      let tmpQuery = query;
+      let tmpParams: string[];
+      if (category == "CLS" || !item.fullName.includes("/")) {
+        tmpParams = [item.fullName + "/*.cls", sys, gen, project, item.fullName + ".", item.fullName + "."];
+      } else {
+        tmpParams = [item.fullName + "/*", sys, gen, project, item.fullName + "/"];
+      }
+      if (category == undefined) {
+        if (item.fullName.includes("/")) {
+          tmpQuery =
+            "SELECT sod.Name, sod.Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,?,0,0,?) AS sod " +
+            "LEFT JOIN %Studio.Project_ProjectItemsList(?,1) AS pil ON (pil.Type = 'CSP' OR pil.Type = 'DIR') " +
+            "AND ?||sod.Name = pil.Name WHERE pil.ID IS NULL";
+        } else {
+          tmpQuery =
+            "SELECT sod.Name, sod.Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,?,0,0,?) AS sod " +
+            "LEFT JOIN %Studio.Project_ProjectItemsList(?) AS pil ON (pil.Type = 'PKG' AND ?||sod.Name = pil.Name) OR " +
+            "(pil.Type = 'CLS' AND ?||sod.Name = pil.Name||'.cls') WHERE pil.ID IS NULL";
+        }
+      }
+      if (Array.isArray(tmpParams)) {
+        return api
+          .actionQuery(tmpQuery, tmpParams)
+          .then((data) => {
+            const insertItems: PickAdditionsItem[] = data.result.content.map((i) =>
+              sodItemToPickAdditionsItem(i, item.fullName, item.label.search(/\S/))
+            );
+            const newItems = [...quickPick.items];
+            newItems.splice(itemIdx + 1, 0, ...insertItems);
+            quickPick.items = newItems;
+            quickPick.selectedItems = selected;
+            quickPick.busy = false;
+          })
+          .catch((error) => {
+            quickPick.hide();
+            let message = `Failed to get namespace contents.`;
+            if (error && error.errorText && error.errorText !== "") {
+              outputChannel.appendLine("\n" + error.errorText);
+              outputChannel.show(true);
+              message += " Check 'ObjectScript' output channel for details.";
+            }
+            vscode.window.showErrorMessage(message, "Dismiss");
+          });
+      }
+    };
+
+    quickPick.onDidChangeSelection((items) => {
+      result = items.map((item) =>
+        item.buttons && item.buttons.length && !item.fullName.includes("/") ? item.fullName + ".pkg" : item.fullName
+      );
+    });
+    quickPick.onDidTriggerButton((button) => {
+      quickPick.busy = true;
+      if (button.tooltip.charAt(0) == "S") {
+        if (button.tooltip.includes("system")) {
+          // Update the button
+          quickPick.buttons = [
+            { iconPath: new vscode.ThemeIcon("library"), tooltip: "Hide system items" },
+            quickPick.buttons[1],
+          ];
+          // Change value of correct parameter in array
+          sys = "1";
+          if (["RTN", "INC", "OTH"].includes(category)) {
+            parameters[0] = sys;
+          } else if (category != undefined) {
+            parameters[1] = sys;
+          } else {
+            parameters[0] = sys;
+            parameters[4] = sys;
+          }
+        } else {
+          quickPick.buttons = [
+            quickPick.buttons[0],
+            { iconPath: new vscode.ThemeIcon("server-process"), tooltip: "Hide generated items" },
+          ];
+          gen = "1";
+          if (["RTN", "INC", "OTH"].includes(category)) {
+            parameters[1] = gen;
+          } else if (category != undefined) {
+            parameters[2] = gen;
+          } else {
+            parameters[1] = gen;
+            parameters[5] = gen;
+          }
+        }
+      } else {
+        if (button.tooltip.includes("system")) {
+          quickPick.buttons = [
+            { iconPath: new vscode.ThemeIcon("library"), tooltip: "Show system items" },
+            quickPick.buttons[1],
+          ];
+          sys = "0";
+          if (["RTN", "INC", "OTH"].includes(category)) {
+            parameters[0] = sys;
+          } else if (category != undefined) {
+            parameters[1] = sys;
+          } else {
+            parameters[0] = sys;
+            parameters[4] = sys;
+          }
+        } else {
+          quickPick.buttons = [
+            quickPick.buttons[0],
+            { iconPath: new vscode.ThemeIcon("server-process"), tooltip: "Show generated items" },
+          ];
+          gen = "0";
+          if (["RTN", "INC", "OTH"].includes(category)) {
+            parameters[1] = gen;
+          } else if (category != undefined) {
+            parameters[2] = gen;
+          } else {
+            parameters[1] = gen;
+            parameters[5] = gen;
+          }
+        }
+      }
+      // Refresh the items list
+      getRootItems();
+    });
+    quickPick.onDidTriggerItemButton((event) => {
+      quickPick.busy = true;
+      const itemIdx = quickPick.items.findIndex((i) => i.fullName === event.item.fullName);
+      if (event.button.tooltip.charAt(0) == "E") {
+        // Expand this item
+        expandItem(itemIdx);
+      } else {
+        // Collapse this item
+        const selected = quickPick.selectedItems;
+        quickPick.items[itemIdx].buttons = [
+          {
+            iconPath: new vscode.ThemeIcon("chevron-left"),
+            tooltip: "Expand",
+          },
+        ];
+        quickPick.items = quickPick.items.filter(
+          (i) => !i.fullName.startsWith(event.item.fullName + (event.item.fullName.includes("/") ? "/" : "."))
+        );
+        quickPick.selectedItems = selected;
+        quickPick.busy = false;
+      }
+    });
+    quickPick.onDidChangeValue((filter: string) => {
+      if (
+        ((category == "CLS" || category == undefined) && filter.endsWith(".")) ||
+        ((category == "CSP" || category == undefined) && filter.endsWith("/"))
+      ) {
+        const itemIdx = quickPick.items.findIndex(
+          (i) => i.fullName.toLowerCase() === filter.slice(0, -1).toLowerCase()
+        );
+        if (
+          itemIdx != -1 &&
+          quickPick.items[itemIdx].buttons.length &&
+          quickPick.items[itemIdx].buttons[0].tooltip.charAt(0) == "E"
+        ) {
+          // Expand this item
+          quickPick.busy = true;
+          expandItem(itemIdx);
+        }
+      }
+    });
+    quickPick.onDidAccept(() => {
+      resolve(result);
+      quickPick.hide();
+    });
+    quickPick.onDidHide(() => {
+      resolve([]);
+      quickPick.dispose();
+    });
+    quickPick.busy = true;
+    quickPick.show();
+    getRootItems();
+  });
+}
+
+export async function modifyProject(
+  nodeOrUri: NodeBase | vscode.Uri | undefined,
+  type: "add" | "remove"
+): Promise<any> {
+  let node: NodeBase;
+  let api: AtelierAPI;
+  let project: string;
+  if (nodeOrUri instanceof NodeBase) {
+    // Called from Projects Explorer
+    node = nodeOrUri;
+    api = new AtelierAPI(node.workspaceFolderUri);
+    api.setNamespace(node.namespace);
+    project = node.options.project;
+  } else if (nodeOrUri instanceof vscode.Uri) {
+    // Called from files explorer
+    api = new AtelierAPI(nodeOrUri);
+    project = new URLSearchParams(nodeOrUri.query).get("project");
+  } else {
+    // Function was called from the command palette so there's no first argument
+    // Have the user pick a server and namespace
+    const picks = await pickServerAndNamespace();
+    if (picks == undefined) {
+      return;
+    }
+    const { serverName, namespace } = picks;
+    api = new AtelierAPI(vscode.Uri.parse(`isfs://${serverName}:${namespace}/`));
+  }
+  if (project === undefined) {
+    project = await pickProject(api);
+    if (project === undefined) {
+      return;
+    }
+  }
+  let items: ProjectItem[] = await api
+    .actionQuery("SELECT Name, Type FROM %Studio.Project_ProjectItemsList(?,?) WHERE Type != 'GBL'", [project, "1"])
+    .then((data) => data.result.content);
+  let add: ProjectItem[] = [];
+  let remove: ProjectItem[] = [];
+  if (type == "add") {
+    const category = node !== undefined && node instanceof ProjectRootNode ? node.category : undefined;
+    const picks = await pickAdditions(api, project, items, category);
+    if (picks !== undefined && picks.length) {
+      for (const pick of picks) {
+        // Determine the type of this item
+        let type: string;
+        const ext: string = pick.split(".").pop().toLowerCase();
+        if (["mac", "int", "inc"].includes(ext)) {
+          type = "MAC";
+        } else if (ext == "cls") {
+          type = "CLS";
+        } else if (ext == "pkg") {
+          type = "PKG";
+        } else if (pick.includes("/")) {
+          if (pick.split("/").pop().includes(".")) {
+            type = "CSP";
+          } else {
+            type = "DIR";
+          }
+        } else {
+          type = "OTH";
+        }
+
+        let newAdd: ProjectItem[] = [];
+        let newRemove: ProjectItem[] = [];
+        const addResult = addProjectItem(type == "CLS" || type == "PKG" ? pick.slice(0, -4) : pick, type, items);
+        newAdd = addResult.add;
+        newRemove = addResult.remove;
+
+        // Perform the new adds and removes
+        if (newRemove.length) {
+          items = items.filter((item) => !newRemove.map((i) => JSON.stringify(i)).includes(JSON.stringify(item)));
+        }
+        if (newAdd.length) {
+          items.push(...newAdd);
+        }
+        // Add them to the total adds and removes
+        add.push(...newAdd);
+        remove.push(...newRemove);
+      }
+      // Remove any elements that are in both the add and remove array
+      const intersect = add
+        .map((i) => JSON.stringify(i))
+        .filter((item) => remove.map((i) => JSON.stringify(i)).includes(item));
+      add = add.filter((item) => !intersect.includes(JSON.stringify(item)));
+      remove = remove.filter((item) => !intersect.includes(JSON.stringify(item)));
+    }
+  } else {
+    if (node !== undefined && !(node instanceof ProjectNode)) {
+      if (node instanceof RoutineNode) {
+        remove.push(...removeProjectItem(node.fullName, "MAC", items));
+      } else if (node instanceof CSPFileNode) {
+        remove.push(
+          ...removeProjectItem(node.fullName.startsWith("/") ? node.fullName.slice(1) : node.fullName, "CSP", items)
+        );
+      } else if (node instanceof ClassNode) {
+        if (node.fullName.endsWith(".cls")) {
+          remove.push(...removeProjectItem(node.fullName.slice(0, -4), "CLS", items));
+        } else {
+          remove.push(...removeProjectItem(node.fullName, "OTH", items));
+        }
+      } else if (node instanceof ProjectRootNode) {
+        if (node.category == "CLS") {
+          remove.push(...removeProjectItem(node.fullName, "PKG", items));
+        } else if (node.category == "CSP") {
+          remove.push(
+            ...removeProjectItem(node.fullName.startsWith("/") ? node.fullName.slice(1) : node.fullName, "DIR", items)
+          );
+        } else if (node.category == "OTH") {
+          // Remove all items of Type "OTH" with this prefix
+          remove.push(...items.filter((item) => item.Name.startsWith(`${node.fullName}.`) && item.Type == "OTH"));
+        } else if (node.category == "INC") {
+          // Remove all items of Type "MAC" with this prefix and the .inc extension
+          remove.push(
+            ...items.filter(
+              (item) =>
+                item.Name.toLowerCase().startsWith(`${node.fullName.toLowerCase()}.`) &&
+                item.Name.toLowerCase().endsWith(".inc") &&
+                item.Type == "MAC"
+            )
+          );
+        } else {
+          // Remove all items of Type "MAC" with this prefix and the .int or .mac extensions
+          remove.push(
+            ...items.filter(
+              (item) =>
+                item.Name.toLowerCase().startsWith(`${node.fullName.toLowerCase()}.`) &&
+                (item.Name.toLowerCase().endsWith(".int") || item.Name.toLowerCase().endsWith(".mac")) &&
+                item.Type == "MAC"
+            )
+          );
+        }
+      }
+    } else if (
+      nodeOrUri instanceof vscode.Uri &&
+      vscode.workspace.workspaceFolders.findIndex((wf) => wf.uri.toString() == nodeOrUri.toString()) == -1
+    ) {
+      // Non-root item in files explorer
+      if (nodeOrUri.path.includes(".")) {
+        // This is a file, so remove it
+        const csp = isCSPFile(nodeOrUri);
+        const fileName = csp ? nodeOrUri.path : nodeOrUri.path.slice(1).replace(/\//g, ".");
+        let prjFileName = fileName.startsWith("/") ? fileName.slice(1) : fileName;
+        const ext = prjFileName.split(".").pop().toLowerCase();
+        prjFileName = ext == "cls" ? prjFileName.slice(0, -4) : prjFileName;
+        const prjType = csp ? "CSP" : ext == "cls" ? "CLS" : ["mac", "int", "inc"].includes(ext) ? "MAC" : "OTH";
+        remove.push(...removeProjectItem(prjFileName, prjType, items));
+      } else {
+        // This is a directory, so remove everything in it
+        const dir = nodeOrUri.path.startsWith("/") ? nodeOrUri.path.slice(1) : nodeOrUri.path;
+        const cspdir = dir.toLowerCase() + "/";
+        const cosdir = dir.replace(/\//g, ".").toLowerCase() + ".";
+        remove.push(
+          ...items.filter(
+            (item) => item.Name.toLowerCase().startsWith(cspdir) || item.Name.toLowerCase().startsWith(cosdir)
+          )
+        );
+      }
+    } else {
+      if (items.length == 0) {
+        vscode.window.showInformationMessage(`Project '${project}' is empty.`, "Dismiss");
+      } else {
+        const removeQPIs = await vscode.window.showQuickPick(
+          items.map((item) => {
+            return {
+              label: item.Type == "CLS" ? `${item.Name}.cls` : item.Type == "PKG" ? `${item.Name}.pkg` : item.Name,
+              ...item,
+            };
+          }),
+          {
+            ignoreFocusOut: true,
+            canPickMany: true,
+            placeHolder: `Select the items to remove from project '${project}'.`,
+          }
+        );
+        if (removeQPIs !== undefined) {
+          remove = removeQPIs.map((qpi) => {
+            return { Name: qpi.Name, Type: qpi.Type };
+          });
+        }
+      }
+    }
+  }
+
+  try {
+    if (remove.length) {
+      // Delete the obsolete items
+      await api.actionQuery(
+        "DELETE FROM %Studio.ProjectItem WHERE Project = ? AND LOWER(Name||Type) %INLIST $LISTFROMSTRING(?)",
+        [
+          project,
+          remove
+            .map((item) => `${item.Name}${item.Type}`)
+            .join(",")
+            .toLowerCase(),
+        ]
+      );
+    }
+    if (add.length) {
+      // Add any new items
+      await api.actionQuery(
+        `INSERT INTO %Studio.ProjectItem (Project,Name,Type) SELECT * FROM (${add
+          .map((item) => `SELECT '${project}','${item.Name}','${item.Type}'`)
+          .join(" UNION ")})`,
+        []
+      );
+    }
+  } catch (error) {
+    let message = `Failed to modify project '${project}'.`;
+    if (error && error.errorText && error.errorText !== "") {
+      outputChannel.appendLine("\n" + error.errorText);
+      outputChannel.show(true);
+      message += " Check 'ObjectScript' output channel for details.";
+    }
+    return vscode.window.showErrorMessage(message, "Dismiss");
+  }
+
+  if (add.length || remove.length) {
+    // Refesh the explorer
+    projectsExplorerProvider.refresh();
+
+    // Refresh the files explorer if there's an isfs folder for this project
+    if (node == undefined && isfsFolderForProject(project, node ?? api.configName) != -1) {
+      await vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
+    }
+  }
+
+  try {
+    if (add.length || remove.length) {
+      // Fire the source control hook
+      const prjUri =
+        node instanceof NodeBase
+          ? node.workspaceFolder != undefined
+            ? DocumentContentProvider.getUri(`${project}.PRJ`, node.workspaceFolder, node.namespace)
+            : DocumentContentProvider.getUri(`${project}.PRJ`, undefined, undefined, true, node.workspaceFolderUri)
+          : DocumentContentProvider.getUri(
+              `${project}.PRJ`,
+              "",
+              "",
+              true,
+              vscode.Uri.parse(`isfs://${api.config.serverName}:${api.config.ns}/`)
+            );
+      await fireOtherStudioAction(OtherStudioAction.AttemptedEdit, prjUri);
+    }
+  } catch (error) {
+    let message = `Failed to fire source control hook for '${project}.PRJ'.`;
+    if (error && error.errorText && error.errorText !== "") {
+      outputChannel.appendLine("\n" + error.errorText);
+      outputChannel.show(true);
+      message += " Check 'ObjectScript' output channel for details.";
+    }
+    vscode.window.showErrorMessage(message, "Dismiss");
+  }
+}
+
+export async function exportProjectContents(node: ProjectNode | undefined): Promise<any> {
+  let workspaceFolder: string;
+  const api = new AtelierAPI(node.workspaceFolderUri);
+  api.setNamespace(node.namespace);
+  const project = node.label;
+  if (node.workspaceFolderUri.scheme == "file") {
+    workspaceFolder = node.workspaceFolder;
+  } else {
+    const conn = config("conn", node.workspaceFolder);
+    const workspaceList = vscode.workspace.workspaceFolders
+      .filter((folder) => {
+        if (schemas.includes(folder.uri.scheme)) {
+          return false;
+        }
+        const wFolderConn = config("conn", folder.name);
+        if (!compareConns(conn, wFolderConn)) {
+          return false;
+        }
+        if (!wFolderConn.active) {
+          return false;
+        }
+        if (wFolderConn.ns.toLowerCase() != node.namespace.toLowerCase()) {
+          return false;
+        }
+        return true;
+      })
+      .map((el) => el.name);
+    if (workspaceList.length > 1) {
+      const selection = await vscode.window.showQuickPick(workspaceList, {
+        placeHolder: "Select the workspace folder to export files to.",
+      });
+      if (selection === undefined) {
+        return;
+      }
+      workspaceFolder = selection;
+    } else if (workspaceList.length === 1) {
+      workspaceFolder = workspaceList.pop();
+    } else {
+      vscode.window.showInformationMessage(
+        "There are no folders in the current workspace that code can be exported to.",
+        "Dismiss"
+      );
+      return;
+    }
+  }
+  if (workspaceFolder === undefined) {
+    return;
+  }
+  const exportFiles: string[] = await api
+    .actionQuery(
+      "SELECT CASE WHEN sod.Name %STARTSWITH '/' THEN SUBSTR(sod.Name,2) ELSE sod.Name END Name " +
+        "FROM %Library.RoutineMgr_StudioOpenDialog('*',1,1,1,1,0,1) AS sod JOIN %Studio.Project_ProjectItemsList(?) AS pil " +
+        "ON sod.Name = pil.Name OR (pil.Type = 'CLS' AND pil.Name||'.cls' = sod.Name) " +
+        "OR (pil.Type = 'CSP' AND pil.Name = SUBSTR(sod.Name,2)) OR (pil.Type = 'DIR' AND sod.Name %STARTSWITH '/'||pil.Name||'/')",
+      [project]
+    )
+    .then((data) => data.result.content.map((e) => e.Name));
+  return exportList(exportFiles, workspaceFolder, node.namespace);
+}
+
+export async function compileProjectContents(node: ProjectNode): Promise<any> {
+  const { workspaceFolderUri, namespace, label } = node;
+  const api = new AtelierAPI(workspaceFolderUri);
+  api.setNamespace(namespace);
+  const compileList: string[] = await api
+    .actionQuery(
+      "SELECT CASE WHEN Type = 'PKG' THEN Name||'.*.cls' WHEN Type = 'CLS' THEN Name||'.cls' ELSE Name END Name " +
+        "FROM %Studio.Project_ProjectItemsList(?,1) WHERE Type != 'GBL' AND Type != 'DIR' " +
+        "AND (Type != 'CSP' OR (Type = 'CSP' AND $PIECE(Name,'.',2) %INLIST $LISTFROMSTRING('csp,csr,CSP,CSR'))) " +
+        "UNION SELECT SUBSTR(sod.Name,2) AS Name FROM %Library.RoutineMgr_StudioOpenDialog('*.csp,*.csr',1,1,1,1,0,1) AS sod " +
+        "JOIN %Studio.Project_ProjectItemsList(?,1) AS pil ON pil.Type = 'DIR' AND sod.Name %STARTSWITH '/'||pil.Name||'/'",
+      [label, label]
+    )
+    .then((data) => data.result.content.map((e) => e.Name));
+  return vscode.window.withProgress(
+    {
+      cancellable: true,
+      location: vscode.ProgressLocation.Notification,
+      title: `Compiling project '${label}'`,
+    },
+    (progress, token: vscode.CancellationToken) =>
+      api
+        .asyncCompile(compileList, token, config().compileFlags)
+        .then((data) => {
+          if (data.status && data.status.errors && data.status.errors.length) {
+            throw new Error("Compile error");
+          } else if (!config("suppressCompileMessages")) {
+            vscode.window.showInformationMessage("Compilation succeeded.", "Dismiss");
+          }
+        })
+        .catch(() => {
+          if (!config("suppressCompileErrorMessages")) {
+            vscode.window
+              .showErrorMessage(
+                `Compilation failed. Check 'ObjectScript' output channel for details.`,
+                "Show",
+                "Dismiss"
+              )
+              .then((action) => {
+                if (action === "Show") {
+                  outputChannel.show(true);
+                }
+              });
+          }
+        })
+  );
+}
+
+/**
+ * Returns the index of the first isfs folder in this workspace that is linked to `project`.
+ */
+function isfsFolderForProject(project: string, nodeOrWorkspaceFolder: string | NodeBase): number {
+  let conn: any;
+  if (typeof nodeOrWorkspaceFolder == "string") {
+    conn = config("conn", nodeOrWorkspaceFolder);
+  } else {
+    if (nodeOrWorkspaceFolder.workspaceFolder != undefined) {
+      conn = config("conn", nodeOrWorkspaceFolder.workspaceFolder);
+    } else {
+      const connConfig = new AtelierAPI(nodeOrWorkspaceFolder.workspaceFolderUri).config;
+      conn = {
+        ns: connConfig.ns,
+        server: connConfig.serverName,
+        host: connConfig.host,
+        port: connConfig.port,
+      };
+    }
+  }
+  return vscode.workspace.workspaceFolders.findIndex((folder) => {
+    const params = new URLSearchParams(folder.uri.query);
+    if (
+      filesystemSchemas.includes(folder.uri.scheme) &&
+      compareConns(conn, config("conn", folder.name)) &&
+      params.has("project") &&
+      params.get("project") == project
+    ) {
+      return true;
+    }
+    return false;
+  });
+}
+
+/**
+ * Special version of `modifyProject()` that is only called when an `isfs` file in a project folder is created.
+ */
+export async function addIsfsFileToProject(
+  project: string,
+  uri: vscode.Uri,
+  fileName: string,
+  csp: boolean,
+  api: AtelierAPI
+): Promise<void> {
+  let prjFileName = fileName.startsWith("/") ? fileName.slice(1) : fileName;
+  const ext = prjFileName.split(".").pop().toLowerCase();
+  prjFileName = ext == "cls" ? prjFileName.slice(0, -4) : prjFileName;
+  const prjType = csp ? "CSP" : ext == "cls" ? "CLS" : ["mac", "int", "inc"].includes(ext) ? "MAC" : "OTH";
+  const items: ProjectItem[] = await api
+    .actionQuery("SELECT Name, Type FROM %Studio.Project_ProjectItemsList(?,?) WHERE Type != 'GBL'", [project, "1"])
+    .then((data) => data.result.content);
+  let add: ProjectItem[] = [];
+  const addResult = addProjectItem(prjFileName, prjType, items);
+  add = addResult.add;
+
+  try {
+    if (add.length) {
+      // Add any new items
+      await api.actionQuery(
+        `INSERT INTO %Studio.ProjectItem (Project,Name,Type) SELECT * FROM (${add
+          .map((item) => `SELECT '${project}','${item.Name}','${item.Type}'`)
+          .join(" UNION ")})`,
+        []
+      );
+    }
+  } catch (error) {
+    let message = `Failed to modify project '${project}'.`;
+    if (error && error.errorText && error.errorText !== "") {
+      outputChannel.appendLine("\n" + error.errorText);
+      outputChannel.show(true);
+      message += " Check 'ObjectScript' output channel for details.";
+    }
+    vscode.window.showErrorMessage(message, "Dismiss");
+    return;
+  }
+
+  try {
+    if (add.length) {
+      // Fire the source control hook
+      await fireOtherStudioAction(
+        OtherStudioAction.AttemptedEdit,
+        uri.with({
+          path: `/${project}.PRJ`,
+        })
+      );
+    }
+  } catch (error) {
+    let message = `Failed to fire source control hook for '${project}.PRJ'.`;
+    if (error && error.errorText && error.errorText !== "") {
+      outputChannel.appendLine("\n" + error.errorText);
+      outputChannel.show(true);
+      message += " Check 'ObjectScript' output channel for details.";
+    }
+    vscode.window.showErrorMessage(message, "Dismiss");
+  }
+}
+
+export function addWorkspaceFolderForProject(node: ProjectNode): void {
+  // Check if an isfs folder already exists for this project
+  const idx = isfsFolderForProject(node.label, node);
+  // If not, create one
+  if (idx != -1) {
+    vscode.window.showWarningMessage(`A workspace folder for this project already exists.`, "Dismiss");
+    return;
+  }
+  // Append it to the workspace
+  vscode.workspace.updateWorkspaceFolders(
+    vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length : 0,
+    0,
+    {
+      uri: vscode.Uri.parse(`isfs://${node.conn.serverName}:${node.namespace}/?project=${node.label}`),
+      name: `${node.label} (${node.conn.serverName}:${node.namespace.toUpperCase()})`,
+    }
+  );
+  // Switch to Explorer view so user sees the outcome
+  vscode.commands.executeCommand("workbench.view.explorer");
+}

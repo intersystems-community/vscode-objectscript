@@ -2,23 +2,120 @@ import * as vscode from "vscode";
 import { NodeBase } from "./models/nodeBase";
 
 import { AtelierAPI } from "../api";
-import { config } from "../extension";
+import { config, projectsExplorerProvider, OBJECTSCRIPT_FILE_SCHEMA } from "../extension";
 import { WorkspaceNode } from "./models/workspaceNode";
+import { outputChannel, workspaceFolderOfUri } from "../utils";
+import { fireOtherStudioAction, OtherStudioAction } from "../commands/studio";
+import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 
-// The vscode-objectscript.explorer.open command is not listed in settings.json as a contribution because it only gets invoked
-//  from the user's click on an item in the ObjectScriptExplorerProvider tree.
-// It serves as a proxy for the vscode.open command, detecting two opens of the same item in quick succession
-//  and treating the second of these as a non-preview open.
+/** Get the URI for this leaf node */
+export function getLeafNodeUri(node: NodeBase, forceServerCopy = false): vscode.Uri {
+  if (node.workspaceFolder == undefined) {
+    // Should only be the case for leaf nodes in the projects explorer
+    // that are children of an extra server namepsace node
+    return DocumentContentProvider.getUri(
+      node.fullName,
+      undefined,
+      undefined,
+      true,
+      node.workspaceFolderUri,
+      forceServerCopy
+    );
+  } else {
+    return DocumentContentProvider.getUri(
+      node.fullName,
+      node.workspaceFolder,
+      node.namespace,
+      undefined,
+      undefined,
+      forceServerCopy
+    );
+  }
+}
+
+/**
+ * The vscode-objectscript.explorer.open command is not listed in settings.json as a contribution because it only gets invoked
+ * from the user's click on an item in the `ObjectScriptExplorerProvider` or `ProjectsExplorerProvider` tree.
+ * It serves as a proxy for `vscode.window.showTextDocument()`, detecting two opens of the same item in quick succession
+ * and treating the second of these as a non-preview open.
+ */
 export function registerExplorerOpen(explorerProvider: ObjectScriptExplorerProvider): vscode.Disposable {
-  return vscode.commands.registerCommand("vscode-objectscript.explorer.open", async function (uri: vscode.Uri) {
-    let usePreview = <boolean>vscode.workspace.getConfiguration("workbench.editor").get("enablePreview");
+  return vscode.commands.registerCommand(
+    "vscode-objectscript.explorer.open",
+    async function (uri: vscode.Uri, project?: string, fullName?: string) {
+      let usePreview = <boolean>vscode.workspace.getConfiguration("workbench.editor").get("enablePreview");
 
-    if (usePreview) {
-      usePreview = !wasDoubleClick(uri, explorerProvider);
+      if (usePreview) {
+        usePreview = !wasDoubleClick(uri, explorerProvider);
+      }
+      outputChannel.appendLine(uri.toString(true));
+      try {
+        await vscode.window.showTextDocument(uri, { preview: usePreview });
+      } catch (error) {
+        if (project && fullName) {
+          // This project item no longer exists on the server
+          // Ask the user if they would like to remove it from the project
+          const remove = await vscode.window.showErrorMessage(
+            `Document '${fullName}' does not exist on the server. Remove it from project '${project}'?`,
+            { modal: true },
+            "Yes",
+            "No"
+          );
+          if (remove == "Yes") {
+            const api = new AtelierAPI(uri);
+            try {
+              // Remove the item from the project
+              let prjFileName = fullName.startsWith("/") ? fullName.slice(1) : fullName;
+              const ext = prjFileName.split(".").pop().toLowerCase();
+              prjFileName = ext == "cls" ? prjFileName.slice(0, -4) : prjFileName;
+              const prjType = prjFileName.includes("/")
+                ? "CSP"
+                : ext == "cls"
+                ? "CLS"
+                : ["mac", "int", "inc"].includes(ext)
+                ? "MAC"
+                : "OTH";
+              await api.actionQuery("DELETE FROM %Studio.ProjectItem WHERE Project = ? AND LOWER(Name||Type) = ?", [
+                project,
+                `${prjFileName}${prjType}`.toLowerCase(),
+              ]);
+            } catch (error) {
+              let message = `Failed to remove '${fullName}' from project '${project}'.`;
+              if (error && error.errorText && error.errorText !== "") {
+                outputChannel.appendLine("\n" + error.errorText);
+                outputChannel.show(true);
+                message += " Check 'ObjectScript' output channel for details.";
+              }
+              return vscode.window.showErrorMessage(message, "Dismiss");
+            }
+
+            // Refresh the explorer
+            projectsExplorerProvider.refresh();
+
+            try {
+              // Fire the source control hook
+              await fireOtherStudioAction(
+                OtherStudioAction.AttemptedEdit,
+                uri.scheme == "file" || uri.scheme == OBJECTSCRIPT_FILE_SCHEMA
+                  ? DocumentContentProvider.getUri(`${project}.PRJ`, workspaceFolderOfUri(uri), api.config.ns)
+                  : uri.with({ path: `/${project}.PRJ` })
+              );
+            } catch (error) {
+              let message = `Failed to fire source control hook for '${project}.PRJ'.`;
+              if (error && error.errorText && error.errorText !== "") {
+                outputChannel.appendLine("\n" + error.errorText);
+                outputChannel.show(true);
+                message += " Check 'ObjectScript' output channel for details.";
+              }
+              vscode.window.showErrorMessage(message, "Dismiss");
+            }
+          }
+        } else {
+          throw error;
+        }
+      }
     }
-
-    await vscode.commands.executeCommand("vscode.open", uri, { preview: usePreview });
-  });
+  );
 }
 
 // Return true if previously called with the same arguments within the past 0.5 seconds

@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
-import * as url from "url";
-import { SearchResult, SearchMatch } from "../../api/atelier";
+import { SearchResult, SearchMatch, Response } from "../../api/atelier";
 import { AtelierAPI } from "../../api";
 import { DocumentContentProvider } from "../DocumentContentProvider";
 import { notNull, outputChannel, throttleRequests } from "../../utils";
@@ -29,12 +28,12 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
    * @param progress A progress callback that must be invoked for all results.
    * @param token A cancellation token.
    */
-  public provideTextSearchResults(
+  public async provideTextSearchResults(
     query: vscode.TextSearchQuery,
     options: vscode.TextSearchOptions,
     progress: vscode.Progress<vscode.TextSearchResult>,
     token: vscode.CancellationToken
-  ): vscode.ProviderResult<vscode.TextSearchComplete> {
+  ): Promise<vscode.TextSearchComplete> {
     const api = new AtelierAPI(options.folder);
     let counter = 0;
     if (!api.enabled) {
@@ -48,11 +47,38 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
     if (token.isCancellationRequested) {
       return;
     }
-    const queryParams = url.parse(options.folder.toString(true), true).query;
-    const sysStr = queryParams.system && queryParams.system.length ? queryParams.system.toString() : "0";
-    const genStr = queryParams.generated && queryParams.generated.length ? queryParams.generated.toString() : "0";
-    return api
-      .actionSearch({
+
+    let project: string;
+    let projectList: string[];
+    let searchPromise: Promise<Response<SearchResult[]>>;
+    const params = new URLSearchParams(options.folder.query);
+    if (params.has("project") && params.get("project").length) {
+      project = params.get("project");
+      projectList = await api
+        .actionQuery(
+          "SELECT CASE WHEN Type = 'PKG' THEN Name||'.*.cls' WHEN Type = 'CLS' THEN Name||'.cls' ELSE Name END Name " +
+            "FROM %Studio.Project_ProjectItemsList(?,1) WHERE Type != 'GBL' AND Type != 'DIR' " +
+            "UNION SELECT SUBSTR(sod.Name,2) AS Name FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,1,0,0) AS sod " +
+            "JOIN %Studio.Project_ProjectItemsList(?,1) AS pil ON pil.Type = 'DIR' AND sod.Name %STARTSWITH '/'||pil.Name||'/'",
+          [project, project]
+        )
+        .then((data) => data.result.content.map((e) => e.Name));
+      searchPromise = api.actionSearch({
+        query: query.pattern,
+        regex: query.isRegExp,
+        word: query.isWordMatch,
+        case: query.isCaseSensitive,
+        // Need to take the CSP directory off of web app files, then remove duplicates
+        files: [...new Set(projectList.map((e) => e.split("/").pop()))].join(","),
+        sys: true,
+        // If options.maxResults is null the search is supposed to return an unlimited number of results
+        // Since there's no way for us to pass "unlimited" to the server, I chose a very large number
+        max: options.maxResults ?? 100000,
+      });
+    } else {
+      const sysStr = params.has("system") && params.get("system").length ? params.get("system") : "0";
+      const genStr = params.has("generated") && params.get("generated").length ? params.get("generated") : "0";
+      searchPromise = api.actionSearch({
         query: query.pattern,
         regex: query.isRegExp,
         word: query.isWordMatch,
@@ -63,7 +89,10 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
         // If options.maxResults is null the search is supposed to return an unlimited number of results
         // Since there's no way for us to pass "unlimited" to the server, I chose a very large number
         max: options.maxResults ?? 100000,
-      })
+      });
+    }
+
+    return searchPromise
       .then((data) => data.result)
       .then(async (files: SearchResult[]) => {
         if (token.isCancellationRequested) {
@@ -74,7 +103,14 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
           files.map(
             throttleRequests(async (file: SearchResult) => {
               if (token.isCancellationRequested) {
-                throw new vscode.CancellationError();
+                return;
+              }
+              if (project != undefined && file.doc.includes("/")) {
+                // Check if this web app file is in the project
+                if (!projectList.includes(file.doc.slice(1))) {
+                  // This web app file isn't in the project, so ignore its matches
+                  return;
+                }
               }
               const uri = DocumentContentProvider.getUri(file.doc, "", "", true, options.folder);
               const content = decoder.decode(await vscode.workspace.fs.readFile(uri)).split("\n");
@@ -227,10 +263,21 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
         };
       })
       .catch((error) => {
-        outputChannel.appendLine(typeof error == "object" ? error.toString() : String(error));
+        let message = "An error occurred during the search.";
+        if (error.errorText && error.errorText !== "") {
+          outputChannel.appendLine("\n" + error.errorText);
+          message += " Check `ObjectScript` Output channel for details.";
+        } else {
+          try {
+            outputChannel.appendLine(typeof error == "object" ? JSON.stringify(error) : String(error));
+            message += " Check `ObjectScript` Output channel for details.";
+          } catch {
+            // Ignore a JSON stringify failure
+          }
+        }
         return {
           message: {
-            text: "An error occurred during the search. Check `ObjectScript` Output channel for details.",
+            text: message,
             type: vscode.TextSearchCompleteMessageType.Warning,
           },
         };
