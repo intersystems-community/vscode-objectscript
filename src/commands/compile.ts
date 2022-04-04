@@ -14,13 +14,12 @@ import {
 } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import {
+  cspAppsForUri,
   currentFile,
   CurrentFile,
   currentFileFromContent,
-  currentWorkspaceFolder,
   outputChannel,
   throttleRequests,
-  uriOfWorkspaceFolder,
 } from "../utils";
 import { PackageNode } from "../explorer/models/packageNode";
 import { NodeBase } from "../explorer/models/nodeBase";
@@ -423,10 +422,7 @@ export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<
     return importFiles([uripath], noCompile);
   }
   let globpattern = "*.{cls,inc,int,mac}";
-  const workspace = currentWorkspaceFolder();
-  const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
-  const folderPathNoWorkspaceArr = uripath.replace(workspacePath + path.sep, "").split(path.sep);
-  if (folderPathNoWorkspaceArr.includes("csp")) {
+  if (cspAppsForUri(uri).findIndex((cspApp) => uri.path.includes(cspApp + "/") || uri.path.endsWith(cspApp)) != -1) {
     // This folder is a CSP application, so import all files
     // We need to include eveything becuase CSP applications can
     // include non-InterSystems files

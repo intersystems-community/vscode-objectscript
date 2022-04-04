@@ -4,9 +4,10 @@ import { R_OK } from "constants";
 import * as url from "url";
 import { exec } from "child_process";
 import * as vscode from "vscode";
-import { config, schemas, workspaceState, terminals, extensionContext } from "../extension";
+import { config, schemas, workspaceState, terminals, extensionContext, cspApps } from "../extension";
 import { getCategory } from "../commands/export";
 import { isCSPFile } from "../providers/FileSystemProvider/FileSystemProvider";
+import { AtelierAPI } from "../api";
 
 let latestErrorMessage = "";
 export const outputChannel: {
@@ -58,6 +59,19 @@ export interface ConnectionTarget {
 }
 
 /**
+ * Get a list of all CSP web apps in the server-namespace that `uri` is connected to.
+ */
+export function cspAppsForUri(uri: vscode.Uri): string[] {
+  const api = new AtelierAPI(uri);
+  const key = (
+    api.config.serverName && api.config.serverName != ""
+      ? `${api.config.serverName}:${api.config.ns}`
+      : `${api.config.host}:${api.config.port}${api.config.pathPrefix}:${api.config.ns}`
+  ).toLowerCase();
+  return cspApps.get(key) ?? [];
+}
+
+/**
  * Determine the server name of a local non-ObjectScript file (any file that's not CLS,MAC,INT,INC).
  * @param localPath The full path to the file on disk.
  * @param workspace The workspace the file is in.
@@ -67,7 +81,8 @@ function getServerDocName(localPath: string, workspace: string, fileExt: string)
   const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
   const filePathNoWorkspaceArr = localPath.replace(workspacePath + path.sep, "").split(path.sep);
   if (fileExt !== "dfi") {
-    return filePathNoWorkspaceArr.slice(filePathNoWorkspaceArr.indexOf("csp")).join("/");
+    const uri = vscode.Uri.file(localPath);
+    return uri.path.slice(uri.path.indexOf(cspAppsForUri(uri).find((cspApp) => uri.path.includes(cspApp + "/"))));
   }
   const { atelier, folder, addCategory } = config("export", workspace);
   const root = [
@@ -92,9 +107,7 @@ export function isImportableLocalFile(file: vscode.TextDocument): boolean {
   const workspace = currentWorkspaceFolder(file);
   const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
   const filePathNoWorkspaceArr = file.fileName.replace(workspacePath + path.sep, "").split(path.sep);
-  if (filePathNoWorkspaceArr.includes("csp")) {
-    return true;
-  } else if (file.uri.path.toLowerCase().endsWith(".dfi")) {
+  if (file.uri.path.toLowerCase().endsWith(".dfi")) {
     // This is a DFI file, so make sure it matches our export settings
     const { atelier, folder, addCategory } = config("export", workspace);
     const expectedRoot = [
@@ -110,6 +123,8 @@ export function isImportableLocalFile(file: vscode.TextDocument): boolean {
         return true;
       }
     }
+  } else {
+    return cspAppsForUri(file.uri).findIndex((cspApp) => file.uri.path.includes(cspApp + "/")) != -1;
   }
   return false;
 }
