@@ -889,6 +889,7 @@
             "atelier": true,
             "generated": false,
             "filter": "",
+            "exactFilter": "",
             "category": "*",
             "noStorage": false,
             "dontExportIfNoChanges": false,
@@ -946,6 +947,10 @@
             },
             "filter": {
               "markdownDescription": "SQL filter to limit what to export. The filter is applied to document names using the [LIKE predicate](https://irisdocs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_like) (i.e. `Name LIKE '%filter%'`).",
+              "type": "string"
+            },
+            "exactFilter": {
+              "markdownDescription": "SQL filter to limit what to export. The filter is applied to document names using the [LIKE predicate](https://irisdocs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_like) (i.e. `Name LIKE 'exactFilter'`). If provided, `objectscript.export.filter` is ignored.",
               "type": "string"
             },
             "category": {
