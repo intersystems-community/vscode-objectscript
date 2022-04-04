@@ -246,7 +246,7 @@ export async function exportAll(): Promise<any> {
   }
   const api = new AtelierAPI(workspaceFolder);
   outputChannel.show(true);
-  const { category, generated, filter } = config("export", workspaceFolder);
+  const { category, generated, filter, exactFilter } = config("export", workspaceFolder);
   // Replicate the behavior of getDocNames() but use StudioOpenDialog for better performance
   let filterStr = "";
   switch (category) {
@@ -263,11 +263,18 @@ export async function exportAll(): Promise<any> {
       filterStr = "Type %INLIST $LISTFROMSTRING('0,1,2,3,11,12')";
       break;
   }
-  if (filter !== "") {
-    if (filterStr !== "") {
-      filterStr += " AND ";
+  if (filter !== "" || exactFilter !== "") {
+    if (exactFilter !== "") {
+      if (filterStr !== "") {
+        filterStr += " AND ";
+      }
+      filterStr += `Name LIKE '${exactFilter}'`;
+    } else {
+      if (filterStr !== "") {
+        filterStr += " AND ";
+      }
+      filterStr += `Name LIKE '%${filter}%'`;
     }
-    filterStr += `Name LIKE '%${filter}%'`;
   }
   return api
     .actionQuery("SELECT Name FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?)", [
