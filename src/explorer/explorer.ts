@@ -48,7 +48,7 @@ export function registerExplorerOpen(explorerProvider: ObjectScriptExplorerProvi
       if (usePreview) {
         usePreview = !wasDoubleClick(uri, explorerProvider);
       }
-      outputChannel.appendLine(uri.toString(true));
+
       try {
         await vscode.window.showTextDocument(uri, { preview: usePreview });
       } catch (error) {
