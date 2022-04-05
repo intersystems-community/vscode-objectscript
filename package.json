@@ -107,7 +107,7 @@
       {
         "view": "ObjectScriptProjectsExplorer",
         "contents": "To view or edit projects, create a virual workspace folder to [edit or view code directly on an InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/).\n[Add Server Namespace to Workspace](command:vscode-objectscript.addServerNamespaceToWorkspace)",
-        "when": "vscode-objectscript.projectsExplorerRootCount == 0"
+        "when": "vscode-objectscript.projectsExplorerRootCount == 0 && workspaceFolderCount <= 0"
       },
       {
         "view": "ObjectScriptProjectsExplorer",
