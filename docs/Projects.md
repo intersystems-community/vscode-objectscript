@@ -60,6 +60,25 @@ There are three ways to add or remove items from a project:
 
 Adding or removing items from a project fires the `AttemptedEdit` source control action if the modification was successful and a server-side source control class is enabled.
 
+### Add to Project UI
+
+The `Add to Project` command implements a custom multi-select dropdown that is shown regardless of how it is invoked. Items that are in the namespace and not already in the project are shown. The elements of this UI are described in more detail below:
+
+![Add to Project UI](../assets/images/add-to-project.png "add to project UI")
+
+* Title bar row:
+  * Click the icons to show or hide system and generated items, respectively.
+* Input box row:
+  * Click the check box to select all items that are currently shown.
+  * Type in the input box to filter the items that are shown.
+  * Click the **OK** button to add the selected items to the project.
+* Item rows:
+  * Click the check box to select the item. If the item is a package or CSP directory, all of its contents will be selected as well, even though the check boxes for those items don't appear selected.
+  * The icon preceding the name represents its type. It corresponds to the icons in the Projects Explorer and [ObjectScript Explorer](../extensionui/#objectscript-view).
+  * The more prominent text is the short name of the item, as it would appear in a file system.
+  * The less prominent text is the full name of the item, including its package or CSP directory.
+  * Click the arrow icon at the far right of the row to show or hide its contents.
+
 {: #deleting}
 ## Deleting Projects
 
@@ -68,7 +87,7 @@ There are two ways to delete projects in VS Code:
 * Right-click on a project node in the Projects Explorer and select the `Delete Project` menu option.
 * Open the command palette and run the `Objectscript: Delete Project` command.
 
-Deleting a project does NOT delete its contents. It fires the `DeletedDocument` source control action if the deletion was successful and a server-side source control class is enabled.
+Deleting a project does **NOT** delete its contents. It fires the `DeletedDocument` source control action if the deletion was successful and a server-side source control class is enabled.
 
 {: #server-side}
 ## Editing Project Contents Server-Side
