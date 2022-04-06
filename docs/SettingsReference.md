@@ -46,6 +46,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.export.atelier"` | Export source code as Atelier did it, with packages as subfolders. | `boolean` | `true` | |
 | `"objectscript.export.category"` | Category of source code to export: `CLS` = classes; `RTN` = routines; `CSP` = csp files; `OTH` = other. Default is `*` = all. | `string` or `object` | `"*"` | |
 | `"objectscript.export.dontExportIfNoChanges"` | Do not rewrite the local file if the content is identical to what came from the server. | `boolean` | `false` | |
+| `"objectscript.export.exactFilter"` | SQL filter to limit what to export. | `string` | `""` | The filter is applied to document names using the [LIKE predicate](https://irisdocs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_like) (i.e. `Name LIKE 'exactFilter'`). If provided, `objectscript.export.filter` is ignored. |
 | `"objectscript.export.filter"` | SQL filter to limit what to export. | `string` | `""` | The filter is applied to document names using the [LIKE predicate](https://irisdocs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_like) (i.e. `Name LIKE '%filter%'`). |
 | `"objectscript.export.folder"` | Folder for exported source code within workspace. | `string` | `"src"` | |
 | `"objectscript.export.generated"` | Export generated source code files, such as INTs generated from classes. | `boolean` | `false` | |
@@ -56,7 +57,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.format.functionCase"` | Case for system functions and system variables. | `"upper"`, `"lower"` or `"word"` | `"word"` | Has no effect if the `InterSystems Language Server` extension is installed and enabled. |
 | `"objectscript.ignoreInstallServerManager"` | Do not offer to install the [intersystems-community.servermanager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) extension. | `boolean` | `false` | |
 | `"objectscript.multilineMethodArgs"` | List method arguments on multiple lines, if the server supports it. | `boolean` | `false` | Only supported on IRIS 2019.1.2, 2020.1.1+, 2021.1.0+ and subsequent versions! On all other versions, this setting will have no effect. |
-| `"objectscript.openClassContracted"` | Automatically collapse all folding ranges when a class is opened for the first time. | `boolean` | `false` | |
+| `"objectscript.openClassContracted"` | Automatically collapse all class member folding ranges when a class is opened for the first time. | `boolean` | `false` | |
 | `"objectscript.overwriteServerChanges"` | Overwrite a changed server version without confirmation when importing the local file. | `boolean` | `false` | |
 | `"objectscript.serverSideEditing"` | Allow editing code directly on the server after opening it from ObjectScript Explorer. | `boolean` | `false` | |
 | `"objectscript.serverSourceControl.disableOtherActionTriggers"` | Prevent server-side source control 'other action' triggers from firing. | `boolean` | `false` | |

@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.7.2022040601] 06-Apr-2022 pre-release
+Add 1.6.0 changes.
+
 ## [1.5.2022032101] 21-Mar-2022 pre-release
 Add 1.4.4 changes.
 
@@ -20,6 +23,20 @@ Add 1.4.1 changes.
 
 ## [1.5.2022011401] 14-Jan-2022 pre-release
 Add 1.4.0 changes.
+## [1.6.0] 06-Apr-2022
+Minimum VS Code version is now 1.66.0
+- Enhancements
+  - Colorize text in Output channel (API has finalized) (#910)
+  - Add `objectscript.export.exactFilter` setting (#913)
+  - Improve error message when debugging fails to start (#908)
+- Fixes
+  - Align `objectscript.openClassContracted` setting with Studio's behavior (#876)
+  - Properly handle errors when previewing XML as UDL (#906)
+  - Fix importing of web app files (#777)
+  - Correctly use `http.proxyStrictSSL` setting (#919)
+  - Fix problems caused by extension running on server and VS Code UI in web browser (#911)
+  - Upgrade vulnerable dependencies.
+
 ## [1.4.4] 21-Mar-2022
 - Enhancements
   - Compile asynchronously to avoid timing out (#890)
