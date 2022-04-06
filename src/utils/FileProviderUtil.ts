@@ -41,7 +41,8 @@ export async function projectContentsFromUri(uri: vscode.Uri, overrideFlat?: boo
       query =
         "SELECT sod.Name, pil.Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,1,0,0,1) AS sod JOIN %Studio.Project_ProjectItemsList(?) AS pil ON " +
         "((pil.Type = 'MAC' OR pil.Type = 'OTH') AND ?||sod.Name = pil.Name) OR " +
-        "(pil.Type = 'CLS' AND ?||sod.Name = pil.Name||'.cls') OR (pil.Type = 'PKG' AND ?||sod.Name = pil.Name) " +
+        "(pil.Type = 'CLS' AND ?||sod.Name = pil.Name||'.cls') OR (pil.Type = 'PKG' AND ?||sod.Name = pil.Name) OR " +
+        "((pil.Type = 'CLS' OR pil.Type = 'PKG') AND pil.Name %STARTSWITH ?||sod.Name||'.') " +
         "WHERE pil.Type = 'MAC' OR pil.Type = 'OTH' OR pil.Type = 'CLS' OR pil.Type = 'PKG' UNION SELECT sod.Name, pil.Type FROM " +
         "%Library.RoutineMgr_StudioOpenDialog(?,1,1,1,0,0,1) AS sod JOIN %Studio.Project_ProjectItemsList(?,1) AS pil ON " +
         "(pil.Type = 'DIR' AND ?||sod.Name %STARTSWITH pil.Name||'/') OR (pil.Type = 'CSP' AND ?||sod.Name = pil.Name) " +
@@ -51,6 +52,7 @@ export async function projectContentsFromUri(uri: vscode.Uri, overrideFlat?: boo
       parameters = [
         folder.replace(/\//g, ".").slice(0, -1) + "/*",
         project,
+        folder.replace(/\//g, "."),
         folder.replace(/\//g, "."),
         folder.replace(/\//g, "."),
         folder.replace(/\//g, "."),
