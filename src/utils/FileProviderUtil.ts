@@ -26,8 +26,10 @@ export async function projectContentsFromUri(uri: vscode.Uri, overrideFlat?: boo
       "WHEN Type = 'CLS' THEN SUBSTR(Name,?)||'.cls' " +
       "ELSE SUBSTR(Name,?) END Name, Type FROM %Studio.Project_ProjectItemsList(?) " +
       "WHERE (Name %STARTSWITH ? OR Name %STARTSWITH ?) AND (" +
-      "((Type = 'MAC' OR Type = 'OTH' OR Type = 'CSP') AND EXISTS (SELECT Size FROM %Library.RoutineMgr_StudioOpenDialog(Name,1,1,1,1,0,1))) OR " +
-      "(Type = 'CLS' AND (Package IS NOT NULL OR (Package IS NULL AND EXISTS (SELECT Size FROM %Library.RoutineMgr_StudioOpenDialog(Name||'.cls',1,1,1,1,0,1)))))) " +
+      "(Type = 'MAC' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.mac,*.int,*.inc',1,1,1,1,0,1) AS sod WHERE Name = sod.Name)) OR " +
+      "(Type = 'CSP' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,1,0,1) AS sod WHERE '/'||Name = sod.Name)) OR " +
+      "(Type = 'OTH' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.other',1,1,1,1,0,1) AS sod WHERE Name = sod.Name))) OR " +
+      "(Type = 'CLS' AND (Package IS NOT NULL OR (Package IS NULL AND EXISTS (SELECT dcd.ID FROM %Dictionary.ClassDefinition AS dcd WHERE dcd.ID = Name))))) " +
       "UNION " +
       "SELECT SUBSTR(sod.Name,?+1) AS Name, pil.Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,1,1,0,1) AS sod " +
       "JOIN %Studio.Project_ProjectItemsList(?,1) AS pil ON " +
@@ -38,15 +40,18 @@ export async function projectContentsFromUri(uri: vscode.Uri, overrideFlat?: boo
       const l = String(folder.length + 1); // Need the + 1 because SUBSTR is 1 indexed
       query =
         "SELECT sod.Name, pil.Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,1,0,0,1) AS sod JOIN %Studio.Project_ProjectItemsList(?) AS pil ON " +
-        "((pil.Type = 'MAC' OR pil.Type = 'OTH') AND ?||sod.Name = pil.Name) OR (pil.Type = 'CLS' AND ?||sod.Name = pil.Name||'.cls') " +
-        "WHERE pil.Type = 'MAC' OR pil.Type = 'OTH' OR pil.Type = 'CLS' UNION SELECT sod.Name, pil.Type FROM " +
+        "((pil.Type = 'MAC' OR pil.Type = 'OTH') AND ?||sod.Name = pil.Name) OR " +
+        "(pil.Type = 'CLS' AND ?||sod.Name = pil.Name||'.cls') OR (pil.Type = 'PKG' AND ?||sod.Name = pil.Name) " +
+        "WHERE pil.Type = 'MAC' OR pil.Type = 'OTH' OR pil.Type = 'CLS' OR pil.Type = 'PKG' UNION SELECT sod.Name, pil.Type FROM " +
         "%Library.RoutineMgr_StudioOpenDialog(?,1,1,1,0,0,1) AS sod JOIN %Studio.Project_ProjectItemsList(?,1) AS pil ON " +
         "(pil.Type = 'DIR' AND ?||sod.Name %STARTSWITH pil.Name||'/') OR (pil.Type = 'CSP' AND ?||sod.Name = pil.Name) " +
         "UNION SELECT $PIECE(SUBSTR(Name,?),'/') AS Name, Type FROM %Studio.Project_ProjectItemsList(?,1) WHERE Type = 'DIR' " +
-        "AND $LENGTH($PIECE(SUBSTR(Name,?),'/')) > 0 AND Name %STARTSWITH ? AND EXISTS (SELECT Size FROM %Library.RoutineMgr_StudioOpenDialog(Name||'/*.cspall',1,1,1,1,0,1))";
+        "AND $LENGTH($PIECE(SUBSTR(Name,?),'/')) > 0 AND Name %STARTSWITH ? AND EXISTS " +
+        "(SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,0,0,1) AS sod WHERE Name %STARTSWITH sod.Name||'/' OR Name = sod.Name)";
       parameters = [
         folder.replace(/\//g, ".").slice(0, -1) + "/*",
         project,
+        folder.replace(/\//g, "."),
         folder.replace(/\//g, "."),
         folder.replace(/\//g, "."),
         folder + "*",
@@ -59,15 +64,18 @@ export async function projectContentsFromUri(uri: vscode.Uri, overrideFlat?: boo
         folder,
       ];
     } else {
+      const nameCol =
+        "CASE WHEN Type = 'CSP' OR Type = 'DIR' THEN $PIECE(Name,'/') " +
+        "WHEN (Type != 'CSP' AND Type != 'DIR' AND $LENGTH(Name,'.') > 2) OR Type = 'CLS' OR Type = 'PKG' THEN $PIECE(Name,'.') ELSE Name END";
       query =
-        "SELECT DISTINCT BY (Name) CASE " +
-        "WHEN Type = 'CSP' OR Type = 'DIR' THEN $PIECE(Name,'/') " +
-        "WHEN (Type != 'CSP' AND Type != 'DIR' AND $LENGTH(Name,'.') > 2) OR Type = 'CLS' OR Type = 'PKG' THEN $PIECE(Name,'.') " +
-        "ELSE Name END Name, Type FROM %Studio.Project_ProjectItemsList(?,1) WHERE " +
-        "((Type = 'MAC' OR Type = 'OTH' OR Type = 'CSP') AND EXISTS (SELECT Size FROM %Library.RoutineMgr_StudioOpenDialog(Name,1,1,1,1,0,1))) OR " +
-        "(Type = 'CLS' AND EXISTS (SELECT Size FROM %Library.RoutineMgr_StudioOpenDialog(Name||'.cls',1,1,1,1,0,1))) OR " +
-        "(Type = 'PKG' AND EXISTS (SELECT Size FROM %Library.RoutineMgr_StudioOpenDialog(Name||'/*.cls',1,1,1,0,0,1))) OR " +
-        "(Type = 'DIR' AND EXISTS (SELECT Size FROM %Library.RoutineMgr_StudioOpenDialog(Name||'/*.cspall',1,1,1,1,0,1)))";
+        `SELECT DISTINCT BY (${nameCol}) ${nameCol} ` +
+        "Name, Type FROM %Studio.Project_ProjectItemsList(?,1) WHERE " +
+        "(Type = 'MAC' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.mac,*.int,*.inc',1,1,1,1,0,1) AS sod WHERE Name = sod.Name)) OR " +
+        "(Type = 'CSP' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,1,0,1) AS sod WHERE '/'||Name = sod.Name)) OR " +
+        "(Type = 'OTH' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.other',1,1,1,1,0,1) AS sod WHERE Name = sod.Name)) OR " +
+        "(Type = 'CLS' AND EXISTS (SELECT dcd.ID FROM %Dictionary.ClassDefinition AS dcd WHERE dcd.ID = Name)) OR " +
+        "(Type = 'PKG' AND EXISTS (SELECT dcd.ID FROM %Dictionary.ClassDefinition AS dcd WHERE dcd.ID %STARTSWITH Name||'.')) OR " +
+        "(Type = 'DIR' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,0,0,1) AS sod WHERE Name %STARTSWITH sod.Name||'/' OR Name = sod.Name))";
       parameters = [project];
     }
   }
