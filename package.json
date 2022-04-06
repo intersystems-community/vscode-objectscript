@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "1.5.2022032101-SNAPSHOT",
+  "version": "1.7.2022040601-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "9cd75d51-697c-406c-a929-2bcf46e97c64",
   "categories": [
@@ -47,12 +47,11 @@
     }
   ],
   "engines": {
-    "vscode": "^1.63.0"
+    "vscode": "^1.66.0"
   },
   "enabledApiProposals": [
     "fileSearchProvider",
-    "textSearchProvider",
-    "outputChannelLanguage"
+    "textSearchProvider"
   ],
   "activationEvents": [
     "onDebug",
@@ -92,8 +91,7 @@
     "viewsWelcome": [
       {
         "view": "explorer",
-        "contents": "Begin local ObjectScript development by opening a folder or cloning a repository. Then switch to the new ObjectScript view in the Activity Bar.\nYou can also create a new workspace to [edit or view code directly on an InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/).\n[Choose Server and Namespace](command:vscode-objectscript.addServerNamespaceToWorkspace)",
-        "when": "!isWeb"
+        "contents": "Begin local ObjectScript development by opening a folder or cloning a repository. Then switch to the new ObjectScript view in the Activity Bar.\nYou can also create a new workspace to [edit or view code directly on an InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/).\n[Choose Server and Namespace](command:vscode-objectscript.addServerNamespaceToWorkspace)"
       },
       {
         "view": "ObjectScriptExplorer",
@@ -550,8 +548,7 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.export",
-        "title": "Export Code from Server",
-        "enablement": "!isWeb"
+        "title": "Export Code from Server"
       },
       {
         "category": "ObjectScript",
@@ -669,8 +666,7 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.serverActions",
-        "title": "Server Actions...",
-        "enablement": "!isWeb"
+        "title": "Server Actions..."
       },
       {
         "category": "ObjectScript",
@@ -707,20 +703,17 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.addServerNamespaceToWorkspace",
-        "title": "Add Server Namespace to Workspace...",
-        "enablement": "!isWeb"
+        "title": "Add Server Namespace to Workspace..."
       },
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.connectFolderToServerNamespace",
-        "title": "Connect Folder to Server Namespace...",
-        "enablement": "!isWeb"
+        "title": "Connect Folder to Server Namespace..."
       },
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.hideExplorerForWorkspace",
-        "title": "Hide Explorer for Workspace",
-        "enablement": "!isWeb"
+        "title": "Hide Explorer for Workspace"
       },
       {
         "category": "ObjectScript",
@@ -746,14 +739,12 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.showClassDocumentationPreview",
         "title": "Show Class Documentation Preview",
-        "enablement": "!isWeb",
         "icon": "$(open-preview)"
       },
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.exportCurrentFile",
-        "title": "Export Current File from Server",
-        "enablement": "!isWeb"
+        "title": "Export Current File from Server"
       }
     ],
     "keybindings": [
@@ -761,19 +752,19 @@
         "command": "vscode-objectscript.compile",
         "key": "Ctrl+F7",
         "mac": "Cmd+F7",
-        "when": "!isWeb && editorLangId =~ /^objectscript/"
+        "when": "editorLangId =~ /^objectscript/"
       },
       {
         "command": "vscode-objectscript.compileAll",
         "key": "Ctrl+Shift+F7",
         "mac": "Cmd+Shift+F7",
-        "when": "!isWeb && editorLangId =~ /^objectscript/"
+        "when": "editorLangId =~ /^objectscript/"
       },
       {
         "command": "vscode-objectscript.viewOthers",
         "key": "Ctrl+Shift+V",
         "mac": "Cmd+Shift+V",
-        "when": "!isWeb && editorLangId =~ /^objectscript/"
+        "when": "editorLangId =~ /^objectscript/"
       }
     ],
     "configuration": {
@@ -898,6 +889,7 @@
             "atelier": true,
             "generated": false,
             "filter": "",
+            "exactFilter": "",
             "category": "*",
             "noStorage": false,
             "dontExportIfNoChanges": false,
@@ -955,6 +947,10 @@
             },
             "filter": {
               "markdownDescription": "SQL filter to limit what to export. The filter is applied to document names using the [LIKE predicate](https://irisdocs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_like) (i.e. `Name LIKE '%filter%'`).",
+              "type": "string"
+            },
+            "exactFilter": {
+              "markdownDescription": "SQL filter to limit what to export. The filter is applied to document names using the [LIKE predicate](https://irisdocs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_like) (i.e. `Name LIKE 'exactFilter'`). If provided, `objectscript.export.filter` is ignored.",
               "type": "string"
             },
             "category": {
@@ -1068,7 +1064,7 @@
           "default": false
         },
         "objectscript.openClassContracted": {
-          "description": "Automatically collapse all folding ranges when a class is opened for the first time.",
+          "description": "Automatically collapse all class member folding ranges when a class is opened for the first time.",
           "type": "boolean",
           "default": false
         },
@@ -1084,7 +1080,7 @@
         {
           "id": "ObjectScriptExplorer",
           "name": "Explorer",
-          "when": "!isWeb && workspaceFolderCount != 0 && config.objectscript.showExplorer == true"
+          "when": "workspaceFolderCount != 0 && config.objectscript.showExplorer == true"
         }
       ]
     },
@@ -1114,7 +1110,6 @@
         "label": "ObjectScript Debug",
         "program": "./out/debug/debugAdapter.js",
         "runtime": "node",
-        "when": "!isWeb",
         "configurationAttributes": {
           "launch": {
             "required": [],
@@ -1207,14 +1202,14 @@
     "test": "node ./out/test/runTest.js",
     "lint": "eslint src/**",
     "lint-fix": "eslint --fix src/**",
-    "download-api": "vscode-dts dev 1.65.0",
+    "download-api": "vscode-dts dev 1.66.0",
     "postinstall": "npm run download-api"
   },
   "devDependencies": {
     "@types/glob": "^7.1.2",
     "@types/mocha": "^7.0.2",
     "@types/node": "^14.18.0",
-    "@types/vscode": "^1.43.0",
+    "@types/vscode": "^1.66.0",
     "@types/ws": "^7.2.5",
     "@types/xmldom": "^0.1.29",
     "@typescript-eslint/eslint-plugin": "^4.32.0",

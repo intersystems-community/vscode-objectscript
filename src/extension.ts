@@ -214,6 +214,13 @@ export function getResolvedConnectionSpec(key: string, dflt: any): any {
   return resolvedConnSpecs.has(key) ? resolvedConnSpecs.get(key) : dflt;
 }
 
+/**
+ * A map of all CSP web apps in a server-namespace.
+ * The key is either `serverName:ns`, or `host:port/pathPrefix:ns`, lowercase.
+ * The value is an array of CSP apps as returned by GET %25SYS/cspapps.
+ */
+export const cspApps: Map<string, string[]> = new Map();
+
 export async function checkConnection(clearCookies = false, uri?: vscode.Uri): Promise<void> {
   // Do nothing if already checking the connection
   if (checkingConnection) {
@@ -300,7 +307,7 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
   checkingConnection = true;
   return api
     .serverInfo()
-    .then((info) => {
+    .then(async (info) => {
       panel.text = api.connInfo;
       panel.tooltip = `Connected${pathPrefix ? " to " + pathPrefix : ""} as ${username}`;
       const hasHS = info.result.content.features.find((el) => el.name === "HEALTHSHARE" && el.enabled) !== undefined;
@@ -309,6 +316,15 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
           serverVersion: info.result.content.version,
           healthshare: hasHS ? "yes" : "no",
         });
+      // Update CSP web app cache if required
+      const key = (
+        api.config.serverName && api.config.serverName != ""
+          ? `${api.config.serverName}:${api.config.ns}`
+          : `${api.config.host}:${api.config.port}${api.config.pathPrefix}:${api.config.ns}`
+      ).toLowerCase();
+      if (!cspApps.has(key)) {
+        cspApps.set(key, await api.getCSPApps().then((data) => data.result.content || []));
+      }
       return;
     })
     .catch((error) => {
@@ -999,7 +1015,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         editor.document.languageId === "objectscript-class" &&
         !openedClasses.includes(uri)
       ) {
-        vscode.commands.executeCommand("editor.foldAll");
+        vscode.commands.executeCommand("editor.foldLevel1");
         openedClasses.push(uri);
       }
     }),

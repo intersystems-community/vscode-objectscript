@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
+import { outputChannel } from "../utils";
 
 export class XmlContentProvider implements vscode.TextDocumentContentProvider {
   private _api: AtelierAPI;
@@ -10,12 +11,23 @@ export class XmlContentProvider implements vscode.TextDocumentContentProvider {
   }
 
   public provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
-    // uri.query.
     return vscode.workspace
       .openTextDocument(vscode.Uri.file(uri.fragment))
       .then((document) => document.getText())
-      .then((text) => this._api.cvtXmlUdl(text))
-      .then((data) => data.result.content[0].content.join("\n"));
+      .then((text) => {
+        return this._api
+          .cvtXmlUdl(text)
+          .then((data) => data.result.content[0].content.join("\n"))
+          .catch((error) => {
+            let message = `Failed to convert XML of '${uri.path.slice(1)}' to UDL.`;
+            if (error.errorText && error.errorText !== "") {
+              outputChannel.appendLine("\n" + error.errorText);
+              outputChannel.show(true);
+              message += " Check 'ObjectScript' Output channel for details.";
+            }
+            vscode.window.showErrorMessage(message, "Dismiss");
+          });
+      });
   }
 
   public get onDidChange(): vscode.Event<vscode.Uri> {
