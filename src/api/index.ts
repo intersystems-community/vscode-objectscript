@@ -286,7 +286,7 @@ export class AtelierAPI {
     const agent = new http.Agent({
       keepAlive: true,
       maxSockets: 10,
-      rejectUnauthorized: https && config("http.proxyStrictSSL"),
+      rejectUnauthorized: https && vscode.workspace.getConfiguration("http").get("proxyStrictSSL"),
     });
 
     let pathPrefix = this._config.pathPrefix || "";
