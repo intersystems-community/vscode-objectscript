@@ -69,28 +69,45 @@ export class ProjectRootNode extends RootNode {
       .actionQuery(query, parameters)
       .then((data) => data.result.content.map((e) => e.Name))
       .then((entries: string[]) =>
-        entries.map((entry) => {
-          const fullName = this.fullName.length
-            ? `${this.fullName}${this.category == "CSP" ? "/" : "."}${entry}`
-            : entry;
-          if (this.category == "CSP") {
-            if (entry.includes(".")) {
-              return new CSPFileNode(entry, fullName, this.options);
+        entries
+          .sort((a, b) => {
+            if ((a.match(/\./g) || []).length > (b.match(/\./g) || []).length) {
+              return 1;
+            } else if ((a.match(/\./g) || []).length < (b.match(/\./g) || []).length) {
+              return -1;
             } else {
-              return new ProjectRootNode(entry, fullName, "dataNode:cspApplication", this.category, this.options, true);
+              return 0;
             }
-          } else {
-            if (entry.includes(".")) {
-              if (["mac", "int", "inc"].includes(entry.split(".").pop().toLowerCase())) {
-                return new RoutineNode(entry, fullName, this.options);
+          })
+          .map((entry) => {
+            const fullName = this.fullName.length
+              ? `${this.fullName}${this.category == "CSP" ? "/" : "."}${entry}`
+              : entry;
+            if (this.category == "CSP") {
+              if (entry.includes(".")) {
+                return new CSPFileNode(entry, fullName, this.options);
               } else {
-                return new ClassNode(entry, fullName, this.options);
+                return new ProjectRootNode(
+                  entry,
+                  fullName,
+                  "dataNode:cspApplication",
+                  this.category,
+                  this.options,
+                  true
+                );
               }
             } else {
-              return new ProjectRootNode(entry, fullName, "dataNode:packageNode", this.category, this.options);
+              if (entry.includes(".")) {
+                if (["mac", "int", "inc"].includes(entry.split(".").pop().toLowerCase())) {
+                  return new RoutineNode(entry, fullName, this.options);
+                } else {
+                  return new ClassNode(entry, fullName, this.options);
+                }
+              } else {
+                return new ProjectRootNode(entry, fullName, "dataNode:packageNode", this.category, this.options);
+              }
             }
-          }
-        })
+          })
       );
   }
   public getItems4Export(): Promise<string[]> {
