@@ -382,8 +382,73 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     );
   }
 
-  public rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): void | Thenable<void> {
-    throw new Error("Move / rename is not supported on server");
+  public async rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): Promise<void> {
+    if (!oldUri.path.includes(".")) {
+      throw vscode.FileSystemError.NoPermissions("Cannot rename a package/folder");
+    }
+    if (oldUri.path.split(".").pop().toLowerCase() != newUri.path.split(".").pop().toLowerCase()) {
+      throw vscode.FileSystemError.NoPermissions("Cannot change a file's extension during rename");
+    }
+    if (vscode.workspace.getWorkspaceFolder(oldUri) != vscode.workspace.getWorkspaceFolder(newUri)) {
+      throw vscode.FileSystemError.NoPermissions("Cannot rename a file across workspace folders");
+    }
+    // Check if the destination exists
+    let newFileStat: vscode.FileStat;
+    try {
+      newFileStat = await vscode.workspace.fs.stat(newUri);
+      if (!options.overwrite) {
+        // If it does and we can't overwrite it, throw an error
+        throw vscode.FileSystemError.FileExists(newUri);
+      }
+    } catch (error) {
+      if (error instanceof vscode.FileSystemError && error.code == "FileExists") {
+        // Re-throw the FileExists error
+        throw error;
+      }
+    }
+    // Get the name of the new file
+    const newParams = new URLSearchParams(newUri.query);
+    const newCsp = newParams.has("csp") && ["", "1"].includes(newParams.get("csp"));
+    const newFileName = newCsp ? newUri.path : newUri.path.slice(1).replace(/\//g, ".");
+    // Generate content for the new file
+    const newContent = generateFileContent(newFileName, Buffer.from(await vscode.workspace.fs.readFile(oldUri)));
+    if (newFileStat) {
+      // We're overwriting an existing file so prompt the user to check it out
+      await fireOtherStudioAction(OtherStudioAction.AttemptedEdit, newUri);
+    }
+    // Write the new file
+    // This is going to attempt the write regardless of the user's response to the check out prompt
+    const api = new AtelierAPI(oldUri);
+    await api
+      .putDoc(
+        newFileName,
+        {
+          ...newContent,
+          mtime: Date.now(),
+        },
+        true
+      )
+      .catch((error) => {
+        // Throw all failures
+        if (error.errorText && error.errorText !== "") {
+          throw vscode.FileSystemError.Unavailable(error.errorText);
+        }
+        throw vscode.FileSystemError.Unavailable(error.message);
+      })
+      .then((response) => {
+        // New file has been written
+        if (newFileStat != undefined && response && response.result.ext && response.result.ext[0]) {
+          // We created a file
+          fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, newUri, response.result.ext[0]);
+          fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, newUri, response.result.ext[1]);
+        }
+        // Sanity check that we find it there, then make client side update things
+        this._lookupAsFile(newUri).then(() => {
+          this._fireSoon({ type: vscode.FileChangeType.Changed, uri: newUri });
+        });
+      });
+    // Delete the old file
+    await vscode.workspace.fs.delete(oldUri);
   }
 
   public watch(uri: vscode.Uri): vscode.Disposable {
