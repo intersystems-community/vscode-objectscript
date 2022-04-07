@@ -441,7 +441,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       let toDeletePromise: Promise<any>;
       if (project) {
         // Ignore the recursive flag for project folders
-        toDeletePromise =  projectContentsFromUri(uri, true);
+        toDeletePromise = projectContentsFromUri(uri, true);
       } else {
         toDeletePromise = studioOpenDialogFromURI(uri, options.recursive ? { flat: true } : undefined);
       }
@@ -457,17 +457,21 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           })
           .filter(notNull)
       );
-      
       if (toDelete.length == 0) {
         // Nothing to delete
         return;
       }
       // Delete the documents
-      return api.deleteDocs(toDelete).then(async (data) => {
+      return api.deleteDocs(toDelete).then((data) => {
         let failed = 0;
         for (const doc of data.result) {
           if (doc.status == "") {
-            this.processDeletedDoc(doc, DocumentContentProvider.getUri(doc.name, undefined, undefined, true, uri), csp, project);
+            this.processDeletedDoc(
+              doc,
+              DocumentContentProvider.getUri(doc.name, undefined, undefined, true, uri),
+              csp,
+              project
+            );
           } else {
             // The document was not deleted, so log the error
             failed++;
@@ -476,7 +480,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         }
         if (project) {
           // Remove everything in this folder from the project if required
-          await modifyProject(uri, "remove");
+          modifyProject(uri, "remove");
         }
         if (failed > 0) {
           outputChannel.show(true);
@@ -489,11 +493,11 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       });
     }
     return api.deleteDoc(fileName).then(
-      async (response) => {
+      (response) => {
         this.processDeletedDoc(response.result, uri, csp, project);
         if (project) {
           // Remove this document from the project if required
-          await modifyProject(uri, "remove");
+          modifyProject(uri, "remove");
         }
       },
       (error) => {
@@ -561,12 +565,16 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         }
         throw vscode.FileSystemError.Unavailable(error.message);
       })
-      .then((response) => {
+      .then(async (response) => {
         // New file has been written
         if (newFileStat != undefined && response && response.result.ext && response.result.ext[0]) {
           // We created a file
           fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, newUri, response.result.ext[0]);
           fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, newUri, response.result.ext[1]);
+          if (newParams.has("project") && newParams.get("project").length) {
+            // Add the new document to the project if required
+            await modifyProject(newUri, "add");
+          }
         }
         // Sanity check that we find it there, then make client side update things
         this._lookupAsFile(newUri).then(() => {

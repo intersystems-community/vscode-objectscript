@@ -17,9 +17,11 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
     token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.Uri[]> {
     let counter = 0;
+    let pattern = query.pattern.charAt(0) == "/" ? query.pattern.slice(1) : query.pattern;
     const params = new URLSearchParams(options.folder.query);
+    const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
     if (params.has("project") && params.get("project").length) {
-      const patternRegex = new RegExp(`.*${query.pattern}.*`, "i");
+      const patternRegex = new RegExp(`.*${pattern}.*`.replace(/\.|\//g, "[./]"), "i");
       if (token.isCancellationRequested) {
         return;
       }
@@ -29,7 +31,7 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
             if (token.isCancellationRequested) {
               return null;
             }
-            if (query.pattern.length && !patternRegex.test(doc.Name)) {
+            if (pattern.length && !patternRegex.test(doc.Name)) {
               // The document didn't pass the filter
               return null;
             }
@@ -44,12 +46,13 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
     }
     // When this is called without a query.pattern, every file is supposed to be returned, so do not provide a filter
     let filter = "";
-    if (query.pattern.length) {
-      if (query.pattern.includes("_") || query.pattern.includes("%")) {
+    if (pattern.length) {
+      pattern = !csp ? query.pattern.replace(/\//g, ".") : query.pattern;
+      if (pattern.includes("_") || pattern.includes("%")) {
         // Need to escape any % or _ characters
-        filter = `Name LIKE '%${query.pattern.replace(/_/g, "$_").replace(/%/g, "$%")}%' ESCAPE '$'`;
+        filter = `Name LIKE '%${pattern.replace(/_/g, "$_").replace(/%/g, "$%")}%' ESCAPE '$'`;
       } else {
-        filter = `Name LIKE '%${query.pattern}%'`;
+        filter = `Name LIKE '%${pattern}%'`;
       }
     }
     if (token.isCancellationRequested) {
