@@ -7,8 +7,10 @@ import { File } from "./File";
 import { fireOtherStudioAction, OtherStudioAction } from "../../commands/studio";
 import { StudioOpenDialog } from "../../queries";
 import { studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
-import { outputChannel, redirectDotvscodeRoot, workspaceFolderOfUri } from "../../utils/index";
+import { notNull, outputChannel, redirectDotvscodeRoot, workspaceFolderOfUri } from "../../utils/index";
 import { workspaceState } from "../../extension";
+import { DocumentContentProvider } from "../DocumentContentProvider";
+import { Document } from "../../api/atelier";
 
 declare function setTimeout(callback: (...args: any[]) => void, ms: number, ...args: any[]): NodeJS.Timeout;
 
@@ -284,43 +286,98 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     );
   }
 
-  public delete(uri: vscode.Uri, options: { recursive: boolean }): void | Thenable<void> {
+  /** Process a Document object that was successfully deleted. */
+  private async processDeletedDoc(doc: Document, uri: vscode.Uri, csp: boolean): Promise<void> {
+    const events: vscode.FileChangeEvent[] = [];
+    try {
+      if (doc.ext) {
+        fireOtherStudioAction(OtherStudioAction.DeletedDocument, uri, doc.ext);
+      }
+      // Remove entry from our cache, plus any now-empty ancestor entries
+      let thisUri = vscode.Uri.parse(uri.toString(), true);
+      while (thisUri.path !== "/") {
+        events.push({ type: vscode.FileChangeType.Deleted, uri: thisUri });
+        const parentDir = await this._lookupParentDirectory(thisUri);
+        const name = path.basename(thisUri.path);
+        parentDir.entries.delete(name);
+        if (!csp && parentDir.entries.size === 0) {
+          thisUri = thisUri.with({ path: path.posix.dirname(thisUri.path) });
+        } else {
+          break;
+        }
+      }
+    } catch {
+      // Swallow all errors
+    } finally {
+      if (events.length) {
+        this._fireSoon(...events);
+      }
+    }
+  }
+
+  public async delete(uri: vscode.Uri, options: { recursive: boolean }): Promise<void> {
     const { query } = url.parse(uri.toString(true), true);
     const csp = query.csp === "" || query.csp === "1";
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
+    const api = new AtelierAPI(uri);
     if (fileName.startsWith(".")) {
       return;
     }
     if (!fileName.includes(".")) {
-      throw new Error(`${csp ? "Folder" : "Package"} deletion is not supported on server`);
-    }
-    const api = new AtelierAPI(uri);
-    return api.deleteDoc(fileName).then(
-      async (response) => {
-        if (response.result.ext) {
-          fireOtherStudioAction(OtherStudioAction.DeletedDocument, uri, response.result.ext);
-        }
-        // Remove entry from our cache, plus any now-empty ancestor entries
-        let thisUri = vscode.Uri.parse(uri.toString(), true);
-        const events: vscode.FileChangeEvent[] = [];
-        while (thisUri.path !== "/") {
-          events.push({ type: vscode.FileChangeType.Deleted, uri: thisUri });
-          const parentDir = await this._lookupParentDirectory(thisUri);
-          const name = path.basename(thisUri.path);
-          parentDir.entries.delete(name);
-          if (!csp && parentDir.entries.size === 0) {
-            thisUri = thisUri.with({ path: path.posix.dirname(thisUri.path) });
+      // Get the list of documents to delete
+      const toDelete: string[] = await studioOpenDialogFromURI(
+        uri,
+        options.recursive ? { flat: true } : undefined
+      ).then((data) =>
+        data.result.content
+          .map((entry) => {
+            if (options.recursive) {
+              return entry.Name;
+            } else if (entry.Name.includes(".")) {
+              return csp ? uri.path + entry.Name : uri.path.slice(1).replace(/\//g, ".") + entry.Name;
+            }
+            return null;
+          })
+          .filter(notNull)
+      );
+      if (toDelete.length == 0) {
+        // Nothing to delete
+        return;
+      }
+      // Delete the documents
+      return api.deleteDocs(toDelete).then((data) => {
+        let failed = 0;
+        for (const doc of data.result) {
+          if (doc.status == "") {
+            this.processDeletedDoc(doc, DocumentContentProvider.getUri(doc.name, undefined, undefined, true, uri), csp);
           } else {
-            break;
+            // The document was not deleted, so log the error
+            failed++;
+            outputChannel.appendLine(`${failed == 1 ? "\n" : ""}${doc.status}`);
           }
         }
-        this._fireSoon(...events);
+        if (failed > 0) {
+          outputChannel.show(true);
+          throw new vscode.FileSystemError(
+            `Failed to delete ${failed} document${
+              failed > 1 ? "s" : ""
+            }. Check 'ObjectScript' Output channel for details.`
+          );
+        }
+      });
+    }
+    return api.deleteDoc(fileName).then(
+      (response) => {
+        this.processDeletedDoc(response.result, uri, csp);
       },
       (error) => {
-        if (error.errorText !== "") {
-          error.message = error.errorText;
+        let message = `Failed to delete file '${fileName}'.`;
+        if (error && error.errorText && error.errorText !== "") {
+          outputChannel.appendLine("\n" + error.errorText);
+          outputChannel.show(true);
+          message += " Check 'ObjectScript' Output channel for details.";
         }
-        throw error;
+        throw new vscode.FileSystemError(message);
       }
     );
   }
