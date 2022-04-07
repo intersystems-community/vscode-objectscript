@@ -5,9 +5,11 @@ import { Directory } from "./Directory";
 import { File } from "./File";
 import { fireOtherStudioAction, OtherStudioAction } from "../../commands/studio";
 import { projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
-import { outputChannel, redirectDotvscodeRoot, workspaceFolderOfUri } from "../../utils/index";
+import { notNull, outputChannel, redirectDotvscodeRoot, workspaceFolderOfUri } from "../../utils/index";
 import { config, workspaceState } from "../../extension";
 import { addIsfsFileToProject, modifyProject } from "../../commands/project";
+import { DocumentContentProvider } from "../DocumentContentProvider";
+import { Document } from "../../api/atelier";
 
 declare function setTimeout(callback: (...args: any[]) => void, ms: number, ...args: any[]): NodeJS.Timeout;
 
@@ -378,71 +380,201 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     );
   }
 
-  public delete(uri: vscode.Uri, options: { recursive: boolean }): void | Thenable<void> {
+  /** Process a Document object that was successfully deleted. */
+  private async processDeletedDoc(doc: Document, uri: vscode.Uri, csp: boolean, project: boolean): Promise<void> {
+    const events: vscode.FileChangeEvent[] = [];
+    try {
+      if (doc.ext) {
+        fireOtherStudioAction(OtherStudioAction.DeletedDocument, uri, doc.ext);
+      }
+      // Remove entry from our cache, plus any now-empty ancestor entries
+      let thisUri = vscode.Uri.parse(uri.toString(), true);
+      while (thisUri.path !== "/") {
+        events.push({ type: vscode.FileChangeType.Deleted, uri: thisUri });
+        const parentDir = await this._lookupParentDirectory(thisUri);
+        const name = path.basename(thisUri.path);
+        parentDir.entries.delete(name);
+        if (!csp && parentDir.entries.size === 0) {
+          thisUri = thisUri.with({ path: path.posix.dirname(thisUri.path) });
+        } else {
+          break;
+        }
+      }
+      if (csp && project) {
+        // Remove this file from our CSP files cache
+        const parentUriStr = uri
+          .with({
+            path: path.dirname(uri.path),
+          })
+          .toString();
+        const mapvalue = cspFilesInProjectFolder.get(parentUriStr);
+        const idx = mapvalue.indexOf(path.basename(uri.path));
+        if (idx != -1) {
+          mapvalue.splice(idx, 1);
+          if (mapvalue.length) {
+            cspFilesInProjectFolder.set(parentUriStr, mapvalue);
+          } else {
+            cspFilesInProjectFolder.delete(parentUriStr);
+          }
+        }
+      }
+    } catch {
+      // Swallow all errors
+    } finally {
+      if (events.length) {
+        this._fireSoon(...events);
+      }
+    }
+  }
+
+  public async delete(uri: vscode.Uri, options: { recursive: boolean }): Promise<void> {
     const csp = isCSPFile(uri);
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
+    const params = new URLSearchParams(uri.query);
+    const project = params.has("project") && params.get("project").length > 0;
+    const api = new AtelierAPI(uri);
     if (fileName.startsWith(".")) {
       return;
     }
-    if (!uri.path.includes(".")) {
-      throw new Error(`${csp ? "Folder" : "Package"} deletion is not supported on server`);
+    if (!fileName.includes(".")) {
+      // Get the list of documents to delete
+      let toDeletePromise: Promise<any>;
+      if (project) {
+        // Ignore the recursive flag for project folders
+        toDeletePromise =  projectContentsFromUri(uri, true);
+      } else {
+        toDeletePromise = studioOpenDialogFromURI(uri, options.recursive ? { flat: true } : undefined);
+      }
+      const toDelete: string[] = await toDeletePromise.then((data) =>
+        data.result.content
+          .map((entry) => {
+            if (options.recursive || project) {
+              return entry.Name;
+            } else if (entry.Name.includes(".")) {
+              return csp ? uri.path + entry.Name : uri.path.slice(1).replace(/\//g, ".") + entry.Name;
+            }
+            return null;
+          })
+          .filter(notNull)
+      );
+      
+      if (toDelete.length == 0) {
+        // Nothing to delete
+        return;
+      }
+      // Delete the documents
+      return api.deleteDocs(toDelete).then(async (data) => {
+        let failed = 0;
+        for (const doc of data.result) {
+          if (doc.status == "") {
+            this.processDeletedDoc(doc, DocumentContentProvider.getUri(doc.name, undefined, undefined, true, uri), csp, project);
+          } else {
+            // The document was not deleted, so log the error
+            failed++;
+            outputChannel.appendLine(`${failed == 1 ? "\n" : ""}${doc.status}`);
+          }
+        }
+        if (project) {
+          // Remove everything in this folder from the project if required
+          await modifyProject(uri, "remove");
+        }
+        if (failed > 0) {
+          outputChannel.show(true);
+          throw new vscode.FileSystemError(
+            `Failed to delete ${failed} document${
+              failed > 1 ? "s" : ""
+            }. Check 'ObjectScript' Output channel for details.`
+          );
+        }
+      });
     }
-    const api = new AtelierAPI(uri);
     return api.deleteDoc(fileName).then(
       async (response) => {
-        if (response.result.ext) {
-          fireOtherStudioAction(OtherStudioAction.DeletedDocument, uri, response.result.ext);
-        }
-        // Remove entry from our cache, plus any now-empty ancestor entries
-        let thisUri = vscode.Uri.parse(uri.toString(), true);
-        const events: vscode.FileChangeEvent[] = [];
-        while (thisUri.path !== "/") {
-          events.push({ type: vscode.FileChangeType.Deleted, uri: thisUri });
-          const parentDir = await this._lookupParentDirectory(thisUri);
-          const name = path.basename(thisUri.path);
-          parentDir.entries.delete(name);
-          if (!csp && parentDir.entries.size === 0) {
-            thisUri = thisUri.with({ path: path.posix.dirname(thisUri.path) });
-          } else {
-            break;
-          }
-        }
-        this._fireSoon(...events);
-        const params = new URLSearchParams(uri.query);
-        if (params.has("project") && params.get("project").length) {
-          if (csp) {
-            // Remove this file from our CSP files cache
-            const parentUriStr = uri
-              .with({
-                path: path.dirname(uri.path),
-              })
-              .toString();
-            const mapvalue = cspFilesInProjectFolder.get(parentUriStr);
-            const idx = mapvalue.indexOf(path.basename(uri.path));
-            if (idx != -1) {
-              mapvalue.splice(idx, 1);
-              if (mapvalue.length) {
-                cspFilesInProjectFolder.set(parentUriStr, mapvalue);
-              } else {
-                cspFilesInProjectFolder.delete(parentUriStr);
-              }
-            }
-          }
+        this.processDeletedDoc(response.result, uri, csp, project);
+        if (project) {
           // Remove this document from the project if required
           await modifyProject(uri, "remove");
         }
       },
       (error) => {
-        if (error.errorText !== "") {
-          error.message = error.errorText;
+        let message = `Failed to delete file '${fileName}'.`;
+        if (error && error.errorText && error.errorText !== "") {
+          outputChannel.appendLine("\n" + error.errorText);
+          outputChannel.show(true);
+          message += " Check 'ObjectScript' Output channel for details.";
         }
-        throw error;
+        throw new vscode.FileSystemError(message);
       }
     );
   }
 
-  public rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): void | Thenable<void> {
-    throw new Error("Move / rename is not supported on server");
+  public async rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): Promise<void> {
+    if (!oldUri.path.includes(".")) {
+      throw vscode.FileSystemError.NoPermissions("Cannot rename a package/folder");
+    }
+    if (oldUri.path.split(".").pop().toLowerCase() != newUri.path.split(".").pop().toLowerCase()) {
+      throw vscode.FileSystemError.NoPermissions("Cannot change a file's extension during rename");
+    }
+    if (vscode.workspace.getWorkspaceFolder(oldUri) != vscode.workspace.getWorkspaceFolder(newUri)) {
+      throw vscode.FileSystemError.NoPermissions("Cannot rename a file across workspace folders");
+    }
+    // Check if the destination exists
+    let newFileStat: vscode.FileStat;
+    try {
+      newFileStat = await vscode.workspace.fs.stat(newUri);
+      if (!options.overwrite) {
+        // If it does and we can't overwrite it, throw an error
+        throw vscode.FileSystemError.FileExists(newUri);
+      }
+    } catch (error) {
+      if (error instanceof vscode.FileSystemError && error.code == "FileExists") {
+        // Re-throw the FileExists error
+        throw error;
+      }
+    }
+    // Get the name of the new file
+    const newParams = new URLSearchParams(newUri.query);
+    const newCsp = newParams.has("csp") && ["", "1"].includes(newParams.get("csp"));
+    const newFileName = newCsp ? newUri.path : newUri.path.slice(1).replace(/\//g, ".");
+    // Generate content for the new file
+    const newContent = generateFileContent(newFileName, Buffer.from(await vscode.workspace.fs.readFile(oldUri)));
+    if (newFileStat) {
+      // We're overwriting an existing file so prompt the user to check it out
+      await fireOtherStudioAction(OtherStudioAction.AttemptedEdit, newUri);
+    }
+    // Write the new file
+    // This is going to attempt the write regardless of the user's response to the check out prompt
+    const api = new AtelierAPI(oldUri);
+    await api
+      .putDoc(
+        newFileName,
+        {
+          ...newContent,
+          mtime: Date.now(),
+        },
+        true
+      )
+      .catch((error) => {
+        // Throw all failures
+        if (error.errorText && error.errorText !== "") {
+          throw vscode.FileSystemError.Unavailable(error.errorText);
+        }
+        throw vscode.FileSystemError.Unavailable(error.message);
+      })
+      .then((response) => {
+        // New file has been written
+        if (newFileStat != undefined && response && response.result.ext && response.result.ext[0]) {
+          // We created a file
+          fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, newUri, response.result.ext[0]);
+          fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, newUri, response.result.ext[1]);
+        }
+        // Sanity check that we find it there, then make client side update things
+        this._lookupAsFile(newUri).then(() => {
+          this._fireSoon({ type: vscode.FileChangeType.Changed, uri: newUri });
+        });
+      });
+    // Delete the old file
+    await vscode.workspace.fs.delete(oldUri);
   }
 
   public watch(uri: vscode.Uri): vscode.Disposable {

@@ -276,7 +276,7 @@ export class AtelierAPI {
       return result.length ? "?" + result.join("&") : "";
     };
     method = method.toUpperCase();
-    if (["PUT", "POST"].includes(method) && !headers["Content-Type"]) {
+    if (body && !headers["Content-Type"]) {
       headers["Content-Type"] = "application/json";
     }
     headers["Cache-Control"] = "no-cache";
@@ -321,7 +321,7 @@ export class AtelierAPI {
       const response = await fetch(`${proto}://${host}:${port}${path}`, {
         method,
         agent,
-        body: ["PUT", "POST"].includes(method) ? (typeof body !== "string" ? JSON.stringify(body) : body) : null,
+        body: body ? (typeof body !== "string" ? JSON.stringify(body) : body) : null,
         headers: {
           ...headers,
           Cookie: cookie,
@@ -496,6 +496,11 @@ export class AtelierAPI {
   // api v1+
   public deleteDoc(name: string): Promise<Atelier.Response<Atelier.Document>> {
     return this.request(1, "DELETE", `${this.ns}/doc/${name}`);
+  }
+
+  // v1+
+  public deleteDocs(docs: string[]): Promise<Atelier.Response<Atelier.Document[]>> {
+    return this.request(1, "DELETE", `${this.ns}/docs`, docs);
   }
 
   // v1+
