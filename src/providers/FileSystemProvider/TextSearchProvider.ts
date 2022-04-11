@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { SearchResult, SearchMatch, Response } from "../../api/atelier";
+import { SearchResult, SearchMatch } from "../../api/atelier";
 import { AtelierAPI } from "../../api";
 import { DocumentContentProvider } from "../DocumentContentProvider";
 import { notNull, outputChannel, throttleRequests } from "../../utils";
@@ -50,7 +50,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
 
     let project: string;
     let projectList: string[];
-    let searchPromise: Promise<Response<SearchResult[]>>;
+    let searchPromise: Promise<SearchResult[]>;
     const params = new URLSearchParams(options.folder.query);
     if (params.has("project") && params.get("project").length) {
       project = params.get("project");
@@ -63,37 +63,64 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
           [project, project]
         )
         .then((data) => data.result.content.map((e) => e.Name));
-      searchPromise = api.actionSearch({
-        query: query.pattern,
-        regex: query.isRegExp,
-        word: query.isWordMatch,
-        case: query.isCaseSensitive,
-        // Need to take the CSP directory off of web app files, then remove duplicates
-        files: [...new Set(projectList.map((e) => e.split("/").pop()))].join(","),
-        sys: true,
-        // If options.maxResults is null the search is supposed to return an unlimited number of results
-        // Since there's no way for us to pass "unlimited" to the server, I chose a very large number
-        max: options.maxResults ?? 100000,
-      });
+      // Need to take the CSP directory off of web app files, then remove duplicates
+      const prjContents = [...new Set(projectList.map((e) => e.split("/").pop()))];
+      // Break up the document list into chunks so the URL doesn't get too long
+      const requestGroups: string[][] = [];
+      let groupLen = 0;
+      let group: string[] = [];
+      for (const doc of prjContents) {
+        group.push(doc);
+        groupLen += doc.length;
+        if (groupLen >= 1300) {
+          // Be conservative because we really don't want ugly 414 errors
+          requestGroups.push(group);
+          group = [];
+          groupLen = 0;
+        }
+      }
+      if (group.length) {
+        requestGroups.push(group);
+      }
+      searchPromise = Promise.allSettled(
+        requestGroups.map(
+          throttleRequests((group: string[]) =>
+            api
+              .actionSearch({
+                query: query.pattern,
+                regex: query.isRegExp,
+                word: query.isWordMatch,
+                case: query.isCaseSensitive,
+                files: group.join(","),
+                sys: true,
+                // If options.maxResults is null the search is supposed to return an unlimited number of results
+                // Since there's no way for us to pass "unlimited" to the server, I chose a very large number
+                max: options.maxResults ?? 100000,
+              })
+              .then((data) => data.result)
+          )
+        )
+      ).then((results) => results.map((result) => (result.status == "fulfilled" ? result.value : [])).flat());
     } else {
       const sysStr = params.has("system") && params.get("system").length ? params.get("system") : "0";
       const genStr = params.has("generated") && params.get("generated").length ? params.get("generated") : "0";
-      searchPromise = api.actionSearch({
-        query: query.pattern,
-        regex: query.isRegExp,
-        word: query.isWordMatch,
-        case: query.isCaseSensitive,
-        files: fileSpecFromURI(options.folder),
-        sys: sysStr === "1" || (sysStr === "0" && api.ns === "%SYS"),
-        gen: genStr === "1",
-        // If options.maxResults is null the search is supposed to return an unlimited number of results
-        // Since there's no way for us to pass "unlimited" to the server, I chose a very large number
-        max: options.maxResults ?? 100000,
-      });
+      searchPromise = api
+        .actionSearch({
+          query: query.pattern,
+          regex: query.isRegExp,
+          word: query.isWordMatch,
+          case: query.isCaseSensitive,
+          files: fileSpecFromURI(options.folder),
+          sys: sysStr === "1" || (sysStr === "0" && api.ns === "%SYS"),
+          gen: genStr === "1",
+          // If options.maxResults is null the search is supposed to return an unlimited number of results
+          // Since there's no way for us to pass "unlimited" to the server, I chose a very large number
+          max: options.maxResults ?? 100000,
+        })
+        .then((data) => data.result);
     }
 
     return searchPromise
-      .then((data) => data.result)
       .then(async (files: SearchResult[]) => {
         if (token.isCancellationRequested) {
           return;
