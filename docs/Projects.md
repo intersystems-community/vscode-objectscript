@@ -7,7 +7,7 @@ nav_order: 9
 
 # Working with Projects
 
-A project is a named set of class definitions, routines, include files, web application files or custom documents. All files in a project must be in the same namespace on the same InterSystems server. Each document can be associated with any number of projects. Each namespace can contain any number of projects. Projects can also be stored in source control if you're using server-side source control. The file generated for the project name will have the `.PRJ` extension.
+A project is a named set of class definitions, routines, include files, web application files or custom documents. All files in a project must be in the same namespace on the same InterSystems server. Each document can be associated with any number of projects. Each namespace can contain any number of projects.
 
 ## Why Projects?
 
@@ -41,7 +41,7 @@ There are two ways to create projects in VS Code:
 * Right-click on a server-namespace node in the Projects Explorer and select the `Create Project` menu option.
 * Open the command palette and run the `Objectscript: Create Project` command.
 
-Project names are required to be unique per server-namespace and may optionally have a description. The description is shown when hovering over the project's node in the Projects Explorer or below its name when selecting one in a dropdown menu. Creating a project fires the `CreatedNewDocument` and `FirstTimeDocumentSave` source control actions if the creation was successful and a server-side source control class is enabled.
+Project names are required to be unique per server-namespace and may optionally have a description. The description is shown when hovering over the project's node in the Projects Explorer or below its name when selecting one in a dropdown menu.
 
 {: #modifying}
 ## Modifying Projects
@@ -57,8 +57,6 @@ There are three ways to add or remove items from a project:
 * Using commands:
 
   Open the command palette and select the `Objectscript: Add to Project` or `Objectscript: Remove From Project` command.
-
-Adding or removing items from a project fires the `AttemptedEdit` source control action if the modification was successful and a server-side source control class is enabled.
 
 ### Add to Project UI
 
@@ -86,8 +84,6 @@ There are two ways to delete projects in VS Code:
 
 * Right-click on a project node in the Projects Explorer and select the `Delete Project` menu option.
 * Open the command palette and run the `Objectscript: Delete Project` command.
-
-Deleting a project does **NOT** delete its contents. It fires the `DeletedDocument` source control action if the deletion was successful and a server-side source control class is enabled.
 
 {: #server-side}
 ## Editing Project Contents Server-Side

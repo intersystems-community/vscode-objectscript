@@ -2,10 +2,9 @@ import * as vscode from "vscode";
 import { NodeBase } from "./models/nodeBase";
 
 import { AtelierAPI } from "../api";
-import { config, projectsExplorerProvider, OBJECTSCRIPT_FILE_SCHEMA } from "../extension";
+import { config, projectsExplorerProvider } from "../extension";
 import { WorkspaceNode } from "./models/workspaceNode";
-import { outputChannel, workspaceFolderOfUri } from "../utils";
-import { fireOtherStudioAction, OtherStudioAction } from "../commands/studio";
+import { outputChannel } from "../utils";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 
 /** Get the URI for this leaf node */
@@ -91,24 +90,6 @@ export function registerExplorerOpen(explorerProvider: ObjectScriptExplorerProvi
 
             // Refresh the explorer
             projectsExplorerProvider.refresh();
-
-            try {
-              // Fire the source control hook
-              await fireOtherStudioAction(
-                OtherStudioAction.AttemptedEdit,
-                uri.scheme == "file" || uri.scheme == OBJECTSCRIPT_FILE_SCHEMA
-                  ? DocumentContentProvider.getUri(`${project}.PRJ`, workspaceFolderOfUri(uri), api.config.ns)
-                  : uri.with({ path: `/${project}.PRJ` })
-              );
-            } catch (error) {
-              let message = `Failed to fire source control hook for '${project}.PRJ'.`;
-              if (error && error.errorText && error.errorText !== "") {
-                outputChannel.appendLine("\n" + error.errorText);
-                outputChannel.show(true);
-                message += " Check 'ObjectScript' output channel for details.";
-              }
-              vscode.window.showErrorMessage(message, "Dismiss");
-            }
           }
         } else {
           throw error;

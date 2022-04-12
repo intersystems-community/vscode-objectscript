@@ -7,12 +7,11 @@ import { ProjectNode } from "../explorer/models/projectNode";
 import { ProjectRootNode } from "../explorer/models/projectRootNode";
 import { RoutineNode } from "../explorer/models/routineNode";
 import { config, filesystemSchemas, projectsExplorerProvider, schemas } from "../extension";
-import { compareConns, DocumentContentProvider } from "../providers/DocumentContentProvider";
+import { compareConns } from "../providers/DocumentContentProvider";
 import { isCSPFile } from "../providers/FileSystemProvider/FileSystemProvider";
 import { notNull, outputChannel } from "../utils";
 import { pickServerAndNamespace } from "./addServerNamespaceToWorkspace";
 import { exportList } from "./export";
-import { fireOtherStudioAction, OtherStudioAction } from "./studio";
 
 export interface ProjectItem {
   Name: string;
@@ -145,31 +144,6 @@ export async function createProject(node: NodeBase | undefined, api?: AtelierAPI
       // Refresh the explorer
       projectsExplorerProvider.refresh();
 
-      try {
-        // Fire the source control hooks
-        const uri =
-          node instanceof NodeBase
-            ? node.workspaceFolder != undefined
-              ? DocumentContentProvider.getUri(`${name}.PRJ`, node.workspaceFolder, node.namespace)
-              : DocumentContentProvider.getUri(`${name}.PRJ`, undefined, undefined, true, node.workspaceFolderUri)
-            : DocumentContentProvider.getUri(
-                `${name}.PRJ`,
-                "",
-                "",
-                true,
-                vscode.Uri.parse(`isfs://${api.config.serverName}:${api.config.ns}/`)
-              );
-        await fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, uri);
-        await fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, uri);
-      } catch (error) {
-        let message = `Failed to fire source control hooks for '${name}.PRJ'.`;
-        if (error && error.errorText && error.errorText !== "") {
-          outputChannel.appendLine("\n" + error.errorText);
-          outputChannel.show(true);
-          message += " Check 'ObjectScript' output channel for details.";
-        }
-        vscode.window.showErrorMessage(message, "Dismiss");
-      }
       return name;
     }
   }
@@ -223,31 +197,6 @@ export async function deleteProject(node: ProjectNode | undefined): Promise<any>
     if (remove == "Yes") {
       vscode.workspace.updateWorkspaceFolders(prjFolderIdx, 1);
     }
-  }
-
-  try {
-    // Fire the source control hook
-    const prjUri =
-      node instanceof ProjectNode
-        ? node.workspaceFolder != undefined
-          ? DocumentContentProvider.getUri(`${project}.PRJ`, node.workspaceFolder, node.namespace)
-          : DocumentContentProvider.getUri(`${project}.PRJ`, undefined, undefined, true, node.workspaceFolderUri)
-        : DocumentContentProvider.getUri(
-            `${project}.PRJ`,
-            "",
-            "",
-            true,
-            vscode.Uri.parse(`isfs://${api.config.serverName}:${api.config.ns}/`)
-          );
-    await fireOtherStudioAction(OtherStudioAction.DeletedDocument, prjUri);
-  } catch (error) {
-    let message = `Failed to fire source control hook for '${project}.PRJ'.`;
-    if (error && error.errorText && error.errorText !== "") {
-      outputChannel.appendLine("\n" + error.errorText);
-      outputChannel.show(true);
-      message += " Check 'ObjectScript' output channel for details.";
-    }
-    vscode.window.showErrorMessage(message, "Dismiss");
   }
 }
 
@@ -953,33 +902,6 @@ export async function modifyProject(
       await vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
     }
   }
-
-  try {
-    if (add.length || remove.length) {
-      // Fire the source control hook
-      const prjUri =
-        node instanceof NodeBase
-          ? node.workspaceFolder != undefined
-            ? DocumentContentProvider.getUri(`${project}.PRJ`, node.workspaceFolder, node.namespace)
-            : DocumentContentProvider.getUri(`${project}.PRJ`, undefined, undefined, true, node.workspaceFolderUri)
-          : DocumentContentProvider.getUri(
-              `${project}.PRJ`,
-              "",
-              "",
-              true,
-              vscode.Uri.parse(`isfs://${api.config.serverName}:${api.config.ns}/`)
-            );
-      await fireOtherStudioAction(OtherStudioAction.AttemptedEdit, prjUri);
-    }
-  } catch (error) {
-    let message = `Failed to fire source control hook for '${project}.PRJ'.`;
-    if (error && error.errorText && error.errorText !== "") {
-      outputChannel.appendLine("\n" + error.errorText);
-      outputChannel.show(true);
-      message += " Check 'ObjectScript' output channel for details.";
-    }
-    vscode.window.showErrorMessage(message, "Dismiss");
-  }
 }
 
 export async function exportProjectContents(node: ProjectNode | undefined): Promise<any> {
@@ -1164,26 +1086,6 @@ export async function addIsfsFileToProject(
     }
     vscode.window.showErrorMessage(message, "Dismiss");
     return;
-  }
-
-  try {
-    if (add.length) {
-      // Fire the source control hook
-      await fireOtherStudioAction(
-        OtherStudioAction.AttemptedEdit,
-        uri.with({
-          path: `/${project}.PRJ`,
-        })
-      );
-    }
-  } catch (error) {
-    let message = `Failed to fire source control hook for '${project}.PRJ'.`;
-    if (error && error.errorText && error.errorText !== "") {
-      outputChannel.appendLine("\n" + error.errorText);
-      outputChannel.show(true);
-      message += " Check 'ObjectScript' output channel for details.";
-    }
-    vscode.window.showErrorMessage(message, "Dismiss");
   }
 }
 
