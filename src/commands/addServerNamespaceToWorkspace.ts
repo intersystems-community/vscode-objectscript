@@ -137,9 +137,9 @@ export async function addServerNamespaceToWorkspace(): Promise<void> {
   // Prepare the folder parameters
   const editable = mode.value === AccessMode.Code || mode.value === AccessMode.WebappFiles;
   const webapp = mode.value === AccessMode.WebappFiles || mode.value === AccessMode.WebappFilesReadonly;
-  const label = `${project ? `${project} (` : ""}${serverName}:${namespace}${project ? ")" : ""}${
-    webapp ? " web files" : ""
-  }${!editable ? " (read-only)" : ""}`;
+  const label = `${project ? `${project} - ` : ""}${serverName}:${namespace}${webapp ? " web files" : ""}${
+    !editable && project == undefined ? " (read-only)" : ""
+  }`;
   uri = uri.with({
     scheme: editable ? "isfs" : "isfs-readonly",
     query: [webapp ? "csp" : "", project ? `project=${project}` : ""].filter((e) => e != "").join("&"),

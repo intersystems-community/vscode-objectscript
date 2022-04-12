@@ -1103,7 +1103,7 @@ export function addWorkspaceFolderForProject(node: ProjectNode): void {
     0,
     {
       uri: vscode.Uri.parse(`isfs://${node.conn.serverName}:${node.namespace}/?project=${node.label}`),
-      name: `${node.label} (${node.conn.serverName}:${node.namespace.toUpperCase()})`,
+      name: `${node.label} - ${node.conn.serverName}:${node.namespace.toUpperCase()}`,
     }
   );
   // Switch to Explorer view so user sees the outcome
