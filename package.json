@@ -521,12 +521,12 @@
         },
         {
           "command": "vscode-objectscript.removeFromProject",
-          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && resourcePath != '/'",
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && !explorerResourceIsRoot",
           "group": "objectscript_prj@2"
         },
         {
           "command": "vscode-objectscript.removeItemsFromProject",
-          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && resourcePath == '/'",
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && explorerResourceIsRoot",
           "group": "objectscript_prj@2"
         }
       ]
