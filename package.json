@@ -903,7 +903,7 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.explorer.project.addWorkspaceFolderForProject",
-        "title": "Add Workspace Folder For Project"
+        "title": "Add Workspace Folder for Project"
       }
     ],
     "keybindings": [

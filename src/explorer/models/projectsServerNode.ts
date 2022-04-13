@@ -19,7 +19,7 @@ export class ProjectsServerNode extends NodeBase {
       contextValue: this.uniqueId,
       label: `${
         serverName && serverName.length ? serverName : `${host}:${port}${pathPrefix}`
-      }[${this.namespace.toUpperCase()}]`,
+      }:${this.namespace.toUpperCase()}`,
       iconPath: new vscode.ThemeIcon("server-environment"),
       tooltip: "Explore projects in this server namespace",
     };

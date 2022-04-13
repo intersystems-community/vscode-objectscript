@@ -39,7 +39,7 @@ The following sections will describe how to use the Projects Explorer and other 
 There are two ways to create projects in VS Code:
 
 * Right-click on a server-namespace node in the Projects Explorer and select the `Create Project` menu option.
-* Open the command palette and run the `Objectscript: Create Project` command.
+* Open the command palette and run the `ObjectScript: Create Project` command.
 
 Project names are required to be unique per server-namespace and may optionally have a description. The description is shown when hovering over the project's node in the Projects Explorer or below its name when selecting one in a dropdown menu.
 
@@ -56,7 +56,7 @@ There are three ways to add or remove items from a project:
   * To remove an item, right-click on its node and select the `Remove from Project` menu option. If you remove a package or directory node, all of its children will also be removed from the project.
 * Using commands:
 
-  Open the command palette and select the `Objectscript: Add to Project` or `Objectscript: Remove From Project` command.
+  Open the command palette and select the `ObjectScript: Add to Project` or `ObjectScript: Remove from Project` command.
 
 ### Add to Project UI
 
@@ -83,7 +83,7 @@ The `Add to Project` command implements a custom multi-select dropdown that is s
 There are two ways to delete projects in VS Code:
 
 * Right-click on a project node in the Projects Explorer and select the `Delete Project` menu option.
-* Open the command palette and run the `Objectscript: Delete Project` command.
+* Open the command palette and run the `ObjectScript: Delete Project` command.
 
 {: #server-side}
 ## Editing Project Contents Server-Side
