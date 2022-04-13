@@ -8,6 +8,8 @@
 
 # InterSystems ObjectScript extension for VS Code
 
+> **Note:** The best way to install and use this extension is by installing the [InterSystems ObjectScript Extension Pack](https://marketplace.visualstudio.com/items?itemName=intersystems-community.objectscript-pack) and following the [documentation here](https://intersystems-community.github.io/vscode-objectscript/).
+
 [InterSystems&reg;](http://www.intersystems.com) ObjectScript language support for Visual Studio Code, from the [InterSystems Developer Community](https://community.intersystems.com/).
 
 - Documentation on [GitHub Pages](https://intersystems-community.github.io/vscode-objectscript/).
