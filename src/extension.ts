@@ -1031,7 +1031,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         openedClasses.splice(idx, 1);
       }
     }),
-    vscode.commands.registerCommand("vscode-objectscript.addToProject", (item) => {
+    vscode.commands.registerCommand("vscode-objectscript.addItemsToProject", (item) => {
       if (item instanceof NodeBase || item instanceof vscode.Uri) {
         return modifyProject(item, "add");
       } else {
@@ -1039,6 +1039,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     }),
     vscode.commands.registerCommand("vscode-objectscript.removeFromProject", (item) => {
+      if (item instanceof NodeBase || item instanceof vscode.Uri) {
+        return modifyProject(item, "remove");
+      } else {
+        return modifyProject(undefined, "remove");
+      }
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.removeItemsFromProject", (item) => {
       if (item instanceof NodeBase || item instanceof vscode.Uri) {
         return modifyProject(item, "remove");
       } else {

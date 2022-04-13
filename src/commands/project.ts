@@ -423,7 +423,7 @@ async function pickAdditions(
   return new Promise<string[]>((resolve) => {
     let result: string[] = [];
     const quickPick = vscode.window.createQuickPick<PickAdditionsItem>();
-    quickPick.title = `Select items to add to project '${project}'.`;
+    quickPick.title = `Select items in namespace '${api.ns.toUpperCase()}' to add to project '${project}'.`;
     quickPick.ignoreFocusOut = true;
     quickPick.canSelectMany = true;
     quickPick.keepScrollPosition = true;

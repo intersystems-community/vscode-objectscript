@@ -77,8 +77,8 @@
     "onCommand:vscode-objectscript.showExplorerForWorkspace",
     "onCommand:vscode-objectscript.createProject",
     "onCommand:vscode-objectscript.deleteProject",
-    "onCommand:vscode-objectscript.addToProject",
-    "onCommand:vscode-objectscript.removeFromProject",
+    "onCommand:vscode-objectscript.addItemsToProject",
+    "onCommand:vscode-objectscript.removeItemsFromProject",
     "onLanguage:objectscript",
     "onLanguage:objectscript-int",
     "onLanguage:objectscript-class",
@@ -280,6 +280,10 @@
         {
           "command": "vscode-objectscript.explorer.project.addWorkspaceFolderForProject",
           "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.removeFromProject",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -361,13 +365,18 @@
           "group": "inline@10"
         },
         {
-          "command": "vscode-objectscript.addToProject",
+          "command": "vscode-objectscript.addItemsToProject",
           "when": "view == ObjectScriptProjectsExplorer && viewItem =~ /^(dataNode:projectNode|dataRootNode)/",
           "group": "5_objectscript_prj@1"
         },
         {
           "command": "vscode-objectscript.removeFromProject",
-          "when": "view == ObjectScriptProjectsExplorer && viewItem =~ /^dataNode:/",
+          "when": "view == ObjectScriptProjectsExplorer && viewItem =~ /^dataNode(?!:projectNode$).*/",
+          "group": "5_objectscript_prj@2"
+        },
+        {
+          "command": "vscode-objectscript.removeItemsFromProject",
+          "when": "view == ObjectScriptProjectsExplorer && viewItem == dataNode:projectNode",
           "group": "5_objectscript_prj@2"
         },
         {
@@ -506,13 +515,18 @@
           "group": "objectscript_servercommand@2"
         },
         {
-          "command": "vscode-objectscript.addToProject",
+          "command": "vscode-objectscript.addItemsToProject",
           "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && explorerResourceIsRoot",
           "group": "objectscript_prj@1"
         },
         {
           "command": "vscode-objectscript.removeFromProject",
-          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/",
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && resourcePath != '/'",
+          "group": "objectscript_prj@2"
+        },
+        {
+          "command": "vscode-objectscript.removeItemsFromProject",
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && resourcePath == '/'",
           "group": "objectscript_prj@2"
         }
       ]
@@ -859,8 +873,13 @@
         "title": "Export Current File from Server"
       },
       {
-        "command": "vscode-objectscript.addToProject",
-        "title": "Add to Project",
+        "command": "vscode-objectscript.addItemsToProject",
+        "title": "Add Items to Project...",
+        "category": "ObjectScript"
+      },
+      {
+        "command": "vscode-objectscript.removeItemsFromProject",
+        "title": "Remove Items from Project...",
         "category": "ObjectScript"
       },
       {

@@ -49,14 +49,14 @@ Project names are required to be unique per server-namespace and may optionally 
 There are three ways to add or remove items from a project:
 
 * Using the Projects Explorer:
-  * To add items, right-click on the project node or one of the document type nodes (i.e. `Classes` or `Routines`) and select the `Add to Project` menu option. If you clicked on a document type node, you will only be shown documents of that type to add.
-  * To remove an item, right-click on its node and select the `Remove from Project` menu option. If you remove a package or directory node, all of its children will also be removed from the project.
+  * To add items, right-click on the project node or one of the document type nodes (i.e. `Classes` or `Routines`) and select the `Add Items to Project...` menu option. If you clicked on a document type node, you will only be shown documents of that type to add.
+  * To remove an item, right-click on its node and select the `Remove from Project` menu option. If you remove a package or directory node, all of its children will also be removed from the project. You may also right-click on the project node and select the `Remove Items from Project...` menu option to be presented with a multi-select dropdown that allows you to remove multiple items at once.
 * Within a workspace folder configured to view or edit documents in a project directly on the server:
-  * To add items, right-click a root `isfs(-readonly)` folder that has the `project` query parameter in its URI and select the `Add to Project` menu option.
-  * To remove an item, right-click on its node and select the `Remove from Project` menu option. If you remove a package or directory node, all of its children will also be removed from the project.
+  * To add items, right-click a root `isfs(-readonly)` folder that has the `project` query parameter in its URI and select the `Add Items to Project...` menu option.
+  * To remove an item, right-click on its node and select the `Remove from Project` menu option. If you remove a package or directory node, all of its children will also be removed from the project. You may also right-click on a root `isfs(-readonly)` folder that has the `project` query parameter in its URI and select the `Remove Items from Project...` menu option to be presented with a multi-select dropdown that allows you to remove multiple items at once.
 * Using commands:
 
-  Open the command palette and select the `ObjectScript: Add to Project` or `ObjectScript: Remove from Project` command.
+  Open the command palette and select the `ObjectScript: Add Items to Project...` or `ObjectScript: Remove Items from Project...` command.
 
 ### Add to Project UI
 
