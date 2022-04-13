@@ -59,6 +59,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.multilineMethodArgs"` | List method arguments on multiple lines, if the server supports it. | `boolean` | `false` | Only supported on IRIS 2019.1.2, 2020.1.1+, 2021.1.0+ and subsequent versions! On all other versions, this setting will have no effect. |
 | `"objectscript.openClassContracted"` | Automatically collapse all class member folding ranges when a class is opened for the first time. | `boolean` | `false` | |
 | `"objectscript.overwriteServerChanges"` | Overwrite a changed server version without confirmation when importing the local file. | `boolean` | `false` | |
+| `"objectscript.projects.webAppFileExtensions"` | When browsing a virtual workspace folder that has a project query parameter, all files with these extensions will be automatically treated as web application files. Extensions added here will be appended to the default list and should **NOT** include a dot. | `string[]` | `[]` | Default extensions: `["csp","csr","ts","js","css","scss","sass","less","html","json","md","markdown","png","svg","jpeg","jpg","ico","xml","txt"]` |
 | `"objectscript.serverSideEditing"` | Allow editing code directly on the server after opening it from ObjectScript Explorer. | `boolean` | `false` | |
 | `"objectscript.serverSourceControl.disableOtherActionTriggers"` | Prevent server-side source control 'other action' triggers from firing. | `boolean` | `false` | |
 | `"objectscript.showExplorer"` | Show the ObjectScript Explorer view. | `boolean` | `true` | |

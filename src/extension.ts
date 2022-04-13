@@ -43,7 +43,7 @@ import {
   contextSourceControlMenu,
   mainSourceControlMenu,
 } from "./commands/studio";
-import { addServerNamespaceToWorkspace } from "./commands/addServerNamespaceToWorkspace";
+import { addServerNamespaceToWorkspace, pickServerAndNamespace } from "./commands/addServerNamespaceToWorkspace";
 import { jumpToTagAndOffset } from "./commands/jumpToTagAndOffset";
 import { connectFolderToServerNamespace } from "./commands/connectFolderToServerNamespace";
 import { DocumaticPreviewPanel } from "./commands/documaticPreviewPanel";
@@ -65,6 +65,7 @@ import { XmlContentProvider } from "./providers/XmlContentProvider";
 import { AtelierAPI } from "./api";
 import { ObjectScriptDebugAdapterDescriptorFactory } from "./debug/debugAdapterFactory";
 import { ObjectScriptConfigurationProvider } from "./debug/debugConfProvider";
+import { ProjectsExplorerProvider } from "./explorer/projectsExplorer";
 import { ObjectScriptExplorerProvider, registerExplorerOpen } from "./explorer/explorer";
 import { WorkspaceNode } from "./explorer/models/workspaceNode";
 import { FileSystemProvider, generateFileContent } from "./providers/FileSystemProvider/FileSystemProvider";
@@ -92,6 +93,7 @@ import { TextSearchProvider } from "./providers/FileSystemProvider/TextSearchPro
 
 export let fileSystemProvider: FileSystemProvider;
 export let explorerProvider: ObjectScriptExplorerProvider;
+export let projectsExplorerProvider: ProjectsExplorerProvider;
 export let documentContentProvider: DocumentContentProvider;
 export let workspaceState: vscode.Memento;
 export let extensionContext: vscode.ExtensionContext;
@@ -102,6 +104,15 @@ export let xmlContentProvider: XmlContentProvider;
 
 import TelemetryReporter from "vscode-extension-telemetry";
 import { CodeActionProvider } from "./providers/CodeActionProvider";
+import {
+  addWorkspaceFolderForProject,
+  compileProjectContents,
+  createProject,
+  deleteProject,
+  exportProjectContents,
+  modifyProject,
+} from "./commands/project";
+import { NodeBase } from "./explorer/models/nodeBase";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -356,6 +367,7 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
       checkingConnection = false;
       setTimeout(() => {
         explorerProvider.refresh();
+        projectsExplorerProvider.refresh();
         // Refreshing Files Explorer also switches to it, so only do this if the uri is part of the workspace,
         // otherwise files opened from ObjectScript Explorer (objectscript:// or isfs:// depending on the "objectscript.serverSideEditing" setting)
         // will cause an unwanted switch.
@@ -502,6 +514,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     canSelectMany: true,
   });
 
+  projectsExplorerProvider = new ProjectsExplorerProvider();
+  vscode.window.createTreeView("ObjectScriptProjectsExplorer", {
+    treeDataProvider: projectsExplorerProvider,
+    showCollapseAll: true,
+    canSelectMany: false,
+  });
+
   posPanel = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
   posPanel.command = "vscode-objectscript.jumpToTagAndOffset";
   posPanel.show();
@@ -586,6 +605,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         }
       }
       explorerProvider.refresh();
+      projectsExplorerProvider.refresh();
       if (refreshFilesExplorer) {
         // This unavoidably switches to the File Explorer view, so only do it if isfs folders were found
         vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
@@ -871,8 +891,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.serverActions", serverActions),
     vscode.commands.registerCommand("vscode-objectscript.touchBar.viewOthers", () => viewOthers(false)),
     vscode.commands.registerCommand("vscode-objectscript.explorer.refresh", () => explorerProvider.refresh()),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.project.refresh", () =>
+      projectsExplorerProvider.refresh()
+    ),
     // Register the vscode-objectscript.explorer.open command elsewhere
-    registerExplorerOpen(explorerProvider),
+    registerExplorerOpen(),
     vscode.commands.registerCommand("vscode-objectscript.explorer.export", (item, items) =>
       exportExplorerItems(items && items.length ? items : [item])
     ),
@@ -1008,6 +1031,48 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         openedClasses.splice(idx, 1);
       }
     }),
+    vscode.commands.registerCommand("vscode-objectscript.addItemsToProject", (item) => {
+      if (item instanceof NodeBase || item instanceof vscode.Uri) {
+        return modifyProject(item, "add");
+      } else {
+        return modifyProject(undefined, "add");
+      }
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.removeFromProject", (item) => {
+      if (item instanceof NodeBase || item instanceof vscode.Uri) {
+        return modifyProject(item, "remove");
+      } else {
+        return modifyProject(undefined, "remove");
+      }
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.removeItemsFromProject", (item) => {
+      if (item instanceof NodeBase || item instanceof vscode.Uri) {
+        return modifyProject(item, "remove");
+      } else {
+        return modifyProject(undefined, "remove");
+      }
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.createProject", (node) => createProject(node)),
+    vscode.commands.registerCommand("vscode-objectscript.deleteProject", (node) => deleteProject(node)),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.project.exportProjectContents", (node) =>
+      exportProjectContents(node)
+    ),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.project.compileProjectContents", (node) =>
+      compileProjectContents(node)
+    ),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.project.openOtherServerNs", () => {
+      pickServerAndNamespace().then((pick) => {
+        if (pick != undefined) {
+          projectsExplorerProvider.openExtraServerNs(pick);
+        }
+      });
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.project.closeOtherServerNs", (node) =>
+      projectsExplorerProvider.closeExtraServerNs(node)
+    ),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.project.addWorkspaceFolderForProject", (node) =>
+      addWorkspaceFolderForProject(node)
+    ),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed

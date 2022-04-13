@@ -270,7 +270,7 @@ export class AtelierAPI {
         if (typeof value === "boolean") {
           result.push(`${key}=${value ? "1" : "0"}`);
         } else if (value && value !== "") {
-          result.push(`${key}=${value}`);
+          result.push(`${key}=${encodeURIComponent(value)}`);
         }
       });
       return result.length ? "?" + result.join("&") : "";
@@ -294,7 +294,7 @@ export class AtelierAPI {
       pathPrefix = "/" + pathPrefix;
     }
 
-    path = encodeURI(`${pathPrefix}/api/atelier/${path || ""}${buildParams()}`);
+    path = encodeURI(`${pathPrefix}/api/atelier/${path || ""}`) + buildParams();
 
     const cookies = this.cookies;
     const target = `${username}@${host}:${port}`;
