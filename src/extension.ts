@@ -895,7 +895,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       projectsExplorerProvider.refresh()
     ),
     // Register the vscode-objectscript.explorer.open command elsewhere
-    registerExplorerOpen(explorerProvider),
+    registerExplorerOpen(),
     vscode.commands.registerCommand("vscode-objectscript.explorer.export", (item, items) =>
       exportExplorerItems(items && items.length ? items : [item])
     ),

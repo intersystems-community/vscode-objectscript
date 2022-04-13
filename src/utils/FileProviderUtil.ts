@@ -45,9 +45,10 @@ export async function projectContentsFromUri(uri: vscode.Uri, overrideFlat?: boo
         "WHERE pil.Type = 'MAC' OR pil.Type = 'OTH' OR pil.Type = 'CLS' OR pil.Type = 'PKG' UNION SELECT sod.Name, pil.Type FROM " +
         "%Library.RoutineMgr_StudioOpenDialog(?,1,1,1,0,0,1) AS sod JOIN %Studio.Project_ProjectItemsList(?,1) AS pil ON " +
         "(pil.Type = 'DIR' AND ?||sod.Name %STARTSWITH pil.Name||'/') OR (pil.Type = 'CSP' AND ?||sod.Name = pil.Name) " +
-        "UNION SELECT $PIECE(SUBSTR(Name,?),'/') AS Name, Type FROM %Studio.Project_ProjectItemsList(?,1) WHERE Type = 'DIR' " +
-        "AND $LENGTH($PIECE(SUBSTR(Name,?),'/')) > 0 AND Name %STARTSWITH ? AND EXISTS " +
-        "(SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,0,0,1) AS sod WHERE Name %STARTSWITH sod.Name||'/' OR Name = sod.Name)";
+        "UNION SELECT $PIECE(SUBSTR(Name,?),'/') AS Name, Type FROM %Studio.Project_ProjectItemsList(?,1) WHERE (" +
+        "Type = 'DIR' AND $LENGTH($PIECE(SUBSTR(Name,?),'/')) > 0 AND Name %STARTSWITH ? AND EXISTS " +
+        "(SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,0,0,1) AS sod WHERE Name %STARTSWITH sod.Name||'/' OR Name = sod.Name)) OR (" +
+        "Type = 'CSP' AND Name %STARTSWITH ? AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,1,0,1) AS sod WHERE Name = sod.Name))";
       parameters = [
         folder.replace(/\//g, ".").slice(0, -1) + "/*",
         project,
@@ -63,6 +64,7 @@ export async function projectContentsFromUri(uri: vscode.Uri, overrideFlat?: boo
         project,
         l,
         folder,
+        folder,
       ];
     } else {
       const nameCol =
@@ -72,7 +74,7 @@ export async function projectContentsFromUri(uri: vscode.Uri, overrideFlat?: boo
         `SELECT DISTINCT BY (${nameCol}) ${nameCol} ` +
         "Name, Type FROM %Studio.Project_ProjectItemsList(?,1) WHERE " +
         "(Type = 'MAC' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.mac,*.int,*.inc',1,1,1,1,0,1) AS sod WHERE Name = sod.Name)) OR " +
-        "(Type = 'CSP' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,1,0,1) AS sod WHERE '/'||Name = sod.Name)) OR " +
+        "(Type = 'CSP' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,1,0,1) AS sod WHERE Name = sod.Name)) OR " +
         "(Type = 'OTH' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.other',1,1,1,1,0,1) AS sod WHERE Name = sod.Name)) OR " +
         "(Type = 'CLS' AND EXISTS (SELECT dcd.ID FROM %Dictionary.ClassDefinition AS dcd WHERE dcd.ID = Name)) OR " +
         "(Type = 'PKG' AND EXISTS (SELECT dcd.ID FROM %Dictionary.ClassDefinition AS dcd WHERE dcd.ID %STARTSWITH Name||'.')) OR " +

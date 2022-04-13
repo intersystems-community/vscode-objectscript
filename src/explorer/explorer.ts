@@ -32,26 +32,29 @@ export function getLeafNodeUri(node: NodeBase, forceServerCopy = false): vscode.
   }
 }
 
+/** Use for detecting doubleclick */
+let lastOpened: { uri: vscode.Uri; date: Date };
+
 /**
  * The vscode-objectscript.explorer.open command is not listed in settings.json as a contribution because it only gets invoked
  * from the user's click on an item in the `ObjectScriptExplorerProvider` or `ProjectsExplorerProvider` tree.
  * It serves as a proxy for `vscode.window.showTextDocument()`, detecting two opens of the same item in quick succession
  * and treating the second of these as a non-preview open.
  */
-export function registerExplorerOpen(explorerProvider: ObjectScriptExplorerProvider): vscode.Disposable {
+export function registerExplorerOpen(): vscode.Disposable {
   return vscode.commands.registerCommand(
     "vscode-objectscript.explorer.open",
     async function (uri: vscode.Uri, project?: string, fullName?: string) {
       let usePreview = <boolean>vscode.workspace.getConfiguration("workbench.editor").get("enablePreview");
 
       if (usePreview) {
-        usePreview = !wasDoubleClick(uri, explorerProvider);
+        usePreview = !wasDoubleClick(uri);
       }
 
       try {
         await vscode.window.showTextDocument(uri, { preview: usePreview });
       } catch (error) {
-        if (project && fullName) {
+        if (Object.keys(error).length && project && fullName) {
           // This project item no longer exists on the server
           // Ask the user if they would like to remove it from the project
           const remove = await vscode.window.showErrorMessage(
@@ -100,15 +103,15 @@ export function registerExplorerOpen(explorerProvider: ObjectScriptExplorerProvi
 }
 
 // Return true if previously called with the same arguments within the past 0.5 seconds
-function wasDoubleClick(uri: vscode.Uri, explorerProvider: ObjectScriptExplorerProvider): boolean {
+function wasDoubleClick(uri: vscode.Uri): boolean {
   let result = false;
-  if (explorerProvider.lastOpened) {
-    const isTheSameUri = explorerProvider.lastOpened.uri === uri;
-    const dateDiff = <number>(<any>new Date() - <any>explorerProvider.lastOpened.date);
+  if (lastOpened) {
+    const isTheSameUri = lastOpened.uri === uri;
+    const dateDiff = <number>(<any>new Date() - <any>lastOpened.date);
     result = isTheSameUri && dateDiff < 500;
   }
 
-  explorerProvider.lastOpened = {
+  lastOpened = {
     uri: uri,
     date: new Date(),
   };
@@ -117,9 +120,6 @@ function wasDoubleClick(uri: vscode.Uri, explorerProvider: ObjectScriptExplorerP
 export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<NodeBase> {
   public onDidChange?: vscode.Event<vscode.Uri>;
   public onDidChangeTreeData: vscode.Event<NodeBase>;
-
-  // Use for detecting doubleclick
-  public lastOpened: { uri: vscode.Uri; date: Date };
 
   private _onDidChangeTreeData: vscode.EventEmitter<NodeBase>;
   private _showExtra4Workspace: { [key: string]: string[] }[] = [];
