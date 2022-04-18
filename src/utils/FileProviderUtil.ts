@@ -136,7 +136,7 @@ export function studioOpenDialogFromURI(
   if (!api.active) {
     return;
   }
-  const sql = `SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?)`;
+  const sql = `SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?,?,?)`;
   const params = new URLSearchParams(uri.query);
   const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
   const spec = fileSpecFromURI(uri, overrides.type);
@@ -150,5 +150,6 @@ export function studioOpenDialogFromURI(
   if (overrides && overrides.flat) {
     flat = "1";
   }
-  return api.actionQuery(sql, [spec, dir, orderBy, system, flat, notStudio, generated, overrides.filter]);
+  const mapped = params.has("mapped") && params.get("mapped") == "0" ? "0" : "1";
+  return api.actionQuery(sql, [spec, dir, orderBy, system, flat, notStudio, generated, overrides.filter, "0", mapped]);
 }

@@ -147,14 +147,15 @@ Changes you make to files opened from this root folder of your VS Code workspace
 
 The query string of the `uri` property accepts several parameters that control filtering and display of the server-side entities. The examples below access the USER namespace on the server whose definition is named 'myserver'.
 
-- `isfs://myserver:user?type=cls`, shows only classes
-- `isfs://myserver:user?type=rtn`, shows only mac, int and inc files
-- `isfs://myserver:user?generated=1`, shows generated files as well as not generated
-- `isfs://myserver:user?filter=%Z*.mac,%z*.mac`, comma-delimited list of search options, ignores `type`. The default is `*.cls,*.inc,*.mac,*.int`. To see all files, use `*`.
-- `isfs://myserver:user?flat=1`, a flat list of files. Does not split packages as folders. Cannot be combined with `csp`.
-- `isfs://myserver:user?project=prjname`, shows only files in project `prjname`. Cannot be combined with any other parameter.
+- `isfs://myserver:user/?type=cls`, shows only classes
+- `isfs://myserver:user/?type=rtn`, shows only mac, int and inc files
+- `isfs://myserver:user/?generated=1`, shows generated files as well as not generated
+- `isfs://myserver:user/?filter=%Z*.mac,%z*.mac`, comma-delimited list of search options, ignores `type`. The default is `*.cls,*.inc,*.mac,*.int`. To see all files, use `*`.
+- `isfs://myserver:user/?flat=1`, a flat list of files. Does not split packages as folders. Cannot be combined with `csp`.
+- `isfs://myserver:user/?project=prjname`, shows only files in project `prjname`. Cannot be combined with any other parameter.
+- `isfs://myserver:user/?mapped=0`, hides files that are mapped from a non-default database
 
-The options `flat` and `generated` can be combined with each other, and with `type` or `filter`. If `filter` is specified, `type` is ignored.
+The options `flat`, `generated` and `mapped` can be combined with each other, and with `type` or `filter`. If `filter` is specified, `type` is ignored.
 
 ## Advanced Workspace Configurations
 

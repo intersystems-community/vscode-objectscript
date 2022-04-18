@@ -1071,7 +1071,8 @@
             "category": "*",
             "noStorage": false,
             "dontExportIfNoChanges": false,
-            "maxConcurrentConnections": 0
+            "maxConcurrentConnections": 0,
+            "mapped": true
           },
           "properties": {
             "folder": {
@@ -1149,6 +1150,10 @@
             "maxConcurrentConnections": {
               "description": "Maximum number of concurrent export connections. (0 = unlimited)",
               "type": "number"
+            },
+            "mapped": {
+              "description": "Export source code files mapped from a non-default database.",
+              "type": "boolean"
             }
           }
         },
