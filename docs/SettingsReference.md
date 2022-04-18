@@ -51,6 +51,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.export.folder"` | Folder for exported source code within workspace. | `string` | `"src"` | |
 | `"objectscript.export.generated"` | Export generated source code files, such as INTs generated from classes. | `boolean` | `false` | |
 | `"objectscript.export.map"` | Map file names before export, with regexp pattern as a key and replacement as a value. | `object` | `{}` | For example, `{  \"%(.*)\": \"_$1\" }` to make % classes or routines use underscore prefix instead. |
+| `"objectscript.export.mapped"` | Export source code files mapped from a non-default database. | `boolean` | `true` | |
 | `"objectscript.export.maxConcurrentConnections"` | Maximum number of concurrent export connections. | `number` | `0` | 0 = unlimited |
 | `"objectscript.export.noStorage"` | Strip the storage definition on export. | `boolean` | `false` | Can be useful when working across multiple systems. |
 | `"objectscript.format.commandCase"` | Case for commands. | `"upper"`, `"lower"` or `"word"` | `"word"` | Has no effect if the `InterSystems Language Server` extension is installed and enabled. |

@@ -246,7 +246,7 @@ export async function exportAll(): Promise<any> {
   }
   const api = new AtelierAPI(workspaceFolder);
   outputChannel.show(true);
-  const { category, generated, filter, exactFilter } = config("export", workspaceFolder);
+  const { category, generated, filter, exactFilter, mapped } = config("export", workspaceFolder);
   // Replicate the behavior of getDocNames() but use StudioOpenDialog for better performance
   let filterStr = "";
   switch (category) {
@@ -277,7 +277,7 @@ export async function exportAll(): Promise<any> {
     }
   }
   return api
-    .actionQuery("SELECT Name FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?)", [
+    .actionQuery("SELECT Name FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?,?,?)", [
       "*",
       "1",
       "1",
@@ -286,6 +286,8 @@ export async function exportAll(): Promise<any> {
       "0",
       generated ? "1" : "0",
       filterStr,
+      "0",
+      mapped ? "1" : "0",
     ])
     .then(async (data) => {
       let files: vscode.QuickPickItem[] = data.result.content.map((file) => {
