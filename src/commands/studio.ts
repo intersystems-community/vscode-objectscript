@@ -8,6 +8,7 @@ import { PackageNode } from "../explorer/models/packageNode";
 import { RoutineNode } from "../explorer/models/routineNode";
 import { NodeBase } from "../explorer/models/nodeBase";
 import { importAndCompile } from "./compile";
+import { ProjectNode } from "../explorer/models/projectNode";
 
 export let documentBeingProcessed: vscode.TextDocument = null;
 
@@ -488,11 +489,13 @@ async function _mainMenu(sourceControl: boolean, uri?: vscode.Uri): Promise<void
   }
 }
 
-export async function contextCommandMenu(node: PackageNode | ClassNode | RoutineNode): Promise<void> {
+export async function contextCommandMenu(node: PackageNode | ClassNode | RoutineNode | ProjectNode): Promise<void> {
   return _contextMenu(false, node);
 }
 
-export async function contextSourceControlMenu(node: PackageNode | ClassNode | RoutineNode): Promise<void> {
+export async function contextSourceControlMenu(
+  node: PackageNode | ClassNode | RoutineNode | ProjectNode
+): Promise<void> {
   return _contextMenu(true, node);
 }
 

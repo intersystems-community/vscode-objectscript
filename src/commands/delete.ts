@@ -45,7 +45,7 @@ export async function deleteExplorerItems(nodes: NodeBase[]): Promise<any> {
       if (nodes.length > 1) {
         // Ask the user to confirm if they're deleting more than one explorer node
         const confirm = await vscode.window.showWarningMessage(
-          `About to delete ${items.length} documents. Are you sure you want to proceed?`,
+          `About to delete ${items.length} document${items.length > 1 ? "s" : ""}. Are you sure you want to proceed?`,
           "Cancel",
           "Confirm"
         );

@@ -51,6 +51,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.export.folder"` | Folder for exported source code within workspace. | `string` | `"src"` | |
 | `"objectscript.export.generated"` | Export generated source code files, such as INTs generated from classes. | `boolean` | `false` | |
 | `"objectscript.export.map"` | Map file names before export, with regexp pattern as a key and replacement as a value. | `object` | `{}` | For example, `{  \"%(.*)\": \"_$1\" }` to make % classes or routines use underscore prefix instead. |
+| `"objectscript.export.mapped"` | Export source code files mapped from a non-default database. | `boolean` | `true` | |
 | `"objectscript.export.maxConcurrentConnections"` | Maximum number of concurrent export connections. | `number` | `0` | 0 = unlimited |
 | `"objectscript.export.noStorage"` | Strip the storage definition on export. | `boolean` | `false` | Can be useful when working across multiple systems. |
 | `"objectscript.format.commandCase"` | Case for commands. | `"upper"`, `"lower"` or `"word"` | `"word"` | Has no effect if the `InterSystems Language Server` extension is installed and enabled. |
@@ -59,6 +60,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.multilineMethodArgs"` | List method arguments on multiple lines, if the server supports it. | `boolean` | `false` | Only supported on IRIS 2019.1.2, 2020.1.1+, 2021.1.0+ and subsequent versions! On all other versions, this setting will have no effect. |
 | `"objectscript.openClassContracted"` | Automatically collapse all class member folding ranges when a class is opened for the first time. | `boolean` | `false` | |
 | `"objectscript.overwriteServerChanges"` | Overwrite a changed server version without confirmation when importing the local file. | `boolean` | `false` | |
+| `"objectscript.projects.webAppFileExtensions"` | When browsing a virtual workspace folder that has a project query parameter, all files with these extensions will be automatically treated as web application files. Extensions added here will be appended to the default list and should **NOT** include a dot. | `string[]` | `[]` | Default extensions: `["csp","csr","ts","js","css","scss","sass","less","html","json","md","markdown","png","svg","jpeg","jpg","ico","xml","txt"]` |
 | `"objectscript.serverSideEditing"` | Allow editing code directly on the server after opening it from ObjectScript Explorer. | `boolean` | `false` | |
 | `"objectscript.serverSourceControl.disableOtherActionTriggers"` | Prevent server-side source control 'other action' triggers from firing. | `boolean` | `false` | |
 | `"objectscript.showExplorer"` | Show the ObjectScript Explorer view. | `boolean` | `true` | |

@@ -21,7 +21,6 @@ export class PackageNode extends RootNode {
       contextValue: this.contextValue,
       label: `${displayName}`,
       tooltip: this.fullName,
-      //iconPath: new vscode.ThemeIcon("package"),
     };
   }
 
