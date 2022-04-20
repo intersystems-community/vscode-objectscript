@@ -1,6 +1,6 @@
 # Change Log
 
-## [1.6.1] 20-Apr-2022
+## [1.8.0] 20-Apr-2022
 - Enhancements
   - Add support for server-side projects (#851)
   - Implement isfs folder rename and deletion (#923, #922)
