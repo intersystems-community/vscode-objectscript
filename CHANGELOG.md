@@ -1,5 +1,11 @@
 # Change Log
 
+## [1.8.0] 20-Apr-2022
+- Enhancements
+  - Add support for server-side projects (#851)
+  - Implement isfs folder rename and deletion (#923, #922)
+  - Support "mapped" flag for isfs and export filters, to exclude packages mapped from other databases (#931) 
+
 ## [1.6.0] 06-Apr-2022
 Minimum VS Code version is now 1.66.0
 - Enhancements
