@@ -58,13 +58,20 @@ Save the change. This change is not thought to have any adverse effects on the u
 
 ### Viewing and Editing Source Code on the Server
 
-Expand the target server, then expand its **Namespaces**  folder. Hover over the target namespace to reveal its command buttons:
+Expand the target server, then expand its **Namespaces** folder. Hover over the target namespace to reveal its command buttons:
 
 ![Namespace edit buttons.](../assets/images/namespace-buttons.png "namespace edit buttons")
 
 - Click the **edit pencil** button to add an *isfs://server:namespace/* folder to your VS Code workspace.
 - Click the **viewing eye** button to add an *isfs-readonly://server:namespace/* folder to your VS Code workspace.
 - Hold the **alt** or **option** key while clicking the edit or view button to add a folder that gives you access to server-side web application files (for example, CSP files).
+
+If you want to add a folder that shows only a single project's contents, expand the target namespace and the **Projects** folder to reveal the projects in the target namespace. Hover over the target project to reveal its command buttons:
+
+![Project edit buttons.](../assets/images/project-buttons.png "project edit buttons")
+
+- Click the **edit pencil** button to add an *isfs://server:namespace/?project=prjname* folder to your VS Code workspace.
+- Click the **viewing eye** button to add an *isfs-readonly://server:namespace/?project=prjname* folder to your VS Code workspace.
 
 Once you have added a server-side namespace to the workspace, VS Code opens the Explorer view showing the added namespace. The following screen shot shows the **Sample** and **User** packages in the **src** folder on the client, and the **Sample** and **User** packages in the **USER** namespace on the server, with read-only access.
 
@@ -97,15 +104,17 @@ On Windows, the Server Manager can create connection entries for all connections
 
 ## ObjectScript View
 
-The InterSystems ObjectScript extension supplies an ObjectScript view container. The button to select this appears in the Activity Bar only when a folder or a workspace that includes a client-side folder is open:
+The InterSystems ObjectScript extension supplies an ObjectScript view container. The button to select this appears in the Activity Bar:
 
 ![ObjectScript button.](../assets/images/objectscript.png "objectscript button")
 
-When a VS Code workspace is not connected to an InterSystems IRIS server, the ObjectScript view provides a button that lets you select a server and namespace. Once the workspace is connected to an InterSystems IRIS server, the ObjectScript view shows files on the server, grouped by type of file.
+This view container contains two views: the ObjectScript Explorer and the Projects Explorer. For more information about the Projects Explorer, see the [Working with Projects](../projects/#explorer) page.
 
-If the workspace is configured for server-side editing, the ObjectScript view is not available. In this configuration, the Explorer view lists files on the server, not on the local machine, making the ObjectScript view irrelevant.
+When a VS Code workspace is not connected to an InterSystems IRIS server, the ObjectScript Explorer provides a button that lets you select a server and namespace. Once the workspace is connected to an InterSystems IRIS server, the ObjectScript Explorer shows files on the server, grouped by type of file.
 
-The ObjectScript view provides the following items:
+If the workspace is configured for server-side editing, the ObjectScript Explorer is not available. In this configuration, the Explorer view lists files on the server, not on the local machine, making the ObjectScript view irrelevant.
+
+The ObjectScript Explorer provides the following items:
 
 - **Compile** - Compiles files on the server.
 - **Delete** - Deletes files from the server.
@@ -113,16 +122,13 @@ The ObjectScript view provides the following items:
 - **Server Command Menu...** - Pick a command from menus configured on the server.
 - **Server Source Control...** - Pick a command from menus configured on the server.
 
-The InterSystems IRIS documentation section [Extending Studio](https://docs.intersystems.com/irislatest/csp/docbook/Doc.View.cls?KEY=ASC#ASC_Hooks_extending_studio ) describes how to configure menus for source code control and other purposes. Entries from menus named **%SourceMenu** and **%SourceContext** appear in the **Server Source Control...** quickpick provided the source control class doesn't disable the entry, for example, disabling checkout if it knows that the file is already checked out.
+The InterSystems IRIS documentation section [Extending Studio](https://docs.intersystems.com/irislatest/csp/docbook/Doc.View.cls?KEY=ASC#ASC_Hooks_extending_studio) describes how to configure menus for source code control and other purposes. Entries from menus named **%SourceMenu** and **%SourceContext** appear in the **Server Source Control...** quickpick provided the source control class doesn't disable the entry, for example, disabling checkout if it knows that the file is already checked out.
 
 Entries from menus with any other name appear in the **Server Command Menu...**.
 
 ## Views and View Containers
 
-Technically the **InterSystems Tools** and **ObjectScript** entities described above are what VS Code calls [view containers](https://code.visualstudio.com/api/extension-capabilities/extending-workbench#view-container). Each contains a single view:
-
-- In container **InterSystems Tools** is view **Servers**
-- In container **ObjectScript** is view **Explorer**
+Technically the **InterSystems Tools** and **ObjectScript** entities described above are what VS Code calls [view containers](https://code.visualstudio.com/api/extension-capabilities/extending-workbench#view-container). The **InterSystems Tools** view container has a single view called **Servers**. The **ObjectScript** view container has two views: **Explorer** and **Projects**.
 
 When a VS Code container has only a single view in it the view header merges with the container header, with the two names separated by a colon.
 

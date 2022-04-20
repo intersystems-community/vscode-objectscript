@@ -8,6 +8,24 @@ import { getFileName, getFolderName } from "../commands/export";
 import { config, FILESYSTEM_SCHEMA, FILESYSTEM_READONLY_SCHEMA, OBJECTSCRIPT_FILE_SCHEMA } from "../extension";
 import { currentWorkspaceFolder, uriOfWorkspaceFolder } from "../utils";
 
+export function compareConns(
+  conn1: { ns: any; server: any; host: any; port: any },
+  conn2: { ns: any; server: any; host: any; port: any }
+): boolean {
+  if (conn1.ns === conn2.ns) {
+    if (conn1.server && conn2.server) {
+      if (conn1.server === conn2.server) {
+        return true;
+      }
+    } else if (!conn1.server && !conn2.server) {
+      if (conn1.host === conn2.host && conn1.port === conn2.port) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export class DocumentContentProvider implements vscode.TextDocumentContentProvider {
   public get onDidChange(): vscode.Event<vscode.Uri> {
     return this.onDidChangeEvent.event;
@@ -54,12 +72,23 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     }
     let uri: vscode.Uri;
     if (wFolderUri.scheme === FILESYSTEM_SCHEMA || wFolderUri.scheme === FILESYSTEM_READONLY_SCHEMA) {
+      const flat = new URLSearchParams(wFolderUri.query).get("flat") == "1";
       const fileExt = name.split(".").pop();
       const fileName = name
         .split(".")
         .slice(0, -1)
-        .join(/cls|mac|int|inc/i.test(fileExt) ? "/" : ".");
-      name = fileName + "." + fileExt;
+        .join(/cls|mac|int|inc/i.test(fileExt) && !flat ? "/" : ".");
+      if (/.\.G?[1-9]\.int$/i.test(name) && !flat) {
+        // This is a generated INT file
+        name =
+          fileName.slice(0, fileName.lastIndexOf("/")) +
+          "." +
+          fileName.slice(fileName.lastIndexOf("/") + 1) +
+          "." +
+          fileExt;
+      } else {
+        name = fileName + "." + fileExt;
+      }
       uri = wFolderUri.with({
         path: !name.startsWith("/") ? `/${name}` : name,
       });
@@ -90,21 +119,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
               if (wFolder.uri.scheme === "file" && wFolder.name !== workspaceFolder) {
                 // This isn't the folder that we checked originally
                 const wFolderConn = config("conn", wFolder.name);
-                const compareConns = (): boolean => {
-                  if (wFolderConn.ns === conn.ns) {
-                    if (wFolderConn.server && conn.server) {
-                      if (wFolderConn.server === conn.server) {
-                        return true;
-                      }
-                    } else if (!wFolderConn.server && !conn.server) {
-                      if (wFolderConn.host === conn.host && wFolderConn.port === conn.port) {
-                        return true;
-                      }
-                    }
-                  }
-                  return false;
-                };
-                if (compareConns() && (!namespace || namespace === wFolderConn.ns)) {
+                if (compareConns(conn, wFolderConn) && (!namespace || namespace === wFolderConn.ns)) {
                   // This folder is connected to the same server:ns combination as the original folder
                   const wFolderFile = this.getAsFile(name, wFolder.name);
                   if (wFolderFile) {
@@ -137,27 +152,30 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
       }
     }
     const params = new URLSearchParams(uri.query);
-    if (namespace && namespace !== "") {
-      if (isCsp) {
-        if (params.has("csp")) {
-          params.set("ns", namespace);
-          uri = uri.with({
-            query: params.toString(),
-          });
+    // Don't modify the query params if project is present
+    if (!params.has("project")) {
+      if (namespace && namespace !== "") {
+        if (isCsp) {
+          if (params.has("csp")) {
+            params.set("ns", namespace);
+            uri = uri.with({
+              query: params.toString(),
+            });
+          } else {
+            uri = uri.with({
+              query: `ns=${namespace}&csp=1`,
+            });
+          }
         } else {
           uri = uri.with({
-            query: `ns=${namespace}&csp=1`,
+            query: `ns=${namespace}`,
           });
         }
-      } else {
+      } else if (isCsp && !params.has("csp")) {
         uri = uri.with({
-          query: `ns=${namespace}`,
+          query: "csp=1",
         });
       }
-    } else if (isCsp && !params.has("csp")) {
-      uri = uri.with({
-        query: "csp=1",
-      });
     }
     return uri;
   }

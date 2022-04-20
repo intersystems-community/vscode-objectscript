@@ -1,9 +1,8 @@
 import * as vscode from "vscode";
-import * as url from "url";
-import { StudioOpenDialog } from "../../queries";
-import { studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
+import { projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
 import { notNull } from "../../utils";
 import { DocumentContentProvider } from "../DocumentContentProvider";
+import { ProjectItem } from "../../commands/project";
 
 export class FileSearchProvider implements vscode.FileSearchProvider {
   /**
@@ -17,22 +16,45 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
     options: vscode.FileSearchOptions,
     token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.Uri[]> {
-    const uri = url.parse(options.folder.toString(true), true);
-    const csp = uri.query.csp === "" || uri.query.csp === "1";
-    let filter = query.pattern;
-    if (!csp) {
-      if (options.folder.path !== "/") {
-        filter = options.folder.path.slice(1) + "/%" + filter;
-      }
-      filter = filter.replace(/\//g, ".");
-    }
-    if (filter.length) {
-      filter = "Name Like '%" + filter + "%'";
-    } else {
-      // When this is called without a query.pattern, every file is supposed to be returned, so do not provide a filter
-      filter = "";
-    }
     let counter = 0;
+    let pattern = query.pattern.charAt(0) == "/" ? query.pattern.slice(1) : query.pattern;
+    const params = new URLSearchParams(options.folder.query);
+    const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
+    if (params.has("project") && params.get("project").length) {
+      const patternRegex = new RegExp(`.*${pattern}.*`.replace(/\.|\//g, "[./]"), "i");
+      if (token.isCancellationRequested) {
+        return;
+      }
+      return projectContentsFromUri(options.folder, true).then((docs) =>
+        docs
+          .map((doc: ProjectItem) => {
+            if (token.isCancellationRequested) {
+              return null;
+            }
+            if (pattern.length && !patternRegex.test(doc.Name)) {
+              // The document didn't pass the filter
+              return null;
+            }
+            if (!options.maxResults || ++counter <= options.maxResults) {
+              return DocumentContentProvider.getUri(doc.Name, "", "", true, options.folder);
+            } else {
+              return null;
+            }
+          })
+          .filter(notNull)
+      );
+    }
+    // When this is called without a query.pattern, every file is supposed to be returned, so do not provide a filter
+    let filter = "";
+    if (pattern.length) {
+      pattern = !csp ? query.pattern.replace(/\//g, ".") : query.pattern;
+      if (pattern.includes("_") || pattern.includes("%")) {
+        // Need to escape any % or _ characters
+        filter = `Name LIKE '%${pattern.replace(/_/g, "$_").replace(/%/g, "$%")}%' ESCAPE '$'`;
+      } else {
+        filter = `Name LIKE '%${pattern}%'`;
+      }
+    }
     if (token.isCancellationRequested) {
       return;
     }
@@ -40,9 +62,9 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
       .then((data) => {
         return data.result.content;
       })
-      .then((data: StudioOpenDialog[]) => {
+      .then((data: { Name: string; Type: number }[]) => {
         return data
-          .map((item: StudioOpenDialog) => {
+          .map((item) => {
             if (token.isCancellationRequested) {
               return null;
             }

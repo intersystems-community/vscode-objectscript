@@ -8,6 +8,8 @@
 
 # InterSystems ObjectScript extension for VS Code
 
+> **Note:** The best way to install and use this extension is by installing the [InterSystems ObjectScript Extension Pack](https://marketplace.visualstudio.com/items?itemName=intersystems-community.objectscript-pack) and following the [documentation here](https://intersystems-community.github.io/vscode-objectscript/).
+
 [InterSystems&reg;](http://www.intersystems.com) ObjectScript language support for Visual Studio Code, from the [InterSystems Developer Community](https://community.intersystems.com/).
 
 - Documentation on [GitHub Pages](https://intersystems-community.github.io/vscode-objectscript/).
@@ -62,8 +64,8 @@ To unlock these features (optional):
 
 1. Download and install a beta version from GitHub. This is necessary because Marketplace does not allow publication of extensions that use proposed APIs.
 	- Go to https://github.com/intersystems-community/vscode-objectscript/releases
-	- Locate the beta immediately above the release you installed from Marketplace. For instance, if you installed `1.6.0`, look for `1.6.1-beta.1`. This will be functionally identical to the Marketplace version apart from being able to use proposed APIs.
-	- Download the VSIX file (for example `vscode-objectscript-1.6.1-beta.1.vsix`) and install it. One way to install a VSIX is to drag it from your download folder and drop it onto the list of extensions in the Extensions view of VS Code.
+	- Locate the beta immediately above the release you installed from Marketplace. For instance, if you installed `1.8.0`, look for `1.8.1-beta.1`. This will be functionally identical to the Marketplace version apart from being able to use proposed APIs.
+	- Download the VSIX file (for example `vscode-objectscript-1.8.1-beta.1.vsix`) and install it. One way to install a VSIX is to drag it from your download folder and drop it onto the list of extensions in the Extensions view of VS Code.
 
 2. From [Command Palette](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_command-palette) choose `Preferences: Configure Runtime Arguments`.
 3. In the argv.json file that opens, add this line (required for both Stable and Insiders versions of VS Code):
