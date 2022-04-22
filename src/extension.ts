@@ -1013,15 +1013,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       )
     ),
     vscode.window.onDidChangeActiveTextEditor((editor: vscode.TextEditor) => {
-      const uri: string = editor.document.uri.toString();
-      if (
-        config("openClassContracted") &&
-        editor &&
-        editor.document.languageId === "objectscript-class" &&
-        !openedClasses.includes(uri)
-      ) {
-        vscode.commands.executeCommand("editor.foldLevel1");
-        openedClasses.push(uri);
+      if (config("openClassContracted") && editor && editor.document.languageId === "objectscript-class") {
+        const uri: string = editor.document.uri.toString();
+        if (!openedClasses.includes(uri)) {
+          vscode.commands.executeCommand("editor.foldLevel1");
+          openedClasses.push(uri);
+        }
       }
     }),
     vscode.workspace.onDidCloseTextDocument((doc: vscode.TextDocument) => {
