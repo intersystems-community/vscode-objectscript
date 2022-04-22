@@ -997,8 +997,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
             const filePathNoWorkspaceArr = f.fsPath.replace(workspacePath + path.sep, "").split(path.sep);
             const { folder, addCategory } = config("export", workspace);
             const expectedFolder = typeof folder === "string" && folder.length ? folder : null;
-            if (expectedFolder !== null && filePathNoWorkspaceArr[0] === expectedFolder) {
-              filePathNoWorkspaceArr.shift();
+            const expectedFolderArr = expectedFolder.split(path.sep);
+            if (
+              expectedFolder !== null &&
+              filePathNoWorkspaceArr.slice(0, expectedFolderArr.length).join(path.sep) === expectedFolder
+            ) {
+              filePathNoWorkspaceArr.splice(0, expectedFolderArr.length);
             }
             const expectedCat = addCategory ? getCategory(f.fsPath, addCategory) : null;
             if (expectedCat !== null && filePathNoWorkspaceArr[0] === expectedCat) {
