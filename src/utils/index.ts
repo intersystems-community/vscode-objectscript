@@ -445,7 +445,7 @@ export async function portFromDockerCompose(): Promise<{ port: number; docker: b
       if (error) {
         reject(error.message);
       }
-      if (!stdout.replace("\r", "").split("\n").includes(service)) {
+      if (!stdout.replaceAll("\r", "").split("\n").includes(service)) {
         reject(`Service '${service}' not found in '${file}', or not running.`);
       }
 
