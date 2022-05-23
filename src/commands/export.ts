@@ -52,7 +52,7 @@ export const getFileName = (
       fileNameArray = name.split("-");
       fileNameArray.push(fileNameArray.pop().slice(0, -4));
       fileExt = "dfi";
-    } else {
+    } else if (/\.(?:cls|mac|int|inc)$/.test(name)) {
       // This is a class, routine or include file
       if (map) {
         for (const pattern of Object.keys(map)) {
@@ -64,6 +64,11 @@ export const getFileName = (
       }
       fileNameArray = name.split(".");
       fileExt = fileNameArray.pop().toLowerCase();
+    } else {
+      // This is some other type of file (LUT,HL7,...)
+      const lastDot = name.lastIndexOf(".");
+      fileNameArray = [name.slice(0, lastDot)];
+      fileExt = name.slice(lastDot + 1);
     }
     const cat = addCategory ? getCategory(name, addCategory) : null;
     if (split) {
