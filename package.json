@@ -1117,7 +1117,7 @@
               "additionalProperties": false
             },
             "atelier": {
-              "description": "Export source code as Atelier did it, with packages as subfolders.",
+              "description": "Export source code as Atelier did it, with packages as subfolders. This setting only affects classes, routines, include files and DFI files.",
               "type": "boolean"
             },
             "generated": {

@@ -43,7 +43,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.debug.debugThisMethod"` | Show inline `Debug this method` CodeLens action for ClassMethods. | `boolean` | `true` | |
 | `"objectscript.explorer.alwaysShowServerCopy"` | Always show the server copy of a document in the ObjectScript Explorer. | `boolean` | `false` | |
 | `"objectscript.export.addCategory"` | Add a category folder to the beginning of the export path. | `boolean` or `object` | `false` | |
-| `"objectscript.export.atelier"` | Export source code as Atelier did it, with packages as subfolders. | `boolean` | `true` | |
+| `"objectscript.export.atelier"` | Export source code as Atelier did it, with packages as subfolders. | `boolean` | `true` | This setting only affects classes, routines, include files and DFI files. |
 | `"objectscript.export.category"` | Category of source code to export: `CLS` = classes; `RTN` = routines; `CSP` = csp files; `OTH` = other. Default is `*` = all. | `string` or `object` | `"*"` | |
 | `"objectscript.export.dontExportIfNoChanges"` | Do not rewrite the local file if the content is identical to what came from the server. | `boolean` | `false` | |
 | `"objectscript.export.exactFilter"` | SQL filter to limit what to export. | `string` | `""` | The filter is applied to document names using the [LIKE predicate](https://irisdocs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_like) (i.e. `Name LIKE 'exactFilter'`). If provided, `objectscript.export.filter` is ignored. |
