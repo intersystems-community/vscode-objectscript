@@ -40,8 +40,16 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.compileFlags"` | Compilation flags. | `string` | `"cuk"` | Common compilation flags are ***b*** (compile dependent classes), ***k*** (keep generated source code) and ***u*** (skip related up-to-date documents). For descriptions of all available flags and qualifiers, click [here](https://docs.intersystems.com/irislatest/csp/docbook/Doc.View.cls?KEY=RCOS_vsystem#RCOS_vsystem_flags_qualifiers). |
 | `"objectscript.compileOnSave"` | Automatically compile an InterSystems file when saved in the editor. | `boolean` | `true` | |
 | `"objectscript.conn"` | Configures the active server connection. | `object` | `undefined` | See the [Configuration page](../configuration/#config-server-conn) for more details on configuring server connections. |
+| `"objectscript.conn.ns"` | IRIS namespace to use. | `string` | `undefined` | |
+| `"objectscript.conn.active"` | Should the connection be active on startup. | `boolean` | `false` | |
+| `"objectscript.conn.username"` | IRIS user name. | `string` | `undefined` | |
+| `"objectscript.conn.password"` | IRIS password. | `string` | `undefined` | It's not recommended to specify your password in a config file except when you are using the default password |
+| `"objectscript.conn.server"` | IRIS server's name in Server Manager settings from which to get connection info. | `string` | `undefined` | Specify only `ns` and `active` when using this setting. See the [Server Manager README](https://github.com/intersystems-community/intersystems-servermanager) for more details. |
+| `"objectscript.conn.docker-compose"` | Configures the active server port using information from a file which must be named `docker-compose.yml` in the project's root directory. | `object` | `undefined` | |
+| `"objectscript.conn.docker-compose.service"` | IRIS service's name in `docker-compose.yml`. | `string` | `undefined` | |
+| `"objectscript.conn.docker-compose .internalPort"` | IRIS service's internal port in `docker-compose.yml`. | `object` | `undefined` | This should almost always be 52773 unless your IRIS server is configured in a non-standard way|
 | `"objectscript.debug.debugThisMethod"` | Show inline `Debug this method` CodeLens action for ClassMethods. | `boolean` | `true` | |
-| `"objectscript.explorer.alwaysShowServerCopy"` | Always show the server copy of a document in the ObjectScript Explorer. | `boolean` | `false` | |
+| `"objectscript.explorer .alwaysShowServerCopy"` | Always show the server copy of a document in the ObjectScript Explorer. | `boolean` | `false` | |
 | `"objectscript.export.addCategory"` | Add a category folder to the beginning of the export path. | `boolean` or `object` | `false` | |
 | `"objectscript.export.atelier"` | Export source code as Atelier did it, with packages as subfolders. | `boolean` | `true` | |
 | `"objectscript.export.category"` | Category of source code to export: `CLS` = classes; `RTN` = routines; `CSP` = csp files; `OTH` = other. Default is `*` = all. | `string` or `object` | `"*"` | |
@@ -52,7 +60,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.export.generated"` | Export generated source code files, such as INTs generated from classes. | `boolean` | `false` | |
 | `"objectscript.export.map"` | Map file names before export, with regexp pattern as a key and replacement as a value. | `object` | `{}` | For example, `{  \"%(.*)\": \"_$1\" }` to make % classes or routines use underscore prefix instead. |
 | `"objectscript.export.mapped"` | Export source code files mapped from a non-default database. | `boolean` | `true` | |
-| `"objectscript.export.maxConcurrentConnections"` | Maximum number of concurrent export connections. | `number` | `0` | 0 = unlimited |
+| `"objectscript.export .maxConcurrentConnections"` | Maximum number of concurrent export connections. | `number` | `0` | 0 = unlimited |
 | `"objectscript.export.noStorage"` | Strip the storage definition on export. | `boolean` | `false` | Can be useful when working across multiple systems. |
 | `"objectscript.format.commandCase"` | Case for commands. | `"upper"`, `"lower"` or `"word"` | `"word"` | Has no effect if the `InterSystems Language Server` extension is installed and enabled. |
 | `"objectscript.format.functionCase"` | Case for system functions and system variables. | `"upper"`, `"lower"` or `"word"` | `"word"` | Has no effect if the `InterSystems Language Server` extension is installed and enabled. |
@@ -62,7 +70,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.overwriteServerChanges"` | Overwrite a changed server version without confirmation when importing the local file. | `boolean` | `false` | |
 | `"objectscript.projects.webAppFileExtensions"` | When browsing a virtual workspace folder that has a project query parameter, all files with these extensions will be automatically treated as web application files. Extensions added here will be appended to the default list and should **NOT** include a dot. | `string[]` | `[]` | Default extensions: `["csp","csr","ts","js","css","scss","sass","less","html","json","md","markdown","png","svg","jpeg","jpg","ico","xml","txt"]` |
 | `"objectscript.serverSideEditing"` | Allow editing code directly on the server after opening it from ObjectScript Explorer. | `boolean` | `false` | |
-| `"objectscript.serverSourceControl.disableOtherActionTriggers"` | Prevent server-side source control 'other action' triggers from firing. | `boolean` | `false` | |
+| `"objectscript.serverSourceControl .disableOtherActionTriggers"` | Prevent server-side source control 'other action' triggers from firing. | `boolean` | `false` | |
 | `"objectscript.showExplorer"` | Show the ObjectScript Explorer view. | `boolean` | `true` | |
 | `"objectscript.studioActionDebugOutput"` | Log in JSON format the action that VS Code should perform as requested by the server. | `boolean` | `false` | Actions will be logged to the `ObjectScript` Output channel. |
 | `"objectscript.suppressCompileErrorMessages"` | Suppress popup messages about errors during compile, but still focus on Output view. | `boolean` | `false` | |
