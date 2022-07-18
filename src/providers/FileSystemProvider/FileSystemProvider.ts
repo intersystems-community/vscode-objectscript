@@ -28,7 +28,9 @@ export function generateFileContent(fileName: string, sourceContent: Buffer): { 
     while (sourceLines.length > 0) {
       const nextLine = sourceLines.shift();
       if (nextLine.startsWith("Class ")) {
-        content.push(...preamble, `Class ${className}`, ...sourceLines);
+        const classLine = nextLine.split(" ");
+        classLine[1] = className;
+        content.push(...preamble, classLine.join(" "), ...sourceLines);
         break;
       }
       preamble.push(nextLine);
