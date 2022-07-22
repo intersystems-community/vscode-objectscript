@@ -656,19 +656,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       return;
     }
     const [, routine] = nameMatch;
-    const line = event.selections[0].start.line;
     let label = "";
     let pos = 0;
-    for (let i = line; i > 0; i--) {
-      const labelMatch = document.lineAt(i).text.match(/^(%?\w+).*/);
-      if (labelMatch) {
-        [, label] = labelMatch;
-        break;
-      }
-      pos++;
-    }
-    event.textEditor.document.getText;
-    posPanel.text = `${label}${pos > 0 ? "+" + pos : ""}^${routine}`;
+    vscode.commands
+      .executeCommand<vscode.DocumentSymbol[]>("vscode.executeDocumentSymbolProvider", document.uri)
+      .then((symbols) => {
+        const cursor = event.selections[0].active;
+        if (symbols.length == 0 || cursor.isBefore(symbols[0].range.start)) {
+          pos = cursor.line - 1;
+        } else {
+          for (const symbol of symbols) {
+            if (symbol.range.contains(cursor)) {
+              label = symbol.name;
+              pos = cursor.line - symbol.range.start.line;
+              break;
+            }
+          }
+        }
+        posPanel.text = `${label}${pos > 0 ? "+" + pos : ""}^${routine}`;
+      });
   });
 
   const documentSelector = (...list) =>
