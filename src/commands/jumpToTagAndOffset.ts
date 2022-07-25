@@ -8,7 +8,7 @@ export async function jumpToTagAndOffset(): Promise<void> {
   }
   const nameMatch = file.name.match(/(.*)\.(int|mac)$/i);
   if (!nameMatch) {
-    vscode.window.showWarningMessage("Jump to Tag and Offset only supports .int and .mac routines.");
+    vscode.window.showWarningMessage("Jump to Tag and Offset only supports .int and .mac routines.", "Dismiss");
     return;
   }
   const document = vscode.window.activeTextEditor?.document;

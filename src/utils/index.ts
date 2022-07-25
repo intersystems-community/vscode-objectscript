@@ -80,35 +80,40 @@ export function cspAppsForUri(uri: vscode.Uri): string[] {
 function getServerDocName(localPath: string, workspace: string, fileExt: string): string {
   const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
   const filePathNoWorkspaceArr = localPath.replace(workspacePath + path.sep, "").split(path.sep);
-  if (fileExt !== "dfi") {
-    const uri = vscode.Uri.file(localPath);
-    return uri.path.slice(uri.path.indexOf(cspAppsForUri(uri).find((cspApp) => uri.path.includes(cspApp + "/"))));
+  const uri = vscode.Uri.file(localPath);
+  const cspIdx = uri.path.indexOf(cspAppsForUri(uri).find((cspApp) => uri.path.includes(cspApp + "/")));
+  if (cspIdx != -1) {
+    return uri.path.slice(cspIdx);
+  } else {
+    const { atelier, folder, addCategory } = config("export", workspace);
+    const root = [
+      typeof folder === "string" && folder.length ? folder : null,
+      addCategory ? getCategory(localPath, addCategory) : null,
+    ]
+      .filter(notNull)
+      .join(path.sep);
+    let filePath = filePathNoWorkspaceArr.join(path.sep).slice(root.length + path.sep.length);
+    if (fileExt == "dfi" && atelier) {
+      filePath = filePath.replaceAll(path.sep, "-");
+    }
+    return filePath;
   }
-  const { atelier, folder, addCategory } = config("export", workspace);
-  const root = [
-    typeof folder === "string" && folder.length ? folder : null,
-    addCategory ? getCategory(localPath, addCategory) : null,
-  ]
-    .filter(notNull)
-    .join(path.sep);
-  let filePath = filePathNoWorkspaceArr.join(path.sep).slice(root.length + path.sep.length);
-  if (atelier) {
-    filePath = filePath.replaceAll(path.sep, "-");
-  }
-  return filePath;
 }
 
 /**
  * Determine if this non-ObjectScript local file is importable
- * (i.e. is part of a CSP application or is a DFI file).
+ * (i.e. is part of a CSP application or matches our export settings).
  * @param file The file to check.
  */
 export function isImportableLocalFile(file: vscode.TextDocument): boolean {
   const workspace = currentWorkspaceFolder(file);
   const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
   const filePathNoWorkspaceArr = file.fileName.replace(workspacePath + path.sep, "").split(path.sep);
-  if (file.uri.path.toLowerCase().endsWith(".dfi")) {
-    // This is a DFI file, so make sure it matches our export settings
+  const isCSP = cspAppsForUri(file.uri).findIndex((cspApp) => file.uri.path.includes(cspApp + "/")) != -1;
+  if (isCSP) {
+    return true;
+  } else {
+    // Check if this file matches our export settings
     const { atelier, folder, addCategory } = config("export", workspace);
     const expectedRoot = [
       typeof folder === "string" && folder.length ? folder : null,
@@ -119,14 +124,18 @@ export function isImportableLocalFile(file: vscode.TextDocument): boolean {
     let filePath = filePathNoWorkspaceArr.join(path.sep);
     if (filePath.startsWith(expectedRoot)) {
       filePath = filePath.slice(expectedRoot.length + path.sep.length);
-      if ((atelier && !filePath.includes("-")) || !atelier) {
-        return true;
+      if (file.uri.path.toLowerCase().endsWith(".dfi")) {
+        // DFI files can be split using the atelier setting
+        if ((atelier && !filePath.includes("-")) || !atelier) {
+          return true;
+        }
+      } else {
+        // Non-CSP or DFI files cannot be in subdirectories
+        return !filePath.includes(path.sep);
       }
     }
-  } else {
-    return cspAppsForUri(file.uri).findIndex((cspApp) => file.uri.path.includes(cspApp + "/")) != -1;
+    return false;
   }
-  return false;
 }
 
 export function currentFileFromContent(fileName: string, content: string): CurrentFile {
@@ -445,7 +454,7 @@ export async function portFromDockerCompose(): Promise<{ port: number; docker: b
       if (error) {
         reject(error.message);
       }
-      if (!stdout.replace("\r", "").split("\n").includes(service)) {
+      if (!stdout.replaceAll("\r", "").split("\n").includes(service)) {
         reject(`Service '${service}' not found in '${file}', or not running.`);
       }
 
