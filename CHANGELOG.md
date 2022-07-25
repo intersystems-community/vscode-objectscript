@@ -1,5 +1,16 @@
 # Change Log
 
+## [1.8.1] 25-Jul-2022
+- Fixes
+  - New class should ignore `objectscript.export.folder` setting (#938)
+  - Get correct host port number for connection to docker-compose with multiple services (#941)
+  - Don't split dots in names of 'other' files into folders on export (#536, #866, #930)
+  - Fix issue with copying class file overwriting inheritance (contributed by @yannip1234) (#954)
+  - Show correct tag+offset^routine in status bar when in procedure block code (#957)
+  - Use correct isfs connection when attaching to a process for debugging (#958)
+  - Fix uncaught errors reported in VS Code extension view UI (#937)
+  - Upgrade vulnerable dependencies.
+
 ## [1.8.0] 20-Apr-2022
 - Enhancements
   - Add support for server-side projects (#851)
