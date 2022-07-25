@@ -20,6 +20,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"intersystems.language-server.diagnostics.routines"` | Controls whether error diagnostics are provided when a routine or include file that is being referred to doesn't exist in the database. | `boolean` | `false` | |
 | `"intersystems.language-server.formatting.commands.case"` | Controls the case that ObjectScript commands will be changed to during a document formatting request. | `"upper"`, `"lower"` or `"word"` | `"word"` | |
 | `"intersystems.language-server.formatting.commands.length"` | Controls the length that ObjectScript commands will be changed to during a document formatting request. | `"short"` or `"long"` | `"long"` | |
+| `"intersystems.language-server.formatting.expandClassNames"` | Controls whether short class names will be expanded to include a package during a document formatting request. | `boolean` | `false` | |
 | `"intersystems.language-server.formatting.system.case"` | Controls the case that ObjectScript system functions and variables will be changed to during a document formatting request. | `"upper"`, `"lower"` or `"word"` | `"upper"` | |
 | `"intersystems.language-server.formatting.system.length"` | Controls the length that ObjectScript system functions and variables will be changed to during a document formatting request. | `"short"` or `"long"` | `"long"` | |
 | `"intersystems.language-server.hover.commands"` | Controls whether hover information is provided for ObjectScript commands. | `boolean` | `true` | |
