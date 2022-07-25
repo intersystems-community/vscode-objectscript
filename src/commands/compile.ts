@@ -99,7 +99,7 @@ async function importFile(file: CurrentFile, ignoreConflict?: boolean): Promise<
       checkChangedOnServer(file, true);
     })
     .catch((error) => {
-      if (error.statusCode == 409) {
+      if (error?.statusCode == 409) {
         return vscode.window
           .showErrorMessage(
             `Failed to import '${file.name}': The version of the file on the server is newer.

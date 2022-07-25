@@ -130,7 +130,8 @@ export function isImportableLocalFile(file: vscode.TextDocument): boolean {
           return true;
         }
       } else {
-        return true;
+        // Non-CSP or DFI files cannot be in subdirectories
+        return !filePath.includes(path.sep);
       }
     }
     return false;

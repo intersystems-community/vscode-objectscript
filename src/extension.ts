@@ -626,8 +626,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     } else if (file.uri.scheme === "file") {
       if (isImportableLocalFile(file)) {
-        // This local file is in the exported file tree, so it's a non-InterSystems file that's
-        // part of a CSP application, so import it on save
+        // This local file is part of a CSP application
+        // or matches our export settings, so import it on save
         return importFileOrFolder(file.uri, true);
       }
     }
