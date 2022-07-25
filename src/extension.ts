@@ -644,8 +644,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     } else if (file.uri.scheme === "file") {
       if (isImportableLocalFile(file)) {
-        // This local file is in the exported file tree, so it's a non-InterSystems file that's
-        // part of a CSP application, so import it on save
+        // This local file is part of a CSP application
+        // or matches our export settings, so import it on save
         return importFileOrFolder(file.uri, true);
       }
     }
@@ -674,19 +674,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       return;
     }
     const [, routine] = nameMatch;
-    const line = event.selections[0].start.line;
     let label = "";
     let pos = 0;
-    for (let i = line; i > 0; i--) {
-      const labelMatch = document.lineAt(i).text.match(/^(%?\w+).*/);
-      if (labelMatch) {
-        [, label] = labelMatch;
-        break;
-      }
-      pos++;
-    }
-    event.textEditor.document.getText;
-    posPanel.text = `${label}${pos > 0 ? "+" + pos : ""}^${routine}`;
+    vscode.commands
+      .executeCommand<vscode.DocumentSymbol[]>("vscode.executeDocumentSymbolProvider", document.uri)
+      .then((symbols) => {
+        const cursor = event.selections[0].active;
+        if (symbols.length == 0 || cursor.isBefore(symbols[0].range.start)) {
+          pos = cursor.line - 1;
+        } else {
+          for (const symbol of symbols) {
+            if (symbol.range.contains(cursor)) {
+              label = symbol.name;
+              pos = cursor.line - symbol.range.start.line;
+              break;
+            }
+          }
+        }
+        posPanel.text = `${label}${pos > 0 ? "+" + pos : ""}^${routine}`;
+      });
   });
 
   const documentSelector = (...list) =>
@@ -872,7 +878,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.commands.registerCommand("vscode-objectscript.pickProcess", async (config) => {
       const system = config.system;
-      const api = new AtelierAPI();
+      const api = new AtelierAPI(vscode.window.activeTextEditor?.document.uri);
       const convert = (data) =>
         data.result.content.map(
           (process: AtelierJob): vscode.QuickPickItem => ({
@@ -1015,8 +1021,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
             const filePathNoWorkspaceArr = f.fsPath.replace(workspacePath + path.sep, "").split(path.sep);
             const { folder, addCategory } = config("export", workspace);
             const expectedFolder = typeof folder === "string" && folder.length ? folder : null;
-            if (expectedFolder !== null && filePathNoWorkspaceArr[0] === expectedFolder) {
-              filePathNoWorkspaceArr.shift();
+            const expectedFolderArr = expectedFolder.split(path.sep);
+            if (
+              expectedFolder !== null &&
+              filePathNoWorkspaceArr.slice(0, expectedFolderArr.length).join(path.sep) === expectedFolder
+            ) {
+              filePathNoWorkspaceArr.splice(0, expectedFolderArr.length);
             }
             const expectedCat = addCategory ? getCategory(f.fsPath, addCategory) : null;
             if (expectedCat !== null && filePathNoWorkspaceArr[0] === expectedCat) {
@@ -1031,15 +1041,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       )
     ),
     vscode.window.onDidChangeActiveTextEditor((editor: vscode.TextEditor) => {
-      const uri: string = editor.document.uri.toString();
-      if (
-        config("openClassContracted") &&
-        editor &&
-        editor.document.languageId === "objectscript-class" &&
-        !openedClasses.includes(uri)
-      ) {
-        vscode.commands.executeCommand("editor.foldLevel1");
-        openedClasses.push(uri);
+      if (config("openClassContracted") && editor && editor.document.languageId === "objectscript-class") {
+        const uri: string = editor.document.uri.toString();
+        if (!openedClasses.includes(uri)) {
+          vscode.commands.executeCommand("editor.foldLevel1");
+          openedClasses.push(uri);
+        }
       }
     }),
     vscode.workspace.onDidCloseTextDocument((doc: vscode.TextDocument) => {
