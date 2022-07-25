@@ -860,7 +860,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.commands.registerCommand("vscode-objectscript.pickProcess", async (config) => {
       const system = config.system;
-      const api = new AtelierAPI();
+      const api = new AtelierAPI(vscode.window.activeTextEditor?.document.uri);
       const convert = (data) =>
         data.result.content.map(
           (process: AtelierJob): vscode.QuickPickItem => ({
