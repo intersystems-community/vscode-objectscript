@@ -601,6 +601,12 @@
       {
         "id": "vscode-objectscript-output",
         "aliases": []
+      },
+      {
+        "id": "objectscript-injection"
+      },
+      {
+        "id": "objectscript-class-injection"
       }
     ],
     "grammars": [
@@ -648,6 +654,28 @@
         "language": "vscode-objectscript-output",
         "scopeName": "source.vscode_objectscript_output",
         "path": "syntaxes/vscode-objectscript-output.tmLanguage.json"
+      },
+      {
+        "language": "objectscript-injection",
+        "scopeName": "markdown.objectscript.codeblock",
+        "path": "./syntaxes/objectscript_codeblock.json",
+        "injectTo": [
+          "text.html.markdown"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.objectscript": "objectscript"
+        }
+      },
+      {
+        "language": "objectscript-class-injection",
+        "scopeName": "markdown.objectscript_class.codeblock",
+        "path": "./syntaxes/objectscript-class_codeblock.json",
+        "injectTo": [
+          "text.html.markdown"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.objectscript_class": "objectscript-class"
+        }
       }
     ],
     "snippets": [
