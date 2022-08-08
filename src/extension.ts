@@ -4,7 +4,6 @@ import vscode = require("vscode");
 import * as semver from "semver";
 
 import { AtelierJob } from "./api/atelier";
-const { workspace, window } = vscode;
 export const OBJECTSCRIPT_FILE_SCHEMA = "objectscript";
 export const OBJECTSCRIPTXML_FILE_SCHEMA = "objectscriptxml";
 export const FILESYSTEM_SCHEMA = "isfs";
@@ -549,136 +548,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     checkConnection(true, uri).finally();
   }
 
-  vscode.workspace.onDidChangeWorkspaceFolders(async ({ added, removed }) => {
-    const folders = vscode.workspace.workspaceFolders;
-
-    // Make sure we have a resolved connection spec for the targets of all added folders
-    const toCheck = new Map<string, vscode.Uri>();
-    added.map((workspaceFolder) => {
-      const uri = workspaceFolder.uri;
-      const { configName } = connectionTarget(uri);
-      toCheck.set(configName, uri);
-    });
-    for await (const oneToCheck of toCheck) {
-      const configName = oneToCheck[0];
-      const uri = oneToCheck[1];
-      const serverName = uri.scheme === "file" ? config("conn", configName).server : configName;
-      await resolveConnectionSpec(serverName);
-    }
-
-    // If it was just the addition of the first folder, and this is one of the isfs types, hide the ObjectScript Explorer for this workspace
-    if (
-      folders?.length === 1 &&
-      added?.length === 1 &&
-      removed?.length === 0 &&
-      filesystemSchemas.includes(added[0].uri.scheme)
-    ) {
-      vscode.workspace
-        .getConfiguration("objectscript")
-        .update("showExplorer", false, vscode.ConfigurationTarget.Workspace);
-    }
-  });
-
-  vscode.workspace.onDidChangeConfiguration(async ({ affectsConfiguration }) => {
-    if (affectsConfiguration("objectscript.conn") || affectsConfiguration("intersystems.servers")) {
-      if (affectsConfiguration("intersystems.servers")) {
-        // Gather the server names previously resolved
-        const resolvedServers: string[] = [];
-        resolvedConnSpecs.forEach((v, k) => resolvedServers.push(k));
-        // Clear the cache
-        resolvedConnSpecs.clear();
-        // Resolve them again, sequentially in case user needs to be prompted for credentials
-        for await (const serverName of resolvedServers) {
-          await resolveConnectionSpec(serverName);
-        }
-      }
-      // Check connections sequentially for each workspace folder
-      let refreshFilesExplorer = false;
-      for await (const folder of vscode.workspace.workspaceFolders) {
-        if (schemas.includes(folder.uri.scheme)) {
-          refreshFilesExplorer = true;
-        }
-        try {
-          await checkConnection(true, folder.uri);
-        } catch (_) {
-          continue;
-        }
-      }
-      explorerProvider.refresh();
-      projectsExplorerProvider.refresh();
-      if (refreshFilesExplorer) {
-        // This unavoidably switches to the File Explorer view, so only do it if isfs folders were found
-        vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
-      }
-    }
-  });
-  vscode.window.onDidCloseTerminal((t) => {
-    const terminalIndex = terminals.findIndex((terminal) => terminal.name == t.name);
-    if (terminalIndex > -1) {
-      terminals.splice(terminalIndex, 1);
-    }
-  });
-
-  workspace.onDidSaveTextDocument((file) => {
-    if (schemas.includes(file.uri.scheme) || languages.includes(file.languageId)) {
-      if (documentBeingProcessed !== file) {
-        return importAndCompile(false, file, config("compileOnSave"));
-      }
-    } else if (file.uri.scheme === "file") {
-      if (isImportableLocalFile(file)) {
-        // This local file is part of a CSP application
-        // or matches our export settings, so import it on save
-        return importFileOrFolder(file.uri, true);
-      }
-    }
-  });
-
-  vscode.window.onDidChangeActiveTextEditor(async (textEditor: vscode.TextEditor) => {
-    await checkConnection(false, textEditor?.document.uri);
-    posPanel.text = "";
-    if (textEditor?.document.fileName.endsWith(".xml") && config("autoPreviewXML")) {
-      return xml2doc(context, textEditor);
-    }
-  });
-  vscode.window.onDidChangeTextEditorSelection((event: vscode.TextEditorSelectionChangeEvent) => {
-    posPanel.text = "";
-    const document = event.textEditor.document;
-    if (!["objectscript", "objectscript-int"].includes(document.languageId)) {
-      return;
-    }
-    if (event.selections.length > 1 || !event.selections[0].isEmpty) {
-      return;
-    }
-
-    const file = currentFile(document);
-    const nameMatch = file.name.match(/(.*)\.(int|mac)$/i);
-    if (!nameMatch) {
-      return;
-    }
-    const [, routine] = nameMatch;
-    let label = "";
-    let pos = 0;
-    vscode.commands
-      .executeCommand<vscode.DocumentSymbol[]>("vscode.executeDocumentSymbolProvider", document.uri)
-      .then((symbols) => {
-        if (symbols != undefined) {
-          const cursor = event.selections[0].active;
-          if (symbols.length == 0 || cursor.isBefore(symbols[0].range.start)) {
-            pos = cursor.line - 1;
-          } else {
-            for (const symbol of symbols) {
-              if (symbol.range.contains(cursor)) {
-                label = symbol.name;
-                pos = cursor.line - symbol.range.start.line;
-                break;
-              }
-            }
-          }
-          posPanel.text = `${label}${pos > 0 ? "+" + pos : ""}^${routine}`;
-        }
-      });
-  });
-
   const documentSelector = (...list) =>
     ["file", ...schemas].reduce((acc, scheme) => acc.concat(list.map((language) => ({ scheme, language }))), []);
 
@@ -726,10 +595,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       diagnosticProvider.updateDiagnostics(vscode.window.activeTextEditor.document);
     }
     noLSsubscriptions.push(
-      workspace.onDidChangeTextDocument((event) => {
+      vscode.workspace.onDidChangeTextDocument((event) => {
         diagnosticProvider.updateDiagnostics(event.document);
       }),
-      window.onDidChangeActiveTextEditor(async (editor) => {
+      vscode.window.onDidChangeActiveTextEditor(async (editor) => {
         if (editor) {
           diagnosticProvider.updateDiagnostics(editor.document);
         }
@@ -799,7 +668,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         });
       }
     }),
-    workspace.onDidChangeTextDocument((event) => {
+    vscode.workspace.onDidChangeTextDocument((event) => {
       if (
         event.contentChanges.length !== 0 &&
         event.document.uri.scheme === FILESYSTEM_SCHEMA &&
@@ -811,8 +680,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         checkChangedOnServer(currentFile(event.document));
       }
     }),
-    window.onDidChangeActiveTextEditor(async (editor) => {
-      if (workspace.workspaceFolders && workspace.workspaceFolders.length > 1) {
+    vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+      if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 1) {
         const workspaceFolder = currentWorkspaceFolder();
         if (workspaceFolder && workspaceFolder !== workspaceState.get<string>("workspaceFolder")) {
           workspaceState.update("workspaceFolder", workspaceFolder);
@@ -939,7 +808,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     ),
     vscode.commands.registerCommand("vscode-objectscript.previewXml", () => {
-      xml2doc(context, window.activeTextEditor);
+      xml2doc(context, vscode.window.activeTextEditor);
     }),
     vscode.commands.registerCommand("vscode-objectscript.addServerNamespaceToWorkspace", () => {
       addServerNamespaceToWorkspace();
@@ -1082,6 +951,132 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.explorer.project.addWorkspaceFolderForProject", (node) =>
       addWorkspaceFolderForProject(node)
     ),
+    vscode.workspace.onDidChangeWorkspaceFolders(async ({ added, removed }) => {
+      const folders = vscode.workspace.workspaceFolders;
+
+      // Make sure we have a resolved connection spec for the targets of all added folders
+      const toCheck = new Map<string, vscode.Uri>();
+      added.map((workspaceFolder) => {
+        const uri = workspaceFolder.uri;
+        const { configName } = connectionTarget(uri);
+        toCheck.set(configName, uri);
+      });
+      for await (const oneToCheck of toCheck) {
+        const configName = oneToCheck[0];
+        const uri = oneToCheck[1];
+        const serverName = uri.scheme === "file" ? config("conn", configName).server : configName;
+        await resolveConnectionSpec(serverName);
+      }
+
+      // If it was just the addition of the first folder, and this is one of the isfs types, hide the ObjectScript Explorer for this workspace
+      if (
+        folders?.length === 1 &&
+        added?.length === 1 &&
+        removed?.length === 0 &&
+        filesystemSchemas.includes(added[0].uri.scheme)
+      ) {
+        vscode.workspace
+          .getConfiguration("objectscript")
+          .update("showExplorer", false, vscode.ConfigurationTarget.Workspace);
+      }
+    }),
+    vscode.workspace.onDidChangeConfiguration(async ({ affectsConfiguration }) => {
+      if (affectsConfiguration("objectscript.conn") || affectsConfiguration("intersystems.servers")) {
+        if (affectsConfiguration("intersystems.servers")) {
+          // Gather the server names previously resolved
+          const resolvedServers: string[] = [];
+          resolvedConnSpecs.forEach((v, k) => resolvedServers.push(k));
+          // Clear the cache
+          resolvedConnSpecs.clear();
+          // Resolve them again, sequentially in case user needs to be prompted for credentials
+          for await (const serverName of resolvedServers) {
+            await resolveConnectionSpec(serverName);
+          }
+        }
+        // Check connections sequentially for each workspace folder
+        let refreshFilesExplorer = false;
+        for await (const folder of vscode.workspace.workspaceFolders) {
+          if (schemas.includes(folder.uri.scheme)) {
+            refreshFilesExplorer = true;
+          }
+          try {
+            await checkConnection(true, folder.uri);
+          } catch (_) {
+            continue;
+          }
+        }
+        explorerProvider.refresh();
+        projectsExplorerProvider.refresh();
+        if (refreshFilesExplorer) {
+          // This unavoidably switches to the File Explorer view, so only do it if isfs folders were found
+          vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
+        }
+      }
+    }),
+    vscode.window.onDidCloseTerminal((t) => {
+      const terminalIndex = terminals.findIndex((terminal) => terminal.name == t.name);
+      if (terminalIndex > -1) {
+        terminals.splice(terminalIndex, 1);
+      }
+    }),
+    vscode.workspace.onDidSaveTextDocument((file) => {
+      if (schemas.includes(file.uri.scheme) || languages.includes(file.languageId)) {
+        if (documentBeingProcessed !== file) {
+          return importAndCompile(false, file, config("compileOnSave"));
+        }
+      } else if (file.uri.scheme === "file") {
+        if (isImportableLocalFile(file)) {
+          // This local file is part of a CSP application
+          // or matches our export settings, so import it on save
+          return importFileOrFolder(file.uri, true);
+        }
+      }
+    }),
+    vscode.window.onDidChangeActiveTextEditor(async (textEditor: vscode.TextEditor) => {
+      await checkConnection(false, textEditor?.document.uri);
+      posPanel.text = "";
+      if (textEditor?.document.fileName.endsWith(".xml") && config("autoPreviewXML")) {
+        return xml2doc(context, textEditor);
+      }
+    }),
+    vscode.window.onDidChangeTextEditorSelection((event: vscode.TextEditorSelectionChangeEvent) => {
+      posPanel.text = "";
+      const document = event.textEditor.document;
+      if (!["objectscript", "objectscript-int"].includes(document.languageId)) {
+        return;
+      }
+      if (event.selections.length > 1 || !event.selections[0].isEmpty) {
+        return;
+      }
+
+      const file = currentFile(document);
+      const nameMatch = file.name.match(/(.*)\.(int|mac)$/i);
+      if (!nameMatch) {
+        return;
+      }
+      const [, routine] = nameMatch;
+      let label = "";
+      let pos = 0;
+      vscode.commands
+        .executeCommand<vscode.DocumentSymbol[]>("vscode.executeDocumentSymbolProvider", document.uri)
+        .then((symbols) => {
+          if (symbols != undefined) {
+            const cursor = event.selections[0].active;
+            if (symbols.length == 0 || cursor.isBefore(symbols[0].range.start)) {
+              pos = cursor.line - 1;
+            } else {
+              for (const symbol of symbols) {
+                if (symbol.range.contains(cursor)) {
+                  label = symbol.name;
+                  pos = cursor.line - symbol.range.start.line;
+                  break;
+                }
+              }
+            }
+            posPanel.text = `${label}${pos > 0 ? "+" + pos : ""}^${routine}`;
+          }
+        });
+    }),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed
