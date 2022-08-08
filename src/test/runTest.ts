@@ -1,7 +1,7 @@
 import * as cp from "child_process";
 import * as path from "path";
 
-import { downloadAndUnzipVSCode, resolveCliPathFromVSCodeExecutablePath, runTests } from "vscode-test";
+import { downloadAndUnzipVSCode, resolveCliArgsFromVSCodeExecutablePath, runTests } from "@vscode/test-electron";
 
 async function main() {
   try {
@@ -17,10 +17,10 @@ async function main() {
     const workspace = path.resolve("test-fixtures", "test.code-workspace");
 
     const vscodeExecutablePath = await downloadAndUnzipVSCode("stable");
-    const cliPath = resolveCliPathFromVSCodeExecutablePath(vscodeExecutablePath);
+    const [cli, ...args] = resolveCliArgsFromVSCodeExecutablePath(vscodeExecutablePath);
 
     const installExtension = (extId) =>
-      cp.spawnSync(cliPath, ["--install-extension", extId], {
+      cp.spawnSync(cli, [...args, "--install-extension", extId], {
         encoding: "utf-8",
         stdio: "inherit",
       });
