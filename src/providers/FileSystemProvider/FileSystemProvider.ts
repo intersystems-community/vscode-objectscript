@@ -45,7 +45,7 @@ export function generateFileContent(fileName: string, sourceContent: Buffer): { 
   } else if (["int", "inc", "mac"].includes(fileExt)) {
     sourceLines.shift();
     const routineName = fileName.split(".").slice(0, -1).join(".");
-    const routineType = `[ type = ${fileExt}]`;
+    const routineType = fileExt != "mac" ? `[Type=${fileExt.toUpperCase()}]` : "";
     return {
       content: [`ROUTINE ${routineName} ${routineType}`, ...sourceLines],
       enc: false,
