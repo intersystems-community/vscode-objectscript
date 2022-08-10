@@ -2,15 +2,38 @@
 # in the VSIX. It used to be possible to use a whitelisting technique here
 # but vsce@1.92.0 broke it (see https://github.com/microsoft/vscode-vsce/issues/576)
 
-/*
-!/dist
-/dist/*.map
-!/images
-!/snippets
-!/syntaxes
-!CHANGELOG.md
+# Specific folders
+.github/**
+.vscode/**
+docs/**
+images/*.gif
+node_modules/**
+out/**
+src/**
+test-fixtures/**
+webview/**
+
+# Specific files
+_config.yml
+.artifactignore
+.editorconfig
+.eslintignore
+.gitignore
+.jshintrc
+.npmrc
+.prettierrc
+.vscodeignore
+test.cls
+webpack.config.js
+
+# Files by extension
+**/*.map
+**/*.ts
+**/*.vsix
+*.json
 !language-configuration-class.jsonc
 !language-configuration.json
-!LICENSE
 !package.json
+*.md
+!CHANGELOG.md
 !README.md
