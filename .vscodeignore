@@ -1,8 +1,10 @@
+# Run 'vsce ls' to verify that the following lines exclude everything not needed in the VSIX.
+
 **
 !dist/*.js
+!dist/*.txt
 !snippets/
-!images/*.png
-!images/*.svg
+!images/
 !syntaxes/
 !webview/
 !CHANGELOG.md
