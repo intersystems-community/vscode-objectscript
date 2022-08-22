@@ -1,9 +1,8 @@
-import fs = require("fs");
 import path = require("path");
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { config, explorerProvider, OBJECTSCRIPT_FILE_SCHEMA, schemas } from "../extension";
-import { currentFile, mkdirSyncRecursive, notNull, outputChannel, uriOfWorkspaceFolder } from "../utils";
+import { currentFile, fileExists, notNull, outputChannel, uriOfWorkspaceFolder } from "../utils";
 import { NodeBase } from "../explorer/models/nodeBase";
 
 export const getCategory = (fileName: string, addCategory: any | boolean): string => {
@@ -99,92 +98,96 @@ export async function exportFile(
   const api = new AtelierAPI(workspaceFolder);
   api.setNamespace(namespace);
   const log = (status) => outputChannel.appendLine(`export "${name}" as "${fileName}" - ${status}`);
-  const folders = path.dirname(fileName);
-  return mkdirSyncRecursive(folders)
-    .then(() => {
-      return api.getDoc(name).then((data) => {
-        if (!data || !data.result) {
-          throw new Error("Something wrong happened");
-        }
-        const content = data.result.content;
-        const { noStorage, dontExportIfNoChanges } = config("export");
+  const foldersUri = vscode.Uri.file(path.dirname(fileName));
+  try {
+    if (!(await fileExists(foldersUri))) {
+      // Only attempt to create directories that don't exist
+      await vscode.workspace.fs.createDirectory(foldersUri);
+    }
 
-        const promise = new Promise((resolve, reject) => {
-          if (noStorage) {
-            // get only the storage xml for the doc.
-            api.getDoc(name + "?storageOnly=1").then((storageData) => {
-              if (!storageData || !storageData.result) {
-                reject(new Error("Something wrong happened fetching the storage data"));
-              }
-              const storageContent = storageData.result.content;
+    api.getDoc(name).then((data) => {
+      if (!data || !data.result) {
+        throw new Error("Something wrong happened");
+      }
+      const content = data.result.content;
+      const { noStorage, dontExportIfNoChanges } = config("export");
 
-              if (storageContent.length > 1 && storageContent[0] && storageContent.length < content.length) {
-                const storageContentString = storageContent.join("\n");
-                const contentString = content.join("\n");
-
-                // find and replace the docs storage section with ''
-                resolve({
-                  content: contentString.replace(storageContentString, ""),
-                  found: contentString.indexOf(storageContentString) >= 0,
-                });
-              } else {
-                resolve({ found: false });
-              }
-            });
-          } else {
-            resolve({ found: false });
-          }
-        });
-
-        return promise
-          .then((res: any) => {
-            if (Buffer.isBuffer(content)) {
-              // This is a binary file
-              let isSkipped = "";
-              if (dontExportIfNoChanges && fs.existsSync(fileName)) {
-                const existingContent = fs.readFileSync(fileName);
-                if (content.equals(existingContent)) {
-                  fs.writeFileSync(fileName, content);
-                } else {
-                  isSkipped = " => skipped - no changes.";
-                }
-              } else {
-                fs.writeFileSync(fileName, content);
-              }
-              log(`Success ${isSkipped}`);
-            } else {
-              // This is a text file
-              let joinedContent = content.join("\n");
-              let isSkipped = "";
-
-              if (res.found) {
-                joinedContent = res.content.toString("utf8");
-              }
-
-              if (dontExportIfNoChanges && fs.existsSync(fileName)) {
-                const existingContent = fs.readFileSync(fileName, "utf8");
-                // stringify to harmonise the text encoding.
-                if (JSON.stringify(joinedContent) !== JSON.stringify(existingContent)) {
-                  fs.writeFileSync(fileName, joinedContent);
-                } else {
-                  isSkipped = " => skipped - no changes.";
-                }
-              } else {
-                fs.writeFileSync(fileName, joinedContent);
-              }
-
-              log(`Success ${isSkipped}`);
+      const promise = new Promise((resolve, reject) => {
+        if (noStorage) {
+          // get only the storage xml for the doc.
+          api.getDoc(name + "?storageOnly=1").then((storageData) => {
+            if (!storageData || !storageData.result) {
+              reject(new Error("Something wrong happened fetching the storage data"));
             }
-          })
-          .catch((error) => {
-            throw error;
+            const storageContent = storageData.result.content;
+
+            if (storageContent.length > 1 && storageContent[0] && storageContent.length < content.length) {
+              const storageContentString = storageContent.join("\n");
+              const contentString = content.join("\n");
+
+              // find and replace the docs storage section with ''
+              resolve({
+                content: contentString.replace(storageContentString, ""),
+                found: contentString.indexOf(storageContentString) >= 0,
+              });
+            } else {
+              resolve({ found: false });
+            }
           });
+        } else {
+          resolve({ found: false });
+        }
       });
-    })
-    .catch((error) => {
-      log("ERROR: " + error);
-      throw error;
+
+      return promise
+        .then(async (res: any) => {
+          const fileUri = vscode.Uri.file(fileName);
+          if (Buffer.isBuffer(content)) {
+            // This is a binary file
+            let isSkipped = "";
+            if (dontExportIfNoChanges && (await fileExists(fileUri))) {
+              const existingContent = await vscode.workspace.fs.readFile(fileUri);
+              if (content.equals(existingContent)) {
+                await vscode.workspace.fs.writeFile(fileUri, content);
+              } else {
+                isSkipped = " => skipped - no changes.";
+              }
+            } else {
+              await vscode.workspace.fs.writeFile(fileUri, content);
+            }
+            log(`Success ${isSkipped}`);
+          } else {
+            // This is a text file
+            let joinedContent = content.join("\n");
+            let isSkipped = "";
+
+            if (res.found) {
+              joinedContent = res.content.toString("utf8");
+            }
+
+            if (dontExportIfNoChanges && (await fileExists(fileUri))) {
+              const existingContent = new TextDecoder().decode(await vscode.workspace.fs.readFile(fileUri));
+              // stringify to harmonise the text encoding.
+              if (JSON.stringify(joinedContent) !== JSON.stringify(existingContent)) {
+                await vscode.workspace.fs.writeFile(fileUri, new TextEncoder().encode(joinedContent));
+              } else {
+                isSkipped = " => skipped - no changes.";
+              }
+            } else {
+              await vscode.workspace.fs.writeFile(fileUri, new TextEncoder().encode(joinedContent));
+            }
+
+            log(`Success ${isSkipped}`);
+          }
+        })
+        .catch((error) => {
+          throw error;
+        });
     });
+  } catch (error) {
+    log("ERROR: " + error);
+    throw error;
+  }
 }
 
 export async function exportList(files: string[], workspaceFolder: string, namespace: string): Promise<any> {
