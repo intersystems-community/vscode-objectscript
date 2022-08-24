@@ -137,18 +137,20 @@ First, configure one or more servers. You can use the plus sign (`+`) at the top
 
 Provide the following values when prompted:
 
-- **Name of new server definition** - an arbitrary name to identify this server.
-- **Description (optional)** - a brief description of the server.
-- **Hostname or IP address of web server** - the host for this server.
-- **Port of web server** - the WebServer port number for this server.
-- **Username** - the username to use in logging in to this server.
-- **Confirm connection type** - the protocol used for connections, possible values are **http** and **https**.
+- **Name of new server definition** - An arbitrary name to identify this server.
+- **Description (optional)** - A brief description of the server.
+- **Hostname or IP address of web server** - The host of the InterSystems server, or a standalone web server that publishes the web services of your target InterSystems server via the InterSystems Web Gateway.
+- **Port of web server** - The WebServer port number for this server's private web server, or the port number of the standalone web server.
+- **Username** - The username to use when logging in to this server.
+- **Confirm connection type** - The protocol used for connections. Possible values are **http** and **https**.
 
-Once you have entered these values, the server definition is stored in your user-level `settings.json` file, and the server appears at the top of the **Recent** folder in the InterSystems Tools view.
+Once you have entered these values the server definition is stored in your user-level `settings.json` file, and the server appears at the top of the **Recent** folder in the InterSystems Tools view.
 
 If you want to store a password for this server definition, select **Store Password in Keychain** from the context menu for the server in the InterSystems Tools view.  If you do not store a password, users are prompted for a password each time they connect to the server. To remove a password from the keychain, Select **Clear Password from Keychain** from the server context menu. For more information, see [Server Context Menu](../extensionui#server-context-menu).
 
 You can create a configuration for a server that is not currently running.
+
+If you are connecting via a standalone web server which bublishes services for more than one InterSystems server you will need to edit the server configuration in your `settings.json` file to add a `pathPrefix` property. See the next section.
 
 ## Editing a Server Configuration
 
@@ -180,23 +182,24 @@ The server configuration in *settings.json* looks similar to the following, with
 ```
 The components of the server definition are as follows:
 
-- **iris-1** - An arbitrary name to identify this server
-- **webServer** - The collection of properties that define the web server
-- **scheme** - The protocol used for connections
-- **host** - the host for this server
-- **port** - the WebServer port number for this server
-- **username** - the username to use in logging in to this server
-- **password** - password for the specified username. Entering the password in this file is acceptable only in limited situations with very low need for security. 
+- **iris-1** - An arbitrary name to identify this server.
+- **webServer** - The collection of properties that define the web server through which you will connect. This can either be the InterSystems server's private web server or a standalone web server configured as an InterSystems Web Gateway.
+  - **scheme** - The protocol used for connections (http or https).
+  - **host** - The host of the web server.
+  - **port** - The port number for this web server.
+  - **pathPrefix** - Only required when connecting through a standalone web server that publishes the target server's web services under a subfolder.
+- **username** - The username to use in logging in to this server.
+- **password** - Password for the specified username. Entering the password as plaintext in this file is acceptable only in limited situations with very low need for security. 
 
-If you do not store the password securely in the system Keychain or add it to the server definition, anyone using the server needs to supply the password. The InterSystems Server Manager provides the following commands for managing stored passwords in the Command Palette:
+If you do not store the password securely in your workstation keychain or add it to the server definition, anyone using the server needs to supply the password. The InterSystems Server Manager provides the following commands for managing stored passwords in the Command Palette:
 
-- **InterSystems Server Manager: Clear Password from Keychain** - remove the password for a selected server
-- **InterSystems Server Manager: Store Password in Keychain** - select a server or create a new one and enter a password
+- **InterSystems Server Manager: Clear Password from Keychain** - Remove the password for a selected server.
+- **InterSystems Server Manager: Store Password in Keychain** - Select a server or create a new one, then enter a password.
 
 {: #config-server-conn}
 ## Configuring a Server Connection
 
-Open the folder where you want client-side files to be located. Select the **ObjectScript Explorer** button on the Activity Bar. Select the **Choose Server and Namespace** button. This action opens a dialog that lets you select a server, or create a new one. Once you have selected a server and namespace, connection configuration is complete. VS Code adds the server and namespace to the status bar, as shown in the following screen shot.
+Open the folder where you want client-side files to be located. Select the **ObjectScript Explorer** button on the Activity Bar. Select the **Choose Server and Namespace** button. This action opens a dialog that lets you select a server or create a new one. Once you have selected a server and namespace, connection configuration is complete. VS Code adds the server and namespace to the status bar, as shown in the following screen shot.
 
 ![Connection information in the status bar.](../assets/images/action-for-server-start.png "connection information in the status bar")
 
@@ -218,9 +221,9 @@ The connection configuration looks like this:
 
 The components of this configuration are:
 
-- **ns** - namespace to use on the server
-- **server** - server name as specified in the server configuration
-- **active** - specifies whether the connection is active.
+- **ns** - Namespace to use on the server
+- **server** - Server name as specified in the server configuration
+- **active** - Specifies whether the connection is active.
 
 {: #server-actions-menu}
 ## Add Custom Entries to the Server Actions Menu
