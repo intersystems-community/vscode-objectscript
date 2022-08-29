@@ -705,11 +705,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       Promise.all(files.map((file) => importFileOrFolder(file, true)))
     ),
     vscode.commands.registerCommand("vscode-objectscript.export", exportAll),
-    vscode.commands.registerCommand("vscode-objectscript.runInTerminal", (command: string) => {
-      if (vscode.window.activeTerminal) {
-        vscode.window.activeTerminal.sendText(command, false);
-        vscode.window.activeTerminal.show();
-      }
+    vscode.commands.registerCommand("vscode-objectscript.copyToClipboard", (command: string) => {
+      vscode.env.clipboard.writeText(command);
     }),
     vscode.commands.registerCommand("vscode-objectscript.debug", (program: string, askArgs: boolean) => {
       const startDebugging = (args) => {
@@ -1018,9 +1015,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
         }
       }
-    }),
-    vscode.window.onDidOpenTerminal((t) => {
-      console.log("openTerminal", t);
     }),
     vscode.window.onDidCloseTerminal((t) => {
       const terminalIndex = terminals.findIndex((terminal) => terminal.name == t.name);

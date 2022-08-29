@@ -27,7 +27,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
     }
     const className = file.name.split(".").slice(0, -1).join(".");
 
-    const { debugThisMethod, runThisMethod } = config("debug");
+    const { debugThisMethod, copyToClipboard } = config("debug");
     let inComment = false;
     for (let i = 0; i < document.lineCount; i++) {
       const line = document.lineAt(i);
@@ -49,7 +49,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
         const [, name, parens] = methodMatch;
 
         debugThisMethod && result.push(this.addDebugThisMethod(i, [`##class(${className}).${name}`, parens !== "()"]));
-        runThisMethod && result.push(this.addRunThisMethod(i, [`Do ##class(${className}).${name}()`]));
+        copyToClipboard && result.push(this.addCopyToClipboard(i, [`##class(${className}).${name}()`]));
       }
     }
     return result;
@@ -64,10 +64,10 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
     }
     const routineName = file.name.split(".").slice(0, -1).join(".");
 
-    const { debugThisMethod, runThisMethod } = config("debug");
+    const { debugThisMethod, copyToClipboard } = config("debug");
 
     debugThisMethod && result.push(this.addDebugThisMethod(0, [`^${routineName}`, false]));
-    runThisMethod && result.push(this.addRunThisMethod(0, [`Do ^${routineName}`]));
+    copyToClipboard && result.push(this.addCopyToClipboard(0, [`^${routineName}`]));
 
     let inComment = false;
     for (let i = 1; i < document.lineCount; i++) {
@@ -90,7 +90,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
         const [, name, parens] = labelMatch;
 
         debugThisMethod && result.push(this.addDebugThisMethod(i, [`${name}^${routineName}`, parens !== "()"]));
-        runThisMethod && result.push(this.addRunThisMethod(i, [`Do ${name}^${routineName}`]));
+        copyToClipboard && result.push(this.addCopyToClipboard(i, [`${name}^${routineName}`]));
       }
     }
 
@@ -105,10 +105,10 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
     });
   }
 
-  private addRunThisMethod(line: number, args: any[]) {
+  private addCopyToClipboard(line: number, args: any[]) {
     return new vscode.CodeLens(new vscode.Range(line, 0, line, 80), {
-      title: `Run this method in terminal`,
-      command: "vscode-objectscript.runInTerminal",
+      title: `Copy Invocation to Clipboard`,
+      command: "vscode-objectscript.copyToClipboard",
       arguments: args,
     });
   }

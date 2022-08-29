@@ -1247,12 +1247,12 @@
         "objectscript.debug.debugThisMethod": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Show inline `Debug this method` CodeLens action for ClassMethods."
+          "markdownDescription": "Show inline `Debug this method` CodeLens action for ClassMethods and Routine Labels."
         },
-        "objectscript.debug.runThisMethod": {
+        "objectscript.debug.copyToClipboard": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Show inline `Run this method in terminal` CodeLens action for ClassMethods."
+          "markdownDescription": "Show inline `Copy Invocation to Clipboard` CodeLens action for ClassMethods and Routine Labels."
         },
         "objectscript.studioActionDebugOutput": {
           "type": "boolean",
