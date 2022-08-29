@@ -1249,6 +1249,11 @@
           "default": true,
           "markdownDescription": "Show inline `Debug this method` CodeLens action for ClassMethods."
         },
+        "objectscript.debug.runThisMethod": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show inline `Run this method in terminal` CodeLens action for ClassMethods."
+        },
         "objectscript.studioActionDebugOutput": {
           "type": "boolean",
           "default": false,

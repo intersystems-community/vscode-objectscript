@@ -58,7 +58,7 @@ import { ObjectScriptDefinitionProvider } from "./providers/ObjectScriptDefiniti
 import { ObjectScriptFoldingRangeProvider } from "./providers/ObjectScriptFoldingRangeProvider";
 import { ObjectScriptHoverProvider } from "./providers/ObjectScriptHoverProvider";
 import { ObjectScriptRoutineSymbolProvider } from "./providers/ObjectScriptRoutineSymbolProvider";
-import { ObjectScriptClassCodeLensProvider } from "./providers/ObjectScriptClassCodeLensProvider";
+import { ObjectScriptCodeLensProvider } from "./providers/ObjectScriptCodeLensProvider";
 import { XmlContentProvider } from "./providers/XmlContentProvider";
 
 import { AtelierAPI } from "./api";
@@ -705,9 +705,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       Promise.all(files.map((file) => importFileOrFolder(file, true)))
     ),
     vscode.commands.registerCommand("vscode-objectscript.export", exportAll),
+    vscode.commands.registerCommand("vscode-objectscript.runInTerminal", (command: string) => {
+      if (vscode.window.activeTerminal) {
+        vscode.window.activeTerminal.sendText(command, false);
+        vscode.window.activeTerminal.show();
+      }
+    }),
     vscode.commands.registerCommand("vscode-objectscript.debug", (program: string, askArgs: boolean) => {
       const startDebugging = (args) => {
-        const programWithArgs = program + `(${args})`;
+        const programWithArgs = program + (program.includes("##class") || args.length ? `(${args})` : "");
         vscode.debug.startDebugging(undefined, {
           type: "objectscript",
           request: "launch",
@@ -848,8 +854,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.debug.registerDebugAdapterDescriptorFactory("objectscript", debugAdapterFactory),
     debugAdapterFactory,
     vscode.languages.registerCodeLensProvider(
-      documentSelector("objectscript-class"),
-      new ObjectScriptClassCodeLensProvider()
+      documentSelector("objectscript-class", "objectscript"),
+      new ObjectScriptCodeLensProvider()
     ),
     vscode.commands.registerCommand("vscode-objectscript.compileOnly", () => compileOnly(false)),
     vscode.commands.registerCommand("vscode-objectscript.compileOnlyWithFlags", () => compileOnly(true)),
@@ -1012,6 +1018,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
         }
       }
+    }),
+    vscode.window.onDidOpenTerminal((t) => {
+      console.log("openTerminal", t);
     }),
     vscode.window.onDidCloseTerminal((t) => {
       const terminalIndex = terminals.findIndex((terminal) => terminal.name == t.name);
