@@ -28,6 +28,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
     const className = file.name.split(".").slice(0, -1).join(".");
 
     const { debugThisMethod, copyToClipboard } = config("debug");
+    const pattern = /(?:^ClassMethod\s)([^(]+)\(((?:[^()]|\([^()]*\)|{[^{}]*})*)\)/i;
     let inComment = false;
     for (let i = 0; i < document.lineCount; i++) {
       const line = document.lineAt(i);
@@ -44,12 +45,18 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
         continue;
       }
 
-      const methodMatch = text.match(/(?<=^ClassMethod\s)([^(]+)(\(.)/i);
+      const methodMatch = text.match(pattern);
       if (methodMatch) {
-        const [, name, parens] = methodMatch;
+        const [, name, paramsRaw] = methodMatch;
+        let params = paramsRaw;
+        params = params.replace(/"[^"]*"/g, '""');
+        params = params.replace(/{[^{}]*}|{[^{}]*{[^{}]*}[^{}]*}/g, '""');
+        params = params.replace(/\([^()]*\)/g, "");
+        const paramsCount = params.length ? params.split(",").length : 0;
 
-        debugThisMethod && result.push(this.addDebugThisMethod(i, [`##class(${className}).${name}`, parens !== "()"]));
-        copyToClipboard && result.push(this.addCopyToClipboard(i, [`##class(${className}).${name}()`]));
+        debugThisMethod && result.push(this.addDebugThisMethod(i, [`##class(${className}).${name}`, paramsCount > 0]));
+        copyToClipboard &&
+          result.push(this.addCopyToClipboard(i, [`##class(${className}).${name}(${Array(paramsCount).join(",")})`]));
       }
     }
     return result;
@@ -99,7 +106,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
 
   private addDebugThisMethod(line: number, args: any[]) {
     return new vscode.CodeLens(new vscode.Range(line, 0, line, 80), {
-      title: `Debug this method`,
+      title: `Debug this Method`,
       command: "vscode-objectscript.debug",
       arguments: args,
     });
@@ -107,7 +114,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
 
   private addCopyToClipboard(line: number, args: any[]) {
     return new vscode.CodeLens(new vscode.Range(line, 0, line, 80), {
-      title: `Copy Invocation to Clipboard`,
+      title: `Copy Invocation`,
       command: "vscode-objectscript.copyToClipboard",
       arguments: args,
     });
