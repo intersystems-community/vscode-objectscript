@@ -28,7 +28,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
     const className = file.name.split(".").slice(0, -1).join(".");
 
     const { debugThisMethod, copyToClipboard } = config("debug");
-    const pattern = /(?:^ClassMethod\s)([^(]+)\(((?:[^()]|\([^()]*\)|{[^{}]*})*)\)/i;
+    const pattern = /(?:^ClassMethod\s)([^(]+)\(((?:[^()]|\([^()]*\)|{{}}|{}|{[^{}]+})*)\)/i;
     let inComment = false;
     for (let i = 0; i < document.lineCount; i++) {
       const line = document.lineAt(i);
