@@ -28,7 +28,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
     const className = file.name.split(".").slice(0, -1).join(".");
 
     const { debugThisMethod, copyToClipboard } = config("debug");
-    const pattern = /(?:^ClassMethod\s)([^(]+)\(((?:[^()]|\([^()]*\)|{{}}|{}|{[^{}]+})*)\)/i;
+    const pattern = /(?:^ClassMethod\s)([^(]+)\((.*)/i;
     let inComment = false;
     for (let i = 0; i < document.lineCount; i++) {
       const line = document.lineAt(i);
@@ -52,6 +52,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
         params = params.replace(/"[^"]*"/g, '""');
         params = params.replace(/{[^{}]*}|{[^{}]*{[^{}]*}[^{}]*}/g, '""');
         params = params.replace(/\([^()]*\)/g, "");
+        params = params.split(")")[0];
         const paramsCount = params.length ? params.split(",").length : 0;
 
         debugThisMethod && result.push(this.addDebugThisMethod(i, [`##class(${className}).${name}`, paramsCount > 0]));
