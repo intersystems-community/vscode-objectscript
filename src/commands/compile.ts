@@ -216,7 +216,7 @@ export async function loadChanges(files: CurrentFile[]): Promise<any> {
   );
 }
 
-async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
+export async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
   flags = flags || config("compileFlags");
   const api = new AtelierAPI(docs[0].uri);
   return vscode.window

@@ -113,6 +113,7 @@ import {
   modifyProject,
 } from "./commands/project";
 import { NodeBase } from "./explorer/models/nodeBase";
+import { openCustomEditors, RuleEditorProvider } from "./providers/RuleEditorProvider";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -620,6 +621,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   });
 
   workspace.onDidSaveTextDocument((file) => {
+    if (openCustomEditors.includes(file.uri.toString())) {
+      // Saving is handled by a different event listener
+      return;
+    }
     if (schemas.includes(file.uri.scheme) || languages.includes(file.languageId)) {
       if (documentBeingProcessed !== file) {
         return importAndCompile(false, file, config("compileOnSave"));
@@ -1080,6 +1085,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.explorer.project.addWorkspaceFolderForProject", (node) =>
       addWorkspaceFolderForProject(node)
     ),
+    vscode.window.registerCustomEditorProvider("vscode-objectscript.rule", new RuleEditorProvider(), {
+      webviewOptions: {
+        retainContextWhenHidden: true,
+      },
+      supportsMultipleEditorsPerDocument: false,
+    }),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed

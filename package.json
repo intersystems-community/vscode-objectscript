@@ -89,7 +89,8 @@
     "onFileSystem:isfs",
     "onFileSystem:isfs-readonly",
     "onFileSystem:objectscript",
-    "onDebugInitialConfigurations"
+    "onDebugInitialConfigurations",
+    "onCustomEditor:vscode-objectscript.rule"
   ],
   "main": "./dist/extension",
   "browser": "./dist/web-extension",
@@ -1387,6 +1388,18 @@
           "label": "${path} (read-only)",
           "separator": "/"
         }
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "vscode-objectscript.rule",
+        "displayName": "Rule Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.cls"
+          }
+        ],
+        "priority": "option"
       }
     ]
   },
