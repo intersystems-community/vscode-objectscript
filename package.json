@@ -1298,6 +1298,11 @@
             "type": "string",
             "pattern": "^[^.]+$"
           }
+        },
+        "objectscript.importOnSave": {
+          "description": "Automatically save a client-side InterSystems file on the server when saved in the editor.",
+          "type": "boolean",
+          "default": true
         }
       }
     },
