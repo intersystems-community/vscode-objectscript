@@ -1104,7 +1104,7 @@
           },
           "properties": {
             "folder": {
-              "description": "Folder for exported source code within workspace.",
+              "description": "Folder for exported source code within workspace. This setting is relative to the workspace folder root.",
               "type": "string"
             },
             "addCategory": {

@@ -57,7 +57,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.export.dontExportIfNoChanges"` | Do not rewrite the local file if the content is identical to what came from the server. | `boolean` | `false` | |
 | `"objectscript.export.exactFilter"` | SQL filter to limit what to export. | `string` | `""` | The filter is applied to document names using the [LIKE predicate](https://irisdocs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_like) (i.e. `Name LIKE 'exactFilter'`). If provided, `objectscript.export.filter` is ignored. |
 | `"objectscript.export.filter"` | SQL filter to limit what to export. | `string` | `""` | The filter is applied to document names using the [LIKE predicate](https://irisdocs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_like) (i.e. `Name LIKE '%filter%'`). |
-| `"objectscript.export.folder"` | Folder for exported source code within workspace. | `string` | `"src"` | |
+| `"objectscript.export.folder"` | Folder for exported source code within workspace. | `string` | `"src"` | This setting is relative to the workspace folder root. |
 | `"objectscript.export.generated"` | Export generated source code files, such as INTs generated from classes. | `boolean` | `false` | |
 | `"objectscript.export.map"` | Map file names before export, with regexp pattern as a key and replacement as a value. | `object` | `{}` | For example, `{  \"%(.*)\": \"_$1\" }` to make % classes or routines use underscore prefix instead. |
 | `"objectscript.export.mapped"` | Export source code files mapped from a non-default database. | `boolean` | `true` | |
