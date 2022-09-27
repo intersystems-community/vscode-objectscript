@@ -43,6 +43,7 @@ export interface CurrentFile {
   uri: vscode.Uri;
   eol: vscode.EndOfLine;
   workspaceFolder: string;
+  generated: boolean;
   uniqueId: string;
 }
 
@@ -140,18 +141,26 @@ export function currentFileFromContent(fileName: string, content: string): Curre
   const uri = vscode.Uri.file(fileName);
   const workspaceFolder = workspaceFolderOfUri(uri);
   const fileExt = fileName.split(".").pop().toLowerCase();
+  let generated = false;
   let name = "";
   let ext = "";
   if (fileExt === "cls") {
     // Allow Unicode letters
-    const match = content.match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
+    const match = content.match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)([^\n]*)/imu);
     if (match) {
-      [, name, ext = "cls"] = match;
+      ext = "cls";
+      let restLine;
+      [, name, restLine] = match;
+      if (restLine && restLine.includes("[") && restLine.split("[")[1].includes("GeneratedBy = ")) {
+        generated = true;
+      }
     }
   } else if (fileExt.match(/(mac|int|inc)/i)) {
-    const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i);
+    const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[(?:\s*Type\s*=\s*\b([A-Z]{3})\b)?)?,?(Generated)?/i);
     if (match) {
-      [, name, ext = "mac"] = match;
+      let generatedStr;
+      [, name, ext = "mac", generatedStr] = match;
+      generated = generatedStr === "Generated";
     } else {
       [name, ext = "mac"] = path.basename(fileName).split(".");
     }
@@ -179,6 +188,7 @@ export function currentFileFromContent(fileName: string, content: string): Curre
     name,
     uniqueId: `${workspaceFolder}:${name}`,
     eol: firstLF > 0 && content[firstLF - 1] === "\r" ? vscode.EndOfLine.CRLF : vscode.EndOfLine.LF,
+    generated,
   };
 }
 
@@ -191,6 +201,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
   if (!document) {
     return null;
   }
+  let generated = false;
   const fileName = document.fileName;
   const fileExt = fileName.split(".").pop().toLowerCase();
   if (
@@ -217,14 +228,21 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
     name = uri.path;
   } else if (fileExt === "cls") {
     // Allow Unicode letters
-    const match = content.match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
+    const match = content.match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)([^\n]*)/imu);
     if (match) {
-      [, name, ext = "cls"] = match;
+      ext = "cls";
+      let restLine;
+      [, name, restLine] = match;
+      if (restLine && restLine.includes("[") && restLine.split("[")[1].includes("GeneratedBy = ")) {
+        generated = true;
+      }
     }
   } else if (fileExt.match(/(mac|int|inc)/i)) {
-    const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i);
+    const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[(?:\s*Type\s*=\s*\b([A-Z]{3})\b)?)?,?(Generated)?/i);
     if (match) {
-      [, name, ext = "mac"] = match;
+      let generatedStr;
+      [, name, ext = "mac", generatedStr] = match;
+      generated = generatedStr === "Generated";
     } else {
       [name, ext = "mac"] = path.basename(document.fileName).split(".");
     }
@@ -261,6 +279,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
     eol,
     workspaceFolder,
     uniqueId,
+    generated,
   };
 }
 
@@ -574,6 +593,65 @@ const throttle = (max: number): ((fn: any) => (arg: any) => Promise<any>) => {
     return p;
   };
 };
+
+export type CustomColors = { [key: string]: string };
+
+type ColorSettings = {
+  enabled: boolean;
+  light: string;
+  dark: string;
+  contrast: string;
+  contrastLight: string;
+};
+
+export function getColorCustomization(customColor: string): string {
+  const color: ColorSettings = config("generatedCodeBackground");
+  if (color.enabled) {
+    switch (vscode.window.activeColorTheme.kind) {
+      case vscode.ColorThemeKind.Light:
+        return color.light;
+      case vscode.ColorThemeKind.Dark:
+        return color.dark;
+      case vscode.ColorThemeKind.HighContrast:
+        return color.contrast;
+      case vscode.ColorThemeKind.HighContrastLight:
+        return color.contrastLight;
+    }
+  }
+  return "";
+}
+
+export async function updateColorCustomization(customColors: CustomColors): Promise<CustomColors> {
+  const colorCustomizationSection = "workbench.colorCustomizations";
+  const updatedColors = {};
+  const previousColors = {};
+  const inspect = vscode.workspace.getConfiguration().inspect<CustomColors>(colorCustomizationSection);
+  if (inspect && inspect.workspaceValue) {
+    for (const key in inspect.workspaceValue) {
+      if (Object.prototype.hasOwnProperty.call(inspect.workspaceValue, key)) {
+        updatedColors[key] = inspect.workspaceValue[key];
+      }
+    }
+  }
+  for (const key in customColors) {
+    if (Object.prototype.hasOwnProperty.call(customColors, key)) {
+      if (Object.prototype.hasOwnProperty.call(updatedColors, key)) {
+        previousColors[key] = updatedColors[key];
+      } else {
+        previousColors[key] = "";
+      }
+      if (customColors[key]) {
+        updatedColors[key] = customColors[key];
+      } else {
+        delete updatedColors[key];
+      }
+    }
+  }
+  await vscode.workspace
+    .getConfiguration()
+    .update(colorCustomizationSection, updatedColors, vscode.ConfigurationTarget.Workspace);
+  return previousColors;
+}
 
 // ---------------------------------------------------------------------
 

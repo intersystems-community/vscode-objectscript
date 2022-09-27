@@ -81,6 +81,8 @@ import {
   isImportableLocalFile,
   workspaceFolderOfUri,
   uriOfWorkspaceFolder,
+  updateColorCustomization,
+  getColorCustomization,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentRangeFormattingEditProvider } from "./providers/DocumentRangeFormattingEditProvider";
@@ -487,6 +489,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       reporter = null;
     }
   }
+  let resetCustomColors;
 
   const languages = packageJson.contributes.languages.map((lang) => lang.id);
   // workaround for Theia, issue https://github.com/eclipse-theia/theia/issues/8435
@@ -896,6 +899,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           })
       )
     ),
+    vscode.window.onDidChangeActiveTextEditor(async (editor: vscode.TextEditor) => {
+      if (resetCustomColors) {
+        await updateColorCustomization(resetCustomColors);
+        resetCustomColors = null;
+      }
+      if (editor && languages.includes(editor.document.languageId)) {
+        const file = currentFile(editor.document);
+        if (file.generated) {
+          resetCustomColors = await updateColorCustomization({
+            "editor.background": getColorCustomization("generatedCodeBackground"),
+          });
+        }
+      }
+    }),
     vscode.window.onDidChangeActiveTextEditor((editor: vscode.TextEditor) => {
       if (config("openClassContracted") && editor && editor.document.languageId === "objectscript-class") {
         const uri: string = editor.document.uri.toString();

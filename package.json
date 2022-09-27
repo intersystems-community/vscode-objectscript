@@ -977,6 +977,38 @@
       "title": "InterSystems ObjectScript",
       "type": "object",
       "properties": {
+        "objectscript.generatedCodeBackground": {
+          "description": "Background color of the editor for generated code",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "light": {
+              "type": "string",
+              "format": "color-hex",
+              "default": "#ddd"
+            },
+            "dark": {
+              "type": "string",
+              "format": "color-hex",
+              "default": "#444"
+            },
+            "contrast": {
+              "type": "string",
+              "format": "color-hex"
+            },
+            "contrastLight": {
+              "type": "string",
+              "format": "color-hex"
+            }
+          }
+        },
         "objectscript.conn": {
           "type": "object",
           "description": "Server Access",
