@@ -1,4 +1,3 @@
-import fs = require("fs");
 import glob = require("glob");
 import path = require("path");
 import vscode = require("vscode");
@@ -55,14 +54,14 @@ export async function checkChangedOnServer(file: CurrentFile, force = false): Pr
     (await api
       .getDoc(file.name)
       .then((data) => data.result)
-      .then(({ ts, content }) => {
+      .then(async ({ ts, content }) => {
         const fileContent = file.content.split(/\r?\n/);
         const serverTime = Number(new Date(ts + "Z"));
         const sameContent = force
           ? false
           : content.every((line, index) => line.trim() == (fileContent[index] || "").trim());
         const mtime =
-          force || sameContent ? serverTime : Math.max(Number(fs.statSync(file.fileName).mtime), serverTime);
+          force || sameContent ? serverTime : Math.max((await vscode.workspace.fs.stat(file.uri)).mtime, serverTime);
         return mtime;
       })
       .catch(() => -1));
@@ -197,12 +196,12 @@ export async function loadChanges(files: CurrentFile[]): Promise<any> {
     files.map((file) =>
       api
         .getDoc(file.name)
-        .then((data) => {
+        .then(async (data) => {
           const content = (data.result.content || []).join(file.eol === vscode.EndOfLine.LF ? "\n" : "\r\n");
           const mtime = Number(new Date(data.result.ts + "Z"));
           workspaceState.update(`${file.uniqueId}:mtime`, mtime > 0 ? mtime : undefined);
           if (file.uri.scheme === "file") {
-            fs.writeFileSync(file.fileName, content);
+            await vscode.workspace.fs.writeFile(file.uri, new TextEncoder().encode(content));
           } else if (file.uri.scheme === FILESYSTEM_SCHEMA || file.uri.scheme === FILESYSTEM_READONLY_SCHEMA) {
             fileSystemProvider.fireFileChanged(file.uri);
           }
@@ -398,12 +397,13 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
   );
 }
 
-function importFiles(files, noCompile = false) {
+function importFiles(files: string[], noCompile = false) {
   return Promise.all<CurrentFile>(
     files.map(
-      throttleRequests((file) =>
-        fs.promises
-          .readFile(file, { encoding: "utf8" })
+      throttleRequests((file: string) =>
+        vscode.workspace.fs
+          .readFile(vscode.Uri.file(file))
+          .then((contentBytes) => new TextDecoder().decode(contentBytes))
           .then((content) => currentFileFromContent(file, content))
           .then((curFile) =>
             importFile(curFile).then((data) => {
@@ -418,7 +418,7 @@ function importFiles(files, noCompile = false) {
 
 export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<any> {
   const uripath = uri.fsPath;
-  if (fs.lstatSync(uripath).isFile()) {
+  if ((await vscode.workspace.fs.stat(uri)).type != vscode.FileType.Directory) {
     return importFiles([uripath], noCompile);
   }
   let globpattern = "*.{cls,inc,int,mac}";

@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "1.8.2-SNAPSHOT",
+  "version": "1.8.3-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "9cd75d51-697c-406c-a929-2bcf46e97c64",
   "categories": [
@@ -602,6 +602,12 @@
       {
         "id": "vscode-objectscript-output",
         "aliases": []
+      },
+      {
+        "id": "objectscript-injection"
+      },
+      {
+        "id": "objectscript-class-injection"
       }
     ],
     "grammars": [
@@ -649,6 +655,28 @@
         "language": "vscode-objectscript-output",
         "scopeName": "source.vscode_objectscript_output",
         "path": "syntaxes/vscode-objectscript-output.tmLanguage.json"
+      },
+      {
+        "language": "objectscript-injection",
+        "scopeName": "markdown.objectscript.codeblock",
+        "path": "./syntaxes/objectscript_codeblock.json",
+        "injectTo": [
+          "text.html.markdown"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.objectscript": "objectscript"
+        }
+      },
+      {
+        "language": "objectscript-class-injection",
+        "scopeName": "markdown.objectscript_class.codeblock",
+        "path": "./syntaxes/objectscript-class_codeblock.json",
+        "injectTo": [
+          "text.html.markdown"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.objectscript_class": "objectscript-class"
+        }
       }
     ],
     "snippets": [
@@ -1077,7 +1105,7 @@
           },
           "properties": {
             "folder": {
-              "description": "Folder for exported source code within workspace.",
+              "description": "Folder for exported source code within workspace. This setting is relative to the workspace folder root.",
               "type": "string"
             },
             "addCategory": {
@@ -1220,7 +1248,12 @@
         "objectscript.debug.debugThisMethod": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Show inline `Debug this method` CodeLens action for ClassMethods."
+          "markdownDescription": "Show inline `Debug Method` CodeLens action for ClassMethods and Routine Labels."
+        },
+        "objectscript.debug.copyToClipboard": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show inline `Copy Invocation` CodeLens action for ClassMethods and Routine Labels."
         },
         "objectscript.studioActionDebugOutput": {
           "type": "boolean",
@@ -1427,6 +1460,7 @@
     "@types/xmldom": "^0.1.29",
     "@typescript-eslint/eslint-plugin": "^4.32.0",
     "@typescript-eslint/parser": "^4.32.0",
+    "@vscode/test-electron": "^2.1.5",
     "eslint": "^7.32.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-config-prettier": "^6.11.0",
@@ -1442,7 +1476,6 @@
     "typescript": "^4.4.3",
     "vscode-debugadapter-testsupport": "^1.41.0",
     "vscode-dts": "^0.3.2",
-    "vscode-test": "^1.4.0",
     "webpack": "^5.27.1",
     "webpack-cli": "^4.5.0"
   },

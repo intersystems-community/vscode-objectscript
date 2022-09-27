@@ -1,5 +1,12 @@
 # Change Log
 
+## [1.8.2] 08-Aug-2022
+- Enhancements
+  - Support `objectscript` and `objectscript-class` as the info string for [fenced code blocks](https://spec.commonmark.org/0.30/#fenced-code-blocks) when editing Markdown. However coloring does not render in preview (#964)
+- Fixes
+  - Handle some previously uncaught errors (#966)
+  - Dispose of all event handlers when deactivating (#967)
+
 ## [1.8.1] 25-Jul-2022
 - Fixes
   - New class should ignore `objectscript.export.folder` setting (#938)
