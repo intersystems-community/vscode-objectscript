@@ -29,12 +29,21 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
     if (document.languageId != "objectscript-class") {
       return RuleEditorProvider._errorMessage(`${document.fileName} is not a class.`);
     }
+    if (document.isUntitled) {
+      return RuleEditorProvider._errorMessage(`${document.fileName} is untitled.`);
+    }
+    if (document.isDirty) {
+      return RuleEditorProvider._errorMessage(`${document.fileName} is dirty.`);
+    }
     const file = currentFile(document);
+    if (file == null) {
+      return RuleEditorProvider._errorMessage(`${document.fileName} is a malformed class definition.`);
+    }
     const className = file.name.slice(0, -4);
     const api = new AtelierAPI(document.uri);
     // Check the server has the webapp for the angular rule editor
     if (!cspAppsForUri(document.uri).includes(RuleEditorProvider._webapp)) {
-      return RuleEditorProvider._errorMessage("The server does not support the angular Rule Editor.");
+      return RuleEditorProvider._errorMessage("The server does not support the Angular Rule Editor.");
     }
     // Check that class exists on the server and is a rule class
     const queryData = await api.actionQuery("SELECT Super FROM %Dictionary.ClassDefinition WHERE Name = ?", [
@@ -42,7 +51,7 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
     ]);
     if (
       queryData.result.content.length &&
-      queryData.result.content[0].Super.split(",").includes("Ens.Rule.Definition")
+      !queryData.result.content[0].Super.split(",").includes("Ens.Rule.Definition")
     ) {
       // Class exists but is not a rule class
       return RuleEditorProvider._errorMessage(`${file.name} is not a rule definition class.`);
@@ -50,12 +59,6 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
       // Class doesn't exist on the server
       return RuleEditorProvider._errorMessage(`${file.name} does not exist on the server.`);
     }
-
-    // Get the JWT to send to the editor
-    // api.getRuleEditorJWT().then((jwt) => {}).catch((error) => {
-    //   // If we couldn't get the JWT then we need to return because basic auth in the editor doesn't work in an iframe
-    //   return RuleEditorProvider._errorMessage(`Failed to get JWT for authenticating Rule Editor.${error.errorText && error.errorText != "" ? " " + error.errorText : ""}`);
-    // });
 
     // Add this document to the array of open custom editors
     openCustomEditors.push(document.uri.toString());
@@ -180,11 +183,12 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
               })
               .then(() => vscode.commands.executeCommand("workbench.action.reopenWithEditor"));
           } else {
-            // Editor is compatible so send the JWT
+            // Editor is compatible so send the credentials
             webviewPanel.webview.postMessage({
               direction: "editor",
               type: "auth",
-              jwt: "",
+              username: api.config.username,
+              password: api.config.password,
             });
           }
           return;
@@ -196,15 +200,15 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
             vscode.workspace.applyEdit(edit);
           } else {
             // Revert so document is clean
-            // ignoreChanges = true;
-            // vscode.commands.executeCommand("workbench.action.files.revert");
+            ignoreChanges = true;
+            vscode.commands.executeCommand("workbench.action.files.revert");
           }
           return;
         case "saved":
           if (document.isDirty) {
             // Revert so document is clean
-            // ignoreChanges = true;
-            // vscode.commands.executeCommand("workbench.action.files.revert");
+            ignoreChanges = true;
+            vscode.commands.executeCommand("workbench.action.files.revert");
           }
           if (vscode.workspace.getConfiguration("objectscript", document.uri).get<boolean>("compileOnSave")) {
             // Compile the class, which automatically loads any changes
@@ -221,7 +225,7 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
       saveDisposable.dispose();
       if (document.isDirty) {
         // Revert so document is clean
-        // vscode.commands.executeCommand("workbench.action.files.revert");
+        vscode.commands.executeCommand("workbench.action.files.revert");
       }
       const idx = openCustomEditors.findIndex((e) => e == document.uri.toString());
       if (idx >= 0) {
