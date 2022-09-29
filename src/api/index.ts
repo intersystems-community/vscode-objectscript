@@ -188,6 +188,7 @@ export class AtelierAPI {
       serverName = "";
     }
 
+    const ns = namespace ? namespace.toUpperCase() : conn.ns ? (conn.ns as string).toUpperCase() : undefined;
     if (serverName !== "") {
       const {
         webServer: { scheme, host, port, pathPrefix = "" },
@@ -199,7 +200,7 @@ export class AtelierAPI {
         active: this.externalServer || conn.active,
         apiVersion: workspaceState.get(this.configName + ":apiVersion", DEFAULT_API_VERSION),
         https: scheme === "https",
-        ns: (namespace || conn.ns).toUpperCase(),
+        ns,
         host,
         port,
         username,
@@ -216,7 +217,7 @@ export class AtelierAPI {
       }
     } else {
       this._config = conn;
-      this._config.ns = (namespace || conn.ns).toUpperCase();
+      this._config.ns = ns;
       this._config.serverName = "";
     }
   }
