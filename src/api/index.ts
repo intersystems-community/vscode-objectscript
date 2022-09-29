@@ -342,8 +342,8 @@ export class AtelierAPI {
         authRequestMap.delete(target);
         if (this.wsOrFile && !checkingConnection) {
           setTimeout(() => {
-            checkConnection(true, typeof this.wsOrFile === "object" ? this.wsOrFile : undefined);
-          }, 1000);
+            checkConnection(password ? true : false, typeof this.wsOrFile === "object" ? this.wsOrFile : undefined);
+          }, 500);
         }
         throw { statusCode: response.status, message: response.statusText };
       }

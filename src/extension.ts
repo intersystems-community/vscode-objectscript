@@ -77,7 +77,6 @@ import {
   terminalWithDocker,
   notNull,
   currentFile,
-  InputBoxManager,
   isImportableLocalFile,
   workspaceFolderOfUri,
   uriOfWorkspaceFolder,
@@ -240,11 +239,11 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
   const { apiTarget, configName } = connectionTarget(uri);
   if (clearCookies) {
     /// clean-up cached values
-    workspaceState.update(configName + ":host", undefined);
-    workspaceState.update(configName + ":port", undefined);
-    workspaceState.update(configName + ":password", undefined);
-    workspaceState.update(configName + ":apiVersion", undefined);
-    workspaceState.update(configName + ":docker", undefined);
+    await workspaceState.update(configName + ":host", undefined);
+    await workspaceState.update(configName + ":port", undefined);
+    await workspaceState.update(configName + ":password", undefined);
+    await workspaceState.update(configName + ":apiVersion", undefined);
+    await workspaceState.update(configName + ":docker", undefined);
     _onDidChangeConnection.fire();
   }
   let api = new AtelierAPI(apiTarget, false);
@@ -303,7 +302,7 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     api.clearCookies();
   }
 
-  // Why must this be recreated here?
+  // Why must this be recreated here? Maybe in case something has updated connection details since we last fetched them.
   api = new AtelierAPI(apiTarget, false);
 
   if (!api.config.host || !api.config.port || !api.config.ns) {
@@ -311,67 +310,103 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     outputChannel.appendError(message);
     panel.text = `${PANEL_LABEL} $(error)`;
     panel.tooltip = `ERROR - ${message}`;
-    disableConnection(configName);
+    if (!api.externalServer) {
+      await setConnectionState(configName, false);
+    }
     return;
   }
   checkingConnection = true;
+
+  // What we do when api.serverInfo call succeeds
+  const gotServerInfo = async (info) => {
+    panel.text = api.connInfo;
+    panel.tooltip = `Connected${pathPrefix ? " to " + pathPrefix : ""} as ${username}`;
+    const hasHS = info.result.content.features.find((el) => el.name === "HEALTHSHARE" && el.enabled) !== undefined;
+    reporter &&
+      reporter.sendTelemetryEvent("connected", {
+        serverVersion: info.result.content.version,
+        healthshare: hasHS ? "yes" : "no",
+      });
+
+    // Update CSP web app cache if required
+    const key = (
+      api.config.serverName && api.config.serverName != ""
+        ? `${api.config.serverName}:${api.config.ns}`
+        : `${api.config.host}:${api.config.port}${api.config.pathPrefix}:${api.config.ns}`
+    ).toLowerCase();
+    if (!cspApps.has(key)) {
+      cspApps.set(key, await api.getCSPApps().then((data) => data.result.content || []));
+    }
+    if (!api.externalServer) {
+      await setConnectionState(configName, true);
+    }
+    return;
+  };
+
+  // Do the check
   return api
     .serverInfo()
-    .then(async (info) => {
-      panel.text = api.connInfo;
-      panel.tooltip = `Connected${pathPrefix ? " to " + pathPrefix : ""} as ${username}`;
-      const hasHS = info.result.content.features.find((el) => el.name === "HEALTHSHARE" && el.enabled) !== undefined;
-      reporter &&
-        reporter.sendTelemetryEvent("connected", {
-          serverVersion: info.result.content.version,
-          healthshare: hasHS ? "yes" : "no",
-        });
-      // Update CSP web app cache if required
-      const key = (
-        api.config.serverName && api.config.serverName != ""
-          ? `${api.config.serverName}:${api.config.ns}`
-          : `${api.config.host}:${api.config.port}${api.config.pathPrefix}:${api.config.ns}`
-      ).toLowerCase();
-      if (!cspApps.has(key)) {
-        cspApps.set(key, await api.getCSPApps().then((data) => data.result.content || []));
-      }
-      return;
-    })
-    .catch((error) => {
+    .then(gotServerInfo)
+    .catch(async (error) => {
       let message = error.message;
       let errorMessage;
       if (error.statusCode === 401) {
-        setTimeout(() => {
-          const username = api.config.username;
-          if (username === "") {
-            vscode.window.showErrorMessage(`Anonymous access rejected by ${connInfo}.`);
-            if (!api.externalServer) {
-              vscode.window.showErrorMessage("Connection has been disabled.");
-              disableConnection(configName);
-            }
-          } else {
-            InputBoxManager.showInputBox(
-              {
+        let success = false;
+        message = "Not Authorized.";
+        errorMessage = `Authorization error: Check your credentials in Settings, and that you have sufficient privileges on the /api/atelier web application on ${connInfo}`;
+        const username = api.config.username;
+        if (username === "") {
+          vscode.window.showErrorMessage(`Anonymous access rejected by ${connInfo}.`);
+          if (!api.externalServer) {
+            vscode.window.showErrorMessage("Connection has been disabled.");
+            await setConnectionState(configName, false);
+          }
+        } else {
+          success = await new Promise<boolean>((resolve) => {
+            vscode.window
+              .showInputBox({
                 password: true,
                 placeHolder: `Not Authorized. Enter password to connect as user '${username}' to ${connInfo}`,
                 prompt: !api.externalServer ? "If no password is entered the connection will be disabled." : "",
                 ignoreFocusOut: true,
-              },
-              async (password) => {
-                if (password) {
-                  workspaceState.update(configName + ":password", password);
-                  _onDidChangeConnection.fire();
-                  await checkConnection(false, uri);
-                } else if (!api.externalServer) {
-                  disableConnection(configName);
+              })
+              .then(
+                async (password) => {
+                  if (password) {
+                    await workspaceState.update(configName + ":password", password);
+                    resolve(
+                      api
+                        .serverInfo()
+                        .then(async (info): Promise<boolean> => {
+                          await gotServerInfo(info);
+                          _onDidChangeConnection.fire();
+                          return true;
+                        })
+                        .catch(async (error) => {
+                          console.log(`Second connect failed: ${error}`);
+                          await setConnectionState(configName, false);
+                          await workspaceState.update(configName + ":password", undefined);
+                          return false;
+                        })
+                        .finally(() => {
+                          checkingConnection = false;
+                        })
+                    );
+                  } else if (!api.externalServer) {
+                    await setConnectionState(configName, false);
+                  }
+                  console.log(`Finished prompting for password, got ${workspaceState.get(configName + ":password")}`);
+                  resolve(false);
+                },
+                (reason) => {
+                  console.log(`showInputBox for password dismissed: ${reason}`);
                 }
-              },
-              connInfo
-            );
+              );
+          });
+          if (success) {
+            return;
           }
-        }, 1000);
-        message = "Not Authorized.";
-        errorMessage = `Authorization error: Check your credentials in Settings, and that you have sufficient privileges on the /api/atelier web application on ${connInfo}`;
+        }
       } else {
         errorMessage = `${message}\nCheck your server details in Settings (${connInfo}).`;
       }
@@ -395,16 +430,16 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     });
 }
 
-// Set objectscript.conn.active = false at WorkspaceFolder level if objectscript.conn is defined there,
-//  else set it false at Workspace level
-function disableConnection(configName: string) {
+// Set objectscript.conn.active at WorkspaceFolder level if objectscript.conn is defined there,
+//  else set it at Workspace level
+function setConnectionState(configName: string, active: boolean) {
   const connConfig: vscode.WorkspaceConfiguration = config("", configName);
   const target: vscode.ConfigurationTarget = connConfig.inspect("conn").workspaceFolderValue
     ? vscode.ConfigurationTarget.WorkspaceFolder
     : vscode.ConfigurationTarget.Workspace;
   const targetConfig: any =
     connConfig.inspect("conn").workspaceFolderValue || connConfig.inspect("conn").workspaceValue;
-  return connConfig.update("conn", { ...targetConfig, active: false }, target);
+  return connConfig.update("conn", { ...targetConfig, active }, target);
 }
 
 // Promise to return the API of the servermanager
@@ -521,7 +556,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   serverManagerApi = await serverManager();
 
   documentContentProvider = new DocumentContentProvider();
-  xmlContentProvider = new XmlContentProvider();
   fileSystemProvider = new FileSystemProvider();
 
   explorerProvider = new ObjectScriptExplorerProvider();
@@ -555,16 +589,26 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   vscode.workspace.workspaceFolders?.map((workspaceFolder) => {
     const uri = workspaceFolder.uri;
     const { configName } = connectionTarget(uri);
-    toCheck.set(configName, uri);
+    const serverName = uri.scheme === "file" ? config("conn", configName).server : configName;
+    toCheck.set(serverName, uri);
   });
   for await (const oneToCheck of toCheck) {
-    const configName = oneToCheck[0];
+    const serverName = oneToCheck[0];
     const uri = oneToCheck[1];
-    const serverName = uri.scheme === "file" ? config("conn", configName).server : configName;
-    await resolveConnectionSpec(serverName);
-    // Ignore any failure
-    checkConnection(true, uri).finally();
+    try {
+      try {
+        await resolveConnectionSpec(serverName);
+      } finally {
+        await checkConnection(true, uri);
+      }
+    } catch (_) {
+      // Ignore any failure
+      continue;
+    }
   }
+
+  // This constructor instantiates an AtelierAPI object, so needs to happen after resolving and checking connections above
+  xmlContentProvider = new XmlContentProvider();
 
   const documentSelector = (...list) =>
     ["file", ...schemas].reduce((acc, scheme) => acc.concat(list.map((language) => ({ scheme, language }))), []);
