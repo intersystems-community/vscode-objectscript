@@ -211,7 +211,8 @@ export async function resolvePassword(serverSpec): Promise<void> {
       session = await vscode.authentication.getSession(AUTHENTICATION_PROVIDER, scopes, { createIfNone: true });
     }
     if (session) {
-      serverSpec.username = session.scopes[1];
+      // If original spec lacked username use the one obtained by the authprovider
+      serverSpec.username = serverSpec.username || session.scopes[1];
       serverSpec.password = session.accessToken;
     }
   }
@@ -395,7 +396,7 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
                   } else if (!api.externalServer) {
                     await setConnectionState(configName, false);
                   }
-                  console.log(`Finished prompting for password, got ${workspaceState.get(configName + ":password")}`);
+                  console.log(`Finished prompting for password`);
                   resolve(false);
                 },
                 (reason) => {
