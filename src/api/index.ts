@@ -348,8 +348,6 @@ export class AtelierAPI {
         throw { statusCode: response.status, message: response.statusText };
       }
       await this.updateCookies(response.headers.raw()["set-cookie"] || []);
-      panel.text = `${this.connInfo}`;
-      panel.tooltip = `Connected${pathPrefix ? " to " + pathPrefix : ""} as ${username}`;
       if (method === "HEAD") {
         authRequestMap.delete(target);
         return this.cookies;
