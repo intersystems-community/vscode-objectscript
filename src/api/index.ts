@@ -199,7 +199,7 @@ export class AtelierAPI {
         active: this.externalServer || conn.active,
         apiVersion: workspaceState.get(this.configName + ":apiVersion", DEFAULT_API_VERSION),
         https: scheme === "https",
-        ns: namespace || conn.ns,
+        ns: (namespace || conn.ns).toUpperCase(),
         host,
         port,
         username,
@@ -216,7 +216,7 @@ export class AtelierAPI {
       }
     } else {
       this._config = conn;
-      this._config.ns = namespace || conn.ns;
+      this._config.ns = (namespace || conn.ns).toUpperCase();
       this._config.serverName = "";
     }
   }
