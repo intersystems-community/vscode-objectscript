@@ -1147,14 +1147,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   reporter && reporter.sendTelemetryEvent("extensionActivated");
 
   // The API we export
-  const api = {
+  const extensionApi = {
     serverForUri(uri: vscode.Uri): any {
       const { apiTarget } = connectionTarget(uri);
       const api = new AtelierAPI(apiTarget);
 
-      // We explicitly no longer expose the password for named servers.
-      // API client extensions can use Server Manager 3's authentication provider to get this,
-      // which will require user consent.
+      // This function intentionally no longer exposes the password for a named server UNLESS it is already exposed as plaintext in settings.
+      // API client extensions should use Server Manager 3's authentication provider to request a missing password themselves,
+      // which will require explicit user consent to divulge the password to the requesting extension.
 
       const {
         serverName,
@@ -1176,7 +1176,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         port,
         pathPrefix,
         username,
-        password: serverName === "" ? password : undefined,
+        password:
+          serverName === ""
+            ? password
+            : vscode.workspace
+                .getConfiguration(`intersystems.servers.${serverName.toLowerCase()}`, uri)
+                .get("password"),
         namespace: ns,
         apiVersion: active ? apiVersion : undefined,
       };
@@ -1209,7 +1214,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   };
 
   // 'export' our public API
-  return api;
+  return extensionApi;
 }
 
 export function deactivate(): void {
