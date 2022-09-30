@@ -1023,6 +1023,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     }),
     vscode.workspace.onDidSaveTextDocument((file) => {
+      if (!schemas.includes(file.uri.scheme) && !config("importOnSave")) {
+        // Don't save this local file on the server
+        return;
+      }
       if (schemas.includes(file.uri.scheme) || languages.includes(file.languageId)) {
         if (documentBeingProcessed !== file) {
           return importAndCompile(false, file, config("compileOnSave"));
