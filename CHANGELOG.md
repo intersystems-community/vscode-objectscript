@@ -1,37 +1,10 @@
 # Change Log
 
-## [1.9.2022080801] 08-Aug-2022 pre-release
-Add 1.8.2 changes.
-
-## [1.9.2022072501] 25-Jul-2022 pre-release
-Add 1.8.1 changes.
-
-## [1.9.2022042001] 20-Apr-2022 pre-release
-Add 1.8.0 changes.
-
-## [1.7.2022040601] 06-Apr-2022 pre-release
-Add 1.6.0 changes.
-
-## [1.5.2022032101] 21-Mar-2022 pre-release
-Add 1.4.4 changes.
-
-## [1.5.2022022801] 28-Feb-2022 pre-release
-Add 1.4.3 changes.
-
-## [1.5.2022022301] 23-Feb-2022 pre-release
-Add 1.4.2 changes.
-
-## [1.5.2022020301] 03-Feb-2022 pre-release
-- Fixes
-  - Allow `serverForUri` to return password for unnamed server (#837)
+## [2.0.0] 04-Oct-2022
 - Enhancements
-  - Use CI for publishing pre-releases.
-
-## [1.5.2022011402] 14-Jan-2022 pre-release #2
-Add 1.4.1 changes.
-
-## [1.5.2022011401] 14-Jan-2022 pre-release
-Add 1.4.0 changes.
+  - Use Server Manager version 3's enhanced security for stored passwords. Explicit permission must be given by the user before Server Manager will provide a connection's stored password to this extension. This feature previewed in the 1.x pre-releases, which 2.0.0 supersedes.
+  - Add `Copy Invocation` CodeLens alongside `Debug this Method`. Hideable using the `objectscript.debug.copyToClipboard` setting (#974)
+  - Add `objectscript.importOnSave` setting to control whether saving a client-side file updates code on the connected server. Default is `true` (#985)
 
 ## [1.8.2] 08-Aug-2022
 - Enhancements
