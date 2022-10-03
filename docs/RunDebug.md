@@ -113,3 +113,13 @@ When starting **objectscript launch** debug session, make sure that the file con
 This extension uses WebSockets to communicate with the InterSystems server during debugging. If you are experiencing issues when trying to start a debugging session, check that the InterSystems server's web server allows WebSocket connections.
 
 Debugging commands and items on the **Run** menu function much as they do for other languages supported by VS Code. For information on VS Code debugging, see the documentation resources listed at the start of this section. 
+
+## Troubleshooting Debugger Issues
+
+If you are experiencing issues using the debugger, please follow these steps before opening an issue on GitHub:
+
+1. Open a terminal on your server and `zn` to the namespace containing the class or routine you are debugging.
+2. Run the command `Kill ^IRIS.Temp.Atelier("debug")`, then `Set ^IRIS.Temp.Atelier("debug") = 1` to turn on the Atelier API debug logging feature. If you are on Caché or Ensemble, the global is `^CacheTemp.ISC.Atelier("debug")`.
+3. In VS Code, start a debugging session using the configuration that produces the error.
+4. Once the error appears, copy the contents of the `^IRIS.Temp.Atelier("debug")` global and add it to your GitHub issue.
+5. After you capture the log, run the command `Kill ^IRIS.Temp.Atelier("debug")`, then `Set ^IRIS.Temp.Atelier("debug") = 0` to turn logging back off again.

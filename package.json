@@ -1104,7 +1104,7 @@
           },
           "properties": {
             "folder": {
-              "description": "Folder for exported source code within workspace.",
+              "description": "Folder for exported source code within workspace. This setting is relative to the workspace folder root.",
               "type": "string"
             },
             "addCategory": {
@@ -1247,7 +1247,12 @@
         "objectscript.debug.debugThisMethod": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Show inline `Debug this method` CodeLens action for ClassMethods."
+          "markdownDescription": "Show inline `Debug Method` CodeLens action for ClassMethods and Routine Labels."
+        },
+        "objectscript.debug.copyToClipboard": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show inline `Copy Invocation` CodeLens action for ClassMethods and Routine Labels."
         },
         "objectscript.studioActionDebugOutput": {
           "type": "boolean",
@@ -1293,6 +1298,11 @@
             "type": "string",
             "pattern": "^[^.]+$"
           }
+        },
+        "objectscript.importOnSave": {
+          "description": "Automatically save a client-side InterSystems file on the server when saved in the editor.",
+          "type": "boolean",
+          "default": true
         }
       }
     },
