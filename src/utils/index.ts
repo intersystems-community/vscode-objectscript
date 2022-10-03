@@ -1,6 +1,4 @@
-import fs = require("fs");
 import path = require("path");
-import { R_OK } from "constants";
 import * as url from "url";
 import { exec } from "child_process";
 import * as vscode from "vscode";
@@ -263,29 +261,6 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
   };
 }
 
-export async function mkdirSyncRecursive(dirpath: string): Promise<string> {
-  if (fs.existsSync(dirpath)) {
-    return Promise.resolve(dirpath);
-  }
-  const mkdir = (currentPath, folder): void => {
-    currentPath += folder + path.sep;
-
-    if (!fs.existsSync(currentPath)) {
-      fs.mkdirSync(currentPath);
-    }
-
-    return currentPath;
-  };
-  return new Promise<string>((resolve, reject): void => {
-    try {
-      dirpath.split(path.sep).reduce(mkdir, "");
-      resolve(dirpath);
-    } catch (error) {
-      reject(error);
-    }
-  });
-}
-
 export function connectionTarget(uri?: vscode.Uri): ConnectionTarget {
   const result: ConnectionTarget = { apiTarget: "", configName: "" };
   uri = uri
@@ -422,20 +397,12 @@ export async function portFromDockerCompose(): Promise<{ port: number; docker: b
   const workspaceFolderPath = uriOfWorkspaceFolder().fsPath;
   const workspaceRootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
 
-  const cwd: string = await new Promise((resolve, reject) => {
-    fs.access(path.join(workspaceFolderPath, file), R_OK, (error) => {
-      if (error) {
-        fs.access(path.join(workspaceRootPath, file), R_OK, (error) => {
-          if (error) {
-            reject(new Error(`File '${file}' not found.`));
-          } else {
-            resolve(workspaceRootPath);
-          }
-        });
-      } else {
-        resolve(workspaceFolderPath);
-      }
-    });
+  const cwd: string = await fileExists(vscode.Uri.file(path.join(workspaceFolderPath, file))).then((exists) => {
+    if (exists) {
+      return workspaceRootPath;
+    } else {
+      throw new Error(`File '${file}' not found.`);
+    }
   });
 
   if (!cwd) {
@@ -548,6 +515,17 @@ export function redirectDotvscodeRoot(uri: vscode.Uri): vscode.Uri {
     throw new Error("No namespace determined from uri");
   } else {
     return uri;
+  }
+}
+
+/** Check if local `file` exists using vscode's `workspace.fs` FileSystem. */
+export async function fileExists(file: vscode.Uri): Promise<boolean> {
+  try {
+    vscode.workspace.fs.stat(file);
+    return true;
+  } catch {
+    // Only error thown is "FileNotFound"
+    return false;
   }
 }
 

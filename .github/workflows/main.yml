@@ -16,6 +16,11 @@ on:
   release:
     types:
       - released
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.base_ref || github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   build:
     timeout-minutes: 10
@@ -182,7 +187,7 @@ jobs:
           [ -n "${{ secrets.VSCE_TOKEN }}" ] && \
             npx vsce publish --packagePath ${{ steps.set-version.outputs.name }}.vsix -p ${{ secrets.VSCE_TOKEN }} || true
       - name: Publish to Open VSX Registry
-        timeout-minutes: 15
+        timeout-minutes: 5
         run: |
           [ -n "${{ secrets.OVSX_TOKEN }}" ] && \
             npx ovsx publish ${{ steps.set-version.outputs.name }}.vsix --pat ${{ secrets.OVSX_TOKEN }} || true

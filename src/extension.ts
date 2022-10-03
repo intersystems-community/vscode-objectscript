@@ -58,7 +58,7 @@ import { ObjectScriptDefinitionProvider } from "./providers/ObjectScriptDefiniti
 import { ObjectScriptFoldingRangeProvider } from "./providers/ObjectScriptFoldingRangeProvider";
 import { ObjectScriptHoverProvider } from "./providers/ObjectScriptHoverProvider";
 import { ObjectScriptRoutineSymbolProvider } from "./providers/ObjectScriptRoutineSymbolProvider";
-import { ObjectScriptClassCodeLensProvider } from "./providers/ObjectScriptClassCodeLensProvider";
+import { ObjectScriptCodeLensProvider } from "./providers/ObjectScriptCodeLensProvider";
 import { XmlContentProvider } from "./providers/XmlContentProvider";
 
 import { AtelierAPI } from "./api";
@@ -768,9 +768,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       Promise.all(files.map((file) => importFileOrFolder(file, true)))
     ),
     vscode.commands.registerCommand("vscode-objectscript.export", exportAll),
+    vscode.commands.registerCommand("vscode-objectscript.copyToClipboard", (command: string) => {
+      vscode.env.clipboard.writeText(command);
+    }),
     vscode.commands.registerCommand("vscode-objectscript.debug", (program: string, askArgs: boolean) => {
       const startDebugging = (args) => {
-        const programWithArgs = program + `(${args})`;
+        const programWithArgs = program + (program.includes("##class") || args.length ? `(${args})` : "");
         vscode.debug.startDebugging(undefined, {
           type: "objectscript",
           request: "launch",
@@ -911,8 +914,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.debug.registerDebugAdapterDescriptorFactory("objectscript", debugAdapterFactory),
     debugAdapterFactory,
     vscode.languages.registerCodeLensProvider(
-      documentSelector("objectscript-class"),
-      new ObjectScriptClassCodeLensProvider()
+      documentSelector("objectscript-class", "objectscript"),
+      new ObjectScriptCodeLensProvider()
     ),
     vscode.commands.registerCommand("vscode-objectscript.compileOnly", () => compileOnly(false)),
     vscode.commands.registerCommand("vscode-objectscript.compileOnlyWithFlags", () => compileOnly(true)),
@@ -1083,6 +1086,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     }),
     vscode.workspace.onDidSaveTextDocument((file) => {
+      if (!schemas.includes(file.uri.scheme) && !config("importOnSave")) {
+        // Don't save this local file on the server
+        return;
+      }
       if (schemas.includes(file.uri.scheme) || languages.includes(file.languageId)) {
         if (documentBeingProcessed !== file) {
           return importAndCompile(false, file, config("compileOnSave"));
