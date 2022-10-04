@@ -32,9 +32,6 @@ export function outputConsole(data: string[]): void {
   });
 }
 
-import { InputBoxManager } from "./inputBoxManager";
-export { InputBoxManager };
-
 // tslint:disable-next-line: interface-name
 export interface CurrentFile {
   name: string;

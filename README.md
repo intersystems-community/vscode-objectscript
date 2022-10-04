@@ -35,6 +35,7 @@
 - Server Explorer view (ObjectScript: Explorer) with ability to export items to your working folder.
 
   ![ServerExplorer](https://raw.githubusercontent.com/intersystems-community/vscode-objectscript/master/images/explorer.png)
+- Integration with with [InterSystems Server Manager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) for secure storage of connection passwords.
 
 ## Installation
 
@@ -58,8 +59,8 @@ To unlock these features (optional):
 
 1. Download and install a beta version from GitHub. This is necessary because Marketplace does not allow publication of extensions that use proposed APIs.
 	- Go to https://github.com/intersystems-community/vscode-objectscript/releases
-	- Locate the beta immediately above the release you installed from Marketplace. For instance, if you installed `1.8.2`, look for `1.8.3-beta.1`. This will be functionally identical to the Marketplace version apart from being able to use proposed APIs.
-	- Download the VSIX file (for example `vscode-objectscript-1.8.3-beta.1.vsix`) and install it. One way to install a VSIX is to drag it from your download folder and drop it onto the list of extensions in the Extensions view of VS Code.
+	- Locate the beta immediately above the release you installed from Marketplace. For instance, if you installed `2.0.0`, look for `2.0.1-beta.1`. This will be functionally identical to the Marketplace version apart from being able to use proposed APIs.
+	- Download the VSIX file (for example `vscode-objectscript-2.0.1-beta.1.vsix`) and install it. One way to install a VSIX is to drag it from your download folder and drop it onto the list of extensions in the Extensions view of VS Code.
 
 2. From [Command Palette](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_command-palette) choose `Preferences: Configure Runtime Arguments`.
 3. In the argv.json file that opens, add this line (required for both Stable and Insiders versions of VS Code):
@@ -144,7 +145,7 @@ This settings object is useful for both client-side and server-side development.
 
 - Setting the `username` property is optional. If omitted it will be prompted for when connecting, then cached for the session.
 
-- Setting a plaintext value for the `password` property is **not** recommended. Instead, run the `InterSystems Server Manager: Store Password in Keychain` command from Command Palette.
+- Setting a plaintext value for the `password` property is **not** recommended. Instead, install the InterSystems Server Manager extension and use that to store your password securely.
 
 - If no password has been set or stored it will be prompted for when connecting, then cached for the session.
 
