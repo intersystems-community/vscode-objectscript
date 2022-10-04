@@ -96,16 +96,6 @@ Minimum VS Code version is now 1.66.0
   - Properly return options for the Server Command menu for isfs-readonly files (#811)
   - Remove `vscode-objectscript-output` language from selector (#805)
 
-## [1.5.2021121601] 16-Dec-2021 pre-release
-- Fixes
-  - Correctly remove password from `serverForUri` response.
-  - Remove `vscode-objectscript-output` language from selector (#805)
-
-## [1.5.2021121001] 10-Dec-2021 pre-release
-- Enhancements
-  - Use the authentication provider in Server Manager version 3 to retrieve connection passwords in a way which requires explicit consent from the VS Code user.
-  - No longer return connection's password in result of `serverForUri` API.
-
 ## [1.2.2] 07-Dec-2021
 - Fixes
   - Exporting not working with new version 1.2.1 (#799)
