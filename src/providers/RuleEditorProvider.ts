@@ -92,17 +92,17 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
       <script>
         (function() {
           const vscode = acquireVsCodeApi();
+          const iframe = document.getElementById('editor');
 
-          window.onload = () => {
+          iframe.onload = () => {
             // Tell VS Code to check if the editor is compatible
             vscode.postMessage({ type: "loaded" });
           }
 
           window.onmessage = (event) => {
             const data = event.data;
-            const iframe = document.getElementById('editor').contentWindow;
             if (data.direction == 'editor') {
-              iframe.postMessage(data, '${targetOrigin}');
+              iframe.contentWindow.postMessage(data, '${targetOrigin}');
             }
             else if (data.direction == 'vscode') {
               vscode.postMessage(data);
@@ -167,21 +167,11 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
           editorCompatible = true;
           return;
         case "badrule":
-          vscode.window
-            .showErrorMessage(e.reason, {
-              modal: true,
-              detail: "Please re-open this file using VS Code's default text editor.",
-            })
-            .then(() => vscode.commands.executeCommand("workbench.action.reopenWithEditor"));
+          RuleEditorProvider._errorMessage(e.reason);
           return;
         case "loaded":
           if (!editorCompatible) {
-            vscode.window
-              .showErrorMessage("This server's Rule Editor is not supported in VS Code.", {
-                modal: true,
-                detail: "Please re-open this file using VS Code's default text editor.",
-              })
-              .then(() => vscode.commands.executeCommand("workbench.action.reopenWithEditor"));
+            RuleEditorProvider._errorMessage("This server's Angular Rule Editor is not supported in VS Code.");
           } else {
             // Editor is compatible so send the credentials
             webviewPanel.webview.postMessage({
