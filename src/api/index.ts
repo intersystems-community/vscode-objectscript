@@ -188,6 +188,7 @@ export class AtelierAPI {
       serverName = "";
     }
 
+    const ns = namespace ? namespace.toUpperCase() : conn.ns ? (conn.ns as string).toUpperCase() : undefined;
     if (serverName !== "") {
       const {
         webServer: { scheme, host, port, pathPrefix = "" },
@@ -199,7 +200,7 @@ export class AtelierAPI {
         active: this.externalServer || conn.active,
         apiVersion: workspaceState.get(this.configName + ":apiVersion", DEFAULT_API_VERSION),
         https: scheme === "https",
-        ns: namespace || conn.ns,
+        ns,
         host,
         port,
         username,
@@ -216,7 +217,7 @@ export class AtelierAPI {
       }
     } else {
       this._config = conn;
-      this._config.ns = namespace || conn.ns;
+      this._config.ns = ns;
       this._config.serverName = "";
     }
   }
@@ -342,14 +343,12 @@ export class AtelierAPI {
         authRequestMap.delete(target);
         if (this.wsOrFile && !checkingConnection) {
           setTimeout(() => {
-            checkConnection(true, typeof this.wsOrFile === "object" ? this.wsOrFile : undefined);
-          }, 1000);
+            checkConnection(password ? true : false, typeof this.wsOrFile === "object" ? this.wsOrFile : undefined);
+          }, 500);
         }
         throw { statusCode: response.status, message: response.statusText };
       }
       await this.updateCookies(response.headers.raw()["set-cookie"] || []);
-      panel.text = `${this.connInfo}`;
-      panel.tooltip = `Connected${pathPrefix ? " to " + pathPrefix : ""} as ${username}`;
       if (method === "HEAD") {
         authRequestMap.delete(target);
         return this.cookies;

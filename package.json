@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "1.8.3-SNAPSHOT",
+  "version": "2.0.1-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "9cd75d51-697c-406c-a929-2bcf46e97c64",
   "categories": [
@@ -1299,6 +1299,11 @@
             "type": "string",
             "pattern": "^[^.]+$"
           }
+        },
+        "objectscript.importOnSave": {
+          "description": "Automatically save a client-side InterSystems file on the server when saved in the editor.",
+          "type": "boolean",
+          "default": true
         }
       }
     },
@@ -1454,7 +1459,7 @@
   "devDependencies": {
     "@types/glob": "^7.1.2",
     "@types/mocha": "^7.0.2",
-    "@types/node": "^14.0.14",
+    "@types/node": "^14.18.0",
     "@types/vscode": "^1.66.0",
     "@types/ws": "^7.2.5",
     "@types/xmldom": "^0.1.29",

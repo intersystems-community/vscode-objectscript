@@ -66,6 +66,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.format.commandCase"` | Case for commands. | `"upper"`, `"lower"` or `"word"` | `"word"` | Has no effect if the `InterSystems Language Server` extension is installed and enabled. |
 | `"objectscript.format.functionCase"` | Case for system functions and system variables. | `"upper"`, `"lower"` or `"word"` | `"word"` | Has no effect if the `InterSystems Language Server` extension is installed and enabled. |
 | `"objectscript.ignoreInstallServerManager"` | Do not offer to install the [intersystems-community.servermanager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) extension. | `boolean` | `false` | |
+| `"objectscript.importOnSave"` | Automatically save a client-side InterSystems file on the server when saved in the editor. | `boolean` | `true` | |
 | `"objectscript.multilineMethodArgs"` | List method arguments on multiple lines, if the server supports it. | `boolean` | `false` | Only supported on IRIS 2019.1.2, 2020.1.1+, 2021.1.0+ and subsequent versions! On all other versions, this setting will have no effect. |
 | `"objectscript.openClassContracted"` | Automatically collapse all class member folding ranges when a class is opened for the first time. | `boolean` | `false` | |
 | `"objectscript.overwriteServerChanges"` | Overwrite a changed server version without confirmation when importing the local file. | `boolean` | `false` | |

@@ -71,7 +71,7 @@ export async function serverActions(): Promise<void> {
   const file = currentFile();
   const classname = file && file.name.toLowerCase().endsWith(".cls") ? file.name.slice(0, -4) : "";
   const classnameEncoded = encodeURIComponent(classname);
-  const connInfo = `${host}:${port}${pathPrefix}[${nsEncoded}]`;
+  const connInfo = `${host}:${port}${pathPrefix}[${nsEncoded.toUpperCase()}]`;
   const serverUrl = `${https ? "https" : "http"}://${host}:${port}${pathPrefix}`;
   const portalPath = `/csp/sys/UtilHome.csp?$NAMESPACE=${nsEncoded}`;
   const classRef = `/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${nsEncoded}${

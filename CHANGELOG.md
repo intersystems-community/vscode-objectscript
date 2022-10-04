@@ -1,5 +1,11 @@
 # Change Log
 
+## [2.0.0] 04-Oct-2022
+- Enhancements
+  - Use Server Manager version 3's enhanced security for stored passwords. Explicit permission must be given by the user before Server Manager will provide a connection's stored password to this extension. This feature previewed in the 1.x pre-releases, which 2.0.0 supersedes.
+  - Add `Copy Invocation` CodeLens alongside `Debug this Method`. Hideable using the `objectscript.debug.copyToClipboard` setting (#974)
+  - Add `objectscript.importOnSave` setting to control whether saving a client-side file updates code on the connected server. Default is `true` (#985)
+
 ## [1.8.2] 08-Aug-2022
 - Enhancements
   - Support `objectscript` and `objectscript-class` as the info string for [fenced code blocks](https://spec.commonmark.org/0.30/#fenced-code-blocks) when editing Markdown. However coloring does not render in preview (#964)
