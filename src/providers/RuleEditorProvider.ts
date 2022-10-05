@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { compile, loadChanges } from "../commands/compile";
-import { cspAppsForUri, CurrentFile, currentFile, outputChannel } from "../utils";
+import { cspApps } from "../extension";
+import { CurrentFile, currentFile, outputChannel } from "../utils";
 
 /**
  * The URI strings for all documents that are open in a custom editor.
@@ -11,13 +12,13 @@ export const openCustomEditors: string[] = [];
 export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
   private static readonly _webapp: string = "/ui/interop/rule-editor";
 
-  private static _errorMessage(message: string) {
+  private static _errorMessage(detail: string) {
     return vscode.window
-      .showErrorMessage(message, {
+      .showErrorMessage("Cannot open Rule Editor.", {
         modal: true,
-        detail: "Please re-open this file using VS Code's default text editor.",
+        detail,
       })
-      .then(() => vscode.commands.executeCommand<void>("workbench.action.reopenWithEditor"));
+      .then(() => vscode.commands.executeCommand<void>("workbench.action.toggleEditorType"));
   }
 
   async resolveCustomTextEditor(
@@ -25,7 +26,7 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
     webviewPanel: vscode.WebviewPanel,
     token: vscode.CancellationToken
   ): Promise<void> {
-    // Check that document is a class
+    // Check that document is a clean, well-formed class
     if (document.languageId != "objectscript-class") {
       return RuleEditorProvider._errorMessage(`${document.fileName} is not a class.`);
     }
@@ -39,13 +40,33 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
     if (file == null) {
       return RuleEditorProvider._errorMessage(`${document.fileName} is a malformed class definition.`);
     }
+
     const className = file.name.slice(0, -4);
     const api = new AtelierAPI(document.uri);
-    // Check the server has the webapp for the angular rule editor
-    if (!cspAppsForUri(document.uri).includes(RuleEditorProvider._webapp)) {
-      return RuleEditorProvider._errorMessage("The server does not support the Angular Rule Editor.");
+    const documentUriString = document.uri.toString();
+
+    // Check that the server has the webapp for the angular rule editor
+    const cspAppsKey = (
+      api.config.serverName && api.config.serverName != ""
+        ? `${api.config.serverName}:%SYS`
+        : `${api.config.host}:${api.config.port}${api.config.pathPrefix}:%SYS`
+    ).toLowerCase();
+    let sysCspApps: string[] | undefined = cspApps.get(cspAppsKey);
+    if (sysCspApps == undefined) {
+      sysCspApps = await api.getCSPApps(false, "%SYS").then((data) => data.result.content || []);
+      cspApps.set(cspAppsKey, sysCspApps);
     }
-    // Check that class exists on the server and is a rule class
+    if (!sysCspApps.includes(RuleEditorProvider._webapp)) {
+      return RuleEditorProvider._errorMessage(
+        `Server '${
+          api.config.serverName && api.config.serverName != ""
+            ? api.config.serverName
+            : `${api.config.host}:${api.config.port}${api.config.pathPrefix}`
+        }' does not support the Angular Rule Editor.`
+      );
+    }
+
+    // Check that the class exists on the server and is a rule class
     const queryData = await api.actionQuery("SELECT Super FROM %Dictionary.ClassDefinition WHERE Name = ?", [
       className,
     ]);
@@ -54,18 +75,19 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
       !queryData.result.content[0].Super.split(",").includes("Ens.Rule.Definition")
     ) {
       // Class exists but is not a rule class
-      return RuleEditorProvider._errorMessage(`${file.name} is not a rule definition class.`);
+      return RuleEditorProvider._errorMessage(`${className} is not a rule definition class.`);
     } else if (queryData.result.content.length == 0) {
       // Class doesn't exist on the server
-      return RuleEditorProvider._errorMessage(`${file.name} does not exist on the server.`);
+      return RuleEditorProvider._errorMessage(`Class ${className} does not exist on the server.`);
     }
 
     // Add this document to the array of open custom editors
-    openCustomEditors.push(document.uri.toString());
+    openCustomEditors.push(documentUriString);
 
+    // Initialize the webview
     // const targetOrigin = `${api.config.https ? "https" : "http"}://${api.config.host}:${api.config.port};
-    // const iframeUri = `${targetOrigin}${api.config.pathPrefix}${RuleEditorProvider._webapp}/index.html?VSCODE=1&rule=${file.name.slice(0,-4)}`;
-    const targetOrigin = `http://localhost:4202`;
+    // const iframeUri = `${targetOrigin}${api.config.pathPrefix}${RuleEditorProvider._webapp}/index.html?VSCODE=1&rule=${className}`;
+    const targetOrigin = `http://127.0.0.1:4202`;
     const iframeUri = `${targetOrigin}?VSCODE=1&rule=${className}`;
     webviewPanel.webview.options = {
       enableScripts: true,
@@ -113,12 +135,14 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
       </body>
       </html>
       `;
+
+    // Initialize event handlers
     let ignoreChanges = false;
     let documentWasDirty = false;
     let editorCompatible = false;
-    const contentDisposable = vscode.workspace.onDidChangeTextDocument((e) => {
-      if (document.uri.toString() == e.document.uri.toString()) {
-        if (e.reason == vscode.TextDocumentChangeReason.Undo) {
+    const contentDisposable = vscode.workspace.onDidChangeTextDocument((event) => {
+      if (documentUriString == event.document.uri.toString()) {
+        if (event.reason == vscode.TextDocumentChangeReason.Undo) {
           if (ignoreChanges) {
             ignoreChanges = false;
           } else {
@@ -130,7 +154,7 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
             ignoreChanges = true;
             vscode.commands.executeCommand("redo");
           }
-        } else if (e.reason == vscode.TextDocumentChangeReason.Redo) {
+        } else if (event.reason == vscode.TextDocumentChangeReason.Redo) {
           if (ignoreChanges) {
             ignoreChanges = false;
           } else {
@@ -142,18 +166,18 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
             ignoreChanges = true;
             vscode.commands.executeCommand("undo");
           }
-        } else if (!ignoreChanges && !e.document.isDirty && documentWasDirty) {
+        } else if (!ignoreChanges && !event.document.isDirty && documentWasDirty) {
           // User reverted the file
           webviewPanel.webview.postMessage({
             direction: "editor",
             type: "revert",
           });
         }
-        documentWasDirty = e.document.isDirty;
+        documentWasDirty = event.document.isDirty;
       }
     });
-    const saveDisposable = vscode.workspace.onDidSaveTextDocument((td) => {
-      if (document.uri.toString() == td.uri.toString()) {
+    const saveDisposable = vscode.workspace.onDidSaveTextDocument((savedDocument) => {
+      if (documentUriString == savedDocument.uri.toString()) {
         // User saved the file
         webviewPanel.webview.postMessage({
           direction: "editor",
@@ -161,17 +185,19 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
         });
       }
     });
-    webviewPanel.webview.onDidReceiveMessage((e) => {
-      switch (e.type) {
+    webviewPanel.webview.onDidReceiveMessage((event) => {
+      switch (event.type) {
         case "compatible":
           editorCompatible = true;
           return;
         case "badrule":
-          RuleEditorProvider._errorMessage(e.reason);
+          RuleEditorProvider._errorMessage(event.reason);
           return;
         case "loaded":
           if (!editorCompatible) {
-            RuleEditorProvider._errorMessage("This server's Angular Rule Editor is not supported in VS Code.");
+            RuleEditorProvider._errorMessage(
+              "This server's Angular Rule Editor does not support embedding in VS Code."
+            );
           } else {
             // Editor is compatible so send the credentials
             webviewPanel.webview.postMessage({
@@ -183,7 +209,7 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
           }
           return;
         case "changed":
-          if (e.dirty) {
+          if (event.dirty) {
             // Make a trivial edit so the document appears dirty
             const edit = new vscode.WorkspaceEdit();
             edit.insert(document.uri, document.lineAt(document.lineCount - 1).range.end, " ");
@@ -217,7 +243,7 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
         // Revert so document is clean
         vscode.commands.executeCommand("workbench.action.files.revert");
       }
-      const idx = openCustomEditors.findIndex((e) => e == document.uri.toString());
+      const idx = openCustomEditors.findIndex((elem) => elem == documentUriString);
       if (idx >= 0) {
         // Remove this document from the array of open custom editors
         openCustomEditors.splice(idx, 1);

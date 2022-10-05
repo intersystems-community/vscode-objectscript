@@ -605,11 +605,11 @@ export class AtelierAPI {
   }
 
   // v1+
-  public getCSPApps(detail = false): Promise<Atelier.Response> {
+  public getCSPApps(detail = false, nsOverride?: string): Promise<Atelier.Response> {
     const params = {
       detail: detail ? 1 : 0,
     };
-    return this.request(1, "GET", `%SYS/cspapps/${this.ns || ""}`, null, params);
+    return this.request(1, "GET", `%SYS/cspapps/${nsOverride || this.ns || ""}`, null, params);
   }
 
   // v1+
