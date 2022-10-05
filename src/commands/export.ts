@@ -107,7 +107,7 @@ export async function exportFile(
 
     api.getDoc(name).then((data) => {
       if (!data || !data.result) {
-        throw new Error("Something wrong happened");
+        throw new Error("Received malformed JSON object from server");
       }
       const content = data.result.content;
       const { noStorage, dontExportIfNoChanges } = config("export");
@@ -117,7 +117,7 @@ export async function exportFile(
           // get only the storage xml for the doc.
           api.getDoc(name + "?storageOnly=1").then((storageData) => {
             if (!storageData || !storageData.result) {
-              reject(new Error("Something wrong happened fetching the storage data"));
+              reject(new Error("Received malformed JSON object from server"));
             }
             const storageContent = storageData.result.content;
 
@@ -185,8 +185,10 @@ export async function exportFile(
         });
     });
   } catch (error) {
-    log("ERROR: " + error);
-    throw error;
+    const errorStr =
+      typeof error == "string" ? `: ${error}` : error instanceof Error ? `: ${error.message}` : JSON.stringify(error);
+    log(`ERROR${errorStr.length ? `: ${errorStr}` : ""}`);
+    throw errorStr;
   }
 }
 
