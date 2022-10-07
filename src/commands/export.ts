@@ -105,19 +105,21 @@ export async function exportFile(
       await vscode.workspace.fs.createDirectory(foldersUri);
     }
 
-    api.getDoc(name).then((data) => {
-      if (!data || !data.result) {
-        throw new Error("Received malformed JSON object from server");
-      }
-      const content = data.result.content;
-      const { noStorage, dontExportIfNoChanges } = config("export");
+    const data = await api.getDoc(name);
+    if (!data || !data.result) {
+      throw new Error("Received malformed JSON object from server fetching document");
+    }
+    const content = data.result.content;
+    const { noStorage, dontExportIfNoChanges } = config("export");
 
-      const promise = new Promise((resolve, reject) => {
-        if (noStorage) {
-          // get only the storage xml for the doc.
-          api.getDoc(name + "?storageOnly=1").then((storageData) => {
+    const storageResult: { found: boolean; content?: string } = await new Promise((resolve, reject) => {
+      if (noStorage) {
+        // get only the storage xml for the doc.
+        api
+          .getDoc(name + "?storageOnly=1")
+          .then((storageData) => {
             if (!storageData || !storageData.result) {
-              reject(new Error("Received malformed JSON object from server"));
+              reject(new Error("Received malformed JSON object from server fetching storage only"));
             }
             const storageContent = storageData.result.content;
 
@@ -133,60 +135,53 @@ export async function exportFile(
             } else {
               resolve({ found: false });
             }
-          });
-        } else {
-          resolve({ found: false });
-        }
-      });
-
-      return promise
-        .then(async (res: any) => {
-          const fileUri = vscode.Uri.file(fileName);
-          if (Buffer.isBuffer(content)) {
-            // This is a binary file
-            let isSkipped = "";
-            if (dontExportIfNoChanges && (await fileExists(fileUri))) {
-              const existingContent = await vscode.workspace.fs.readFile(fileUri);
-              if (content.equals(existingContent)) {
-                await vscode.workspace.fs.writeFile(fileUri, content);
-              } else {
-                isSkipped = " => skipped - no changes.";
-              }
-            } else {
-              await vscode.workspace.fs.writeFile(fileUri, content);
-            }
-            log(`Success ${isSkipped}`);
-          } else {
-            // This is a text file
-            let joinedContent = content.join("\n");
-            let isSkipped = "";
-
-            if (res.found) {
-              joinedContent = res.content.toString("utf8");
-            }
-
-            if (dontExportIfNoChanges && (await fileExists(fileUri))) {
-              const existingContent = new TextDecoder().decode(await vscode.workspace.fs.readFile(fileUri));
-              // stringify to harmonise the text encoding.
-              if (JSON.stringify(joinedContent) !== JSON.stringify(existingContent)) {
-                await vscode.workspace.fs.writeFile(fileUri, new TextEncoder().encode(joinedContent));
-              } else {
-                isSkipped = " => skipped - no changes.";
-              }
-            } else {
-              await vscode.workspace.fs.writeFile(fileUri, new TextEncoder().encode(joinedContent));
-            }
-
-            log(`Success ${isSkipped}`);
-          }
-        })
-        .catch((error) => {
-          throw error;
-        });
+          })
+          .catch((error) => reject(error));
+      } else {
+        resolve({ found: false });
+      }
     });
+
+    const fileUri = vscode.Uri.file(fileName);
+    if (Buffer.isBuffer(content)) {
+      // This is a binary file
+      let isSkipped = "";
+      if (dontExportIfNoChanges && (await fileExists(fileUri))) {
+        const existingContent = await vscode.workspace.fs.readFile(fileUri);
+        if (content.equals(existingContent)) {
+          await vscode.workspace.fs.writeFile(fileUri, content);
+        } else {
+          isSkipped = " => skipped - no changes.";
+        }
+      } else {
+        await vscode.workspace.fs.writeFile(fileUri, content);
+      }
+      log(`Success ${isSkipped}`);
+    } else {
+      // This is a text file
+      let joinedContent = content.join("\n");
+      let isSkipped = "";
+
+      if (storageResult.found) {
+        joinedContent = storageResult.content;
+      }
+
+      if (dontExportIfNoChanges && (await fileExists(fileUri))) {
+        const existingContent = new TextDecoder().decode(await vscode.workspace.fs.readFile(fileUri));
+        // stringify to harmonise the text encoding.
+        if (JSON.stringify(joinedContent) !== JSON.stringify(existingContent)) {
+          await vscode.workspace.fs.writeFile(fileUri, new TextEncoder().encode(joinedContent));
+        } else {
+          isSkipped = " => skipped - no changes.";
+        }
+      } else {
+        await vscode.workspace.fs.writeFile(fileUri, new TextEncoder().encode(joinedContent));
+      }
+
+      log(`Success ${isSkipped}`);
+    }
   } catch (error) {
-    const errorStr =
-      typeof error == "string" ? `: ${error}` : error instanceof Error ? `: ${error.message}` : JSON.stringify(error);
+    const errorStr = typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error);
     log(`ERROR${errorStr.length ? `: ${errorStr}` : ""}`);
     throw errorStr;
   }
