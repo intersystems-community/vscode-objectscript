@@ -1095,7 +1095,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           return importAndCompile(false, file, config("compileOnSave"));
         }
       } else if (file.uri.scheme === "file") {
-        if (isImportableLocalFile(file)) {
+        if (isImportableLocalFile(file) && new AtelierAPI(file.uri).active) {
           // This local file is part of a CSP application
           // or matches our export settings, so import it on save
           return importFileOrFolder(file.uri, true);
