@@ -88,7 +88,7 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
     // const targetOrigin = `${api.config.https ? "https" : "http"}://${api.config.host}:${api.config.port};
     // const iframeUri = `${targetOrigin}${api.config.pathPrefix}${RuleEditorProvider._webapp}/index.html?VSCODE=1&rule=${className}`;
     const targetOrigin = `http://127.0.0.1:4202`;
-    const iframeUri = `${targetOrigin}?VSCODE=1&rule=${className}`;
+    const iframeUri = `${targetOrigin}?$NAMESPACE=${api.config.ns.toUpperCase()}&VSCODE=1&rule=${className}`;
     webviewPanel.webview.options = {
       enableScripts: true,
       localResourceRoots: [],
@@ -209,12 +209,12 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
           }
           return;
         case "changed":
-          if (event.dirty) {
+          if (event.dirty && !document.isDirty) {
             // Make a trivial edit so the document appears dirty
             const edit = new vscode.WorkspaceEdit();
             edit.insert(document.uri, document.lineAt(document.lineCount - 1).range.end, " ");
             vscode.workspace.applyEdit(edit);
-          } else {
+          } else if (!event.dirty && document.isDirty) {
             // Revert so document is clean
             ignoreChanges = true;
             vscode.commands.executeCommand("workbench.action.files.revert");
@@ -227,12 +227,24 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
             vscode.commands.executeCommand("workbench.action.files.revert");
           }
           if (vscode.workspace.getConfiguration("objectscript", document.uri).get<boolean>("compileOnSave")) {
-            // Compile the class, which automatically loads any changes
-            compile([file]);
+            // User requests a post-save compile
+            webviewPanel.webview.postMessage({
+              direction: "editor",
+              type: "compile",
+            });
           } else {
-            // Just load changes
+            // Load changes
             loadChanges([file]);
           }
+          return;
+        case "compiled":
+          if (document.isDirty) {
+            // Revert so document is clean
+            ignoreChanges = true;
+            vscode.commands.executeCommand("workbench.action.files.revert");
+          }
+          // Load changes
+          loadChanges([file]);
           return;
       }
     });
