@@ -48,9 +48,10 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.conn.server"` | InterSystems server's name in Server Manager settings from which to get connection info. | `string` | `undefined` | Specify only `ns` and `active` when using this setting. See the [Server Manager README](https://github.com/intersystems-community/intersystems-servermanager) for more details. |
 | `"objectscript.conn.docker-compose"` | Configures the active server port using information from a file which must be named `docker-compose.yml` in the project's root directory. | `object` | `undefined` | |
 | `"objectscript.conn.docker-compose.service"` | InterSystems service's name in `docker-compose.yml`. | `string` | `undefined` | |
-| `"objectscript.conn.docker-compose .internalPort"` | InterSystems service's internal port in `docker-compose.yml`. | `object` | `undefined` | This should almost always be 52773 unless your IRIS server is configured in a non-standard way|
-| `"objectscript.debug.debugThisMethod"` | Show inline `Debug this method` CodeLens action for ClassMethods. | `boolean` | `true` | |
-| `"objectscript.explorer .alwaysShowServerCopy"` | Always show the server copy of a document in the ObjectScript Explorer. | `boolean` | `false` | |
+| `"objectscript.conn.docker-compose.internalPort"` | InterSystems service's internal port in `docker-compose.yml`. | `object` | `undefined` | This should almost always be 52773 unless your IRIS server is configured in a non-standard way |
+| `"objectscript.debug.copyToClipboard"` | Show inline `Copy Invocation` CodeLens action for ClassMethods and Routine Labels. | `boolean` | `true` | |
+| `"objectscript.debug.debugThisMethod"` | Show inline `Debug` CodeLens action for ClassMethods and Routine Labels. | `boolean` | `true` | |
+| `"objectscript.explorer.alwaysShowServerCopy"` | Always show the server copy of a document in the ObjectScript Explorer. | `boolean` | `false` | |
 | `"objectscript.export.addCategory"` | Add a category folder to the beginning of the export path. | `boolean` or `object` | `false` | |
 | `"objectscript.export.atelier"` | Export source code as Atelier did it, with packages as subfolders. | `boolean` | `true` | This setting only affects classes, routines, include files and DFI files. |
 | `"objectscript.export.category"` | Category of source code to export: `CLS` = classes; `RTN` = routines; `CSP` = csp files; `OTH` = other. Default is `*` = all. | `string` or `object` | `"*"` | |
@@ -61,7 +62,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.export.generated"` | Export generated source code files, such as INTs generated from classes. | `boolean` | `false` | |
 | `"objectscript.export.map"` | Map file names before export, with regexp pattern as a key and replacement as a value. | `object` | `{}` | For example, `{  \"%(.*)\": \"_$1\" }` to make % classes or routines use underscore prefix instead. |
 | `"objectscript.export.mapped"` | Export source code files mapped from a non-default database. | `boolean` | `true` | |
-| `"objectscript.export .maxConcurrentConnections"` | Maximum number of concurrent export connections. | `number` | `0` | 0 = unlimited |
+| `"objectscript.export.maxConcurrentConnections"` | Maximum number of concurrent export connections. | `number` | `0` | 0 = unlimited |
 | `"objectscript.export.noStorage"` | Strip the storage definition on export. | `boolean` | `false` | Can be useful when working across multiple systems. |
 | `"objectscript.format.commandCase"` | Case for commands. | `"upper"`, `"lower"` or `"word"` | `"word"` | Has no effect if the `InterSystems Language Server` extension is installed and enabled. |
 | `"objectscript.format.functionCase"` | Case for system functions and system variables. | `"upper"`, `"lower"` or `"word"` | `"word"` | Has no effect if the `InterSystems Language Server` extension is installed and enabled. |

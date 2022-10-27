@@ -79,6 +79,8 @@
     "onCommand:vscode-objectscript.deleteProject",
     "onCommand:vscode-objectscript.addItemsToProject",
     "onCommand:vscode-objectscript.removeItemsFromProject",
+    "onCommand:vscode-objectscript.loadStudioSnippets",
+    "onCommand:vscode-objectscript.loadStudioColors",
     "onLanguage:objectscript",
     "onLanguage:objectscript-int",
     "onLanguage:objectscript-class",
@@ -285,6 +287,14 @@
         {
           "command": "vscode-objectscript.removeFromProject",
           "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.loadStudioSnippets",
+          "when": "isWindows"
+        },
+        {
+          "command": "vscode-objectscript.loadStudioColors",
+          "when": "isWindows"
         }
       ],
       "view/title": [
@@ -952,6 +962,16 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.explorer.project.addWorkspaceFolderForProject",
         "title": "Add Workspace Folder for Project"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.loadStudioSnippets",
+        "title": "Load Studio Snippets"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.loadStudioColors",
+        "title": "Load Studio Syntax Colors"
       }
     ],
     "keybindings": [
@@ -1248,7 +1268,7 @@
         "objectscript.debug.debugThisMethod": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Show inline `Debug Method` CodeLens action for ClassMethods and Routine Labels."
+          "markdownDescription": "Show inline `Debug` CodeLens action for ClassMethods and Routine Labels."
         },
         "objectscript.debug.copyToClipboard": {
           "type": "boolean",
@@ -1485,13 +1505,14 @@
     "webpack-cli": "^4.5.0"
   },
   "dependencies": {
-    "@xmldom/xmldom": "^0.7.5",
+    "@xmldom/xmldom": "^0.8.3",
     "await-notify": "^1.0.1",
     "core-js": "^3.6.5",
     "domexception": "^2.0.1",
     "glob": "^7.1.6",
     "iconv-lite": "^0.6.0",
     "mkdirp": "^1.0.4",
+    "node-cmd": "^5.0.0",
     "node-fetch-cjs": "3.1.1",
     "vscode-cache": "^0.3.0",
     "vscode-debugadapter": "^1.41.0",

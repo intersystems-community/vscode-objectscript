@@ -521,7 +521,7 @@ export function redirectDotvscodeRoot(uri: vscode.Uri): vscode.Uri {
 /** Check if local `file` exists using vscode's `workspace.fs` FileSystem. */
 export async function fileExists(file: vscode.Uri): Promise<boolean> {
   try {
-    vscode.workspace.fs.stat(file);
+    await vscode.workspace.fs.stat(file);
     return true;
   } catch {
     // Only error thown is "FileNotFound"

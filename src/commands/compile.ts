@@ -140,7 +140,7 @@ What do you want to do?`,
             return Promise.reject();
           });
       } else {
-        if (error.errorText && error.errorText !== "") {
+        if (error && error.errorText && error.errorText !== "") {
           outputChannel.appendLine("\n" + error.errorText);
           vscode.window
             .showErrorMessage(

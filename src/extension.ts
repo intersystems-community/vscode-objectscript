@@ -111,6 +111,7 @@ import {
   modifyProject,
 } from "./commands/project";
 import { NodeBase } from "./explorer/models/nodeBase";
+import { loadStudioColors, loadStudioSnippets } from "./commands/studioMigration";
 import { openCustomEditors, RuleEditorProvider } from "./providers/RuleEditorProvider";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
@@ -1106,7 +1107,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           return importAndCompile(false, file, config("compileOnSave"));
         }
       } else if (file.uri.scheme === "file") {
-        if (isImportableLocalFile(file)) {
+        if (isImportableLocalFile(file) && new AtelierAPI(file.uri).active) {
           // This local file is part of a CSP application
           // or matches our export settings, so import it on save
           return importFileOrFolder(file.uri, true);
@@ -1157,6 +1158,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
             posPanel.text = `${label}${pos > 0 ? "+" + pos : ""}^${routine}`;
           }
         });
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.loadStudioSnippets", loadStudioSnippets),
+    vscode.commands.registerCommand("vscode-objectscript.loadStudioColors", () => {
+      loadStudioColors(languageServerExt);
     }),
 
     /* Anything we use from the VS Code proposed API */
