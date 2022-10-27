@@ -157,7 +157,7 @@ export async function loadStudioSnippets(): Promise<void> {
           typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
         );
         vscode.window.showErrorMessage(
-          "An error occured while loading Studio snippets. Check 'ObjectScript' Output channel for details.",
+          "An error occurred while loading Studio snippets. Check 'ObjectScript' Output channel for details.",
           "Dismiss"
         );
       }
@@ -358,7 +358,7 @@ export async function loadStudioColors(languageServerExt: vscode.Extension<any> 
           typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
         );
         vscode.window.showErrorMessage(
-          "An error occured while loading Studio syntax colors. Check 'ObjectScript' Output channel for details.",
+          "An error occurred while loading Studio syntax colors. Check 'ObjectScript' Output channel for details.",
           "Dismiss"
         );
       }
