@@ -79,6 +79,8 @@
     "onCommand:vscode-objectscript.deleteProject",
     "onCommand:vscode-objectscript.addItemsToProject",
     "onCommand:vscode-objectscript.removeItemsFromProject",
+    "onCommand:vscode-objectscript.loadStudioSnippets",
+    "onCommand:vscode-objectscript.loadStudioColors",
     "onLanguage:objectscript",
     "onLanguage:objectscript-int",
     "onLanguage:objectscript-class",
@@ -284,6 +286,14 @@
         {
           "command": "vscode-objectscript.removeFromProject",
           "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.loadStudioSnippets",
+          "when": "isWindows"
+        },
+        {
+          "command": "vscode-objectscript.loadStudioColors",
+          "when": "isWindows"
         }
       ],
       "view/title": [
@@ -951,6 +961,16 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.explorer.project.addWorkspaceFolderForProject",
         "title": "Add Workspace Folder for Project"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.loadStudioSnippets",
+        "title": "Load Studio Snippets"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.loadStudioColors",
+        "title": "Load Studio Syntax Colors"
       }
     ],
     "keybindings": [
@@ -1479,6 +1499,7 @@
     "glob": "^7.1.6",
     "iconv-lite": "^0.6.0",
     "mkdirp": "^1.0.4",
+    "node-cmd": "^5.0.0",
     "node-fetch-cjs": "3.1.1",
     "vscode-cache": "^0.3.0",
     "vscode-debugadapter": "^1.41.0",

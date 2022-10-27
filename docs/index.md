@@ -14,3 +14,4 @@ nav_exclude: true
 * [Settings Reference](./settings)
 * [Reporting Issues](./feedback)
 * [Working with Projects](./projects)
+* [Migrating from Studio](./studio)
