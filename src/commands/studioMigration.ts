@@ -207,13 +207,41 @@ export async function loadStudioColors(languageServerExt: vscode.Extension<any> 
         );
         await vscode.workspace.fs.writeFile(tempRoutineUri, new TextEncoder().encode("ROUTINE temp\n"));
         await vscode.workspace.openTextDocument(tempRoutineUri);
-        const legend: vscode.SemanticTokensLegend = await vscode.commands
+        let legend: vscode.SemanticTokensLegend = await vscode.commands
           .executeCommand<vscode.SemanticTokensLegend>("vscode.provideDocumentSemanticTokensLegend", tempRoutineUri)
-          // Swallow any errors so the temp file always gets deleted
+          // Swallow any errors
           .then(
             (result) => result,
             () => undefined
           );
+        if (!legend) {
+          // The Language Server might be active but not ready for requests yet
+          // Attempt to get the legend 10 more times at 100 ms intervals
+          let numAttempts = 0;
+          await new Promise<void>((resolve) => {
+            const interval = setInterval(async () => {
+              numAttempts++;
+              if (numAttempts > 10) {
+                clearInterval(interval);
+                resolve();
+              }
+              legend = await vscode.commands
+                .executeCommand<vscode.SemanticTokensLegend>(
+                  "vscode.provideDocumentSemanticTokensLegend",
+                  tempRoutineUri
+                )
+                // Swallow any errors
+                .then(
+                  (result) => result,
+                  () => undefined
+                );
+              if (legend) {
+                clearInterval(interval);
+                resolve();
+              }
+            }, 100);
+          });
+        }
         await vscode.workspace.fs.delete(tempRoutineUri, { useTrash: false });
         if (!legend) {
           // This shouldn't happen since we already activated the Language Server
