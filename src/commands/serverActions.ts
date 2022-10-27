@@ -53,7 +53,7 @@ export async function serverActions(): Promise<void> {
         return connConfig.update("conn", { ...targetConfig, active: !active }, target);
       }
       case "refreshConnection": {
-        await checkConnection(true);
+        await checkConnection(true, undefined, true);
         break;
       }
       default:

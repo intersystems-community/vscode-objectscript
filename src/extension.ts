@@ -232,7 +232,11 @@ export function getResolvedConnectionSpec(key: string, dflt: any): any {
  */
 export const cspApps: Map<string, string[]> = new Map();
 
-export async function checkConnection(clearCookies = false, uri?: vscode.Uri): Promise<void> {
+export async function checkConnection(
+  clearCookies = false,
+  uri?: vscode.Uri,
+  triggerRefreshes?: boolean
+): Promise<void> {
   // Do nothing if already checking the connection
   if (checkingConnection) {
     return;
@@ -419,16 +423,18 @@ export async function checkConnection(clearCookies = false, uri?: vscode.Uri): P
     })
     .finally(() => {
       checkingConnection = false;
-      setTimeout(() => {
-        explorerProvider.refresh();
-        projectsExplorerProvider.refresh();
-        // Refreshing Files Explorer also switches to it, so only do this if the uri is part of the workspace,
-        // otherwise files opened from ObjectScript Explorer (objectscript:// or isfs:// depending on the "objectscript.serverSideEditing" setting)
-        // will cause an unwanted switch.
-        if (uri && schemas.includes(uri.scheme) && vscode.workspace.getWorkspaceFolder(uri)) {
-          vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
-        }
-      }, 20);
+      if (triggerRefreshes) {
+        setTimeout(() => {
+          explorerProvider.refresh();
+          projectsExplorerProvider.refresh();
+          // Refreshing Files Explorer also switches to it, so only do this if the uri is part of the workspace,
+          // otherwise files opened from ObjectScript Explorer (objectscript:// or isfs:// depending on the "objectscript.serverSideEditing" setting)
+          // will cause an unwanted switch.
+          if (uri && schemas.includes(uri.scheme) && vscode.workspace.getWorkspaceFolder(uri)) {
+            vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
+          }
+        }, 20);
+      }
     });
 }
 
@@ -601,7 +607,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       try {
         await resolveConnectionSpec(serverName);
       } finally {
-        await checkConnection(true, uri);
+        await checkConnection(true, uri, true);
       }
     } catch (_) {
       // Ignore any failure
@@ -1067,7 +1073,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
             refreshFilesExplorer = true;
           }
           try {
-            await checkConnection(true, folder.uri);
+            await checkConnection(true, folder.uri, true);
           } catch (_) {
             continue;
           }
