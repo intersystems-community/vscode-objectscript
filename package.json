@@ -1267,7 +1267,7 @@
         "objectscript.debug.debugThisMethod": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Show inline `Debug Method` CodeLens action for ClassMethods and Routine Labels."
+          "markdownDescription": "Show inline `Debug` CodeLens action for ClassMethods and Routine Labels."
         },
         "objectscript.debug.copyToClipboard": {
           "type": "boolean",
