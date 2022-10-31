@@ -1,5 +1,16 @@
 # Change Log
 
+## [2.2.0] 31-Oct-2022
+- Enhancements
+  - Add features to ease migration from Studio (see [Migrating from Studio documentation page](https://intersystems-community.github.io/vscode-objectscript/studio/) for details) (#1003)
+  - Improve CodeLenses (#1007)
+- Fixes
+  - Improve export error logging (#998)
+  - Fix uncaught errors (#1001)
+  - Skip triggering refreshes at end of some checkConnection calls (#1006)
+  - Fix uncaught errors reported when no workspace is open (#1008)
+  - Upgrade vulnerable dependencies.
+
 ## [2.0.0] 04-Oct-2022
 - Enhancements
   - Use Server Manager version 3's enhanced security for stored passwords. Explicit permission must be given by the user before Server Manager will provide a connection's stored password to this extension. This feature previewed in the 1.x pre-releases, which 2.0.0 supersedes.
