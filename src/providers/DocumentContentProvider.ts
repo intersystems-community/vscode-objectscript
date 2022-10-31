@@ -34,6 +34,9 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
   public static getAsFile(name: string, workspaceFolder: string): string {
     const { atelier, folder, addCategory, map } = config("export", workspaceFolder);
 
+    if (!workspaceFolder) {
+      return;
+    }
     const root = [uriOfWorkspaceFolder(workspaceFolder).fsPath, folder].join(path.sep);
     const fileName = getFileName(root, name, atelier, addCategory, map);
     if (fs.existsSync(fileName)) {
@@ -44,6 +47,9 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
   public static getAsFolder(name: string, workspaceFolder: string, category?: string): string {
     const { atelier, folder, addCategory } = config("export", workspaceFolder);
 
+    if (!workspaceFolder) {
+      return;
+    }
     const root = [uriOfWorkspaceFolder(workspaceFolder).fsPath, folder].join(path.sep);
     const folderName = getFolderName(root, name, atelier, addCategory ? category : null);
     if (fs.existsSync(folderName)) {
@@ -71,7 +77,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
       wFolderUri = uriOfWorkspaceFolder(workspaceFolder);
     }
     let uri: vscode.Uri;
-    if (wFolderUri.scheme === FILESYSTEM_SCHEMA || wFolderUri.scheme === FILESYSTEM_READONLY_SCHEMA) {
+    if (wFolderUri && (wFolderUri.scheme === FILESYSTEM_SCHEMA || wFolderUri.scheme === FILESYSTEM_READONLY_SCHEMA)) {
       const flat = new URLSearchParams(wFolderUri.query).get("flat") == "1";
       const fileExt = name.split(".").pop();
       const fileName = name

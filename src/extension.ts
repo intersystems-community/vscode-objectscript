@@ -943,6 +943,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           .map(async (f) => {
             // Determine the file name
             const workspace = workspaceFolderOfUri(f);
+            if (!workspace) {
+              // No workspace folders are open
+              return null;
+            }
             const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
             const filePathNoWorkspaceArr = f.fsPath.replace(workspacePath + path.sep, "").split(path.sep);
             const { folder, addCategory } = config("export", workspace);

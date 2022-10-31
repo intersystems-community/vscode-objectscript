@@ -193,6 +193,10 @@ export async function exportList(files: string[], workspaceFolder: string, names
   }
   const { atelier, folder, addCategory, map } = config("export", workspaceFolder);
 
+  if (!workspaceFolder) {
+    // No workspace folders are open
+    return;
+  }
   const root = [
     uriOfWorkspaceFolder(workspaceFolder).fsPath,
     typeof folder === "string" && folder.length ? folder : null,
