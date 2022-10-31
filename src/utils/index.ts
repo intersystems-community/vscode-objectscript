@@ -73,6 +73,10 @@ export function cspAppsForUri(uri: vscode.Uri): string[] {
  * @param fileExt The extension of the file.
  */
 function getServerDocName(localPath: string, workspace: string, fileExt: string): string {
+  if (!workspace) {
+    // No workspace folders are open
+    return null;
+  }
   const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
   const filePathNoWorkspaceArr = localPath.replace(workspacePath + path.sep, "").split(path.sep);
   const uri = vscode.Uri.file(localPath);
@@ -102,6 +106,10 @@ function getServerDocName(localPath: string, workspace: string, fileExt: string)
  */
 export function isImportableLocalFile(file: vscode.TextDocument): boolean {
   const workspace = currentWorkspaceFolder(file);
+  if (workspace == "") {
+    // No workspace folders are open
+    return false;
+  }
   const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
   const filePathNoWorkspaceArr = file.fileName.replace(workspacePath + path.sep, "").split(path.sep);
   const isCSP = cspAppsForUri(file.uri).findIndex((cspApp) => file.uri.path.includes(cspApp + "/")) != -1;
@@ -136,6 +144,10 @@ export function isImportableLocalFile(file: vscode.TextDocument): boolean {
 export function currentFileFromContent(fileName: string, content: string): CurrentFile {
   const uri = vscode.Uri.file(fileName);
   const workspaceFolder = workspaceFolderOfUri(uri);
+  if (!workspaceFolder) {
+    // No workspace folders are open
+    return null;
+  }
   const fileExt = fileName.split(".").pop().toLowerCase();
   let name = "";
   let ext = "";
@@ -333,6 +345,8 @@ export function currentWorkspaceFolder(document?: vscode.TextDocument): string {
     // document might not be part of the workspace (e.g. the XXX.code-workspace JSON file)
     if (folder) {
       return folder;
+    } else {
+      return "";
     }
   }
   const firstFolder =
@@ -361,7 +375,11 @@ export function workspaceFolderOfUri(uri: vscode.Uri): string {
   return "";
 }
 
-export function uriOfWorkspaceFolder(workspaceFolder: string = currentWorkspaceFolder()): vscode.Uri {
+export function uriOfWorkspaceFolder(workspaceFolder: string = currentWorkspaceFolder()): vscode.Uri | undefined {
+  if (!workspaceFolder || !vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length == 0) {
+    // There are no workspace folders open
+    return undefined;
+  }
   return (
     vscode.workspace.workspaceFolders.find((el): boolean => el.name.toLowerCase() === workspaceFolder.toLowerCase()) ||
     vscode.workspace.workspaceFolders.find((el): boolean => el.uri.authority == workspaceFolder)
@@ -394,7 +412,12 @@ export async function portFromDockerCompose(): Promise<{ port: number; docker: b
   }
 
   const result = { port: null, docker: true, service };
-  const workspaceFolderPath = uriOfWorkspaceFolder().fsPath;
+  const workspaceFolder = uriOfWorkspaceFolder();
+  if (!workspaceFolder) {
+    // No workspace folders are open
+    return { docker: false, port: null };
+  }
+  const workspaceFolderPath = workspaceFolder.fsPath;
   const workspaceRootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
 
   const cwd: string = await fileExists(vscode.Uri.file(path.join(workspaceFolderPath, file))).then((exists) => {

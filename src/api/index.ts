@@ -343,7 +343,11 @@ export class AtelierAPI {
         authRequestMap.delete(target);
         if (this.wsOrFile && !checkingConnection) {
           setTimeout(() => {
-            checkConnection(password ? true : false, typeof this.wsOrFile === "object" ? this.wsOrFile : undefined);
+            checkConnection(
+              password ? true : false,
+              typeof this.wsOrFile === "object" ? this.wsOrFile : undefined,
+              true
+            );
           }, 500);
         }
         throw { statusCode: response.status, message: response.statusText };
@@ -425,7 +429,7 @@ export class AtelierAPI {
         workspaceState.update(this.configName + ":host", undefined);
         workspaceState.update(this.configName + ":port", undefined);
         if (!checkingConnection) {
-          setTimeout(checkConnection, 30000);
+          setTimeout(() => checkConnection(false, undefined, true), 30000);
         }
       } else if (error.code === "EPROTO") {
         // This can happen if https was configured but didn't work
