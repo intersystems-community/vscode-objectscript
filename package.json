@@ -613,10 +613,12 @@
         "aliases": []
       },
       {
-        "id": "objectscript-injection"
+        "id": "objectscript-injection",
+        "aliases": []
       },
       {
-        "id": "objectscript-class-injection"
+        "id": "objectscript-class-injection",
+        "aliases": []
       }
     ],
     "grammars": [
