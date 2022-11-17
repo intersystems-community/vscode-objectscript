@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "2.2.1-rule.8",
+  "version": "2.2.1-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "9cd75d51-697c-406c-a929-2bcf46e97c64",
   "categories": [
@@ -258,7 +258,7 @@
         },
         {
           "command": "vscode-objectscript.showClassDocumentationPreview",
-          "when": "editorLangId == objectscript-class"
+          "when": "editorLangId == objectscript-class && activeCustomEditorId == ''"
         },
         {
           "command": "vscode-objectscript.exportCurrentFile",
@@ -477,14 +477,14 @@
         {
           "command": "vscode-objectscript.showClassDocumentationPreview",
           "group": "navigation@3",
-          "when": "editorLangId == objectscript-class"
+          "when": "editorLangId == objectscript-class && activeCustomEditorId == ''"
         }
       ],
       "editor/title/context": [
         {
           "command": "vscode-objectscript.showClassDocumentationPreview",
           "group": "1_open",
-          "when": "resourceLangId == objectscript-class"
+          "when": "resourceLangId == objectscript-class && activeCustomEditorId == ''"
         }
       ],
       "touchBar": [

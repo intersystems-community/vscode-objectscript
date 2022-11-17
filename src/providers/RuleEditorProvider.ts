@@ -85,10 +85,10 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
     openCustomEditors.push(documentUriString);
 
     // Initialize the webview
-    // const targetOrigin = `${api.config.https ? "https" : "http"}://${api.config.host}:${api.config.port};
-    // const iframeUri = `${targetOrigin}${api.config.pathPrefix}${RuleEditorProvider._webapp}/index.html?VSCODE=1&rule=${className}`;
-    const targetOrigin = `http://127.0.0.1:4202`;
-    const iframeUri = `${targetOrigin}?$NAMESPACE=${api.config.ns.toUpperCase()}&VSCODE=1&rule=${className}`;
+    const targetOrigin = `${api.config.https ? "https" : "http"}://${api.config.host}:${api.config.port}`;
+    const iframeUri = `${targetOrigin}${api.config.pathPrefix}${
+      RuleEditorProvider._webapp
+    }/index.html?$NAMESPACE=${api.config.ns.toUpperCase()}&VSCODE=1&rule=${className}`;
     webviewPanel.webview.options = {
       enableScripts: true,
       localResourceRoots: [],
