@@ -133,3 +133,21 @@ Technically the **InterSystems Tools** and **ObjectScript** entities described a
 When a VS Code container has only a single view in it the view header merges with the container header, with the two names separated by a colon.
 
 Views can be dragged between containers, so for example you could move Explorer off its ObjectScript container and onto the InterSystems Tools container. Or move Servers onto the ObjectScript container. Or move either of them onto VS Code's main Explorer container.
+
+## Server Connection Status Bar Item
+
+The connection status of the current server can be seen in the [VS Code status bar](https://code.visualstudio.com/api/ux-guidelines/status-bar). If the server connection is active, the connected server and namespace will be shown in the status bar. If the server connection info is defined in the [`intersystems.servers` setting object](../settings/#intersystems-servermanager), the name of the server and namepsace will be shown:
+
+![Status bar name](../assets/images/server-status-bar.png "status bar name")
+
+Otherwise, the host, port and namespace will be shown:
+
+![Status bar host port](../assets/images/action-for-server-start.png "status bar host port")
+
+Hover over the status bar item to see more detailed connection information, like a full connection URL and the username of the connection. Click on the status bar item to open the Server Actions menu. Custom entries [can be added](../configuration/#server-actions-menu) to this menu.
+
+If the server connection is inactive, the connection info or the word `ObjectScript` will be shown, accompanied by an error or warning icon:
+
+![Status bar error](../assets/images/server-status-bar-error.png "status bar error")
+
+Hover over the status bar item to see more detailed error information. Click on the status bar item to open a menu that will help you activate your connection.

@@ -228,9 +228,15 @@ export class AtelierAPI {
   }
 
   public get connInfo(): string {
-    const { host, port, docker, dockerService } = this.config;
+    const { serverName, host, port, docker, dockerService } = this.config;
     const ns = this.ns.toUpperCase();
-    return (docker ? "docker" + (dockerService ? `:${dockerService}:${port}` : "") : `${host}:${port}`) + `[${ns}]`;
+    return (
+      (docker
+        ? "docker" + (dockerService ? `:${dockerService}:${port}` : "")
+        : serverName
+        ? serverName
+        : `${host}:${port}`) + `[${ns}]`
+    );
   }
 
   public async request(
