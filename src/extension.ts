@@ -3,7 +3,7 @@ export const extensionId = "intersystems-community.vscode-objectscript";
 import vscode = require("vscode");
 import * as semver from "semver";
 
-import { AtelierJob } from "./api/atelier";
+import { AtelierJob, Content, Response, ServerInfo } from "./api/atelier";
 export const OBJECTSCRIPT_FILE_SCHEMA = "objectscript";
 export const OBJECTSCRIPTXML_FILE_SCHEMA = "objectscriptxml";
 export const FILESYSTEM_SCHEMA = "isfs";
@@ -253,7 +253,7 @@ export async function checkConnection(
     _onDidChangeConnection.fire();
   }
   let api = new AtelierAPI(apiTarget, false);
-  const { active, host = "", port = 0, pathPrefix, username, ns = "" } = api.config;
+  const { active, host = "", port = 0, username, ns = "" } = api.config;
   vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
   if (!panel.text) {
     panel.text = `${PANEL_LABEL}`;
@@ -265,11 +265,12 @@ export async function checkConnection(
   }
   let connInfo = api.connInfo;
   if (!active) {
-    if (!host.length || !port || !ns.length) {
-      connInfo = `incompletely specified server ${connInfo}`;
-    }
     panel.text = `${PANEL_LABEL} $(warning)`;
-    panel.tooltip = `Connection to ${connInfo} is disabled`;
+    panel.tooltip = new vscode.MarkdownString(
+      `Connection to${
+        !host.length || !port || !ns.length ? " incompletely specified server" : ""
+      } \`${connInfo}\` is disabled`
+    );
     return;
   }
 
@@ -324,9 +325,17 @@ export async function checkConnection(
   checkingConnection = true;
 
   // What we do when api.serverInfo call succeeds
-  const gotServerInfo = async (info) => {
+  const gotServerInfo = async (info: Response<Content<ServerInfo>>) => {
     panel.text = api.connInfo;
-    panel.tooltip = `Connected${pathPrefix ? " to " + pathPrefix : ""} as ${username}`;
+    if (api.config.serverName) {
+      panel.tooltip = new vscode.MarkdownString(
+        `Connected to \`${api.config.host}:${api.config.port}${api.config.pathPrefix}\` as \`${username}\``
+      );
+    } else {
+      panel.tooltip = new vscode.MarkdownString(
+        `Connected${api.config.pathPrefix ? ` to \`${api.config.pathPrefix}\`` : ""} as \`${username}\``
+      );
+    }
     const hasHS = info.result.content.features.find((el) => el.name === "HEALTHSHARE" && el.enabled) !== undefined;
     reporter &&
       reporter.sendTelemetryEvent("connected", {
