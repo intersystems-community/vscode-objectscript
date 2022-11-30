@@ -106,8 +106,9 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
       const genStr = params.has("generated") && params.get("generated").length ? params.get("generated") : "0";
 
       let uri = options.folder;
+      const uriQuery = new URLSearchParams(uri.query);
 
-      if (!new URLSearchParams(uri.query).has("filter")) {
+      if (!uriQuery.has("filter")) {
         // Unless isfs spec already includes a filter (which it rarely does), apply includes and excludes at the server side.
         // If include or exclude field is set to, say, A1B2M*.int there will be two consecutive options.[in|ex]cludes elements:
         //   **/A1B2M*.int/**
@@ -131,9 +132,11 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
         const tidiedExcludes = tidyFilters(options.excludes);
         const filter = tidiedIncludes.join(",") + (tidiedExcludes.length === 0 ? "" : ",'" + tidiedExcludes.join(",'"));
         if (filter) {
-          uri = options.folder.with({ query: `filter=${filter}` });
+          uriQuery.append("filter", filter);
+          uri = options.folder.with({ query: uriQuery.toString() });
         }
       }
+
       searchPromise = api
         .actionSearch({
           query: query.pattern,
