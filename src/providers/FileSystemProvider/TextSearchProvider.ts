@@ -104,13 +104,43 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
     } else {
       const sysStr = params.has("system") && params.get("system").length ? params.get("system") : "0";
       const genStr = params.has("generated") && params.get("generated").length ? params.get("generated") : "0";
+
+      let uri = options.folder;
+
+      if (!new URLSearchParams(uri.query).has("filter")) {
+        // Unless isfs spec already includes a filter (which it rarely does), apply includes and excludes at the server side.
+        // If include or exclude field is set to, say, A1B2M*.int there will be two consecutive options.[in|ex]cludes elements:
+        //   **/A1B2M*.int/**
+        //   **/A1B2M*.int
+        //
+        // Ignore first, and strip **/ prefix from second.
+        // When 'Use Exclude Settings and Ignore Files' is enabled (which is typical) options.excludes will also contain entries from files.exclude and search.exclude settings.
+        // This will result in additional server-side filtering which is probably superfluous but harmless (other than perhaps incurring a performance cost, probably small).
+        const tidyFilters = (filters: string[]): string[] => {
+          return filters
+            .map((value, index, array) =>
+              value.endsWith("/**") && index < array.length - 1 && array[index + 1] + "/**" === value
+                ? ""
+                : value.startsWith("**/")
+                ? value.slice(3)
+                : value
+            )
+            .filter((value) => value !== "");
+        };
+        const tidiedIncludes = tidyFilters(options.includes);
+        const tidiedExcludes = tidyFilters(options.excludes);
+        const filter = tidiedIncludes.join(",") + (tidiedExcludes.length === 0 ? "" : ",'" + tidiedExcludes.join(",'"));
+        if (filter) {
+          uri = options.folder.with({ query: `filter=${filter}` });
+        }
+      }
       searchPromise = api
         .actionSearch({
           query: query.pattern,
           regex: query.isRegExp,
           word: query.isWordMatch,
           case: query.isCaseSensitive,
-          files: fileSpecFromURI(options.folder),
+          files: fileSpecFromURI(uri),
           sys: sysStr === "1" || (sysStr === "0" && api.ns === "%SYS"),
           gen: genStr === "1",
           // If options.maxResults is null the search is supposed to return an unlimited number of results
