@@ -106,17 +106,16 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
       const genStr = params.has("generated") && params.get("generated").length ? params.get("generated") : "0";
 
       let uri = options.folder;
-      const uriQuery = new URLSearchParams(uri.query);
 
-      if (!uriQuery.has("filter")) {
-        // Unless isfs spec already includes a filter (which it rarely does), apply includes and excludes at the server side.
+      if (!params.get("filter")) {
+        // Unless isfs spec already includes a non-empty filter (which it rarely does), apply includes and excludes at the server side.
         // If include or exclude field is set to, say, A1B2M*.int there will be two consecutive options.[in|ex]cludes elements:
         //   **/A1B2M*.int/**
         //   **/A1B2M*.int
         //
         // Ignore first, and strip **/ prefix from second.
         // When 'Use Exclude Settings and Ignore Files' is enabled (which is typical) options.excludes will also contain entries from files.exclude and search.exclude settings.
-        // This will result in additional server-side filtering which is probably superfluous but harmless (other than perhaps incurring a performance cost, probably small).
+        // This will result in additional server-side filtering which is superfluous but harmless other than perhaps incurring a small(?) performance cost.
         const tidyFilters = (filters: string[]): string[] => {
           return filters
             .map((value, index, array) =>
@@ -128,12 +127,18 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
             )
             .filter((value) => value !== "");
         };
-        const tidiedIncludes = tidyFilters(options.includes);
-        const tidiedExcludes = tidyFilters(options.excludes);
-        const filter = tidiedIncludes.join(",") + (tidiedExcludes.length === 0 ? "" : ",'" + tidiedExcludes.join(",'"));
+        const filterExclude = tidyFilters(options.excludes).join(",'");
+        const filterInclude =
+          options.includes.length > 0
+            ? tidyFilters(options.includes).join(",")
+            : filterExclude
+            ? fileSpecFromURI(uri) // Excludes were specified but no includes, so start with the default includes (this makes type=cls|rtn work)
+            : "";
+        const filter = filterInclude + (!filterExclude ? "" : ",'" + filterExclude);
         if (filter) {
-          uriQuery.append("filter", filter);
-          uri = options.folder.with({ query: uriQuery.toString() });
+          const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
+          params.append("filter", csp ? filter : filter.replace(/\//g, "."));
+          uri = options.folder.with({ query: params.toString() });
         }
       }
 
