@@ -111,11 +111,8 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
       if (!params.get("filter")) {
         // Unless isfs spec already includes a non-empty filter (which it rarely does), apply includes and excludes at the server side.
         // Convert **/ separators and /** suffix into multiple *-patterns that simulate these elements of glob syntax.
-        //
-        // When 'Use Exclude Settings and Ignore Files' is enabled (which is typical) options.excludes will also contain entries from files.exclude and search.exclude settings.
-        // This will result in additional server-side filtering which is superfluous but harmless other than perhaps incurring a small(?) performance cost.
 
-        // Function to convert glob-style filters into ones the server understands
+        // Function to convert glob-style filters into ones that the server understands
         const convertFilters = (filters: string[]): string[] => {
           // Use map to prevent duplicates in final result
           const filterMap = new Map<string, void>();
@@ -140,9 +137,11 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
           };
 
           // Invoke our recursive function
-          filters.forEach((value) => {
-            recurse(value);
-          });
+          filters
+            .filter((value) => csp || !value.match(/\.([a-z]+|\*)\/\*\*$/)) // drop superfluous entries ending .xyz/** or .*/** when not handling CSP files
+            .forEach((value) => {
+              recurse(value);
+            });
 
           // Convert map to array and return it
           const results: string[] = [];
@@ -152,7 +151,27 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
           return results;
         };
 
-        const filterExclude = convertFilters(options.excludes).join(",'");
+        // Function to get one of the two kinds of exclude settings as an array
+        const getConfigExcludes = (key: string) => {
+          return Object.entries(vscode.workspace.getConfiguration(key, options.folder).get("exclude"))
+            .filter((value) => value[1] === true)
+            .map((value) => value[0]);
+        };
+
+        // Build an array containing the files.exclude settings followed by the search.exclude ones,
+        // then try to remove exactly those from the end of the ones passed to us when "Use Exclude Settings and Ignore Files" is on.
+        const configurationExcludes = getConfigExcludes("files").concat(getConfigExcludes("search"));
+        const ourExcludes = options.excludes;
+        while (configurationExcludes.length > 0) {
+          if (configurationExcludes.pop() !== ourExcludes.pop()) {
+            break;
+          }
+        }
+
+        // If we successfully removed them all, the ones that remain were explicitly entered in the "files to exclude" field of Search, so use them.
+        // If removal was unsuccessful use the whole set.
+        const filterExclude = convertFilters(!configurationExcludes.length ? ourExcludes : options.excludes).join(",'");
+
         const filterInclude =
           options.includes.length > 0
             ? convertFilters(options.includes).join(",")
