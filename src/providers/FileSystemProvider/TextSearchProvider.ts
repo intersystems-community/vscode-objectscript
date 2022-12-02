@@ -52,6 +52,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
     let projectList: string[];
     let searchPromise: Promise<SearchResult[]>;
     const params = new URLSearchParams(options.folder.query);
+    const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
     if (params.has("project") && params.get("project").length) {
       project = params.get("project");
       projectList = await api
@@ -109,34 +110,58 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
 
       if (!params.get("filter")) {
         // Unless isfs spec already includes a non-empty filter (which it rarely does), apply includes and excludes at the server side.
-        // If include or exclude field is set to, say, A1B2M*.int there will be two consecutive options.[in|ex]cludes elements:
-        //   **/A1B2M*.int/**
-        //   **/A1B2M*.int
+        // Convert **/ separators and /** suffix into multiple *-patterns that simulate these elements of glob syntax.
         //
-        // Ignore first, and strip **/ prefix from second.
         // When 'Use Exclude Settings and Ignore Files' is enabled (which is typical) options.excludes will also contain entries from files.exclude and search.exclude settings.
         // This will result in additional server-side filtering which is superfluous but harmless other than perhaps incurring a small(?) performance cost.
-        const tidyFilters = (filters: string[]): string[] => {
-          return filters
-            .map((value, index, array) =>
-              value.endsWith("/**") && index < array.length - 1 && array[index + 1] + "/**" === value
-                ? ""
-                : value.startsWith("**/")
-                ? value.slice(3)
-                : value
-            )
-            .filter((value) => value !== "");
+
+        // Function to convert glob-style filters into ones the server understands
+        const convertFilters = (filters: string[]): string[] => {
+          // Use map to prevent duplicates in final result
+          const filterMap = new Map<string, void>();
+
+          // The recursive function we use
+          const recurse = (value: string): void => {
+            const parts = value.split("**/");
+            if (parts.length < 2) {
+              // No more recursion
+              if (value.endsWith("/**")) {
+                filterMap.set(value.slice(0, -1));
+                filterMap.set(value.slice(0, -3));
+              } else {
+                filterMap.set(value);
+              }
+            } else {
+              const first = parts[0];
+              const rest = parts.slice(1);
+              recurse(first + "*/" + rest.join("**/"));
+              recurse(first + rest.join("**/"));
+            }
+          };
+
+          // Invoke our recursive function
+          filters.forEach((value) => {
+            recurse(value);
+          });
+
+          // Convert map to array and return it
+          const results: string[] = [];
+          filterMap.forEach((_v, key) => {
+            results.push(key);
+          });
+          return results;
         };
-        const filterExclude = tidyFilters(options.excludes).join(",'");
+
+        const filterExclude = convertFilters(options.excludes).join(",'");
         const filterInclude =
           options.includes.length > 0
-            ? tidyFilters(options.includes).join(",")
+            ? convertFilters(options.includes).join(",")
             : filterExclude
-            ? fileSpecFromURI(uri) // Excludes were specified but no includes, so start with the default includes (this makes type=cls|rtn work)
+            ? fileSpecFromURI(uri) // Excludes were specified but no includes, so start with the default includes (this step makes type=cls|rtn effective)
             : "";
         const filter = filterInclude + (!filterExclude ? "" : ",'" + filterExclude);
         if (filter) {
-          const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
+          // Unless isfs is serving CSP files, slash separators in filters must be converted to dot ones before sending to server
           params.append("filter", csp ? filter : filter.replace(/\//g, "."));
           uri = options.folder.with({ query: params.toString() });
         }
@@ -177,6 +202,31 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
                   return;
                 }
               }
+
+              // Don't report matches in filetypes we don't want or don't handle
+              const fileType = file.doc.split(".").pop().toLowerCase();
+              if (!csp) {
+                switch (params.get("type")) {
+                  case "cls":
+                    if (fileType !== "cls") {
+                      return;
+                    }
+                    break;
+
+                  case "rtn":
+                    if (!["inc", "int", "mac"].includes(fileType)) {
+                      return;
+                    }
+                    break;
+
+                  default:
+                    if (!["cls", "inc", "int", "mac"].includes(fileType)) {
+                      return;
+                    }
+                    break;
+                }
+              }
+
               const uri = DocumentContentProvider.getUri(file.doc, "", "", true, options.folder);
               const content = decoder.decode(await vscode.workspace.fs.readFile(uri)).split("\n");
               // Find all lines that we have matches on
