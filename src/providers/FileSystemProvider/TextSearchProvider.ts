@@ -251,50 +251,72 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
               // Find all lines that we have matches on
               const lines = file.matches
                 .map((match: SearchMatch) => {
-                  let line = Number(match.line);
+                  let line = match.line ? Number(match.line) : null;
                   if (match.member !== undefined) {
                     // This is an attribute of a class member
-                    const memberMatchPattern = new RegExp(
-                      `^((?:Class|Client)?Method|Property|XData|Query|Trigger|Parameter|Relationship|Index|ForeignKey|Storage|Projection) ${match.member}`
-                    );
-                    for (let i = 0; i < content.length; i++) {
-                      if (content[i].match(memberMatchPattern)) {
-                        let memend = i + 1;
-                        if (
-                          config("multilineMethodArgs", api.configName) &&
-                          content[i].match(/^(?:Class|Client)?Method|Query /)
-                        ) {
-                          // The class member definition is on multiple lines so update the end
-                          for (let j = i + 1; j < content.length; j++) {
-                            if (content[j].trim() === "{") {
-                              memend = j;
-                              break;
-                            }
+                    if (match.member == "Storage" && match.attr.includes(",") && match.attrline == undefined) {
+                      // This is inside a Storage definition
+                      const xmlTags = match.attr.split(",");
+                      const storageRegex = new RegExp(`^Storage ${xmlTags[0]}`);
+                      let inStorage = false;
+                      for (let i = 0; i < content.length; i++) {
+                        if (!inStorage && content[i].match(storageRegex)) {
+                          inStorage = true;
+                          xmlTags.shift();
+                        }
+                        if (inStorage) {
+                          if (xmlTags.length > 0 && content[i].includes(xmlTags[0])) {
+                            xmlTags.shift();
+                          }
+                          if (xmlTags.length == 0 && content[i].includes(match.text)) {
+                            line = i;
+                            break;
                           }
                         }
-                        if (match.attr === undefined) {
-                          if (match.line === undefined) {
-                            // This is in the class member definition
-                            line = i;
-                          } else {
-                            // This is in the implementation
-                            line = memend + Number(match.line);
+                      }
+                    } else {
+                      const memberMatchPattern = new RegExp(
+                        `^((?:Class|Client)?Method|Property|XData|Query|Trigger|Parameter|Relationship|Index|ForeignKey|Storage|Projection) ${match.member}`
+                      );
+                      for (let i = 0; i < content.length; i++) {
+                        if (content[i].match(memberMatchPattern)) {
+                          let memend = i + 1;
+                          if (
+                            config("multilineMethodArgs", api.configName) &&
+                            content[i].match(/^(?:Class|Client)?Method|Query /)
+                          ) {
+                            // The class member definition is on multiple lines so update the end
+                            for (let j = i + 1; j < content.length; j++) {
+                              if (content[j].trim() === "{") {
+                                memend = j;
+                                break;
+                              }
+                            }
                           }
-                        } else {
-                          if (match.attrline === undefined) {
-                            // This is in the class member definition
-                            line = 1;
-                          } else {
-                            if (match.attr === "Description") {
-                              // This is in the description
-                              line = descLineToDocLine(content, match.attrline, i);
+                          if (match.attr === undefined) {
+                            if (match.line === undefined) {
+                              // This is in the class member definition
+                              line = i;
                             } else {
                               // This is in the implementation
-                              line = memend + match.attrline;
+                              line = memend + Number(match.line);
+                            }
+                          } else {
+                            if (match.attrline === undefined) {
+                              // This is in the class member definition
+                              line = 1;
+                            } else {
+                              if (match.attr === "Description") {
+                                // This is in the description
+                                line = descLineToDocLine(content, match.attrline, i);
+                              } else {
+                                // This is in the implementation
+                                line = memend + match.attrline;
+                              }
                             }
                           }
+                          break;
                         }
-                        break;
                       }
                     }
                   } else if (match.attr !== undefined) {
