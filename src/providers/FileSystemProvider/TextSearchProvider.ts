@@ -52,6 +52,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
     let projectList: string[];
     let searchPromise: Promise<SearchResult[]>;
     const params = new URLSearchParams(options.folder.query);
+    const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
     if (params.has("project") && params.get("project").length) {
       project = params.get("project");
       projectList = await api
@@ -104,13 +105,94 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
     } else {
       const sysStr = params.has("system") && params.get("system").length ? params.get("system") : "0";
       const genStr = params.has("generated") && params.get("generated").length ? params.get("generated") : "0";
+
+      let uri = options.folder;
+
+      if (!params.get("filter")) {
+        // Unless isfs spec already includes a non-empty filter (which it rarely does), apply includes and excludes at the server side.
+        // Convert **/ separators and /** suffix into multiple *-patterns that simulate these elements of glob syntax.
+
+        // Function to convert glob-style filters into ones that the server understands
+        const convertFilters = (filters: string[]): string[] => {
+          // Use map to prevent duplicates in final result
+          const filterMap = new Map<string, void>();
+
+          // The recursive function we use
+          const recurse = (value: string): void => {
+            const parts = value.split("**/");
+            if (parts.length < 2) {
+              // No more recursion
+              if (value.endsWith("/**")) {
+                filterMap.set(value.slice(0, -1));
+                filterMap.set(value.slice(0, -3));
+              } else {
+                filterMap.set(value);
+              }
+            } else {
+              const first = parts[0];
+              const rest = parts.slice(1);
+              recurse(first + "*/" + rest.join("**/"));
+              recurse(first + rest.join("**/"));
+            }
+          };
+
+          // Invoke our recursive function
+          filters
+            .filter((value) => csp || !value.match(/\.([a-z]+|\*)\/\*\*$/)) // drop superfluous entries ending .xyz/** or .*/** when not handling CSP files
+            .forEach((value) => {
+              recurse(value);
+            });
+
+          // Convert map to array and return it
+          const results: string[] = [];
+          filterMap.forEach((_v, key) => {
+            results.push(key);
+          });
+          return results;
+        };
+
+        // Function to get one of the two kinds of exclude settings as an array
+        const getConfigExcludes = (key: string) => {
+          return Object.entries(vscode.workspace.getConfiguration(key, options.folder).get("exclude"))
+            .filter((value) => value[1] === true)
+            .map((value) => value[0]);
+        };
+
+        // Build an array containing the files.exclude settings followed by the search.exclude ones,
+        // then try to remove exactly those from the end of the ones passed to us when "Use Exclude Settings and Ignore Files" is on.
+        const configurationExcludes = getConfigExcludes("files").concat(getConfigExcludes("search"));
+        const ourExcludes = options.excludes;
+        while (configurationExcludes.length > 0) {
+          if (configurationExcludes.pop() !== ourExcludes.pop()) {
+            break;
+          }
+        }
+
+        // If we successfully removed them all, the ones that remain were explicitly entered in the "files to exclude" field of Search, so use them.
+        // If removal was unsuccessful use the whole set.
+        const filterExclude = convertFilters(!configurationExcludes.length ? ourExcludes : options.excludes).join(",'");
+
+        const filterInclude =
+          options.includes.length > 0
+            ? convertFilters(options.includes).join(",")
+            : filterExclude
+            ? fileSpecFromURI(uri) // Excludes were specified but no includes, so start with the default includes (this step makes type=cls|rtn effective)
+            : "";
+        const filter = filterInclude + (!filterExclude ? "" : ",'" + filterExclude);
+        if (filter) {
+          // Unless isfs is serving CSP files, slash separators in filters must be converted to dot ones before sending to server
+          params.append("filter", csp ? filter : filter.replace(/\//g, "."));
+          uri = options.folder.with({ query: params.toString() });
+        }
+      }
+
       searchPromise = api
         .actionSearch({
           query: query.pattern,
           regex: query.isRegExp,
           word: query.isWordMatch,
           case: query.isCaseSensitive,
-          files: fileSpecFromURI(options.folder),
+          files: fileSpecFromURI(uri),
           sys: sysStr === "1" || (sysStr === "0" && api.ns === "%SYS"),
           gen: genStr === "1",
           // If options.maxResults is null the search is supposed to return an unlimited number of results
@@ -139,6 +221,31 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
                   return;
                 }
               }
+
+              // Don't report matches in filetypes we don't want or don't handle
+              const fileType = file.doc.split(".").pop().toLowerCase();
+              if (!csp) {
+                switch (params.get("type")) {
+                  case "cls":
+                    if (fileType !== "cls") {
+                      return;
+                    }
+                    break;
+
+                  case "rtn":
+                    if (!["inc", "int", "mac"].includes(fileType)) {
+                      return;
+                    }
+                    break;
+
+                  default:
+                    if (!["cls", "inc", "int", "mac"].includes(fileType)) {
+                      return;
+                    }
+                    break;
+                }
+              }
+
               const uri = DocumentContentProvider.getUri(file.doc, "", "", true, options.folder);
               const content = decoder.decode(await vscode.workspace.fs.readFile(uri)).split("\n");
               // Find all lines that we have matches on
