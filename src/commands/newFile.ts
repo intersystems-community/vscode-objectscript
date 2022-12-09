@@ -7,6 +7,149 @@ import { fileExists, notNull, outputChannel } from "../utils";
 import { getFileName } from "./export";
 import { importFolder } from "./compile";
 
+interface InputStepItem extends vscode.QuickPickItem {
+  value?: string;
+}
+
+interface InputBoxStepOptions {
+  type: "inputBox";
+  title: string;
+  placeholder?: string;
+  validateInput?(value: string): string | undefined | Promise<string | undefined>;
+}
+
+interface QuickPickStepOptions {
+  type: "quickPick";
+  title: string;
+  items: InputStepItem[];
+}
+
+type InputStepOptions = InputBoxStepOptions | QuickPickStepOptions;
+
+/**
+ * Get input from the user using multiple steps.
+ */
+async function multiStepInput(steps: InputStepOptions[]): Promise<string[] | undefined> {
+  if (!steps.length) {
+    return undefined;
+  }
+
+  const results: string[] = [];
+  let step = 0;
+  let escape = false;
+  while (step < steps.length) {
+    // Prompt for the input
+    const stepOptions = steps[step];
+    if (stepOptions.type == "inputBox") {
+      // Show the InputBox
+      escape = await new Promise<boolean>((resolve) => {
+        let escapeLoop = true;
+        const inputBox = vscode.window.createInputBox();
+        inputBox.ignoreFocusOut = true;
+        inputBox.step = step + 1;
+        inputBox.totalSteps = steps.length;
+        inputBox.buttons = step > 0 ? [vscode.QuickInputButtons.Back] : [];
+        inputBox.placeholder = stepOptions.placeholder;
+        inputBox.title = stepOptions.title;
+        if (results[step] != undefined) {
+          // Restore the past input
+          inputBox.value = results[step];
+        }
+        inputBox.onDidTriggerButton(() => {
+          // Save the state in the result array
+          results[step] = inputBox.value;
+          // Go back a step
+          step--;
+          // Don't exit parent loop
+          escapeLoop = false;
+          inputBox.hide();
+        });
+        inputBox.onDidAccept(() => {
+          if (typeof inputBox.validationMessage != "string") {
+            // Save the state in the result array
+            results[step] = inputBox.value;
+            // Go forward a step
+            step++;
+            // Don't exit parent loop
+            escapeLoop = false;
+            inputBox.hide();
+          }
+        });
+        inputBox.onDidHide(() => {
+          resolve(escapeLoop);
+          inputBox.dispose();
+        });
+        inputBox.onDidChangeValue((value) => {
+          if (typeof stepOptions.validateInput == "function") {
+            inputBox.enabled = false;
+            inputBox.busy = true;
+            const validationResult = stepOptions.validateInput(value);
+            if (typeof validationResult == "object") {
+              validationResult.then((msg) => {
+                inputBox.validationMessage = msg;
+                inputBox.enabled = true;
+                inputBox.busy = false;
+              });
+            } else {
+              inputBox.validationMessage = validationResult;
+              inputBox.enabled = true;
+              inputBox.busy = false;
+            }
+          }
+        });
+        inputBox.show();
+      });
+    } else {
+      // Show the QuickPick
+      escape = await new Promise<boolean>((resolve) => {
+        let escapeLoop = true;
+        const quickPick = vscode.window.createQuickPick<InputStepItem>();
+        quickPick.ignoreFocusOut = true;
+        quickPick.step = step + 1;
+        quickPick.totalSteps = steps.length;
+        quickPick.buttons = step > 0 ? [vscode.QuickInputButtons.Back] : [];
+        quickPick.items = stepOptions.items;
+        quickPick.title = stepOptions.title;
+        if (results[step] != undefined) {
+          // Restore the past input
+          const sel = quickPick.items.find((i) => i.value == results[step] || i.label == results[step]);
+          if (sel) {
+            quickPick.selectedItems = [];
+          }
+        }
+        quickPick.onDidTriggerButton(() => {
+          // Save the state in the result array
+          results[step] = quickPick.selectedItems[0].value ?? quickPick.selectedItems[0].label;
+          // Go back a step
+          step--;
+          // Don't exit parent loop
+          escapeLoop = false;
+          quickPick.hide();
+        });
+        quickPick.onDidAccept(() => {
+          // Save the state in the result array
+          results[step] = quickPick.selectedItems[0].value ?? quickPick.selectedItems[0].label;
+          // Go forward a step
+          step++;
+          // Don't exit parent loop
+          escapeLoop = false;
+          quickPick.hide();
+        });
+        quickPick.onDidHide(() => {
+          resolve(escapeLoop);
+          quickPick.dispose();
+        });
+        quickPick.show();
+      });
+    }
+    if (escape) {
+      break;
+    }
+  }
+
+  return escape ? undefined : results;
+}
+
 /** Use the export settings to determine the local URI */
 function getLocalUri(cls: string, wsFolder: vscode.WorkspaceFolder): vscode.Uri {
   const { atelier, folder, addCategory, map } = config("export", wsFolder.name);
@@ -51,20 +194,21 @@ enum AdapaterClassType {
 }
 
 /** Prompt the user to select an adapter class. */
-function getAdapter(adapters: string[], type: AdapaterClassType): Thenable<string | undefined> {
+function getAdapterPrompt(adapters: InputStepItem[], type: AdapaterClassType): InputStepOptions {
   if (adapters.length) {
-    return vscode.window.showQuickPick(adapters, {
+    return {
+      type: "quickPick",
       title: `Pick an associated ${type}bound Adapter class`,
-      ignoreFocusOut: true,
-    });
+      items: adapters,
+    };
   } else {
     // Use InputBox since we have no suggestions
-    return vscode.window.showInputBox({
+    return {
+      type: "inputBox",
       title: `Enter the name of the associated ${type}bound Adapter class`,
-      placeHolder: "Package.Subpackage.Class",
-      ignoreFocusOut: true,
+      placeholder: "Package.Subpackage.Class",
       validateInput: validateClassName,
-    });
+    };
   }
 }
 
@@ -130,8 +274,9 @@ export async function newFile(type: NewFileType): Promise<void> {
       return;
     }
 
-    let inboundAdapters: string[] = [];
-    let outboundAdapters: string[] = [];
+    const inputSteps: InputStepOptions[] = [];
+    let inboundAdapters: InputStepItem[] = [];
+    let outboundAdapters: InputStepItem[] = [];
     let classes: string[] = [];
     let ruleAssists: RuleAssistClasses = {};
     let dtlClassQPItems: vscode.QuickPickItem[] = [];
@@ -142,13 +287,21 @@ export async function newFile(type: NewFileType): Promise<void> {
       if (type == NewFileType.BusinessOperation) {
         // Get a list of the outbound adapter classes for the QuickPick and a list of classes on the server to validate the name
         [outboundAdapters, classes] = await Promise.all([
-          api.getEnsClassList(3).then((data) => data.result.content),
+          api.getEnsClassList(3).then((data) =>
+            data.result.content.map((e: string) => {
+              return { label: e };
+            })
+          ),
           classesPromise,
         ]);
       } else if (type == NewFileType.BusinessService) {
         // Get a list of the inbound adapter classes for the QuickPick and a list of classes on the server to validate the name
         [inboundAdapters, classes] = await Promise.all([
-          api.getEnsClassList(2).then((data) => data.result.content),
+          api.getEnsClassList(2).then((data) =>
+            data.result.content.map((e: string) => {
+              return { label: e };
+            })
+          ),
           classesPromise,
         ]);
       } else if (type == NewFileType.Rule) {
@@ -228,74 +381,66 @@ export async function newFile(type: NewFileType): Promise<void> {
       }
     }
 
-    // Prompt for the class name
-    const cls = await vscode.window.showInputBox({
-      title: `Enter a name for the new ${type} class`,
-      placeHolder: "Package.Subpackage.Class",
-      ignoreFocusOut: true,
-      validateInput: (value: string) => {
-        const valid = validateClassName(value);
-        if (typeof valid == "string") {
-          return valid;
-        }
-        if (classes.length && classes.includes(value.toLowerCase())) {
-          return "A class with this name already exists on the server";
-        }
-        if (wsFolder.uri.scheme != FILESYSTEM_SCHEMA) {
-          return fileExists(getLocalUri(value, wsFolder)).then((exists) =>
-            exists ? `A class with this name already exists in workspace folder '${wsFolder.name}'` : undefined
-          );
-        }
+    // Create the class name and description prompts
+    inputSteps.push(
+      {
+        type: "inputBox",
+        title: `Enter a name for the new ${type} class`,
+        placeholder: "Package.Subpackage.Class",
+        validateInput: (value: string) => {
+          const valid = validateClassName(value);
+          if (typeof valid == "string") {
+            return valid;
+          }
+          if (classes.length && classes.includes(value.toLowerCase())) {
+            return "A class with this name already exists on the server";
+          }
+          if (wsFolder.uri.scheme != FILESYSTEM_SCHEMA) {
+            return fileExists(getLocalUri(value, wsFolder)).then((exists) =>
+              exists ? `A class with this name already exists in workspace folder '${wsFolder.name}'` : undefined
+            );
+          }
+        },
       },
-    });
-    if (!cls) {
-      return;
-    }
+      {
+        type: "inputBox",
+        title: "Enter an optional description for this class",
+      }
+    );
 
-    // Prompt for a description
-    const desc = await vscode.window.showInputBox({
-      title: "Enter an optional description for this class",
-      ignoreFocusOut: true,
-    });
-
-    // Generate the file's URI
-    let clsUri: vscode.Uri;
-    if (wsFolder.uri.scheme == FILESYSTEM_SCHEMA) {
-      clsUri = DocumentContentProvider.getUri(`${cls}.cls`, undefined, undefined, undefined, wsFolder.uri);
-    } else {
-      // Use the export settings to determine the URI
-      clsUri = getLocalUri(cls, wsFolder);
-    }
-
-    // Prompt for type-specific elements, then use them to generate the content
+    // Create the type-specific elements prompts, then use them to generate the content
     let clsContent: string;
+    let cls: string;
     if (type == NewFileType.BusinessOperation) {
-      // Prompt for the invocation style
-      const invocation = await vscode.window.showQuickPick(
-        [
-          {
-            label: "In Process",
-            value: "InProc",
-            detail: "Messages are formulated, sent, and delivered in the same job in which they were created.",
-          },
-          {
-            label: "Queued",
-            value: "Queue",
-            detail:
-              "Messages are created within one background job and placed on a queue, then are processed by a different background job.",
-          },
-        ],
+      // Create the prompts for the invocation style and adapter class
+      inputSteps.push(
         {
+          type: "quickPick",
           title: "Pick the invocation style",
-          ignoreFocusOut: true,
-        }
+          items: [
+            {
+              label: "In Process",
+              value: "InProc",
+              detail: "Messages are formulated, sent, and delivered in the same job in which they were created.",
+            },
+            {
+              label: "Queued",
+              value: "Queue",
+              detail:
+                "Messages are created within one background job and placed on a queue, then are processed by a different background job.",
+            },
+          ],
+        },
+        getAdapterPrompt(outboundAdapters, AdapaterClassType.Outbound)
       );
-      if (!invocation) {
+
+      // Prompt the user
+      const results = await multiStepInput(inputSteps);
+      if (!results) {
         return;
       }
-
-      // Prompt for an outbound adapter class
-      const adapter = await getAdapter(outboundAdapters, AdapaterClassType.Outbound);
+      cls = results[0];
+      const [, desc, invocation, adapter] = results;
 
       // Generate the file's content
       clsContent = `
@@ -311,7 +456,7 @@ Property Adapter As ${adapter};
 `
     : "\n"
 }
-Parameter INVOCATION = "${invocation.value}";
+Parameter INVOCATION = "${invocation}";
 
 /// <b>NOTE:</b> This is an example operation method.
 /// You should replace it and its entry in the MessageMap with your custom operation methods.
@@ -334,8 +479,16 @@ XData MessageMap
 }
 `;
     } else if (type == NewFileType.BusinessService) {
-      // Prompt for an inbound adapter class
-      const adapter = await getAdapter(inboundAdapters, AdapaterClassType.Inbound);
+      // Create the prompt for an inbound adapter class
+      inputSteps.push(getAdapterPrompt(inboundAdapters, AdapaterClassType.Inbound));
+
+      // Prompt the user
+      const results = await multiStepInput(inputSteps);
+      if (!results) {
+        return;
+      }
+      cls = results[0];
+      const [, desc, adapter] = results;
 
       // Generate the file's content
       clsContent = `
@@ -359,19 +512,23 @@ Method OnProcessInput(pInput As %RegisteredObject, pOutput As %RegisteredObject)
 }
 `;
     } else if (type == NewFileType.BPL) {
-      // Prompt for the implementation style
-      const bpl: boolean | undefined = await vscode.window
-        .showQuickPick(["Using the Business Process Editor", "Using Custom Code"], {
-          title: "This Business Process is implemented:",
-          ignoreFocusOut: true,
-        })
-        .then((value) => (typeof value == "string" ? value.includes("Business") : value));
-      if (typeof bpl != "boolean") {
+      // Create the prompt for the implementation style
+      inputSteps.push({
+        type: "quickPick",
+        title: "This Business Process is implemented:",
+        items: [{ label: "Using the Business Process Editor" }, { label: "Using Custom Code" }],
+      });
+
+      // Prompt the user
+      const results = await multiStepInput(inputSteps);
+      if (!results) {
         return;
       }
+      cls = results[0];
+      const [, desc, impl] = results;
 
       // Generate the file's content
-      if (bpl) {
+      if (impl.includes("Business")) {
         clsContent = `
 ${typeof desc == "string" ? "/// " + desc.replace(/\n/g, "\n/// ") : ""}
 Class ${cls} Extends Ens.BusinessProcessBPL [ ClassType = persistent, ProcedureBlock ]
@@ -420,63 +577,53 @@ Method OnRequest(pRequest As Ens.Request, Output pResponse As Ens.Response) As %
 `;
       }
     } else if (type == NewFileType.DTL) {
-      // Prompt for the implementation style
-      const dtl: boolean | undefined = await vscode.window
-        .showQuickPick(["Using the Data Transformation Editor", "Using Custom Code"], {
-          title: "This Data Transformation is implemented:",
-          ignoreFocusOut: true,
-        })
-        .then((value) => (typeof value == "string" ? value.includes("Data") : value));
-      if (typeof dtl != "boolean") {
-        return;
-      }
-
-      // Prompt for a source class
-      let sourceCls: string;
+      // Create the prompts for the implementation style, source class and target class
+      inputSteps.push({
+        type: "quickPick",
+        title: "This Data Transformation is implemented:",
+        items: [{ label: "Using the Data Transformation Editor" }, { label: "Using Custom Code" }],
+      });
       if (dtlClassQPItems.length) {
-        sourceCls = await vscode.window
-          .showQuickPick(dtlClassQPItems, {
-            ignoreFocusOut: true,
+        inputSteps.push(
+          {
+            type: "quickPick",
             title: "Pick a source class",
-          })
-          .then((qpi) => (qpi ? qpi.label : undefined));
+            items: dtlClassQPItems,
+          },
+          {
+            type: "quickPick",
+            title: "Pick a target class",
+            items: dtlClassQPItems,
+          }
+        );
       } else {
         // Use InputBox since we have no suggestions
-        sourceCls = await vscode.window.showInputBox({
-          title: "Enter the name of a source class",
-          placeHolder: "Package.Subpackage.Class",
-          ignoreFocusOut: true,
-          validateInput: validateClassName,
-        });
-      }
-      if (!sourceCls) {
-        return;
+        inputSteps.push(
+          {
+            type: "inputBox",
+            title: "Enter the name of a source class",
+            placeholder: "Package.Subpackage.Class",
+            validateInput: validateClassName,
+          },
+          {
+            type: "inputBox",
+            title: "Enter the name of a target class",
+            placeholder: "Package.Subpackage.Class",
+            validateInput: validateClassName,
+          }
+        );
       }
 
-      // Prompt for a target class
-      let targetCls: string;
-      if (dtlClassQPItems.length) {
-        targetCls = await vscode.window
-          .showQuickPick(dtlClassQPItems, {
-            ignoreFocusOut: true,
-            title: "Pick a target class",
-          })
-          .then((qpi) => (qpi ? qpi.label : undefined));
-      } else {
-        // Use InputBox since we have no suggestions
-        targetCls = await vscode.window.showInputBox({
-          title: "Enter the name of a target class",
-          placeHolder: "Package.Subpackage.Class",
-          ignoreFocusOut: true,
-          validateInput: validateClassName,
-        });
-      }
-      if (!targetCls) {
+      // Prompt the user
+      const results = await multiStepInput(inputSteps);
+      if (!results) {
         return;
       }
+      cls = results[0];
+      const [, desc, impl, sourceCls, targetCls] = results;
 
       // Generate the file's content
-      if (dtl) {
+      if (impl.includes("Data")) {
         clsContent = `
 ${typeof desc == "string" ? "/// " + desc.replace(/\n/g, "\n/// ") : ""}
 Class ${cls} Extends Ens.DataTransformDTL [ DependsOn = ${
@@ -525,25 +672,32 @@ ClassMethod Transform(source As ${sourceCls}, ByRef target As ${targetCls}) As %
 `;
       }
     } else if (type == NewFileType.Rule) {
-      // Prompt for the rule assist class
-      let assistCls: string;
+      // Create the prompt for the rule assist class
       if (Object.keys(ruleAssists).length) {
-        assistCls = await vscode.window.showQuickPick(Object.keys(ruleAssists), {
-          ignoreFocusOut: true,
+        inputSteps.push({
+          type: "quickPick",
           title: "Pick a Rule Assist class",
+          items: Object.keys(ruleAssists).map((e: string) => {
+            return { label: e };
+          }),
         });
       } else {
         // Use InputBox since we have no suggestions
-        assistCls = await vscode.window.showInputBox({
+        inputSteps.push({
+          type: "inputBox",
+          placeholder: "Package.Subpackage.Class",
           title: "Enter the name of a Rule Assist class",
-          placeHolder: "Package.Subpackage.Class",
-          ignoreFocusOut: true,
           validateInput: validateClassName,
         });
       }
-      if (!assistCls) {
+
+      // Prompt the user
+      const results = await multiStepInput(inputSteps);
+      if (!results) {
         return;
       }
+      cls = results[0];
+      const [, desc, assistCls] = results;
 
       // Determine the context class, if possible
       let contextClass: string;
@@ -595,6 +749,15 @@ XData RuleDefinition [ XMLNamespace = "http://www.intersystems.com/rule" ]
 
 }
 `;
+    }
+
+    // Generate the file's URI
+    let clsUri: vscode.Uri;
+    if (wsFolder.uri.scheme == FILESYSTEM_SCHEMA) {
+      clsUri = DocumentContentProvider.getUri(`${cls}.cls`, undefined, undefined, undefined, wsFolder.uri);
+    } else {
+      // Use the export settings to determine the URI
+      clsUri = getLocalUri(cls, wsFolder);
     }
 
     if (clsUri && clsContent) {
