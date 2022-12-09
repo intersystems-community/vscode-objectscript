@@ -112,6 +112,7 @@ import {
 } from "./commands/project";
 import { NodeBase } from "./explorer/models/nodeBase";
 import { loadStudioColors, loadStudioSnippets } from "./commands/studioMigration";
+import { newFile, NewFileType } from "./commands/newFile";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -1171,6 +1172,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.loadStudioColors", () => {
       loadStudioColors(languageServerExt);
     }),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.businessOperation", () =>
+      newFile(NewFileType.BusinessOperation)
+    ),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.bpl", () => newFile(NewFileType.BPL)),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.rule", () => newFile(NewFileType.Rule)),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.businessService", () =>
+      newFile(NewFileType.BusinessService)
+    ),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.dtl", () => newFile(NewFileType.DTL)),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed
