@@ -705,4 +705,14 @@ export class AtelierAPI {
       return this.getAsyncResult(id, 50, token);
     });
   }
+
+  // v1+
+  public async getNamespace(nsOverride?: string): Promise<Atelier.Response> {
+    return this.request(1, "GET", nsOverride || this.ns);
+  }
+
+  // v1+
+  public async getEnsClassList(type: number): Promise<Atelier.Response> {
+    return this.request(1, "GET", `${this.ns}/ens/classes/${type}`);
+  }
 }

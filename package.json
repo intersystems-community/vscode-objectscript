@@ -81,6 +81,11 @@
     "onCommand:vscode-objectscript.removeItemsFromProject",
     "onCommand:vscode-objectscript.loadStudioSnippets",
     "onCommand:vscode-objectscript.loadStudioColors",
+    "onCommand:vscode-objectscript.newFile.businessOperation",
+    "onCommand:vscode-objectscript.newFile.bpl",
+    "onCommand:vscode-objectscript.newFile.rule",
+    "onCommand:vscode-objectscript.newFile.businessService",
+    "onCommand:vscode-objectscript.newFile.dtl",
     "onLanguage:objectscript",
     "onLanguage:objectscript-int",
     "onLanguage:objectscript-class",
@@ -294,6 +299,26 @@
         {
           "command": "vscode-objectscript.loadStudioColors",
           "when": "isWindows"
+        },
+        {
+          "command": "vscode-objectscript.newFile.businessOperation",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.newFile.bpl",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.newFile.rule",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.newFile.businessService",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.newFile.dtl",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -538,6 +563,33 @@
           "command": "vscode-objectscript.removeItemsFromProject",
           "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && explorerResourceIsRoot",
           "group": "objectscript_prj@2"
+        }
+      ],
+      "file/newFile": [
+        {
+          "command": "vscode-objectscript.newFile.businessOperation",
+          "when": "workspaceFolderCount != 0",
+          "group": "file"
+        },
+        {
+          "command": "vscode-objectscript.newFile.bpl",
+          "when": "workspaceFolderCount != 0",
+          "group": "file"
+        },
+        {
+          "command": "vscode-objectscript.newFile.rule",
+          "when": "workspaceFolderCount != 0",
+          "group": "file"
+        },
+        {
+          "command": "vscode-objectscript.newFile.businessService",
+          "when": "workspaceFolderCount != 0",
+          "group": "file"
+        },
+        {
+          "command": "vscode-objectscript.newFile.dtl",
+          "when": "workspaceFolderCount != 0",
+          "group": "file"
         }
       ]
     },
@@ -973,6 +1025,31 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.loadStudioColors",
         "title": "Load Studio Syntax Colors"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.newFile.businessOperation",
+        "title": "Business Operation"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.newFile.bpl",
+        "title": "Business Process"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.newFile.rule",
+        "title": "Business Rule"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.newFile.businessService",
+        "title": "Business Service"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.newFile.dtl",
+        "title": "Data Transformation"
       }
     ],
     "keybindings": [
