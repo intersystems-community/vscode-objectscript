@@ -119,7 +119,9 @@ async function multiStepInput(steps: InputStepOptions[]): Promise<string[] | und
         }
         quickPick.onDidTriggerButton(() => {
           // Save the state in the result array
-          results[step] = quickPick.selectedItems[0].value ?? quickPick.selectedItems[0].label;
+          if (quickPick.selectedItems.length) {
+            results[step] = quickPick.selectedItems[0].value ?? quickPick.selectedItems[0].label;
+          }
           // Go back a step
           step--;
           // Don't exit parent loop
