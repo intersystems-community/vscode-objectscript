@@ -254,6 +254,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       const uri = schemas.includes(scheme) ? vscode.Uri.parse(filePath) : vscode.Uri.file(filePath);
       const fileUri = await convertClientPathToDebugger(uri, this._namespace);
       const [, fileName] = fileUri.match(/\|([^|]+)$/);
+      const languageServer: boolean = vscode.extensions.getExtension("intersystems.language-server")?.isActive ?? false;
 
       const currentList = await this._connection.sendBreakpointListCommand();
       currentList.breakpoints
@@ -294,33 +295,56 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
             ) {
               // This breakpoint is in a method
               const currentdoc = await vscode.workspace.openTextDocument(uri);
-              for (
-                let methodlinenum = currentSymbol.selectionRange.start.line;
-                methodlinenum <= currentSymbol.range.end.line;
-                methodlinenum++
-              ) {
-                // Find the offset of this breakpoint in the method
-                const methodlinetext: string = currentdoc.lineAt(methodlinenum).text.trim();
-                if (methodlinetext.endsWith("{")) {
-                  // This is the last line of the method definition, so count from here
-                  if (breakpoint.condition) {
-                    return new xdebug.ClassConditionalBreakpoint(
-                      breakpoint.condition,
-                      fileUri,
-                      line,
-                      currentSymbol.name,
-                      line - methodlinenum - 1,
-                      breakpoint.hitCondition
-                    );
-                  } else {
-                    return new xdebug.ClassLineBreakpoint(
-                      fileUri,
-                      line,
-                      currentSymbol.name,
-                      line - methodlinenum - 1,
-                      breakpoint.hitCondition
-                    );
+              if (languageServer) {
+                // selectionRange.start.line is the method definition line
+                for (
+                  let methodlinenum = currentSymbol.selectionRange.start.line;
+                  methodlinenum <= currentSymbol.range.end.line;
+                  methodlinenum++
+                ) {
+                  // Find the offset of this breakpoint in the method
+                  const methodlinetext: string = currentdoc.lineAt(methodlinenum).text.trim();
+                  if (methodlinetext.endsWith("{")) {
+                    // This is the last line of the method definition, so count from here
+                    if (breakpoint.condition) {
+                      return new xdebug.ClassConditionalBreakpoint(
+                        breakpoint.condition,
+                        fileUri,
+                        line,
+                        currentSymbol.name,
+                        line - methodlinenum - 1,
+                        breakpoint.hitCondition
+                      );
+                    } else {
+                      return new xdebug.ClassLineBreakpoint(
+                        fileUri,
+                        line,
+                        currentSymbol.name,
+                        line - methodlinenum - 1,
+                        breakpoint.hitCondition
+                      );
+                    }
                   }
+                }
+              } else {
+                // selectionRange.start.line is the start of the method code so count from there
+                if (breakpoint.condition) {
+                  return new xdebug.ClassConditionalBreakpoint(
+                    breakpoint.condition,
+                    fileUri,
+                    line,
+                    currentSymbol.name,
+                    line - currentSymbol.selectionRange.start.line,
+                    breakpoint.hitCondition
+                  );
+                } else {
+                  return new xdebug.ClassLineBreakpoint(
+                    fileUri,
+                    line,
+                    currentSymbol.name,
+                    line - currentSymbol.selectionRange.start.line,
+                    breakpoint.hitCondition
+                  );
                 }
               }
             }
@@ -345,7 +369,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
             }
           }
         })
-      );
+      ).then((bps) => bps.filter((bp) => typeof bp == "object"));
 
       const vscodeBreakpoints: DebugProtocol.Breakpoint[] = [];
       await Promise.all(
@@ -472,6 +496,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     args: DebugProtocol.StackTraceArguments
   ): Promise<void> {
     const stack = await this._connection.sendStackGetCommand();
+    const languageServer: boolean = vscode.extensions.getExtension("intersystems.language-server")?.isActive ?? false;
 
     const stackFrames = await Promise.all(
       stack.stack.map(async (stackFrame: xdebug.StackFrame, index): Promise<StackFrame> => {
@@ -503,18 +528,22 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
             }
             if (currentSymbol !== undefined) {
               const currentdoc = await vscode.workspace.openTextDocument(fileUri);
-              for (
-                let methodlinenum = currentSymbol.selectionRange.start.line;
-                methodlinenum <= currentSymbol.range.end.line;
-                methodlinenum++
-              ) {
-                // Find the offset of this breakpoint in the method
-                const methodlinetext: string = currentdoc.lineAt(methodlinenum).text.trim();
-                if (methodlinetext.endsWith("{")) {
-                  // This is the last line of the method definition, so count from here
-                  line = methodlinenum + stackFrame.methodOffset + 1;
-                  break;
+              if (languageServer) {
+                for (
+                  let methodlinenum = currentSymbol.selectionRange.start.line;
+                  methodlinenum <= currentSymbol.range.end.line;
+                  methodlinenum++
+                ) {
+                  // Find the offset of this breakpoint in the method
+                  const methodlinetext: string = currentdoc.lineAt(methodlinenum).text.trim();
+                  if (methodlinetext.endsWith("{")) {
+                    // This is the last line of the method definition, so count from here
+                    line = methodlinenum + stackFrame.methodOffset + 1;
+                    break;
+                  }
                 }
+              } else {
+                line = currentSymbol.selectionRange.start.line + stackFrame.methodOffset;
               }
             }
           }
