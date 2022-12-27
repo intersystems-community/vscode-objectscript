@@ -1402,6 +1402,11 @@
           "description": "Automatically save a client-side InterSystems file on the server when saved in the editor.",
           "type": "boolean",
           "default": true
+        },
+        "objectscript.showGeneratedFileDecorations": {
+          "description": "Controls whether a badge is shown in the file explorer and open editors view for generated files.",
+          "type": "boolean",
+          "default": true
         }
       }
     },

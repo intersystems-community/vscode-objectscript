@@ -113,6 +113,7 @@ import {
 import { NodeBase } from "./explorer/models/nodeBase";
 import { loadStudioColors, loadStudioSnippets } from "./commands/studioMigration";
 import { newFile, NewFileType } from "./commands/newFile";
+import { FileDecorationProvider } from "./providers/fileDecorationProvider";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -736,6 +737,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   openedClasses = workspaceState.get("openedClasses") ?? [];
 
+  // Create this here so we can fire its event
+  const fileDecorationProvider = new FileDecorationProvider();
+
   context.subscriptions.push(
     reporter,
     panel,
@@ -1181,6 +1185,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       newFile(NewFileType.BusinessService)
     ),
     vscode.commands.registerCommand("vscode-objectscript.newFile.dtl", () => newFile(NewFileType.DTL)),
+    vscode.window.registerFileDecorationProvider(fileDecorationProvider),
+    vscode.workspace.onDidOpenTextDocument((doc) => !doc.isUntitled && fileDecorationProvider.emitter.fire(doc.uri)),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed
