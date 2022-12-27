@@ -113,7 +113,7 @@ import {
 import { NodeBase } from "./explorer/models/nodeBase";
 import { loadStudioColors, loadStudioSnippets } from "./commands/studioMigration";
 import { newFile, NewFileType } from "./commands/newFile";
-import { FileDecorationProvider } from "./providers/fileDecorationProvider";
+import { FileDecorationProvider } from "./providers/FileDecorationProvider";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
