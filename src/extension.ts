@@ -25,6 +25,7 @@ import {
   compileExplorerItems,
   checkChangedOnServer,
   compileOnly,
+  importLocalFilesToServerSideFolder,
 } from "./commands/compile";
 import { deleteExplorerItems } from "./commands/delete";
 import { exportAll, exportCurrentFile, exportExplorerItems, getCategory } from "./commands/export";
@@ -1181,6 +1182,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       newFile(NewFileType.BusinessService)
     ),
     vscode.commands.registerCommand("vscode-objectscript.newFile.dtl", () => newFile(NewFileType.DTL)),
+    vscode.commands.registerCommand("vscode-objectscript.importLocalFilesServerSide", (wsFolderUri) => {
+      if (
+        wsFolderUri instanceof vscode.Uri &&
+        wsFolderUri.scheme == FILESYSTEM_SCHEMA &&
+        (vscode.workspace.workspaceFolders != undefined
+          ? vscode.workspace.workspaceFolders.findIndex(
+              (wsFolder) => wsFolder.uri.toString() == wsFolderUri.toString()
+            ) != -1
+          : false)
+      ) {
+        // wsFolderUri is an isfs workspace folder URI
+        return importLocalFilesToServerSideFolder(wsFolderUri);
+      }
+    }),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed

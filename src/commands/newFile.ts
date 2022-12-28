@@ -233,7 +233,7 @@ export async function newFile(type: NewFileType): Promise<void> {
   try {
     // Select a workspace folder
     let wsFolder: vscode.WorkspaceFolder;
-    if (vscode.workspace.workspaceFolders.length == 0) {
+    if (vscode.workspace.workspaceFolders == undefined || vscode.workspace.workspaceFolders.length == 0) {
       vscode.window.showErrorMessage("No workspace folders are open.", "Dismiss");
       return;
     } else if (vscode.workspace.workspaceFolders.length == 1) {

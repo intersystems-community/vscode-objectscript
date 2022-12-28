@@ -319,6 +319,10 @@
         {
           "command": "vscode-objectscript.newFile.dtl",
           "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.importLocalFilesServerSide",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -563,6 +567,11 @@
           "command": "vscode-objectscript.removeItemsFromProject",
           "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && explorerResourceIsRoot",
           "group": "objectscript_prj@2"
+        },
+        {
+          "command": "vscode-objectscript.importLocalFilesServerSide",
+          "when": "vscode-objectscript.connectActive && resourceScheme == isfs && explorerResourceIsRoot",
+          "group": "objectscript_modify@2"
         }
       ],
       "file/newFile": [
@@ -1050,6 +1059,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.newFile.dtl",
         "title": "Data Transformation"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.importLocalFilesServerSide",
+        "title": "Import Local Files..."
       }
     ],
     "keybindings": [
