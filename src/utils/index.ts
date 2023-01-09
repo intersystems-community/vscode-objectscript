@@ -1,5 +1,4 @@
 import path = require("path");
-import * as url from "url";
 import { exec } from "child_process";
 import * as vscode from "vscode";
 import { config, schemas, workspaceState, terminals, extensionContext, cspApps } from "../extension";
@@ -141,8 +140,8 @@ export function isImportableLocalFile(file: vscode.TextDocument): boolean {
   }
 }
 
-export function currentFileFromContent(fileName: string, content: string): CurrentFile {
-  const uri = vscode.Uri.file(fileName);
+export function currentFileFromContent(uri: vscode.Uri, content: string): CurrentFile {
+  const fileName = uri.fsPath;
   const workspaceFolder = workspaceFolderOfUri(uri);
   if (!workspaceFolder) {
     // No workspace folders are open
@@ -220,8 +219,8 @@ export function currentFile(document?: vscode.TextDocument): CurrentFile {
   const content = document.getText();
   let name = "";
   let ext = "";
-  const { query } = url.parse(uri.toString(true), true);
-  const csp = query.csp === "" || query.csp === "1";
+  const params = new URLSearchParams(uri.query);
+  const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
   if (csp) {
     name = uri.path;
   } else if (fileExt === "cls") {
