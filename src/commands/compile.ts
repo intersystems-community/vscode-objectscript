@@ -405,7 +405,7 @@ function importFiles(files: string[], noCompile = false) {
         vscode.workspace.fs
           .readFile(vscode.Uri.file(file))
           .then((contentBytes) => new TextDecoder().decode(contentBytes))
-          .then((content) => currentFileFromContent(file, content))
+          .then((content) => currentFileFromContent(vscode.Uri.file(file), content))
           .then((curFile) =>
             importFile(curFile).then((data) => {
               outputChannel.appendLine("Imported file: " + curFile.fileName);

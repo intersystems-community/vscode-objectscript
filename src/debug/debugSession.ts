@@ -1,5 +1,5 @@
 import vscode = require("vscode");
-import { currentFile } from "../utils";
+import { currentFile, currentFileFromContent } from "../utils";
 import { Subject } from "await-notify";
 import {
   InitializedEvent,
@@ -19,7 +19,6 @@ import WebSocket = require("ws");
 import { AtelierAPI } from "../api";
 import * as xdebug from "./xdebugConnection";
 import { schemas } from "../extension";
-import * as url from "url";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { formatPropertyValue } from "./utils";
 
@@ -40,20 +39,15 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
 /** converts a uri from VS Code to a server-side XDebug file URI with respect to source root settings */
 async function convertClientPathToDebugger(uri: vscode.Uri, namespace: string): Promise<string> {
   const { scheme, path } = uri;
-  const { query } = url.parse(uri.toString(true), true);
+  const params = new URLSearchParams(uri.query);
   let fileName: string;
   if (scheme && schemas.includes(scheme)) {
-    if (query.ns && query.ns !== "") {
-      namespace = query.ns.toString();
+    if (params.has("ns") && params.get("ns") !== "") {
+      namespace = params.get("ns");
     }
     fileName = path.slice(1).replace(/\//g, ".");
   } else {
-    fileName = await vscode.workspace
-      .openTextDocument(uri)
-      .then(currentFile)
-      .then((curFile) => {
-        return curFile.name;
-      });
+    fileName = currentFileFromContent(uri, new TextDecoder().decode(await vscode.workspace.fs.readFile(uri)))?.name;
   }
 
   namespace = encodeURIComponent(namespace);
@@ -294,7 +288,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
               currentSymbol.detail.toLowerCase() !== "query"
             ) {
               // This breakpoint is in a method
-              const currentdoc = await vscode.workspace.openTextDocument(uri);
+              const currentdoc = new TextDecoder().decode(await vscode.workspace.fs.readFile(uri)).split(/\r?\n/);
               if (languageServer) {
                 // selectionRange.start.line is the method definition line
                 for (
@@ -303,7 +297,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
                   methodlinenum++
                 ) {
                   // Find the offset of this breakpoint in the method
-                  const methodlinetext: string = currentdoc.lineAt(methodlinenum).text.trim();
+                  const methodlinetext: string = currentdoc[methodlinenum].trim();
                   if (methodlinetext.endsWith("{")) {
                     // This is the last line of the method definition, so count from here
                     if (breakpoint.condition) {
@@ -527,7 +521,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
               }
             }
             if (currentSymbol !== undefined) {
-              const currentdoc = await vscode.workspace.openTextDocument(fileUri);
+              const currentdoc = new TextDecoder().decode(await vscode.workspace.fs.readFile(fileUri)).split(/\r?\n/);
               if (languageServer) {
                 for (
                   let methodlinenum = currentSymbol.selectionRange.start.line;
@@ -535,7 +529,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
                   methodlinenum++
                 ) {
                   // Find the offset of this breakpoint in the method
-                  const methodlinetext: string = currentdoc.lineAt(methodlinenum).text.trim();
+                  const methodlinetext: string = currentdoc[methodlinenum].trim();
                   if (methodlinetext.endsWith("{")) {
                     // This is the last line of the method definition, so count from here
                     line = methodlinenum + stackFrame.methodOffset + 1;
