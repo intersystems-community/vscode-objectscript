@@ -715,4 +715,9 @@ export class AtelierAPI {
   public async getEnsClassList(type: number): Promise<Atelier.Response> {
     return this.request(1, "GET", `${this.ns}/ens/classes/${type}`);
   }
+
+  // v2+
+  public async getCSPDebugId(): Promise<Atelier.Response<Atelier.Content<number>>> {
+    return this.request(2, "GET", "%SYS/cspdebugid");
+  }
 }

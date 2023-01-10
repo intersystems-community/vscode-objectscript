@@ -323,6 +323,10 @@
         {
           "command": "vscode-objectscript.importLocalFilesServerSide",
           "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.showRESTDebugWebview",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         }
       ],
       "view/title": [
@@ -489,6 +493,11 @@
           "command": "vscode-objectscript.exportCurrentFile",
           "when": "resourceScheme == objectscript && vscode-objectscript.connectActive",
           "group": "objectscript@8"
+        },
+        {
+          "command": "vscode-objectscript.showRESTDebugWebview",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "group": "objectscript@9"
         }
       ],
       "editor/title": [
@@ -513,6 +522,11 @@
           "command": "vscode-objectscript.showClassDocumentationPreview",
           "group": "1_open",
           "when": "resourceLangId == objectscript-class"
+        },
+        {
+          "command": "vscode-objectscript.showRESTDebugWebview",
+          "group": "1_open",
+          "when": "resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         }
       ],
       "touchBar": [
@@ -1064,6 +1078,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.importLocalFilesServerSide",
         "title": "Import Local Files..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.showRESTDebugWebview",
+        "title": "Debug REST Service..."
       }
     ],
     "keybindings": [
@@ -1484,13 +1503,20 @@
                   "number",
                   "string"
                 ],
-                "description": "ID of process to attach to.",
+                "description": "ID of the process to attach to.",
                 "default": "${command:PickProcess}"
               },
               "system": {
                 "type": "boolean",
-                "description": "Enable to attach to system process.",
+                "description": "Enable attaching to system processes.",
                 "default": false
+              },
+              "cspDebugId": {
+                "type": [
+                  "number",
+                  "string"
+                ],
+                "description": "The CSP debug ID to use to identify the target process. If provided, 'processId' is ignored."
               }
             }
           }

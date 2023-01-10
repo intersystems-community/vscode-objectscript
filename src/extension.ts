@@ -115,6 +115,7 @@ import { NodeBase } from "./explorer/models/nodeBase";
 import { loadStudioColors, loadStudioSnippets } from "./commands/studioMigration";
 import { newFile, NewFileType } from "./commands/newFile";
 import { FileDecorationProvider } from "./providers/FileDecorationProvider";
+import { RESTDebugPanel } from "./commands/restDebugPanel";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -948,6 +949,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.editOthers", () => viewOthers(true)),
     vscode.commands.registerCommand("vscode-objectscript.showClassDocumentationPreview", () =>
       DocumaticPreviewPanel.create(context.extensionUri)
+    ),
+    vscode.commands.registerCommand("vscode-objectscript.showRESTDebugWebview", () =>
+      RESTDebugPanel.create(context.extensionUri)
     ),
     vscode.commands.registerCommand("vscode-objectscript.exportCurrentFile", exportCurrentFile),
     vscode.workspace.onDidCreateFiles((e: vscode.FileCreateEvent) =>

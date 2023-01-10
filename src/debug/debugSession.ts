@@ -31,7 +31,9 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 
 interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
   /** The process id to attach to. */
-  processId: string;
+  processId?: string;
+  /** The CSP debug ID to use to identify the target process. */
+  cspDebugId?: string;
   /** Automatically stop target after connect. If not specified, target does not stop. */
   stopOnEntry?: boolean;
 }
@@ -85,6 +87,15 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
   private _workspace: string;
 
   private cookies: string[] = [];
+
+  /** If this is a CSPDEBUG session */
+  private _csp = false;
+
+  /** The condition used for the watchpoint that allows us to detach from a CSPDEBUG session after the page has been loaded. */
+  private readonly _cspWatchpointCondition = `(($DATA(allowed)=1)&&(allowed=1)&&($ZNAME="%SYS.cspServer")&&(%response.Timeout'="")&&($CLASSNAME()="%CSP.Session"))`;
+
+  /** If we're stopped at a breakpoint. */
+  private _break = false;
 
   public constructor() {
     super();
@@ -185,8 +196,12 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
   protected async attachRequest(response: DebugProtocol.AttachResponse, args: AttachRequestArguments): Promise<void> {
     try {
-      const debugTarget = `PID:${args.processId}`;
+      const debugTarget = args.cspDebugId != undefined ? `CSPDEBUG:${args.cspDebugId}` : `PID:${args.processId}`;
       await this._connection.sendFeatureSetCommand("debug_target", debugTarget);
+      if (args.cspDebugId != undefined) {
+        await this._connection.sendBreakpointSetCommand(new xdebug.Watchpoint("ok", this._cspWatchpointCondition));
+        this._csp = true;
+      }
       this._debugTargetSet.notify();
     } catch (error) {
       this.sendErrorResponse(response, error);
@@ -541,6 +556,20 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
               }
             }
           }
+          if (
+            this._csp &&
+            this._break &&
+            ["%SYS.cspServer.mac", "%SYS.cspServer.int"].includes(source.name) &&
+            index == 0
+          ) {
+            // Check if we're at our special watchpoint
+            const { result } = await this._connection.sendEvalCommand(this._cspWatchpointCondition);
+            if (result.type == "int" && result.value == "1") {
+              // Stop the debugging session
+              const xdebugResponse = await this._connection.sendDetachCommand();
+              await this._checkStatus(xdebugResponse);
+            }
+          }
           this._stackFrames.set(stackFrameId, stackFrame);
         } catch (ex) {
           noSource = true;
@@ -555,6 +584,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       })
     );
 
+    this._break = false;
     response.body = {
       stackFrames,
     };
@@ -680,6 +710,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       } else {
         stoppedEventReason = "breakpoint";
       }
+      this._break = true;
       const event: DebugProtocol.StoppedEvent = new StoppedEvent(stoppedEventReason, connection.id, exceptionText);
       event.body.allThreadsStopped = false;
       this.sendEvent(event);

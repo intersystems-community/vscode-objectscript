@@ -114,6 +114,11 @@ This extension uses WebSockets to communicate with the InterSystems server durin
 
 Debugging commands and items on the **Run** menu function much as they do for other languages supported by VS Code. For information on VS Code debugging, see the documentation resources listed at the start of this section. 
 
+{: #rest}
+## Debugging a REST Service
+
+The InterSystems ObjectScript Extension provides a [Webview](https://code.visualstudio.com/api/extension-guides/webview)-based graphical user interface that allows you to send a REST request and automatically start debugging the process on the server that handles it. With the InterSystems file that you want to debug open in the active text editor, you can show the GUI using the `Debug REST Service...` command. The command can be accessed in the command palette, editor context menu or editor tab context menu. Follow the directions in the GUI to build your REST request and click the `Start Debugging` button to send the request and connect the debugger. Be sure you have a breakpoint set somewhere in the code that handles the request.
+
 ## Troubleshooting Debugger Issues
 
 If you are experiencing issues using the debugger, please follow these steps before opening an issue on GitHub:
