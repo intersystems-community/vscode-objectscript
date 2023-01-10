@@ -1,5 +1,21 @@
 # Change Log
 
+## [2.4.0] 10-Jan-2023
+- Enhancements
+  - Show server name in Status Bar (#1017)
+  - Server-side search: use include/exclude specs (#1021)
+  - Add commands for creating new files (#1029)
+  - Add `FileDecoration` for Generated files (#1035)
+  - Add command for importing local files into server-side workspace folder (#1036)
+  - Document new Language Server setting (#1037)
+  - Add support for debugging REST services (#1043)
+- Fixes
+  - Hide `-injection` languages from selector (#1011)
+  - Properly report matches in Storage definitions (#1025)
+  - Fix debug breakpoint mapping when Language Server is absent (#1031)
+  - Don't call `openTextDocument` in debugger (#1042) 
+  - Upgrade vulnerable dependencies.
+
 ## [2.2.0] 31-Oct-2022
 - Enhancements
   - Add features to ease migration from Studio (see [Migrating from Studio documentation page](https://intersystems-community.github.io/vscode-objectscript/studio/) for details) (#1003)
