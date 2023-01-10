@@ -150,7 +150,7 @@ If you want to store a password for this server definition, select **Store Passw
 
 You can create a configuration for a server that is not currently running.
 
-If you are connecting via a standalone web server which bublishes services for more than one InterSystems server you will need to edit the server configuration in your `settings.json` file to add a `pathPrefix` property. See the next section.
+If you are connecting via a standalone web server which publishes services for more than one InterSystems server you will need to edit the server configuration in your `settings.json` file to add a `pathPrefix` property. See the next section.
 
 ## Editing a Server Configuration
 

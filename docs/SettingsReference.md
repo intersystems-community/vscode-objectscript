@@ -18,6 +18,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"intersystems.language-server.diagnostics.deprecation"` | Controls whether strikethrough warning diagnostics are provided when a class or class member that is being referred to is deprecated. | `boolean` | `true` | |
 | `"intersystems.language-server.diagnostics.parameters"` | Controls whether warning diagnostics are provided when a class Parameter has an invalid type or the assigned value of the Parameter doesn't match the declared type. | `boolean` | `true` | |
 | `"intersystems.language-server.diagnostics.routines"` | Controls whether error diagnostics are provided when a routine or include file that is being referred to doesn't exist in the database. | `boolean` | `false` | |
+| `"intersystems.language-server.diagnostics.zutil"` | Controls whether diagnostics are provided when a deprecated or superseded `$ZUTIL` function is being called. | `boolean` | `true` | |
 | `"intersystems.language-server.formatting.commands.case"` | Controls the case that ObjectScript commands will be changed to during a document formatting request. | `"upper"`, `"lower"` or `"word"` | `"word"` | |
 | `"intersystems.language-server.formatting.commands.length"` | Controls the length that ObjectScript commands will be changed to during a document formatting request. | `"short"` or `"long"` | `"long"` | |
 | `"intersystems.language-server.formatting.expandClassNames"` | Controls whether short class names will be expanded to include a package during a document formatting request. | `boolean` | `false` | |
@@ -75,6 +76,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.serverSideEditing"` | Allow editing code directly on the server after opening it from ObjectScript Explorer. | `boolean` | `false` | |
 | `"objectscript.serverSourceControl .disableOtherActionTriggers"` | Prevent server-side source control 'other action' triggers from firing. | `boolean` | `false` | |
 | `"objectscript.showExplorer"` | Show the ObjectScript Explorer view. | `boolean` | `true` | |
+| `"objectscript.showGeneratedFileDecorations"` | Controls whether a badge is shown in the file explorer and open editors view for generated files. | `boolean` | `true` | |
 | `"objectscript.studioActionDebugOutput"` | Log in JSON format the action that VS Code should perform as requested by the server. | `boolean` | `false` | Actions will be logged to the `ObjectScript` Output channel. |
 | `"objectscript.suppressCompileErrorMessages"` | Suppress popup messages about errors during compile, but still focus on Output view. | `boolean` | `false` | |
 | `"objectscript.suppressCompileMessages"` | Suppress popup messages about successful compile. | `boolean` | `true` | |

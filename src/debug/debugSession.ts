@@ -1,5 +1,5 @@
 import vscode = require("vscode");
-import { currentFile } from "../utils";
+import { currentFile, currentFileFromContent } from "../utils";
 import { Subject } from "await-notify";
 import {
   InitializedEvent,
@@ -19,7 +19,6 @@ import WebSocket = require("ws");
 import { AtelierAPI } from "../api";
 import * as xdebug from "./xdebugConnection";
 import { schemas } from "../extension";
-import * as url from "url";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { formatPropertyValue } from "./utils";
 
@@ -32,7 +31,9 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 
 interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
   /** The process id to attach to. */
-  processId: string;
+  processId?: string;
+  /** The CSP debug ID to use to identify the target process. */
+  cspDebugId?: string;
   /** Automatically stop target after connect. If not specified, target does not stop. */
   stopOnEntry?: boolean;
 }
@@ -40,20 +41,15 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
 /** converts a uri from VS Code to a server-side XDebug file URI with respect to source root settings */
 async function convertClientPathToDebugger(uri: vscode.Uri, namespace: string): Promise<string> {
   const { scheme, path } = uri;
-  const { query } = url.parse(uri.toString(true), true);
+  const params = new URLSearchParams(uri.query);
   let fileName: string;
   if (scheme && schemas.includes(scheme)) {
-    if (query.ns && query.ns !== "") {
-      namespace = query.ns.toString();
+    if (params.has("ns") && params.get("ns") !== "") {
+      namespace = params.get("ns");
     }
     fileName = path.slice(1).replace(/\//g, ".");
   } else {
-    fileName = await vscode.workspace
-      .openTextDocument(uri)
-      .then(currentFile)
-      .then((curFile) => {
-        return curFile.name;
-      });
+    fileName = currentFileFromContent(uri, new TextDecoder().decode(await vscode.workspace.fs.readFile(uri)))?.name;
   }
 
   namespace = encodeURIComponent(namespace);
@@ -91,6 +87,15 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
   private _workspace: string;
 
   private cookies: string[] = [];
+
+  /** If this is a CSPDEBUG session */
+  private _csp = false;
+
+  /** The condition used for the watchpoint that allows us to detach from a CSPDEBUG session after the page has been loaded. */
+  private readonly _cspWatchpointCondition = `(($DATA(allowed)=1)&&(allowed=1)&&($ZNAME="%SYS.cspServer")&&(%response.Timeout'="")&&($CLASSNAME()="%CSP.Session"))`;
+
+  /** If we're stopped at a breakpoint. */
+  private _break = false;
 
   public constructor() {
     super();
@@ -191,8 +196,12 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
   protected async attachRequest(response: DebugProtocol.AttachResponse, args: AttachRequestArguments): Promise<void> {
     try {
-      const debugTarget = `PID:${args.processId}`;
+      const debugTarget = args.cspDebugId != undefined ? `CSPDEBUG:${args.cspDebugId}` : `PID:${args.processId}`;
       await this._connection.sendFeatureSetCommand("debug_target", debugTarget);
+      if (args.cspDebugId != undefined) {
+        await this._connection.sendBreakpointSetCommand(new xdebug.Watchpoint("ok", this._cspWatchpointCondition));
+        this._csp = true;
+      }
       this._debugTargetSet.notify();
     } catch (error) {
       this.sendErrorResponse(response, error);
@@ -254,6 +263,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       const uri = schemas.includes(scheme) ? vscode.Uri.parse(filePath) : vscode.Uri.file(filePath);
       const fileUri = await convertClientPathToDebugger(uri, this._namespace);
       const [, fileName] = fileUri.match(/\|([^|]+)$/);
+      const languageServer: boolean = vscode.extensions.getExtension("intersystems.language-server")?.isActive ?? false;
 
       const currentList = await this._connection.sendBreakpointListCommand();
       currentList.breakpoints
@@ -293,34 +303,57 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
               currentSymbol.detail.toLowerCase() !== "query"
             ) {
               // This breakpoint is in a method
-              const currentdoc = await vscode.workspace.openTextDocument(uri);
-              for (
-                let methodlinenum = currentSymbol.selectionRange.start.line;
-                methodlinenum <= currentSymbol.range.end.line;
-                methodlinenum++
-              ) {
-                // Find the offset of this breakpoint in the method
-                const methodlinetext: string = currentdoc.lineAt(methodlinenum).text.trim();
-                if (methodlinetext.endsWith("{")) {
-                  // This is the last line of the method definition, so count from here
-                  if (breakpoint.condition) {
-                    return new xdebug.ClassConditionalBreakpoint(
-                      breakpoint.condition,
-                      fileUri,
-                      line,
-                      currentSymbol.name,
-                      line - methodlinenum - 1,
-                      breakpoint.hitCondition
-                    );
-                  } else {
-                    return new xdebug.ClassLineBreakpoint(
-                      fileUri,
-                      line,
-                      currentSymbol.name,
-                      line - methodlinenum - 1,
-                      breakpoint.hitCondition
-                    );
+              const currentdoc = new TextDecoder().decode(await vscode.workspace.fs.readFile(uri)).split(/\r?\n/);
+              if (languageServer) {
+                // selectionRange.start.line is the method definition line
+                for (
+                  let methodlinenum = currentSymbol.selectionRange.start.line;
+                  methodlinenum <= currentSymbol.range.end.line;
+                  methodlinenum++
+                ) {
+                  // Find the offset of this breakpoint in the method
+                  const methodlinetext: string = currentdoc[methodlinenum].trim();
+                  if (methodlinetext.endsWith("{")) {
+                    // This is the last line of the method definition, so count from here
+                    if (breakpoint.condition) {
+                      return new xdebug.ClassConditionalBreakpoint(
+                        breakpoint.condition,
+                        fileUri,
+                        line,
+                        currentSymbol.name,
+                        line - methodlinenum - 1,
+                        breakpoint.hitCondition
+                      );
+                    } else {
+                      return new xdebug.ClassLineBreakpoint(
+                        fileUri,
+                        line,
+                        currentSymbol.name,
+                        line - methodlinenum - 1,
+                        breakpoint.hitCondition
+                      );
+                    }
                   }
+                }
+              } else {
+                // selectionRange.start.line is the start of the method code so count from there
+                if (breakpoint.condition) {
+                  return new xdebug.ClassConditionalBreakpoint(
+                    breakpoint.condition,
+                    fileUri,
+                    line,
+                    currentSymbol.name,
+                    line - currentSymbol.selectionRange.start.line,
+                    breakpoint.hitCondition
+                  );
+                } else {
+                  return new xdebug.ClassLineBreakpoint(
+                    fileUri,
+                    line,
+                    currentSymbol.name,
+                    line - currentSymbol.selectionRange.start.line,
+                    breakpoint.hitCondition
+                  );
                 }
               }
             }
@@ -345,7 +378,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
             }
           }
         })
-      );
+      ).then((bps) => bps.filter((bp) => typeof bp == "object"));
 
       const vscodeBreakpoints: DebugProtocol.Breakpoint[] = [];
       await Promise.all(
@@ -472,6 +505,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     args: DebugProtocol.StackTraceArguments
   ): Promise<void> {
     const stack = await this._connection.sendStackGetCommand();
+    const languageServer: boolean = vscode.extensions.getExtension("intersystems.language-server")?.isActive ?? false;
 
     const stackFrames = await Promise.all(
       stack.stack.map(async (stackFrame: xdebug.StackFrame, index): Promise<StackFrame> => {
@@ -502,20 +536,38 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
               }
             }
             if (currentSymbol !== undefined) {
-              const currentdoc = await vscode.workspace.openTextDocument(fileUri);
-              for (
-                let methodlinenum = currentSymbol.selectionRange.start.line;
-                methodlinenum <= currentSymbol.range.end.line;
-                methodlinenum++
-              ) {
-                // Find the offset of this breakpoint in the method
-                const methodlinetext: string = currentdoc.lineAt(methodlinenum).text.trim();
-                if (methodlinetext.endsWith("{")) {
-                  // This is the last line of the method definition, so count from here
-                  line = methodlinenum + stackFrame.methodOffset + 1;
-                  break;
+              const currentdoc = new TextDecoder().decode(await vscode.workspace.fs.readFile(fileUri)).split(/\r?\n/);
+              if (languageServer) {
+                for (
+                  let methodlinenum = currentSymbol.selectionRange.start.line;
+                  methodlinenum <= currentSymbol.range.end.line;
+                  methodlinenum++
+                ) {
+                  // Find the offset of this breakpoint in the method
+                  const methodlinetext: string = currentdoc[methodlinenum].trim();
+                  if (methodlinetext.endsWith("{")) {
+                    // This is the last line of the method definition, so count from here
+                    line = methodlinenum + stackFrame.methodOffset + 1;
+                    break;
+                  }
                 }
+              } else {
+                line = currentSymbol.selectionRange.start.line + stackFrame.methodOffset;
               }
+            }
+          }
+          if (
+            this._csp &&
+            this._break &&
+            ["%SYS.cspServer.mac", "%SYS.cspServer.int"].includes(source.name) &&
+            index == 0
+          ) {
+            // Check if we're at our special watchpoint
+            const { result } = await this._connection.sendEvalCommand(this._cspWatchpointCondition);
+            if (result.type == "int" && result.value == "1") {
+              // Stop the debugging session
+              const xdebugResponse = await this._connection.sendDetachCommand();
+              await this._checkStatus(xdebugResponse);
             }
           }
           this._stackFrames.set(stackFrameId, stackFrame);
@@ -532,6 +584,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       })
     );
 
+    this._break = false;
     response.body = {
       stackFrames,
     };
@@ -657,6 +710,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       } else {
         stoppedEventReason = "breakpoint";
       }
+      this._break = true;
       const event: DebugProtocol.StoppedEvent = new StoppedEvent(stoppedEventReason, connection.id, exceptionText);
       event.body.allThreadsStopped = false;
       this.sendEvent(event);

@@ -36,7 +36,7 @@ export class ObjectScriptConfigurationProvider implements DebugConfigurationProv
       });
     }
 
-    if (config.request === "attach" && !config.processId) {
+    if (config.request === "attach" && !config.processId && !config.cspDebugId) {
       config.processId = "${command:PickProcess}";
     }
 

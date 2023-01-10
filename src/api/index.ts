@@ -228,9 +228,15 @@ export class AtelierAPI {
   }
 
   public get connInfo(): string {
-    const { host, port, docker, dockerService } = this.config;
+    const { serverName, host, port, docker, dockerService } = this.config;
     const ns = this.ns.toUpperCase();
-    return (docker ? "docker" + (dockerService ? `:${dockerService}:${port}` : "") : `${host}:${port}`) + `[${ns}]`;
+    return (
+      (docker
+        ? "docker" + (dockerService ? `:${dockerService}:${port}` : "")
+        : serverName
+        ? serverName
+        : `${host}:${port}`) + `[${ns}]`
+    );
   }
 
   public async request(
@@ -698,5 +704,20 @@ export class AtelierAPI {
       // Poll until we get a result or the user cancels the request
       return this.getAsyncResult(id, 50, token);
     });
+  }
+
+  // v1+
+  public async getNamespace(nsOverride?: string): Promise<Atelier.Response> {
+    return this.request(1, "GET", nsOverride || this.ns);
+  }
+
+  // v1+
+  public async getEnsClassList(type: number): Promise<Atelier.Response> {
+    return this.request(1, "GET", `${this.ns}/ens/classes/${type}`);
+  }
+
+  // v2+
+  public async getCSPDebugId(): Promise<Atelier.Response<Atelier.Content<number>>> {
+    return this.request(2, "GET", "%SYS/cspdebugid");
   }
 }

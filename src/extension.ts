@@ -3,7 +3,7 @@ export const extensionId = "intersystems-community.vscode-objectscript";
 import vscode = require("vscode");
 import * as semver from "semver";
 
-import { AtelierJob } from "./api/atelier";
+import { AtelierJob, Content, Response, ServerInfo } from "./api/atelier";
 export const OBJECTSCRIPT_FILE_SCHEMA = "objectscript";
 export const OBJECTSCRIPTXML_FILE_SCHEMA = "objectscriptxml";
 export const FILESYSTEM_SCHEMA = "isfs";
@@ -25,6 +25,7 @@ import {
   compileExplorerItems,
   checkChangedOnServer,
   compileOnly,
+  importLocalFilesToServerSideFolder,
 } from "./commands/compile";
 import { deleteExplorerItems } from "./commands/delete";
 import { exportAll, exportCurrentFile, exportExplorerItems, getCategory } from "./commands/export";
@@ -113,6 +114,9 @@ import {
 import { NodeBase } from "./explorer/models/nodeBase";
 import { loadStudioColors, loadStudioSnippets } from "./commands/studioMigration";
 import { openCustomEditors, RuleEditorProvider } from "./providers/RuleEditorProvider";
+import { newFile, NewFileType } from "./commands/newFile";
+import { FileDecorationProvider } from "./providers/FileDecorationProvider";
+import { RESTDebugPanel } from "./commands/restDebugPanel";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -254,7 +258,7 @@ export async function checkConnection(
     _onDidChangeConnection.fire();
   }
   let api = new AtelierAPI(apiTarget, false);
-  const { active, host = "", port = 0, pathPrefix, username, ns = "" } = api.config;
+  const { active, host = "", port = 0, username, ns = "" } = api.config;
   vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
   if (!panel.text) {
     panel.text = `${PANEL_LABEL}`;
@@ -266,11 +270,12 @@ export async function checkConnection(
   }
   let connInfo = api.connInfo;
   if (!active) {
-    if (!host.length || !port || !ns.length) {
-      connInfo = `incompletely specified server ${connInfo}`;
-    }
     panel.text = `${PANEL_LABEL} $(warning)`;
-    panel.tooltip = `Connection to ${connInfo} is disabled`;
+    panel.tooltip = new vscode.MarkdownString(
+      `Connection to${
+        !host.length || !port || !ns.length ? " incompletely specified server" : ""
+      } \`${connInfo}\` is disabled`
+    );
     return;
   }
 
@@ -325,9 +330,17 @@ export async function checkConnection(
   checkingConnection = true;
 
   // What we do when api.serverInfo call succeeds
-  const gotServerInfo = async (info) => {
+  const gotServerInfo = async (info: Response<Content<ServerInfo>>) => {
     panel.text = api.connInfo;
-    panel.tooltip = `Connected${pathPrefix ? " to " + pathPrefix : ""} as ${username}`;
+    if (api.config.serverName) {
+      panel.tooltip = new vscode.MarkdownString(
+        `Connected to \`${api.config.host}:${api.config.port}${api.config.pathPrefix}\` as \`${username}\``
+      );
+    } else {
+      panel.tooltip = new vscode.MarkdownString(
+        `Connected${api.config.pathPrefix ? ` to \`${api.config.pathPrefix}\`` : ""} as \`${username}\``
+      );
+    }
     const hasHS = info.result.content.features.find((el) => el.name === "HEALTHSHARE" && el.enabled) !== undefined;
     reporter &&
       reporter.sendTelemetryEvent("connected", {
@@ -727,6 +740,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   openedClasses = workspaceState.get("openedClasses") ?? [];
 
+  // Create this here so we can fire its event
+  const fileDecorationProvider = new FileDecorationProvider();
+
   context.subscriptions.push(
     reporter,
     panel,
@@ -934,6 +950,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.editOthers", () => viewOthers(true)),
     vscode.commands.registerCommand("vscode-objectscript.showClassDocumentationPreview", () =>
       DocumaticPreviewPanel.create(context.extensionUri)
+    ),
+    vscode.commands.registerCommand("vscode-objectscript.showRESTDebugWebview", () =>
+      RESTDebugPanel.create(context.extensionUri)
     ),
     vscode.commands.registerCommand("vscode-objectscript.exportCurrentFile", exportCurrentFile),
     vscode.workspace.onDidCreateFiles((e: vscode.FileCreateEvent) =>
@@ -1172,6 +1191,31 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.loadStudioSnippets", loadStudioSnippets),
     vscode.commands.registerCommand("vscode-objectscript.loadStudioColors", () => {
       loadStudioColors(languageServerExt);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.businessOperation", () =>
+      newFile(NewFileType.BusinessOperation)
+    ),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.bpl", () => newFile(NewFileType.BPL)),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.rule", () => newFile(NewFileType.Rule)),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.businessService", () =>
+      newFile(NewFileType.BusinessService)
+    ),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.dtl", () => newFile(NewFileType.DTL)),
+    vscode.window.registerFileDecorationProvider(fileDecorationProvider),
+    vscode.workspace.onDidOpenTextDocument((doc) => !doc.isUntitled && fileDecorationProvider.emitter.fire(doc.uri)),
+    vscode.commands.registerCommand("vscode-objectscript.importLocalFilesServerSide", (wsFolderUri) => {
+      if (
+        wsFolderUri instanceof vscode.Uri &&
+        wsFolderUri.scheme == FILESYSTEM_SCHEMA &&
+        (vscode.workspace.workspaceFolders != undefined
+          ? vscode.workspace.workspaceFolders.findIndex(
+              (wsFolder) => wsFolder.uri.toString() == wsFolderUri.toString()
+            ) != -1
+          : false)
+      ) {
+        // wsFolderUri is an isfs workspace folder URI
+        return importLocalFilesToServerSideFolder(wsFolderUri);
+      }
     }),
 
     /* Anything we use from the VS Code proposed API */

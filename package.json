@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "2.2.1-SNAPSHOT",
+  "version": "2.4.1-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "9cd75d51-697c-406c-a929-2bcf46e97c64",
   "categories": [
@@ -81,6 +81,11 @@
     "onCommand:vscode-objectscript.removeItemsFromProject",
     "onCommand:vscode-objectscript.loadStudioSnippets",
     "onCommand:vscode-objectscript.loadStudioColors",
+    "onCommand:vscode-objectscript.newFile.businessOperation",
+    "onCommand:vscode-objectscript.newFile.bpl",
+    "onCommand:vscode-objectscript.newFile.rule",
+    "onCommand:vscode-objectscript.newFile.businessService",
+    "onCommand:vscode-objectscript.newFile.dtl",
     "onLanguage:objectscript",
     "onLanguage:objectscript-int",
     "onLanguage:objectscript-class",
@@ -295,6 +300,34 @@
         {
           "command": "vscode-objectscript.loadStudioColors",
           "when": "isWindows"
+        },
+        {
+          "command": "vscode-objectscript.newFile.businessOperation",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.newFile.bpl",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.newFile.rule",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.newFile.businessService",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.newFile.dtl",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.importLocalFilesServerSide",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.showRESTDebugWebview",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         }
       ],
       "view/title": [
@@ -461,6 +494,11 @@
           "command": "vscode-objectscript.exportCurrentFile",
           "when": "resourceScheme == objectscript && vscode-objectscript.connectActive",
           "group": "objectscript@8"
+        },
+        {
+          "command": "vscode-objectscript.showRESTDebugWebview",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "group": "objectscript@9"
         }
       ],
       "editor/title": [
@@ -485,6 +523,11 @@
           "command": "vscode-objectscript.showClassDocumentationPreview",
           "group": "1_open",
           "when": "resourceLangId == objectscript-class && activeCustomEditorId == ''"
+        },
+        {
+          "command": "vscode-objectscript.showRESTDebugWebview",
+          "group": "1_open",
+          "when": "resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         }
       ],
       "touchBar": [
@@ -539,6 +582,38 @@
           "command": "vscode-objectscript.removeItemsFromProject",
           "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && explorerResourceIsRoot",
           "group": "objectscript_prj@2"
+        },
+        {
+          "command": "vscode-objectscript.importLocalFilesServerSide",
+          "when": "vscode-objectscript.connectActive && resourceScheme == isfs && explorerResourceIsRoot",
+          "group": "objectscript_modify@2"
+        }
+      ],
+      "file/newFile": [
+        {
+          "command": "vscode-objectscript.newFile.businessOperation",
+          "when": "workspaceFolderCount != 0",
+          "group": "file"
+        },
+        {
+          "command": "vscode-objectscript.newFile.bpl",
+          "when": "workspaceFolderCount != 0",
+          "group": "file"
+        },
+        {
+          "command": "vscode-objectscript.newFile.rule",
+          "when": "workspaceFolderCount != 0",
+          "group": "file"
+        },
+        {
+          "command": "vscode-objectscript.newFile.businessService",
+          "when": "workspaceFolderCount != 0",
+          "group": "file"
+        },
+        {
+          "command": "vscode-objectscript.newFile.dtl",
+          "when": "workspaceFolderCount != 0",
+          "group": "file"
         }
       ]
     },
@@ -974,6 +1049,41 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.loadStudioColors",
         "title": "Load Studio Syntax Colors"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.newFile.businessOperation",
+        "title": "Business Operation"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.newFile.bpl",
+        "title": "Business Process"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.newFile.rule",
+        "title": "Business Rule"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.newFile.businessService",
+        "title": "Business Service"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.newFile.dtl",
+        "title": "Data Transformation"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.importLocalFilesServerSide",
+        "title": "Import Local Files..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.showRESTDebugWebview",
+        "title": "Debug REST Service..."
       }
     ],
     "keybindings": [
@@ -1326,6 +1436,11 @@
           "description": "Automatically save a client-side InterSystems file on the server when saved in the editor.",
           "type": "boolean",
           "default": true
+        },
+        "objectscript.showGeneratedFileDecorations": {
+          "description": "Controls whether a badge is shown in the file explorer and open editors view for generated files.",
+          "type": "boolean",
+          "default": true
         }
       }
     },
@@ -1389,13 +1504,20 @@
                   "number",
                   "string"
                 ],
-                "description": "ID of process to attach to.",
+                "description": "ID of the process to attach to.",
                 "default": "${command:PickProcess}"
               },
               "system": {
                 "type": "boolean",
-                "description": "Enable to attach to system process.",
+                "description": "Enable attaching to system processes.",
                 "default": false
+              },
+              "cspDebugId": {
+                "type": [
+                  "number",
+                  "string"
+                ],
+                "description": "The CSP debug ID to use to identify the target process. If provided, 'processId' is ignored."
               }
             }
           }

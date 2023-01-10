@@ -17,6 +17,7 @@ import {
   currentFile,
   CurrentFile,
   currentFileFromContent,
+  notNull,
   outputChannel,
   throttleRequests,
 } from "../utils";
@@ -69,12 +70,12 @@ export async function checkChangedOnServer(file: CurrentFile, force = false): Pr
   return mtime;
 }
 
-async function importFile(file: CurrentFile, ignoreConflict?: boolean): Promise<any> {
+async function importFile(file: CurrentFile, ignoreConflict?: boolean, skipDeplCheck = false): Promise<any> {
   const api = new AtelierAPI(file.uri);
-  if (file.name.split(".").pop().toLowerCase() === "cls") {
+  if (file.name.split(".").pop().toLowerCase() === "cls" && !skipDeplCheck) {
     const result = await api.actionIndex([file.name]);
     if (result.result.content[0].content.depl) {
-      vscode.window.showErrorMessage("Cannot import over a deployed class");
+      vscode.window.showErrorMessage(`Cannot import ${file.name} because it is deployed on the server.`, "Dismiss");
       return Promise.reject();
     }
   }
@@ -126,7 +127,7 @@ What do you want to do?`,
                 // Clear cache entry
                 workspaceState.update(`${file.uniqueId}:mtime`, undefined);
                 // Overwrite
-                return importFile(file, true);
+                return importFile(file, true, true);
               case "Pull Server Changes":
                 outputChannel.appendLine(`${file.name}: Loading changes from server`);
                 outputChannel.show(true);
@@ -404,7 +405,7 @@ function importFiles(files: string[], noCompile = false) {
         vscode.workspace.fs
           .readFile(vscode.Uri.file(file))
           .then((contentBytes) => new TextDecoder().decode(contentBytes))
-          .then((content) => currentFileFromContent(file, content))
+          .then((content) => currentFileFromContent(vscode.Uri.file(file), content))
           .then((curFile) =>
             importFile(curFile).then((data) => {
               outputChannel.appendLine("Imported file: " + curFile.fileName);
@@ -498,4 +499,225 @@ export async function compileExplorerItems(nodes: NodeBase[]): Promise<any> {
           }
         })
   );
+}
+
+/** Import file `name` to server `api`. Used for importing local files that are not used as part of a client-side editing workspace. */
+async function importFileFromContent(
+  name: string,
+  content: string,
+  api: AtelierAPI,
+  ignoreConflict?: boolean,
+  skipDeplCheck = false
+): Promise<void> {
+  if (name.split(".").pop().toLowerCase() === "cls" && !skipDeplCheck) {
+    const result = await api.actionIndex([name]);
+    if (result.result.content[0].content.depl) {
+      vscode.window.showErrorMessage(`Cannot import ${name} because it is deployed on the server.`, "Dismiss");
+      return Promise.reject();
+    }
+  }
+  ignoreConflict = ignoreConflict || config("overwriteServerChanges");
+  return api
+    .putDoc(
+      name,
+      {
+        content: content.split(/\r?\n/),
+        enc: false,
+        // We don't have an mtime for this file because it's outside a local workspace folder
+        mtime: 0,
+      },
+      ignoreConflict
+    )
+    .then(() => {
+      return;
+    })
+    .catch((error) => {
+      if (error?.statusCode == 409) {
+        return vscode.window
+          .showErrorMessage(
+            `Failed to import '${name}' because it already exists on the server. Overwrite server copy?`,
+            "Yes",
+            "No"
+          )
+          .then((action) => {
+            if (action == "Yes") {
+              return importFileFromContent(name, content, api, true, true);
+            } else {
+              return Promise.reject();
+            }
+          });
+      } else {
+        if (error && error.errorText && error.errorText !== "") {
+          outputChannel.appendLine("\n" + error.errorText);
+          vscode.window
+            .showErrorMessage(
+              `Failed to save file '${name}' on the server. Check 'ObjectScript' output channel for details.`,
+              "Show",
+              "Dismiss"
+            )
+            .then((action) => {
+              if (action === "Show") {
+                outputChannel.show(true);
+              }
+            });
+        } else {
+          vscode.window.showErrorMessage(`Failed to save file '${name}' on the server.`, "Dismiss");
+        }
+        return Promise.reject();
+      }
+    });
+}
+
+/** Import files from the local file system into a server-namespace from an `isfs` workspace folder. */
+export async function importLocalFilesToServerSideFolder(wsFolderUri: vscode.Uri): Promise<any> {
+  if (
+    !(
+      wsFolderUri instanceof vscode.Uri &&
+      wsFolderUri.scheme == FILESYSTEM_SCHEMA &&
+      (vscode.workspace.workspaceFolders != undefined
+        ? vscode.workspace.workspaceFolders.findIndex(
+            (wsFolder) => wsFolder.uri.toString() == wsFolderUri.toString()
+          ) != -1
+        : false)
+    )
+  ) {
+    // Need an isfs workspace folder URI
+    return;
+  }
+  if (vscode.workspace.workspaceFile.scheme != "file") {
+    vscode.window.showErrorMessage(
+      "'Import Local Files...' command is not supported for unsaved workspaces.",
+      "Dismiss"
+    );
+    return;
+  }
+  const api = new AtelierAPI(wsFolderUri);
+  // Prompt the user for files to import
+  let uris = await vscode.window.showOpenDialog({
+    canSelectFiles: true,
+    canSelectFolders: false,
+    canSelectMany: true,
+    openLabel: "Import",
+    filters: {
+      "InterSystems Files": ["cls", "mac", "int", "inc"],
+    },
+    // Need a default URI with file scheme or the open dialog
+    // will show the virtual files from the workspace folder
+    defaultUri: vscode.workspace.workspaceFile,
+  });
+  if (!Array.isArray(uris) || uris.length == 0) {
+    // No files to import
+    return;
+  }
+  // Filter out non-ISC files
+  uris = uris.filter((uri) => ["cls", "mac", "int", "inc"].includes(uri.path.split(".").pop().toLowerCase()));
+  if (uris.length == 0) {
+    vscode.window.showErrorMessage("No classes or routines were selected.", "Dismiss");
+    return;
+  }
+  // Import the files
+  return Promise.allSettled<string>(
+    uris.map(
+      throttleRequests((uri: vscode.Uri) =>
+        vscode.workspace.fs
+          .readFile(uri)
+          .then((contentBytes) => new TextDecoder().decode(contentBytes))
+          .then((content) => {
+            // Determine the name of this file
+            let docName = "";
+            let ext = "";
+            if (uri.path.split(".").pop().toLowerCase() == "cls") {
+              // Allow Unicode letters
+              const match = content.match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
+              if (match) {
+                [, docName, ext = "cls"] = match;
+              }
+            } else {
+              const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i);
+              if (match) {
+                [, docName, ext = "mac"] = match;
+              } else {
+                const basename = uri.path.split("/").pop();
+                docName = basename.slice(0, basename.lastIndexOf("."));
+                ext = basename.slice(basename.lastIndexOf(".") + 1);
+              }
+            }
+            if (docName != "" && ext != "") {
+              docName += `.${ext.toLowerCase()}`;
+              return importFileFromContent(docName, content, api).then(() => {
+                outputChannel.appendLine("Imported file: " + uri.path.split("/").pop());
+                return docName;
+              });
+            } else {
+              vscode.window.showErrorMessage(
+                `Cannot determine document name for file ${uri.toString(true)}.`,
+                "Dismiss"
+              );
+              return Promise.reject();
+            }
+          })
+      )
+    )
+  ).then((results) => {
+    const imported = results.map((result) => (result.status == "fulfilled" ? result.value : null)).filter(notNull);
+    // Prompt the user for compilation
+    if (imported.length) {
+      return vscode.window
+        .showInformationMessage(
+          `Imported ${imported.length == 1 ? imported[0] : `${imported.length} files`}. Compile ${
+            imported.length > 1 ? "them" : "it"
+          }?`,
+          "Yes",
+          "No"
+        )
+        .then((response) => {
+          if (response == "Yes") {
+            // Compile the imported files
+            return vscode.window.withProgress(
+              {
+                cancellable: true,
+                location: vscode.ProgressLocation.Notification,
+                title: `Compiling: ${imported.length == 1 ? imported[0] : imported.length + " files"}`,
+              },
+              (progress, token: vscode.CancellationToken) =>
+                api
+                  .asyncCompile(imported, token, config("compileFlags"))
+                  .then((data) => {
+                    const info = imported.length > 1 ? "" : `${imported[0]}: `;
+                    if (data.status && data.status.errors && data.status.errors.length) {
+                      throw new Error(`${info}Compile error`);
+                    } else if (!config("suppressCompileMessages")) {
+                      vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
+                    }
+                  })
+                  .catch(() => {
+                    if (!config("suppressCompileErrorMessages")) {
+                      vscode.window
+                        .showErrorMessage(
+                          "Compilation failed. Check 'ObjectScript' output channel for details.",
+                          "Show",
+                          "Dismiss"
+                        )
+                        .then((action) => {
+                          if (action === "Show") {
+                            outputChannel.show(true);
+                          }
+                        });
+                    }
+                  })
+                  .finally(() => {
+                    // Refresh the files explorer to show the new files
+                    vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
+                  })
+            );
+          } else {
+            // Refresh the files explorer to show the new files
+            vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
+            return Promise.resolve();
+          }
+        });
+    } else {
+      return Promise.resolve();
+    }
+  });
 }
