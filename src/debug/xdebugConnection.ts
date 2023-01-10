@@ -326,21 +326,30 @@ export class RoutineConditionalBreakpoint extends ConditionalBreakpoint {
 export class Watchpoint extends Breakpoint {
   /** The variable to watch */
   public variable: string;
+  /** The expression under which to break on */
+  public expression?: string;
   /** Constructs a breakpoint object from an XML node from a XDebug response */
   public constructor(breakpointNode: Element, connection: Connection);
   /** Contructs a breakpoint object for passing to sendSetBreakpointCommand */
-  public constructor(variable: string);
+  public constructor(variable: string, expression?: string);
   public constructor(...rest: any[]) {
     if (typeof rest[0] === "object") {
       // from XML
       const breakpointNode: Element = rest[0];
       const connection: Connection = rest[1];
       super(breakpointNode, connection);
-      this.variable = breakpointNode.getAttribute("expression"); // Base64 encoded?
+      const expr = breakpointNode.getAttribute("expression"); // Base64 encoded?
+      if (expr.includes("|")) {
+        this.variable = expr.slice(0, expr.indexOf("|"));
+        this.expression = expr.slice(expr.indexOf("|") + 1);
+      } else {
+        this.variable = expr;
+      }
     } else {
       // from arguments
       super("watch");
       this.variable = rest[0];
+      this.expression = rest[1];
     }
   }
 }
@@ -849,6 +858,9 @@ export class Connection extends DbgpConnection {
       data = breakpoint.expression;
     } else if (breakpoint instanceof Watchpoint) {
       data = breakpoint.variable;
+      if (breakpoint.expression != undefined) {
+        data += "|" + breakpoint.expression;
+      }
 
       // These placeholders are needed due to a bug on the server
       // They have no effect on the watchpoint functionality
