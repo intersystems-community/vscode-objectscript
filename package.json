@@ -327,7 +327,7 @@
         },
         {
           "command": "vscode-objectscript.showRESTDebugWebview",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && activeCustomEditorId == ''"
         }
       ],
       "view/title": [
@@ -497,7 +497,7 @@
         },
         {
           "command": "vscode-objectscript.showRESTDebugWebview",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && activeCustomEditorId == ''",
           "group": "objectscript@9"
         }
       ],
@@ -527,7 +527,7 @@
         {
           "command": "vscode-objectscript.showRESTDebugWebview",
           "group": "1_open",
-          "when": "resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive && activeCustomEditorId == ''"
         }
       ],
       "touchBar": [
