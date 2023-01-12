@@ -18,7 +18,7 @@ import { DebugProtocol } from "vscode-debugprotocol";
 import WebSocket = require("ws");
 import { AtelierAPI } from "../api";
 import * as xdebug from "./xdebugConnection";
-import { schemas } from "../extension";
+import { documentContentProvider, OBJECTSCRIPT_FILE_SCHEMA, schemas } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { formatPropertyValue } from "./utils";
 
@@ -38,6 +38,15 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
   stopOnEntry?: boolean;
 }
 
+/** Get the text of file `uri`. Works for all file systems and the `objectscript` `DocumentContentProvider`. */
+async function getFileText(uri: vscode.Uri): Promise<string> {
+  if (uri.scheme == OBJECTSCRIPT_FILE_SCHEMA) {
+    return await documentContentProvider.provideTextDocumentContent(uri, new vscode.CancellationTokenSource().token);
+  } else {
+    return new TextDecoder().decode(await vscode.workspace.fs.readFile(uri));
+  }
+}
+
 /** converts a uri from VS Code to a server-side XDebug file URI with respect to source root settings */
 async function convertClientPathToDebugger(uri: vscode.Uri, namespace: string): Promise<string> {
   const { scheme, path } = uri;
@@ -49,7 +58,7 @@ async function convertClientPathToDebugger(uri: vscode.Uri, namespace: string): 
     }
     fileName = path.slice(1).replace(/\//g, ".");
   } else {
-    fileName = currentFileFromContent(uri, new TextDecoder().decode(await vscode.workspace.fs.readFile(uri)))?.name;
+    fileName = currentFileFromContent(uri, await getFileText(uri))?.name;
   }
 
   namespace = encodeURIComponent(namespace);
@@ -303,7 +312,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
               currentSymbol.detail.toLowerCase() !== "query"
             ) {
               // This breakpoint is in a method
-              const currentdoc = new TextDecoder().decode(await vscode.workspace.fs.readFile(uri)).split(/\r?\n/);
+              const currentdoc = (await getFileText(uri)).split(/\r?\n/);
               if (languageServer) {
                 // selectionRange.start.line is the method definition line
                 for (
@@ -536,7 +545,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
               }
             }
             if (currentSymbol !== undefined) {
-              const currentdoc = new TextDecoder().decode(await vscode.workspace.fs.readFile(fileUri)).split(/\r?\n/);
+              const currentdoc = (await getFileText(fileUri)).split(/\r?\n/);
               if (languageServer) {
                 for (
                   let methodlinenum = currentSymbol.selectionRange.start.line;
