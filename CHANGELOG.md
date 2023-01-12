@@ -1,5 +1,9 @@
 # Change Log
 
+## [2.4.1] 12-Jan-2023
+- Fixes
+  - Fix 'No file system provider found' errors when debugging local file (#1047)
+
 ## [2.4.0] 10-Jan-2023
 - Enhancements
   - Show server name in Status Bar (#1017)
