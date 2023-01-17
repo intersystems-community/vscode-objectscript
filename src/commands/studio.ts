@@ -9,6 +9,7 @@ import { RoutineNode } from "../explorer/models/routineNode";
 import { NodeBase } from "../explorer/models/nodeBase";
 import { importAndCompile } from "./compile";
 import { ProjectNode } from "../explorer/models/projectNode";
+import { openCustomEditors } from "../providers/RuleEditorProvider";
 
 export let documentBeingProcessed: vscode.TextDocument = null;
 
@@ -527,6 +528,7 @@ export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vsc
   return (
     studioActions &&
     (await studioActions.isSourceControlEnabled()) &&
+    !openCustomEditors.includes(uri.toString()) && // The custom editor will handle all server-side source control interactions
     studioActions.fireOtherStudioAction(action, userAction)
   );
 }
