@@ -31,7 +31,7 @@ jobs:
     outputs:
       taggedbranch: ${{ steps.find-branch.outputs.taggedbranch }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
       - name: Find which branch the release tag points at
         id: find-branch
@@ -41,7 +41,7 @@ jobs:
           git fetch --depth=1 origin +refs/heads/*:refs/heads/*
           set -x
           TAGGEDBRANCH=$(git for-each-ref --points-at=${{github.sha}} --format='%(refname:lstrip=2)' refs/heads/)
-          echo ::set-output name=taggedbranch::$TAGGEDBRANCH
+          echo "taggedbranch=$TAGGEDBRANCH" >> $GITHUB_OUTPUT
       - name: Set an output
         id: set-version
         if: runner.os == 'Linux'
@@ -51,41 +51,41 @@ jobs:
           [ $GITHUB_EVENT_NAME == 'release' ] && VERSION=${{ github.event.release.tag_name }} && VERSION=${VERSION/v/}
           CHANGELOG=$(cat CHANGELOG.md | sed -n "/## \[${VERSION}\]/,/## /p" | sed '/^$/d;1d;$d')
           CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
-          echo ::set-output name=changelog::$CHANGELOG
+          echo "changelog=$CHANGELOG" >> $GITHUB_OUTPUT
           git tag -l | cat
           [ $GITHUB_EVENT_NAME == 'push' ] && VERSION+=-beta && VERSION+=.$(($(git tag -l "v$VERSION.*" | sort -nt. -k4 2>/dev/null | tail -1 | cut -d. -f4)+1))
           [ $GITHUB_EVENT_NAME == 'pull_request' ] && VERSION+=-dev.${{ github.event.pull_request.number }}
-          echo ::set-output name=version::$VERSION
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
           NAME=$(jq -r '.name' package.json)-$VERSION
-          echo ::set-output name=name::$NAME
+          echo "name=$NAME" >> $GITHUB_OUTPUT
           tmp=$(mktemp)
           jq --arg version "$VERSION" '.version = $version' package.json > "$tmp" && mv "$tmp" package.json
           mkdir dist
           echo $VERSION > .version
           echo $NAME > .name
       - name: Use Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
-          node-version: 14.x
+          node-version: 16
       - run: npm install
       - name: lint
         if: runner.os == 'Linux'
         run: npm run lint
       - run: npm run compile
       - name: npm test
-        uses: GabrielBB/xvfb-action@v1.0
+        uses: coactions/setup-xvfb@v1
         with:
           run: npm run test
       - name: Build package
         if: runner.os == 'Linux'
         run: |
           npx vsce package -o ${{ steps.set-version.outputs.name }}.vsix
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: (runner.os == 'Linux') && (github.event_name != 'release')
         with:
           name: ${{ steps.set-version.outputs.name }}.vsix
           path: ${{ steps.set-version.outputs.name }}.vsix
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: runner.os == 'Linux'
         with:
           name: meta
@@ -97,7 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: meta
           path: .
@@ -106,58 +106,43 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           set -x
-          echo ::set-output name=version::`cat .version`
-          echo ::set-output name=name::`cat .name`
-      - uses: actions/download-artifact@v2
+          echo "version=`cat .version`" >> $GITHUB_OUTPUT
+          echo "name=`cat .name`" >> $GITHUB_OUTPUT
+      - uses: actions/download-artifact@v3
         with:
           name: ${{ steps.set-version.outputs.name }}.vsix
       - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+        id: create-release
+        uses: softprops/action-gh-release@v0
         if: runner.os == 'Linux'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ steps.set-version.outputs.version }}
-          release_name: v${{ steps.set-version.outputs.version }}
           prerelease: ${{ github.event_name != 'release' }}
-          body: |
-            Changes in this release
-            ${{ steps.set-version.outputs.changelog }}
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        if: runner.os == 'Linux'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.set-version.outputs.name }}.vsix
-          asset_name: ${{ steps.set-version.outputs.name }}.vsix
-          asset_content_type: application/zip
+          files: ${{ steps.set-version.outputs.name }}.vsix
+          token: ${{ secrets.GITHUB_TOKEN }}
   publish:
     needs: build
     if: github.event_name == 'release' && needs.build.outputs.taggedbranch == 'master'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: master
           token: ${{ secrets.TOKEN }}
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: meta
           path: .
       - name: Use Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
-          node-version: 14.x
+          node-version: 16
       - name: Prepare build
         id: set-version
         run: |
           VERSION=`cat .version`
           NEXT_VERSION=`cat .version | awk -F. '/[0-9]+\./{$NF++;print}' OFS=.`
-          echo ::set-output name=name::`cat .name`
+          echo "name=`cat .name`" >> $GITHUB_OUTPUT
           tmp=$(mktemp)
           git config --global user.name 'ProjectBot'
           git config --global user.email 'bot@users.noreply.github.com'
@@ -173,15 +158,12 @@ jobs:
           npx vsce package -o ${{ steps.set-version.outputs.name }}.vsix
       - name: Upload Release Asset
         id: upload-release-asset
-        uses: actions/upload-release-asset@v1
+        uses: softprops/action-gh-release@v0
         if: runner.os == 'Linux'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ${{ steps.set-version.outputs.name }}.vsix
-          asset_name: ${{ steps.set-version.outputs.name }}.vsix
-          asset_content_type: application/zip
+          tag_name: ${{ github.event.release.tag_name }}
+          files: ${{ steps.set-version.outputs.name }}.vsix
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish to VSCode Marketplace
         run: |
           [ -n "${{ secrets.VSCE_TOKEN }}" ] && \
