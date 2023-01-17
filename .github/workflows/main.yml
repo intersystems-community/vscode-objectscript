@@ -73,7 +73,7 @@ jobs:
         run: npm run lint
       - run: npm run compile
       - name: npm test
-        uses: GabrielBB/xvfb-action@v1
+        uses: coactions/setup-xvfb@v1
         with:
           run: npm run test
       - name: Build package
