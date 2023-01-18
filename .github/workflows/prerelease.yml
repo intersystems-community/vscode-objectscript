@@ -108,7 +108,7 @@ jobs:
           name: ${{ steps.set-version.outputs.name }}.vsix
       - name: Create Pre-Release
         id: create-release
-        uses: softprops/action-gh-release@v0
+        uses: softprops/action-gh-release@v1
         if: runner.os == 'Linux'
         with:
           tag_name: v${{ steps.set-version.outputs.version }}
@@ -153,7 +153,7 @@ jobs:
           npx vsce package --pre-release -o ${{ steps.set-version.outputs.name }}.vsix
       - name: Upload Release Asset
         id: upload-release-asset
-        uses: softprops/action-gh-release@v0
+        uses: softprops/action-gh-release@v1
         if: runner.os == 'Linux'
         with:
           tag_name: ${{ github.event.release.tag_name }}
