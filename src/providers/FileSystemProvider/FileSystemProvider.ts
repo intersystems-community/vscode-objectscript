@@ -306,18 +306,19 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     // Use _lookup() instead of _lookupAsFile() so we send
     // our cached mtime with the GET /doc request if we have it
     return this._lookup(uri).then(
-      () => {
+      async () => {
         // Weirdly, if the file exists on the server we don't actually write its content here.
         // Instead we simply return as though we wrote it successfully.
         // The actual writing is done by our workspace.onDidSaveTextDocument handler.
         // But first check cases for which we should fail the write and leave the document dirty if changed.
         if (!csp && fileName.split(".").pop().toLowerCase() === "cls") {
           // Check if the class is deployed
-          api.actionIndex([fileName]).then((result) => {
-            if (result.result.content[0].content.depl) {
-              throw new Error("Cannot overwrite a deployed class");
-            }
-          });
+          const result = await api.actionQuery("SELECT Deployed FROM %Dictionary.ClassDefinition WHERE Name = ?", [
+            fileName.slice(0, -4),
+          ]);
+          if (result.result.content[0].Deployed) {
+            throw new Error("Cannot overwrite a deployed class");
+          }
           // Check if the class name and file name match
           let clsname = "";
           const match = content.toString().match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
