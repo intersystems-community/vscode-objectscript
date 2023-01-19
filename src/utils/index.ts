@@ -551,6 +551,15 @@ export async function fileExists(file: vscode.Uri): Promise<boolean> {
   }
 }
 
+/** Check if class `cls` is Deployed in using server connection `api`. */
+export async function isClassDeployed(cls: string, api: AtelierAPI): Promise<boolean> {
+  return api
+    .actionQuery("SELECT Deployed FROM %Dictionary.ClassDefinition WHERE Name = ?", [
+      cls.slice(-4).toLowerCase() == ".cls" ? cls.slice(0, -4) : cls,
+    ])
+    .then((data) => data.result.content[0].Deployed > 0);
+}
+
 // ---------------------------------------------------------------------
 // Source: https://github.com/amsterdamharu/lib/blob/master/src/index.js
 
