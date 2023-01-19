@@ -17,6 +17,7 @@ import {
   currentFile,
   CurrentFile,
   currentFileFromContent,
+  isClassDeployed,
   notNull,
   outputChannel,
   throttleRequests,
@@ -73,10 +74,7 @@ export async function checkChangedOnServer(file: CurrentFile, force = false): Pr
 async function importFile(file: CurrentFile, ignoreConflict?: boolean, skipDeplCheck = false): Promise<any> {
   const api = new AtelierAPI(file.uri);
   if (file.name.split(".").pop().toLowerCase() === "cls" && !skipDeplCheck) {
-    const result = await api.actionQuery("SELECT Deployed FROM %Dictionary.ClassDefinition WHERE Name = ?", [
-      file.name.slice(0, -4),
-    ]);
-    if (result.result.content[0].Deployed) {
+    if (await isClassDeployed(file.name, api)) {
       vscode.window.showErrorMessage(`Cannot import ${file.name} because it is deployed on the server.`, "Dismiss");
       return Promise.reject();
     }

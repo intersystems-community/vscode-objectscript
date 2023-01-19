@@ -5,7 +5,13 @@ import { Directory } from "./Directory";
 import { File } from "./File";
 import { fireOtherStudioAction, OtherStudioAction } from "../../commands/studio";
 import { projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
-import { notNull, outputChannel, redirectDotvscodeRoot, workspaceFolderOfUri } from "../../utils/index";
+import {
+  isClassDeployed,
+  notNull,
+  outputChannel,
+  redirectDotvscodeRoot,
+  workspaceFolderOfUri,
+} from "../../utils/index";
 import { config, workspaceState } from "../../extension";
 import { addIsfsFileToProject, modifyProject } from "../../commands/project";
 import { DocumentContentProvider } from "../DocumentContentProvider";
@@ -313,10 +319,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         // But first check cases for which we should fail the write and leave the document dirty if changed.
         if (!csp && fileName.split(".").pop().toLowerCase() === "cls") {
           // Check if the class is deployed
-          const result = await api.actionQuery("SELECT Deployed FROM %Dictionary.ClassDefinition WHERE Name = ?", [
-            fileName.slice(0, -4),
-          ]);
-          if (result.result.content[0].Deployed) {
+          if (await isClassDeployed(fileName, api)) {
             throw new Error("Cannot overwrite a deployed class");
           }
           // Check if the class name and file name match
