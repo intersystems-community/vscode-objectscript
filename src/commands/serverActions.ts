@@ -184,6 +184,7 @@ export async function serverActions(): Promise<void> {
             const path = vscode.Uri.parse(urlString).path;
             const token = await getCSPToken(api, path);
             if (token.length > 0) {
+              urlString += urlString.includes("?") ? "" : "?";
               urlString += `&CSPCHD=${token}`;
             }
           }
