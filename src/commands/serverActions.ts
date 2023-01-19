@@ -7,34 +7,16 @@ import {
   FILESYSTEM_READONLY_SCHEMA,
   explorerProvider,
 } from "../extension";
-import {
-  connectionTarget,
-  terminalWithDocker,
-  shellWithDocker,
-  currentFile,
-} from "../utils";
+import { connectionTarget, terminalWithDocker, shellWithDocker, currentFile } from "../utils";
 import { mainCommandMenu, mainSourceControlMenu } from "./studio";
 import { AtelierAPI } from "../api";
 import { getCSPToken } from "../utils/getCSPToken";
 
-type ServerAction = {
-  detail: string;
-  id: string;
-  label: string;
-  rawLink?: string;
-};
+type ServerAction = { detail: string; id: string; label: string; rawLink?: string };
 export async function serverActions(): Promise<void> {
   const { apiTarget, configName: workspaceFolder } = connectionTarget();
   const api = new AtelierAPI(apiTarget);
-  const {
-    active,
-    host = "",
-    ns = "",
-    https,
-    port = 0,
-    pathPrefix,
-    docker,
-  } = api.config;
+  const { active, host = "", ns = "", https, port = 0, pathPrefix, docker } = api.config;
   const explorerCount = (await explorerProvider.getChildren()).length;
   if (!explorerCount && (!docker || host === "")) {
     await vscode.commands.executeCommand("ObjectScriptExplorer.focus");
@@ -56,9 +38,7 @@ export async function serverActions(): Promise<void> {
       detail: "Force attempt to connect to the server",
     });
   }
-  const connectionActionsHandler = async (
-    action: ServerAction
-  ): Promise<ServerAction> => {
+  const connectionActionsHandler = async (action: ServerAction): Promise<ServerAction> => {
     if (!action) {
       return;
     }
@@ -69,13 +49,8 @@ export async function serverActions(): Promise<void> {
           ? vscode.ConfigurationTarget.WorkspaceFolder
           : vscode.ConfigurationTarget.Workspace;
         const targetConfig =
-          connConfig.inspect("conn").workspaceFolderValue ||
-          connConfig.inspect("conn").workspaceValue;
-        return connConfig.update(
-          "conn",
-          { ...targetConfig, active: !active },
-          target
-        );
+          connConfig.inspect("conn").workspaceFolderValue || connConfig.inspect("conn").workspaceValue;
+        return connConfig.update("conn", { ...targetConfig, active: !active }, target);
       }
       case "refreshConnection": {
         await checkConnection(true, undefined, true);
@@ -94,15 +69,10 @@ export async function serverActions(): Promise<void> {
       });
   }
   const file = currentFile();
-  const classname =
-    file && file.name.toLowerCase().endsWith(".cls")
-      ? file.name.slice(0, -4)
-      : "";
+  const classname = file && file.name.toLowerCase().endsWith(".cls") ? file.name.slice(0, -4) : "";
   const classnameEncoded = encodeURIComponent(classname);
   const connInfo = `${host}:${port}${pathPrefix}[${nsEncoded.toUpperCase()}]`;
-  const serverUrl = `${
-    https ? "https" : "http"
-  }://${host}:${port}${pathPrefix}`;
+  const serverUrl = `${https ? "https" : "http"}://${host}:${port}${pathPrefix}`;
   const portalPath = `/csp/sys/UtilHome.csp?$NAMESPACE=${nsEncoded}`;
   const classRef = `/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${nsEncoded}${
     classname ? "&CLASSNAME=" + classnameEncoded : ""
@@ -111,11 +81,7 @@ export async function serverActions(): Promise<void> {
   for (const title in links) {
     const rawLink = String(links[title]);
     // Skip link if it requires a classname and we don't currently have one
-    if (
-      classname == "" &&
-      (rawLink.includes("${classname}") ||
-        rawLink.includes("${classnameEncoded}"))
-    ) {
+    if (classname == "" && (rawLink.includes("${classname}") || rawLink.includes("${classnameEncoded}"))) {
       continue;
     }
     const link = rawLink
@@ -161,8 +127,7 @@ export async function serverActions(): Promise<void> {
   if (
     !vscode.window.activeTextEditor ||
     vscode.window.activeTextEditor.document.uri.scheme === FILESYSTEM_SCHEMA ||
-    vscode.window.activeTextEditor.document.uri.scheme ===
-      FILESYSTEM_READONLY_SCHEMA
+    vscode.window.activeTextEditor.document.uri.scheme === FILESYSTEM_READONLY_SCHEMA
   ) {
     actions.push({
       id: "serverSourceControlMenu",
