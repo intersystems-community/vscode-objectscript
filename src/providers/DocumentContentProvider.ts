@@ -1,6 +1,5 @@
 import * as fs from "fs";
 import * as path from "path";
-import * as url from "url";
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 
@@ -189,17 +188,15 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
 
   public provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
     const api = new AtelierAPI(uri);
-    const query = url.parse(uri.toString(true), true).query;
-    const fileName = query && query.csp ? uri.path.substring(1) : uri.path.split("/").slice(1).join(".");
-    if (query) {
-      if (query.ns && query.ns !== "") {
-        const namespace = query.ns.toString();
-        api.setNamespace(namespace);
-      }
+    const params = new URLSearchParams(uri.query);
+    const fileName =
+      params.has("csp") && ["", "1"].includes(params.get("csp"))
+        ? uri.path.slice(1)
+        : uri.path.split("/").slice(1).join(".");
+    if (params.has("ns") && params.get("ns") != "") {
+      api.setNamespace(params.get("ns"));
     }
-    return api.getDoc(fileName).then((data) => {
-      return data.result.content.join("\n");
-    });
+    return api.getDoc(fileName).then((data) => data.result.content.join("\n"));
   }
 
   public update(uri: vscode.Uri, message?: string): void {

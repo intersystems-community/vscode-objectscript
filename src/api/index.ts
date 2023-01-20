@@ -3,7 +3,6 @@ const { default: fetch } = require("node-fetch-cjs");
 
 import * as httpModule from "http";
 import * as httpsModule from "https";
-import * as url from "url";
 import * as vscode from "vscode";
 import * as Cache from "vscode-cache";
 import {
@@ -108,11 +107,9 @@ export class AtelierAPI {
             workspaceFolderName = parts[0];
             namespace = parts[1];
           } else {
-            const { query } = url.parse(wsOrFile.toString(true), true);
-            if (query) {
-              if (query.ns && query.ns !== "") {
-                namespace = query.ns.toString();
-              }
+            const params = new URLSearchParams(wsOrFile.query);
+            if (params.has("ns") && params.get("ns") != "") {
+              namespace = params.get("ns");
             }
           }
         } else {
