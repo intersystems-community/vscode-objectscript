@@ -361,7 +361,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           )
           .catch((error) => {
             // Throw all failures
-            if (error.errorText && error.errorText !== "") {
+            if (error && error.errorText && error.errorText !== "") {
               throw vscode.FileSystemError.Unavailable(error.errorText);
             }
             throw vscode.FileSystemError.Unavailable(uri);
@@ -566,7 +566,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       )
       .catch((error) => {
         // Throw all failures
-        if (error.errorText && error.errorText !== "") {
+        if (error && error.errorText && error.errorText !== "") {
           throw vscode.FileSystemError.Unavailable(error.errorText);
         }
         throw vscode.FileSystemError.Unavailable(error.message);
@@ -605,7 +605,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         .serverInfo()
         .then()
         .catch((error) => {
-          if (error.errorText && error.errorText !== "") {
+          if (error && error.errorText && error.errorText !== "") {
             throw vscode.FileSystemError.Unavailable(error.errorText);
           }
           throw vscode.FileSystemError.Unavailable(uri);
@@ -719,7 +719,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         if (error?.statusCode === 304 && cachedFile) {
           return cachedFile;
         }
-        if (error.errorText && error.errorText !== "") {
+        if (error && error.errorText && error.errorText !== "") {
           throw vscode.FileSystemError.FileNotFound(error.errorText);
         }
         throw vscode.FileSystemError.FileNotFound(uri);

@@ -95,7 +95,10 @@ export function registerExplorerOpen(): vscode.Disposable {
             projectsExplorerProvider.refresh();
           }
         } else {
-          throw error;
+          outputChannel.appendLine(
+            typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
+          );
+          outputChannel.show();
         }
       }
     }
@@ -117,6 +120,7 @@ function wasDoubleClick(uri: vscode.Uri): boolean {
   };
   return result;
 }
+
 export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<NodeBase> {
   public onDidChange?: vscode.Event<vscode.Uri>;
   public onDidChangeTreeData: vscode.Event<NodeBase>;

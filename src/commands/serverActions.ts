@@ -100,14 +100,14 @@ export async function serverActions(): Promise<void> {
       rawLink,
     });
   }
-  if (workspaceState.get(workspaceFolder + ":docker", false)) {
+  if (workspaceState.get(workspaceFolder.toLowerCase() + ":docker", false)) {
     actions.push({
       id: "openDockerTerminal",
       label: "Open Terminal in Docker",
       detail: "Use docker-compose to start session inside configured service",
     });
   }
-  if (workspaceState.get(workspaceFolder + ":docker", false)) {
+  if (workspaceState.get(workspaceFolder.toLowerCase() + ":docker", false)) {
     actions.push({
       id: "openDockerShell",
       label: "Open Shell in Docker",
