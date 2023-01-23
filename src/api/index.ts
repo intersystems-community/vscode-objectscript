@@ -56,16 +56,13 @@ export class AtelierAPI {
   public get config(): ConnectionSettings {
     const { serverName, active = false, https = false, pathPrefix = "", username } = this._config;
     const ns = this.namespace || this._config.ns;
-    const host = this.externalServer
-      ? this._config.host
-      : workspaceState.get(this.configName + ":host", this._config.host);
-    const port = this.externalServer
-      ? this._config.port
-      : workspaceState.get(this.configName + ":port", this._config.port);
-    const password = workspaceState.get(this.configName + ":password", this._config.password);
-    const apiVersion = workspaceState.get(this.configName + ":apiVersion", DEFAULT_API_VERSION);
-    const docker = workspaceState.get(this.configName + ":docker", false);
-    const dockerService = workspaceState.get<string>(this.configName + ":dockerService");
+    const wsKey = this.configName.toLowerCase();
+    const host = this.externalServer ? this._config.host : workspaceState.get(wsKey + ":host", this._config.host);
+    const port = this.externalServer ? this._config.port : workspaceState.get(wsKey + ":port", this._config.port);
+    const password = workspaceState.get(wsKey + ":password", this._config.password);
+    const apiVersion = workspaceState.get(wsKey + ":apiVersion", DEFAULT_API_VERSION);
+    const docker = workspaceState.get(wsKey + ":docker", false);
+    const dockerService = workspaceState.get<string>(wsKey + ":dockerService");
     return {
       serverName,
       active,
@@ -195,7 +192,7 @@ export class AtelierAPI {
       this._config = {
         serverName,
         active: this.externalServer || conn.active,
-        apiVersion: workspaceState.get(this.configName + ":apiVersion", DEFAULT_API_VERSION),
+        apiVersion: workspaceState.get(this.configName.toLowerCase() + ":apiVersion", DEFAULT_API_VERSION),
         https: scheme === "https",
         ns,
         host,
@@ -429,8 +426,8 @@ export class AtelierAPI {
         authRequestMap.delete(target);
         panel.text = `${this.connInfo} $(debug-disconnect)`;
         panel.tooltip = "Disconnected";
-        workspaceState.update(this.configName + ":host", undefined);
-        workspaceState.update(this.configName + ":port", undefined);
+        workspaceState.update(this.configName.toLowerCase() + ":host", undefined);
+        workspaceState.update(this.configName.toLowerCase() + ":port", undefined);
         if (!checkingConnection) {
           setTimeout(() => checkConnection(false, undefined, true), 30000);
         }
@@ -455,8 +452,8 @@ export class AtelierAPI {
           };
         }
         return Promise.all([
-          workspaceState.update(this.configName + ":apiVersion", apiVersion),
-          workspaceState.update(this.configName + ":iris", data.version.startsWith("IRIS")),
+          workspaceState.update(this.configName.toLowerCase() + ":apiVersion", apiVersion),
+          workspaceState.update(this.configName.toLowerCase() + ":iris", data.version.startsWith("IRIS")),
         ]).then(() => info);
       }
     });
