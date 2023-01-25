@@ -184,7 +184,7 @@ export async function serverActions(): Promise<void> {
             const token = await getCSPToken(api, url.path);
             if (token.length > 0) {
               url = url.with({
-                query: url.query.length ? `${url.query}&CSPCHD=${token}&CSPSHARE=1` : `CSPCHD=${token}&CSPSHARE=1`,
+                query: url.query.length ? `${url.query}&CSPCHD=${token}` : `CSPCHD=${token}`,
               });
             }
           }
