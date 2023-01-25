@@ -104,14 +104,14 @@ export async function serverActions(): Promise<void> {
     actions.push({
       id: "openDockerTerminal",
       label: "Open Terminal in Docker",
-      detail: "Use docker-compose to start session inside configured service",
+      detail: "Use Docker Compose to start session inside configured service",
     });
   }
   if (workspaceState.get(workspaceFolder.toLowerCase() + ":docker", false)) {
     actions.push({
       id: "openDockerShell",
       label: "Open Shell in Docker",
-      detail: "Use docker-compose to start shell inside configured service",
+      detail: "Use Docker Compose to start shell inside configured service",
     });
   }
   actions.push({
