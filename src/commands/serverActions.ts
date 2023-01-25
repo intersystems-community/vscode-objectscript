@@ -179,15 +179,16 @@ export async function serverActions(): Promise<void> {
           break;
         }
         default: {
-          let urlString = action.detail;
+          let url = vscode.Uri.parse(action.detail);
           if (action.rawLink?.startsWith("${serverUrl}")) {
-            const path = vscode.Uri.parse(urlString).path;
-            const token = await getCSPToken(api, path);
+            const token = await getCSPToken(api, url.path);
             if (token.length > 0) {
-              urlString += `&CSPCHD=${token}`;
+              url = url.with({
+                query: url.query.length ? `${url.query}&CSPCHD=${token}` : `CSPCHD=${token}`,
+              });
             }
           }
-          vscode.env.openExternal(vscode.Uri.parse(urlString));
+          vscode.env.openExternal(url);
         }
       }
     });
