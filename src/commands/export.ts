@@ -1,8 +1,15 @@
 import path = require("path");
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { config, explorerProvider, OBJECTSCRIPT_FILE_SCHEMA, schemas } from "../extension";
-import { currentFile, fileExists, notNull, outputChannel, uriOfWorkspaceFolder } from "../utils";
+import { config, explorerProvider, OBJECTSCRIPT_FILE_SCHEMA, schemas, workspaceState } from "../extension";
+import {
+  currentFile,
+  currentFileFromContent,
+  fileExists,
+  notNull,
+  outputChannel,
+  uriOfWorkspaceFolder,
+} from "../utils";
 import { NodeBase } from "../explorer/models/nodeBase";
 
 export const getCategory = (fileName: string, addCategory: any | boolean): string => {
@@ -98,6 +105,7 @@ export async function exportFile(
   const api = new AtelierAPI(workspaceFolder);
   api.setNamespace(namespace);
   const log = (status) => outputChannel.appendLine(`export "${name}" as "${fileName}" - ${status}`);
+  const fileUri = vscode.Uri.file(fileName);
   const foldersUri = vscode.Uri.file(path.dirname(fileName));
   try {
     if (!(await fileExists(foldersUri))) {
@@ -110,6 +118,16 @@ export async function exportFile(
       throw new Error("Received malformed JSON object from server fetching document");
     }
     const content = data.result.content;
+
+    // Local function to update local record of mtime
+    const recordMtime = async () => {
+      const contentString = Buffer.isBuffer(content) ? "" : content.join("\n");
+      const file = currentFileFromContent(fileUri, contentString);
+      const serverTime = Number(new Date(data.result.ts + "Z"));
+      await workspaceState.update(`${file.uniqueId}:mtime`, serverTime);
+      return;
+    };
+
     const { noStorage, dontExportIfNoChanges } = config("export");
 
     const storageResult: { found: boolean; content?: string } = await new Promise((resolve, reject) => {
@@ -142,19 +160,20 @@ export async function exportFile(
       }
     });
 
-    const fileUri = vscode.Uri.file(fileName);
     if (Buffer.isBuffer(content)) {
       // This is a binary file
       let isSkipped = "";
       if (dontExportIfNoChanges && (await fileExists(fileUri))) {
         const existingContent = await vscode.workspace.fs.readFile(fileUri);
-        if (content.equals(existingContent)) {
+        if (!content.equals(existingContent)) {
           await vscode.workspace.fs.writeFile(fileUri, content);
+          await recordMtime();
         } else {
           isSkipped = " => skipped - no changes.";
         }
       } else {
         await vscode.workspace.fs.writeFile(fileUri, content);
+        await recordMtime();
       }
       log(`Success ${isSkipped}`);
     } else {
@@ -171,11 +190,13 @@ export async function exportFile(
         // stringify to harmonise the text encoding.
         if (JSON.stringify(joinedContent) !== JSON.stringify(existingContent)) {
           await vscode.workspace.fs.writeFile(fileUri, new TextEncoder().encode(joinedContent));
+          await recordMtime();
         } else {
           isSkipped = " => skipped - no changes.";
         }
       } else {
         await vscode.workspace.fs.writeFile(fileUri, new TextEncoder().encode(joinedContent));
+        await recordMtime();
       }
 
       log(`Success ${isSkipped}`);
