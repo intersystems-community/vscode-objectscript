@@ -97,6 +97,18 @@ async function importFile(file: CurrentFile, ignoreConflict?: boolean, skipDeplC
       workspaceState.update(`${file.uniqueId}:mtime`, undefined);
       // Create fresh cache entry
       checkChangedOnServer(file, true);
+
+      // In case another extension has used an 'objectscript://' uri to load a document read-only from the server,
+      // make it reload with what we just imported to the server.
+      const serverUri = DocumentContentProvider.getUri(
+        file.name,
+        file.workspaceFolder,
+        undefined,
+        false,
+        undefined,
+        true
+      );
+      documentContentProvider.update(serverUri.with({ scheme: "objectscript" }));
     })
     .catch((error) => {
       if (error?.statusCode == 409) {
