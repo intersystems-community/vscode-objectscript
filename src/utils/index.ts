@@ -35,11 +35,18 @@ export function outputConsole(data: string[]): void {
 export interface CurrentFile {
   name: string;
   fileName: string;
-  content: string;
   uri: vscode.Uri;
-  eol: vscode.EndOfLine;
   workspaceFolder: string;
   uniqueId: string;
+}
+
+export interface CurrentTextFile extends CurrentFile {
+  content: string;
+  eol: vscode.EndOfLine;
+}
+
+export interface CurrentBinaryFile extends CurrentFile {
+  content: Buffer;
 }
 
 // For workspace roots in the local filesystem, configName is the root's name
@@ -140,7 +147,7 @@ export function isImportableLocalFile(file: vscode.TextDocument): boolean {
   }
 }
 
-export function currentFileFromContent(uri: vscode.Uri, content: string): CurrentFile {
+export function currentFileFromContent(uri: vscode.Uri, content: string | Buffer): CurrentTextFile | CurrentBinaryFile {
   const fileName = uri.fsPath;
   const workspaceFolder = workspaceFolderOfUri(uri);
   if (!workspaceFolder) {
@@ -150,13 +157,13 @@ export function currentFileFromContent(uri: vscode.Uri, content: string): Curren
   const fileExt = fileName.split(".").pop().toLowerCase();
   let name = "";
   let ext = "";
-  if (fileExt === "cls") {
+  if (fileExt === "cls" && typeof content === "string") {
     // Allow Unicode letters
     const match = content.match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
     if (match) {
       [, name, ext = "cls"] = match;
     }
-  } else if (fileExt.match(/(mac|int|inc)/i)) {
+  } else if (fileExt.match(/(mac|int|inc)/i) && typeof content === "string") {
     const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i);
     if (match) {
       [, name, ext = "mac"] = match;
@@ -177,20 +184,31 @@ export function currentFileFromContent(uri: vscode.Uri, content: string): Curren
     return null;
   }
   name += ext ? "." + ext.toLowerCase() : "";
-  const firstLF = content.indexOf("\n");
 
-  return {
-    content,
-    fileName,
-    uri,
-    workspaceFolder,
-    name,
-    uniqueId: `${workspaceFolder}:${name}`,
-    eol: firstLF > 0 && content[firstLF - 1] === "\r" ? vscode.EndOfLine.CRLF : vscode.EndOfLine.LF,
-  };
+  if (typeof content === "string") {
+    const firstLF = content.indexOf("\n");
+    return {
+      content,
+      fileName,
+      uri,
+      workspaceFolder,
+      name,
+      uniqueId: `${workspaceFolder}:${name}`,
+      eol: firstLF > 0 && content[firstLF - 1] === "\r" ? vscode.EndOfLine.CRLF : vscode.EndOfLine.LF,
+    };
+  } else {
+    return {
+      content,
+      fileName,
+      uri,
+      workspaceFolder,
+      name,
+      uniqueId: `${workspaceFolder}:${name}`,
+    };
+  }
 }
 
-export function currentFile(document?: vscode.TextDocument): CurrentFile {
+export function currentFile(document?: vscode.TextDocument): CurrentTextFile {
   document =
     document ||
     (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document
