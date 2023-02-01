@@ -52,12 +52,14 @@ export function registerExplorerOpen(): vscode.Disposable {
       }
 
       try {
-        if (uri.scheme === OBJECTSCRIPT_FILE_SCHEMA) {
+        if (uri.scheme === OBJECTSCRIPT_FILE_SCHEMA || (project && fullName)) {
           // This scheme is implemented by our DocumentContentProvider, which always returns text.
           // If the server supplied binary data our provider substitutes a text explanation of how to work with binary content.
+          //
+          // When opening from the Projects tree we also use this route because the other one (see below) doesn't throw for a missing document.
           await vscode.window.showTextDocument(uri, { preview: usePreview });
         } else {
-          //  This allows use of binary editors such as the Luna Paint extension
+          // This allows use of binary editors such as the Luna Paint extension.
           await vscode.commands.executeCommand("vscode.open", uri, { preview: usePreview });
         }
       } catch (error) {
