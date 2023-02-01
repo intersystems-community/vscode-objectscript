@@ -186,7 +186,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
   }
   private onDidChangeEvent: vscode.EventEmitter<vscode.Uri> = new vscode.EventEmitter<vscode.Uri>();
 
-  public provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
+  public async provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): Promise<string> {
     const api = new AtelierAPI(uri);
     const params = new URLSearchParams(uri.query);
     const fileName =
@@ -196,7 +196,12 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     if (params.has("ns") && params.get("ns") != "") {
       api.setNamespace(params.get("ns"));
     }
-    return api.getDoc(fileName).then((data) => data.result.content.join("\n"));
+    const data = await api.getDoc(fileName);
+    if (Buffer.isBuffer(data.result.content)) {
+      return "\nThis is a binary file.\n\nTo access its contents, export it to the local file system.\nAlternatively, enable the 'objectscript.serverSideEditing' setting.";
+    } else {
+      return data.result.content.join("\n");
+    }
   }
 
   public update(uri: vscode.Uri, message?: string): void {
