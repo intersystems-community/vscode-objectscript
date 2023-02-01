@@ -140,14 +140,16 @@ async function importFile(
     })
     .catch((error) => {
       if (error?.statusCode == 409) {
+        const choices: string[] = [];
+        if (!enc) {
+          choices.push("Compare");
+        }
+        choices.push("Overwrite on Server", "Pull Server Changes", "Cancel");
         return vscode.window
           .showErrorMessage(
             `Failed to import '${file.name}': The version of the file on the server is newer.
 What do you want to do?`,
-            "Compare",
-            "Overwrite on Server",
-            "Pull Server Changes",
-            "Cancel"
+            ...choices
           )
           .then((action) => {
             switch (action) {
