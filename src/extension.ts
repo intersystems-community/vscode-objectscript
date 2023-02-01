@@ -28,7 +28,13 @@ import {
   importLocalFilesToServerSideFolder,
 } from "./commands/compile";
 import { deleteExplorerItems } from "./commands/delete";
-import { exportAll, exportCurrentFile, exportExplorerItems, getCategory } from "./commands/export";
+import {
+  exportAll,
+  exportCurrentFile,
+  refreshFolder as refreshFileOrFolder,
+  exportExplorerItems,
+  getCategory,
+} from "./commands/export";
 import { serverActions } from "./commands/serverActions";
 import { subclass } from "./commands/subclass";
 import { superclass } from "./commands/superclass";
@@ -785,6 +791,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.compileWithFlags", () => importAndCompile(true)),
     vscode.commands.registerCommand("vscode-objectscript.compileAll", () => namespaceCompile(false)),
     vscode.commands.registerCommand("vscode-objectscript.compileAllWithFlags", () => namespaceCompile(true)),
+    vscode.commands.registerCommand("vscode-objectscript.refreshLocalFile", async (_file, files) => {
+      let hadErrors = false;
+      outputChannel.appendLine("\nRefreshing file contents");
+      const results = await Promise.allSettled<boolean>(files.map((file) => refreshFileOrFolder(file)));
+      results.forEach((x) => {
+        if (x.status == "fulfilled" && !x.value) {
+          hadErrors = true;
+        } else if (x.status == "rejected") {
+          hadErrors = true;
+        }
+      });
+
+      if (hadErrors) {
+        outputChannel.appendError("Detected errors during file refresh", true);
+      } else {
+        outputChannel.appendLine("File refresh finished successfully");
+      }
+    }),
     vscode.commands.registerCommand("vscode-objectscript.compileFolder", (_file, files) =>
       Promise.all(files.map((file) => importFileOrFolder(file, false)))
     ),

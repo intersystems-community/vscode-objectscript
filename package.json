@@ -63,6 +63,7 @@
     "workspaceContains:**/*.csr",
     "onCommand:vscode-objectscript.export",
     "onCommand:vscode-objectscript.compile",
+    "onCommand:vscode-objectscript.refreshLocalFile",
     "onCommand:vscode-objectscript.viewOthers",
     "onCommand:vscode-objectscript.jumpToTagAndOffset",
     "onCommand:vscode-objectscript.previewXml",
@@ -134,6 +135,10 @@
         },
         {
           "command": "vscode-objectscript.compile",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.refreshLocalFile",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
@@ -470,6 +475,11 @@
           "group": "objectscript@3"
         },
         {
+          "command": "vscode-objectscript.refreshLocalFile",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "group": "objectscript@3"
+        },
+        {
           "command": "vscode-objectscript.previewXml",
           "when": "editorLangId =~ /^xml/",
           "group": "objectscript@4"
@@ -549,6 +559,11 @@
         },
         {
           "command": "vscode-objectscript.compileFolder",
+          "when": "vscode-objectscript.connectActive && resourceScheme == file",
+          "group": "objectscript_modify@1"
+        },
+        {
+          "command": "vscode-objectscript.refreshLocalFile",
           "when": "vscode-objectscript.connectActive && resourceScheme == file",
           "group": "objectscript_modify@1"
         },
@@ -792,6 +807,11 @@
       },
       {
         "category": "ObjectScript",
+        "command": "vscode-objectscript.refreshLocalFile",
+        "title": "Export class from server and replace current file"
+      },
+      {
+        "category": "ObjectScript",
         "command": "vscode-objectscript.previewXml",
         "title": "Preview XML as UDL"
       },
@@ -913,6 +933,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.compileFolder",
         "title": "Import and Compile"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.refreshLocalFile",
+        "title": "Refresh Contents"
       },
       {
         "category": "ObjectScript",
