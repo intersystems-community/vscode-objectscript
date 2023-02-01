@@ -1,5 +1,17 @@
 # Change Log
 
+## [2.4.2] 01-Feb-2023
+- Enhancements
+  - Use query instead of index for class Deployed checks (#1054)
+  - Use `docker compose` command if present (#1057)
+  - Trigger reload of any `objectscript://` document after import (#1062)
+- Fixes
+  - Fix Server Action URL generation (#1053)
+  - Use lowercase for workspace folder state connection keys (#1055)
+  - Update local workspace mtime record when exporting (#1059)
+  - Fix import of binary files such as webapp images (#1064)
+  - Upgrade vulnerable dependencies.
+
 ## [2.4.1] 12-Jan-2023
 - Fixes
   - Fix 'No file system provider found' errors when debugging local file (#1047)
