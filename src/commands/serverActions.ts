@@ -37,6 +37,12 @@ export async function serverActions(): Promise<void> {
       label: "Refresh Connection",
       detail: "Force attempt to connect to the server",
     });
+
+    actions.push({
+      id: "switchNamespace",
+      label: "Switch Namespace",
+      detail: "Switch to a different namespace in the current server",
+    });
   }
   const connectionActionsHandler = async (action: ServerAction): Promise<ServerAction> => {
     if (!action) {
@@ -54,6 +60,44 @@ export async function serverActions(): Promise<void> {
       }
       case "refreshConnection": {
         await checkConnection(true, undefined, true);
+        break;
+      }
+      case "switchNamespace": {
+        const allNamespaces: string[] | undefined = await api
+          .serverInfo()
+          .then((data) => data.result.content.namespaces)
+          .catch((reason) => {
+            // Notify user about serverInfo failure
+            vscode.window.showErrorMessage(reason.errorText || `Failed to fetch namespace list`, "Dismiss");
+            return undefined;
+          });
+
+        if (!allNamespaces) {
+          return;
+        }
+        // Handle serverInfo having returned no namespaces
+        if (!allNamespaces.length) {
+          vscode.window.showErrorMessage(`No namespace list returned`, "Dismiss");
+          return;
+        }
+
+        const namespace = await vscode.window.showQuickPick(allNamespaces, {
+          placeHolder: `Namespace on server `,
+          ignoreFocusOut: true,
+        });
+
+        if (!namespace) {
+          return;
+        } else {
+          const connConfig = config("", workspaceFolder);
+          const target = connConfig.inspect("conn").workspaceFolderValue
+            ? vscode.ConfigurationTarget.WorkspaceFolder
+            : vscode.ConfigurationTarget.Workspace;
+          const targetConfig =
+            connConfig.inspect("conn").workspaceFolderValue || connConfig.inspect("conn").workspaceValue;
+          return connConfig.update("conn", { ...targetConfig, ns: namespace }, target);
+        }
+
         break;
       }
       default:
