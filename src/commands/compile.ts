@@ -448,8 +448,9 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
   );
 }
 
-function importFiles(files: string[], noCompile = false) {
-  return Promise.all<CurrentFile>(
+async function importFiles(files: string[], noCompile = false) {
+  const toCompile: CurrentFile[] = [];
+  await Promise.all<void>(
     files.map(
       throttleRequests((file: string) => {
         const uri = vscode.Uri.file(file);
@@ -457,7 +458,9 @@ function importFiles(files: string[], noCompile = false) {
           .readFile(uri)
           .then((contentBytes) => {
             if (isText(file, Buffer.from(contentBytes))) {
-              return currentFileFromContent(uri, new TextDecoder().decode(contentBytes));
+              const textFile = currentFileFromContent(uri, new TextDecoder().decode(contentBytes));
+              toCompile.push(textFile);
+              return textFile;
             } else {
               return currentFileFromContent(uri, Buffer.from(contentBytes));
             }
@@ -465,12 +468,17 @@ function importFiles(files: string[], noCompile = false) {
           .then((curFile) =>
             importFile(curFile).then((data) => {
               outputChannel.appendLine("Imported file: " + curFile.fileName);
-              return curFile;
+              return;
             })
           );
       })
     )
-  ).then(noCompile ? Promise.resolve : compile);
+  );
+
+  if (!noCompile && toCompile.length > 0) {
+    return compile(toCompile);
+  }
+  return;
 }
 
 export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<any> {
