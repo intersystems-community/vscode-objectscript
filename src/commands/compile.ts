@@ -14,9 +14,11 @@ import {
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import {
   cspAppsForUri,
+  CurrentBinaryFile,
   currentFile,
   CurrentFile,
   currentFileFromContent,
+  CurrentTextFile,
   isClassDeployed,
   notNull,
   outputChannel,
@@ -25,6 +27,7 @@ import {
 import { PackageNode } from "../explorer/models/packageNode";
 import { NodeBase } from "../explorer/models/nodeBase";
 import { RootNode } from "../explorer/models/rootNode";
+import { isText } from "istextorbinary";
 
 async function compileFlags(): Promise<string> {
   const defaultFlags = config().compileFlags;
@@ -46,7 +49,7 @@ async function compileFlags(): Promise<string> {
  * @param force If passed true, use server mtime.
  * @return mtime timestamp or -1.
  */
-export async function checkChangedOnServer(file: CurrentFile, force = false): Promise<number> {
+export async function checkChangedOnServer(file: CurrentTextFile | CurrentBinaryFile, force = false): Promise<number> {
   if (!file || !file.uri) {
     return -1;
   }
@@ -57,11 +60,16 @@ export async function checkChangedOnServer(file: CurrentFile, force = false): Pr
       .getDoc(file.name)
       .then((data) => data.result)
       .then(async ({ ts, content }) => {
-        const fileContent = file.content.split(/\r?\n/);
         const serverTime = Number(new Date(ts + "Z"));
-        const sameContent = force
-          ? false
-          : content.every((line, index) => line.trim() == (fileContent[index] || "").trim());
+        let sameContent: boolean;
+        if (typeof file.content === "string") {
+          const fileContent = file.content.split(/\r?\n/);
+          sameContent = force
+            ? false
+            : (content as string[]).every((line, index) => line.trim() == (fileContent[index] || "").trim());
+        } else {
+          sameContent = force ? false : Buffer.compare(content as Buffer, file.content) === 0;
+        }
         const mtime =
           force || sameContent ? serverTime : Math.max((await vscode.workspace.fs.stat(file.uri)).mtime, serverTime);
         return mtime;
@@ -71,7 +79,11 @@ export async function checkChangedOnServer(file: CurrentFile, force = false): Pr
   return mtime;
 }
 
-async function importFile(file: CurrentFile, ignoreConflict?: boolean, skipDeplCheck = false): Promise<any> {
+async function importFile(
+  file: CurrentTextFile | CurrentBinaryFile,
+  ignoreConflict?: boolean,
+  skipDeplCheck = false
+): Promise<any> {
   const api = new AtelierAPI(file.uri);
   if (file.name.split(".").pop().toLowerCase() === "cls" && !skipDeplCheck) {
     if (await isClassDeployed(file.name, api)) {
@@ -79,7 +91,23 @@ async function importFile(file: CurrentFile, ignoreConflict?: boolean, skipDeplC
       return Promise.reject();
     }
   }
-  const content = file.content.split(/\r?\n/);
+  let enc: boolean;
+  let content: string[];
+  if (typeof file.content === "string") {
+    enc = false;
+    content = file.content.split(/\r?\n/);
+  } else {
+    // Base64 encoding must be in chunk size multiple of 3 and within the server's potential 32K string limit
+    // Output is 4 chars for each 3 input, so 24573/3*4 = 32764
+    const chunkSize = 24573;
+    let start = 0;
+    content = [];
+    enc = true;
+    while (start < file.content.byteLength) {
+      content.push(file.content.toString("base64", start, start + chunkSize));
+      start += chunkSize;
+    }
+  }
   const mtime = await checkChangedOnServer(file);
   ignoreConflict = ignoreConflict || mtime < 0 || (file.uri.scheme === "file" && config("overwriteServerChanges"));
   return api
@@ -87,7 +115,7 @@ async function importFile(file: CurrentFile, ignoreConflict?: boolean, skipDeplC
       file.name,
       {
         content,
-        enc: false,
+        enc,
         mtime,
       },
       ignoreConflict
@@ -112,14 +140,16 @@ async function importFile(file: CurrentFile, ignoreConflict?: boolean, skipDeplC
     })
     .catch((error) => {
       if (error?.statusCode == 409) {
+        const choices: string[] = [];
+        if (!enc) {
+          choices.push("Compare");
+        }
+        choices.push("Overwrite on Server", "Pull Server Changes", "Cancel");
         return vscode.window
           .showErrorMessage(
             `Failed to import '${file.name}': The version of the file on the server is newer.
 What do you want to do?`,
-            "Compare",
-            "Overwrite on Server",
-            "Pull Server Changes",
-            "Cancel"
+            ...choices
           )
           .then((action) => {
             switch (action) {
@@ -200,7 +230,7 @@ function updateOthers(others: string[], baseUri: vscode.Uri) {
   });
 }
 
-export async function loadChanges(files: CurrentFile[]): Promise<any> {
+export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]): Promise<any> {
   if (!files.length) {
     return;
   }
@@ -210,11 +240,19 @@ export async function loadChanges(files: CurrentFile[]): Promise<any> {
       api
         .getDoc(file.name)
         .then(async (data) => {
-          const content = (data.result.content || []).join(file.eol === vscode.EndOfLine.LF ? "\n" : "\r\n");
           const mtime = Number(new Date(data.result.ts + "Z"));
           workspaceState.update(`${file.uniqueId}:mtime`, mtime > 0 ? mtime : undefined);
           if (file.uri.scheme === "file") {
-            await vscode.workspace.fs.writeFile(file.uri, new TextEncoder().encode(content));
+            if (Buffer.isBuffer(data.result.content)) {
+              // This is a binary file
+              await vscode.workspace.fs.writeFile(file.uri, data.result.content);
+            } else {
+              // This is a text file
+              const content = (data.result.content || []).join(
+                (file as CurrentTextFile).eol === vscode.EndOfLine.LF ? "\n" : "\r\n"
+              );
+              await vscode.workspace.fs.writeFile(file.uri, new TextEncoder().encode(content));
+            }
           } else if (file.uri.scheme === FILESYSTEM_SCHEMA || file.uri.scheme === FILESYSTEM_READONLY_SCHEMA) {
             fileSystemProvider.fireFileChanged(file.uri);
           }
@@ -410,23 +448,37 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
   );
 }
 
-function importFiles(files: string[], noCompile = false) {
-  return Promise.all<CurrentFile>(
+async function importFiles(files: string[], noCompile = false) {
+  const toCompile: CurrentFile[] = [];
+  await Promise.all<void>(
     files.map(
-      throttleRequests((file: string) =>
-        vscode.workspace.fs
-          .readFile(vscode.Uri.file(file))
-          .then((contentBytes) => new TextDecoder().decode(contentBytes))
-          .then((content) => currentFileFromContent(vscode.Uri.file(file), content))
+      throttleRequests((file: string) => {
+        const uri = vscode.Uri.file(file);
+        return vscode.workspace.fs
+          .readFile(uri)
+          .then((contentBytes) => {
+            if (isText(file, Buffer.from(contentBytes))) {
+              const textFile = currentFileFromContent(uri, new TextDecoder().decode(contentBytes));
+              toCompile.push(textFile);
+              return textFile;
+            } else {
+              return currentFileFromContent(uri, Buffer.from(contentBytes));
+            }
+          })
           .then((curFile) =>
             importFile(curFile).then((data) => {
               outputChannel.appendLine("Imported file: " + curFile.fileName);
-              return curFile;
+              return;
             })
-          )
-      )
+          );
+      })
     )
-  ).then(noCompile ? Promise.resolve : compile);
+  );
+
+  if (!noCompile && toCompile.length > 0) {
+    return compile(toCompile);
+  }
+  return;
 }
 
 export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<any> {
@@ -437,7 +489,7 @@ export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<
   let globpattern = "*.{cls,inc,int,mac}";
   if (cspAppsForUri(uri).findIndex((cspApp) => uri.path.includes(cspApp + "/") || uri.path.endsWith(cspApp)) != -1) {
     // This folder is a CSP application, so import all files
-    // We need to include eveything becuase CSP applications can
+    // We need to include eveything because CSP applications can
     // include non-InterSystems files
     globpattern = "*";
   }

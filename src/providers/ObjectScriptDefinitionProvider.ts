@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { currentFile, CurrentFile, currentWorkspaceFolder } from "../utils";
+import { currentFile, CurrentTextFile, currentWorkspaceFolder } from "../utils";
 import { ClassDefinition } from "../utils/classDefinition";
 import { DocumentContentProvider } from "./DocumentContentProvider";
 
@@ -329,7 +329,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
 
   public async macro(
     workspaceFolder: string,
-    file: CurrentFile,
+    file: CurrentTextFile,
     macro: string
   ): Promise<{ document: string; line: number }> {
     const fileName = file.name;
