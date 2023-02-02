@@ -58,7 +58,7 @@ export function registerExplorerOpen(): vscode.Disposable {
           await vscode.window.showTextDocument(uri, { preview: usePreview });
         } else {
           // This allows use of binary editors such as the Luna Paint extension.
-          await vscode.workspace.fs.stat(uri);
+          await vscode.workspace.fs.readFile(uri);
           await vscode.commands.executeCommand("vscode.open", uri, { preview: usePreview });
         }
       } catch (error) {
