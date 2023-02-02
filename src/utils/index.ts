@@ -608,7 +608,7 @@ export async function isClassDeployed(cls: string, api: AtelierAPI): Promise<boo
     .actionQuery("SELECT Deployed FROM %Dictionary.ClassDefinition WHERE Name = ?", [
       cls.slice(-4).toLowerCase() == ".cls" ? cls.slice(0, -4) : cls,
     ])
-    .then((data) => data.result.content[0].Deployed > 0);
+    .then((data) => data.result.content[0]?.Deployed > 0);
 }
 
 // ---------------------------------------------------------------------
