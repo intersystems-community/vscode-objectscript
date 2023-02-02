@@ -57,9 +57,16 @@ export function registerExplorerOpen(): vscode.Disposable {
           // If the server supplied binary data our provider substitutes a text explanation of how to work with binary content.
           await vscode.window.showTextDocument(uri, { preview: usePreview });
         } else {
+          // ADDED as an expedient measure to resolve https://github.com/intersystems-community/vscode-objectscript/issues/1068
+          await vscode.window.showTextDocument(uri, { preview: usePreview });
+
+          /* COMMENTED OUT as part of the fix for #1068 (see above)
+
           // This allows use of binary editors such as the Luna Paint extension.
           await vscode.workspace.fs.stat(uri);
           await vscode.commands.executeCommand("vscode.open", uri, { preview: usePreview });
+
+          */
         }
       } catch (error) {
         if (Object.keys(error).length && project && fullName) {
