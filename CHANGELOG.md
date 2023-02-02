@@ -2,8 +2,8 @@
 
 ## [2.4.3] 02-Feb-2023
 - Fixes
-  - Fix opening of `isfs` files from ObjectScript Explorer (#1071)
-  - Use lowercase for workspace folder state connection keys (#1072)
+  - Fix deployed check (#1071)
+  - Fix opening of `isfs` files from ObjectScript Explorer (#1072)
 
 ## [2.4.2] 01-Feb-2023
 - Enhancements
