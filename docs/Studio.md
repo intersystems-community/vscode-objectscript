@@ -47,3 +47,692 @@ The [InterSystems ObjectScript extension](https://marketplace.visualstudio.com/i
 ## New File Commands
 
 The [InterSystems ObjectScript extension](https://marketplace.visualstudio.com/items?itemName=intersystems-community.vscode-objectscript) provides commands for creating new Interoperability classes. Commands are provided for Business Operation, Business Process, Business Rule, Business Service and Data Transformation classes. These commands are modeled after the wizards in Studio's [`File` &rarr; `New...` &rarr; `Production` menu](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GSTD_Commands#GSTD_Commands_File). The commands are shown in the `New File...` menu, which can be opened from the `File` menu (`File` &rarr; `New File...`) or the `Get Started` welcome page.
+
+## Keyboard shortcuts
+
+In general, VS Code keyboard shortcuts are infinitely customizable <a href="https://code.visualstudio.com/docs/getstarted/keybindings">as described in the docs</a>. However, the IDE comes configured with a number of shortcuts that match Studio. <a href="https://code.visualstudio.com/docs/getstarted/keybindings#_keyboard-shortcuts-reference">Download a cheat sheet here</a>.  
+
+This section provides a mapping table for Studio users to more quickly adapt your shortcut muscle memory from Studio to VS Code with the ObjectScript extension.
+
+### General 
+
+<table>
+    <colgroup>
+       <col span="1" style="width: 15%;">
+       <col span="1" style="width: 15%;">
+       <col span="1" style="width: 30%;">
+       <col span="1" style="width: 40%;">
+    </colgroup>
+  <thead>
+    <tr>
+      <th>Studio</th>
+      <th>VS Code</th>
+      <th>Action</th>
+      <th>VS Code Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+ <tr>
+  <td>F1</td>
+  <td></td>
+  <td>Context Help</td>
+  <td></td>
+ </tr>
+ <tr>
+  <td>F4</td>
+  <td></td>
+  <td>Change Namespace or Connection</td>
+  <td></td>
+ </tr>
+ <tr>
+  <td>F8</td>
+  <td>F11</td>
+  <td>Toggles Full Screen Display of Studio menus and editor window.</td>
+  <td></td>
+ </tr>
+ <tr>
+  <td>&#8963;N</td>
+  <td>&#8963;N</td>
+  <td>New Document</td>
+  <td></td>
+ </tr>
+ <tr>
+  <td>&#8963;O</td>
+  <td>&#8963;O</td>
+  <td>Open Document</td>
+  <td></td>
+ </tr>
+ <tr>
+  <td>&#8963;&#8679;O</td>
+  <td>&#8963;&#8679;O</td>
+  <td>Open Project</td>
+  <td>Opens a folder on-disk. If you're not using client-side source control, open a Studio project from Objectscript pane.</td>
+ </tr>
+ <tr>
+  <td>&#8963;P</td>
+  <td>&#8963;P</td>
+  <td>Print</td>
+  <td></td>
+ </tr>
+ <tr>
+  <td>&#8963;S</td>
+  <td>&#8963;S</td>
+  <td>Save</td>
+  <td></td>
+ </tr>
+ <tr>
+  <td>&#8963;&#8679;I</td>
+  <td></td>
+  <td>Export</td>
+  <td></td>
+ </tr>
+ <tr>
+  <td>&#8963;I</td>
+  <td></td>
+  <td>Import Local</td>
+  <td></td>
+ </tr>
+  </tbody>
+</table>
+
+### Display
+
+<table>
+    <colgroup>
+       <col span="1" style="width: 15%;">
+       <col span="1" style="width: 15%;">
+       <col span="1" style="width: 30%;">
+       <col span="1" style="width: 40%;">
+    </colgroup>
+    <thead>
+    <tr>
+      <th>Studio</th>
+      <th>VS Code</th>
+      <th>Action</th>
+      <th>VS Code Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>&#8963;+</td>
+      <td>&#8963;K &#8963;J | &#8963;K &#8963;0</td>
+      <td>Expand | Collapse All</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;Left Select plus icon</td>
+      <td>&#8963;K &#8963;] | &#8963;K &#8963;[</td>
+      <td>Expand | Collapse All Block Sections</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;W</td>
+      <td></td>
+      <td>Show Class Browser</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8679;V</td>
+      <td></td>
+      <td>View Other. Opens documents related to the current document, such as MAC or INT routines.</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8997;1</td>
+      <td></td>
+      <td>Toggle Inspector window display</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8997;2</td>
+      <td>&#8963;&#8679;U</td>
+      <td>Toggle Output window display</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8997;3</td>
+      <td></td>
+      <td>Toggle Workspace window display</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8997;4</td>
+      <td></td>
+      <td>Toggle Watch window display</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8997;5</td>
+      <td></td>
+      <td>Toggles Code Snippets window
+      display</td>
+      <td>Code Snippets exist in VS Code but there's no UI.</td>
+    </tr>
+    <tr>
+      <td>&#8997;6</td>
+      <td>&#8963;&#8679;F</td>
+      <td>Toggles Find in Files window
+      display</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8997;7</td>
+      <td></td>
+      <td>Toggles Class View window
+      display</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8997;+ | &#8963;&#8997;-</td>
+      <td>&#8963;+ | &#8963;-</td>
+      <td>Increase | Decrease Font</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8997;Space</td>
+      <td>&#8963;&#8679;P<br>(start typing render)</td>
+      <td>Toggles display of Whitespace Symbols, spaces, newlines, and tabs</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;B</td>
+      <td>always on</td>
+      <td>Toggle Bracket Matching</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8679;N</td>
+      <td></td>
+      <td>Toggles Line Numbers Display</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;Tab</td>
+      <td>&#8963;&#8679;]</td>
+      <td>Next Window</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8679;Tab</td>
+      <td>&#8963;&#8679;[</td>
+      <td>Previous Window</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+
+### Navigation
+
+<table>
+  <colgroup>
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 30%;">
+      <col span="1" style="width: 40%;">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Studio</th>
+      <th>VS Code</th>
+      <th>Action</th>
+      <th>VS Code Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Home | End</td>
+      <td>Home | End</td>
+      <td>Go To Beginning | End of Line</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;Home | &#8963;End</td>
+      <td>&#8963;Home | &#8963;End</td>
+      <td>Go To Beginning | End of Document</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;- | &#8963;&#8679;-</td>
+      <td>Alt &#8678;| Alt &#8680;</td>
+      <td>Go Back | Forward</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>PgUp | PgDn</td>
+      <td>PgUp | PgDn</td>
+      <td>Page Up | Down</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;PgUp | &#8963;PgDn</td>
+      <td>&#8997;PgUp | &#8997;PgDn</td>
+      <td>Go to top | bottom of visible page</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8595;| &#8963;&#8593;</td>
+      <td>&#8963;&#8595;| &#8963;&#8593;</td>
+      <td>Scroll Down | Up</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;G</td>
+      <td></td>
+      <td>Goto</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8679;G or F12</td>
+      <td></td>
+      <td>Goto Documentation for Tag</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;F3 | &#8963;&#8679;F3</td>
+      <td>F8 | &#8679;F8</td>
+      <td>Go To Next | Previous Error</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8997;F3 | &#8997;&#8679;F3</td>
+      <td>F8 | &#8679;F8</td>
+      <td>Go to Next | Previous Warning</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;]</td>
+      <td>Ctrl-Shift-\</td>
+      <td>Go To Bracket</td>
+      <td></td>
+    </tr>
+   </tbody>
+</table>
+
+### Editing
+
+<table>
+  <colgroup>
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 30%;">
+      <col span="1" style="width: 40%;">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Studio</th>
+      <th>VS Code</th>
+      <th>Action</th>
+      <th>VS Code Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Insert</td>
+      <td></td>
+      <td>Toggle Insert/Overwrite Mode</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;Delete</td>
+      <td></td>
+      <td>Delete Next Word or to End of Word</td>
+      <td>Try an extension such as <a href="https://marketplace.visualstudio.com/items?itemName=lfs.vscode-emacs-friendly" target="new">Emacs Friendly Keymap</a></td>
+    </tr>
+    <tr>
+      <td>&#8963;Backspace or &#8963;&#8679;Delete</td>
+      <td></td>
+      <td>Delete Previous Word or to Start of Word</td>
+      <td>Try an extension such as <a href="https://marketplace.visualstudio.com/items?itemName=lfs.vscode-emacs-friendly" target="new">Emacs Friendly Keymap</a></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8679;L</td>
+      <td>&#8963;&#8679;K</td>
+      <td>Delete Line</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;C or &#8963;Insert</td>
+      <td>&#8963;C</td>
+      <td>Copy</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8679;Delete or &#8963;X</td>
+      <td>&#8963;X</td>
+      <td>Cut</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;L</td>
+      <td>&#8963;X</td>
+      <td>Cut Line</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;V or &#8679;Insert</td>
+      <td>&#8963;V</td>
+      <td>Paste</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;A</td>
+      <td>&#8963;A</td>
+      <td>Select All</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;Z | &#8963;Y or &#8963;&#8679;Z</td>
+      <td>&#8963;Z | &#8963;&#8679;Z</td>
+      <td>Undo | Redo</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;Space</td>
+      <td></td>
+      <td>Show Studio Assist Popup</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;~</td>
+      <td></td>
+      <td>Toggle Tab Expansion</td>
+      <td>Use indent menu in bottom bar.</td>
+    </tr>
+    <tr>
+      <td>&#8963;U | &#8963;&#8679;U</td>
+      <td></td>
+      <td>Uppercase | Lowercase Selection</td>
+      <td>Try an extension such as <a href="https://marketplace.visualstudio.com/items?itemName=wmaurer.change-case" target="new">change-case</a></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8997;O</td>
+      <td></td>
+      <td>Toggle the Delay Parsing option.</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8997;U</td>
+      <td></td>
+      <td>Titlecase (Initial Caps) Selection</td>
+      <td>Try an extension such as <a href="https://marketplace.visualstudio.com/items?itemName=wmaurer.change-case" target="new">change-case</a></td>
+    </tr>
+    <tr>
+      <td>&#8963;(</td>
+      <td>(</td>
+      <td>Insert Open and Close Parentheses. (Does not work on German and Swiss keyboards.*)</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;{</td>
+      <td>{</td>
+      <td>Insert Open and Close Braces.</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;[</td>
+      <td></td>
+      <td>Insert Open and Close Square Brackets.</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;&lt;</td>
+      <td></td>
+      <td>Insert Open and Close Angle Brackets.</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;=</td>
+      <td>&#8963;&#8679;P (type format...)</td>
+      <td>Indentation Cleanup. Cleans up indentation on a selected block of whole lines of text.</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;/ | &#8963;&#8679;/</td>
+      <td>&#8963;/</td>
+      <td>Comment | Uncomment Line or block of text</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8997;/ | &#8963;&#8679;&#8997;/</td>
+      <td>&#8963;/</td>
+      <td>Comment Markers Added to | Removed from Block of Text</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;E</td>
+      <td></td>
+      <td>In an ObjectScript document, commands in a selection are replaced with their full names.</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8679;E</td>
+      <td></td>
+      <td>Compress Commands</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;.</td>
+      <td></td>
+      <td>Insert Dots</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8679;.</td>
+      <td></td>
+      <td>Remove Dots</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8679;T</td>
+      <td></td>
+      <td>Add Task</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+
+### Find and Replace
+
+<table>
+  <colgroup>
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 30%;">
+      <col span="1" style="width: 40%;">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Studio</th>
+      <th>VS Code</th>
+      <th>Action</th>
+      <th>VS Code Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>&#8963;F | &#8963;H</td>
+      <td>&#8963;F | &#8963;H</td>
+      <td>Find | Replace</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>F3 | &#8679;F3</td>
+      <td>F3 | &#8679;F3</td>
+      <td>Find Next | Previous</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8679;F</td>
+      <td>&#8963;&#8679;F | &#8963;&#8679;H</td>
+      <td>Find | Replace in Files</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;, (comma)</td>
+      <td>&#8963;P</td>
+      <td>Search for class</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8679;G | &#8963;&#8997;G</td>
+      <td>&#8997;&#8680;| &#8997;&#8678;</td>
+      <td><a
+      href="https://docs.intersystems.com/iris20201/csp/docbook/DocBook.UI.Page.cls?KEY=GSTD_Commands#GSTD_Commands_Edit_Search"
+      target="_new">Go To | Go Back</a></td>
+      <td></td>
+    </tr>
+ </tbody>
+</table>
+
+### Bookmarks
+
+<table>
+  <colgroup>
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 30%;">
+      <col span="1" style="width: 40%;">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Studio</th>
+      <th>VS Code</th>
+      <th>Action</th>
+      <th>VS Code Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+    <td>&#8963;F2</td>
+    <td></td>
+    <td>Toggle Bookmark on Current Line</td>
+    <td><a href="https://marketplace.visualstudio.com/search?term=bookmark&amp;target=VSCode&amp;category=All%20categories&amp;sortBy=Relevance" target="_parent">Try a 3rd party extension</a></td>
+    </tr>
+    <tr>
+      <td>F2 | &#8679;F2</td>
+      <td></td>
+      <td>Go to Next | Previous Bookmark</td>
+      <td><a href="https://marketplace.visualstudio.com/search?term=bookmark&amp;target=VSCode&amp;category=All%20categories&amp;sortBy=Relevance" target="_parent">Try a 3rd party extension</a></td>
+    </tr>
+    <tr>
+    <td>&#8963;&#8679;F2</td>
+    <td></td>
+    <td>Clear All Bookmarks</td>
+      <td><a href="https://marketplace.visualstudio.com/search?term=bookmark&amp;target=VSCode&amp;category=All%20categories&amp;sortBy=Relevance" target="_parent">Try a 3rd party extension</a></td>
+    </tr>  
+  </tbody>
+</table>
+
+### Build and Compile
+
+<table>
+  <colgroup>
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 30%;">
+      <col span="1" style="width: 40%;">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Studio</th>
+      <th>VS Code</th>
+      <th>Action</th>
+      <th>VS Code Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>F7</td>
+      <td></td>
+      <td>Rebuilds All Documents in Project</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;F7</td>
+      <td></td>
+      <td>Compile Active Document</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8679;F7</td>
+      <td></td>
+      <td>Compile with Options</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>F5</td>
+      <td></td>
+      <td>View as Web Page</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+
+### Debugging
+
+<table>
+  <colgroup>
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 30%;">
+      <col span="1" style="width: 40%;">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Studio</th>
+      <th>VS Code</th>
+      <th>Action</th>
+      <th>VS Code Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>&#8963;&#8997;L</td>
+      <td></td>
+      <td>Toggle Studio Debug Logging</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8679;A</td>
+      <td></td>
+      <td>Debug Attach</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>F9</td>
+      <td>F9</td>
+      <td>Debug Toggle Breakpoint on Current Line</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;F5 | &#8679;F5</td>
+      <td>F5 | &#8679;F5</td>
+      <td>Debug Start | Stop</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;&#8679;F5</td>
+      <td>&#8963;&#8679;F5</td>
+      <td>Debug Restart</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8963;F10</td>
+      <td></td>
+      <td>Debug Run to Cursor</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>F11 | &#8679;F11</td>
+      <td>F11 | &#8679;F11</td>
+      <td>Debug Step Into | Out</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>F10</td>
+      <td>F10</td>
+      <td>Debug Step Over</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
