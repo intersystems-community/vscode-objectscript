@@ -76,7 +76,9 @@ export async function serverActions(): Promise<void> {
         // NOTE: List of all namespaces except the current one as it doens't make sense to allow switching to the current one
         const allNamespaces: string[] | undefined = await api
           .serverInfo()
-          .then((data) => data.result.content.namespaces.filter((ns) => ns !== api.config.ns))
+          .then((data) =>
+            data.result.content.namespaces.filter((ns) => ns.toLowerCase() !== api.config.ns.toLowerCase())
+          )
           .catch((error) => {
             let message = `Failed to fetch a list of namespaces.`;
             if (error && error.errorText && error.errorText !== "") {
