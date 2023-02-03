@@ -7,7 +7,14 @@ import {
   FILESYSTEM_READONLY_SCHEMA,
   explorerProvider,
 } from "../extension";
-import { connectionTarget, terminalWithDocker, shellWithDocker, currentFile } from "../utils";
+import {
+  connectionTarget,
+  terminalWithDocker,
+  shellWithDocker,
+  currentFile,
+  uriOfWorkspaceFolder,
+  outputChannel,
+} from "../utils";
 import { mainCommandMenu, mainSourceControlMenu } from "./studio";
 import { AtelierAPI } from "../api";
 import { getCSPToken } from "../utils/getCSPToken";
@@ -38,11 +45,14 @@ export async function serverActions(): Promise<void> {
       detail: "Force attempt to connect to the server",
     });
 
-    actions.push({
-      id: "switchNamespace",
-      label: "Switch Namespace",
-      detail: "Switch to a different namespace in the current server",
-    });
+    // Switching namespace makes only sense if the user has a local folder open and not a server-side folder!
+    if (uriOfWorkspaceFolder()?.scheme === "file") {
+      actions.push({
+        id: "switchNamespace",
+        label: "Switch Namespace",
+        detail: "Switch to a different namespace in the current server",
+      });
+    }
   }
   const connectionActionsHandler = async (action: ServerAction): Promise<ServerAction> => {
     if (!action) {
@@ -63,32 +73,36 @@ export async function serverActions(): Promise<void> {
         break;
       }
       case "switchNamespace": {
+        // NOTE: List of all namespaces except the current one as it doens't make sense to allow switching to the current one
         const allNamespaces: string[] | undefined = await api
           .serverInfo()
-          .then((data) => data.result.content.namespaces)
-          .catch((reason) => {
-            // Notify user about serverInfo failure
-            vscode.window.showErrorMessage(reason.errorText || `Failed to fetch namespace list`, "Dismiss");
+          .then((data) => data.result.content.namespaces.filter((ns) => ns !== api.config.ns))
+          .catch((error) => {
+            let message = `Failed to fetch a list of namespaces.`;
+            if (error && error.errorText && error.errorText !== "") {
+              outputChannel.appendLine("\n" + error.errorText);
+              outputChannel.show(true);
+              message += " Check 'ObjectScript' output channel for details.";
+            }
+            vscode.window.showErrorMessage(message, "Dismiss");
             return undefined;
           });
 
         if (!allNamespaces) {
           return;
         }
-        // Handle serverInfo having returned no namespaces
+
         if (!allNamespaces.length) {
-          vscode.window.showErrorMessage(`No namespace list returned`, "Dismiss");
+          vscode.window.showErrorMessage(`Server returned an empty namespace list.`, "Dismiss");
           return;
         }
 
         const namespace = await vscode.window.showQuickPick(allNamespaces, {
-          placeHolder: `Namespace on server `,
+          placeHolder: `Choose the namespace to switch to`,
           ignoreFocusOut: true,
         });
 
-        if (!namespace) {
-          return;
-        } else {
+        if (namespace) {
           const connConfig = config("", workspaceFolder);
           const target = connConfig.inspect("conn").workspaceFolderValue
             ? vscode.ConfigurationTarget.WorkspaceFolder
@@ -97,7 +111,6 @@ export async function serverActions(): Promise<void> {
             connConfig.inspect("conn").workspaceFolderValue || connConfig.inspect("conn").workspaceValue;
           return connConfig.update("conn", { ...targetConfig, ns: namespace }, target);
         }
-
         break;
       }
       default:
