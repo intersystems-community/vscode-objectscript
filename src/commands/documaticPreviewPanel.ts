@@ -20,7 +20,6 @@ export class DocumaticPreviewPanel {
   private static readonly viewType = "isc-documatic-preview";
 
   private readonly _panel: vscode.WebviewPanel;
-  private readonly _webviewFolderUri: vscode.Uri;
   private _disposables: vscode.Disposable[] = [];
 
   /** The `TextEditor` of the class document that we're previewing documentation for. */
@@ -89,7 +88,6 @@ export class DocumaticPreviewPanel {
 
   private constructor(panel: vscode.WebviewPanel, webviewFolderUri: vscode.Uri, editor: vscode.TextEditor) {
     this._panel = panel;
-    this._webviewFolderUri = webviewFolderUri;
     this._editor = editor;
 
     // Update the panel's icon
@@ -99,7 +97,7 @@ export class DocumaticPreviewPanel {
     };
 
     // Set the webview's initial content
-    this.setWebviewHtml();
+    this.setWebviewHtml(webviewFolderUri);
 
     // Register handlers
     this.registerEventHandlers();
@@ -119,22 +117,9 @@ export class DocumaticPreviewPanel {
   /**
    * Set the static html for the webview.
    */
-  private setWebviewHtml() {
-    const webview = this._panel.webview;
-
-    // Local path to script and css for the webview
-    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._webviewFolderUri, "documaticPreview.js"));
-    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this._webviewFolderUri, "documaticPreview.css"));
-
-    // Use a nonce to whitelist which scripts can be run
-    const nonce = (function () {
-      let text = "";
-      const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-      for (let i = 0; i < 32; i++) {
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-      }
-      return text;
-    })();
+  private setWebviewHtml(webviewFolderUri: vscode.Uri) {
+    // Get the path to the @vscode/webview-ui-toolkit minimized js
+    const toolkitUri = this._panel.webview.asWebviewUri(vscode.Uri.joinPath(webviewFolderUri, "toolkit-1.2.1.min.js"));
 
     // Set the webview's html
     this._panel.webview.html = `
@@ -142,24 +127,82 @@ export class DocumaticPreviewPanel {
 			<html lang="en-us">
 			<head>
 				<meta charset="UTF-8">
-	
-				<!--
-				Use a content security policy to only allow loading images from https or from our extension directory,
-				and only allow scripts that have a specific nonce.
-				-->
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
-	
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	
-				<link href="${styleUri}" rel="stylesheet">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script type="module" src="${toolkitUri}"></script>
 			</head>
 			<body>
-				<br>
-				<h2 id="header"></h2>
-				<br>
+				<h1 id="header"></h1>
+				<vscode-divider></vscode-divider>
 				<div id="showText"></div>
-	
-				<script nonce="${nonce}" src="${scriptUri}"></script>
+				<script>
+          const vscode = acquireVsCodeApi();
+          const header = document.getElementById("header");
+          const showText = document.getElementById("showText");
+          const memberregex = new RegExp(
+            "(?:<method>([^<>/]*)</method>)|(?:<property>([^<>/]*)</property>)|(?:<query>([^<>/]*)</query>)",
+            "gi"
+          );
+          let classUri;
+        
+          // Handle messages sent from the extension to the webview
+          window.addEventListener("message", (event) => {
+            const message = event.data; // The json data that the extension sent
+        
+            // Update the header to reflect what we're previewing
+            header.innerText = message.element;
+        
+            // Update the uri of the class that we're previewing
+            classUri = message.uri;
+        
+            // Modify the Documatic HTML for previewing and show it
+            let modifiedDesc = message.desc;
+            let matcharr;
+            while ((matcharr = memberregex.exec(message.desc)) !== null) {
+              let commandArgs = [classUri];
+              if (matcharr[1] !== undefined) {
+                // This is a <METHOD> HTML tag
+                commandArgs[1] = "method";
+                commandArgs[2] = matcharr[1];
+              } else if (matcharr[2] !== undefined) {
+                // This is a <PROPERTY> HTML tag
+                commandArgs[1] = "property";
+                commandArgs[2] = matcharr[2];
+              } else {
+                // This is a <QUERY> HTML tag
+                commandArgs[1] = "query";
+                commandArgs[2] = matcharr[3];
+              }
+              const href = "command:intersystems.language-server.showSymbolInClass?" + encodeURIComponent(JSON.stringify(commandArgs));
+              const title = "Go to this " + commandArgs[1] + " definition";
+              modifiedDesc = modifiedDesc.replace(matcharr[0], '<a href="' + href + '" title="' + title + '">' + commandArgs[2] + '</a>');
+            }
+            showText.innerHTML = modifiedDesc
+              .replace(/<class>|<parameter>/gi, "<b><i>")
+              .replace(/<\\/class>|<\\/parameter>/gi, "</i></b>")
+              .replace(/<pre>/gi, "<code><pre>")
+              .replace(/<\\/pre>/gi, "</pre></code>")
+              .replace(/<example(?: +language *= *"?[a-z]+"?)? *>/gi, "<br/><code><pre>")
+              .replace(/<\\/example>/gi, "</pre></code>");
+        
+            // Then persist state information.
+            // This state is returned in the call to vscode.getState below when a webview is reloaded.
+            vscode.setState({
+              header: header.innerText,
+              showText: showText.innerHTML,
+              uri: classUri,
+            });
+          });
+        
+          // Webviews are normally torn down when not visible and re-created when they become visible again.
+          // State lets us save information across these re-loads
+          const state = vscode.getState();
+          if (state) {
+            // Fill in webview from the cache
+            header.innerText = state.header;
+            showText.innerHTML = state.showText;
+            classUri = state.uri;
+          }
+        </script>
 			</body>
 			</html>`;
   }
