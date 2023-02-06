@@ -173,8 +173,8 @@ This section provides a mapping table for Studio users to more quickly adapt you
     </tr>
     <tr>
       <td>&#8963;&#8679;V</td>
-      <td></td>
-      <td>View Other. Opens documents related to the current document, such as MAC or INT routines.</td>
+      <td>&#8963;&#8679;V</td>
+      <td>View Others. Opens documents related to the current document, such as MAC or INT routines.</td>
       <td></td>
     </tr>
     <tr>
@@ -643,13 +643,13 @@ This section provides a mapping table for Studio users to more quickly adapt you
   <tbody>
     <tr>
       <td>F7</td>
-      <td></td>
+      <td>&#8963;&#8679;F7</td>
       <td>Rebuilds All Documents in Project</td>
       <td></td>
     </tr>
     <tr>
       <td>&#8963;F7</td>
-      <td></td>
+      <td>&#8963;F7</td>
       <td>Compile Active Document</td>
       <td></td>
     </tr>
