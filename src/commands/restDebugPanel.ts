@@ -107,7 +107,7 @@ export class RESTDebugPanel {
       vscode.window.showErrorMessage("No REST web applications are configured in the server's namespace.", "Dismiss");
       return;
     }
-    //restWebApps.push("aaaaaafffffffffffffffffffffffffff","Kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk","b","c","d","e","f","g","h","i");
+
     if (this.currentPanel !== undefined) {
       // Can only have one panel open at once
       if (!this.currentPanel._panel.visible) {
