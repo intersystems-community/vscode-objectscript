@@ -107,7 +107,7 @@ export class RESTDebugPanel {
       vscode.window.showErrorMessage("No REST web applications are configured in the server's namespace.", "Dismiss");
       return;
     }
-    //restWebApps.push("aaaaaafffffffffffffffffffffffffff","Kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk","b","c","d","e","f","g","h","i");
+
     if (this.currentPanel !== undefined) {
       // Can only have one panel open at once
       if (!this.currentPanel._panel.visible) {
@@ -430,11 +430,20 @@ export class RESTDebugPanel {
             });
 
             // Send the request
-            fetch(encodeURI(`${serverInfo}${message.webApp}${path}?${urlParams.toString()}`), {
+            fetch(`${encodeURI(`${serverInfo}${message.webApp}${path}`)}?${urlParams.toString()}`, {
               method: message.method,
               agent,
               body: hasBody ? message.bodyContent : undefined,
               headers,
+            }).catch((error) => {
+              outputChannel.appendLine(
+                typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
+              );
+              vscode.window.showErrorMessage(
+                "Failed to send debuggee REST request. Check 'ObjectScript' Output channel for details.",
+                "Dismiss"
+              );
+              vscode.debug.stopDebugging(vscode.debug.activeDebugSession);
             });
 
             // Wait 500ms to allow the server to associate this request with the CSDPDEBUG id

@@ -247,13 +247,14 @@ export async function checkConnection(
   }
 
   const { apiTarget, configName } = connectionTarget(uri);
+  const wsKey = configName.toLowerCase();
   if (clearCookies) {
     /// clean-up cached values
-    await workspaceState.update(configName + ":host", undefined);
-    await workspaceState.update(configName + ":port", undefined);
-    await workspaceState.update(configName + ":password", undefined);
-    await workspaceState.update(configName + ":apiVersion", undefined);
-    await workspaceState.update(configName + ":docker", undefined);
+    await workspaceState.update(wsKey + ":host", undefined);
+    await workspaceState.update(wsKey + ":port", undefined);
+    await workspaceState.update(wsKey + ":password", undefined);
+    await workspaceState.update(wsKey + ":apiVersion", undefined);
+    await workspaceState.update(wsKey + ":docker", undefined);
     _onDidChangeConnection.fire();
   }
   let api = new AtelierAPI(apiTarget, false);
@@ -278,11 +279,11 @@ export async function checkConnection(
     return;
   }
 
-  if (!workspaceState.get(configName + ":port") && !api.externalServer) {
+  if (!workspaceState.get(wsKey + ":port") && !api.externalServer) {
     try {
       const { port: dockerPort, docker: withDocker, service } = await portFromDockerCompose();
-      workspaceState.update(configName + ":docker", withDocker);
-      workspaceState.update(configName + ":dockerService", service);
+      workspaceState.update(wsKey + ":docker", withDocker);
+      workspaceState.update(wsKey + ":dockerService", service);
       if (withDocker) {
         if (!dockerPort) {
           const errorMessage = `Something is wrong with your docker-compose connection settings, or your service is not running.`;
@@ -294,15 +295,15 @@ export async function checkConnection(
         const { autoShowTerminal } = config();
         autoShowTerminal && terminalWithDocker();
         if (dockerPort !== port) {
-          workspaceState.update(configName + ":host", "localhost");
-          workspaceState.update(configName + ":port", dockerPort);
+          workspaceState.update(wsKey + ":host", "localhost");
+          workspaceState.update(wsKey + ":port", dockerPort);
         }
         connInfo = `localhost:${dockerPort}[${ns}]`;
         _onDidChangeConnection.fire();
       }
     } catch (error) {
       outputChannel.appendError(error);
-      workspaceState.update(configName + ":docker", true);
+      workspaceState.update(wsKey + ":docker", true);
       panel.text = `${PANEL_LABEL} $(error)`;
       panel.tooltip = error;
       return;
@@ -392,7 +393,7 @@ export async function checkConnection(
               .then(
                 async (password) => {
                   if (password) {
-                    await workspaceState.update(configName + ":password", password);
+                    await workspaceState.update(wsKey + ":password", password);
                     resolve(
                       api
                         .serverInfo()
@@ -404,7 +405,7 @@ export async function checkConnection(
                         .catch(async (error) => {
                           console.log(`Second connect failed: ${error}`);
                           await setConnectionState(configName, false);
-                          await workspaceState.update(configName + ":password", undefined);
+                          await workspaceState.update(wsKey + ":password", undefined);
                           return false;
                         })
                         .finally(() => {

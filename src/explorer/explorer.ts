@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { NodeBase } from "./models/nodeBase";
 
 import { AtelierAPI } from "../api";
-import { config, projectsExplorerProvider } from "../extension";
+import { config, OBJECTSCRIPT_FILE_SCHEMA, projectsExplorerProvider } from "../extension";
 import { WorkspaceNode } from "./models/workspaceNode";
 import { outputChannel } from "../utils";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
@@ -52,7 +52,15 @@ export function registerExplorerOpen(): vscode.Disposable {
       }
 
       try {
-        await vscode.window.showTextDocument(uri, { preview: usePreview });
+        if (uri.scheme === OBJECTSCRIPT_FILE_SCHEMA) {
+          // This scheme is implemented by our DocumentContentProvider, which always returns text.
+          // If the server supplied binary data our provider substitutes a text explanation of how to work with binary content.
+          await vscode.window.showTextDocument(uri, { preview: usePreview });
+        } else {
+          // This allows use of binary editors such as the Luna Paint extension.
+          await vscode.workspace.fs.readFile(uri);
+          await vscode.commands.executeCommand("vscode.open", uri, { preview: usePreview });
+        }
       } catch (error) {
         if (Object.keys(error).length && project && fullName) {
           // This project item no longer exists on the server
@@ -95,7 +103,10 @@ export function registerExplorerOpen(): vscode.Disposable {
             projectsExplorerProvider.refresh();
           }
         } else {
-          throw error;
+          outputChannel.appendLine(
+            typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
+          );
+          outputChannel.show();
         }
       }
     }
@@ -117,6 +128,7 @@ function wasDoubleClick(uri: vscode.Uri): boolean {
   };
   return result;
 }
+
 export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<NodeBase> {
   public onDidChange?: vscode.Event<vscode.Uri>;
   public onDidChangeTreeData: vscode.Event<NodeBase>;

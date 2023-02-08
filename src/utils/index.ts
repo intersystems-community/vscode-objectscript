@@ -35,11 +35,18 @@ export function outputConsole(data: string[]): void {
 export interface CurrentFile {
   name: string;
   fileName: string;
-  content: string;
   uri: vscode.Uri;
-  eol: vscode.EndOfLine;
   workspaceFolder: string;
   uniqueId: string;
+}
+
+export interface CurrentTextFile extends CurrentFile {
+  content: string;
+  eol: vscode.EndOfLine;
+}
+
+export interface CurrentBinaryFile extends CurrentFile {
+  content: Buffer;
 }
 
 // For workspace roots in the local filesystem, configName is the root's name
@@ -140,7 +147,7 @@ export function isImportableLocalFile(file: vscode.TextDocument): boolean {
   }
 }
 
-export function currentFileFromContent(uri: vscode.Uri, content: string): CurrentFile {
+export function currentFileFromContent(uri: vscode.Uri, content: string | Buffer): CurrentTextFile | CurrentBinaryFile {
   const fileName = uri.fsPath;
   const workspaceFolder = workspaceFolderOfUri(uri);
   if (!workspaceFolder) {
@@ -150,13 +157,13 @@ export function currentFileFromContent(uri: vscode.Uri, content: string): Curren
   const fileExt = fileName.split(".").pop().toLowerCase();
   let name = "";
   let ext = "";
-  if (fileExt === "cls") {
+  if (fileExt === "cls" && typeof content === "string") {
     // Allow Unicode letters
     const match = content.match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
     if (match) {
       [, name, ext = "cls"] = match;
     }
-  } else if (fileExt.match(/(mac|int|inc)/i)) {
+  } else if (fileExt.match(/(mac|int|inc)/i) && typeof content === "string") {
     const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i);
     if (match) {
       [, name, ext = "mac"] = match;
@@ -177,20 +184,31 @@ export function currentFileFromContent(uri: vscode.Uri, content: string): Curren
     return null;
   }
   name += ext ? "." + ext.toLowerCase() : "";
-  const firstLF = content.indexOf("\n");
 
-  return {
-    content,
-    fileName,
-    uri,
-    workspaceFolder,
-    name,
-    uniqueId: `${workspaceFolder}:${name}`,
-    eol: firstLF > 0 && content[firstLF - 1] === "\r" ? vscode.EndOfLine.CRLF : vscode.EndOfLine.LF,
-  };
+  if (typeof content === "string") {
+    const firstLF = content.indexOf("\n");
+    return {
+      content,
+      fileName,
+      uri,
+      workspaceFolder,
+      name,
+      uniqueId: `${workspaceFolder}:${name}`,
+      eol: firstLF > 0 && content[firstLF - 1] === "\r" ? vscode.EndOfLine.CRLF : vscode.EndOfLine.LF,
+    };
+  } else {
+    return {
+      content,
+      fileName,
+      uri,
+      workspaceFolder,
+      name,
+      uniqueId: `${workspaceFolder}:${name}`,
+    };
+  }
 }
 
-export function currentFile(document?: vscode.TextDocument): CurrentFile {
+export function currentFile(document?: vscode.TextDocument): CurrentTextFile {
   document =
     document ||
     (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document
@@ -397,6 +415,20 @@ export function notNull(el: any): boolean {
   return el !== null;
 }
 
+/** Determine the compose command to use (`docker-compose` or `docker compose`).  */
+async function composeCommand(cwd?: string): Promise<string> {
+  return new Promise<string>((resolve) => {
+    let cmd = "docker compose";
+    exec(`${cmd} version`, { cwd }, (error) => {
+      if (error) {
+        // 'docker compose' is not present, so default to 'docker-compose'
+        cmd = "docker-compose";
+      }
+      resolve(cmd);
+    });
+  });
+}
+
 export async function portFromDockerCompose(): Promise<{ port: number; docker: boolean; service?: string }> {
   // When running remotely, behave as if there is no docker-compose object within objectscript.conn
   if (extensionContext.extension.extensionKind === vscode.ExtensionKind.Workspace) {
@@ -432,8 +464,7 @@ export async function portFromDockerCompose(): Promise<{ port: number; docker: b
   }
 
   const envFileParam = envFile ? `--env-file ${envFile}` : "";
-  const exe = process.platform === "win32" ? "docker-compose.exe" : "docker-compose";
-  const cmd = `${exe} -f ${file} ${envFileParam} `;
+  const cmd = `${await composeCommand(cwd)} -f ${file} ${envFileParam} `;
 
   return new Promise((resolve, reject) => {
     exec(`${cmd} ps --services --filter status=running`, { cwd }, (error, stdout) => {
@@ -466,17 +497,27 @@ export async function terminalWithDocker(): Promise<vscode.Terminal> {
   const terminalName = `ObjectScript:${workspace}`;
   let terminal = terminals.find((t) => t.name == terminalName && t.exitStatus == undefined);
   if (!terminal) {
-    const exe = process.platform === "win32" ? "docker-compose.exe" : "docker-compose";
-    terminal = vscode.window.createTerminal(terminalName, exe, [
-      "-f",
-      file,
-      "exec",
-      service,
-      "/bin/bash",
-      "-c",
-      `[ -f /tmp/vscodesession.pid ] && kill $(cat /tmp/vscodesession.pid) >/dev/null 2>&1 ; echo $$ > /tmp/vscodesession.pid;
+    let exe = await composeCommand();
+    const argsArr: string[] = [];
+    if (exe == "docker compose") {
+      const exeSplit = exe.split(" ");
+      exe = exeSplit[0];
+      argsArr.push(exeSplit[1]);
+    }
+    terminal = vscode.window.createTerminal(
+      terminalName,
+      exe,
+      argsArr.concat([
+        "-f",
+        file,
+        "exec",
+        service,
+        "/bin/bash",
+        "-c",
+        `[ -f /tmp/vscodesession.pid ] && kill $(cat /tmp/vscodesession.pid) >/dev/null 2>&1 ; echo $$ > /tmp/vscodesession.pid;
         $(command -v ccontrol || command -v iris) session $ISC_PACKAGE_INSTANCENAME -U ${ns}`,
-    ]);
+      ])
+    );
     terminals.push(terminal);
   }
   terminal.show(true);
@@ -491,8 +532,18 @@ export async function shellWithDocker(): Promise<vscode.Terminal> {
   const terminalName = `Shell:${workspace}`;
   let terminal = terminals.find((t) => t.name == terminalName && t.exitStatus == undefined);
   if (!terminal) {
-    const exe = process.platform === "win32" ? "docker-compose.exe" : "docker-compose";
-    terminal = vscode.window.createTerminal(terminalName, exe, ["-f", file, "exec", service, "/bin/bash"]);
+    let exe = await composeCommand();
+    const argsArr: string[] = [];
+    if (exe == "docker compose") {
+      const exeSplit = exe.split(" ");
+      exe = exeSplit[0];
+      argsArr.push(exeSplit[1]);
+    }
+    terminal = vscode.window.createTerminal(
+      terminalName,
+      exe,
+      argsArr.concat(["-f", file, "exec", service, "/bin/bash"])
+    );
     terminals.push(terminal);
   }
   terminal.show(true);
@@ -549,6 +600,15 @@ export async function fileExists(file: vscode.Uri): Promise<boolean> {
     // Only error thown is "FileNotFound"
     return false;
   }
+}
+
+/** Check if class `cls` is Deployed in using server connection `api`. */
+export async function isClassDeployed(cls: string, api: AtelierAPI): Promise<boolean> {
+  return api
+    .actionQuery("SELECT Deployed FROM %Dictionary.ClassDefinition WHERE Name = ?", [
+      cls.slice(-4).toLowerCase() == ".cls" ? cls.slice(0, -4) : cls,
+    ])
+    .then((data) => data.result.content[0]?.Deployed > 0);
 }
 
 // ---------------------------------------------------------------------
