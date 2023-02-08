@@ -270,7 +270,7 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td>Ctrl+G</td>
       <td></td>
       <td>Goto</td>
-      <td>You can use <code>Ctrl-T</code> to go to a class member. More information can be found in the <a href="https://code.visualstudio.com/docs/editor/editingevolved#_open-symbol-by-name">VS Code docs</a>.</td>
+      <td>You can use <code>Ctrl+T</code> to go to a class member. More information can be found in the <a href="https://code.visualstudio.com/docs/editor/editingevolved#_open-symbol-by-name">VS Code docs</a>.</td>
     </tr>
     <tr>
       <td>Ctrl+F3, Ctrl+Shift+F3</td>
@@ -286,7 +286,7 @@ This section provides a mapping table for Studio users to more quickly adapt you
     </tr>
     <tr>
       <td>Ctrl+]</td>
-      <td>Ctrl-Shift-\</td>
+      <td>Ctrl+Shift+\</td>
       <td>Go To Bracket</td>
       <td></td>
     </tr>
@@ -561,12 +561,6 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td></td>
       <td>Compile with Options</td>
       <td>Execute the <code>Import and Compile Current File with Specified Flags...</code> from the command palette.</td>
-    </tr>
-    <tr>
-      <td>F5</td>
-      <td></td>
-      <td>View as Web Page</td>
-      <td></td>
     </tr>
   </tbody>
 </table>
