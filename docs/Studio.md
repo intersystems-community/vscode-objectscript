@@ -148,14 +148,14 @@ This section provides a mapping table for Studio users to more quickly adapt you
   <tbody>
     <tr>
       <td>Ctrl++</td>
-      <td>Ctrl+K Ctrl+J | Ctrl+K Ctrl+0</td>
-      <td>Expand | Collapse All</td>
+      <td>Ctrl+K Ctrl+J, Ctrl+K Ctrl+0</td>
+      <td>Expand, Collapse All</td>
       <td></td>
     </tr>
     <tr>
       <td>Ctrl+Left Select plus icon</td>
-      <td>Ctrl+K Ctrl+] | Ctrl+K Ctrl+[</td>
-      <td>Expand | Collapse All Block Sections</td>
+      <td>Ctrl+K Ctrl+], Ctrl+K Ctrl+[</td>
+      <td>Expand, Collapse All Block Sections</td>
       <td></td>
     </tr>
     <tr>
@@ -185,9 +185,9 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td></td>
     </tr>
     <tr>
-      <td>Ctrl+&#8997;+ | Ctrl+&#8997;-</td>
-      <td>Ctrl++ | Ctrl+-</td>
-      <td>Increase | Decrease Font</td>
+      <td>Ctrl+&#8997;+, Ctrl+&#8997;-</td>
+      <td>Ctrl++, Ctrl+-</td>
+      <td>Increase, Decrease Font</td>
       <td></td>
     </tr>
     <tr>
@@ -236,39 +236,39 @@ This section provides a mapping table for Studio users to more quickly adapt you
   </thead>
   <tbody>
     <tr>
-      <td>Home | End</td>
-      <td>Home | End</td>
-      <td>Go To Beginning | End of Line</td>
+      <td>Home, End</td>
+      <td>Home, End</td>
+      <td>Go To Beginning, End of Line</td>
       <td></td>
     </tr>
     <tr>
-      <td>Ctrl+Home | Ctrl+End</td>
-      <td>Ctrl+Home | Ctrl+End</td>
-      <td>Go To Beginning | End of Document</td>
+      <td>Ctrl+Home, Ctrl+End</td>
+      <td>Ctrl+Home, Ctrl+End</td>
+      <td>Go To Beginning, End of Document</td>
       <td></td>
     </tr>
     <tr>
-      <td>Ctrl+- | Ctrl+Shift+-</td>
+      <td>Ctrl+-, Ctrl+Shift+-</td>
       <td>Alt &#8678;| Alt &#8680;</td>
-      <td>Go Back | Forward</td>
+      <td>Go Back, Forward</td>
       <td></td>
     </tr>
     <tr>
-      <td>PgUp | PgDn</td>
-      <td>PgUp | PgDn</td>
-      <td>Page Up | Down</td>
+      <td>PgUp, PgDn</td>
+      <td>PgUp, PgDn</td>
+      <td>Page Up, Down</td>
       <td></td>
     </tr>
     <tr>
-      <td>Ctrl+PgUp | Ctrl+PgDn</td>
-      <td>&#8997;PgUp | &#8997;PgDn</td>
-      <td>Go to top | bottom of visible page</td>
+      <td>Ctrl+PgUp, Ctrl+PgDn</td>
+      <td>&#8997;PgUp, &#8997;PgDn</td>
+      <td>Go to top, bottom of visible page</td>
       <td></td>
     </tr>
     <tr>
       <td>Ctrl+&#8595;| Ctrl+&#8593;</td>
       <td>Ctrl+&#8595;| Ctrl+&#8593;</td>
-      <td>Scroll Down | Up</td>
+      <td>Scroll Down, Up</td>
       <td></td>
     </tr>
     <tr>
@@ -278,15 +278,15 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td>You can use <code>Ctrl-T</code> to go to a class member. More information can be found in the <a href="https://code.visualstudio.com/docs/editor/editingevolved#_open-symbol-by-name">VS Code docs</a>.</td>
     </tr>
     <tr>
-      <td>Ctrl+F3 | Ctrl+Shift+F3</td>
-      <td>F8 | Shift+F8</td>
-      <td>Go To Next | Previous Error</td>
+      <td>Ctrl+F3, Ctrl+Shift+F3</td>
+      <td>F8, Shift+F8</td>
+      <td>Go To Next, Previous Error</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8997;F3 | &#8997;Shift+F3</td>
-      <td>F8 | Shift+F8</td>
-      <td>Go to Next | Previous Warning</td>
+      <td>&#8997;F3, &#8997;Shift+F3</td>
+      <td>F8, Shift+F8</td>
+      <td>Go to Next, Previous Warning</td>
       <td></td>
     </tr>
     <tr>
@@ -365,9 +365,9 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td></td>
     </tr>
     <tr>
-      <td>Ctrl+Z | Ctrl+Y or Ctrl+Shift+Z</td>
-      <td>Ctrl+Z | Ctrl+Shift+Z</td>
-      <td>Undo | Redo</td>
+      <td>Ctrl+Z, Ctrl+Y or Ctrl+Shift+Z</td>
+      <td>Ctrl+Z, Ctrl+Shift+Z</td>
+      <td>Undo, Redo</td>
       <td></td>
     </tr>
     <tr>
@@ -383,9 +383,9 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td>Use indent menu in bottom bar.</td>
     </tr>
     <tr>
-      <td>Ctrl+U | Ctrl+Shift+U</td>
+      <td>Ctrl+U, Ctrl+Shift+U</td>
       <td></td>
-      <td>Uppercase | Lowercase Selection</td>
+      <td>Uppercase, Lowercase Selection</td>
       <td>Try an extension such as <a href="https://marketplace.visualstudio.com/items?itemName=wmaurer.change-case" target="new">change-case</a></td>
     </tr>
     <tr>
@@ -413,15 +413,15 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td></td>
     </tr>
     <tr>
-      <td>Ctrl+/ | Ctrl+Shift+/</td>
+      <td>Ctrl+/, Ctrl+Shift+/</td>
       <td>Ctrl+/</td>
-      <td>Comment | Uncomment Line or block of text</td>
+      <td>Comment, Uncomment Line or block of text</td>
       <td></td>
     </tr>
     <tr>
-      <td>Ctrl+&#8997;/ | Ctrl+Shift+&#8997;/</td>
+      <td>Ctrl+&#8997;/, Ctrl+Shift+&#8997;/</td>
       <td>Ctrl+/</td>
-      <td>Comment Markers Added to | Removed from Block of Text</td>
+      <td>Comment Markers Added to, Removed from Block of Text</td>
       <td></td>
     </tr>
     <tr>
@@ -458,21 +458,21 @@ This section provides a mapping table for Studio users to more quickly adapt you
   </thead>
   <tbody>
     <tr>
-      <td>Ctrl+F | Ctrl+H</td>
-      <td>Ctrl+F | Ctrl+H</td>
-      <td>Find | Replace</td>
+      <td>Ctrl+F, Ctrl+H</td>
+      <td>Ctrl+F, Ctrl+H</td>
+      <td>Find, Replace</td>
       <td></td>
     </tr>
     <tr>
-      <td>F3 | Shift+F3</td>
-      <td>F3 | Shift+F3</td>
-      <td>Find Next | Previous</td>
+      <td>F3, Shift+F3</td>
+      <td>F3, Shift+F3</td>
+      <td>Find Next, Previous</td>
       <td></td>
     </tr>
     <tr>
       <td>Ctrl+Shift+F</td>
-      <td>Ctrl+Shift+F | Ctrl+Shift+H</td>
-      <td>Find | Replace in Files</td>
+      <td>Ctrl+Shift+F, Ctrl+Shift+H</td>
+      <td>Find, Replace in Files</td>
       <td></td>
     </tr>
     <tr>
@@ -482,11 +482,11 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td></td>
     </tr>
     <tr>
-      <td>Ctrl+Shift+G | Ctrl+&#8997;G</td>
+      <td>Ctrl+Shift+G, Ctrl+&#8997;G</td>
       <td>&#8997;&#8680;| &#8997;&#8678;</td>
       <td><a
       href="https://docs.intersystems.com/iris20201/csp/docbook/DocBook.UI.Page.cls?KEY=GSTD_Commands#GSTD_Commands_Edit_Search"
-      target="_new">Go To | Go Back</a></td>
+      target="_new">Go To, Go Back</a></td>
       <td></td>
     </tr>
  </tbody>
@@ -517,9 +517,9 @@ This section provides a mapping table for Studio users to more quickly adapt you
     <td><a href="https://marketplace.visualstudio.com/search?term=bookmark&amp;target=VSCode&amp;category=All%20categories&amp;sortBy=Relevance" target="_parent">Try a 3rd party extension</a></td>
     </tr>
     <tr>
-      <td>F2 | Shift+F2</td>
+      <td>F2, Shift+F2</td>
       <td></td>
-      <td>Go to Next | Previous Bookmark</td>
+      <td>Go to Next, Previous Bookmark</td>
       <td><a href="https://marketplace.visualstudio.com/search?term=bookmark&amp;target=VSCode&amp;category=All%20categories&amp;sortBy=Relevance" target="_parent">Try a 3rd party extension</a></td>
     </tr>
     <tr>
@@ -607,9 +607,9 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td></td>
     </tr>
     <tr>
-      <td>Ctrl+F5 | Shift+F5</td>
-      <td>F5 | Shift+F5</td>
-      <td>Debug Start | Stop</td>
+      <td>Ctrl+F5, Shift+F5</td>
+      <td>F5, Shift+F5</td>
+      <td>Debug Start, Stop</td>
       <td></td>
     </tr>
     <tr>
@@ -619,9 +619,9 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td></td>
     </tr>
     <tr>
-      <td>F11 | Shift+F11</td>
-      <td>F11 | Shift+F11</td>
-      <td>Debug Step Into | Out</td>
+      <td>F11, Shift+F11</td>
+      <td>F11, Shift+F11</td>
+      <td>Debug Step Into, Out</td>
       <td></td>
     </tr>
     <tr>
