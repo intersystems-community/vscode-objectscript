@@ -47,3 +47,577 @@ The [InterSystems ObjectScript extension](https://marketplace.visualstudio.com/i
 ## New File Commands
 
 The [InterSystems ObjectScript extension](https://marketplace.visualstudio.com/items?itemName=intersystems-community.vscode-objectscript) provides commands for creating new Interoperability classes. Commands are provided for Business Operation, Business Process, Business Rule, Business Service and Data Transformation classes. These commands are modeled after the wizards in Studio's [`File` &rarr; `New...` &rarr; `Production` menu](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GSTD_Commands#GSTD_Commands_File). The commands are shown in the `New File...` menu, which can be opened from the `File` menu (`File` &rarr; `New File...`) or the `Get Started` welcome page.
+
+## Keyboard Shortcuts
+
+In general, VS Code keyboard shortcuts are infinitely customizable <a href="https://code.visualstudio.com/docs/getstarted/keybindings">as described in the docs</a>. However, the IDE comes configured with a number of shortcuts that match Studio. <a href="https://code.visualstudio.com/docs/getstarted/keybindings#_keyboard-shortcuts-reference">Download a cheat sheet here</a>.  
+
+This section provides a mapping table for Studio users to more quickly adapt your shortcut muscle memory from Studio to VS Code with the ObjectScript extension.
+
+### General 
+
+<table>
+    <colgroup>
+       <col span="1" style="width: 15%;">
+       <col span="1" style="width: 15%;">
+       <col span="1" style="width: 30%;">
+       <col span="1" style="width: 40%;">
+    </colgroup>
+  <thead>
+    <tr>
+      <th>Studio</th>
+      <th>VS Code</th>
+      <th>Action</th>
+      <th>VS Code Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+ <tr>
+  <td>F8</td>
+  <td>F11</td>
+  <td>Toggles Full Screen Display of Studio menus and editor window.</td>
+  <td></td>
+ </tr>
+ <tr>
+  <td>Ctrl+N</td>
+  <td>Ctrl+N</td>
+  <td>New Document</td>
+  <td></td>
+ </tr>
+ <tr>
+  <td>Ctrl+O</td>
+  <td>Ctrl+O</td>
+  <td>Open Document</td>
+  <td></td>
+ </tr>
+ <tr>
+  <td>Ctrl+Shift+O</td>
+  <td>Ctrl+Shift+O</td>
+  <td>Open Project</td>
+  <td>Opens a folder on-disk. If you're not using client-side source control, open a Studio project from Objectscript pane.</td>
+ </tr>
+ <tr>
+  <td>Ctrl+P</td>
+  <td>Ctrl+P</td>
+  <td>Print</td>
+  <td></td>
+ </tr>
+ <tr>
+  <td>Ctrl+S</td>
+  <td>Ctrl+S</td>
+  <td>Save</td>
+  <td></td>
+ </tr>
+ <tr>
+  <td>Ctrl+Shift+I</td>
+  <td></td>
+  <td>Export</td>
+  <td>For client-side editing, use the <code>Export Code from Server</code> command from the command palette or export from the <a href="../extensionui/#objectscript-view">ObjectScript Explorer</a>.</td>
+ </tr>
+ <tr>
+  <td>Ctrl+I</td>
+  <td></td>
+  <td>Import Local</td>
+  <td>For client-side editing, files are imported on save by default. You can also use the <code>Import and Compile</code> command in the file explorer content menu. For server-side editing, right-click on an <code>isfs</code> workspace folder and select the <code>Import Local Files...</code> command.</td>
+ </tr>
+  </tbody>
+</table>
+
+### Display
+
+<table>
+    <colgroup>
+       <col span="1" style="width: 15%;">
+       <col span="1" style="width: 15%;">
+       <col span="1" style="width: 30%;">
+       <col span="1" style="width: 40%;">
+    </colgroup>
+    <thead>
+    <tr>
+      <th>Studio</th>
+      <th>VS Code</th>
+      <th>Action</th>
+      <th>VS Code Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Ctrl++</td>
+      <td>Ctrl+K Ctrl+J, Ctrl+K Ctrl+0</td>
+      <td>Expand, Collapse All</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+Left Select plus icon</td>
+      <td>Ctrl+K Ctrl+], Ctrl+K Ctrl+[</td>
+      <td>Expand, Collapse All Block Sections</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+Shift+V</td>
+      <td>Ctrl+Shift+V</td>
+      <td>View Others. Opens documents related to the current document, such as MAC or INT routines.</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8997;2</td>
+      <td>Ctrl+Shift+U</td>
+      <td>Toggle Output window display</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8997;5</td>
+      <td></td>
+      <td>Toggles Code Snippets window
+      display</td>
+      <td>Code Snippets exist in VS Code but there's no UI.</td>
+    </tr>
+    <tr>
+      <td>&#8997;6</td>
+      <td>Ctrl+Shift+F</td>
+      <td>Toggles Find in Files window
+      display</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+&#8997;+, Ctrl+&#8997;-</td>
+      <td>Ctrl++, Ctrl+-</td>
+      <td>Increase, Decrease Font</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+&#8997;Space</td>
+      <td>Ctrl+Shift+P<br>(start typing render)</td>
+      <td>Toggles display of Whitespace Symbols, spaces, newlines, and tabs</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+B</td>
+      <td>always on</td>
+      <td>Toggle Bracket Matching</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+Tab</td>
+      <td>Ctrl+Shift+]</td>
+      <td>Next Window</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+Shift+Tab</td>
+      <td>Ctrl+Shift+[</td>
+      <td>Previous Window</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+
+### Navigation
+
+<table>
+  <colgroup>
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 30%;">
+      <col span="1" style="width: 40%;">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Studio</th>
+      <th>VS Code</th>
+      <th>Action</th>
+      <th>VS Code Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Home, End</td>
+      <td>Home, End</td>
+      <td>Go To Beginning, End of Line</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+Home, Ctrl+End</td>
+      <td>Ctrl+Home, Ctrl+End</td>
+      <td>Go To Beginning, End of Document</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+-, Ctrl+Shift+-</td>
+      <td>Alt &#8678;| Alt &#8680;</td>
+      <td>Go Back, Forward</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>PgUp, PgDn</td>
+      <td>PgUp, PgDn</td>
+      <td>Page Up, Down</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+PgUp, Ctrl+PgDn</td>
+      <td>&#8997;PgUp, &#8997;PgDn</td>
+      <td>Go to top, bottom of visible page</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+&#8595;| Ctrl+&#8593;</td>
+      <td>Ctrl+&#8595;| Ctrl+&#8593;</td>
+      <td>Scroll Down, Up</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+G</td>
+      <td></td>
+      <td>Goto</td>
+      <td>You can use <code>Ctrl+T</code> to go to a class member. More information can be found in the <a href="https://code.visualstudio.com/docs/editor/editingevolved#_open-symbol-by-name">VS Code docs</a>.</td>
+    </tr>
+    <tr>
+      <td>Ctrl+F3, Ctrl+Shift+F3</td>
+      <td>F8, Shift+F8</td>
+      <td>Go To Next, Previous Error</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>&#8997;F3, &#8997;Shift+F3</td>
+      <td>F8, Shift+F8</td>
+      <td>Go to Next, Previous Warning</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+]</td>
+      <td>Ctrl+Shift+\</td>
+      <td>Go To Bracket</td>
+      <td></td>
+    </tr>
+   </tbody>
+</table>
+
+### Editing
+
+<table>
+  <colgroup>
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 30%;">
+      <col span="1" style="width: 40%;">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Studio</th>
+      <th>VS Code</th>
+      <th>Action</th>
+      <th>VS Code Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Ctrl+Delete</td>
+      <td></td>
+      <td>Delete Next Word or to End of Word</td>
+      <td>Try an extension such as <a href="https://marketplace.visualstudio.com/items?itemName=lfs.vscode-emacs-friendly" target="new">Emacs Friendly Keymap</a></td>
+    </tr>
+    <tr>
+      <td>Ctrl+Backspace or Ctrl+Shift+Delete</td>
+      <td></td>
+      <td>Delete Previous Word or to Start of Word</td>
+      <td>Try an extension such as <a href="https://marketplace.visualstudio.com/items?itemName=lfs.vscode-emacs-friendly" target="new">Emacs Friendly Keymap</a></td>
+    </tr>
+    <tr>
+      <td>Ctrl+Shift+L</td>
+      <td>Ctrl+Shift+K</td>
+      <td>Delete Line</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+C or Ctrl+Insert</td>
+      <td>Ctrl+C</td>
+      <td>Copy</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Shift+Delete or Ctrl+X</td>
+      <td>Ctrl+X</td>
+      <td>Cut</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+L</td>
+      <td>Ctrl+X</td>
+      <td>Cut Line</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+V or Shift+Insert</td>
+      <td>Ctrl+V</td>
+      <td>Paste</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+A</td>
+      <td>Ctrl+A</td>
+      <td>Select All</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+Z, Ctrl+Y or Ctrl+Shift+Z</td>
+      <td>Ctrl+Z, Ctrl+Shift+Z</td>
+      <td>Undo, Redo</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+Space</td>
+      <td>Ctrl+Space</td>
+      <td>Show Studio Assist Popup/Trigger Code Completion</td>
+      <td>In VS Code, code completion will pop up as you type so using this keybinding is often not necessary.</td>
+    </tr>
+    <tr>
+      <td>Ctrl+~</td>
+      <td></td>
+      <td>Toggle Tab Expansion</td>
+      <td>Use indent menu in bottom bar.</td>
+    </tr>
+    <tr>
+      <td>Ctrl+U, Ctrl+Shift+U</td>
+      <td></td>
+      <td>Uppercase, Lowercase Selection</td>
+      <td>Try an extension such as <a href="https://marketplace.visualstudio.com/items?itemName=wmaurer.change-case" target="new">change-case</a></td>
+    </tr>
+    <tr>
+      <td>Ctrl+&#8997;U</td>
+      <td></td>
+      <td>Titlecase (Initial Caps) Selection</td>
+      <td>Try an extension such as <a href="https://marketplace.visualstudio.com/items?itemName=wmaurer.change-case" target="new">change-case</a></td>
+    </tr>
+    <tr>
+      <td>Ctrl+(</td>
+      <td>(</td>
+      <td>Insert Open and Close Parentheses. (Does not work on German and Swiss keyboards.*)</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+{</td>
+      <td>{</td>
+      <td>Insert Open and Close Braces.</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+=</td>
+      <td>Ctrl+Shift+P (type format...)</td>
+      <td>Indentation Cleanup. Cleans up indentation on a selected block of whole lines of text.</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+/, Ctrl+Shift+/</td>
+      <td>Ctrl+/</td>
+      <td>Comment, Uncomment Line or block of text</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+&#8997;/, Ctrl+Shift+&#8997;/</td>
+      <td>Ctrl+/</td>
+      <td>Comment Markers Added to, Removed from Block of Text</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+E</td>
+      <td></td>
+      <td>In an ObjectScript document, commands in a selection are replaced with their full names.</td>
+      <td>With the InterSystems Language Server installed, you can <a href="../settings/#language-server">configure its formatter to expand command names</a> and then <a href="https://code.visualstudio.com/docs/editor/codebasics#_formatting">format some or all of your document</a>.</td>
+    </tr>
+    <tr>
+      <td>Ctrl+Shift+E</td>
+      <td></td>
+      <td>Compress Commands</td>
+      <td>With the InterSystems Language Server installed, you can <a href="../settings/#language-server">configure its formatter to contract command names</a> and then <a href="https://code.visualstudio.com/docs/editor/codebasics#_formatting">format some or all of your document</a>.</td>
+    </tr>
+  </tbody>
+</table>
+
+### Find and Replace
+
+<table>
+  <colgroup>
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 30%;">
+      <col span="1" style="width: 40%;">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Studio</th>
+      <th>VS Code</th>
+      <th>Action</th>
+      <th>VS Code Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Ctrl+F, Ctrl+H</td>
+      <td>Ctrl+F, Ctrl+H</td>
+      <td>Find, Replace</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>F3, Shift+F3</td>
+      <td>F3, Shift+F3</td>
+      <td>Find Next, Previous</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+Shift+F</td>
+      <td>Ctrl+Shift+F, Ctrl+Shift+H</td>
+      <td>Find, Replace in Files</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+, (comma)</td>
+      <td>Ctrl+P</td>
+      <td>Search for class</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+Shift+G, Ctrl+&#8997;G</td>
+      <td>&#8997;&#8680;| &#8997;&#8678;</td>
+      <td><a
+      href="https://docs.intersystems.com/iris20201/csp/docbook/DocBook.UI.Page.cls?KEY=GSTD_Commands#GSTD_Commands_Edit_Search"
+      target="_new">Go To, Go Back</a></td>
+      <td></td>
+    </tr>
+ </tbody>
+</table>
+
+### Bookmarks
+
+<table>
+  <colgroup>
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 30%;">
+      <col span="1" style="width: 40%;">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Studio</th>
+      <th>VS Code</th>
+      <th>Action</th>
+      <th>VS Code Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+    <td>Ctrl+F2</td>
+    <td></td>
+    <td>Toggle Bookmark on Current Line</td>
+    <td><a href="https://marketplace.visualstudio.com/search?term=bookmark&amp;target=VSCode&amp;category=All%20categories&amp;sortBy=Relevance" target="_parent">Try a 3rd party extension</a></td>
+    </tr>
+    <tr>
+      <td>F2, Shift+F2</td>
+      <td></td>
+      <td>Go to Next, Previous Bookmark</td>
+      <td><a href="https://marketplace.visualstudio.com/search?term=bookmark&amp;target=VSCode&amp;category=All%20categories&amp;sortBy=Relevance" target="_parent">Try a 3rd party extension</a></td>
+    </tr>
+    <tr>
+    <td>Ctrl+Shift+F2</td>
+    <td></td>
+    <td>Clear All Bookmarks</td>
+      <td><a href="https://marketplace.visualstudio.com/search?term=bookmark&amp;target=VSCode&amp;category=All%20categories&amp;sortBy=Relevance" target="_parent">Try a 3rd party extension</a></td>
+    </tr>  
+  </tbody>
+</table>
+
+### Build and Compile
+
+<table>
+  <colgroup>
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 30%;">
+      <col span="1" style="width: 40%;">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Studio</th>
+      <th>VS Code</th>
+      <th>Action</th>
+      <th>VS Code Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>F7</td>
+      <td>Ctrl+Shift+F7</td>
+      <td>Rebuilds All Documents in Project</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+F7</td>
+      <td>Ctrl+F7</td>
+      <td>Compile Active Document</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+Shift+F7</td>
+      <td></td>
+      <td>Compile with Options</td>
+      <td>Execute the <code>Import and Compile Current File with Specified Flags...</code> from the command palette.</td>
+    </tr>
+  </tbody>
+</table>
+
+### Debugging
+
+<table>
+  <colgroup>
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 30%;">
+      <col span="1" style="width: 40%;">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Studio</th>
+      <th>VS Code</th>
+      <th>Action</th>
+      <th>VS Code Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Ctrl+Shift+A</td>
+      <td></td>
+      <td>Debug Attach</td>
+      <td>See <a href="../rundebug/#debug-configurations">the debugging documentation page</a> for how to debug a running process.</td>
+    </tr>
+    <tr>
+      <td>F9</td>
+      <td>F9</td>
+      <td>Debug Toggle Breakpoint on Current Line</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+F5, Shift+F5</td>
+      <td>F5, Shift+F5</td>
+      <td>Debug Start, Stop</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Ctrl+Shift+F5</td>
+      <td>Ctrl+Shift+F5</td>
+      <td>Debug Restart</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>F11, Shift+F11</td>
+      <td>F11, Shift+F11</td>
+      <td>Debug Step Into, Out</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>F10</td>
+      <td>F10</td>
+      <td>Debug Step Over</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>

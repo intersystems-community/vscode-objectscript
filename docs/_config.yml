@@ -3,7 +3,7 @@
 # For technical reasons, this file is *NOT* reloaded automatically when you use
 # 'bundle exec jekyll serve'. If you change this file, please restart the server process.
 #
-# If you need help with YAML syntax, here are some quick references for you: 
+# If you need help with YAML syntax, here are some quick references for you:
 # https://learn-the-web.algonquindesign.ca/topics/markdown-yaml-cheat-sheet/#yaml
 # https://learnxinyminutes.com/docs/yaml/
 #
@@ -42,7 +42,7 @@ aux_links:
   "GitHub Repo":
     "https://github.com/intersystems-community/vscode-objectscript"
 
-footer_content: "Copyright &copy; 2020 InterSystems Corp. Distributed under an <a href=\"https://github.com/intersystems-community/vscode-objectscript/tree/master/LICENSE\">MIT license.</a>"
+footer_content: "Copyright &copy; 2023 InterSystems Corp. Distributed under an <a href=\"https://github.com/intersystems-community/vscode-objectscript/tree/master/LICENSE\">MIT license.</a>"
 
 ga_tracking: GTM-PKG7GB
 
