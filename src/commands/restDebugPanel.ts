@@ -440,7 +440,7 @@ export class RESTDebugPanel {
                 typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
               );
               vscode.window.showErrorMessage(
-                "Failed to send debugee REST request. Check 'ObjectScript' Output channel for details.",
+                "Failed to send debuggee REST request. Check 'ObjectScript' Output channel for details.",
                 "Dismiss"
               );
               vscode.debug.stopDebugging(vscode.debug.activeDebugSession);
