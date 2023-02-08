@@ -442,7 +442,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (fileName.startsWith(".")) {
       return;
     }
-    if (!fileName.includes(".")) {
+    if (await this._lookup(uri).then((entry) => entry instanceof Directory)) {
       // Get the list of documents to delete
       let toDeletePromise: Promise<any>;
       if (project) {
