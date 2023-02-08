@@ -84,43 +84,43 @@ This section provides a mapping table for Studio users to more quickly adapt you
   <td></td>
  </tr>
  <tr>
-  <td>&#8963;N</td>
-  <td>&#8963;N</td>
+  <td>Ctrl+N</td>
+  <td>Ctrl+N</td>
   <td>New Document</td>
   <td></td>
  </tr>
  <tr>
-  <td>&#8963;O</td>
-  <td>&#8963;O</td>
+  <td>Ctrl+O</td>
+  <td>Ctrl+O</td>
   <td>Open Document</td>
   <td></td>
  </tr>
  <tr>
-  <td>&#8963;&#8679;O</td>
-  <td>&#8963;&#8679;O</td>
+  <td>Ctrl+Shift+O</td>
+  <td>Ctrl+Shift+O</td>
   <td>Open Project</td>
   <td>Opens a folder on-disk. If you're not using client-side source control, open a Studio project from Objectscript pane.</td>
  </tr>
  <tr>
-  <td>&#8963;P</td>
-  <td>&#8963;P</td>
+  <td>Ctrl+P</td>
+  <td>Ctrl+P</td>
   <td>Print</td>
   <td></td>
  </tr>
  <tr>
-  <td>&#8963;S</td>
-  <td>&#8963;S</td>
+  <td>Ctrl+S</td>
+  <td>Ctrl+S</td>
   <td>Save</td>
   <td></td>
  </tr>
  <tr>
-  <td>&#8963;&#8679;I</td>
+  <td>Ctrl+Shift+I</td>
   <td></td>
   <td>Export</td>
   <td>For client-side editing, use the <code>Export Code from Server</code> command from the command palette or export from the <a href="../extensionui/#objectscript-view">ObjectScript Explorer</a>.</td>
  </tr>
  <tr>
-  <td>&#8963;I</td>
+  <td>Ctrl+I</td>
   <td></td>
   <td>Import Local</td>
   <td>For client-side editing, files are imported on save by default. You can also use the <code>Import and Compile</code> command in the file explorer content menu. For server-side editing, right-click on an <code>isfs</code> workspace folder and select the <code>Import Local Files...</code> command.</td>
@@ -147,26 +147,26 @@ This section provides a mapping table for Studio users to more quickly adapt you
   </thead>
   <tbody>
     <tr>
-      <td>&#8963;+</td>
-      <td>&#8963;K &#8963;J | &#8963;K &#8963;0</td>
+      <td>Ctrl++</td>
+      <td>Ctrl+K Ctrl+J | Ctrl+K Ctrl+0</td>
       <td>Expand | Collapse All</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;Left Select plus icon</td>
-      <td>&#8963;K &#8963;] | &#8963;K &#8963;[</td>
+      <td>Ctrl+Left Select plus icon</td>
+      <td>Ctrl+K Ctrl+] | Ctrl+K Ctrl+[</td>
       <td>Expand | Collapse All Block Sections</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;&#8679;V</td>
-      <td>&#8963;&#8679;V</td>
+      <td>Ctrl+Shift+V</td>
+      <td>Ctrl+Shift+V</td>
       <td>View Others. Opens documents related to the current document, such as MAC or INT routines.</td>
       <td></td>
     </tr>
     <tr>
       <td>&#8997;2</td>
-      <td>&#8963;&#8679;U</td>
+      <td>Ctrl+Shift+U</td>
       <td>Toggle Output window display</td>
       <td></td>
     </tr>
@@ -179,38 +179,38 @@ This section provides a mapping table for Studio users to more quickly adapt you
     </tr>
     <tr>
       <td>&#8997;6</td>
-      <td>&#8963;&#8679;F</td>
+      <td>Ctrl+Shift+F</td>
       <td>Toggles Find in Files window
       display</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;&#8997;+ | &#8963;&#8997;-</td>
-      <td>&#8963;+ | &#8963;-</td>
+      <td>Ctrl+&#8997;+ | Ctrl+&#8997;-</td>
+      <td>Ctrl++ | Ctrl+-</td>
       <td>Increase | Decrease Font</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;&#8997;Space</td>
-      <td>&#8963;&#8679;P<br>(start typing render)</td>
+      <td>Ctrl+&#8997;Space</td>
+      <td>Ctrl+Shift+P<br>(start typing render)</td>
       <td>Toggles display of Whitespace Symbols, spaces, newlines, and tabs</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;B</td>
+      <td>Ctrl+B</td>
       <td>always on</td>
       <td>Toggle Bracket Matching</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;Tab</td>
-      <td>&#8963;&#8679;]</td>
+      <td>Ctrl+Tab</td>
+      <td>Ctrl+Shift+]</td>
       <td>Next Window</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;&#8679;Tab</td>
-      <td>&#8963;&#8679;[</td>
+      <td>Ctrl+Shift+Tab</td>
+      <td>Ctrl+Shift+[</td>
       <td>Previous Window</td>
       <td></td>
     </tr>
@@ -242,13 +242,13 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;Home | &#8963;End</td>
-      <td>&#8963;Home | &#8963;End</td>
+      <td>Ctrl+Home | Ctrl+End</td>
+      <td>Ctrl+Home | Ctrl+End</td>
       <td>Go To Beginning | End of Document</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;- | &#8963;&#8679;-</td>
+      <td>Ctrl+- | Ctrl+Shift+-</td>
       <td>Alt &#8678;| Alt &#8680;</td>
       <td>Go Back | Forward</td>
       <td></td>
@@ -260,37 +260,37 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;PgUp | &#8963;PgDn</td>
+      <td>Ctrl+PgUp | Ctrl+PgDn</td>
       <td>&#8997;PgUp | &#8997;PgDn</td>
       <td>Go to top | bottom of visible page</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;&#8595;| &#8963;&#8593;</td>
-      <td>&#8963;&#8595;| &#8963;&#8593;</td>
+      <td>Ctrl+&#8595;| Ctrl+&#8593;</td>
+      <td>Ctrl+&#8595;| Ctrl+&#8593;</td>
       <td>Scroll Down | Up</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;G</td>
+      <td>Ctrl+G</td>
       <td></td>
       <td>Goto</td>
       <td>You can use <code>Ctrl-T</code> to go to a class member. More information can be found in the <a href="https://code.visualstudio.com/docs/editor/editingevolved#_open-symbol-by-name">VS Code docs</a>.</td>
     </tr>
     <tr>
-      <td>&#8963;F3 | &#8963;&#8679;F3</td>
-      <td>F8 | &#8679;F8</td>
+      <td>Ctrl+F3 | Ctrl+Shift+F3</td>
+      <td>F8 | Shift+F8</td>
       <td>Go To Next | Previous Error</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8997;F3 | &#8997;&#8679;F3</td>
-      <td>F8 | &#8679;F8</td>
+      <td>&#8997;F3 | &#8997;Shift+F3</td>
+      <td>F8 | Shift+F8</td>
       <td>Go to Next | Previous Warning</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;]</td>
+      <td>Ctrl+]</td>
       <td>Ctrl-Shift-\</td>
       <td>Go To Bracket</td>
       <td></td>
@@ -317,121 +317,121 @@ This section provides a mapping table for Studio users to more quickly adapt you
   </thead>
   <tbody>
     <tr>
-      <td>&#8963;Delete</td>
+      <td>Ctrl+Delete</td>
       <td></td>
       <td>Delete Next Word or to End of Word</td>
       <td>Try an extension such as <a href="https://marketplace.visualstudio.com/items?itemName=lfs.vscode-emacs-friendly" target="new">Emacs Friendly Keymap</a></td>
     </tr>
     <tr>
-      <td>&#8963;Backspace or &#8963;&#8679;Delete</td>
+      <td>Ctrl+Backspace or Ctrl+Shift+Delete</td>
       <td></td>
       <td>Delete Previous Word or to Start of Word</td>
       <td>Try an extension such as <a href="https://marketplace.visualstudio.com/items?itemName=lfs.vscode-emacs-friendly" target="new">Emacs Friendly Keymap</a></td>
     </tr>
     <tr>
-      <td>&#8963;&#8679;L</td>
-      <td>&#8963;&#8679;K</td>
+      <td>Ctrl+Shift+L</td>
+      <td>Ctrl+Shift+K</td>
       <td>Delete Line</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;C or &#8963;Insert</td>
-      <td>&#8963;C</td>
+      <td>Ctrl+C or Ctrl+Insert</td>
+      <td>Ctrl+C</td>
       <td>Copy</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8679;Delete or &#8963;X</td>
-      <td>&#8963;X</td>
+      <td>Shift+Delete or Ctrl+X</td>
+      <td>Ctrl+X</td>
       <td>Cut</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;L</td>
-      <td>&#8963;X</td>
+      <td>Ctrl+L</td>
+      <td>Ctrl+X</td>
       <td>Cut Line</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;V or &#8679;Insert</td>
-      <td>&#8963;V</td>
+      <td>Ctrl+V or Shift+Insert</td>
+      <td>Ctrl+V</td>
       <td>Paste</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;A</td>
-      <td>&#8963;A</td>
+      <td>Ctrl+A</td>
+      <td>Ctrl+A</td>
       <td>Select All</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;Z | &#8963;Y or &#8963;&#8679;Z</td>
-      <td>&#8963;Z | &#8963;&#8679;Z</td>
+      <td>Ctrl+Z | Ctrl+Y or Ctrl+Shift+Z</td>
+      <td>Ctrl+Z | Ctrl+Shift+Z</td>
       <td>Undo | Redo</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;Space</td>
-      <td>&#8963;Space</td>
+      <td>Ctrl+Space</td>
+      <td>Ctrl+Space</td>
       <td>Show Studio Assist Popup/Trigger Code Completion</td>
       <td>In VS Code, code completion will pop up as you type so using this keybinding is often not necessary.</td>
     </tr>
     <tr>
-      <td>&#8963;~</td>
+      <td>Ctrl+~</td>
       <td></td>
       <td>Toggle Tab Expansion</td>
       <td>Use indent menu in bottom bar.</td>
     </tr>
     <tr>
-      <td>&#8963;U | &#8963;&#8679;U</td>
+      <td>Ctrl+U | Ctrl+Shift+U</td>
       <td></td>
       <td>Uppercase | Lowercase Selection</td>
       <td>Try an extension such as <a href="https://marketplace.visualstudio.com/items?itemName=wmaurer.change-case" target="new">change-case</a></td>
     </tr>
     <tr>
-      <td>&#8963;&#8997;U</td>
+      <td>Ctrl+&#8997;U</td>
       <td></td>
       <td>Titlecase (Initial Caps) Selection</td>
       <td>Try an extension such as <a href="https://marketplace.visualstudio.com/items?itemName=wmaurer.change-case" target="new">change-case</a></td>
     </tr>
     <tr>
-      <td>&#8963;(</td>
+      <td>Ctrl+(</td>
       <td>(</td>
       <td>Insert Open and Close Parentheses. (Does not work on German and Swiss keyboards.*)</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;{</td>
+      <td>Ctrl+{</td>
       <td>{</td>
       <td>Insert Open and Close Braces.</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;=</td>
-      <td>&#8963;&#8679;P (type format...)</td>
+      <td>Ctrl+=</td>
+      <td>Ctrl+Shift+P (type format...)</td>
       <td>Indentation Cleanup. Cleans up indentation on a selected block of whole lines of text.</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;/ | &#8963;&#8679;/</td>
-      <td>&#8963;/</td>
+      <td>Ctrl+/ | Ctrl+Shift+/</td>
+      <td>Ctrl+/</td>
       <td>Comment | Uncomment Line or block of text</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;&#8997;/ | &#8963;&#8679;&#8997;/</td>
-      <td>&#8963;/</td>
+      <td>Ctrl+&#8997;/ | Ctrl+Shift+&#8997;/</td>
+      <td>Ctrl+/</td>
       <td>Comment Markers Added to | Removed from Block of Text</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;E</td>
+      <td>Ctrl+E</td>
       <td></td>
       <td>In an ObjectScript document, commands in a selection are replaced with their full names.</td>
       <td>With the InterSystems Language Server installed, you can <a href="../settings/#language-server">configure its formatter to expand command names</a> and then <a href="https://code.visualstudio.com/docs/editor/codebasics#_formatting">format some or all of your document</a>.</td>
     </tr>
     <tr>
-      <td>&#8963;&#8679;E</td>
+      <td>Ctrl+Shift+E</td>
       <td></td>
       <td>Compress Commands</td>
       <td>With the InterSystems Language Server installed, you can <a href="../settings/#language-server">configure its formatter to contract command names</a> and then <a href="https://code.visualstudio.com/docs/editor/codebasics#_formatting">format some or all of your document</a>.</td>
@@ -458,31 +458,31 @@ This section provides a mapping table for Studio users to more quickly adapt you
   </thead>
   <tbody>
     <tr>
-      <td>&#8963;F | &#8963;H</td>
-      <td>&#8963;F | &#8963;H</td>
+      <td>Ctrl+F | Ctrl+H</td>
+      <td>Ctrl+F | Ctrl+H</td>
       <td>Find | Replace</td>
       <td></td>
     </tr>
     <tr>
-      <td>F3 | &#8679;F3</td>
-      <td>F3 | &#8679;F3</td>
+      <td>F3 | Shift+F3</td>
+      <td>F3 | Shift+F3</td>
       <td>Find Next | Previous</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;&#8679;F</td>
-      <td>&#8963;&#8679;F | &#8963;&#8679;H</td>
+      <td>Ctrl+Shift+F</td>
+      <td>Ctrl+Shift+F | Ctrl+Shift+H</td>
       <td>Find | Replace in Files</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;, (comma)</td>
-      <td>&#8963;P</td>
+      <td>Ctrl+, (comma)</td>
+      <td>Ctrl+P</td>
       <td>Search for class</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;&#8679;G | &#8963;&#8997;G</td>
+      <td>Ctrl+Shift+G | Ctrl+&#8997;G</td>
       <td>&#8997;&#8680;| &#8997;&#8678;</td>
       <td><a
       href="https://docs.intersystems.com/iris20201/csp/docbook/DocBook.UI.Page.cls?KEY=GSTD_Commands#GSTD_Commands_Edit_Search"
@@ -511,19 +511,19 @@ This section provides a mapping table for Studio users to more quickly adapt you
   </thead>
   <tbody>
     <tr>
-    <td>&#8963;F2</td>
+    <td>Ctrl+F2</td>
     <td></td>
     <td>Toggle Bookmark on Current Line</td>
     <td><a href="https://marketplace.visualstudio.com/search?term=bookmark&amp;target=VSCode&amp;category=All%20categories&amp;sortBy=Relevance" target="_parent">Try a 3rd party extension</a></td>
     </tr>
     <tr>
-      <td>F2 | &#8679;F2</td>
+      <td>F2 | Shift+F2</td>
       <td></td>
       <td>Go to Next | Previous Bookmark</td>
       <td><a href="https://marketplace.visualstudio.com/search?term=bookmark&amp;target=VSCode&amp;category=All%20categories&amp;sortBy=Relevance" target="_parent">Try a 3rd party extension</a></td>
     </tr>
     <tr>
-    <td>&#8963;&#8679;F2</td>
+    <td>Ctrl+Shift+F2</td>
     <td></td>
     <td>Clear All Bookmarks</td>
       <td><a href="https://marketplace.visualstudio.com/search?term=bookmark&amp;target=VSCode&amp;category=All%20categories&amp;sortBy=Relevance" target="_parent">Try a 3rd party extension</a></td>
@@ -551,18 +551,18 @@ This section provides a mapping table for Studio users to more quickly adapt you
   <tbody>
     <tr>
       <td>F7</td>
-      <td>&#8963;&#8679;F7</td>
+      <td>Ctrl+Shift+F7</td>
       <td>Rebuilds All Documents in Project</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;F7</td>
-      <td>&#8963;F7</td>
+      <td>Ctrl+F7</td>
+      <td>Ctrl+F7</td>
       <td>Compile Active Document</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;&#8679;F7</td>
+      <td>Ctrl+Shift+F7</td>
       <td></td>
       <td>Compile with Options</td>
       <td>Execute the <code>Import and Compile Current File with Specified Flags...</code> from the command palette.</td>
@@ -595,7 +595,7 @@ This section provides a mapping table for Studio users to more quickly adapt you
   </thead>
   <tbody>
     <tr>
-      <td>&#8963;&#8679;A</td>
+      <td>Ctrl+Shift+A</td>
       <td></td>
       <td>Debug Attach</td>
       <td>See <a href="../rundebug/#debug-configurations">the debugging documentation page</a> for how to debug a running process.</td>
@@ -607,20 +607,20 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;F5 | &#8679;F5</td>
-      <td>F5 | &#8679;F5</td>
+      <td>Ctrl+F5 | Shift+F5</td>
+      <td>F5 | Shift+F5</td>
       <td>Debug Start | Stop</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;&#8679;F5</td>
-      <td>&#8963;&#8679;F5</td>
+      <td>Ctrl+Shift+F5</td>
+      <td>Ctrl+Shift+F5</td>
       <td>Debug Restart</td>
       <td></td>
     </tr>
     <tr>
-      <td>F11 | &#8679;F11</td>
-      <td>F11 | &#8679;F11</td>
+      <td>F11 | Shift+F11</td>
+      <td>F11 | Shift+F11</td>
       <td>Debug Step Into | Out</td>
       <td></td>
     </tr>
