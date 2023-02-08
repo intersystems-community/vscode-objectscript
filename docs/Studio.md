@@ -54,11 +54,6 @@ In general, VS Code keyboard shortcuts are infinitely customizable <a href="http
 
 This section provides a mapping table for Studio users to more quickly adapt your shortcut muscle memory from Studio to VS Code with the ObjectScript extension.
 
-<style>
-  td, th {
-    vertical-align: "top";
-  }
-</style>
 ### General 
 
 <table>
