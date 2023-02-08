@@ -48,7 +48,7 @@ The [InterSystems ObjectScript extension](https://marketplace.visualstudio.com/i
 
 The [InterSystems ObjectScript extension](https://marketplace.visualstudio.com/items?itemName=intersystems-community.vscode-objectscript) provides commands for creating new Interoperability classes. Commands are provided for Business Operation, Business Process, Business Rule, Business Service and Data Transformation classes. These commands are modeled after the wizards in Studio's [`File` &rarr; `New...` &rarr; `Production` menu](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GSTD_Commands#GSTD_Commands_File). The commands are shown in the `New File...` menu, which can be opened from the `File` menu (`File` &rarr; `New File...`) or the `Get Started` welcome page.
 
-## Keyboard shortcuts
+## Keyboard Shortcuts
 
 In general, VS Code keyboard shortcuts are infinitely customizable <a href="https://code.visualstudio.com/docs/getstarted/keybindings">as described in the docs</a>. However, the IDE comes configured with a number of shortcuts that match Studio. <a href="https://code.visualstudio.com/docs/getstarted/keybindings#_keyboard-shortcuts-reference">Download a cheat sheet here</a>.  
 
@@ -124,13 +124,13 @@ This section provides a mapping table for Studio users to more quickly adapt you
   <td>&#8963;&#8679;I</td>
   <td></td>
   <td>Export</td>
-  <td></td>
+  <td>For client-side editing, use the <code>Export Code from Server</code> command from the command palette or export from the <a href="../extensionui/#objectscript-view">ObjectScript Explorer</a>.</td>
  </tr>
  <tr>
   <td>&#8963;I</td>
   <td></td>
   <td>Import Local</td>
-  <td></td>
+  <td>For client-side editing, files are imported on save by default. You can also use the <code>Import and Compile</code> command in the file explorer content menu. For server-side editing, right-click on an <code>isfs</code> workspace folder and select the <code>Import Local Files...</code> command.</td>
  </tr>
   </tbody>
 </table>
@@ -319,7 +319,7 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td>&#8963;G</td>
       <td></td>
       <td>Goto</td>
-      <td></td>
+      <td>You can use <code>Ctrl-T</code> to go to a class member. More information can be found in the <a href="https://code.visualstudio.com/docs/editor/editingevolved#_open-symbol-by-name">VS Code docs</a>.</td>
     </tr>
     <tr>
       <td>&#8963;&#8679;G or F12</td>
@@ -428,9 +428,9 @@ This section provides a mapping table for Studio users to more quickly adapt you
     </tr>
     <tr>
       <td>&#8963;Space</td>
-      <td></td>
-      <td>Show Studio Assist Popup</td>
-      <td></td>
+      <td>&#8963;Space</td>
+      <td>Show Studio Assist Popup/Trigger Code Completion</td>
+      <td>In VS Code, code completion will pop up as you type so using this keybinding is often not necessary.</td>
     </tr>
     <tr>
       <td>&#8963;~</td>
@@ -502,13 +502,13 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td>&#8963;E</td>
       <td></td>
       <td>In an ObjectScript document, commands in a selection are replaced with their full names.</td>
-      <td></td>
+      <td>With the InterSystems Language Server installed, you can <a href="../settings/#language-server">configure its formatter to expand command names</a> and then <a href="https://code.visualstudio.com/docs/editor/codebasics#_formatting">format some or all of your document</a>.</td>
     </tr>
     <tr>
       <td>&#8963;&#8679;E</td>
       <td></td>
       <td>Compress Commands</td>
-      <td></td>
+      <td>With the InterSystems Language Server installed, you can <a href="../settings/#language-server">configure its formatter to contract command names</a> and then <a href="https://code.visualstudio.com/docs/editor/codebasics#_formatting">format some or all of your document</a>.</td>
     </tr>
     <tr>
       <td>&#8963;.</td>
@@ -657,7 +657,7 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td>&#8963;&#8679;F7</td>
       <td></td>
       <td>Compile with Options</td>
-      <td></td>
+      <td>Execute the <code>Import and Compile Current File with Specified Flags...</code> from the command palette.</td>
     </tr>
     <tr>
       <td>F5</td>
@@ -696,7 +696,7 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td>&#8963;&#8679;A</td>
       <td></td>
       <td>Debug Attach</td>
-      <td></td>
+      <td>See <a href="../rundebug/#debug-configurations">the debugging documentation page</a> for how to debug a running process.</td>
     </tr>
     <tr>
       <td>F9</td>
