@@ -430,11 +430,20 @@ export class RESTDebugPanel {
             });
 
             // Send the request
-            fetch(encodeURI(`${serverInfo}${message.webApp}${path}?${urlParams.toString()}`), {
+            fetch(`${encodeURI(`${serverInfo}${message.webApp}${path}`)}?${urlParams.toString()}`, {
               method: message.method,
               agent,
               body: hasBody ? message.bodyContent : undefined,
               headers,
+            }).catch((error) => {
+              outputChannel.appendLine(
+                typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
+              );
+              vscode.window.showErrorMessage(
+                "Failed to send debuggee REST request. Check 'ObjectScript' Output channel for details.",
+                "Dismiss"
+              );
+              vscode.debug.stopDebugging(vscode.debug.activeDebugSession);
             });
 
             // Wait 500ms to allow the server to associate this request with the CSDPDEBUG id
