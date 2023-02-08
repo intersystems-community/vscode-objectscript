@@ -54,6 +54,11 @@ In general, VS Code keyboard shortcuts are infinitely customizable <a href="http
 
 This section provides a mapping table for Studio users to more quickly adapt your shortcut muscle memory from Studio to VS Code with the ObjectScript extension.
 
+<style>
+  td, th {
+    vertical-align: "top";
+  }
+</style>
 ### General 
 
 <table>
@@ -72,18 +77,6 @@ This section provides a mapping table for Studio users to more quickly adapt you
     </tr>
   </thead>
   <tbody>
- <tr>
-  <td>F1</td>
-  <td></td>
-  <td>Context Help</td>
-  <td></td>
- </tr>
- <tr>
-  <td>F4</td>
-  <td></td>
-  <td>Change Namespace or Connection</td>
-  <td></td>
- </tr>
  <tr>
   <td>F8</td>
   <td>F11</td>
@@ -166,39 +159,15 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td></td>
     </tr>
     <tr>
-      <td>&#8963;W</td>
-      <td></td>
-      <td>Show Class Browser</td>
-      <td></td>
-    </tr>
-    <tr>
       <td>&#8963;&#8679;V</td>
       <td>&#8963;&#8679;V</td>
       <td>View Others. Opens documents related to the current document, such as MAC or INT routines.</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8997;1</td>
-      <td></td>
-      <td>Toggle Inspector window display</td>
-      <td></td>
-    </tr>
-    <tr>
       <td>&#8997;2</td>
       <td>&#8963;&#8679;U</td>
       <td>Toggle Output window display</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>&#8997;3</td>
-      <td></td>
-      <td>Toggle Workspace window display</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>&#8997;4</td>
-      <td></td>
-      <td>Toggle Watch window display</td>
       <td></td>
     </tr>
     <tr>
@@ -212,13 +181,6 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td>&#8997;6</td>
       <td>&#8963;&#8679;F</td>
       <td>Toggles Find in Files window
-      display</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>&#8997;7</td>
-      <td></td>
-      <td>Toggles Class View window
       display</td>
       <td></td>
     </tr>
@@ -238,12 +200,6 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td>&#8963;B</td>
       <td>always on</td>
       <td>Toggle Bracket Matching</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>&#8963;&#8679;N</td>
-      <td></td>
-      <td>Toggles Line Numbers Display</td>
       <td></td>
     </tr>
     <tr>
@@ -322,12 +278,6 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td>You can use <code>Ctrl-T</code> to go to a class member. More information can be found in the <a href="https://code.visualstudio.com/docs/editor/editingevolved#_open-symbol-by-name">VS Code docs</a>.</td>
     </tr>
     <tr>
-      <td>&#8963;&#8679;G or F12</td>
-      <td></td>
-      <td>Goto Documentation for Tag</td>
-      <td></td>
-    </tr>
-    <tr>
       <td>&#8963;F3 | &#8963;&#8679;F3</td>
       <td>F8 | &#8679;F8</td>
       <td>Go To Next | Previous Error</td>
@@ -366,12 +316,6 @@ This section provides a mapping table for Studio users to more quickly adapt you
     </tr>
   </thead>
   <tbody>
-    <tr>
-      <td>Insert</td>
-      <td></td>
-      <td>Toggle Insert/Overwrite Mode</td>
-      <td></td>
-    </tr>
     <tr>
       <td>&#8963;Delete</td>
       <td></td>
@@ -445,12 +389,6 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td>Try an extension such as <a href="https://marketplace.visualstudio.com/items?itemName=wmaurer.change-case" target="new">change-case</a></td>
     </tr>
     <tr>
-      <td>&#8963;&#8997;O</td>
-      <td></td>
-      <td>Toggle the Delay Parsing option.</td>
-      <td></td>
-    </tr>
-    <tr>
       <td>&#8963;&#8997;U</td>
       <td></td>
       <td>Titlecase (Initial Caps) Selection</td>
@@ -466,18 +404,6 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td>&#8963;{</td>
       <td>{</td>
       <td>Insert Open and Close Braces.</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>&#8963;[</td>
-      <td></td>
-      <td>Insert Open and Close Square Brackets.</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>&#8963;&lt;</td>
-      <td></td>
-      <td>Insert Open and Close Angle Brackets.</td>
       <td></td>
     </tr>
     <tr>
@@ -509,24 +435,6 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td></td>
       <td>Compress Commands</td>
       <td>With the InterSystems Language Server installed, you can <a href="../settings/#language-server">configure its formatter to contract command names</a> and then <a href="https://code.visualstudio.com/docs/editor/codebasics#_formatting">format some or all of your document</a>.</td>
-    </tr>
-    <tr>
-      <td>&#8963;.</td>
-      <td></td>
-      <td>Insert Dots</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>&#8963;&#8679;.</td>
-      <td></td>
-      <td>Remove Dots</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>&#8963;&#8679;T</td>
-      <td></td>
-      <td>Add Task</td>
-      <td></td>
     </tr>
   </tbody>
 </table>
@@ -687,12 +595,6 @@ This section provides a mapping table for Studio users to more quickly adapt you
   </thead>
   <tbody>
     <tr>
-      <td>&#8963;&#8997;L</td>
-      <td></td>
-      <td>Toggle Studio Debug Logging</td>
-      <td></td>
-    </tr>
-    <tr>
       <td>&#8963;&#8679;A</td>
       <td></td>
       <td>Debug Attach</td>
@@ -714,12 +616,6 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td>&#8963;&#8679;F5</td>
       <td>&#8963;&#8679;F5</td>
       <td>Debug Restart</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>&#8963;F10</td>
-      <td></td>
-      <td>Debug Run to Cursor</td>
       <td></td>
     </tr>
     <tr>
