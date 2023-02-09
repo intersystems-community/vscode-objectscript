@@ -95,7 +95,7 @@ export async function serverActions(): Promise<void> {
         }
 
         if (!allNamespaces.length) {
-          vscode.window.showErrorMessage(`Server returned an empty namespace list.`, "Dismiss");
+          vscode.window.showErrorMessage(`You don't have access to any other namespaces.`, "Dismiss");
           return;
         }
 
