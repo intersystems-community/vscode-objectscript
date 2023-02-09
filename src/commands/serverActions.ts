@@ -7,7 +7,14 @@ import {
   FILESYSTEM_READONLY_SCHEMA,
   explorerProvider,
 } from "../extension";
-import { connectionTarget, terminalWithDocker, shellWithDocker, currentFile } from "../utils";
+import {
+  connectionTarget,
+  terminalWithDocker,
+  shellWithDocker,
+  currentFile,
+  uriOfWorkspaceFolder,
+  outputChannel,
+} from "../utils";
 import { mainCommandMenu, mainSourceControlMenu } from "./studio";
 import { AtelierAPI } from "../api";
 import { getCSPToken } from "../utils/getCSPToken";
@@ -37,6 +44,15 @@ export async function serverActions(): Promise<void> {
       label: "Refresh Connection",
       detail: "Force attempt to connect to the server",
     });
+
+    // Switching namespace makes only sense if the user has a local folder open and not a server-side folder!
+    if (uriOfWorkspaceFolder()?.scheme === "file") {
+      actions.push({
+        id: "switchNamespace",
+        label: "Switch Namespace",
+        detail: "Switch to a different namespace in the current server",
+      });
+    }
   }
   const connectionActionsHandler = async (action: ServerAction): Promise<ServerAction> => {
     if (!action) {
@@ -54,6 +70,49 @@ export async function serverActions(): Promise<void> {
       }
       case "refreshConnection": {
         await checkConnection(true, undefined, true);
+        break;
+      }
+      case "switchNamespace": {
+        // NOTE: List of all namespaces except the current one as it doesn't make sense to allow switching to the current one
+        const allNamespaces: string[] | undefined = await api
+          .serverInfo()
+          .then((data) =>
+            data.result.content.namespaces.filter((ns) => ns.toLowerCase() !== api.config.ns.toLowerCase())
+          )
+          .catch((error) => {
+            let message = `Failed to fetch a list of namespaces.`;
+            if (error && error.errorText && error.errorText !== "") {
+              outputChannel.appendLine("\n" + error.errorText);
+              outputChannel.show(true);
+              message += " Check 'ObjectScript' output channel for details.";
+            }
+            vscode.window.showErrorMessage(message, "Dismiss");
+            return undefined;
+          });
+
+        if (!allNamespaces) {
+          return;
+        }
+
+        if (!allNamespaces.length) {
+          vscode.window.showErrorMessage(`You don't have access to any other namespaces.`, "Dismiss");
+          return;
+        }
+
+        const namespace = await vscode.window.showQuickPick(allNamespaces, {
+          placeHolder: `Choose the namespace to switch to`,
+          ignoreFocusOut: true,
+        });
+
+        if (namespace) {
+          const connConfig = config("", workspaceFolder);
+          const target = connConfig.inspect("conn").workspaceFolderValue
+            ? vscode.ConfigurationTarget.WorkspaceFolder
+            : vscode.ConfigurationTarget.Workspace;
+          const targetConfig =
+            connConfig.inspect("conn").workspaceFolderValue || connConfig.inspect("conn").workspaceValue;
+          return connConfig.update("conn", { ...targetConfig, ns: namespace }, target);
+        }
         break;
       }
       default:
