@@ -73,7 +73,7 @@ export async function serverActions(): Promise<void> {
         break;
       }
       case "switchNamespace": {
-        // NOTE: List of all namespaces except the current one as it doens't make sense to allow switching to the current one
+        // NOTE: List of all namespaces except the current one as it doesn't make sense to allow switching to the current one
         const allNamespaces: string[] | undefined = await api
           .serverInfo()
           .then((data) =>
