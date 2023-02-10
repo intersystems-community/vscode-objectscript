@@ -819,6 +819,69 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           }
         });
     }),
+    vscode.commands.registerCommand("vscode-objectscript.currentMethod", async (config) => {
+      const file = currentFile();
+      if (!file.fileName.endsWith("cls")) {
+        vscode.window.showErrorMessage(
+          "Unable to start debugging as the cursor is not inside any debuggable method.",
+          "Dismiss"
+        );
+        return;
+      }
+
+      const symbols: vscode.DocumentSymbol[] = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
+        "vscode.executeDocumentSymbolProvider",
+        file.uri
+      );
+
+      const cursorLinePos = new vscode.Position(vscode.window.activeTextEditor.selection.active.line, 0);
+
+      const method = symbols[0].children.find(
+        (symbol) =>
+          symbol.kind === vscode.SymbolKind.Method &&
+          symbol.detail.toLowerCase() === "classmethod" &&
+          symbol.range.contains(cursorLinePos)
+      );
+
+      if (!method) {
+        vscode.window.showErrorMessage(
+          "Unable to start debugging as the cursor is not inside any debuggable method.",
+          "Dismiss"
+        );
+        return;
+      }
+
+      const pattern = /(?:^ClassMethod\s)([^(]+)\((.*)/i;
+      const methodMatch = vscode.window.activeTextEditor.document.lineAt(method.range.start.line).text.match(pattern);
+
+      let hasParams = false;
+      if (methodMatch) {
+        const [, , paramsRaw] = methodMatch;
+        let params = paramsRaw;
+        params = params.replace(/"[^"]*"/g, '""');
+        params = params.replace(/{[^{}]*}|{[^{}]*{[^{}]*}[^{}]*}/g, '""');
+        params = params.replace(/\([^()]*\)/g, "");
+        params = params.split(")")[0];
+        const paramsCount = params.length ? params.split(",").length : 0;
+        hasParams = paramsCount > 0;
+      }
+
+      const program = `##class(${symbols[0].name}).${method.name}`;
+
+      if (hasParams) {
+        return vscode.window
+          .showInputBox({
+            placeHolder: "Please enter comma delimited arguments list",
+          })
+          .then((args) => {
+            if (args != undefined && args != null) {
+              return program + (program.includes("##class") || args.length ? `(${args})` : "");
+            }
+          });
+      } else {
+        return program + "()";
+      }
+    }),
     vscode.commands.registerCommand("vscode-objectscript.pickProcess", async (config) => {
       const system = config.system;
       const api = new AtelierAPI(vscode.window.activeTextEditor?.document.uri);

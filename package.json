@@ -1522,7 +1522,8 @@
           }
         },
         "variables": {
-          "PickProcess": "vscode-objectscript.pickProcess"
+          "PickProcess": "vscode-objectscript.pickProcess",
+          "CurrentMethod": "vscode-objectscript.currentMethod"
         },
         "initialConfigurations": [
           {
