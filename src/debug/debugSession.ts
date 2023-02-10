@@ -47,6 +47,11 @@ async function getFileText(uri: vscode.Uri): Promise<string> {
   }
 }
 
+/** Strip quotes from method `name` if present */
+function stripMethodNameQuotes(name: string): string {
+  return name.charAt(0) == '"' && name.charAt(name.length - 1) == '"' ? name.slice(1, -1).replaceAll('""', '"') : name;
+}
+
 /** converts a uri from VS Code to a server-side XDebug file URI with respect to source root settings */
 async function convertClientPathToDebugger(uri: vscode.Uri, namespace: string): Promise<string> {
   const { scheme, path } = uri;
@@ -313,6 +318,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
             ) {
               // This breakpoint is in a method
               const currentdoc = (await getFileText(uri)).split(/\r?\n/);
+              const methodName = stripMethodNameQuotes(currentSymbol.name);
               if (languageServer) {
                 // selectionRange.start.line is the method definition line
                 for (
@@ -329,7 +335,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
                         breakpoint.condition,
                         fileUri,
                         line,
-                        currentSymbol.name,
+                        methodName,
                         line - methodlinenum - 1,
                         breakpoint.hitCondition
                       );
@@ -337,7 +343,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
                       return new xdebug.ClassLineBreakpoint(
                         fileUri,
                         line,
-                        currentSymbol.name,
+                        methodName,
                         line - methodlinenum - 1,
                         breakpoint.hitCondition
                       );
@@ -351,7 +357,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
                     breakpoint.condition,
                     fileUri,
                     line,
-                    currentSymbol.name,
+                    methodName,
                     line - currentSymbol.selectionRange.start.line,
                     breakpoint.hitCondition
                   );
@@ -359,7 +365,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
                   return new xdebug.ClassLineBreakpoint(
                     fileUri,
                     line,
-                    currentSymbol.name,
+                    methodName,
                     line - currentSymbol.selectionRange.start.line,
                     breakpoint.hitCondition
                   );
@@ -539,7 +545,10 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
             // Find the DocumentSymbol for this method
             let currentSymbol: vscode.DocumentSymbol;
             for (const symbol of symbols) {
-              if (symbol.name === stackFrame.method && symbol.detail.toLowerCase().includes("method")) {
+              if (
+                stripMethodNameQuotes(symbol.name) === stackFrame.method &&
+                symbol.detail.toLowerCase().includes("method")
+              ) {
                 currentSymbol = symbol;
                 break;
               }
