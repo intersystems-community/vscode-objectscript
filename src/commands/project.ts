@@ -313,7 +313,7 @@ export function removeProjectItem(Name: string, Type: string, items: ProjectItem
       );
     }
   } else if (Type == "OTH" && items.findIndex((item) => item.Name.toLowerCase() == Name.toLowerCase()) != -1) {
-    remove.push({ Name, Type });
+    remove.push({ Name, Type: items.find((item) => item.Name.toLowerCase() == Name.toLowerCase())?.Type ?? Type });
   }
 
   return remove;
@@ -786,7 +786,12 @@ export async function modifyProject(
           );
         } else if (node.category == "OTH") {
           // Remove all items of Type "OTH" with this prefix
-          remove.push(...items.filter((item) => item.Name.startsWith(`${node.fullName}.`) && item.Type == "OTH"));
+          remove.push(
+            ...items.filter(
+              (item) =>
+                item.Name.startsWith(`${node.fullName}.`) && !["CLS", "PKG", "MAC", "CSP", "DIR"].includes(item.Type)
+            )
+          );
         } else if (node.category == "INC") {
           // Remove all items of Type "MAC" with this prefix and the .inc extension
           remove.push(
