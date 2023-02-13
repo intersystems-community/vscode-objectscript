@@ -275,30 +275,39 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
   return uri.with({ query: newParams, path: newPath ?? uri.path });
 }
 
-export async function modifyWsFolder(): Promise<void> {
-  // Select a workspace folder to modify
+export async function modifyWsFolder(wsFolderUri?: vscode.Uri): Promise<void> {
   let wsFolder: vscode.WorkspaceFolder;
-  if (vscode.workspace.workspaceFolders == undefined || vscode.workspace.workspaceFolders.length == 0) {
-    vscode.window.showErrorMessage("No workspace folders are open.", "Dismiss");
-    return;
-  } else if (vscode.workspace.workspaceFolders.length == 1) {
-    wsFolder = vscode.workspace.workspaceFolders[0];
+  if (!wsFolderUri) {
+    // Select a workspace folder to modify
+    if (vscode.workspace.workspaceFolders == undefined || vscode.workspace.workspaceFolders.length == 0) {
+      vscode.window.showErrorMessage("No workspace folders are open.", "Dismiss");
+      return;
+    } else if (vscode.workspace.workspaceFolders.length == 1) {
+      wsFolder = vscode.workspace.workspaceFolders[0];
+    } else {
+      wsFolder = await vscode.window.showWorkspaceFolderPick({
+        placeHolder: "Pick the workspace folder modify.",
+        ignoreFocusOut: true,
+      });
+    }
+    if (!wsFolder) {
+      return;
+    }
+    if (!filesystemSchemas.includes(wsFolder.uri.scheme)) {
+      vscode.window.showErrorMessage(
+        `Workspace folder '${wsFolder.name}' does not have scheme 'isfs' or 'isfs-readonly'.`,
+        "Dismiss"
+      );
+      return;
+    }
   } else {
-    wsFolder = await vscode.window.showWorkspaceFolderPick({
-      placeHolder: "Pick the workspace folder modify.",
-      ignoreFocusOut: true,
-    });
+    // Find the workspace folder for this uri
+    wsFolder = vscode.workspace.getWorkspaceFolder(wsFolderUri);
+    if (!wsFolder) {
+      return;
+    }
   }
-  if (!wsFolder) {
-    return;
-  }
-  if (!filesystemSchemas.includes(wsFolder.uri.scheme)) {
-    vscode.window.showErrorMessage(
-      `Workspace folder '${wsFolder.name}' does not have scheme 'isfs' or 'isfs-readonly'.`,
-      "Dismiss"
-    );
-    return;
-  }
+
   // Prompt the user to modify the uri
   const newUri = await modifyWsFolderUri(wsFolder.uri);
   if (!newUri) {
