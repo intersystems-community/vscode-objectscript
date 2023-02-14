@@ -160,33 +160,33 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td></td>
     </tr>
     <tr>
-      <td>&#8997;2</td>
+      <td>Alt+2</td>
       <td>Ctrl+Shift+U</td>
       <td>Toggle Output window display</td>
       <td></td>
     </tr>
     <tr>
-      <td>&#8997;5</td>
+      <td>Alt+5</td>
       <td></td>
       <td>Toggles Code Snippets window
       display</td>
       <td>Code Snippets exist in VS Code but there's no UI.</td>
     </tr>
     <tr>
-      <td>&#8997;6</td>
+      <td>Alt+6</td>
       <td>Ctrl+Shift+F</td>
       <td>Toggles Find in Files window
       display</td>
       <td></td>
     </tr>
     <tr>
-      <td>Ctrl+&#8997;+, Ctrl+&#8997;-</td>
+      <td>Ctrl+Alt++, Ctrl+Alt+-</td>
       <td>Ctrl++, Ctrl+-</td>
       <td>Increase, Decrease Font</td>
       <td></td>
     </tr>
     <tr>
-      <td>Ctrl+&#8997;Space</td>
+      <td>Ctrl+Alt+Space</td>
       <td>Ctrl+Shift+P<br>(start typing render)</td>
       <td>Toggles display of Whitespace Symbols, spaces, newlines, and tabs</td>
       <td></td>
@@ -256,7 +256,7 @@ This section provides a mapping table for Studio users to more quickly adapt you
     </tr>
     <tr>
       <td>Ctrl+PgUp, Ctrl+PgDn</td>
-      <td>&#8997;PgUp, &#8997;PgDn</td>
+      <td>Alt+PgUp, Alt+PgDn</td>
       <td>Go to top, bottom of visible page</td>
       <td></td>
     </tr>
@@ -279,7 +279,7 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td></td>
     </tr>
     <tr>
-      <td>&#8997;F3, &#8997;Shift+F3</td>
+      <td>Alt+F3, Alt+Shift+F3</td>
       <td>F8, Shift+F8</td>
       <td>Go to Next, Previous Warning</td>
       <td></td>
@@ -384,7 +384,7 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td>Try an extension such as <a href="https://marketplace.visualstudio.com/items?itemName=wmaurer.change-case" target="new">change-case</a></td>
     </tr>
     <tr>
-      <td>Ctrl+&#8997;U</td>
+      <td>Ctrl+Alt+U</td>
       <td></td>
       <td>Titlecase (Initial Caps) Selection</td>
       <td>Try an extension such as <a href="https://marketplace.visualstudio.com/items?itemName=wmaurer.change-case" target="new">change-case</a></td>
@@ -414,7 +414,7 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td></td>
     </tr>
     <tr>
-      <td>Ctrl+&#8997;/, Ctrl+Shift+&#8997;/</td>
+      <td>Ctrl+Alt+/, Ctrl+Shift+Alt+/</td>
       <td>Ctrl+/</td>
       <td>Comment Markers Added to, Removed from Block of Text</td>
       <td></td>
@@ -477,8 +477,8 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td></td>
     </tr>
     <tr>
-      <td>Ctrl+Shift+G, Ctrl+&#8997;G</td>
-      <td>&#8997;&#8680;| &#8997;&#8678;</td>
+      <td>Ctrl+Shift+G, Ctrl+Alt+G</td>
+      <td>Alt+&#8680;| Alt+&#8678;</td>
       <td><a
       href="https://docs.intersystems.com/iris20201/csp/docbook/DocBook.UI.Page.cls?KEY=GSTD_Commands#GSTD_Commands_Edit_Search"
       target="_new">Go To, Go Back</a></td>
