@@ -830,7 +830,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           .then((data) => Object.fromEntries(data.result.content.map((x) => [x.Job, x.ConfigName])))
           .catch((error) => {
             // Current namespace is not Interoperability-enabled, there is no Ens.Job_Enumerate procedure
-            if (error && error.errorText.includes("Table valued function 'ENS.JOB_ENUMERATE'(...) not found")) {
+            if (error && error.errorText.includes("'ENS.JOB_ENUMERATE'(...)")) {
               return {};
             }
 
