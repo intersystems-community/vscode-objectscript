@@ -826,10 +826,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         // NOTE: We do not know if the current user has permissions to other namespaces, so lets only fetch the job infos
         // for the current namespace.
         const currNamespaceJobs: { [k: string]: string } = await api
-          .actionQuery("CALL Ens.Job_Enumerate()", [])
-          .then((data) => data.result.content.filter((x) => x.State === "Alive"))
-          .then((data) => Object.fromEntries(data.map((x) => [x.Job, x.ConfigName])))
+          .actionQuery("SELECT Job, ConfigName FROM Ens.Job_Enumerate() where State = 'Alive'", [])
+          .then((data) => Object.fromEntries(data.result.content.map((x) => [x.Job, x.ConfigName])))
           .catch((error) => {
+            // Current namespace is not Interoperability-enabled, there is no Ens.Job_Enumerate procedure
+            if (error && error.errorText.includes("Table valued function 'ENS.JOB_ENUMERATE'(...) not found")) {
+              return {};
+            }
+
             let message = `Failed to fetch namespace '${api.ns}' job config names.`;
             if (error && error.errorText && error.errorText !== "") {
               outputChannel.appendLine("\n" + error.errorText);
