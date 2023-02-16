@@ -85,10 +85,17 @@ export function registerExplorerOpen(): vscode.Disposable {
                 : ["mac", "int", "inc"].includes(ext)
                 ? "MAC"
                 : "OTH";
-              await api.actionQuery("DELETE FROM %Studio.ProjectItem WHERE Project = ? AND LOWER(Name||Type) = ?", [
-                project,
-                `${prjFileName}${prjType}`.toLowerCase(),
-              ]);
+              if (prjType == "OTH") {
+                await api.actionQuery(
+                  "DELETE FROM %Studio.ProjectItem WHERE Project = ? AND Name = ? AND Type NOT IN ('CLS','PKG','MAC','CSP','DIR','GBL')",
+                  [project, prjFileName]
+                );
+              } else {
+                await api.actionQuery("DELETE FROM %Studio.ProjectItem WHERE Project = ? AND LOWER(Name||Type) = ?", [
+                  project,
+                  `${prjFileName}${prjType}`.toLowerCase(),
+                ]);
+              }
             } catch (error) {
               let message = `Failed to remove '${fullName}' from project '${project}'.`;
               if (error && error.errorText && error.errorText !== "") {
