@@ -31,7 +31,16 @@ Next create a workspace for editing code directly on the server:
 1. Pick an access mode from the list:
 
    ![Choose an access type.](../assets/images/ss-access-type.png "choose an access type")
-1. Pick optional [display filtering query parameters](.//serverside#filters-and-display-options):
+1. Pick the files to show:
+
+   ![Choose files.](../assets/images/ss-files.png "choose files")
+  - If you chose to show web application files, pick an optional web application to show files from:
+
+   ![Choose files.](../assets/images/ss-pick-webapp.png "choose files")
+  - If you chose to show a project's contents, pick the project:
+
+   ![Choose files.](../assets/images/ss-pick-project.png "choose files")
+  - If you create your own filter, pick the filter options:
 
    ![Choose query parameters.](../assets/images/ss-query-params.png "choose query parameters")
 1. If you want to reopen this workspace in the future, use the command **File > Save Workspace As...** to save it as a `.code-workspace` file.

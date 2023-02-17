@@ -154,125 +154,123 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
     return;
   }
   const oldParams = new URLSearchParams(uri.query);
-  // Create the QuickPickItems
-  const qpItems: vscode.QuickPickItem[] = [
+
+  // Prompt the user for the files to show
+  const filterType = await vscode.window.showQuickPick(
+    [
+      {
+        label: "$(file-code) Show web application files.",
+        detail: "Choose a specific web application, or show all.",
+        value: "csp",
+      },
+      {
+        label: "$(files) Show the contents of a server-side project.",
+        detail: "Choose an existing project or create a new one.",
+        value: "project",
+      },
+      {
+        label: "$(list-tree) Show files that pass through custom filters.",
+        detail: "Choose the filters to apply.",
+        value: "other",
+      },
+    ],
     {
-      label: "Standalone",
-      kind: vscode.QuickPickItemKind.Separator,
-    },
-    {
-      label: "$(file-code) csp",
-      detail: "Show Web Application files.",
-    },
-    {
-      label: "$(files) project",
-      detail: "Show the contents of a server-side project.",
-    },
-    {
-      label: "Can be combined",
-      kind: vscode.QuickPickItemKind.Separator,
-    },
-    {
-      label: "$(filter) filter",
-      detail: "Comma-delimited list of search options. (i.e. '*.cls,*.inc,*.mac,*.int')",
-    },
-    {
-      label: "$(list-flat) flat",
-      detail: "Show a flat list of files. Does not split packages as folders.",
-    },
-    {
-      label: "$(server-process) generated",
-      detail: "Show generated files as well as non-generated.",
-    },
-    {
-      label: "$(references) mapped",
-      detail: "Hide files that are mapped from a non-default database.",
-    },
-  ];
-  // Show the QuickPick
-  const newParamStrs: string[] = await new Promise<string[]>((resolve) => {
-    let resolveOnHide = true;
-    const quickPick = vscode.window.createQuickPick();
-    quickPick.title = "Pick the query parameters for this workspace folder.";
-    quickPick.items = qpItems;
-    quickPick.canSelectMany = true;
-    quickPick.selectedItems = qpItems.filter((i) => oldParams.has(i.label.split(" ")[1]));
-    quickPick.onDidAccept(() => {
-      if (quickPick.selectedItems.find((i) => i.label.split(" ")[1] == "csp") && quickPick.selectedItems.length > 1) {
-        // csp must be alone
-        vscode.window.showErrorMessage("'csp' cannot be combined with any other parameters.");
-        return;
-      }
-      if (
-        quickPick.selectedItems.find((i) => i.label.split(" ")[1] == "project") &&
-        quickPick.selectedItems.length > 1
-      ) {
-        // project must be alone
-        vscode.window.showErrorMessage("'project' cannot be combined with any other parameters.");
-        return;
-      }
-      resolveOnHide = false;
-      resolve(quickPick.selectedItems.map((i) => i.label.split(" ")[1]));
-      quickPick.hide();
-    });
-    quickPick.onDidHide(() => {
-      if (resolveOnHide) {
-        resolve(undefined);
-      }
-      quickPick.dispose();
-    });
-    quickPick.show();
-  });
-  if (!newParamStrs) {
+      ignoreFocusOut: true,
+      title: "Pick the files to be shown in this workspace folder.",
+    }
+  );
+  if (!filterType) {
     return;
   }
-  // Build the new query parameter string
+
   let newParams = "";
-  let newPath: string;
-  if (newParamStrs.toString() == "project") {
+  let newPath = "/";
+  if (filterType.value == "csp") {
+    // Prompt for a specific web app
+    const cspApps = cspAppsForUri(uri);
+    if (cspApps.length == 0) {
+      vscode.window.showInformationMessage("No web applications are configured in this namespace.", "Dismiss");
+      return;
+    }
+    newPath =
+      (await vscode.window.showQuickPick(cspApps, {
+        title: "Pick a specific web application to show, or press 'Escape' to show all.",
+        ignoreFocusOut: true,
+      })) ?? "/";
+    newParams = "csp";
+  } else if (filterType.value == "project") {
     // Prompt for project
     const project = await pickProject(new AtelierAPI(uri));
     if (!project) {
       return;
     }
     newParams = `project=${project}`;
-  } else if (newParamStrs.toString() == "csp") {
-    // Prompt for a specific web app
-    const cspApps = cspAppsForUri(uri);
-    if (cspApps.length == 0) {
-      vscode.window.showErrorMessage("No web applications are configured in this namespace.", "Dismiss");
+  } else {
+    // Prompt the user for other query parameters
+    const otherParams = await vscode.window.showQuickPick(
+      [
+        {
+          label: "$(filter) filter",
+          detail: "Comma-delimited list of search options. (i.e. '*.cls,*.inc,*.mac,*.int')",
+          picked: oldParams.has("filter"),
+        },
+        {
+          label: "$(list-flat) flat",
+          detail: "Show a flat list of files. Does not split packages as folders.",
+          picked: oldParams.has("flat"),
+        },
+        {
+          label: "$(server-process) generated",
+          detail: "Show generated files as well as non-generated.",
+          picked: oldParams.has("generated"),
+        },
+        {
+          label: "$(references) mapped",
+          detail: "Hide files that are mapped from a non-default database.",
+          picked: oldParams.has("mapped"),
+        },
+      ],
+      {
+        ignoreFocusOut: true,
+        canPickMany: true,
+        title: "",
+      }
+    );
+    if (!otherParams) {
       return;
     }
-    newPath = await vscode.window.showQuickPick(cspApps, {
-      title: "Pick a specific web application to show, or press 'Escape' to show all.",
-      ignoreFocusOut: true,
-    });
-    newParams = "csp";
-  } else {
+    // Build the new query parameter string
     const newParamsObj = new URLSearchParams();
-    for (const newParamStr of newParamStrs) {
-      if (newParamStr == "filter") {
-        // Prompt for filter
-        const filter = await vscode.window.showInputBox({
-          title: "Enter a filter string.",
-          ignoreFocusOut: true,
-          value: oldParams.get("filter"),
-          placeHolder: "*.cls,*.inc,*.mac,*.int",
-          prompt:
-            "Patterns are comma-delimited and may contain both * (any number of characters) and ? (a single character) as wildcards. To exclude items, prefix the pattern with a single quote.",
-        });
-        if (filter && filter.length) {
-          newParamsObj.set("filter", filter);
+    for (const otherParam of otherParams) {
+      const otherParamName = otherParam.label.split(" ")[1];
+      switch (otherParamName) {
+        case "filter": {
+          // Prompt for filter
+          const filter = await vscode.window.showInputBox({
+            title: "Enter a filter string.",
+            ignoreFocusOut: true,
+            value: oldParams.get("filter"),
+            placeHolder: "*.cls,*.inc,*.mac,*.int",
+            prompt:
+              "Patterns are comma-delimited and may contain both * (any number of characters) and ? (a single character) as wildcards. To exclude items, prefix the pattern with a single quote.",
+          });
+          if (filter && filter.length) {
+            newParamsObj.set(otherParamName, filter);
+          }
+          break;
         }
-      } else if (["flat", "generated"].includes(newParamStr)) {
-        newParamsObj.set(newParamStr, "1");
-      } else if (newParamStr == "mapped") {
-        newParamsObj.set("mapped", "0");
+        case "flat":
+        case "generated":
+          newParamsObj.set(otherParamName, "1");
+          break;
+        case "mapped":
+          newParamsObj.set(otherParamName, "0");
       }
     }
     newParams = newParamsObj.toString();
   }
-  return uri.with({ query: newParams, path: newPath ?? uri.path });
+
+  return uri.with({ query: newParams, path: newPath });
 }
 
 export async function modifyWsFolder(wsFolderUri?: vscode.Uri): Promise<void> {
