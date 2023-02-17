@@ -86,6 +86,7 @@
     "onCommand:vscode-objectscript.newFile.rule",
     "onCommand:vscode-objectscript.newFile.businessService",
     "onCommand:vscode-objectscript.newFile.dtl",
+    "onCommand:vscode-objectscript.openErrorLocation",
     "onLanguage:objectscript",
     "onLanguage:objectscript-int",
     "onLanguage:objectscript-class",
@@ -327,6 +328,10 @@
         {
           "command": "vscode-objectscript.showRESTDebugWebview",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.openErrorLocation",
+          "when": "vscode-objectscript.connectActive && workspaceFolderCount != 0"
         }
       ],
       "view/title": [
@@ -1083,6 +1088,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.showRESTDebugWebview",
         "title": "Debug REST Service..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.openErrorLocation",
+        "title": "Open Error Location..."
       }
     ],
     "keybindings": [

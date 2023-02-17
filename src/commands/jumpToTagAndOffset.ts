@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
-import { currentFile } from "../utils";
+import { DocumentContentProvider } from "../providers/DocumentContentProvider";
+import { currentFile, outputChannel } from "../utils";
 
 export async function jumpToTagAndOffset(): Promise<void> {
   const file = currentFile();
@@ -62,4 +63,56 @@ export async function jumpToTagAndOffset(): Promise<void> {
     quickPick.hide();
   });
   quickPick.show();
+}
+
+/** Prompt the user for an error location of the form `label+offset^routine`, then open it. */
+export async function openErrorLocation(): Promise<void> {
+  // Prompt the user for a location
+  const regex = /^(%?[\p{L}\d]+)?(?:\+(\d+))?\^(%?[\p{L}\d.]+)$/u;
+  const location = await vscode.window.showInputBox({
+    title: "Enter the location to open.",
+    ignoreFocusOut: true,
+    placeHolder: "label+offset^routine",
+    validateInput: (v) => (regex.test(v.trim()) ? undefined : "Input is not in the format 'label+offset^routine'"),
+  });
+  if (!location) {
+    return;
+  }
+  const [, label, offset, routine] = location.trim().match(regex);
+  // Get the uri for the routine
+  const uri = DocumentContentProvider.getUri(`${routine}.int`);
+  if (!uri) {
+    return;
+  }
+  let selection = new vscode.Range(0, 0, 0, 0);
+  try {
+    if (label) {
+      // Find the location of the tag within the document
+      const symbols: vscode.DocumentSymbol[] = await vscode.commands.executeCommand(
+        "vscode.executeDocumentSymbolProvider",
+        uri
+      );
+      for (const symbol of symbols) {
+        if (symbol.name == label) {
+          selection = new vscode.Range(symbol.selectionRange.start.line, 0, symbol.selectionRange.start.line, 0);
+          break;
+        }
+      }
+    }
+    if (offset) {
+      // Add the offset
+      selection = new vscode.Range(selection.start.line + Number(offset), 0, selection.start.line + Number(offset), 0);
+    }
+    // Show the document
+    await vscode.window.showTextDocument(uri, { preview: false, selection });
+  } catch (error) {
+    outputChannel.appendLine(
+      typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
+    );
+    outputChannel.show(true);
+    vscode.window.showErrorMessage(
+      `Failed to open routine '${routine}.int'. Check 'ObjectScript' Output channel for details.`,
+      "Dismiss"
+    );
+  }
 }
