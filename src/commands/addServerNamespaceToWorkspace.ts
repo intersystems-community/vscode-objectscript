@@ -41,7 +41,7 @@ export async function pickServerAndNamespace(message?: string): Promise<{ server
   // Connect and fetch namespaces
   const api = new AtelierAPI(uri);
   const allNamespaces: string[] | undefined = await api
-    .serverInfo()
+    .serverInfo(false)
     .then((data) => data.result.content.namespaces)
     .catch((reason) => {
       // Notify user about serverInfo failure
