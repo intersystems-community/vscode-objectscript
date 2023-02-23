@@ -94,7 +94,7 @@ This section provides a mapping table for Studio users to more quickly adapt you
   <td>Ctrl+Shift+O</td>
   <td>Ctrl+K Ctrl+O</td>
   <td>Open Project</td>
-  <td>Opens a folder on-disk (if you're not using client-side source control, open a Studio project from Objectscript pane).</td>
+  <td>Opens a folder on-disk (if you're not using client-side source control, opens a Studio project from ObjectScript pane).</td>
  </tr>
  <tr>
   <td>Ctrl+P</td>
