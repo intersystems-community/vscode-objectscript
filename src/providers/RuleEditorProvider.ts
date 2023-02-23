@@ -1,8 +1,9 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { loadChanges } from "../commands/compile";
+import { StudioActions } from "../commands/studio";
 import { cspApps } from "../extension";
-import { currentFile } from "../utils";
+import { currentFile, outputChannel } from "../utils";
 
 /**
  * The URI strings for all documents that are open in a custom editor.
@@ -246,6 +247,55 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
           // Load changes
           loadChanges([file]);
           return;
+        case "userAction": {
+          // Process the source control user action
+          // Should only be action 2 (show web page)
+          new StudioActions(document.uri).processUserAction(event.action).then((answer) => {
+            if (answer) {
+              api
+                .actionQuery("SELECT * FROM %Atelier_v1_Utils.Extension_AfterUserAction(?,?,?,?,?)", [
+                  "0",
+                  event.id,
+                  file.name,
+                  answer,
+                  "",
+                ])
+                .then((data) => {
+                  if (data.result.content.length) {
+                    const actionToProcess = data.result.content.pop();
+                    if (actionToProcess.reload) {
+                      // Revert so document is clean
+                      ignoreChanges = true;
+                      vscode.commands.executeCommand("workbench.action.files.revert");
+                      // Tell the rule editor to reload
+                      webviewPanel.webview.postMessage({
+                        direction: "editor",
+                        type: "revert",
+                      });
+                    }
+                    if (actionToProcess.errorText !== "") {
+                      outputChannel.appendLine(
+                        `\nError executing AfterUserAction '${event.label}':\n${actionToProcess.errorText}`
+                      );
+                      outputChannel.show();
+                    }
+                  }
+                })
+                .catch((error) => {
+                  outputChannel.appendLine(`\nError executing AfterUserAction '${event.label}':`);
+                  if (error && error.errorText && error.errorText !== "") {
+                    outputChannel.appendLine(error.errorText);
+                  } else {
+                    outputChannel.appendLine(
+                      typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
+                    );
+                  }
+                  outputChannel.show();
+                });
+            }
+          });
+          return;
+        }
       }
     });
     webviewPanel.onDidDispose(() => {
