@@ -92,9 +92,9 @@ This section provides a mapping table for Studio users to more quickly adapt you
  </tr>
  <tr>
   <td>Ctrl+Shift+O</td>
-  <td>Ctrl+Shift+O</td>
+  <td>Ctrl+K Ctrl+O</td>
   <td>Open Project</td>
-  <td>Opens a folder on-disk. If you're not using client-side source control, open a Studio project from Objectscript pane.</td>
+  <td>Opens a folder on-disk (if you're not using client-side source control, open a Studio project from Objectscript pane).</td>
  </tr>
  <tr>
   <td>Ctrl+P</td>
@@ -268,9 +268,9 @@ This section provides a mapping table for Studio users to more quickly adapt you
     </tr>
     <tr>
       <td>Ctrl+G</td>
-      <td></td>
+      <td>Ctrl+Shift+O</td>
       <td>Goto</td>
-      <td>You can use <code>Ctrl+T</code> to go to a class member. More information can be found in the <a href="https://code.visualstudio.com/docs/editor/editingevolved#_open-symbol-by-name">VS Code docs</a>.</td>
+      <td>You can use <code>Ctrl+T</code> to find a symbol across files. More information can be found in the <a href="https://code.visualstudio.com/docs/editor/editingevolved#_open-symbol-by-name">VS Code docs</a>.</td>
     </tr>
     <tr>
       <td>Ctrl+F3, Ctrl+Shift+F3</td>
