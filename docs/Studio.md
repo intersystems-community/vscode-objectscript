@@ -244,7 +244,7 @@ This section provides a mapping table for Studio users to more quickly adapt you
     </tr>
     <tr>
       <td>Ctrl+-, Ctrl+Shift+-</td>
-      <td>Alt &#8678;| Alt &#8680;</td>
+      <td>Alt &#8678;,  Alt &#8680;</td>
       <td>Go Back, Forward</td>
       <td></td>
     </tr>
@@ -261,8 +261,8 @@ This section provides a mapping table for Studio users to more quickly adapt you
       <td></td>
     </tr>
     <tr>
-      <td>Ctrl+&#8595;| Ctrl+&#8593;</td>
-      <td>Ctrl+&#8595;| Ctrl+&#8593;</td>
+      <td>Ctrl+&#8595;,  Ctrl+&#8593;</td>
+      <td>Ctrl+&#8595;,  Ctrl+&#8593;</td>
       <td>Scroll Down, Up</td>
       <td></td>
     </tr>
@@ -478,7 +478,7 @@ This section provides a mapping table for Studio users to more quickly adapt you
     </tr>
     <tr>
       <td>Ctrl+Shift+G, Ctrl+Alt+G</td>
-      <td>Alt+&#8680;| Alt+&#8678;</td>
+      <td>Alt+&#8680;,  Alt+&#8678;</td>
       <td><a
       href="https://docs.intersystems.com/iris20201/csp/docbook/DocBook.UI.Page.cls?KEY=GSTD_Commands#GSTD_Commands_Edit_Search"
       target="_new">Go To, Go Back</a></td>
