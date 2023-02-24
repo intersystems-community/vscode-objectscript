@@ -277,6 +277,11 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
     // Build the new query parameter string
     params.delete("csp");
     params.delete("project");
+    params.delete("filter");
+    params.delete("flat");
+    params.delete("generated");
+    params.delete("mapped");
+    params.delete("system");
     for (const otherParam of otherParams) {
       switch (otherParam.value) {
         case "filter": {
