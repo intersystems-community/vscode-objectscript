@@ -8,7 +8,7 @@ import {
   FILESYSTEM_READONLY_SCHEMA,
   filesystemSchemas,
 } from "../extension";
-import { cspAppsForUri } from "../utils";
+import { cspAppsForUri, outputChannel } from "../utils";
 import { pickProject } from "./project";
 
 /**
@@ -95,7 +95,7 @@ export async function addServerNamespaceToWorkspace(): Promise<void> {
         detail: "Documents opened in this folder will be read-only.",
       },
     ],
-    { title: "Choose the type of access", ignoreFocusOut: true }
+    { placeHolder: "Choose the type of access", ignoreFocusOut: true }
   );
   if (!mode) {
     return;
@@ -154,11 +154,16 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
     return;
   }
   const oldParams = new URLSearchParams(uri.query);
-  const namespace = new AtelierAPI(uri).ns;
+  const api = new AtelierAPI(uri);
 
   // Prompt the user for the files to show
   const filterType = await vscode.window.showQuickPick(
     [
+      {
+        label: `$(list-tree) Code Files in ${api.ns}`,
+        detail: "Filters can be applied in the next step.",
+        value: "other",
+      },
       {
         label: "$(file-code) Web Application Files",
         detail: "Choose a specific web application, or show all.",
@@ -168,11 +173,6 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
         label: "$(files) Contents of a Server-side Project",
         detail: "Choose an existing project, or create a new one.",
         value: "project",
-      },
-      {
-        label: `$(list-tree) Code Files in ${namespace}`,
-        detail: "Filters can be applied in the next step.",
-        value: "other",
       },
     ],
     {
@@ -188,10 +188,33 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
   let newPath = "/";
   if (filterType.value == "csp") {
     // Prompt for a specific web app
-    const cspApps = cspAppsForUri(uri);
+    let cspApps = cspAppsForUri(uri);
     if (cspApps.length == 0) {
-      vscode.window.showWarningMessage(`No web applications are configured to use namespace ${namespace}.`, "Dismiss");
-      return;
+      // Attempt to fetch from the server
+      cspApps = await api
+        .getCSPApps()
+        .then((data) => data.result.content ?? [])
+        .catch((error) => {
+          if (error && error.errorText && error.errorText !== "") {
+            outputChannel.appendLine(error.errorText);
+          } else {
+            outputChannel.appendLine(
+              typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
+            );
+          }
+          vscode.window.showErrorMessage(
+            "Failed to fetch web application list. Check 'ObjectScript' output channel for details.",
+            "Dismiss"
+          );
+          return;
+        });
+      if (cspApps == undefined) {
+        // Catch handler reported the error already
+        return;
+      } else if (cspApps.length == 0) {
+        vscode.window.showWarningMessage(`No web applications are configured to use namespace ${api.ns}.`, "Dismiss");
+        return;
+      }
     }
     newPath =
       (await vscode.window.showQuickPick(cspApps, {
@@ -211,24 +234,28 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
     const otherParams = await vscode.window.showQuickPick(
       [
         {
-          label: "$(filter) filter",
+          label: "$(filter) Filter",
           detail: "Comma-delimited list of search options, e.g. '*.cls,*.inc,*.mac,*.int'",
           picked: oldParams.has("filter"),
+          value: "filter",
         },
         {
-          label: "$(list-flat) flat",
+          label: "$(list-flat) Flat Files",
           detail: "Show a flat list of files. Do not treat packages as folders.",
           picked: oldParams.has("flat"),
+          value: "flat",
         },
         {
-          label: "$(server-process) generated",
+          label: "$(server-process) Show Generated",
           detail: "Also show files tagged as generated, e.g. by compilation.",
           picked: oldParams.has("generated"),
+          value: "generated",
         },
         {
-          label: "$(references) mapped",
-          detail: `Hide files that are mapped into ${namespace} from another code database.`,
+          label: "$(references) Hide Mapped",
+          detail: `Hide files that are mapped into ${api.ns} from another code database.`,
           picked: oldParams.has("mapped"),
+          value: "mapped",
         },
       ],
       {
@@ -243,8 +270,7 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
     // Build the new query parameter string
     const newParamsObj = new URLSearchParams();
     for (const otherParam of otherParams) {
-      const otherParamName = otherParam.label.split(" ")[1];
-      switch (otherParamName) {
+      switch (otherParam.value) {
         case "filter": {
           // Prompt for filter
           const filter = await vscode.window.showInputBox({
@@ -253,19 +279,19 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
             value: oldParams.get("filter"),
             placeHolder: "*.cls,*.inc,*.mac,*.int",
             prompt:
-              "Patterns are comma-delimited and may contain both * (any number of characters) and ? (a single character) as wildcards. To exclude items, prefix the pattern with a single quote.",
+              "Patterns are comma-delimited and may contain both * (zero or more characters) and ? (a single character) as wildcards. To exclude items, prefix the pattern with a single quote.",
           });
           if (filter && filter.length) {
-            newParamsObj.set(otherParamName, filter);
+            newParamsObj.set(otherParam.value, filter);
           }
           break;
         }
         case "flat":
         case "generated":
-          newParamsObj.set(otherParamName, "1");
+          newParamsObj.set(otherParam.value, "1");
           break;
         case "mapped":
-          newParamsObj.set(otherParamName, "0");
+          newParamsObj.set(otherParam.value, "0");
       }
     }
     newParams = newParamsObj.toString();
@@ -314,7 +340,7 @@ export async function modifyWsFolder(wsFolderUri?: vscode.Uri): Promise<void> {
   }
   // Prompt for name change
   const newName = await vscode.window.showInputBox({
-    title: "Enter a name for the workspace folder.",
+    title: "Enter a name for the workspace folder",
     ignoreFocusOut: true,
     value: wsFolder.name,
   });
