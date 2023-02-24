@@ -157,36 +157,57 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
   const api = new AtelierAPI(uri);
 
   // Prompt the user for the files to show
-  const filterType = await vscode.window.showQuickPick(
-    [
+  const filterType = await new Promise<string | undefined>((resolve) => {
+    let result: string;
+    const quickPick = vscode.window.createQuickPick();
+    quickPick.placeholder = "Choose what to show in the workspace folder";
+    quickPick.ignoreFocusOut = true;
+    quickPick.items = [
       {
         label: `$(list-tree) Code Files in ${api.ns}`,
         detail: "Filters can be applied in the next step.",
-        value: "other",
       },
       {
         label: "$(file-code) Web Application Files",
         detail: "Choose a specific web application, or show all.",
-        value: "csp",
       },
       {
         label: "$(files) Contents of a Server-side Project",
         detail: "Choose an existing project, or create a new one.",
-        value: "project",
       },
-    ],
-    {
-      ignoreFocusOut: true,
-      placeHolder: "Choose what to show in the workspace folder",
-    }
-  );
+    ];
+    quickPick.activeItems = [
+      params.has("project") ? quickPick.items[2] : params.has("csp") ? quickPick.items[1] : quickPick.items[0],
+    ];
+
+    quickPick.onDidChangeSelection((items) => {
+      switch (items[0].label) {
+        case quickPick.items[0].label:
+          result = "other";
+          break;
+        case quickPick.items[1].label:
+          result = "csp";
+          break;
+        default:
+          result = "project";
+      }
+    });
+    quickPick.onDidAccept(() => {
+      quickPick.hide();
+    });
+    quickPick.onDidHide(() => {
+      resolve(result);
+      quickPick.dispose();
+    });
+    quickPick.show();
+  });
   if (!filterType) {
     return;
   }
 
   let newParams = "";
   let newPath = "/";
-  if (filterType.value == "csp") {
+  if (filterType == "csp") {
     // Prompt for a specific web app
     let cspApps = cspAppsForUri(uri);
     if (cspApps.length == 0) {
@@ -222,7 +243,7 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
         ignoreFocusOut: true,
       })) ?? "/";
     newParams = "csp";
-  } else if (filterType.value == "project") {
+  } else if (filterType == "project") {
     // Prompt for project
     const project = await pickProject(new AtelierAPI(uri));
     if (!project) {
