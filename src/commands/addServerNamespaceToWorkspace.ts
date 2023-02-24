@@ -159,24 +159,24 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
   const filterType = await vscode.window.showQuickPick(
     [
       {
-        label: "$(file-code) Show web application files.",
+        label: "$(file-code) Web Application Files",
         detail: "Choose a specific web application, or show all.",
         value: "csp",
       },
       {
-        label: "$(files) Show the contents of a server-side project.",
-        detail: "Choose an existing project or create a new one.",
+        label: "$(files) Contents of a Server-side Project",
+        detail: "Choose an existing project, or create a new one.",
         value: "project",
       },
       {
-        label: "$(list-tree) Show files that pass through custom filters.",
-        detail: "Choose the filters to apply.",
+        label: `$(list-tree) Code Files in ${namespace}`,
+        detail: "Filters can be applied in the next step.",
         value: "other",
       },
     ],
     {
       ignoreFocusOut: true,
-      title: "Pick the files to be shown in this workspace folder.",
+      placeHolder: "Choose what to show in the workspace folder",
     }
   );
   if (!filterType) {
@@ -189,12 +189,12 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
     // Prompt for a specific web app
     const cspApps = cspAppsForUri(uri);
     if (cspApps.length == 0) {
-      vscode.window.showInformationMessage("No web applications are configured in this namespace.", "Dismiss");
+      vscode.window.showWarningMessage(`No web applications are configured to use namespace ${namespace}.`, "Dismiss");
       return;
     }
     newPath =
       (await vscode.window.showQuickPick(cspApps, {
-        title: "Pick a specific web application to show, or press 'Escape' to show all.",
+        placeHolder: "Pick a specific web application to show, or press 'Escape' to show all",
         ignoreFocusOut: true,
       })) ?? "/";
     newParams = "csp";
@@ -211,29 +211,29 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
       [
         {
           label: "$(filter) filter",
-          detail: "Comma-delimited list of search options. (i.e. '*.cls,*.inc,*.mac,*.int')",
+          detail: "Comma-delimited list of search options, e.g. '*.cls,*.inc,*.mac,*.int'",
           picked: oldParams.has("filter"),
         },
         {
           label: "$(list-flat) flat",
-          detail: "Show a flat list of files. Does not split packages as folders.",
+          detail: "Show a flat list of files. Do not treat packages as folders.",
           picked: oldParams.has("flat"),
         },
         {
           label: "$(server-process) generated",
-          detail: "Show generated files as well as non-generated.",
+          detail: "Also show files tagged as generated, e.g. by compilation.",
           picked: oldParams.has("generated"),
         },
         {
           label: "$(references) mapped",
-          detail: "Hide files that are mapped from a non-default database.",
+          detail: `Hide files that are mapped into ${namespace} from another code database.`,
           picked: oldParams.has("mapped"),
         },
       ],
       {
         ignoreFocusOut: true,
         canPickMany: true,
-        title: "",
+        placeHolder: "Add optional filters",
       }
     );
     if (!otherParams) {
@@ -284,7 +284,7 @@ export async function modifyWsFolder(wsFolderUri?: vscode.Uri): Promise<void> {
       wsFolder = vscode.workspace.workspaceFolders[0];
     } else {
       wsFolder = await vscode.window.showWorkspaceFolderPick({
-        placeHolder: "Pick the workspace folder modify.",
+        placeHolder: "Pick the workspace folder to modify",
         ignoreFocusOut: true,
       });
     }
