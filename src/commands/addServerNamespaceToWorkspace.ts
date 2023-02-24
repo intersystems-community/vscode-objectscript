@@ -154,6 +154,7 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
     return;
   }
   const oldParams = new URLSearchParams(uri.query);
+  const namespace = new AtelierAPI(uri).ns;
 
   // Prompt the user for the files to show
   const filterType = await vscode.window.showQuickPick(
