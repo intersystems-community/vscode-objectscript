@@ -16,6 +16,8 @@ function descLineToDocLine(content: string[], attrline: number, line: number): n
     if (!content[i].startsWith("///")) {
       result = i;
       break;
+    } else if (i == 0) {
+      result = -1;
     }
   }
   return result + attrline;
@@ -78,16 +80,33 @@ function searchMatchToLine(
               line = memend + Number(match.line);
             }
           } else {
-            if (match.attrline === undefined) {
-              // This is in the class member definition
-              line = 1;
-            } else {
-              if (match.attr === "Description") {
-                // This is in the description
-                line = descLineToDocLine(content, match.attrline, i);
-              } else {
+            if (match.attr === "Description") {
+              // This is in the description
+              line = descLineToDocLine(content, match.attrline, i);
+            } else if (match.attrline || ["Code", "Data", "SqlQuery"].includes(match.attr)) {
+              if (["Code", "Data", "SqlQuery"].includes(match.attr)) {
                 // This is in the implementation
-                line = memend + match.attrline;
+                line = memend + (match.attrline ?? 1);
+              } else {
+                // This is a keyword with a multiline value
+                line = i + (match.attrline - 1 ?? 0);
+              }
+            } else {
+              // This is in the class member definition
+              // Need to loop due to the possibility of keywords with multiline values
+              for (let j = i; j < content.length; j++) {
+                if (content[j].includes(match.attr)) {
+                  line = j;
+                  break;
+                } else if (
+                  j > i &&
+                  /^((?:Class|Client)?Method|Property|XData|Query|Trigger|Parameter|Relationship|Index|ForeignKey|Storage|Projection|\/\/\/)/.test(
+                    content[j]
+                  )
+                ) {
+                  // Hit the beginning of the next member
+                  break;
+                }
               }
             }
           }
@@ -123,15 +142,31 @@ function searchMatchToLine(
     } else {
       // This is in the class definition
       const classMatchPattern = new RegExp(`^Class ${fileName.slice(0, fileName.lastIndexOf("."))}`);
+      let keywordSearch = false;
       for (let i = 0; i < content.length; i++) {
         if (content[i].match(classMatchPattern)) {
-          if (match.attrline) {
+          if (match.attr == "Description") {
             // This is in the class description
             line = descLineToDocLine(content, match.attrline, i);
+            break;
           } else {
-            line = i;
+            // This is a class keyword or keyword value
+            // Need to keep looping due to the possibility of keywords with multiline values
+            keywordSearch = true;
           }
-          break;
+          if (keywordSearch) {
+            if (content[i].includes(match.attr)) {
+              line = match.attrline ? i + match.attrline - 1 : i;
+              break;
+            } else if (
+              /^((?:Class|Client)?Method|Property|XData|Query|Trigger|Parameter|Relationship|Index|ForeignKey|Storage|Projection|\/\/\/)/.test(
+                content[i]
+              )
+            ) {
+              // Hit the beginning of the next member
+              break;
+            }
+          }
         }
       }
     }
