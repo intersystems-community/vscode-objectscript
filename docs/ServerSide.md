@@ -28,21 +28,21 @@ Next create a workspace for editing code directly on the server:
 1. Pick a namespace from the list retrieved from the target server:
 
    ![Choose a namespace.](../assets/images/ss-choose-namespace.png "choose a namespace")
-1. Pick if this folder should show a project's contents:
-
-   ![Choose if project.](../assets/images/ss-is-project.png "choose if project")
-1. If yes, pick the project from the list, or click the **+** sign to create a new one:
-
-   ![Choose project.](../assets/images/ss-pick-project.png "choose project")
 1. Pick an access mode from the list:
 
-  If no project was selected:
-
    ![Choose an access type.](../assets/images/ss-access-type.png "choose an access type")
+1. Pick the files to show:
 
-  If a project was selected:
-  
-   ![Choose an access type (project).](../assets/images/ss-access-type-project.png "choose an access type (project")
+   ![Choose files.](../assets/images/ss-files.png "choose files")
+  - If you chose to show web application files, pick an optional web application to show files from:
+
+   ![Choose files.](../assets/images/ss-pick-webapp.png "choose files")
+  - If you chose to show a project's contents, pick the project:
+
+   ![Choose files.](../assets/images/ss-pick-project.png "choose files")
+  - If you create your own filter, pick the filter options:
+
+   ![Choose query parameters.](../assets/images/ss-query-params.png "choose query parameters")
 1. If you want to reopen this workspace in the future, use the command **File > Save Workspace As...** to save it as a `.code-workspace` file.
 
 Note that the ObjectScript Explorer view is not visible in the ObjectScript view container. Because the files listed in the Explorer view are all on the server, the ObjectScript Explorer is not needed for this configuration.
@@ -156,6 +156,8 @@ The query string of the `uri` property accepts several parameters that control f
 - `isfs://myserver:user/?mapped=0`, hides files that are mapped from a non-default database
 
 The options `flat`, `generated` and `mapped` can be combined with each other, and with `type` or `filter`. If `filter` is specified, `type` is ignored.
+
+To modify the query parameters or name of an existing workspace folder, run the `Modify Server-Side Workspace Folder...` command from the command palette or the file explorer context menu.
 
 ## Advanced Workspace Configurations
 

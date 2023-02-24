@@ -116,6 +116,7 @@ import { loadStudioColors, loadStudioSnippets } from "./commands/studioMigration
 import { newFile, NewFileType } from "./commands/newFile";
 import { FileDecorationProvider } from "./providers/FileDecorationProvider";
 import { RESTDebugPanel } from "./commands/restDebugPanel";
+import { modifyWsFolder } from "./commands/addServerNamespaceToWorkspace";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -1207,6 +1208,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         return importLocalFilesToServerSideFolder(wsFolderUri);
       }
     }),
+    vscode.commands.registerCommand("vscode-objectscript.modifyWsFolder", modifyWsFolder),
     vscode.commands.registerCommand("vscode-objectscript.openErrorLocation", openErrorLocation),
 
     /* Anything we use from the VS Code proposed API */

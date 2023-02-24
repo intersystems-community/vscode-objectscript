@@ -1,14 +1,15 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { panel, resolveConnectionSpec, getResolvedConnectionSpec } from "../extension";
+import {
+  panel,
+  resolveConnectionSpec,
+  getResolvedConnectionSpec,
+  FILESYSTEM_SCHEMA,
+  FILESYSTEM_READONLY_SCHEMA,
+  filesystemSchemas,
+} from "../extension";
+import { cspAppsForUri, outputChannel } from "../utils";
 import { pickProject } from "./project";
-
-enum AccessMode {
-  Code,
-  WebappFiles,
-  CodeReadonly,
-  WebappFilesReadonly,
-}
 
 /**
  * @param message The prefix of the message to show when the server manager API can't be found.
@@ -80,82 +81,49 @@ export async function addServerNamespaceToWorkspace(): Promise<void> {
     return;
   }
   const { serverName, namespace } = picks;
-  let uri = vscode.Uri.parse(`isfs://${serverName}:${namespace}/`);
-  const api = new AtelierAPI(uri);
-  let project: string;
-  // Ask the user if they would like to use a project
-  const useProject = await vscode.window.showQuickPick(["Yes", "No"], {
-    placeHolder: "Use this folder to show a project's contents?",
-    ignoreFocusOut: true,
-  });
-  if (useProject == "Yes") {
-    // Have them pick a project
-    project = await pickProject(api);
-    if (project == undefined) {
-      return;
-    }
-  }
-  // Pick between isfs and isfs-readonly, code and web files
+  // Prompt the user for edit or read-only
   const mode = await vscode.window.showQuickPick(
-    project
-      ? [
-          {
-            value: AccessMode.Code,
-            label: `Edit Code in project '${project}'`,
-            detail: "Edit all documents in the project.",
-          },
-          {
-            value: AccessMode.CodeReadonly,
-            label: `$(lock) View Code in project '${project}'`,
-            detail: "Documents opened from this folder will be read-only.",
-          },
-        ]
-      : [
-          {
-            value: AccessMode.Code,
-            label: `Edit Code in ${namespace}`,
-            detail: "Edit classes, routines and other code assets.",
-          },
-          {
-            value: AccessMode.WebappFiles,
-            label: `Edit Web Application Files for ${namespace}`,
-            detail: "Edit files belonging to web applications that use the namespace.",
-          },
-          {
-            value: AccessMode.CodeReadonly,
-            label: `$(lock) View Code in ${namespace}`,
-            detail: "Documents opened from this folder will be read-only.",
-          },
-          {
-            value: AccessMode.WebappFilesReadonly,
-            label: `$(lock) View Web Application Files for ${namespace}`,
-            detail: "Documents opened from this folder will be read-only.",
-          },
-        ],
+    [
+      {
+        value: FILESYSTEM_SCHEMA,
+        label: `$(pencil) Edit Code in ${namespace}`,
+        detail: "Documents opened in this folder will be editable.",
+      },
+      {
+        value: FILESYSTEM_READONLY_SCHEMA,
+        label: `$(lock) View Code in ${namespace}`,
+        detail: "Documents opened in this folder will be read-only.",
+      },
+    ],
     { placeHolder: "Choose the type of access", ignoreFocusOut: true }
   );
-  // Prepare the folder parameters
-  const editable = mode.value === AccessMode.Code || mode.value === AccessMode.WebappFiles;
-  const webapp = mode.value === AccessMode.WebappFiles || mode.value === AccessMode.WebappFilesReadonly;
-  const label = `${project ? `${project} - ` : ""}${serverName}:${namespace}${webapp ? " web files" : ""}${
-    !editable && project == undefined ? " (read-only)" : ""
+  if (!mode) {
+    return;
+  }
+  // Prompt the user to fill in the uri
+  const uri = await modifyWsFolderUri(vscode.Uri.parse(`${mode.value}://${serverName}:${namespace}/`));
+  if (!uri) {
+    return;
+  }
+  // Generate the name
+  const params = new URLSearchParams(uri.query);
+  const project = params.get("project");
+  const csp = params.has("csp");
+  const name = `${project ? `${project} - ` : ""}${serverName}:${namespace}${csp ? " web files" : ""}${
+    mode.value == FILESYSTEM_READONLY_SCHEMA && !project ? " (read-only)" : ""
   }`;
-  uri = uri.with({
-    scheme: editable ? "isfs" : "isfs-readonly",
-    query: [webapp ? "csp" : "", project ? `project=${project}` : ""].filter((e) => e != "").join("&"),
-  });
   // Append it to the workspace
   const added = vscode.workspace.updateWorkspaceFolders(
     vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length : 0,
     0,
-    { uri, name: label }
+    { uri, name }
   );
   // Switch to Explorer view so user sees the outcome
   vscode.commands.executeCommand("workbench.view.explorer");
   // Handle failure
   if (!added) {
     vscode.window
-      .showErrorMessage("Folder not added. Maybe it already exists on the workspace.", "Retry", "Close")
+      .showErrorMessage("Folder not added. Maybe it already exists in the workspace.", "Retry", "Close")
       .then((value) => {
         if (value === "Retry") {
           vscode.commands.executeCommand("vscode-objectscript.addServerNamespaceToWorkspace");
@@ -178,4 +146,258 @@ export async function getServerManagerApi(): Promise<any> {
     return undefined;
   }
   return api;
+}
+
+/** Prompt the user to fill in the `path` and `query` of `uri`. */
+async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefined> {
+  if (!filesystemSchemas.includes(uri.scheme)) {
+    return;
+  }
+  const params = new URLSearchParams(uri.query);
+  const api = new AtelierAPI(uri);
+
+  // Prompt the user for the files to show
+  const filterType = await new Promise<string | undefined>((resolve) => {
+    let result: string;
+    const quickPick = vscode.window.createQuickPick();
+    quickPick.placeholder = "Choose what to show in the workspace folder";
+    quickPick.ignoreFocusOut = true;
+    quickPick.items = [
+      {
+        label: `$(list-tree) Code Files in ${api.ns}`,
+        detail: "Filters can be applied in the next step.",
+      },
+      {
+        label: "$(file-code) Web Application Files",
+        detail: "Choose a specific web application, or show all.",
+      },
+      {
+        label: "$(files) Contents of a Server-side Project",
+        detail: "Choose an existing project, or create a new one.",
+      },
+    ];
+    quickPick.activeItems = [
+      params.has("project") ? quickPick.items[2] : params.has("csp") ? quickPick.items[1] : quickPick.items[0],
+    ];
+
+    quickPick.onDidChangeSelection((items) => {
+      switch (items[0].label) {
+        case quickPick.items[0].label:
+          result = "other";
+          break;
+        case quickPick.items[1].label:
+          result = "csp";
+          break;
+        default:
+          result = "project";
+      }
+    });
+    quickPick.onDidAccept(() => {
+      quickPick.hide();
+    });
+    quickPick.onDidHide(() => {
+      resolve(result);
+      quickPick.dispose();
+    });
+    quickPick.show();
+  });
+  if (!filterType) {
+    return;
+  }
+
+  let newParams = "";
+  let newPath = "/";
+  if (filterType == "csp") {
+    // Prompt for a specific web app
+    let cspApps = cspAppsForUri(uri);
+    if (cspApps.length == 0) {
+      // Attempt to fetch from the server
+      cspApps = await api
+        .getCSPApps()
+        .then((data) => data.result.content ?? [])
+        .catch((error) => {
+          if (error && error.errorText && error.errorText !== "") {
+            outputChannel.appendLine(error.errorText);
+          } else {
+            outputChannel.appendLine(
+              typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
+            );
+          }
+          vscode.window.showErrorMessage(
+            "Failed to fetch web application list. Check 'ObjectScript' output channel for details.",
+            "Dismiss"
+          );
+          return;
+        });
+      if (cspApps == undefined) {
+        // Catch handler reported the error already
+        return;
+      } else if (cspApps.length == 0) {
+        vscode.window.showWarningMessage(`No web applications are configured to use namespace ${api.ns}.`, "Dismiss");
+        return;
+      }
+    }
+    newPath =
+      (await vscode.window.showQuickPick(cspApps, {
+        placeHolder: "Pick a specific web application to show, or press 'Escape' to show all",
+        ignoreFocusOut: true,
+      })) ?? "/";
+    newParams = "csp";
+  } else if (filterType == "project") {
+    // Prompt for project
+    const project = await pickProject(new AtelierAPI(uri));
+    if (!project) {
+      return;
+    }
+    newParams = `project=${project}`;
+  } else {
+    // Prompt the user for other query parameters
+    const items = [
+      {
+        label: "$(filter) Filter",
+        detail: "Comma-delimited list of search options, e.g. '*.cls,*.inc,*.mac,*.int'",
+        picked: params.has("filter"),
+        value: "filter",
+      },
+      {
+        label: "$(list-flat) Flat Files",
+        detail: "Show a flat list of files. Do not treat packages as folders.",
+        picked: params.has("flat"),
+        value: "flat",
+      },
+      {
+        label: "$(server-process) Show Generated",
+        detail: "Also show files tagged as generated, e.g. by compilation.",
+        picked: params.has("generated"),
+        value: "generated",
+      },
+      {
+        label: "$(references) Hide Mapped",
+        detail: `Hide files that are mapped into ${api.ns} from another code database.`,
+        picked: params.has("mapped"),
+        value: "mapped",
+      },
+    ];
+    if (api.ns != "%SYS") {
+      // Only show system item for non-%SYS namespaces
+      items.push({
+        label: "$(library) Show System",
+        detail: "Also show '%' items and INFORMATION.SCHEMA items.",
+        picked: params.has("system"),
+        value: "system",
+      });
+    }
+    const otherParams = await vscode.window.showQuickPick(items, {
+      ignoreFocusOut: true,
+      canPickMany: true,
+      placeHolder: "Add optional filters",
+    });
+    if (!otherParams) {
+      return;
+    }
+    // Build the new query parameter string
+    params.delete("csp");
+    params.delete("project");
+    params.delete("filter");
+    params.delete("flat");
+    params.delete("generated");
+    params.delete("mapped");
+    params.delete("system");
+    for (const otherParam of otherParams) {
+      switch (otherParam.value) {
+        case "filter": {
+          // Prompt for filter
+          const filter = await vscode.window.showInputBox({
+            title: "Enter a filter string.",
+            ignoreFocusOut: true,
+            value: params.get("filter"),
+            placeHolder: "*.cls,*.inc,*.mac,*.int",
+            prompt:
+              "Patterns are comma-delimited and may contain both * (zero or more characters) and ? (a single character) as wildcards. To exclude items, prefix the pattern with a single quote.",
+          });
+          if (filter && filter.length) {
+            params.set(otherParam.value, filter);
+          }
+          break;
+        }
+        case "flat":
+        case "generated":
+        case "system":
+          params.set(otherParam.value, "1");
+          break;
+        case "mapped":
+          params.set(otherParam.value, "0");
+      }
+    }
+    newParams = params.toString();
+  }
+
+  return uri.with({ query: newParams, path: newPath });
+}
+
+export async function modifyWsFolder(wsFolderUri?: vscode.Uri): Promise<void> {
+  let wsFolder: vscode.WorkspaceFolder;
+  if (!wsFolderUri) {
+    // Select a workspace folder to modify
+    if (vscode.workspace.workspaceFolders == undefined || vscode.workspace.workspaceFolders.length == 0) {
+      vscode.window.showErrorMessage("No workspace folders are open.", "Dismiss");
+      return;
+    } else if (vscode.workspace.workspaceFolders.length == 1) {
+      wsFolder = vscode.workspace.workspaceFolders[0];
+    } else {
+      wsFolder = await vscode.window.showWorkspaceFolderPick({
+        placeHolder: "Pick the workspace folder to modify",
+        ignoreFocusOut: true,
+      });
+    }
+    if (!wsFolder) {
+      return;
+    }
+    if (!filesystemSchemas.includes(wsFolder.uri.scheme)) {
+      vscode.window.showErrorMessage(
+        `Workspace folder '${wsFolder.name}' does not have scheme 'isfs' or 'isfs-readonly'.`,
+        "Dismiss"
+      );
+      return;
+    }
+  } else {
+    // Find the workspace folder for this uri
+    wsFolder = vscode.workspace.getWorkspaceFolder(wsFolderUri);
+    if (!wsFolder) {
+      return;
+    }
+  }
+
+  // Prompt the user to modify the uri
+  const newUri = await modifyWsFolderUri(wsFolder.uri);
+  if (!newUri) {
+    return;
+  }
+  // Prompt for name change
+  const newName = await vscode.window.showInputBox({
+    title: "Enter a name for the workspace folder",
+    ignoreFocusOut: true,
+    value: wsFolder.name,
+  });
+  if (!newName) {
+    return;
+  }
+  if (newName == wsFolder.name && newUri.toString() == wsFolder.uri.toString()) {
+    // Nothing changed
+    return;
+  }
+  // Make the edit
+  const modified = vscode.workspace.updateWorkspaceFolders(wsFolder.index, 1, {
+    uri: newUri,
+    name: newName,
+  });
+  if (!modified) {
+    vscode.window.showErrorMessage(
+      "Failed to modify workspace folder. Most likely a folder with the same URI already exists.",
+      "Dismiss"
+    );
+  } else {
+    // Switch to Explorer view so user sees the outcome
+    vscode.commands.executeCommand("workbench.view.explorer");
+  }
 }

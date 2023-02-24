@@ -86,6 +86,7 @@
     "onCommand:vscode-objectscript.newFile.rule",
     "onCommand:vscode-objectscript.newFile.businessService",
     "onCommand:vscode-objectscript.newFile.dtl",
+    "onCommand:vscode-objectscript.modifyWsFolder",
     "onCommand:vscode-objectscript.openErrorLocation",
     "onLanguage:objectscript",
     "onLanguage:objectscript-int",
@@ -328,6 +329,10 @@
         {
           "command": "vscode-objectscript.showRESTDebugWebview",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.modifyWsFolder",
+          "when": "vscode-objectscript.connectActive && workspaceFolderCount != 0"
         },
         {
           "command": "vscode-objectscript.openErrorLocation",
@@ -591,6 +596,11 @@
           "command": "vscode-objectscript.importLocalFilesServerSide",
           "when": "vscode-objectscript.connectActive && resourceScheme == isfs && explorerResourceIsRoot",
           "group": "objectscript_modify@2"
+        },
+        {
+          "command": "vscode-objectscript.modifyWsFolder",
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && explorerResourceIsRoot",
+          "group": "objectscript_modify@3"
         }
       ],
       "file/newFile": [
@@ -1088,6 +1098,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.showRESTDebugWebview",
         "title": "Debug REST Service..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.modifyWsFolder",
+        "title": "Modify Server-side Workspace Folder..."
       },
       {
         "category": "ObjectScript",
