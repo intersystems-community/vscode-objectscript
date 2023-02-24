@@ -70,7 +70,7 @@ export async function openErrorLocation(): Promise<void> {
   // Prompt the user for a location
   const regex = /^(%?[\p{L}\d]+)?(?:\+(\d+))?\^(%?[\p{L}\d.]+)$/u;
   const location = await vscode.window.showInputBox({
-    title: "Enter the location to open.",
+    title: "Enter the location to open",
     ignoreFocusOut: true,
     placeHolder: "label+offset^routine",
     validateInput: (v) => (regex.test(v.trim()) ? undefined : "Input is not in the format 'label+offset^routine'"),
