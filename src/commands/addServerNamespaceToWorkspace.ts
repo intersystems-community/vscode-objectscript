@@ -153,7 +153,7 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
   if (!filesystemSchemas.includes(uri.scheme)) {
     return;
   }
-  const oldParams = new URLSearchParams(uri.query);
+  const params = new URLSearchParams(uri.query);
   const api = new AtelierAPI(uri);
 
   // Prompt the user for the files to show
@@ -231,44 +231,52 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
     newParams = `project=${project}`;
   } else {
     // Prompt the user for other query parameters
-    const otherParams = await vscode.window.showQuickPick(
-      [
-        {
-          label: "$(filter) Filter",
-          detail: "Comma-delimited list of search options, e.g. '*.cls,*.inc,*.mac,*.int'",
-          picked: oldParams.has("filter"),
-          value: "filter",
-        },
-        {
-          label: "$(list-flat) Flat Files",
-          detail: "Show a flat list of files. Do not treat packages as folders.",
-          picked: oldParams.has("flat"),
-          value: "flat",
-        },
-        {
-          label: "$(server-process) Show Generated",
-          detail: "Also show files tagged as generated, e.g. by compilation.",
-          picked: oldParams.has("generated"),
-          value: "generated",
-        },
-        {
-          label: "$(references) Hide Mapped",
-          detail: `Hide files that are mapped into ${api.ns} from another code database.`,
-          picked: oldParams.has("mapped"),
-          value: "mapped",
-        },
-      ],
+    const items = [
       {
-        ignoreFocusOut: true,
-        canPickMany: true,
-        placeHolder: "Add optional filters",
-      }
-    );
+        label: "$(filter) Filter",
+        detail: "Comma-delimited list of search options, e.g. '*.cls,*.inc,*.mac,*.int'",
+        picked: params.has("filter"),
+        value: "filter",
+      },
+      {
+        label: "$(list-flat) Flat Files",
+        detail: "Show a flat list of files. Do not treat packages as folders.",
+        picked: params.has("flat"),
+        value: "flat",
+      },
+      {
+        label: "$(server-process) Show Generated",
+        detail: "Also show files tagged as generated, e.g. by compilation.",
+        picked: params.has("generated"),
+        value: "generated",
+      },
+      {
+        label: "$(references) Hide Mapped",
+        detail: `Hide files that are mapped into ${api.ns} from another code database.`,
+        picked: params.has("mapped"),
+        value: "mapped",
+      },
+    ];
+    if (api.ns != "%SYS") {
+      // Only show system item for non-%SYS namespaces
+      items.push({
+        label: "$(library) Show System",
+        detail: "Also show '%' items and INFORMATION.SCHEMA items.",
+        picked: params.has("system"),
+        value: "system",
+      });
+    }
+    const otherParams = await vscode.window.showQuickPick(items, {
+      ignoreFocusOut: true,
+      canPickMany: true,
+      placeHolder: "Add optional filters",
+    });
     if (!otherParams) {
       return;
     }
     // Build the new query parameter string
-    const newParamsObj = new URLSearchParams();
+    params.delete("csp");
+    params.delete("project");
     for (const otherParam of otherParams) {
       switch (otherParam.value) {
         case "filter": {
@@ -276,25 +284,26 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
           const filter = await vscode.window.showInputBox({
             title: "Enter a filter string.",
             ignoreFocusOut: true,
-            value: oldParams.get("filter"),
+            value: params.get("filter"),
             placeHolder: "*.cls,*.inc,*.mac,*.int",
             prompt:
               "Patterns are comma-delimited and may contain both * (zero or more characters) and ? (a single character) as wildcards. To exclude items, prefix the pattern with a single quote.",
           });
           if (filter && filter.length) {
-            newParamsObj.set(otherParam.value, filter);
+            params.set(otherParam.value, filter);
           }
           break;
         }
         case "flat":
         case "generated":
-          newParamsObj.set(otherParam.value, "1");
+        case "system":
+          params.set(otherParam.value, "1");
           break;
         case "mapped":
-          newParamsObj.set(otherParam.value, "0");
+          params.set(otherParam.value, "0");
       }
     }
-    newParams = newParamsObj.toString();
+    newParams = params.toString();
   }
 
   return uri.with({ query: newParams, path: newPath });
@@ -345,6 +354,10 @@ export async function modifyWsFolder(wsFolderUri?: vscode.Uri): Promise<void> {
     value: wsFolder.name,
   });
   if (!newName) {
+    return;
+  }
+  if (newName == wsFolder.name && newUri.toString() == wsFolder.uri.toString()) {
+    // Nothing changed
     return;
   }
   // Make the edit

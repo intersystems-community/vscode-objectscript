@@ -1102,7 +1102,7 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.modifyWsFolder",
-        "title": "Modify Server-Side Workspace Folder..."
+        "title": "Modify Server-side Workspace Folder..."
       },
       {
         "category": "ObjectScript",
