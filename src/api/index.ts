@@ -416,7 +416,7 @@ export class AtelierAPI {
       } else if (originalPath && /^[^/]+\/work\/[^/]+$/.test(originalPath)) {
         // This is a GET or DELETE /work request, so we need to check the Retry-After header
         if (response.headers.has("Retry-After")) {
-          data.result.retryafter = response.headers.get("Retry-After");
+          data.retryafter = response.headers.get("Retry-After");
         }
       }
 
@@ -439,12 +439,12 @@ export class AtelierAPI {
     }
   }
 
-  public serverInfo(): Promise<Atelier.Response<Atelier.Content<Atelier.ServerInfo>>> {
+  public serverInfo(checkNs = true): Promise<Atelier.Response<Atelier.Content<Atelier.ServerInfo>>> {
     return this.request(0, "GET").then((info) => {
       if (info && info.result && info.result.content && info.result.content.api > 0) {
         const data = info.result.content;
         const apiVersion = data.api;
-        if (this.ns && this.ns.length && !data.namespaces.includes(this.ns)) {
+        if (this.ns && this.ns.length && !data.namespaces.includes(this.ns) && checkNs) {
           throw {
             code: "WrongNamespace",
             message: `This server does not have specified namespace '${this.ns}'.\n
@@ -617,17 +617,17 @@ export class AtelierAPI {
   }
 
   // v1+
-  private queueAsync(request: any): Promise<Atelier.Response> {
+  public queueAsync(request: Atelier.AsyncRequest): Promise<Atelier.Response> {
     return this.request(1, "POST", `${this.ns}/work`, request);
   }
 
   // v1+
-  private pollAsync(id: string): Promise<Atelier.Response> {
+  public pollAsync(id: string): Promise<Atelier.Response> {
     return this.request(1, "GET", `${this.ns}/work/${id}`);
   }
 
   // v1+
-  private cancelAsync(id: string): Promise<Atelier.Response> {
+  public cancelAsync(id: string): Promise<Atelier.Response> {
     return this.request(1, "DELETE", `${this.ns}/work/${id}`);
   }
 
@@ -635,12 +635,14 @@ export class AtelierAPI {
    * Calls `cancelAsync()` repeatedly until the cancellation is confirmed.
    * The wait time between requests is 1 second.
    */
-  private async verifiedCancel(id: string): Promise<Atelier.Response> {
-    outputChannel.appendLine(
-      "\nWARNING: Compilation was cancelled. Partially-compiled documents may result in unexpected behavior."
-    );
+  public async verifiedCancel(id: string, compile = true): Promise<Atelier.Response> {
+    if (compile) {
+      outputChannel.appendLine(
+        "\nWARNING: Compilation was cancelled. Partially-compiled documents may result in unexpected behavior."
+      );
+    }
     let cancelResp = await this.cancelAsync(id);
-    while (cancelResp.result.retryafter) {
+    while (cancelResp.retryafter) {
       await new Promise((resolve) => {
         setTimeout(resolve, 1000);
       });
@@ -659,7 +661,7 @@ export class AtelierAPI {
       // The user cancelled the request, so cancel it on the server
       return this.verifiedCancel(id);
     }
-    if (pollResp.result.retryafter) {
+    if (pollResp.retryafter) {
       await new Promise((resolve) => {
         setTimeout(resolve, wait);
       });
