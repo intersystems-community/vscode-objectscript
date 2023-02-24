@@ -44,7 +44,7 @@ import {
   mainSourceControlMenu,
 } from "./commands/studio";
 import { addServerNamespaceToWorkspace, pickServerAndNamespace } from "./commands/addServerNamespaceToWorkspace";
-import { jumpToTagAndOffset } from "./commands/jumpToTagAndOffset";
+import { jumpToTagAndOffset, openErrorLocation } from "./commands/jumpToTagAndOffset";
 import { connectFolderToServerNamespace } from "./commands/connectFolderToServerNamespace";
 import { DocumaticPreviewPanel } from "./commands/documaticPreviewPanel";
 
@@ -1207,6 +1207,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         return importLocalFilesToServerSideFolder(wsFolderUri);
       }
     }),
+    vscode.commands.registerCommand("vscode-objectscript.openErrorLocation", openErrorLocation),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed
