@@ -206,7 +206,7 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
   }
 
   let newParams = "";
-  let newPath = "/";
+  let newPath = uri.path;
   if (filterType == "csp") {
     // Prompt for a specific web app
     let cspApps = cspAppsForUri(uri);
@@ -237,11 +237,36 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
         return;
       }
     }
-    newPath =
-      (await vscode.window.showQuickPick(cspApps, {
-        placeHolder: "Pick a specific web application to show, or press 'Escape' to show all",
-        ignoreFocusOut: true,
-      })) ?? "/";
+    newPath = await new Promise<string | undefined>((resolve) => {
+      let result: string;
+      const allItem: vscode.QuickPickItem = { label: "All" };
+      const quickPick = vscode.window.createQuickPick();
+      quickPick.placeholder = "Pick a specific web application to show, or show all";
+      quickPick.ignoreFocusOut = true;
+      quickPick.items = [
+        allItem,
+        ...cspApps.map((label) => {
+          return { label };
+        }),
+      ];
+      const activeIdx = quickPick.items.findIndex((i) => i.label == uri.path);
+      quickPick.activeItems = [quickPick.items[activeIdx == -1 ? 0 : activeIdx]];
+
+      quickPick.onDidChangeSelection((items) => {
+        result = items[0].label == allItem.label ? "/" : items[0].label;
+      });
+      quickPick.onDidAccept(() => {
+        quickPick.hide();
+      });
+      quickPick.onDidHide(() => {
+        resolve(result);
+        quickPick.dispose();
+      });
+      quickPick.show();
+    });
+    if (!newPath) {
+      return;
+    }
     newParams = "csp";
   } else if (filterType == "project") {
     // Prompt for project
