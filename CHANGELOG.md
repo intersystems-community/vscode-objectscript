@@ -1,5 +1,24 @@
 # Change Log
 
+## [2.6.0] 27-Feb-2023
+- Enhancements
+  - Implement async server-side search (#1045) (requires [proposed API enabled](https://github.com/intersystems-community/vscode-objectscript#enable-proposed-apis) and InterSystems IRIS 2023.1+)
+  - Add `Switch Namespace` option to Server Actions menu for local workspace folders (#1065) (contributed by @ollitanska)
+  - Document Studio keyboard shortcut equivalents (#1076)
+  - Improve `isfs` folder creation/modification UX (#1090)
+  - Implement `Open Error Location...` command (#1095)
+- Fixes
+  - Use webview toolkit in Documatic panel (#1074)
+  - Fix isfs folder deletion (#1080)
+  - Support non-ASCII characters in REST Debug query params (#1081)
+  - Fall back to Index for deployed check if query fails (#1083)
+  - Correctly set breakpoints in methods with quoted names (#1086)
+  - Properly handle other files and packages in server-side projects (#1087)
+  - Add charset to REST Debug panel's Content-Type (#1092)
+  - Fix namespace pick when trying to connect without permissions on `%SYS` (#1097)
+  - Fix server-side search in compiler keywords and values (#1102)
+  - Upgrade vulnerable dependencies.
+
 ## [2.4.3] 02-Feb-2023
 - Fixes
   - Fix deployed check (#1071)
