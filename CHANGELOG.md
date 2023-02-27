@@ -1,8 +1,8 @@
 # Change Log
 
-## [2.4.4] 27-Feb-2023
+## [2.6.0] 27-Feb-2023
 - Enhancements
-  - Implement async server-side search (#1045)
+  - Implement async server-side search (#1045) (requires [proposed API enabled](https://github.com/intersystems-community/vscode-objectscript#enable-proposed-apis) and InterSystems IRIS 2023.1+)
   - Add `Switch Namespace` option to Server Actions menu for local workspace folders (#1065) (contributed by @ollitanska)
   - Document Studio keyboard shortcut equivalents (#1076)
   - Improve `isfs` folder creation/modification UX (#1090)
