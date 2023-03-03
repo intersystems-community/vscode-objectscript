@@ -136,9 +136,14 @@ export async function serverActions(): Promise<void> {
   const classRef = `/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${nsEncoded}${
     classname ? "&CLASSNAME=" + classnameEncoded : ""
   }`;
+  const soapWizardPath = "/isc/studio/templates/%25ZEN.Template.AddInWizard.SOAPWizard.cls";
   let extraLinks = 0;
+  let hasSOAPWizard = false;
   for (const title in links) {
     const rawLink = String(links[title]);
+    if (rawLink.includes(soapWizardPath)) {
+      hasSOAPWizard = true;
+    }
     // Skip link if it requires a classname and we don't currently have one
     if (classname == "" && (rawLink.includes("${classname}") || rawLink.includes("${classnameEncoded}"))) {
       continue;
@@ -183,6 +188,13 @@ export async function serverActions(): Promise<void> {
     label: "Open Class Reference" + (classname ? ` for ${classname}` : ""),
     detail: serverUrl + classRef,
   });
+  if (!hasSOAPWizard) {
+    actions.push({
+      id: "openSOAPWizard",
+      label: "Open SOAP Wizard",
+      detail: `${serverUrl}${soapWizardPath}?$NAMESPACE=${nsEncoded}`,
+    });
+  }
   if (
     !vscode.window.activeTextEditor ||
     vscode.window.activeTextEditor.document.uri.scheme === FILESYSTEM_SCHEMA ||
@@ -211,14 +223,19 @@ export async function serverActions(): Promise<void> {
       switch (action.id) {
         case "openPortal": {
           const token = await getCSPToken(api, portalPath);
-          const urlString = `${serverUrl}${portalPath}&CSPCHD=${token}`;
-          vscode.env.openExternal(vscode.Uri.parse(urlString));
+          vscode.env.openExternal(vscode.Uri.parse(`${serverUrl}${portalPath}&CSPCHD=${token}`));
           break;
         }
         case "openClassReference": {
           const token = await getCSPToken(api, classRef);
-          const urlString = `${serverUrl}${classRef}&CSPCHD=${token}`;
-          vscode.env.openExternal(vscode.Uri.parse(urlString));
+          vscode.env.openExternal(vscode.Uri.parse(`${serverUrl}${classRef}&CSPCHD=${token}`));
+          break;
+        }
+        case "openSOAPWizard": {
+          const token = await getCSPToken(api, soapWizardPath);
+          vscode.env.openExternal(
+            vscode.Uri.parse(`${serverUrl}${soapWizardPath}?$NAMESPACE=${nsEncoded}&CSPCHD=${token}`)
+          );
           break;
         }
         case "openDockerTerminal": {
