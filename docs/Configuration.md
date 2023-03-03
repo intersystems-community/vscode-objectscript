@@ -247,8 +247,7 @@ An example links configuration looks like this:
 ```json
 "objectscript.conn": {
     "links": {
-        "Portal Explorer": "${serverUrl}/csp/sys/exp/%25CSP.UI.Portal.ClassList.zen?$NAMESPACE=${ns}",
-        "SOAP Wizard": "${serverUrl}/isc/studio/templates/%25ZEN.Template.AddInWizard.SOAPWizard.cls?$NAMESPACE=${ns}"
+        "Portal Explorer": "${serverUrl}/csp/sys/exp/%25CSP.UI.Portal.ClassList.zen?$NAMESPACE=${ns}"
     },
 }
 ```
