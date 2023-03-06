@@ -480,7 +480,7 @@ export class AtelierAPI {
   // api v1+
   public getDoc(name: string, format?: string, mtime?: number): Promise<Atelier.Response<Atelier.Document>> {
     let params = {};
-    if (!format && config("multilineMethodArgs") && this._config.apiVersion >= 4) {
+    if (!format && config("multilineMethodArgs", this.configName) && this.config.apiVersion >= 4) {
       format = "udl-multiline";
     }
     if (format) {
