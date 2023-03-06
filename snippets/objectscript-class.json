@@ -114,7 +114,7 @@
     ],
     "description": "Unique Index"
   },
-  "Query": {
+  "Basic Class Query": {
     "prefix":["Query"],
     "body":[
       "/// ${1:Description}",
@@ -126,7 +126,32 @@
         "\tORDER BY ${7:ordering-items}",
       "}"
     ],
-    "description": "SQL statement"
+    "description": "Basic class query (%SQLQuery)"
+  },
+  "Custom Class Query": {
+    "prefix":["Query"],
+    "body":[
+      "/// ${1:Description}",
+      "Query ${2:QueryName}($3) As %Query(ROWSPEC = \"$4\") [ SqlProc ]",
+      "{",
+      "}",
+      "",
+      "ClassMethod ${2:QueryName}Execute(ByRef qHandle As %Binary${3/(\\s)|(.*)/${2:+, }$2/}) As %Status",
+      "{",
+      "\tQuit \\$\\$\\$OK",
+      "}",
+      "",
+      "ClassMethod ${2:QueryName}Close(ByRef qHandle As %Binary) As %Status [ PlaceAfter = ${2:QueryName}Execute ]",
+      "{",
+      "\tQuit \\$\\$\\$OK",
+      "}",
+      "",
+      "ClassMethod ${2:QueryName}Fetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef AtEnd As %Integer = 0) As %Status [ PlaceAfter = ${2:QueryName}Execute ]",
+      "{",
+      "\tQuit \\$\\$\\$OK",
+      "}"
+    ],
+    "description": "Custom class query (%Query)"
   },
   "Trigger": {
     "prefix": "Trigger",
