@@ -7,7 +7,14 @@ import {
   FILESYSTEM_READONLY_SCHEMA,
   explorerProvider,
 } from "../extension";
-import { connectionTarget, terminalWithDocker, shellWithDocker, currentFile } from "../utils";
+import {
+  connectionTarget,
+  terminalWithDocker,
+  shellWithDocker,
+  currentFile,
+  uriOfWorkspaceFolder,
+  outputChannel,
+} from "../utils";
 import { mainCommandMenu, mainSourceControlMenu } from "./studio";
 import { AtelierAPI } from "../api";
 import { getCSPToken } from "../utils/getCSPToken";
@@ -37,6 +44,15 @@ export async function serverActions(): Promise<void> {
       label: "Refresh Connection",
       detail: "Force attempt to connect to the server",
     });
+
+    // Switching namespace makes only sense if the user has a local folder open and not a server-side folder!
+    if (uriOfWorkspaceFolder()?.scheme === "file") {
+      actions.push({
+        id: "switchNamespace",
+        label: "Switch Namespace",
+        detail: "Switch to a different namespace in the current server",
+      });
+    }
   }
   const connectionActionsHandler = async (action: ServerAction): Promise<ServerAction> => {
     if (!action) {
@@ -54,6 +70,49 @@ export async function serverActions(): Promise<void> {
       }
       case "refreshConnection": {
         await checkConnection(true, undefined, true);
+        break;
+      }
+      case "switchNamespace": {
+        // NOTE: List of all namespaces except the current one as it doesn't make sense to allow switching to the current one
+        const allNamespaces: string[] | undefined = await api
+          .serverInfo()
+          .then((data) =>
+            data.result.content.namespaces.filter((ns) => ns.toLowerCase() !== api.config.ns.toLowerCase())
+          )
+          .catch((error) => {
+            let message = `Failed to fetch a list of namespaces.`;
+            if (error && error.errorText && error.errorText !== "") {
+              outputChannel.appendLine("\n" + error.errorText);
+              outputChannel.show(true);
+              message += " Check 'ObjectScript' output channel for details.";
+            }
+            vscode.window.showErrorMessage(message, "Dismiss");
+            return undefined;
+          });
+
+        if (!allNamespaces) {
+          return;
+        }
+
+        if (!allNamespaces.length) {
+          vscode.window.showErrorMessage(`You don't have access to any other namespaces.`, "Dismiss");
+          return;
+        }
+
+        const namespace = await vscode.window.showQuickPick(allNamespaces, {
+          placeHolder: `Choose the namespace to switch to`,
+          ignoreFocusOut: true,
+        });
+
+        if (namespace) {
+          const connConfig = config("", workspaceFolder);
+          const target = connConfig.inspect("conn").workspaceFolderValue
+            ? vscode.ConfigurationTarget.WorkspaceFolder
+            : vscode.ConfigurationTarget.Workspace;
+          const targetConfig =
+            connConfig.inspect("conn").workspaceFolderValue || connConfig.inspect("conn").workspaceValue;
+          return connConfig.update("conn", { ...targetConfig, ns: namespace }, target);
+        }
         break;
       }
       default:
@@ -77,9 +136,14 @@ export async function serverActions(): Promise<void> {
   const classRef = `/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${nsEncoded}${
     classname ? "&CLASSNAME=" + classnameEncoded : ""
   }`;
+  const soapWizardPath = "/isc/studio/templates/%25ZEN.Template.AddInWizard.SOAPWizard.cls";
   let extraLinks = 0;
+  let hasSOAPWizard = false;
   for (const title in links) {
     const rawLink = String(links[title]);
+    if (rawLink.includes(soapWizardPath)) {
+      hasSOAPWizard = true;
+    }
     // Skip link if it requires a classname and we don't currently have one
     if (classname == "" && (rawLink.includes("${classname}") || rawLink.includes("${classnameEncoded}"))) {
       continue;
@@ -100,18 +164,18 @@ export async function serverActions(): Promise<void> {
       rawLink,
     });
   }
-  if (workspaceState.get(workspaceFolder + ":docker", false)) {
+  if (workspaceState.get(workspaceFolder.toLowerCase() + ":docker", false)) {
     actions.push({
       id: "openDockerTerminal",
       label: "Open Terminal in Docker",
-      detail: "Use docker-compose to start session inside configured service",
+      detail: "Use Docker Compose to start session inside configured service",
     });
   }
-  if (workspaceState.get(workspaceFolder + ":docker", false)) {
+  if (workspaceState.get(workspaceFolder.toLowerCase() + ":docker", false)) {
     actions.push({
       id: "openDockerShell",
       label: "Open Shell in Docker",
-      detail: "Use docker-compose to start shell inside configured service",
+      detail: "Use Docker Compose to start shell inside configured service",
     });
   }
   actions.push({
@@ -124,6 +188,13 @@ export async function serverActions(): Promise<void> {
     label: "Open Class Reference" + (classname ? ` for ${classname}` : ""),
     detail: serverUrl + classRef,
   });
+  if (!hasSOAPWizard) {
+    actions.push({
+      id: "openSOAPWizard",
+      label: "Open SOAP Wizard",
+      detail: `${serverUrl}${soapWizardPath}?$NAMESPACE=${nsEncoded}`,
+    });
+  }
   if (
     !vscode.window.activeTextEditor ||
     vscode.window.activeTextEditor.document.uri.scheme === FILESYSTEM_SCHEMA ||
@@ -152,14 +223,19 @@ export async function serverActions(): Promise<void> {
       switch (action.id) {
         case "openPortal": {
           const token = await getCSPToken(api, portalPath);
-          const urlString = `${serverUrl}${portalPath}&CSPCHD=${token}`;
-          vscode.env.openExternal(vscode.Uri.parse(urlString));
+          vscode.env.openExternal(vscode.Uri.parse(`${serverUrl}${portalPath}&CSPCHD=${token}`));
           break;
         }
         case "openClassReference": {
           const token = await getCSPToken(api, classRef);
-          const urlString = `${serverUrl}${classRef}&CSPCHD=${token}`;
-          vscode.env.openExternal(vscode.Uri.parse(urlString));
+          vscode.env.openExternal(vscode.Uri.parse(`${serverUrl}${classRef}&CSPCHD=${token}`));
+          break;
+        }
+        case "openSOAPWizard": {
+          const token = await getCSPToken(api, soapWizardPath);
+          vscode.env.openExternal(
+            vscode.Uri.parse(`${serverUrl}${soapWizardPath}?$NAMESPACE=${nsEncoded}&CSPCHD=${token}`)
+          );
           break;
         }
         case "openDockerTerminal": {
@@ -179,15 +255,16 @@ export async function serverActions(): Promise<void> {
           break;
         }
         default: {
-          let urlString = action.detail;
+          let url = vscode.Uri.parse(action.detail);
           if (action.rawLink?.startsWith("${serverUrl}")) {
-            const path = vscode.Uri.parse(urlString).path;
-            const token = await getCSPToken(api, path);
+            const token = await getCSPToken(api, url.path);
             if (token.length > 0) {
-              urlString += `&CSPCHD=${token}`;
+              url = url.with({
+                query: url.query.length ? `${url.query}&CSPCHD=${token}` : `CSPCHD=${token}`,
+              });
             }
           }
-          vscode.env.openExternal(vscode.Uri.parse(urlString));
+          vscode.env.openExternal(url);
         }
       }
     });

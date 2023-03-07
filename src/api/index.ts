@@ -3,7 +3,6 @@ const { default: fetch } = require("node-fetch-cjs");
 
 import * as httpModule from "http";
 import * as httpsModule from "https";
-import * as url from "url";
 import * as vscode from "vscode";
 import * as Cache from "vscode-cache";
 import {
@@ -57,16 +56,13 @@ export class AtelierAPI {
   public get config(): ConnectionSettings {
     const { serverName, active = false, https = false, pathPrefix = "", username } = this._config;
     const ns = this.namespace || this._config.ns;
-    const host = this.externalServer
-      ? this._config.host
-      : workspaceState.get(this.configName + ":host", this._config.host);
-    const port = this.externalServer
-      ? this._config.port
-      : workspaceState.get(this.configName + ":port", this._config.port);
-    const password = workspaceState.get(this.configName + ":password", this._config.password);
-    const apiVersion = workspaceState.get(this.configName + ":apiVersion", DEFAULT_API_VERSION);
-    const docker = workspaceState.get(this.configName + ":docker", false);
-    const dockerService = workspaceState.get<string>(this.configName + ":dockerService");
+    const wsKey = this.configName.toLowerCase();
+    const host = this.externalServer ? this._config.host : workspaceState.get(wsKey + ":host", this._config.host);
+    const port = this.externalServer ? this._config.port : workspaceState.get(wsKey + ":port", this._config.port);
+    const password = workspaceState.get(wsKey + ":password", this._config.password);
+    const apiVersion = workspaceState.get(wsKey + ":apiVersion", DEFAULT_API_VERSION);
+    const docker = workspaceState.get(wsKey + ":docker", false);
+    const dockerService = workspaceState.get<string>(wsKey + ":dockerService");
     return {
       serverName,
       active,
@@ -108,11 +104,9 @@ export class AtelierAPI {
             workspaceFolderName = parts[0];
             namespace = parts[1];
           } else {
-            const { query } = url.parse(wsOrFile.toString(true), true);
-            if (query) {
-              if (query.ns && query.ns !== "") {
-                namespace = query.ns.toString();
-              }
+            const params = new URLSearchParams(wsOrFile.query);
+            if (params.has("ns") && params.get("ns") != "") {
+              namespace = params.get("ns");
             }
           }
         } else {
@@ -198,7 +192,7 @@ export class AtelierAPI {
       this._config = {
         serverName,
         active: this.externalServer || conn.active,
-        apiVersion: workspaceState.get(this.configName + ":apiVersion", DEFAULT_API_VERSION),
+        apiVersion: workspaceState.get(this.configName.toLowerCase() + ":apiVersion", DEFAULT_API_VERSION),
         https: scheme === "https",
         ns,
         host,
@@ -422,7 +416,7 @@ export class AtelierAPI {
       } else if (originalPath && /^[^/]+\/work\/[^/]+$/.test(originalPath)) {
         // This is a GET or DELETE /work request, so we need to check the Retry-After header
         if (response.headers.has("Retry-After")) {
-          data.result.retryafter = response.headers.get("Retry-After");
+          data.retryafter = response.headers.get("Retry-After");
         }
       }
 
@@ -432,8 +426,8 @@ export class AtelierAPI {
         authRequestMap.delete(target);
         panel.text = `${this.connInfo} $(debug-disconnect)`;
         panel.tooltip = "Disconnected";
-        workspaceState.update(this.configName + ":host", undefined);
-        workspaceState.update(this.configName + ":port", undefined);
+        workspaceState.update(this.configName.toLowerCase() + ":host", undefined);
+        workspaceState.update(this.configName.toLowerCase() + ":port", undefined);
         if (!checkingConnection) {
           setTimeout(() => checkConnection(false, undefined, true), 30000);
         }
@@ -445,12 +439,12 @@ export class AtelierAPI {
     }
   }
 
-  public serverInfo(): Promise<Atelier.Response<Atelier.Content<Atelier.ServerInfo>>> {
+  public serverInfo(checkNs = true): Promise<Atelier.Response<Atelier.Content<Atelier.ServerInfo>>> {
     return this.request(0, "GET").then((info) => {
       if (info && info.result && info.result.content && info.result.content.api > 0) {
         const data = info.result.content;
         const apiVersion = data.api;
-        if (this.ns && this.ns.length && !data.namespaces.includes(this.ns)) {
+        if (this.ns && this.ns.length && !data.namespaces.includes(this.ns) && checkNs) {
           throw {
             code: "WrongNamespace",
             message: `This server does not have specified namespace '${this.ns}'.\n
@@ -458,8 +452,8 @@ export class AtelierAPI {
           };
         }
         return Promise.all([
-          workspaceState.update(this.configName + ":apiVersion", apiVersion),
-          workspaceState.update(this.configName + ":iris", data.version.startsWith("IRIS")),
+          workspaceState.update(this.configName.toLowerCase() + ":apiVersion", apiVersion),
+          workspaceState.update(this.configName.toLowerCase() + ":iris", data.version.startsWith("IRIS")),
         ]).then(() => info);
       }
     });
@@ -486,7 +480,7 @@ export class AtelierAPI {
   // api v1+
   public getDoc(name: string, format?: string, mtime?: number): Promise<Atelier.Response<Atelier.Document>> {
     let params = {};
-    if (!format && config("multilineMethodArgs") && this._config.apiVersion >= 4) {
+    if (!format && config("multilineMethodArgs", this.configName) && this.config.apiVersion >= 4) {
       format = "udl-multiline";
     }
     if (format) {
@@ -623,17 +617,17 @@ export class AtelierAPI {
   }
 
   // v1+
-  private queueAsync(request: any): Promise<Atelier.Response> {
+  public queueAsync(request: Atelier.AsyncRequest): Promise<Atelier.Response> {
     return this.request(1, "POST", `${this.ns}/work`, request);
   }
 
   // v1+
-  private pollAsync(id: string): Promise<Atelier.Response> {
+  public pollAsync(id: string): Promise<Atelier.Response> {
     return this.request(1, "GET", `${this.ns}/work/${id}`);
   }
 
   // v1+
-  private cancelAsync(id: string): Promise<Atelier.Response> {
+  public cancelAsync(id: string): Promise<Atelier.Response> {
     return this.request(1, "DELETE", `${this.ns}/work/${id}`);
   }
 
@@ -641,12 +635,14 @@ export class AtelierAPI {
    * Calls `cancelAsync()` repeatedly until the cancellation is confirmed.
    * The wait time between requests is 1 second.
    */
-  private async verifiedCancel(id: string): Promise<Atelier.Response> {
-    outputChannel.appendLine(
-      "\nWARNING: Compilation was cancelled. Partially-compiled documents may result in unexpected behavior."
-    );
+  public async verifiedCancel(id: string, compile = true): Promise<Atelier.Response> {
+    if (compile) {
+      outputChannel.appendLine(
+        "\nWARNING: Compilation was cancelled. Partially-compiled documents may result in unexpected behavior."
+      );
+    }
     let cancelResp = await this.cancelAsync(id);
-    while (cancelResp.result.retryafter) {
+    while (cancelResp.retryafter) {
       await new Promise((resolve) => {
         setTimeout(resolve, 1000);
       });
@@ -665,7 +661,7 @@ export class AtelierAPI {
       // The user cancelled the request, so cancel it on the server
       return this.verifiedCancel(id);
     }
-    if (pollResp.result.retryafter) {
+    if (pollResp.retryafter) {
       await new Promise((resolve) => {
         setTimeout(resolve, wait);
       });

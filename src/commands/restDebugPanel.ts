@@ -107,7 +107,7 @@ export class RESTDebugPanel {
       vscode.window.showErrorMessage("No REST web applications are configured in the server's namespace.", "Dismiss");
       return;
     }
-    //restWebApps.push("aaaaaafffffffffffffffffffffffffff","Kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk","b","c","d","e","f","g","h","i");
+
     if (this.currentPanel !== undefined) {
       // Can only have one panel open at once
       if (!this.currentPanel._panel.visible) {
@@ -391,16 +391,18 @@ export class RESTDebugPanel {
             message.headersText.split(/\r?\n/).forEach((line) => {
               line = line.trim();
               if (line != "" && !line.startsWith("#")) {
-                headers[line.slice(0, line.indexOf(":")).trim()] = line.slice(line.indexOf(":") + 1).trim();
+                headers[line.slice(0, line.indexOf(":")).trim().toLowerCase()] = line
+                  .slice(line.indexOf(":") + 1)
+                  .trim();
               }
             });
             if (
-              headers["Authorization"] == undefined &&
+              headers["authorization"] == undefined &&
               typeof api.config.username === "string" &&
               typeof api.config.password === "string"
             ) {
               // Use the server connection's auth if the user didn't specify any
-              headers["Authorization"] = `Basic ${Buffer.from(`${api.config.username}:${api.config.password}`).toString(
+              headers["authorization"] = `Basic ${Buffer.from(`${api.config.username}:${api.config.password}`).toString(
                 "base64"
               )}`;
             }
@@ -410,16 +412,16 @@ export class RESTDebugPanel {
               // Set the Content-Type header using bodyType
               switch (message.bodyType) {
                 case "JSON":
-                  headers["Content-Type"] = "application/json";
+                  headers["content-type"] = "application/json; charset=utf-8";
                   break;
                 case "XML":
-                  headers["Content-Type"] = "application/xml";
+                  headers["content-type"] = "application/xml; charset=utf-8";
                   break;
                 case "Text":
-                  headers["Content-Type"] = "text/plain";
+                  headers["content-type"] = "text/plain; charset=utf-8";
                   break;
                 case "HTML":
-                  headers["Content-Type"] = "text/html";
+                  headers["content-yype"] = "text/html; charset=utf-8";
                   break;
               }
             }
@@ -430,11 +432,20 @@ export class RESTDebugPanel {
             });
 
             // Send the request
-            fetch(encodeURI(`${serverInfo}${message.webApp}${path}?${urlParams.toString()}`), {
+            fetch(`${encodeURI(`${serverInfo}${message.webApp}${path}`)}?${urlParams.toString()}`, {
               method: message.method,
               agent,
               body: hasBody ? message.bodyContent : undefined,
               headers,
+            }).catch((error) => {
+              outputChannel.appendLine(
+                typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
+              );
+              vscode.window.showErrorMessage(
+                "Failed to send debuggee REST request. Check 'ObjectScript' Output channel for details.",
+                "Dismiss"
+              );
+              vscode.debug.stopDebugging(vscode.debug.activeDebugSession);
             });
 
             // Wait 500ms to allow the server to associate this request with the CSDPDEBUG id

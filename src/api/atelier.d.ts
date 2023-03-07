@@ -15,6 +15,8 @@ export interface Response<T = any> {
   status: ResponseStatus;
   console: string[];
   result: T;
+  /** Value of the `Retry-After` response header, if present */
+  retryafter?: string;
 }
 
 interface ServerInfoFeature {
@@ -77,3 +79,30 @@ export interface DeleteStatus {
   db: string;
   status: string;
 }
+
+interface AsyncCompileRequest {
+  request: "compile";
+  documents: string[];
+  source?: boolean;
+  flags?: string;
+}
+
+interface AsyncSearchRequest {
+  request: "search";
+  query: string;
+  regex?: boolean;
+  project?: string;
+  word?: boolean;
+  case?: boolean;
+  wild?: boolean;
+  documents?: string;
+  system?: boolean;
+  generated?: boolean;
+  mapped?: boolean;
+  max?: number;
+  include?: string;
+  exclude?: string;
+  console: false;
+}
+
+export type AsyncRequest = AsyncCompileRequest | AsyncSearchRequest;
