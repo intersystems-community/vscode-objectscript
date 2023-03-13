@@ -64,6 +64,9 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     wFolderUri?: vscode.Uri,
     forceServerCopy = false
   ): vscode.Uri {
+    if (vfs === undefined) {
+      vfs = config("serverSideEditing");
+    }
     let scheme = vfs ? FILESYSTEM_SCHEMA : OBJECTSCRIPT_FILE_SCHEMA;
     const isCsp = name.includes("/");
 
