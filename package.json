@@ -1396,11 +1396,6 @@
           "type": "boolean",
           "description": "Suppress popup messages about errors during compile, but still focus on Output view."
         },
-        "objectscript.serverSideEditing": {
-          "default": false,
-          "type": "boolean",
-          "description": "Allow editing code directly on the server after opening it from ObjectScript Explorer."
-        },
         "objectscript.debug.debugThisMethod": {
           "type": "boolean",
           "default": true,

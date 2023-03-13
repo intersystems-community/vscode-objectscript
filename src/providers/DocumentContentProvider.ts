@@ -64,9 +64,6 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     wFolderUri?: vscode.Uri,
     forceServerCopy = false
   ): vscode.Uri {
-    if (vfs === undefined) {
-      vfs = config("serverSideEditing");
-    }
     let scheme = vfs ? FILESYSTEM_SCHEMA : OBJECTSCRIPT_FILE_SCHEMA;
     const isCsp = name.includes("/");
 
@@ -198,7 +195,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     }
     const data = await api.getDoc(fileName);
     if (Buffer.isBuffer(data.result.content)) {
-      return "\nThis is a binary file.\n\nTo access its contents, export it to the local file system.\nAlternatively, enable the 'objectscript.serverSideEditing' setting.";
+      return "\nThis is a binary file.\n\nTo access its contents, export it to the local file system.";
     } else {
       return data.result.content.join("\n");
     }

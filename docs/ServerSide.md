@@ -178,7 +178,6 @@ Use **File > New File** to create a new file. Add content similar to the followi
     }
   ],
   "settings": {
-    "objectscript.serverSideEditing": true
   }
 }
 ```
@@ -220,8 +219,7 @@ Example with connection to different namespaces on the same server.
       "password": "SYS",
       "ns": "MYAPP",
       "port": 52773,
-    },
-    "objectscript.serverSideEditing": true
+    }
   }
 }
 ```
