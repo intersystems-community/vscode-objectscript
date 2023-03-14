@@ -1399,7 +1399,8 @@
         "objectscript.serverSideEditing": {
           "default": false,
           "type": "boolean",
-          "description": "Allow editing code directly on the server after opening it from ObjectScript Explorer."
+          "description": "Allow editing code directly on the server after opening it from ObjectScript Explorer.",
+          "deprecationMessage": "This setting is deprecated and will be removed in the next release."
         },
         "objectscript.debug.debugThisMethod": {
           "type": "boolean",
