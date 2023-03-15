@@ -554,7 +554,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     }
     // Write the new file
     // This is going to attempt the write regardless of the user's response to the check out prompt
-    const api = new AtelierAPI(oldUri);
+    const api = new AtelierAPI(newUri);
     await api
       .putDoc(
         newFileName,
