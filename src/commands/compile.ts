@@ -96,6 +96,11 @@ async function importFile(
   if (typeof file.content === "string") {
     enc = false;
     content = file.content.split(/\r?\n/);
+
+    // Avoid appending a blank line on every save, which would cause a web app file to grow each time
+    if (content.length > 1 && content[content.length - 1] === "") {
+      content.pop();
+    }
   } else {
     // Base64 encoding must be in chunk size multiple of 3 and within the server's potential 32K string limit
     // Output is 4 chars for each 3 input, so 24573/3*4 = 32764
