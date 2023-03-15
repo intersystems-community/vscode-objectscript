@@ -351,6 +351,10 @@ export async function importAndCompile(
             fileSystemProvider.fireFileChanged(file.uri);
           }
         }
+      } else if (file.uri.scheme === FILESYSTEM_SCHEMA || file.uri.scheme === FILESYSTEM_READONLY_SCHEMA) {
+        // Fire the file changed event to avoid VSCode alerting the user on the next folder-specific save (e.g. of settings.json) that
+        // "The content of the file is newer."
+        fileSystemProvider.fireFileChanged(file.unredirectedUri ?? file.uri);
       }
     });
 }
