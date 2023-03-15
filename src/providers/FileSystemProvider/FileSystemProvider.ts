@@ -346,7 +346,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           return Promise.reject();
         }
         // File doesn't exist on the server, and we are allowed to create it.
-        // Create content (typically a stub).
+        // Create content (typically a stub, unless the write-phase of a copy operation).
         const newContent = generateFileContent(fileName, content);
 
         // Write it to the server
