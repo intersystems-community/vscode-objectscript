@@ -77,6 +77,12 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     }
     let uri: vscode.Uri;
     if (wFolderUri && (wFolderUri.scheme === FILESYSTEM_SCHEMA || wFolderUri.scheme === FILESYSTEM_READONLY_SCHEMA)) {
+      // Avoid later adding a namespace=XXX queryparam when this is implied by the authority part of the workspace folder uri
+      // otherwise stopping at a breakpoint would load a second copy of the file
+      const authorityParts = wFolderUri.authority.split(":");
+      if (authorityParts.length === 2 && namespace?.toLowerCase() === authorityParts[1]) {
+        namespace = "";
+      }
       const flat = new URLSearchParams(wFolderUri.query).get("flat") == "1";
       const fileExt = name.split(".").pop();
       const fileName = name
@@ -180,6 +186,9 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
         uri = uri.with({
           query: "csp=1",
         });
+      } else {
+        // Remove filters etc which the folder uri may have specified
+        uri = uri.with({ query: "" });
       }
     }
     return uri;
