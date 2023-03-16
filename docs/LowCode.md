@@ -13,7 +13,7 @@ VS Code contains support for low-code editors via its [Custom Editors API](https
 
 The following list contains all InterSystems low-code editors that support integration with VS Code, along with the earliest version of InterSystems IRIS that contains the support:
 
-* Rule Editor **TODO**: add version and link to rule editor docs here
+* Rule Editor (2023.1)
 
 ## Opening a Low-Code Editor
 
