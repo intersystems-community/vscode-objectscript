@@ -444,8 +444,7 @@ export async function checkConnection(
           explorerProvider.refresh();
           projectsExplorerProvider.refresh();
           // Refreshing Files Explorer also switches to it, so only do this if the uri is part of the workspace,
-          // otherwise files opened from ObjectScript Explorer (objectscript:// or isfs:// depending on the "objectscript.serverSideEditing" setting)
-          // will cause an unwanted switch.
+          // otherwise files opened from ObjectScript Explorer (objectscript://) will cause an unwanted switch.
           if (uri && schemas.includes(uri.scheme) && vscode.workspace.getWorkspaceFolder(uri)) {
             vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
           }
@@ -665,7 +664,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   if (proposed.length > 0) {
     outputChannel.appendLine(`${extensionId} version ${extensionVersion} activating with proposed APIs available.\n`);
-    outputChannel.show(true);
   }
 
   const languageServerExt =

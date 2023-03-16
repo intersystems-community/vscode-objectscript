@@ -1400,7 +1400,8 @@
         "objectscript.serverSideEditing": {
           "default": false,
           "type": "boolean",
-          "description": "Allow editing code directly on the server after opening it from ObjectScript Explorer."
+          "description": "Allow editing code directly on the server after opening it from ObjectScript Explorer.",
+          "deprecationMessage": "This setting is deprecated and will be removed in the next release."
         },
         "objectscript.debug.debugThisMethod": {
           "type": "boolean",
@@ -1651,7 +1652,7 @@
     "typescript": "^4.4.3",
     "vscode-debugadapter-testsupport": "^1.41.0",
     "vscode-dts": "^0.3.2",
-    "webpack": "^5.27.1",
+    "webpack": "^5.76.0",
     "webpack-cli": "^4.5.0"
   },
   "dependencies": {

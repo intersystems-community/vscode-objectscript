@@ -53,6 +53,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.debug.copyToClipboard"` | Show inline `Copy Invocation` CodeLens action for ClassMethods and Routine Labels. | `boolean` | `true` | |
 | `"objectscript.debug.debugThisMethod"` | Show inline `Debug` CodeLens action for ClassMethods and Routine Labels. | `boolean` | `true` | |
 | `"objectscript.explorer.alwaysShowServerCopy"` | Always show the server copy of a document in the ObjectScript Explorer. | `boolean` | `false` | |
+| `"objectscript.export"` | Configures the files that the `Export Code from Server` command will export from the server to the local workspace folder. | `object` | `undefined` | |
 | `"objectscript.export.addCategory"` | Add a category folder to the beginning of the export path. | `boolean` or `object` | `false` | |
 | `"objectscript.export.atelier"` | Export source code as Atelier did it, with packages as subfolders. | `boolean` | `true` | This setting only affects classes, routines, include files and DFI files. |
 | `"objectscript.export.category"` | Category of source code to export: `CLS` = classes; `RTN` = routines; `CSP` = csp files; `OTH` = other. Default is `*` = all. | `string` or `object` | `"*"` | |
@@ -73,7 +74,6 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.openClassContracted"` | Automatically collapse all class member folding ranges when a class is opened for the first time. | `boolean` | `false` | |
 | `"objectscript.overwriteServerChanges"` | Overwrite a changed server version without confirmation when importing the local file. | `boolean` | `false` | |
 | `"objectscript.projects.webAppFileExtensions"` | When browsing a virtual workspace folder that has a project query parameter, all files with these extensions will be automatically treated as web application files. Extensions added here will be appended to the default list and should **NOT** include a dot. | `string[]` | `[]` | Default extensions: `["csp","csr","ts","js","css","scss","sass","less","html","json","md","markdown","png","svg","jpeg","jpg","ico","xml","txt"]` |
-| `"objectscript.serverSideEditing"` | Allow editing code directly on the server after opening it from ObjectScript Explorer. | `boolean` | `false` | |
 | `"objectscript.serverSourceControl .disableOtherActionTriggers"` | Prevent server-side source control 'other action' triggers from firing. | `boolean` | `false` | |
 | `"objectscript.showExplorer"` | Show the ObjectScript Explorer view. | `boolean` | `true` | |
 | `"objectscript.showGeneratedFileDecorations"` | Controls whether a badge is shown in the file explorer and open editors view for generated files. | `boolean` | `true` | |
