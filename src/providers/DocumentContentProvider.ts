@@ -186,9 +186,6 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
         uri = uri.with({
           query: "csp=1",
         });
-      } else {
-        // Remove filters etc which the folder uri may have specified
-        uri = uri.with({ query: "" });
       }
     }
     return uri;
