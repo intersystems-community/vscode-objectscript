@@ -24,7 +24,8 @@ export type Entry = File | Directory;
 export function generateFileContent(fileName: string, sourceContent: Buffer): { content: string[]; enc: boolean } {
   const sourceLines = sourceContent.toString().split("\n");
   const fileExt = fileName.split(".").pop().toLowerCase();
-  if (fileExt === "cls") {
+  const csp = fileName.startsWith("/");
+  if (fileExt === "cls" && !csp) {
     const className = fileName.split(".").slice(0, -1).join(".");
     const content: string[] = [];
     const preamble: string[] = [];
@@ -48,7 +49,7 @@ export function generateFileContent(fileName: string, sourceContent: Buffer): { 
       content,
       enc: false,
     };
-  } else if (["int", "inc", "mac"].includes(fileExt)) {
+  } else if (["int", "inc", "mac"].includes(fileExt) && !csp) {
     sourceLines.shift();
     const routineName = fileName.split(".").slice(0, -1).join(".");
     const routineType = fileExt != "mac" ? `[Type=${fileExt.toUpperCase()}]` : "";
@@ -144,6 +145,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+    uri = redirectDotvscodeRoot(uri);
     return this._lookup(uri);
   }
 
@@ -346,7 +348,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           return Promise.reject();
         }
         // File doesn't exist on the server, and we are allowed to create it.
-        // Create content (typically a stub).
+        // Create content (typically a stub, unless the write-phase of a copy operation).
         const newContent = generateFileContent(fileName, content);
 
         // Write it to the server
@@ -434,6 +436,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async delete(uri: vscode.Uri, options: { recursive: boolean }): Promise<void> {
+    uri = redirectDotvscodeRoot(uri);
     const csp = isCSPFile(uri);
     const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
     const params = new URLSearchParams(uri.query);
@@ -442,7 +445,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (fileName.startsWith(".")) {
       return;
     }
-    if (await this._lookup(uri).then((entry) => entry instanceof Directory)) {
+    if (await this._lookup(uri, true).then((entry) => entry instanceof Directory)) {
       // Get the list of documents to delete
       let toDeletePromise: Promise<any>;
       if (project) {
@@ -554,7 +557,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     }
     // Write the new file
     // This is going to attempt the write regardless of the user's response to the check out prompt
-    const api = new AtelierAPI(oldUri);
+    const api = new AtelierAPI(newUri);
     await api
       .putDoc(
         newFileName,

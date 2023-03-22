@@ -36,6 +36,7 @@ export interface CurrentFile {
   name: string;
   fileName: string;
   uri: vscode.Uri;
+  unredirectedUri?: vscode.Uri;
   workspaceFolder: string;
   uniqueId: string;
 }
@@ -284,6 +285,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentTextFile {
     fileName,
     name,
     uri,
+    unredirectedUri: document.uri,
     eol,
     workspaceFolder,
     uniqueId,
