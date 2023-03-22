@@ -9,6 +9,7 @@ import { RoutineNode } from "../explorer/models/routineNode";
 import { NodeBase } from "../explorer/models/nodeBase";
 import { importAndCompile } from "./compile";
 import { ProjectNode } from "../explorer/models/projectNode";
+import { openCustomEditors } from "../providers/RuleEditorProvider";
 
 export let documentBeingProcessed: vscode.TextDocument = null;
 
@@ -63,7 +64,7 @@ function getOtherStudioActionLabel(action: OtherStudioAction): string {
 // Used to avoid triggering the edit listener when files are reloaded by an extension
 const suppressEditListenerMap = new Map<string, boolean>();
 
-class StudioActions {
+export class StudioActions {
   private uri: vscode.Uri;
   private api: AtelierAPI;
   private name: string;
@@ -84,6 +85,7 @@ class StudioActions {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   public processUserAction(userAction): Thenable<any> {
     const serverAction = parseInt(userAction.action || 0, 10);
     const { target, errorText } = userAction;
@@ -389,7 +391,8 @@ class StudioActions {
       .then((action) => this.userAction(action));
   }
 
-  public fireOtherStudioAction(action: OtherStudioAction, userAction?) {
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+  public fireOtherStudioAction(action: OtherStudioAction, userAction?): void {
     const actionObject = {
       id: action.toString(),
       label: getOtherStudioActionLabel(action),
@@ -454,7 +457,7 @@ class StudioActions {
       .then((content) => (content && content.length ? content[0].Enabled : false));
   }
 
-  public getServerInfo() {
+  public getServerInfo(): { server: string; namespace: string } {
     return {
       server: `${this.api.config.host}:${this.api.config.port}${this.api.config.pathPrefix}`,
       namespace: this.api.config.ns,
@@ -527,6 +530,7 @@ export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vsc
   return (
     studioActions &&
     (await studioActions.isSourceControlEnabled()) &&
+    !openCustomEditors.includes(uri.toString()) && // The custom editor will handle all server-side source control interactions
     studioActions.fireOtherStudioAction(action, userAction)
   );
 }

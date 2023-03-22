@@ -98,7 +98,8 @@
     "onFileSystem:isfs",
     "onFileSystem:isfs-readonly",
     "onFileSystem:objectscript",
-    "onDebugInitialConfigurations"
+    "onDebugInitialConfigurations",
+    "onCustomEditor:vscode-objectscript.rule"
   ],
   "main": "./dist/extension",
   "browser": "./dist/web-extension",
@@ -264,7 +265,7 @@
         },
         {
           "command": "vscode-objectscript.showClassDocumentationPreview",
-          "when": "editorLangId == objectscript-class"
+          "when": "editorLangId == objectscript-class && activeCustomEditorId == ''"
         },
         {
           "command": "vscode-objectscript.exportCurrentFile",
@@ -328,7 +329,7 @@
         },
         {
           "command": "vscode-objectscript.showRESTDebugWebview",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && activeCustomEditorId == ''"
         },
         {
           "command": "vscode-objectscript.modifyWsFolder",
@@ -506,7 +507,7 @@
         },
         {
           "command": "vscode-objectscript.showRESTDebugWebview",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && activeCustomEditorId == ''",
           "group": "objectscript@9"
         }
       ],
@@ -524,19 +525,19 @@
         {
           "command": "vscode-objectscript.showClassDocumentationPreview",
           "group": "navigation@3",
-          "when": "editorLangId == objectscript-class"
+          "when": "editorLangId == objectscript-class && activeCustomEditorId == ''"
         }
       ],
       "editor/title/context": [
         {
           "command": "vscode-objectscript.showClassDocumentationPreview",
           "group": "1_open",
-          "when": "resourceLangId == objectscript-class"
+          "when": "resourceLangId == objectscript-class && activeCustomEditorId == ''"
         },
         {
           "command": "vscode-objectscript.showRESTDebugWebview",
           "group": "1_open",
-          "when": "resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive && activeCustomEditorId == ''"
         }
       ],
       "touchBar": [
@@ -1595,6 +1596,18 @@
           "label": "${path} (read-only)",
           "separator": "/"
         }
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "vscode-objectscript.rule",
+        "displayName": "Rule Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.cls"
+          }
+        ],
+        "priority": "option"
       }
     ]
   },

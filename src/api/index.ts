@@ -336,7 +336,7 @@ export class AtelierAPI {
         throw {
           statusCode: response.status,
           message: response.statusText,
-          errorText: `The server at ${host}:${port} is unavailable. Check License Usage.`,
+          errorText: `The server at ${host}:${port}${pathPrefix} is unavailable. Check License Usage.`,
         };
       }
       if (response.status === 401) {
@@ -609,11 +609,11 @@ export class AtelierAPI {
   }
 
   // v1+
-  public getCSPApps(detail = false): Promise<Atelier.Response> {
+  public getCSPApps(detail = false, nsOverride?: string): Promise<Atelier.Response> {
     const params = {
       detail: detail ? 1 : 0,
     };
-    return this.request(1, "GET", `%SYS/cspapps/${this.ns || ""}`, null, params);
+    return this.request(1, "GET", `%SYS/cspapps/${nsOverride || this.ns || ""}`, null, params);
   }
 
   // v1+

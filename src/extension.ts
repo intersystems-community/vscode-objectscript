@@ -113,6 +113,7 @@ import {
 } from "./commands/project";
 import { NodeBase } from "./explorer/models/nodeBase";
 import { loadStudioColors, loadStudioSnippets } from "./commands/studioMigration";
+import { openCustomEditors, RuleEditorProvider } from "./providers/RuleEditorProvider";
 import { newFile, NewFileType } from "./commands/newFile";
 import { FileDecorationProvider } from "./providers/FileDecorationProvider";
 import { RESTDebugPanel } from "./commands/restDebugPanel";
@@ -1047,6 +1048,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.explorer.project.addWorkspaceFolderForProject", (node) =>
       addWorkspaceFolderForProject(node)
     ),
+    vscode.window.registerCustomEditorProvider("vscode-objectscript.rule", new RuleEditorProvider(), {
+      webviewOptions: {
+        retainContextWhenHidden: true,
+      },
+      supportsMultipleEditorsPerDocument: false,
+    }),
     vscode.workspace.onDidChangeWorkspaceFolders(async ({ added, removed }) => {
       const folders = vscode.workspace.workspaceFolders;
 
@@ -1116,6 +1123,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     }),
     vscode.workspace.onDidSaveTextDocument((file) => {
+      if (openCustomEditors.includes(file.uri.toString())) {
+        // Saving is handled by a different event listener
+        return;
+      }
       if (!schemas.includes(file.uri.scheme) && !config("importOnSave")) {
         // Don't save this local file on the server
         return;
