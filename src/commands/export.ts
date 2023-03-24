@@ -1,29 +1,16 @@
 import path = require("path");
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
+import { config, explorerProvider, OBJECTSCRIPT_FILE_SCHEMA, schemas, workspaceState } from "../extension";
 import {
-  config,
-  explorerProvider,
-  fileSystemProvider,
-  FILESYSTEM_READONLY_SCHEMA,
-  FILESYSTEM_SCHEMA,
-  OBJECTSCRIPT_FILE_SCHEMA,
-  schemas,
-  workspaceState,
-} from "../extension";
-import {
-  cspAppsForUri,
-  CurrentFile,
   currentFile,
   currentFileFromContent,
   fileExists,
   notNull,
   outputChannel,
-  throttleRequests,
   uriOfWorkspaceFolder,
 } from "../utils";
 import { NodeBase } from "../explorer/models/nodeBase";
-import glob = require("glob");
 
 export const getCategory = (fileName: string, addCategory: any | boolean): string => {
   const fileExt = fileName.split(".").pop().toLowerCase();
@@ -392,89 +379,4 @@ export async function exportCurrentFile(): Promise<any> {
   }
   const api = new AtelierAPI(openDoc.uri);
   return exportList([currentFile(openDoc).name], api.configName, api.config.ns);
-}
-
-async function refreshChanges(files: CurrentFile[]): Promise<boolean> {
-  if (!files.length) {
-    return;
-  }
-  let hadErrors = false;
-  const api = new AtelierAPI(files[0].uri);
-  await Promise.allSettled(
-    files.map((file) =>
-      api
-        .getDoc(file.name)
-        .then(async (data) => {
-          const content = (data.result.content || []).join(file.eol === vscode.EndOfLine.LF ? "\n" : "\r\n");
-          const mtime = Number(new Date(data.result.ts + "Z"));
-          workspaceState.update(`${file.uniqueId}:mtime`, mtime > 0 ? mtime : undefined);
-          if (file.uri.scheme === "file") {
-            await vscode.workspace.fs.writeFile(file.uri, new TextEncoder().encode(content));
-            outputChannel.appendLine("Refreshed file contents: " + file.name);
-          } else if (file.uri.scheme === FILESYSTEM_SCHEMA || file.uri.scheme === FILESYSTEM_READONLY_SCHEMA) {
-            fileSystemProvider.fireFileChanged(file.uri);
-          }
-        })
-        .then(() => api.actionIndex([file.name]))
-        .then((data) => data.result.content[0].others)
-        .then((others) => {
-          console.log(others);
-        })
-        .catch((error) => {
-          const errorStr = typeof error == "string" ? error : error instanceof Error ? error.message : error.errorText;
-          outputChannel.appendError(errorStr, true);
-          hadErrors = true;
-        })
-    )
-  );
-
-  return !hadErrors;
-}
-
-async function refreshFiles(files: string[]): Promise<boolean> {
-  const currentFiles = await Promise.all<CurrentFile>(
-    files.map(
-      throttleRequests((file: string) =>
-        vscode.workspace.fs
-          .readFile(vscode.Uri.file(file))
-          .then((contentBytes) => new TextDecoder().decode(contentBytes))
-          .then((content) => currentFileFromContent(vscode.Uri.file(file), content))
-      )
-    )
-  );
-
-  return await refreshChanges(currentFiles);
-}
-
-export async function refreshFolder(uri: vscode.Uri): Promise<boolean> {
-  const uripath = uri.fsPath;
-  if ((await vscode.workspace.fs.stat(uri)).type != vscode.FileType.Directory) {
-    return await refreshFiles([uripath]);
-  }
-  let globpattern = "*.{cls,inc,int,mac}";
-  if (cspAppsForUri(uri).findIndex((cspApp) => uri.path.includes(cspApp + "/") || uri.path.endsWith(cspApp)) != -1) {
-    // This folder is a CSP application, so import all files
-    // We need to include eveything becuase CSP applications can
-    // include non-InterSystems files
-    globpattern = "*";
-  }
-
-  let files = [];
-
-  await new Promise<void>((resolve, reject) => {
-    glob(
-      globpattern,
-      {
-        cwd: uripath,
-        matchBase: true,
-        nocase: true,
-      },
-      (_error, _files) => {
-        files = _files;
-        resolve();
-      }
-    );
-  });
-
-  return await refreshFiles(files.map((name) => path.join(uripath, name)));
 }

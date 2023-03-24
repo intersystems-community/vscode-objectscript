@@ -24,14 +24,6 @@
       "name": "markup.bold"
     },
     {
-      "match": "^File refresh finished successfully",
-      "name": "markup.bold"
-    },
-    {
-      "match": "^Detected errors during file refresh",
-      "name": "invalid"
-    },
-    {
       "match": "(?<=^Compiling (?:class|routine|file|table) \\:? ?)[^\\:\\s]+",
       "name": "entity.name.class"
     },
