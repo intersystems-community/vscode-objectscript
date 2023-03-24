@@ -63,6 +63,7 @@
     "workspaceContains:**/*.csr",
     "onCommand:vscode-objectscript.export",
     "onCommand:vscode-objectscript.compile",
+    "onCommand:vscode-objectscript.refreshLocalFile",
     "onCommand:vscode-objectscript.viewOthers",
     "onCommand:vscode-objectscript.jumpToTagAndOffset",
     "onCommand:vscode-objectscript.previewXml",
@@ -138,6 +139,10 @@
         {
           "command": "vscode-objectscript.compile",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.refreshLocalFile",
+          "when": "resourceScheme == file && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.compileWithFlags",
@@ -929,6 +934,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.compileFolder",
         "title": "Import and Compile"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.refreshLocalFile",
+        "title": "Overwrite from Server"
       },
       {
         "category": "ObjectScript",

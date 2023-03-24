@@ -26,6 +26,7 @@ import {
   checkChangedOnServer,
   compileOnly,
   importLocalFilesToServerSideFolder,
+  loadChanges,
 } from "./commands/compile";
 import { deleteExplorerItems } from "./commands/delete";
 import { exportAll, exportCurrentFile, exportExplorerItems, getCategory } from "./commands/export";
@@ -785,6 +786,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.compileWithFlags", () => importAndCompile(true)),
     vscode.commands.registerCommand("vscode-objectscript.compileAll", () => namespaceCompile(false)),
     vscode.commands.registerCommand("vscode-objectscript.compileAllWithFlags", () => namespaceCompile(true)),
+    vscode.commands.registerCommand("vscode-objectscript.refreshLocalFile", async (_file, files) => {
+      const file = currentFile();
+      if (!file) {
+        return;
+      }
+
+      try {
+        await loadChanges([file]);
+      } catch (error) {
+        let message = `Failed to overwrite file from server '${file.fileName}'.`;
+        if (error && error.errorText && error.errorText !== "") {
+          outputChannel.appendLine("\n" + error.errorText);
+          outputChannel.show(true);
+          message += " Check 'ObjectScript' output channel for details.";
+        }
+        vscode.window.showErrorMessage(message, "Dismiss");
+        return;
+      }
+    }),
     vscode.commands.registerCommand("vscode-objectscript.compileFolder", (_file, files) =>
       Promise.all(files.map((file) => importFileOrFolder(file, false)))
     ),
