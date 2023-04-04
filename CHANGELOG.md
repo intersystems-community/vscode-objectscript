@@ -1,5 +1,17 @@
 # Change Log
 
+## [2.8.0] 04-Apr-2023
+- Enhancements
+  - Integrate Angular Rule Editor (#1014)
+  - Add command to refresh local file contents (#1066) (contributed by @ollitanska)
+  - Add `SOAP Wizard` to Server Actions menu (#1107)
+  - Add snippet for custom class queries (#1111)
+- Fixes
+  - Fix api version check in AtelierAPI.getDoc() (#1110)
+  - Don't switch Panel to Output tab when starting with proposed API enabled (#1113)
+  - Deprecate confusing `objectscript.serverSideEditing` setting (#1116)
+  - Upgrade vulnerable dependencies.
+
 ## [2.6.0] 27-Feb-2023
 - Enhancements
   - Implement async server-side search (#1045) (requires [proposed API enabled](https://github.com/intersystems-community/vscode-objectscript#enable-proposed-apis) and InterSystems IRIS 2023.1+)
