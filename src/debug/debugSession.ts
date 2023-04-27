@@ -148,6 +148,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       this._url = api.xdebugUrl();
 
       const socket = new WebSocket(this._url, {
+        rejectUnauthorized: vscode.workspace.getConfiguration("http").get("proxyStrictSSL"),
         headers: {
           cookie: this.cookies,
         },
