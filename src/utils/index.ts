@@ -508,7 +508,7 @@ export async function terminalWithDocker(): Promise<vscode.Terminal> {
     }
     terminal = vscode.window.createTerminal(
       terminalName,
-      exe,
+      `${exe}${process.platform == "win32" ? ".exe" : ""}`,
       argsArr.concat([
         "-f",
         file,
@@ -543,7 +543,7 @@ export async function shellWithDocker(): Promise<vscode.Terminal> {
     }
     terminal = vscode.window.createTerminal(
       terminalName,
-      exe,
+      `${exe}${process.platform == "win32" ? ".exe" : ""}`,
       argsArr.concat(["-f", file, "exec", service, "/bin/bash"])
     );
     terminals.push(terminal);
