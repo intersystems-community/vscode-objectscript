@@ -553,6 +553,38 @@ function languageServer(install = true): vscode.Extension<any> {
   return extension;
 }
 
+/** Show the proposed API prompt if required */
+function proposedApiPrompt(active: boolean, added?: readonly vscode.WorkspaceFolder[]): void {
+  if (
+    (added || vscode.workspace.workspaceFolders || []).some((e) => filesystemSchemas.includes(e.uri.scheme)) &&
+    !active &&
+    config("showProposedApiPrompt")
+  ) {
+    // Prompt the user with the proposed api install instructions
+    vscode.window
+      .showInformationMessage(
+        "[Searching across](https://code.visualstudio.com/docs/editor/codebasics#_search-across-files) and [quick opening](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_quick-open) server-side files requires [VS Code proposed APIs](https://code.visualstudio.com/api/advanced-topics/using-proposed-api). Show the directions to enable?",
+        "Yes",
+        "Later",
+        "Never"
+      )
+      .then(async (action) => {
+        switch (action) {
+          case "Yes":
+            vscode.env.openExternal(
+              vscode.Uri.parse("https://github.com/intersystems-community/vscode-objectscript#enable-proposed-apis")
+            );
+            break;
+          case "Never":
+            config().update("showProposedApiPrompt", false, vscode.ConfigurationTarget.Global);
+            break;
+          case "Later":
+          default:
+        }
+      });
+  }
+}
+
 // The URIs of all classes that have been opened. Used when objectscript.openClassContracted is true.
 let openedClasses: string[];
 
@@ -743,6 +775,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   // Create this here so we can fire its event
   const fileDecorationProvider = new FileDecorationProvider();
+
+  // Show the proposed API prompt if required
+  proposedApiPrompt(proposed.length > 0);
 
   context.subscriptions.push(
     reporter,
@@ -1239,6 +1274,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.commands.registerCommand("vscode-objectscript.modifyWsFolder", modifyWsFolder),
     vscode.commands.registerCommand("vscode-objectscript.openErrorLocation", openErrorLocation),
+    vscode.workspace.onDidChangeWorkspaceFolders((e) => {
+      // Show the proposed API prompt if required
+      proposedApiPrompt(proposed.length > 0, e.added);
+    }),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed
