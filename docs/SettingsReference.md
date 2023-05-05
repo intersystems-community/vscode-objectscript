@@ -78,6 +78,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.serverSourceControl .disableOtherActionTriggers"` | Prevent server-side source control 'other action' triggers from firing. | `boolean` | `false` | |
 | `"objectscript.showExplorer"` | Show the ObjectScript Explorer view. | `boolean` | `true` | |
 | `"objectscript.showGeneratedFileDecorations"` | Controls whether a badge is shown in the file explorer and open editors view for generated files. | `boolean` | `true` | |
+| `"objectscript.showProposedApiPrompt"` | Controls whether a prompt to enable VS Code proposed APIs is shown when a server-side workspace folder is opened. | `boolean` | `true` | |
 | `"objectscript.studioActionDebugOutput"` | Log in JSON format the action that VS Code should perform as requested by the server. | `boolean` | `false` | Actions will be logged to the `ObjectScript` Output channel. |
 | `"objectscript.suppressCompileErrorMessages"` | Suppress popup messages about errors during compile, but still focus on Output view. | `boolean` | `false` | |
 | `"objectscript.suppressCompileMessages"` | Suppress popup messages about successful compile. | `boolean` | `true` | |

@@ -1477,6 +1477,11 @@
           "description": "Controls whether a badge is shown in the file explorer and open editors view for generated files.",
           "type": "boolean",
           "default": true
+        },
+        "objectscript.showProposedApiPrompt": {
+          "description": "Controls whether a prompt to enable VS Code proposed APIs is shown when a server-side workspace folder is opened.",
+          "type": "boolean",
+          "default": true
         }
       }
     },
