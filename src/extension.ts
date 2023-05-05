@@ -842,13 +842,45 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.pickProcess", async (config) => {
       const system = config.system;
       const api = new AtelierAPI(vscode.window.activeTextEditor?.document.uri);
-      const convert = (data) =>
-        data.result.content.map(
-          (process: AtelierJob): vscode.QuickPickItem => ({
-            label: process.pid.toString(),
-            description: `Namespace: ${process.namespace}, Routine: ${process.routine}`,
-          })
-        );
+      const convert = async (jobData) => {
+        // NOTE: We do not know if the current user has permissions to other namespaces, so lets only fetch the job infos
+        // for the current namespace.
+        const currNamespaceJobs: { [k: string]: string } = await api
+          .actionQuery("SELECT Job, ConfigName FROM Ens.Job_Enumerate() where State = 'Alive'", [])
+          .then((data) => Object.fromEntries(data.result.content.map((x) => [x.Job, x.ConfigName])))
+          .catch((error) => {
+            // Current namespace is not Interoperability-enabled, there is no Ens.Job_Enumerate procedure
+            if (error && error.errorText.includes("'ENS.JOB_ENUMERATE'(...)")) {
+              return {};
+            }
+
+            let message = `Failed to fetch namespace '${api.ns}' job config names.`;
+            if (error && error.errorText && error.errorText !== "") {
+              outputChannel.appendLine("\n" + error.errorText);
+              outputChannel.show(true);
+              message += " Check 'ObjectScript' output channel for details.";
+            }
+            vscode.window.showErrorMessage(message, "Dismiss");
+            return {};
+          });
+
+        return jobData.result.content.map((process: AtelierJob): vscode.QuickPickItem => {
+          if (!currNamespaceJobs[process.pid.toString()]) {
+            return {
+              label: process.pid.toString(),
+              description: `Namespace: ${process.namespace}, Routine: ${process.routine}`,
+            };
+          } else {
+            return {
+              label: process.pid.toString(),
+              description: `Namespace: ${process.namespace}, Routine: ${process.routine}, Config Name: ${
+                currNamespaceJobs[process.pid.toString()]
+              }`,
+            };
+          }
+        });
+      };
+
       const list = await api.getJobs(system).then(convert);
       if (!list.length) {
         vscode.window.showInformationMessage(`No attachable processes are running in ${api.ns}.`, {
@@ -859,6 +891,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       return vscode.window
         .showQuickPick<vscode.QuickPickItem>(list, {
           placeHolder: "Pick the process to attach to",
+          matchOnDescription: true,
         })
         .then((value) => {
           if (value) return value.label;
