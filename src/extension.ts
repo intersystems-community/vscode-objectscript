@@ -563,7 +563,7 @@ function proposedApiPrompt(active: boolean, added?: readonly vscode.WorkspaceFol
     // Prompt the user with the proposed api install instructions
     vscode.window
       .showInformationMessage(
-        "[Searching across](https://code.visualstudio.com/docs/editor/codebasics#_search-across-files) and [quick opening](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_quick-open) server-side files requires [VS Code proposed APIs](https://code.visualstudio.com/api/advanced-topics/using-proposed-api). Show the directions to enable?",
+        "[Searching across](https://code.visualstudio.com/docs/editor/codebasics#_search-across-files) and [quick opening](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_quick-open) server-side files requires [VS Code proposed APIs](https://code.visualstudio.com/api/advanced-topics/using-proposed-api). Show the instructions?",
         "Yes",
         "Later",
         "Never"
