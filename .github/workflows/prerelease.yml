@@ -19,10 +19,7 @@ on:
 jobs:
   build:
     timeout-minutes: 10
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+    runs-on: ubuntu-latest
     outputs:
       taggedbranch: ${{ steps.find-branch.outputs.taggedbranch }}
     steps:
@@ -30,7 +27,7 @@ jobs:
       - run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
       - name: Find which branch the release tag points at
         id: find-branch
-        if: github.event_name == 'release' && runner.os == 'Linux'
+        if: github.event_name == 'release'
         shell: bash
         run: |
           git fetch --depth=1 origin +refs/heads/*:refs/heads/*
@@ -39,7 +36,6 @@ jobs:
           echo "taggedbranch=$TAGGEDBRANCH" >> $GITHUB_OUTPUT
       - name: Set an output
         id: set-version
-        if: runner.os == 'Linux'
         run: |
           set -x
           VERSION=$(jq -r '.version' package.json | cut -d- -f1)
@@ -64,7 +60,6 @@ jobs:
           node-version: 16
       - run: npm install
       - name: lint
-        if: runner.os == 'Linux'
         run: npm run lint
       - run: npm run compile
       - name: npm test
@@ -72,16 +67,14 @@ jobs:
         with:
           run: npm run test
       - name: Build pre-release package
-        if: runner.os == 'Linux'
         run: |
           npx vsce package --pre-release -o ${{ steps.set-version.outputs.name }}.vsix
       - uses: actions/upload-artifact@v3
-        if: (runner.os == 'Linux') && (github.event_name != 'release')
+        if: github.event_name != 'release'
         with:
           name: ${{ steps.set-version.outputs.name }}.vsix
           path: ${{ steps.set-version.outputs.name }}.vsix
       - uses: actions/upload-artifact@v3
-        if: runner.os == 'Linux'
         with:
           name: meta
           path: |
