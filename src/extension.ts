@@ -842,25 +842,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.pickProcess", async (config) => {
       const system = config.system;
       const api = new AtelierAPI(vscode.window.activeTextEditor?.document.uri);
-      const convert = async (jobData) => {
-        // NOTE: We do not know if the current user has permissions to other namespaces, so lets only fetch the job infos
-        // for the current namespace.
+
+      const list = await api.getJobs(system).then(async (jobData) => {
+        // NOTE: We do not know if the current user has permissions to other namespaces
+        // so lets only fetch the job info for the current namespace
         const currNamespaceJobs: { [k: string]: string } = await api
-          .actionQuery("SELECT Job, ConfigName FROM Ens.Job_Enumerate() where State = 'Alive'", [])
+          .actionQuery("SELECT Job, ConfigName FROM Ens.Job_Enumerate() WHERE State = 'Alive'", [])
           .then((data) => Object.fromEntries(data.result.content.map((x) => [x.Job, x.ConfigName])))
           .catch((error) => {
-            // Current namespace is not Interoperability-enabled, there is no Ens.Job_Enumerate procedure
-            if (error && error.errorText.includes("'ENS.JOB_ENUMERATE'(...)")) {
-              return {};
-            }
-
-            let message = `Failed to fetch namespace '${api.ns}' job config names.`;
-            if (error && error.errorText && error.errorText !== "") {
+            if (
+              error &&
+              error.errorText &&
+              !error.errorText.includes("'ENS.JOB_ENUMERATE'(...)") &&
+              error.errorText != ""
+            ) {
+              // Hide errors about Ens.Job_Enumerate procedure not existing because
+              // the current namespace may not be Interoperability-enabled
               outputChannel.appendLine("\n" + error.errorText);
               outputChannel.show(true);
-              message += " Check 'ObjectScript' output channel for details.";
             }
-            vscode.window.showErrorMessage(message, "Dismiss");
             return {};
           });
 
@@ -879,9 +879,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
             };
           }
         });
-      };
-
-      const list = await api.getJobs(system).then(convert);
+      });
       if (!list.length) {
         vscode.window.showInformationMessage(`No attachable processes are running in ${api.ns}.`, {
           modal: true,
