@@ -145,7 +145,11 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public stat(uri: vscode.Uri): Promise<vscode.FileStat> {
-    uri = redirectDotvscodeRoot(uri);
+    const redirectedUri = redirectDotvscodeRoot(uri);
+    if (redirectedUri.path !== uri.path) {
+      // When redirecting the /.vscode subtree we must fill in as-yet-unvisited folders to fix https://github.com/intersystems-community/vscode-objectscript/issues/1143
+      return this._lookup(redirectedUri, true);
+    }
     return this._lookup(uri);
   }
 
