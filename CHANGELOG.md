@@ -1,5 +1,14 @@
 # Change Log
 
+## [2.8.1] 15-May-2023
+- Enhancements
+  - Prompt user to enable proposed APIs when server-side folder is opened (#1140)
+  - Show config names of interoperability jobs in `Attach to Process` debug menu (#1089) (contributed by @ollitanska)
+- Fixes
+  - Fix debugging when self-signed certificate is being used (#1137)
+  - Launch Docker shell or terminal correctly on Windows (#1138)
+  - Make folder-specific settings for ISFS folder work again (#1144)
+
 ## [2.8.0] 04-Apr-2023
 - Enhancements
   - Integrate Angular Rule Editor (#1014)
