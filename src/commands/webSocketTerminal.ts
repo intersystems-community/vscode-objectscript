@@ -537,7 +537,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           char = char.slice(0, -1);
         }
         // Replace all single \r with \r\n (prompt) or space (read)
-        char = char.replace(/\r/, this._state == "prompt" ? "\r\n" : " ");
+        char = char.replace(/\r/g, this._state == "prompt" ? "\r\n" : " ");
         const inputArr = this._input.split("\r\n");
         if (this._cursorCol < this._margin + inputArr[inputArr.length - 1].length) {
           // Insert the new char(s)
