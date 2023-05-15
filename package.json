@@ -89,6 +89,8 @@
     "onCommand:vscode-objectscript.newFile.dtl",
     "onCommand:vscode-objectscript.modifyWsFolder",
     "onCommand:vscode-objectscript.openErrorLocation",
+    "onCommand:vscode-objectscript.launchWebSocketTerminal",
+    "onTerminalProfile:vscode-objectscript.webSocketTerminal",
     "onLanguage:objectscript",
     "onLanguage:objectscript-int",
     "onLanguage:objectscript-class",
@@ -343,6 +345,10 @@
         {
           "command": "vscode-objectscript.openErrorLocation",
           "when": "vscode-objectscript.connectActive && workspaceFolderCount != 0"
+        },
+        {
+          "command": "vscode-objectscript.launchWebSocketTerminal",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         }
       ],
       "view/title": [
@@ -1119,6 +1125,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.openErrorLocation",
         "title": "Open Error Location..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.launchWebSocketTerminal",
+        "title": "Launch WebSocket Terminal"
       }
     ],
     "keybindings": [
@@ -1478,6 +1489,11 @@
           "type": "boolean",
           "default": true
         },
+        "objectscript.webSocketTerminal.syntaxColoring": {
+          "description": "Enable syntax coloring for command input in the InterSystems WebSocket Terminal.",
+          "type": "boolean",
+          "default": true
+        },
         "objectscript.showProposedApiPrompt": {
           "description": "Controls whether a prompt to enable VS Code proposed APIs is shown when a server-side workspace folder is opened.",
           "type": "boolean",
@@ -1624,7 +1640,16 @@
         ],
         "priority": "option"
       }
-    ]
+    ],
+    "terminal": {
+      "profiles": [
+        {
+          "id": "vscode-objectscript.webSocketTerminal",
+          "title": "InterSystems WebSocket Terminal",
+          "icon": "./images/fileIcon.svg"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "webpack --mode production",

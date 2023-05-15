@@ -128,3 +128,37 @@ If you are experiencing issues using the debugger, please follow these steps bef
 3. In VS Code, start a debugging session using the configuration that produces the error.
 4. Once the error appears, copy the contents of the `^IRIS.Temp.Atelier("debug")` global and add it to your GitHub issue.
 5. After you capture the log, run the command `Kill ^IRIS.Temp.Atelier("debug")`, then `Set ^IRIS.Temp.Atelier("debug") = 0` to turn logging back off again.
+
+{: #terminal}
+## Using the WebSocket Terminal
+
+The InterSystems ObjectScript Extension provides support for a WebSocket-based command-line interface for executing ObjectScript commands on a connected server. The server can be on the same system as VS Code, or a remote system. This feature is only supported when connecting to InterSystems IRIS version 2023.2 or later. 
+
+The WebSocket terminal supports the following features:
+
+- VS Code's [shell integration](https://code.visualstudio.com/docs/terminal/shell-integration) feature so your command history and output will be captured by VS Code and can be accessed by its UI.
+- Multi-line editing. An additional editable line will be added when the user presses `Enter` and there are unclosed `{` or `(` in the command input.
+- Syntax coloring for command input. (Toggleable using the `objectscript.webSocketTerminal.syntaxColoring` setting)
+- Syntax checking for entered command input with detailed error messages reported along with the standard `<SYNTAX>` error.
+- Many features of the [standard terminal](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GTER_intro), including:
+  - The Read command
+  - Interrupts (`Ctrl-C`)
+  - Namespace switches
+  - [Custom terminal prompts](https://irisdocs.intersystems.com/irislatest/csp/documatic/%25CSP.Documatic.cls?LIBRARY=%25SYS&CLASSNAME=%25SYSTEM.Process#TerminalPrompt) (except code 7)
+  - Shells like SQL (`Do $SYSTEM.SQL.Shell()`) and Python (`Do $SYSTEM.Python.Shell()`) 
+
+The WebSocket terminal does not support [command-line debugging](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GCOS_debug) since the InterSystems ObjectScript Extension contains an interactive debugger. Users are also discouraged from using [routine editing commands](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RCOS_ZCOMMANDS) since VS Code with the InterSystems ObjectScript Extension Pack provides an excellent ObjectScript editing experience.
+
+Note that the terminal process is started using the JOB command, so if you have a [`^%ZSTART` routine](https://docs.intersystems.com/iris20223/csp/docbook/Doc.View.cls?KEY=GSTU_customize_startstop) enabled the `JOB` subroutine will be called at the start of the process, not `LOGIN` like the standard terminal. Also, the [`ZWELCOME` routine](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GTER_intro#GTER_zwelcome) will not be run before the first command prompt is shown.
+
+The WebSocket terminal can be opened from [the command palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette) using the `ObjectScript: Launch WebSocket Terminal` command. The WebSocket terminal connection will be established using the current server connection. A WebSocket terminal connection can also be opened from the [Terminal Profiles menu](https://code.visualstudio.com/docs/terminal/basics#_terminal-shells).
+
+## Troubleshooting WebSocket Terminal Issues
+
+If you are experiencing issues using the WebSocket terminal, please follow these steps before opening an issue on GitHub:
+
+1. Open a standard terminal on your server and `zn` to the namespace containing the class or routine you are debugging.
+2. Run the command `Kill ^IRIS.Temp.Atelier("terminal")`, then `Set ^IRIS.Temp.Atelier("terminal") = 1` to turn on the Atelier API terminal logging feature.
+3. In VS Code, launch the WebSocket terminal and run the commands that produce the error.
+4. Once the error appears, copy the contents of the `^IRIS.Temp.Atelier("terminal")` global and add it to your GitHub issue.
+5. After you capture the log, run the command `Kill ^IRIS.Temp.Atelier("terminal")`, then `Set ^IRIS.Temp.Atelier("terminal") = 0` to turn logging back off again.

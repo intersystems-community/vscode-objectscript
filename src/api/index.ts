@@ -150,6 +150,13 @@ export class AtelierAPI {
     return `${proto}://${host}:${port}${pathPrefix}/api/atelier/v${apiVersion}/%25SYS/debug`;
   }
 
+  public terminalUrl(): string {
+    const { host, https, port, apiVersion, pathPrefix } = this.config;
+    return apiVersion >= 7
+      ? `${https ? "wss" : "ws"}://${host}:${port}${pathPrefix}/api/atelier/v${apiVersion}/%25SYS/terminal`
+      : "";
+  }
+
   public async updateCookies(newCookies: string[]): Promise<void> {
     const cookies = this.cache.get("cookies", []);
     newCookies.forEach((cookie) => {
