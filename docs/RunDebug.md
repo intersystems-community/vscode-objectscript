@@ -121,7 +121,7 @@ The InterSystems ObjectScript Extension provides a [Webview](https://code.visual
 
 ## Troubleshooting Debugger Issues
 
-If you are experiencing issues using the debugger, please follow these steps before opening an issue on GitHub:
+If you are experiencing issues using the debugger, please follow these steps before opening an issue on GitHub. Note that the trace global may contain confidential information, so you should review the contents and mask/remove anything that you want to keep private.
 
 1. Open a terminal on your server and `zn` to the namespace containing the class or routine you are debugging.
 2. Run the command `Kill ^IRIS.Temp.Atelier("debug")`, then `Set ^IRIS.Temp.Atelier("debug") = 1` to turn on the Atelier API debug logging feature. If you are on Caché or Ensemble, the global is `^CacheTemp.ISC.Atelier("debug")`.
@@ -155,7 +155,7 @@ The WebSocket terminal can be opened from [the command palette](https://code.vis
 
 ## Troubleshooting WebSocket Terminal Issues
 
-If you are experiencing issues using the WebSocket terminal, please follow these steps before opening an issue on GitHub:
+If you are experiencing issues using the WebSocket terminal, please follow these steps before opening an issue on GitHub. Note that the trace global may contain confidential information, so you should review the contents and mask/remove anything that you want to keep private.
 
 1. Open a standard terminal on your server and `zn` to the namespace containing the class or routine you are debugging.
 2. Run the command `Kill ^IRIS.Temp.Atelier("terminal")`, then `Set ^IRIS.Temp.Atelier("terminal") = 1` to turn on the Atelier API terminal logging feature.
