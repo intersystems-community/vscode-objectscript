@@ -340,6 +340,10 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
       });
     };
 
+    // Generate the query pattern that gets sent to the server
+    // Needed because the server matches the full line against the regex and ignores the case parameter when in regex mode
+    const pattern = query.isRegExp ? `${!query.isCaseSensitive ? "(?i)" : ""}.*${query.pattern}.*` : query.pattern;
+
     if (api.config.apiVersion >= 6) {
       // Build the request object
       const project = params.has("project") && params.get("project").length ? params.get("project") : undefined;
@@ -352,7 +356,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
       const request: AsyncSearchRequest = {
         request: "search",
         console: false, // Passed so the server doesn't send us back console output
-        query: query.pattern,
+        query: pattern,
         regex: query.isRegExp,
         project,
         word: query.isWordMatch, // Ignored if regex is true
@@ -473,7 +477,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
             throttleRequests((group: string[]) =>
               api
                 .actionSearch({
-                  query: query.pattern,
+                  query: pattern,
                   regex: query.isRegExp,
                   word: query.isWordMatch,
                   case: query.isCaseSensitive,
@@ -553,7 +557,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
 
         searchPromise = api
           .actionSearch({
-            query: query.pattern,
+            query: pattern,
             regex: query.isRegExp,
             word: query.isWordMatch,
             case: query.isCaseSensitive,
