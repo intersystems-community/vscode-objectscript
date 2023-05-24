@@ -348,7 +348,7 @@
         },
         {
           "command": "vscode-objectscript.launchWebSocketTerminal",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "vscode-objectscript.connectActive"
         }
       ],
       "view/title": [
