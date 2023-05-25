@@ -82,6 +82,7 @@ The extensions in the InterSystems ObjectScript Extension Pack provide many sett
 | `"objectscript.studioActionDebugOutput"` | Log in JSON format the action that VS Code should perform as requested by the server. | `boolean` | `false` | Actions will be logged to the `ObjectScript` Output channel. |
 | `"objectscript.suppressCompileErrorMessages"` | Suppress popup messages about errors during compile, but still focus on Output view. | `boolean` | `false` | |
 | `"objectscript.suppressCompileMessages"` | Suppress popup messages about successful compile. | `boolean` | `true` | |
+| `"objectscript.webSocketTerminal.syntaxColoring"` | Enable syntax coloring for command input in the InterSystems WebSocket Terminal. | `boolean` | `true` | |
 
 {: #intersystems-servermanager}
 ## InterSystems Server Manager

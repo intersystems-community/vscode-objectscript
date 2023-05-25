@@ -119,6 +119,7 @@ import { newFile, NewFileType } from "./commands/newFile";
 import { FileDecorationProvider } from "./providers/FileDecorationProvider";
 import { RESTDebugPanel } from "./commands/restDebugPanel";
 import { modifyWsFolder } from "./commands/addServerNamespaceToWorkspace";
+import { WebSocketTerminalProfileProvider, launchWebSocketTerminal } from "./commands/webSocketTerminal";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -1305,6 +1306,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.commands.registerCommand("vscode-objectscript.modifyWsFolder", modifyWsFolder),
     vscode.commands.registerCommand("vscode-objectscript.openErrorLocation", openErrorLocation),
+    vscode.commands.registerCommand("vscode-objectscript.launchWebSocketTerminal", () =>
+      launchWebSocketTerminal(context.extensionUri)
+    ),
+    vscode.window.registerTerminalProfileProvider(
+      "vscode-objectscript.webSocketTerminal",
+      new WebSocketTerminalProfileProvider(context.extensionUri)
+    ),
     vscode.workspace.onDidChangeWorkspaceFolders((e) => {
       // Show the proposed API prompt if required
       proposedApiPrompt(proposed.length > 0, e.added);
