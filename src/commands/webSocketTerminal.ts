@@ -593,15 +593,27 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   }
 }
 
-function terminalConfigForUri(api: AtelierAPI, extensionUri: vscode.Uri): vscode.ExtensionTerminalOptions | undefined {
+function terminalConfigForUri(
+  api: AtelierAPI,
+  extensionUri: vscode.Uri,
+  throwErrors = false
+): vscode.ExtensionTerminalOptions | undefined {
+  const reportError = (msg: string) => {
+    if (throwErrors) {
+      throw new Error(msg);
+    } else {
+      vscode.window.showErrorMessage(msg, "Dismiss");
+    }
+  };
+
   // Make sure the server connection is active
   if (!api.active || api.ns == "") {
-    vscode.window.showErrorMessage("WebSocket Terminal requires an active server connection.", "Dismiss");
+    reportError("WebSocket Terminal requires an active server connection.");
     return;
   }
   // Make sure the server has the terminal endpoint
   if (api.config.apiVersion < 7) {
-    vscode.window.showErrorMessage("WebSocket Terminal requires Atelier API version 7 or above.", "Dismiss");
+    reportError("WebSocket Terminal requires InterSystems IRIS version 2023.2 or above.");
     return;
   }
 
@@ -635,7 +647,7 @@ export class WebSocketTerminalProfileProvider implements vscode.TerminalProfileP
     let uri: vscode.Uri;
     const workspaceFolders = vscode.workspace.workspaceFolders || [];
     if (workspaceFolders.length == 0) {
-      vscode.window.showErrorMessage("WebSocket Terminal requires an open workspace.", "Dismiss");
+      throw new Error("WebSocket Terminal requires an open workspace.");
     } else if (workspaceFolders.length == 1) {
       // Use the current connection
       uri = workspaceFolders[0].uri;
@@ -644,17 +656,17 @@ export class WebSocketTerminalProfileProvider implements vscode.TerminalProfileP
       uri = (
         await vscode.window.showWorkspaceFolderPick({
           ignoreFocusOut: true,
-          placeHolder: "Pick the workspace folder to get server connection info from.",
+          placeHolder: "Pick the workspace folder to get server connection information from",
         })
       )?.uri;
     }
 
     if (uri) {
-      // Get the terminal configuration
-      const terminalOpts = terminalConfigForUri(new AtelierAPI(uri), this._extensionUri);
-      if (terminalOpts) {
-        return new vscode.TerminalProfile(terminalOpts);
-      }
+      // Get the terminal configuration. Will throw if there's an error.
+      const terminalOpts = terminalConfigForUri(new AtelierAPI(uri), this._extensionUri, true);
+      return new vscode.TerminalProfile(terminalOpts);
+    } else {
+      throw new Error("WebSocket Terminal requires a selected workspace folder.");
     }
   }
 }
