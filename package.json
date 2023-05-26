@@ -90,6 +90,7 @@
     "onCommand:vscode-objectscript.modifyWsFolder",
     "onCommand:vscode-objectscript.openErrorLocation",
     "onCommand:vscode-objectscript.launchWebSocketTerminal",
+    "onCommand:vscode-objectscript.intersystems-servermanager.webterminal",
     "onTerminalProfile:vscode-objectscript.webSocketTerminal",
     "onLanguage:objectscript",
     "onLanguage:objectscript-int",
@@ -98,6 +99,7 @@
     "onLanguage:xml",
     "onView:ObjectScriptExplorer",
     "onView:ObjectScriptProjectsExplorer",
+    "onView:intersystems-community_servermanager",
     "onFileSystem:isfs",
     "onFileSystem:isfs-readonly",
     "onFileSystem:objectscript",
@@ -349,6 +351,10 @@
         {
           "command": "vscode-objectscript.launchWebSocketTerminal",
           "when": "vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.intersystems-servermanager.webterminal",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -473,6 +479,11 @@
           "command": "vscode-objectscript.explorer.project.closeOtherServerNs",
           "when": "view == ObjectScriptProjectsExplorer && viewItem == projectsServerNsNode:extra",
           "group": "inline@10"
+        },
+        {
+          "command": "vscode-objectscript.intersystems-servermanager.webterminal",
+          "when": "view == intersystems-community_servermanager && viewItem =~ /namespace$/",
+          "group": "inline@1"
         }
       ],
       "editor/context": [
@@ -1130,6 +1141,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.launchWebSocketTerminal",
         "title": "Launch WebSocket Terminal"
+      },
+      {
+        "command": "vscode-objectscript.intersystems-servermanager.webterminal",
+        "title": "Launch WebSocket Terminal",
+        "icon": "$(terminal)"
       }
     ],
     "keybindings": [
