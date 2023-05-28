@@ -1311,7 +1311,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     ),
     vscode.commands.registerCommand(
       "vscode-objectscript.intersystems-servermanager.webterminal",
-      async (namespaceTreeItem) => {
+      (namespaceTreeItem) => {
         const idArray = namespaceTreeItem.id.split(":");
         const serverId = idArray[1];
         const namespace = idArray[3];
