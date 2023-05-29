@@ -137,6 +137,7 @@ export async function serverActions(): Promise<void> {
     classname ? "&CLASSNAME=" + classnameEncoded : ""
   }`;
   const soapWizardPath = "/isc/studio/templates/%25ZEN.Template.AddInWizard.SOAPWizard.cls";
+  const project = new URLSearchParams(uriOfWorkspaceFolder()?.query).get("project") || "";
   let extraLinks = 0;
   let hasSOAPWizard = false;
   for (const title in links) {
@@ -156,7 +157,8 @@ export async function serverActions(): Promise<void> {
       .replace("${ns}", nsEncoded)
       .replace("${namespace}", ns == "%SYS" ? "sys" : nsEncoded.toLowerCase())
       .replace("${classname}", classname)
-      .replace("${classnameEncoded}", classnameEncoded);
+      .replace("${classnameEncoded}", classnameEncoded)
+      .replace("${project}", project);
     actions.push({
       id: "extraLink" + extraLinks++,
       label: title,
