@@ -1309,6 +1309,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.launchWebSocketTerminal", () =>
       launchWebSocketTerminal(context.extensionUri)
     ),
+    vscode.commands.registerCommand(
+      "vscode-objectscript.intersystems-servermanager.webterminal",
+      (namespaceTreeItem) => {
+        const idArray = namespaceTreeItem.id.split(":");
+        const serverId = idArray[1];
+        const namespace = idArray[3];
+        const targetUri = vscode.Uri.from({ scheme: "isfs", authority: `${serverId}:${namespace}` });
+        launchWebSocketTerminal(context.extensionUri, targetUri);
+      }
+    ),
     vscode.window.registerTerminalProfileProvider(
       "vscode-objectscript.webSocketTerminal",
       new WebSocketTerminalProfileProvider(context.extensionUri)
