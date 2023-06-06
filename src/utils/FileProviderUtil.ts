@@ -96,17 +96,10 @@ export async function projectContentsFromUri(uri: vscode.Uri, overrideFlat?: boo
   return api.actionQuery(query, parameters).then((data) => data.result.content);
 }
 
-export function fileSpecFromURI(uri: vscode.Uri, overrideType?: string): string {
+export function fileSpecFromURI(uri: vscode.Uri): string {
   const params = new URLSearchParams(uri.query);
   const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
-  const type =
-    overrideType && overrideType != ""
-      ? overrideType
-      : params.has("type") && params.get("type").length
-      ? params.get("type")
-      : csp
-      ? "csp"
-      : "all";
+  const type = params.has("type") && params.get("type").length ? params.get("type") : csp ? "csp" : "all";
 
   const folder = !csp
     ? uri.path.replace(/\//g, ".")
@@ -141,7 +134,7 @@ export function fileSpecFromURI(uri: vscode.Uri, overrideType?: string): string 
 
 export function studioOpenDialogFromURI(
   uri: vscode.Uri,
-  overrides: { flat?: boolean; filter?: string; type?: string } = { flat: false, filter: "", type: "" }
+  overrides: { flat?: boolean; filter?: string } = { flat: false, filter: "" }
 ): Promise<any> {
   const api = new AtelierAPI(uri);
   if (!api.active) {
@@ -150,7 +143,7 @@ export function studioOpenDialogFromURI(
   const sql = `SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?,?,?)`;
   const params = new URLSearchParams(uri.query);
   const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
-  const spec = fileSpecFromURI(uri, overrides.type);
+  const spec = fileSpecFromURI(uri);
   const notStudio = "0";
   const dir = "1";
   const orderBy = "1";
