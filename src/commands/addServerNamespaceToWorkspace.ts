@@ -285,12 +285,6 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
         value: "filter",
       },
       {
-        label: "$(list-flat) Flat Files",
-        detail: "Show a flat list of files. Do not treat packages as folders.",
-        picked: params.has("flat"),
-        value: "flat",
-      },
-      {
         label: "$(server-process) Show Generated",
         detail: "Also show files tagged as generated, e.g. by compilation.",
         picked: params.has("generated"),
@@ -328,6 +322,7 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
     params.delete("generated");
     params.delete("mapped");
     params.delete("system");
+    params.delete("type");
     for (const otherParam of otherParams) {
       switch (otherParam.value) {
         case "filter": {
@@ -345,7 +340,6 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
           }
           break;
         }
-        case "flat":
         case "generated":
         case "system":
           params.set(otherParam.value, "1");

@@ -36,13 +36,13 @@ Next create a workspace for editing code directly on the server:
    ![Choose files.](../assets/images/ss-files.png "choose files")
   - If you chose to show web application files, pick an optional web application to show files from:
 
-   ![Choose files.](../assets/images/ss-pick-webapp.png "choose files")
+   ![Choose web app.](../assets/images/ss-pick-webapp.png "choose web app")
   - If you chose to show a project's contents, pick the project:
 
-   ![Choose files.](../assets/images/ss-pick-project.png "choose files")
+   ![Choose project.](../assets/images/ss-pick-project.png "choose project")
   - If you create your own filter, pick the filter options:
 
-   ![Choose query parameters.](../assets/images/ss-query-params.png "choose query parameters")
+   ![Choose filter options.](../assets/images/ss-query-params.png "choose filter options")
 1. If you want to reopen this workspace in the future, use the command **File > Save Workspace As...** to save it as a `.code-workspace` file.
 
 Note that the ObjectScript Explorer view is not visible in the ObjectScript view container. Because the files listed in the Explorer view are all on the server, the ObjectScript Explorer is not needed for this configuration.
@@ -147,15 +147,12 @@ Changes you make to files opened from this root folder of your VS Code workspace
 
 The query string of the `uri` property accepts several parameters that control filtering and display of the server-side entities. The examples below access the USER namespace on the server whose definition is named 'myserver'.
 
-- `isfs://myserver:user/?type=cls`, shows only classes
-- `isfs://myserver:user/?type=rtn`, shows only mac, int and inc files
 - `isfs://myserver:user/?generated=1`, shows generated files as well as not generated
-- `isfs://myserver:user/?filter=%Z*.mac,%z*.mac`, comma-delimited list of search options, ignores `type`. The default is `*.cls,*.inc,*.mac,*.int`. To see all files, use `*`.
-- `isfs://myserver:user/?flat=1`, a flat list of files. Does not split packages as folders. Cannot be combined with `csp`.
+- `isfs://myserver:user/?filter=%Z*.mac,%z*.mac`, comma-delimited list of search options. The default is `*.cls,*.inc,*.mac,*.int`. To see all files, use `*`.
 - `isfs://myserver:user/?project=prjname`, shows only files in project `prjname`. Cannot be combined with any other parameter.
 - `isfs://myserver:user/?mapped=0`, hides files that are mapped from a non-default database
 
-The options `flat`, `generated` and `mapped` can be combined with each other, and with `type` or `filter`. If `filter` is specified, `type` is ignored.
+The options `generated` and `mapped` can be combined with each other, and with `filter`.
 
 To modify the query parameters or name of an existing workspace folder, run the `Modify Server-Side Workspace Folder...` command from the command palette or the file explorer context menu.
 
