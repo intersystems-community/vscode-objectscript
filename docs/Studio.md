@@ -48,6 +48,10 @@ The [InterSystems ObjectScript extension](https://marketplace.visualstudio.com/i
 
 The [InterSystems ObjectScript extension](https://marketplace.visualstudio.com/items?itemName=intersystems-community.vscode-objectscript) provides commands for creating new Interoperability classes. Commands are provided for Business Operation, Business Process, Business Rule, Business Service and Data Transformation classes. These commands are modeled after the wizards in Studio's [`File` &rarr; `New...` &rarr; `Production` menu](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GSTD_Commands#GSTD_Commands_File). The commands are shown in the `New File...` menu, which can be opened from the `File` menu (`File` &rarr; `New File...`) or the `Get Started` welcome page.
 
+## XML Import/Export Commands
+
+The [InterSystems ObjectScript extension](https://marketplace.visualstudio.com/items?itemName=intersystems-community.vscode-objectscript) provides commands for importing and exporing XML files. The commands can be invoked from [the command palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette) under the titles `Import XML Files...` and `Export Documents to XML File...`. These commands require an active server connection (the one from the currently opened document will be used if one is open), and the server's version must be 2023.2 or greater.
+
 ## Keyboard Shortcuts
 
 In general, VS Code keyboard shortcuts are infinitely customizable <a href="https://code.visualstudio.com/docs/getstarted/keybindings">as described in the docs</a>. However, the IDE comes configured with a number of shortcuts that match Studio. <a href="https://code.visualstudio.com/docs/getstarted/keybindings#_keyboard-shortcuts-reference">Download a cheat sheet here</a>.  

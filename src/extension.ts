@@ -27,9 +27,16 @@ import {
   compileOnly,
   importLocalFilesToServerSideFolder,
   loadChanges,
+  importXMLFiles,
 } from "./commands/compile";
 import { deleteExplorerItems } from "./commands/delete";
-import { exportAll, exportCurrentFile, exportExplorerItems, getCategory } from "./commands/export";
+import {
+  exportAll,
+  exportCurrentFile,
+  exportDocumentsToXMLFile,
+  exportExplorerItems,
+  getCategory,
+} from "./commands/export";
 import { serverActions } from "./commands/serverActions";
 import { subclass } from "./commands/subclass";
 import { superclass } from "./commands/superclass";
@@ -353,11 +360,7 @@ export async function checkConnection(
       });
 
     // Update CSP web app cache if required
-    const key = (
-      api.config.serverName && api.config.serverName != ""
-        ? `${api.config.serverName}:${api.config.ns}`
-        : `${api.config.host}:${api.config.port}${api.config.pathPrefix}:${api.config.ns}`
-    ).toLowerCase();
+    const key = `${api.serverId}:${api.config.ns}`.toLowerCase();
     if (!cspApps.has(key)) {
       cspApps.set(key, await api.getCSPApps().then((data) => data.result.content || []));
     }
@@ -1295,9 +1298,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         wsFolderUri instanceof vscode.Uri &&
         wsFolderUri.scheme == FILESYSTEM_SCHEMA &&
         (vscode.workspace.workspaceFolders != undefined
-          ? vscode.workspace.workspaceFolders.findIndex(
-              (wsFolder) => wsFolder.uri.toString() == wsFolderUri.toString()
-            ) != -1
+          ? vscode.workspace.workspaceFolders.some((wsFolder) => wsFolder.uri.toString() == wsFolderUri.toString())
           : false)
       ) {
         // wsFolderUri is an isfs workspace folder URI
@@ -1327,6 +1328,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       // Show the proposed API prompt if required
       proposedApiPrompt(proposed.length > 0, e.added);
     }),
+    vscode.commands.registerCommand("vscode-objectscript.importXMLFiles", importXMLFiles),
+    vscode.commands.registerCommand("vscode-objectscript.exportToXMLFile", exportDocumentsToXMLFile),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed

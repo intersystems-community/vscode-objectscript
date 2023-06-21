@@ -91,6 +91,8 @@
     "onCommand:vscode-objectscript.openErrorLocation",
     "onCommand:vscode-objectscript.launchWebSocketTerminal",
     "onCommand:vscode-objectscript.intersystems-servermanager.webterminal",
+    "onCommand:vscode-objectscript.importXMLFiles",
+    "onCommand:vscode-objectscript.exportToXMLFile",
     "onTerminalProfile:vscode-objectscript.webSocketTerminal",
     "onLanguage:objectscript",
     "onLanguage:objectscript-int",
@@ -355,6 +357,14 @@
         {
           "command": "vscode-objectscript.intersystems-servermanager.webterminal",
           "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.importXMLFiles",
+          "when": "vscode-objectscript.connectActive && workspaceFolderCount != 0"
+        },
+        {
+          "command": "vscode-objectscript.exportToXMLFile",
+          "when": "vscode-objectscript.connectActive && workspaceFolderCount != 0"
         }
       ],
       "view/title": [
@@ -1146,6 +1156,16 @@
         "command": "vscode-objectscript.intersystems-servermanager.webterminal",
         "title": "Launch WebSocket Terminal",
         "icon": "$(terminal)"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.importXMLFiles",
+        "title": "Import XML Files..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.exportToXMLFile",
+        "title": "Export Documents to XML File..."
       }
     ],
     "keybindings": [

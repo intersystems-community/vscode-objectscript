@@ -47,24 +47,14 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
     const documentUriString = document.uri.toString();
 
     // Check that the server has the webapp for the angular rule editor
-    const cspAppsKey = (
-      api.config.serverName && api.config.serverName != ""
-        ? `${api.config.serverName}:%SYS`
-        : `${api.config.host}:${api.config.port}${api.config.pathPrefix}:%SYS`
-    ).toLowerCase();
+    const cspAppsKey = `${api.serverId}:%SYS`.toLowerCase();
     let sysCspApps: string[] | undefined = cspApps.get(cspAppsKey);
     if (sysCspApps == undefined) {
       sysCspApps = await api.getCSPApps(false, "%SYS").then((data) => data.result.content || []);
       cspApps.set(cspAppsKey, sysCspApps);
     }
     if (!sysCspApps.includes(RuleEditorProvider._webapp)) {
-      return RuleEditorProvider._errorMessage(
-        `Server '${
-          api.config.serverName && api.config.serverName != ""
-            ? api.config.serverName
-            : `${api.config.host}:${api.config.port}${api.config.pathPrefix}`
-        }' does not support the Angular Rule Editor.`
-      );
+      return RuleEditorProvider._errorMessage(`Server '${api.serverId}' does not support the Angular Rule Editor.`);
     }
 
     // Check that the class exists on the server and is a rule class

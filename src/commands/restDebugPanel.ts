@@ -96,7 +96,7 @@ export class RESTDebugPanel {
           outputChannel.show(true);
           errorMsg += " Check 'ObjectScript' output channel for details.";
         }
-        vscode.window.showErrorMessage(errorMsg, "Dimiss");
+        vscode.window.showErrorMessage(errorMsg, "Dismiss");
         return null;
       });
     if (allWebApps == null) {

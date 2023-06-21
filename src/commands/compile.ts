@@ -10,6 +10,7 @@ import {
   OBJECTSCRIPT_FILE_SCHEMA,
   fileSystemProvider,
   workspaceState,
+  filesystemSchemas,
 } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import {
@@ -27,6 +28,7 @@ import {
 import { PackageNode } from "../explorer/models/packageNode";
 import { NodeBase } from "../explorer/models/nodeBase";
 import { RootNode } from "../explorer/models/rootNode";
+import { StudioActions } from "./studio";
 import { isText } from "istextorbinary";
 
 async function compileFlags(): Promise<string> {
@@ -641,6 +643,73 @@ async function importFileFromContent(
     });
 }
 
+/** Prompt the user to compile documents after importing them */
+async function promptForCompile(imported: string[], api: AtelierAPI, refresh: boolean): Promise<void> {
+  // Prompt the user for compilation
+  if (imported.length) {
+    return vscode.window
+      .showInformationMessage(
+        `Imported ${imported.length == 1 ? imported[0] : `${imported.length} files`}. Compile ${
+          imported.length > 1 ? "them" : "it"
+        }?`,
+        "Yes",
+        "No"
+      )
+      .then((response) => {
+        if (response == "Yes") {
+          // Compile the imported files
+          return vscode.window.withProgress(
+            {
+              cancellable: true,
+              location: vscode.ProgressLocation.Notification,
+              title: `Compiling: ${imported.length == 1 ? imported[0] : imported.length + " files"}`,
+            },
+            (progress, token: vscode.CancellationToken) =>
+              api
+                .asyncCompile(imported, token, config("compileFlags"))
+                .then((data) => {
+                  const info = imported.length > 1 ? "" : `${imported[0]}: `;
+                  if (data.status && data.status.errors && data.status.errors.length) {
+                    throw new Error(`${info}Compile error`);
+                  } else if (!config("suppressCompileMessages")) {
+                    vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
+                  }
+                })
+                .catch(() => {
+                  if (!config("suppressCompileErrorMessages")) {
+                    vscode.window
+                      .showErrorMessage(
+                        "Compilation failed. Check 'ObjectScript' output channel for details.",
+                        "Show",
+                        "Dismiss"
+                      )
+                      .then((action) => {
+                        if (action === "Show") {
+                          outputChannel.show(true);
+                        }
+                      });
+                  }
+                })
+                .finally(() => {
+                  if (refresh) {
+                    // Refresh the files explorer to show the new files
+                    vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
+                  }
+                })
+          );
+        } else {
+          if (refresh) {
+            // Refresh the files explorer to show the new files
+            vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
+          }
+          return Promise.resolve();
+        }
+      });
+  } else {
+    return Promise.resolve();
+  }
+}
+
 /** Import files from the local file system into a server-namespace from an `isfs` workspace folder. */
 export async function importLocalFilesToServerSideFolder(wsFolderUri: vscode.Uri): Promise<any> {
   if (
@@ -648,9 +717,7 @@ export async function importLocalFilesToServerSideFolder(wsFolderUri: vscode.Uri
       wsFolderUri instanceof vscode.Uri &&
       wsFolderUri.scheme == FILESYSTEM_SCHEMA &&
       (vscode.workspace.workspaceFolders != undefined
-        ? vscode.workspace.workspaceFolders.findIndex(
-            (wsFolder) => wsFolder.uri.toString() == wsFolderUri.toString()
-          ) != -1
+        ? vscode.workspace.workspaceFolders.some((wsFolder) => wsFolder.uri.toString() == wsFolderUri.toString())
         : false)
     )
   ) {
@@ -688,109 +755,240 @@ export async function importLocalFilesToServerSideFolder(wsFolderUri: vscode.Uri
     vscode.window.showErrorMessage("No classes or routines were selected.", "Dismiss");
     return;
   }
-  // Import the files
-  return Promise.allSettled<string>(
-    uris.map(
-      throttleRequests((uri: vscode.Uri) =>
-        vscode.workspace.fs
-          .readFile(uri)
-          .then((contentBytes) => new TextDecoder().decode(contentBytes))
-          .then((content) => {
-            // Determine the name of this file
-            let docName = "";
-            let ext = "";
-            if (uri.path.split(".").pop().toLowerCase() == "cls") {
-              // Allow Unicode letters
-              const match = content.match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
-              if (match) {
-                [, docName, ext = "cls"] = match;
-              }
-            } else {
-              const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i);
-              if (match) {
-                [, docName, ext = "mac"] = match;
-              } else {
-                const basename = uri.path.split("/").pop();
-                docName = basename.slice(0, basename.lastIndexOf("."));
-                ext = basename.slice(basename.lastIndexOf(".") + 1);
-              }
+  // Get the name and content of the files to import
+  const docs = await Promise.allSettled<{ name: string; content: string; uri: vscode.Uri }>(
+    uris.map((uri) =>
+      vscode.workspace.fs
+        .readFile(uri)
+        .then((contentBytes) => textDecoder.decode(contentBytes))
+        .then((content) => {
+          // Determine the name of this file
+          let docName = "";
+          let ext = "";
+          if (uri.path.split(".").pop().toLowerCase() == "cls") {
+            // Allow Unicode letters
+            const match = content.match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
+            if (match) {
+              [, docName, ext = "cls"] = match;
             }
-            if (docName != "" && ext != "") {
-              docName += `.${ext.toLowerCase()}`;
-              return importFileFromContent(docName, content, api).then(() => {
-                outputChannel.appendLine("Imported file: " + uri.path.split("/").pop());
-                return docName;
-              });
-            } else {
-              vscode.window.showErrorMessage(
-                `Cannot determine document name for file ${uri.toString(true)}.`,
-                "Dismiss"
-              );
-              return Promise.reject();
-            }
-          })
-      )
-    )
-  ).then((results) => {
-    const imported = results.map((result) => (result.status == "fulfilled" ? result.value : null)).filter(notNull);
-    // Prompt the user for compilation
-    if (imported.length) {
-      return vscode.window
-        .showInformationMessage(
-          `Imported ${imported.length == 1 ? imported[0] : `${imported.length} files`}. Compile ${
-            imported.length > 1 ? "them" : "it"
-          }?`,
-          "Yes",
-          "No"
-        )
-        .then((response) => {
-          if (response == "Yes") {
-            // Compile the imported files
-            return vscode.window.withProgress(
-              {
-                cancellable: true,
-                location: vscode.ProgressLocation.Notification,
-                title: `Compiling: ${imported.length == 1 ? imported[0] : imported.length + " files"}`,
-              },
-              (progress, token: vscode.CancellationToken) =>
-                api
-                  .asyncCompile(imported, token, config("compileFlags"))
-                  .then((data) => {
-                    const info = imported.length > 1 ? "" : `${imported[0]}: `;
-                    if (data.status && data.status.errors && data.status.errors.length) {
-                      throw new Error(`${info}Compile error`);
-                    } else if (!config("suppressCompileMessages")) {
-                      vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
-                    }
-                  })
-                  .catch(() => {
-                    if (!config("suppressCompileErrorMessages")) {
-                      vscode.window
-                        .showErrorMessage(
-                          "Compilation failed. Check 'ObjectScript' output channel for details.",
-                          "Show",
-                          "Dismiss"
-                        )
-                        .then((action) => {
-                          if (action === "Show") {
-                            outputChannel.show(true);
-                          }
-                        });
-                    }
-                  })
-                  .finally(() => {
-                    // Refresh the files explorer to show the new files
-                    vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
-                  })
-            );
           } else {
-            // Refresh the files explorer to show the new files
-            vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
-            return Promise.resolve();
+            const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i);
+            if (match) {
+              [, docName, ext = "mac"] = match;
+            } else {
+              const basename = uri.path.split("/").pop();
+              docName = basename.slice(0, basename.lastIndexOf("."));
+              ext = basename.slice(basename.lastIndexOf(".") + 1);
+            }
           }
+          if (docName != "" && ext != "") {
+            return {
+              name: `${docName}.${ext.toLowerCase()}`,
+              content,
+              uri,
+            };
+          } else {
+            return Promise.reject();
+          }
+        })
+    )
+  ).then((results) => results.map((result) => (result.status == "fulfilled" ? result.value : null)).filter(notNull));
+  // The user is importing into a server-side folder, so fire source control hook
+  await new StudioActions().fireImportUserAction(
+    api,
+    docs.map((e) => e.name)
+  );
+  // Import the files
+  const textDecoder = new TextDecoder();
+  return Promise.allSettled<string>(
+    docs.map(
+      throttleRequests((doc: { name: string; content: string; uri: vscode.Uri }) => {
+        return importFileFromContent(doc.name, doc.content, api).then(() => {
+          outputChannel.appendLine("Imported file: " + doc.uri.path.split("/").pop());
+          return doc.name;
         });
-    } else {
-      return Promise.resolve();
+      })
+    )
+  ).then((results) =>
+    promptForCompile(
+      results.map((result) => (result.status == "fulfilled" ? result.value : null)).filter(notNull),
+      api,
+      true
+    )
+  );
+}
+
+interface XMLQuickPickItem extends vscode.QuickPickItem {
+  file: string;
+}
+
+export async function importXMLFiles(): Promise<any> {
+  try {
+    // Use the server connection from the active document if possible
+    let connectionUri = currentFile()?.uri;
+    if (!connectionUri) {
+      // Use the server connection from a workspace folder
+      const workspaceFolders = vscode.workspace.workspaceFolders || [];
+      if (workspaceFolders.length == 0) {
+        vscode.window.showErrorMessage("'Import XML Files...' command requires an open workspace.", "Dismiss");
+      } else if (workspaceFolders.length == 1) {
+        // Use the current connection
+        connectionUri = workspaceFolders[0].uri;
+      } else {
+        // Pick from the workspace folders
+        connectionUri = (
+          await vscode.window.showWorkspaceFolderPick({
+            ignoreFocusOut: true,
+            placeHolder: "Pick the workspace folder to get server connection information from",
+          })
+        )?.uri;
+      }
     }
-  });
+    if (connectionUri) {
+      const api = new AtelierAPI(connectionUri);
+      // Make sure the server connection is active
+      if (!api.active || api.ns == "") {
+        vscode.window.showErrorMessage(
+          "'Import XML Files...' command requires an active server connection.",
+          "Dismiss"
+        );
+        return;
+      }
+      // Make sure the server has the xml endpoints
+      if (api.config.apiVersion < 7) {
+        vscode.window.showErrorMessage(
+          "'Import XML Files...' command requires InterSystems IRIS version 2023.2 or above.",
+          "Dismiss"
+        );
+        return;
+      }
+      let defaultUri = vscode.workspace.getWorkspaceFolder(connectionUri)?.uri ?? connectionUri;
+      if (defaultUri.scheme != "file") {
+        // Need a default URI with file scheme or the open dialog
+        // will show the virtual files from the workspace folder
+        defaultUri = vscode.workspace.workspaceFile;
+        if (defaultUri.scheme != "file") {
+          vscode.window.showErrorMessage(
+            "'Import XML Files...' command is not supported for unsaved workspaces.",
+            "Dismiss"
+          );
+          return;
+        }
+      }
+      // Prompt the user the file to import
+      let uris = await vscode.window.showOpenDialog({
+        canSelectFiles: true,
+        canSelectFolders: false,
+        canSelectMany: true,
+        openLabel: "Import",
+        filters: {
+          "XML Files": ["xml"],
+        },
+        defaultUri,
+      });
+      if (!Array.isArray(uris) || uris.length == 0) {
+        // No file to import
+        return;
+      }
+      // Filter out non-XML files
+      uris = uris.filter((uri) => uri.path.split(".").pop().toLowerCase() == "xml");
+      if (uris.length == 0) {
+        vscode.window.showErrorMessage("No XML files were selected.", "Dismiss");
+        return;
+      }
+      // Read the XML files
+      const fileTimestamps: Map<string, string> = new Map();
+      const filesToList = await Promise.allSettled(
+        uris.map(async (uri) => {
+          fileTimestamps.set(
+            uri.fsPath,
+            new Date((await vscode.workspace.fs.stat(uri)).mtime).toISOString().replace("T", " ").split(".")[0]
+          );
+          return {
+            file: uri.fsPath,
+            content: new TextDecoder().decode(await vscode.workspace.fs.readFile(uri)).split(/\r?\n/),
+          };
+        })
+      ).then((results) =>
+        results.map((result) => (result.status == "fulfilled" ? result.value : null)).filter(notNull)
+      );
+      if (filesToList.length == 0) {
+        return;
+      }
+      // List the documents in the XML files
+      const documentsPerFile = await api.actionXMLList(filesToList).then((data) => data.result.content);
+      // Prompt the user to select documents to import
+      const quickPickItems = documentsPerFile
+        .filter((file) => {
+          if (file.status != "") {
+            outputChannel.appendLine(`Failed to list documents in file '${file.file}': ${file.status}`);
+            return false;
+          } else {
+            return true;
+          }
+        })
+        .flatMap((file) => {
+          const items: XMLQuickPickItem[] = [];
+          if (file.documents.length > 0) {
+            // Add a separator for this file
+            items.push({
+              label: file.file,
+              kind: vscode.QuickPickItemKind.Separator,
+              file: file.file,
+            });
+            file.documents.forEach((doc) =>
+              items.push({
+                label: doc.name,
+                picked: true,
+                detail: `${
+                  doc.ts.toString() != "-1" ? `Server timestamp: ${doc.ts.split(".")[0]}` : "Does not exist on server"
+                }, ${fileTimestamps.has(file.file) ? `File timestamp: ${fileTimestamps.get(file.file)}` : ""}`,
+                file: file.file,
+              })
+            );
+          }
+          return items;
+        });
+      // Prompt the user for documents to import
+      const docsToImport = await vscode.window.showQuickPick(quickPickItems, {
+        canPickMany: true,
+        ignoreFocusOut: true,
+        title: `Select the documents to import into namespace '${api.ns.toUpperCase()}' on server '${api.serverId}'`,
+      });
+      if (docsToImport == undefined || docsToImport.length == 0) {
+        return;
+      }
+      if (filesystemSchemas.includes(connectionUri.scheme)) {
+        // The user is importing into a server-side folder, so fire source control hook
+        await new StudioActions().fireImportUserAction(api, [...new Set(docsToImport.map((qpi) => qpi.label))]);
+      }
+      // Import the selected documents
+      const filesToLoad: { file: string; content: string[]; selected: string[] }[] = filesToList.map((f) => {
+        return { selected: [], ...f };
+      });
+      docsToImport.forEach((qpi) =>
+        // This is safe because every document came from a file
+        filesToLoad[filesToLoad.findIndex((f) => f.file == qpi.file)].selected.push(qpi.label)
+      );
+      const importedPerFile = await api
+        .actionXMLLoad(filesToLoad.filter((f) => f.selected.length > 0))
+        .then((data) => data.result.content);
+      const imported = importedPerFile.flatMap((file) => {
+        if (file.status != "") {
+          outputChannel.appendLine(`Importing documents from file '${file.file}' produced error: ${file.status}`);
+        }
+        return file.imported;
+      });
+      // Prompt the user for compilation
+      promptForCompile([...new Set(imported)], api, filesystemSchemas.includes(connectionUri.scheme));
+    }
+  } catch (error) {
+    let errorMsg = "Error executing 'Import XML Files...' command.";
+    if (error && error.errorText && error.errorText !== "") {
+      outputChannel.appendLine("\n" + error.errorText);
+      outputChannel.show(true);
+      errorMsg += " Check 'ObjectScript' output channel for details.";
+    }
+    vscode.window.showErrorMessage(errorMsg, "Dismiss");
+  }
 }

@@ -240,6 +240,12 @@ export class AtelierAPI {
     );
   }
 
+  /** Return the server's name in `intersystems.servers` if it exists, else its `host:port/pathPrefix` */
+  public get serverId(): string {
+    const { serverName, host, port, pathPrefix } = this.config;
+    return serverName && serverName !== "" ? serverName : `${host}:${port}${pathPrefix}`;
+  }
+
   public async request(
     minVersion: number,
     method: string,
@@ -722,5 +728,26 @@ export class AtelierAPI {
   // v2+
   public async getCSPDebugId(): Promise<Atelier.Response<Atelier.Content<number>>> {
     return this.request(2, "GET", "%SYS/cspdebugid");
+  }
+
+  // v7+
+  public async actionXMLExport(body: string[]): Promise<Atelier.Response<Atelier.Content<string[]>>> {
+    return this.request(7, "POST", `${this.ns}/action/xml/export`, body);
+  }
+
+  // v7+
+  public async actionXMLLoad(
+    body: { file: string; content: string[]; selected?: string[] }[]
+  ): Promise<Atelier.Response<Atelier.Content<{ file: string; imported: string[]; status: string }[]>>> {
+    return this.request(7, "POST", `${this.ns}/action/xml/load`, body);
+  }
+
+  // v7+
+  public async actionXMLList(
+    body: { file: string; content: string[] }[]
+  ): Promise<
+    Atelier.Response<Atelier.Content<{ file: string; documents: { name: string; ts: string }[]; status: string }[]>>
+  > {
+    return this.request(7, "POST", `${this.ns}/action/xml/list`, body);
   }
 }

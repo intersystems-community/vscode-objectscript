@@ -20,6 +20,7 @@ export enum OtherStudioAction {
   OpenedDocument = 3,
   ClosedDocument = 4,
   ConnectedToNewNamespace = 5,
+  ImportListOfDocuments = 6,
   FirstTimeDocumentSave = 7,
 }
 
@@ -54,6 +55,9 @@ function getOtherStudioActionLabel(action: OtherStudioAction): string {
     case OtherStudioAction.ConnectedToNewNamespace:
       label = "Changed Namespace";
       break;
+    case OtherStudioAction.ImportListOfDocuments:
+      label = "Import List of Documents";
+      break;
     case OtherStudioAction.FirstTimeDocumentSave:
       label = "Saved Document to Server for the First Time";
       break;
@@ -83,6 +87,22 @@ export class StudioActions {
     } else {
       this.api = new AtelierAPI();
     }
+  }
+
+  /** Fire UserAction 6 on server `api` for document list `documents` */
+  public async fireImportUserAction(api: AtelierAPI, documents: string[]): Promise<void> {
+    this.api = api;
+    this.name = documents.join(",");
+    return this.userAction(
+      {
+        id: OtherStudioAction.ImportListOfDocuments.toString(),
+        label: getOtherStudioActionLabel(OtherStudioAction.ImportListOfDocuments),
+      },
+      false,
+      "",
+      "",
+      1
+    );
   }
 
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -252,7 +272,7 @@ export class StudioActions {
     const query = `select * from %Atelier_v1_Utils.Extension_${func}`;
     let selectedText = "";
     const editor = vscode.window.activeTextEditor;
-    if (editor) {
+    if (editor && action.id != "6" /* No selection for import list */) {
       const selection = editor.selection;
       selectedText = editor.document.getText(selection);
     }
@@ -272,7 +292,7 @@ export class StudioActions {
           this.api
             .actionQuery(query, parameters)
             .then(async (data) => {
-              if (action.save) {
+              if (action.save && action.id != "6" /* No save for import list */) {
                 await this.processSaveFlag(action.save);
               }
               if (!afterUserAction) {
@@ -530,7 +550,7 @@ export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vsc
   return (
     studioActions &&
     (await studioActions.isSourceControlEnabled()) &&
-    !openCustomEditors.includes(uri.toString()) && // The custom editor will handle all server-side source control interactions
+    !openCustomEditors.includes(uri?.toString()) && // The custom editor will handle all server-side source control interactions
     studioActions.fireOtherStudioAction(action, userAction)
   );
 }
