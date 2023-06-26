@@ -42,10 +42,12 @@ export async function deleteExplorerItems(nodes: NodeBase[]): Promise<any> {
       )
     )
     .then(async (items) => {
-      if (nodes.length > 1) {
-        // Ask the user to confirm if they're deleting more than one explorer node
+      if (items.length) {
+        // Ask the user to confirm
         const confirm = await vscode.window.showWarningMessage(
-          `About to delete ${items.length} document${items.length > 1 ? "s" : ""}. Are you sure you want to proceed?`,
+          `About to delete ${
+            items.length > 1 ? `${items.length} documents` : `'${items[0]}'`
+          }. Are you sure you want to proceed?`,
           "Cancel",
           "Confirm"
         );
@@ -53,8 +55,8 @@ export async function deleteExplorerItems(nodes: NodeBase[]): Promise<any> {
           // Don't delete without confirmation
           return;
         }
+        deleteList(items, workspaceFolder, namespace);
+        explorerProvider.refresh();
       }
-      deleteList(items, workspaceFolder, namespace);
-      explorerProvider.refresh();
     });
 }
