@@ -23,7 +23,7 @@ type ServerAction = { detail: string; id: string; label: string; rawLink?: strin
 export async function serverActions(): Promise<void> {
   const { apiTarget, configName: workspaceFolder } = connectionTarget();
   const api = new AtelierAPI(apiTarget);
-  const { active, host = "", ns = "", https, port = 0, pathPrefix, docker } = api.config;
+  const { active, host = "", ns = "", https, port = 0, pathPrefix, username, docker } = api.config;
   const explorerCount = (await explorerProvider.getChildren()).length;
   if (!explorerCount && (!docker || host === "")) {
     await vscode.commands.executeCommand("ObjectScriptExplorer.focus");
@@ -156,6 +156,7 @@ export async function serverActions(): Promise<void> {
       .replace("${serverAuth}", "")
       .replace("${ns}", nsEncoded)
       .replace("${namespace}", ns == "%SYS" ? "sys" : nsEncoded.toLowerCase())
+      .replace("${username}", username)
       .replace("${classname}", classname)
       .replace("${classnameEncoded}", classnameEncoded)
       .replace("${project}", project);
