@@ -282,8 +282,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       // so send one right away, regardless of the stopOnEntry value
       await this._connection.sendRunCommand();
     }
-    if (this._stopOnEntry && !this._isCsp) {
-      // This can only be true for attach requests, but ignore it for CSP attaches
+    if (this._stopOnEntry && !this._isLaunch && !this._isCsp) {
       // Tell VS Code that we're stopped
       this.sendResponse(response);
       const event: DebugProtocol.StoppedEvent = new StoppedEvent("entry", this._connection.id);
