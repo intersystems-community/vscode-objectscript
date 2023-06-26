@@ -239,6 +239,7 @@ You can add custom entries to this list using the `objectscript.conn.links` conf
 - **${serverUrl}** - The full connection string for the server. For example, `http://localhost:52773/pathPrefix`
 - **${ns}** - The namespace that we are connected to, URL encoded. For example, `%25SYS` or `USER`
 - **${namespace}** - The raw `ns` parameter of the connection. For example, `sys` or `user`
+- **${username}** - The username you are connected as.
 - **${classname}** - The name of the currently opened class, or the empty string if the currently opened document is not a class.
 - **${classnameEncoded}** - URL encoded version of **\${classname}**.
 - **${project}** - The currently opened server-side project, or the empty string.
