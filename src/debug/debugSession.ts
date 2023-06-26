@@ -1,6 +1,5 @@
 import vscode = require("vscode");
 import { currentFile, currentFileFromContent } from "../utils";
-import { Subject } from "await-notify";
 import {
   InitializedEvent,
   LoggingDebugSession,
@@ -13,8 +12,8 @@ import {
   Scope,
   Source,
   TerminatedEvent,
-} from "vscode-debugadapter";
-import { DebugProtocol } from "vscode-debugprotocol";
+} from "@vscode/debugadapter";
+import { DebugProtocol } from "@vscode/debugprotocol";
 import WebSocket = require("ws");
 import { AtelierAPI } from "../api";
 import * as xdebug from "./xdebugConnection";
@@ -25,8 +24,6 @@ import { formatPropertyValue } from "./utils";
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
   /** An absolute path to the "program" to debug. */
   program: string;
-  /** Automatically stop target after launch. If not specified, target does not stop. */
-  stopOnEntry?: boolean;
 }
 
 interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
@@ -72,8 +69,6 @@ async function convertClientPathToDebugger(uri: vscode.Uri, namespace: string): 
 }
 
 export class ObjectScriptDebugSession extends LoggingDebugSession {
-  // private _args: LaunchRequestArguments;
-
   private _statuses = new Map<xdebug.Connection, xdebug.StatusResponse>();
 
   private _connection: xdebug.Connection;
@@ -82,7 +77,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
   private _url: string;
 
-  private _debugTargetSet = new Subject();
+  private _debugTargetSet = false;
 
   private _stackFrameIdCounter = 1;
 
@@ -103,13 +98,19 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
   private cookies: string[] = [];
 
   /** If this is a CSPDEBUG session */
-  private _csp = false;
+  private _isCsp = false;
 
   /** The condition used for the watchpoint that allows us to detach from a CSPDEBUG session after the page has been loaded. */
   private readonly _cspWatchpointCondition = `(($DATA(allowed)=1)&&(allowed=1)&&($ZNAME="%SYS.cspServer")&&(%response.Timeout'="")&&($CLASSNAME()="%CSP.Session"))`;
 
   /** If we're stopped at a breakpoint. */
   private _break = false;
+
+  /** If we should automatically stop target */
+  private _stopOnEntry: boolean;
+
+  /** If this is a `launch` session */
+  private _isLaunch = false;
 
   public constructor() {
     super();
@@ -119,11 +120,38 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     this.setDebuggerColumnsStartAt1(false);
   }
 
+  /** Wait indefinitely for the debug target to be set */
+  private async _waitForDebugTarget(): Promise<void> {
+    do {
+      await new Promise((resolve) => setTimeout(resolve, 100)); // Wait 100 ms
+    } while (!this._debugTargetSet);
+  }
+
+  /** Check if the target is stopped */
+  private async _isStopped(): Promise<boolean> {
+    return this._connection
+      .sendStepIntoCommand()
+      .then((resp: xdebug.StatusResponse) => {
+        if (resp.status == "stopped") {
+          // Target unattached, terminate session
+          this.sendEvent(new TerminatedEvent());
+          return false;
+        }
+        return true;
+      })
+      .catch((err: xdebug.XDebugError) => {
+        if (!err.message.includes("#6709")) {
+          // Target unattached, terminate session
+          this.sendEvent(new TerminatedEvent());
+        }
+        return false;
+      });
+  }
+
   protected async initializeRequest(
     response: DebugProtocol.InitializeResponse,
     args: DebugProtocol.InitializeRequestArguments
   ): Promise<void> {
-    // build and return the capabilities of this debug adapter:
     response.body = {
       ...response.body,
       supportsConfigurationDoneRequest: true,
@@ -195,34 +223,45 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
   }
 
   protected async launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments): Promise<void> {
-    // this._args = args;
-
     try {
+      this._debugTargetSet = this._stopOnEntry = false;
+      this._isLaunch = true;
       const debugTarget = `${this._namespace}:${args.program}`;
       await this._connection.sendFeatureSetCommand("debug_target", debugTarget, true);
-
-      this._debugTargetSet.notify();
     } catch (error) {
       this.sendErrorResponse(response, error);
       return;
     }
     this.sendResponse(response);
+    this._debugTargetSet = true;
   }
 
   protected async attachRequest(response: DebugProtocol.AttachResponse, args: AttachRequestArguments): Promise<void> {
     try {
+      this._debugTargetSet = this._isLaunch = false;
+      this._stopOnEntry = args.stopOnEntry;
       const debugTarget = args.cspDebugId != undefined ? `CSPDEBUG:${args.cspDebugId}` : `PID:${args.processId}`;
       await this._connection.sendFeatureSetCommand("debug_target", debugTarget);
       if (args.cspDebugId != undefined) {
+        // Set a watchpoint so the target breaks after the REST response is sent
         await this._connection.sendBreakpointSetCommand(new xdebug.Watchpoint("ok", this._cspWatchpointCondition));
-        this._csp = true;
+        this._isCsp = true;
+        this.sendResponse(response);
+      } else {
+        this._isCsp = false;
+        // Wait for target to break
+        let stopped: boolean = await this._isStopped();
+        this.sendResponse(response);
+        while (!stopped) {
+          await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
+          stopped = await this._isStopped();
+        }
       }
-      this._debugTargetSet.notify();
     } catch (error) {
       this.sendErrorResponse(response, error);
       return;
     }
-    this.sendResponse(response);
+    this._debugTargetSet = true;
   }
 
   protected async pauseRequest(
@@ -230,40 +269,49 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     args: DebugProtocol.PauseArguments
   ): Promise<void> {
     const xdebugResponse = await this._connection.sendBreakCommand();
-    await this._checkStatus(xdebugResponse);
-
     this.sendResponse(response);
+    await this._checkStatus(xdebugResponse);
   }
 
   protected async configurationDoneRequest(
     response: DebugProtocol.ConfigurationDoneResponse,
     args: DebugProtocol.ConfigurationDoneArguments
   ): Promise<void> {
-    const xdebugResponse = await this._connection.sendRunCommand();
-    await this._checkStatus(xdebugResponse);
-
-    this.sendResponse(response);
+    if (!this._isLaunch && !this._isCsp) {
+      // The debug agent ignores the first run command for non-CSP attaches,
+      // so send one right away, regardless of the stopOnEntry value
+      await this._connection.sendRunCommand();
+    }
+    if (this._stopOnEntry && !this._isCsp) {
+      // This can only be true for attach requests, but ignore it for CSP attaches
+      // Tell VS Code that we're stopped
+      this.sendResponse(response);
+      const event: DebugProtocol.StoppedEvent = new StoppedEvent("entry", this._connection.id);
+      event.body.allThreadsStopped = false;
+      this.sendEvent(event);
+    } else {
+      // Tell the debugger to run the target process
+      const xdebugResponse = await this._connection.sendRunCommand();
+      this.sendResponse(response);
+      await this._checkStatus(xdebugResponse);
+    }
   }
 
   protected async disconnectRequest(
     response: DebugProtocol.DisconnectResponse,
     args: DebugProtocol.DisconnectArguments
   ): Promise<void> {
+    this._debugTargetSet = false;
     if (this._connection) {
-      const stopSupported = (await this._connection.sendFeatureGetCommand("stop")).supported;
-      if (stopSupported) {
-        const xdebugResponse = await this._connection.sendStopCommand();
-        await this._checkStatus(xdebugResponse);
-      }
-
-      const detachSupported = (await this._connection.sendFeatureGetCommand("detach")).supported;
-      if (detachSupported) {
-        const xdebugResponse = await this._connection.sendDetachCommand();
-        await this._checkStatus(xdebugResponse);
-      }
+      // Detach is always supported by the debug agent
+      // If attach, it will detach from the target
+      // If launch, it will terminate the target
+      const xdebugResponse = await this._connection.sendDetachCommand();
+      this.sendResponse(response);
+      await this._checkStatus(xdebugResponse);
+    } else {
+      this.sendResponse(response);
     }
-
-    this.sendResponse(response);
   }
 
   protected async setBreakPointsRequest(
@@ -271,7 +319,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     args: DebugProtocol.SetBreakpointsArguments
   ): Promise<void> {
     try {
-      await this._debugTargetSet.wait(1000);
+      await this._waitForDebugTarget();
 
       const filePath = args.source.path;
       const scheme = filePath.split(":")[0];
@@ -459,7 +507,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     args: DebugProtocol.SetDataBreakpointsArguments
   ): Promise<void> {
     try {
-      await this._debugTargetSet.wait(1000);
+      await this._waitForDebugTarget();
 
       const currentList = await this._connection.sendBreakpointListCommand();
       currentList.breakpoints
@@ -527,12 +575,27 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       stack.stack.map(async (stackFrame: xdebug.StackFrame, index): Promise<StackFrame> => {
         const [, namespace, name] = decodeURI(stackFrame.fileUri).match(/^dbgp:\/\/\|([^|]+)\|(.*)$/);
         const routine = name;
-        // const routine = name.includes(".") ? name : name + ".int";
         const fileUri = DocumentContentProvider.getUri(routine, this._workspace, namespace);
         const source = new Source(routine, fileUri.toString());
         let line = stackFrame.line + 1;
         const place = `${stackFrame.method}+${stackFrame.methodOffset}`;
         const stackFrameId = this._stackFrameIdCounter++;
+        const fileText: string | undefined = await getFileText(fileUri).catch(() => undefined);
+        if (fileText == undefined) {
+          // Can't get the source for the document
+          this._stackFrames.set(stackFrameId, stackFrame);
+          return {
+            id: stackFrameId,
+            name: place,
+            source: {
+              name: routine,
+              path: fileUri.toString(),
+              presentationHint: "deemphasize",
+            },
+            line,
+            column: 1,
+          };
+        }
         let noSource = false;
         try {
           if (source.name.endsWith(".cls") && stackFrame.method !== "") {
@@ -555,7 +618,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
               }
             }
             if (currentSymbol !== undefined) {
-              const currentdoc = (await getFileText(fileUri)).split(/\r?\n/);
+              const fileTextLines = fileText.split(/\r?\n/);
               if (languageServer) {
                 for (
                   let methodlinenum = currentSymbol.selectionRange.start.line;
@@ -563,7 +626,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
                   methodlinenum++
                 ) {
                   // Find the offset of this breakpoint in the method
-                  const methodlinetext: string = currentdoc[methodlinenum].trim();
+                  const methodlinetext: string = fileTextLines[methodlinenum].trim();
                   if (methodlinetext.endsWith("{")) {
                     // This is the last line of the method definition, so count from here
                     line = methodlinenum + stackFrame.methodOffset + 1;
@@ -576,7 +639,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
             }
           }
           if (
-            this._csp &&
+            this._isCsp &&
             this._break &&
             ["%SYS.cspServer.mac", "%SYS.cspServer.int"].includes(source.name) &&
             index == 0
@@ -741,16 +804,14 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     args: DebugProtocol.ContinueArguments
   ): Promise<void> {
     this.sendResponse(response);
-
     const xdebugResponse = await this._connection.sendRunCommand();
     this._checkStatus(xdebugResponse);
   }
 
   protected async nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): Promise<void> {
     const xdebugResponse = await this._connection.sendStepOverCommand();
-    this._checkStatus(xdebugResponse);
-
     this.sendResponse(response);
+    this._checkStatus(xdebugResponse);
   }
 
   protected async stepInRequest(
@@ -758,9 +819,8 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     args: DebugProtocol.StepInArguments
   ): Promise<void> {
     const xdebugResponse = await this._connection.sendStepIntoCommand();
-    this._checkStatus(xdebugResponse);
-
     this.sendResponse(response);
+    this._checkStatus(xdebugResponse);
   }
 
   protected async stepOutRequest(
@@ -768,9 +828,8 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     args: DebugProtocol.StepOutArguments
   ): Promise<void> {
     const xdebugResponse = await this._connection.sendStepOutCommand();
-    this._checkStatus(xdebugResponse);
-
     this.sendResponse(response);
+    this._checkStatus(xdebugResponse);
   }
 
   protected async evaluateRequest(

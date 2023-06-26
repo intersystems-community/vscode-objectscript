@@ -1590,7 +1590,11 @@
                   "number",
                   "string"
                 ],
-                "description": "The CSP debug ID to use to identify the target process. If provided, 'processId' is ignored."
+                "description": "The CSP debug ID to use to identify the target process. If provided, 'processId' and 'stopOnEntry' are ignored."
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "Automatically stop target after attach. If not specified, target does not stop."
               }
             }
           }
@@ -1679,7 +1683,7 @@
     "test": "node ./out/test/runTest.js",
     "lint": "eslint src/**",
     "lint-fix": "eslint --fix src/**",
-    "download-api": "vscode-dts dev 1.66.0",
+    "download-api": "dts dev 1.66.0",
     "postinstall": "npm run download-api"
   },
   "devDependencies": {
@@ -1692,6 +1696,7 @@
     "@types/xmldom": "^0.1.29",
     "@typescript-eslint/eslint-plugin": "^4.32.0",
     "@typescript-eslint/parser": "^4.32.0",
+    "@vscode/dts": "^0.4.0",
     "@vscode/test-electron": "^2.1.5",
     "eslint": "^7.32.0",
     "eslint-config-airbnb-base": "^14.2.1",
@@ -1707,24 +1712,20 @@
     "ts-loader": "^7.0.5",
     "typescript": "^4.4.3",
     "vscode-debugadapter-testsupport": "^1.41.0",
-    "vscode-dts": "^0.3.2",
     "webpack": "^5.76.0",
     "webpack-cli": "^4.5.0"
   },
   "dependencies": {
-    "@xmldom/xmldom": "^0.8.3",
-    "await-notify": "^1.0.1",
+    "@xmldom/xmldom": "^0.8.8",
     "core-js": "^3.6.5",
-    "domexception": "^2.0.1",
     "glob": "^7.1.6",
     "iconv-lite": "^0.6.0",
     "istextorbinary": "^6.0.0",
-    "mkdirp": "^1.0.4",
     "node-cmd": "^5.0.0",
     "node-fetch-cjs": "3.1.1",
     "vscode-cache": "^0.3.0",
-    "vscode-debugadapter": "^1.41.0",
-    "vscode-debugprotocol": "^1.41.0",
+    "@vscode/debugadapter": "^1.61.0",
+    "@vscode/debugprotocol": "^1.61.0",
     "vscode-extension-telemetry": "^0.1.6",
     "ws": "^7.4.6"
   }
