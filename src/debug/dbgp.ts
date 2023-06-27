@@ -19,6 +19,7 @@ export class DbgpConnection extends EventEmitter {
   private _chunksDataLength: number;
   private _chunks: Buffer[];
   private _dataLength: number;
+  private _parser: DOMParser;
 
   public constructor(socket: WebSocket) {
     super();
@@ -29,6 +30,19 @@ export class DbgpConnection extends EventEmitter {
     socket.on("message", (data: string): void => this._handleDataChunk(Buffer.from(data)));
     socket.on("error", (error: Error): boolean => this.emit("error", error));
     socket.on("close", (): boolean => this.emit("close"));
+    this._parser = new DOMParser({
+      errorHandler: {
+        warning: (warning) => {
+          this.emit("warning", warning);
+        },
+        error: (error) => {
+          this.emit("error", error instanceof Error ? error : new Error(error));
+        },
+        fatalError: (error) => {
+          this.emit("error", error instanceof Error ? error : new Error(error));
+        },
+      },
+    });
   }
 
   public write(command: Buffer): Promise<void> {
@@ -89,20 +103,7 @@ export class DbgpConnection extends EventEmitter {
         const response = Buffer.concat(this._chunks, this._chunksDataLength).toString("ascii");
         // call response handler
         const xml = iconv.decode(Buffer.from(response, "base64"), ENCODING);
-        const parser = new DOMParser({
-          errorHandler: {
-            warning: (warning) => {
-              this.emit("warning", warning);
-            },
-            error: (error) => {
-              this.emit("error", error instanceof Error ? error : new Error(error));
-            },
-            fatalError: (error) => {
-              this.emit("error", error instanceof Error ? error : new Error(error));
-            },
-          },
-        });
-        const document = parser.parseFromString(xml, "application/xml");
+        const document = this._parser.parseFromString(xml, "application/xml");
         this.emit("message", document);
         // reset buffer
         this._chunks = [];
