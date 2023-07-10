@@ -52,8 +52,8 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
         params = params.replace(/"[^"]*"/g, '""');
         params = params.replace(/{[^{}]*}|{[^{}]*{[^{}]*}[^{}]*}/g, '""');
         params = params.replace(/\([^()]*\)/g, "");
-        params = params.split(")")[0];
-        const paramsCount = params.length ? params.split(",").length : 0;
+        const args = params.split(")")[0];
+        const paramsCount = args.length ? args.split(",").length : params.includes(")") ? 0 : 1; // Need a positive paramsCount when objectscript.multilineMethodArgs is true
 
         debugThisMethod && result.push(this.addDebugThisMethod(i, [`##class(${className}).${name}`, paramsCount > 0]));
         copyToClipboard &&
