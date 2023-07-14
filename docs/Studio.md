@@ -50,7 +50,7 @@ The [InterSystems ObjectScript extension](https://marketplace.visualstudio.com/i
 
 ## XML Import/Export Commands
 
-The [InterSystems ObjectScript extension](https://marketplace.visualstudio.com/items?itemName=intersystems-community.vscode-objectscript) provides commands for importing and exporing XML files. The commands can be invoked from [the command palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette) under the titles `Import XML Files...` and `Export Documents to XML File...`. These commands require an active server connection (the one from the currently opened document will be used if one is open), and the server's version must be 2023.2 or greater.
+The [InterSystems ObjectScript extension](https://marketplace.visualstudio.com/items?itemName=intersystems-community.vscode-objectscript) provides commands for importing and exporting XML files. The commands can be invoked from [the command palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette) under the titles `Import XML Files...` and `Export Documents to XML File...`. These commands require an active server connection (the one from the currently opened document will be used if one is open), and the server's version must be 2023.2 or greater.
 
 ## Keyboard Shortcuts
 
