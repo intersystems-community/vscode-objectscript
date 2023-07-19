@@ -8,19 +8,17 @@
 
 # InterSystems ObjectScript extension for VS Code
 
-> **Note:** The best way to install and use this extension is by installing the [InterSystems ObjectScript Extension Pack](https://marketplace.visualstudio.com/items?itemName=intersystems-community.objectscript-pack) and following the [documentation here](https://intersystems-community.github.io/vscode-objectscript/).
+> **Note:** The best way to install and use this extension is by installing the [InterSystems ObjectScript Extension Pack](https://marketplace.visualstudio.com/items?itemName=intersystems-community.objectscript-pack) and following the [documentation here](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO).
 
 [InterSystems&reg;](http://www.intersystems.com) ObjectScript language support for Visual Studio Code, from the [InterSystems Developer Community](https://community.intersystems.com/).
 
-- Documentation on [GitHub Pages](https://intersystems-community.github.io/vscode-objectscript/).
+- Documentation on the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO).
 
-- Guidance on [reporting issues](https://intersystems-community.github.io/vscode-objectscript/feedback/).
+- Guidance on [reporting issues](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_reporting).
 
 ## Features
 
 - InterSystems ObjectScript code highlighting support.
-
-  ![example](https://raw.githubusercontent.com/intersystems-community/vscode-objectscript/master/images/screenshot.png)
 - Debugging ObjectScript code.
 - Intellisense support for commands, system functions, and class members.
 - Export of existing server sources into a working folder:
@@ -33,8 +31,6 @@
   - or, select `ObjectScript: Import and Compile Current File` from Command Palette
 - Direct access to edit or view server code in the VS Code Explorer via `isfs` and `isfs-readonly` FileSystemProviders (e.g. using a [multi-root workspace](https://code.visualstudio.com/docs/editor/multi-root-workspaces)). Server-side source control is respected.
 - Server Explorer view (ObjectScript: Explorer) with ability to export items to your working folder.
-
-  ![ServerExplorer](https://raw.githubusercontent.com/intersystems-community/vscode-objectscript/master/images/explorer.png)
 - Integration with with [InterSystems Server Manager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) for secure storage of connection passwords.
 
 ## Installation
@@ -75,42 +71,6 @@ intersystems-community.vscode-objectscript version X.Y.Z-beta.1 activating with 
 
 After a subsequent update of the extension from Marketplace you will only have to download and install the new `vscode-objectscript-X.Y.Z-beta.1` VSIX. None of the other steps above are needed again.
 
-## Configure a Connection
-
-To be able to use many features you first need to configure the connection to your IRIS/Caché/Ensemble server(s) in your [VS Code settings](https://code.visualstudio.com/docs/getstarted/settings). If you are unfamiliar with how settings work and how they are edited, use that link.
-
-We recommend you define server connections in the `intersystems.servers` object whose structure is defined by the [InterSystems Server Manager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) helper extension.
-
-Install that extension and consult its documentation about its UI and commands for easy setup of connections, plus assistance when editing the JSON definition directly.
-
-For more tips about the `intersystems.servers` object, see the [Notes](#Notes) section below.
-
-### Client-side Editing
-
-A simple workspace -- a local working folder in which you edit InterSystems source files and manage them using client-side source control (e.g. Git) -- will use the `objectscript.conn` settings object to **import** locally-edited code into a namespace on a server, compile it there and run/debug it, and also for initial **export** of an existing codebase (optional). This settings object is usually defined in Workspace Settings, for example in the `.vscode/settings.json` file of your working folder.
-
-A quick way to add `objectscript.conn` to a new working folder is:
-
-1. Open the folder in VS Code.
-2. Use the InterSystems icon on the activity bar to switch to **ObjectScript Explorer** view.
-3. Click the 'Choose Server and Namespace' button.
-4. Respond to the sequence of quickpicks. You can also define a new server at the start of this sequence by using the '+' button.
-
-For more about `objectscript.conn` see the [Notes](#Notes) section below.
-
-### Server-side Editing
-
-To edit code directly in one or more namespaces on one or more servers (local or remote) we recommend creating a workspace definition file (for example _XYZ.code-workspace_) where you specify one or more root folders that directly access namespaces via the `isfs` or `isfs-readonly` URI schemes. The only difference between these two schemes is that any file opened from a folder using the `isfs-readonly` scheme will be set as read-only in VS Code and thus protected against being changed.
-
-1. Start VS Code.
-2. If your last-used folder opens, use 'Close Folder' on the 'File' menu ('Code' menu on macOS). Or if what opened was your last-used workspace, use 'Close Workspace'.
-3. On VS Code's Explorer view (<kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd>), click the 'Manage Servers' button which is contributed by the Server Manager extension.
-4. Find your target server in the tree, or use the '+' button to add a new server.
-5. Expand the server and its 'Namespaces' folder, then click on the 'pencil' icon for editing access to the namespace or the 'eye' icon for viewing access. If you want to work with web application files rather than classes and routines, hold down the <kbd>Alt</kbd>/<kbd>Option</kbd> key when clicking the button.
-6. Use 'Save Workspace As...' to store your workspace definition in a file with a `.code-workspace` extension.
-
-For more about `isfs` and `isfs-readonly` folder specifications see the [Notes](#Notes) section below.
-
 ## Notes
 
 - Connection-related output appears in the 'Output' view while switched to the 'ObjectScript' channel using the drop-down menu on the view titlebar.
@@ -122,82 +82,3 @@ For more about `isfs` and `isfs-readonly` folder specifications see the [Notes](
 ```SQL
 GRANT EXECUTE ON %Library.RoutineMgr_StudioOpenDialog TO xxx
 ```
-
-### More about `intersystems.servers`
-This settings object is useful for both client-side and server-side development.
-- An example server definition named 'local':
-
-```json
-  "intersystems.servers": {
-    "local": {
-      "webServer": {
-        "scheme": "http",
-        "host": "127.0.0.1",
-        "port": 52773
-      },
-      "description": "My local IRIS",
-      "username": "me"
-    }
-  }
-```
-
-- By defining connections in your User Settings they become available for use by any workspace you open in VS Code. Alternatively, define them in workspace-specific settings.
-
-- Setting the `username` property is optional. If omitted it will be prompted for when connecting, then cached for the session.
-
-- Setting a plaintext value for the `password` property is **not** recommended. Instead, install the InterSystems Server Manager extension and use that to store your password securely.
-
-- If no password has been set or stored it will be prompted for when connecting, then cached for the session.
-
-### More about `objectscript.conn`
-This settings object is primarily relevant when doing client-side development.
-- We recommend that `objectscript.conn` uses its `server` property to point to an entry in `intersystems.servers`. For example:
-
-```json
-  "objectscript.conn": {
-    "active": true,
-    "server": "local",
-    "ns": "USER"
-  }
-```
-
-- The mandatory `ns` property defines which server namespace you will work with.
-
-- When the `server` property is set, any `username` or `password` properties of `objectscript.conn` are ignored. Instead these values come from the `intersystems.servers` entry.
-
-### More about `isfs` and `isfs-readonly` workspace folders
-Server-side development is best done using `isfs` folders. The read-only variant `isfs-readonly` is also useful when doing client-side development, since it enables server-side searching of your codebase.
-
-To modify how your folder behaves, edit the JSON of your workspace definition (_XYZ.code-workspace_ file). Get there by using the 'Edit Settings' option from the context menu of Server Manager's 'Servers' view, or by running the 'Preferences: Open Workspace Settings (JSON)' command from the Command Palette. Edit your `uri` property.
-
-- The `csp` query parameter indicates web application files are to be shown. The uri path optionally specifies which application. The namespace suffix on the server name (preferred syntax) or the `ns` query parameter (deprecated) must specify the same namespace the application is configured to use. In the following example the first folder is for the `/csp/user` web application in the USER namespace of the server named 'local' and the second gives read-only access to all web applications that reside in the %SYS namespace. The second folder also uses the optional `name` property:
-```json
-    {
-      "uri": "isfs://local:user/csp/user?csp"
-    },
-    {
-      "name": "local:%SYS web files (read-only)",
-      "uri": "isfs-readonly://local/?ns=%SYS&csp"
-    }
-```
-  
-- To see only classes in the Xxx.Yyy package, format the uri like this:
-
-```json
-    {
-      "uri": "isfs://local:user/Xxx/Yyy?type=cls"
-    }
-```
-
-- Other query parameters that can be specified include:
-  - `type=cls` to show only classes, or `type=rtn` to show only routines.
-  - `flat=1` to flatten the hierarchy.
-  - `generated=1` to show generated items.
-  - `system=1` to show system (%) items. Without this parameter these are only shown for the %SYS namespace.
-  - `filter=filterspec` to use a filter specification formatted in the same way as used in InterSystems Studio's File Open dialog (e.g. `filter=Ensem*.inc`).
-
-## Support and Training
-
-[CaretDev](https://caretdev.com/#products) provides commercial support services. [Request a quote](https://caretdev.com/contact-us/).
-
-On-line course from CaretDev - [Developing with VS Code ObjectScript – Easy Start](https://caretdev.com/courses/).

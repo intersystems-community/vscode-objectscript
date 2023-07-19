@@ -4,6 +4,9 @@ title: Introduction
 permalink: /introduction/
 nav_order: 1
 ---
+
+> **Note:** This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_intro). This page will be removed at a later date.
+
 # Introduction
 
 Visual Studio Code (VS Code) is a free source code editor made by Microsoft for Windows, Linux and macOS. It provides built-in support for JavaScript, TypeScript and Node.js. You can add extensions to provide support for numerous other languages such as C++, C#, Java, Python, PHP, and Go, and runtimes such as .NET and Unity.

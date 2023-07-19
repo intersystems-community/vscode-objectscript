@@ -3,6 +3,8 @@ layout: home
 nav_exclude: true
 ---
 
+> **Note:** This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO). This page will be removed at a later date.
+
 # Welcome to the VS Code InterSystems ObjectScript documentation
 
 * [Introduction](./introduction)

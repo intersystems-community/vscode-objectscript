@@ -4,6 +4,9 @@ title: Running and Debugging
 permalink: /rundebug/
 nav_order: 5
 ---
+
+> **Note:** This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_debug). This page will be removed at a later date.
+
 # Running and Debugging
 
 The InterSystems ObjectScript Extension provides support for ObjectScript debugging. It takes advantage of the debugging capabilities built into VS Code, so you may find these VS Code documentation resources useful:

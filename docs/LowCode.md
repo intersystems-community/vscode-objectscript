@@ -5,6 +5,8 @@ permalink: /low-code/
 nav_order: 11
 ---
 
+> **Note:** This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_lowcode). This page will be removed at a later date.
+
 # Low-Code Editors
 
 VS Code contains support for low-code editors via its [Custom Editors API](https://code.visualstudio.com/api/extension-guides/custom-editors). As InterSystems redevelops its suite of low-code editors for Interoperability components, support for integration with this extension will be included. This page lists the currently supported low-code editors and describes how to use them in VS Code.

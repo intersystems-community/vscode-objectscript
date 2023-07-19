@@ -79,7 +79,7 @@
 
 ## [2.2.0] 31-Oct-2022
 - Enhancements
-  - Add features to ease migration from Studio (see [Migrating from Studio documentation page](https://intersystems-community.github.io/vscode-objectscript/studio/) for details) (#1003)
+  - Add features to ease migration from Studio (see [Migrating from Studio documentation page](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_fromstudio) for details) (#1003)
   - Improve CodeLenses (#1007)
 - Fixes
   - Improve export error logging (#998)
@@ -136,7 +136,7 @@ Minimum VS Code version is now 1.66.0
 - Enhancements
   - Compile asynchronously to avoid timing out (#890)
   - Add `objectscript.explorer.alwaysShowServerCopy` setting to make ObjectScript Explorer always open server-side code, even when local copy exists (#494)
-  - Move issue reporting instructions from README to [documentation](https://intersystems-community.github.io/vscode-objectscript/feedback/) (#874)
+  - Move issue reporting instructions from README to [documentation](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_reporting) (#874)
 - Fixes
   - Fix syncing of local CSP files (#886)
   - Stop logging `Non-JSON response` messages to Output (#853)
@@ -406,7 +406,7 @@ Minimum VS Code version is now 1.66.0
 - Swap the two sides displayed by a compare invoked after local file import conflict. Server copy is now on the left, to match convention elsewhere in VS Code.
 - Fix `Import and Compile Current File`.
 - Exclude invalid commands from Command Palette.
-- New documentation site using [GitHub Pages](https://intersystems-community.github.io/vscode-objectscript/).
+- New documentation site using GitHub Pages.
 - Add API functions for use by other extensions.
 - Upgrade vulnerable dependencies.
 

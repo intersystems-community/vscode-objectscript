@@ -5,6 +5,8 @@ permalink: /studio/
 nav_order: 10
 ---
 
+> **Note:** This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_fromstudio). This page will be removed at a later date.
+
 # Migrating from Studio
 
 The extensions that make up the [InterSystems ObjectScript Extension Pack](../installation/#install-the-intersystems-objectscript-extensions) contain many useful features that make migrating from InterSystems Studio easy. This page highlights a few of them.

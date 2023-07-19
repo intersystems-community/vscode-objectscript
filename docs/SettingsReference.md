@@ -5,6 +5,8 @@ permalink: /settings/
 nav_order: 7
 ---
 
+> **Note:** This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_settings). This page will be removed at a later date.
+
 # Settings Reference
 
 The extensions in the InterSystems ObjectScript Extension Pack provide many settings that allow you to configure their behavior. Below you will find a table containing all settings for each extension in the pack, as well as a short description, the type of value they accept, the default value and any other notes that may be useful to you. Please see [this VS Code documentation page](https://code.visualstudio.com/docs/getstarted/settings) for more information about settings and how to change them.
