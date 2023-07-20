@@ -1,5 +1,31 @@
 # Change Log
 
+## [2.10.0] 20-Jul-2023
+Minimum VS Code version is now 1.75.0
+- Enhancements
+  - Add WebSocket Terminal support (#1150)
+  - Support a ${project} variable in Server Actions Menu custom entries (#1157)
+  - Support importing/exporting XML files (#1171) 
+  - Support a ${username} variable in Server Actions Menu custom entries (#1173)
+  - Migrate to [official ISC documentation](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO) (#1185)
+- Fixes
+  - Improve regex server-side search (#1153)
+  - Fix typo in Projects Explorer welcome text (#1154)
+  - Remove `objectscript.serverSideEditing`` setting (#1163)
+  - Deprecate `flat` and `type` isfs query parameters (#1165)
+  - Debugger improvements (#1174)
+    - Fix debugger losing sync after a step.
+    - Fix debugger losing sync when large output is written to the console.
+    - For `attach` requests, wait for the target process to break before attempting to set breakpoints.
+    - De-emphasize stack frames with source code that isn't available (for example, system classes that are deployed) so they aren't auto-opened when the target breaks. (requires VS Code version 1.80.0)
+    - Implemented `stopOnEntry` property for non-CSP `attach` requests.
+    - Upgrade to `@vscode` versions of the debug adapter and debug protocol modules.
+    - Always send `detach` command for disconnect requests, regardless of request type.
+    - Properly run the target process for non-CSP `attach` requests when configuration is done. In that case, the server ignores the first `run` command, so we need to send two.
+  - Always prompt for confirmation when deleting from ObjectScript Explorer (#1176)
+  - Prompt for arguments when debugging multiline ClassMethod definition (#1181)
+  - Upgrade vulnerable dependencies.
+
 ## [2.8.1] 15-May-2023
 - Enhancements
   - Prompt user to enable proposed APIs when server-side folder is opened (#1140)
