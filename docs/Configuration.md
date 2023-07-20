@@ -5,6 +5,8 @@ permalink: /configuration/
 nav_order: 4
 ---
 
+> **Note:** This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_config). This page will be removed at a later date.
+
 # Configuration
 
 VS Code settings enable you to customize various aspects of its behavior. The InterSystems extensions provide settings used to configure VS Code for ObjectScript development.

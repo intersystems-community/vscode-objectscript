@@ -5,6 +5,8 @@ permalink: /extensionui/
 nav_order: 3
 ---
 
+> **Note:** This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ui). This page will be removed at a later date.
+
 # InterSystems Extensions User Interface
 
 The InterSystems extensions add additional capability to the VS Code user interface to support development in ObjectScript. These additions are based on the standard VS Code UI, which is described in the section [User Interface](https://code.visualstudio.com/docs/getstarted/userinterface) in the VS Code documentation.

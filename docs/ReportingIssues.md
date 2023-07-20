@@ -5,9 +5,11 @@ permalink: /feedback/
 nav_order: 8
 ---
 
+> **Note:** This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_reporting). This page will be removed at a later date.
+
 # Reporting Issues
 
-[InterSystems ObjectScript for VS Code](https://intersystems-community.github.io/vscode-objectscript/) consists of three collaborating VS Code extensions. This modular architecture also means there are three different GitHub repositories where issues can be created. Fortunately VS Code itself helps with the task. You will need a GitHub account. Here's how:
+[InterSystems ObjectScript for VS Code](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO) consists of three collaborating VS Code extensions. This modular architecture also means there are three different GitHub repositories where issues can be created. Fortunately VS Code itself helps with the task. You will need a GitHub account. Here's how:
 
 1. From the Help menu in VS Code choose 'Report Issue'. Alternatively, open the Command Palette and run `Help: Report Issue...`.
 

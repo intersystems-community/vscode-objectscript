@@ -5,6 +5,8 @@ permalink: /projects/
 nav_order: 9
 ---
 
+> **Note:** This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_project). This page will be removed at a later date.
+
 # Working with Projects
 
 A project is a named set of class definitions, routines, include files, web application files or custom documents. All files in a project must be in the same namespace on the same InterSystems server. Each document can be associated with any number of projects. Each namespace can contain any number of projects.

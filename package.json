@@ -114,21 +114,21 @@
     "viewsWelcome": [
       {
         "view": "explorer",
-        "contents": "Begin local ObjectScript development by opening a folder or cloning a repository. Then switch to the new ObjectScript view in the Activity Bar.\nYou can also create a new workspace to [edit or view code directly on an InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/).\n[Choose Server and Namespace](command:vscode-objectscript.addServerNamespaceToWorkspace)"
+        "contents": "Begin local ObjectScript development by opening a folder or cloning a repository. Then switch to the new ObjectScript view in the Activity Bar.\nYou can also create a new workspace to [edit or view code directly on an InterSystems server](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ssworkflow).\n[Choose Server and Namespace](command:vscode-objectscript.addServerNamespaceToWorkspace)"
       },
       {
         "view": "ObjectScriptExplorer",
-        "contents": "Connect a local workspace folder to an [InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/) if you want to export or import ObjectScript code.\n[Choose Server and Namespace](command:vscode-objectscript.connectFolderToServerNamespace)\nOr [hide this ObjectScript view](command:vscode-objectscript.hideExplorerForWorkspace) if it is not needed for the current workspace.",
+        "contents": "Connect a local workspace folder to an [InterSystems server](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ssworkflow) if you want to export or import ObjectScript code.\n[Choose Server and Namespace](command:vscode-objectscript.connectFolderToServerNamespace)\nOr [hide this ObjectScript view](command:vscode-objectscript.hideExplorerForWorkspace) if it is not needed for the current workspace.",
         "when": "vscode-objectscript.explorerRootCount == 0"
       },
       {
         "view": "ObjectScriptProjectsExplorer",
-        "contents": "To view or edit projects, create a virtual workspace folder to [edit or view code directly on an InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/).\n[Add Server Namespace to Workspace](command:vscode-objectscript.addServerNamespaceToWorkspace)",
+        "contents": "To view or edit projects, create a virtual workspace folder to [edit or view code directly on an InterSystems server](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ssworkflow).\n[Add Server Namespace to Workspace](command:vscode-objectscript.addServerNamespaceToWorkspace)",
         "when": "vscode-objectscript.projectsExplorerRootCount == 0 && workspaceFolderCount <= 0"
       },
       {
         "view": "ObjectScriptProjectsExplorer",
-        "contents": "To view or edit projects, create a virtual workspace folder to [edit or view code directly on an InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/).\n[Add Server Namespace to Workspace](command:vscode-objectscript.addServerNamespaceToWorkspace)\nOr connect a local workspace folder to an [InterSystems server](https://intersystems-community.github.io/vscode-objectscript/serverside/).\n[Choose Server and Namespace](command:vscode-objectscript.connectFolderToServerNamespace)",
+        "contents": "To view or edit projects, create a virtual workspace folder to [edit or view code directly on an InterSystems server](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ssworkflow).\n[Add Server Namespace to Workspace](command:vscode-objectscript.addServerNamespaceToWorkspace)\nOr connect a local workspace folder to an [InterSystems server](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ssworkflow).\n[Choose Server and Namespace](command:vscode-objectscript.connectFolderToServerNamespace)",
         "when": "vscode-objectscript.projectsExplorerRootCount == 0 && workspaceFolderCount > 0"
       }
     ],
@@ -1506,7 +1506,7 @@
           "default": false
         },
         "objectscript.projects.webAppFileExtensions": {
-          "markdownDescription": "When browsing a virtual workspace folder that has a project query parameter, all files with these extensions will be automatically treated as web application files. Extensions added here will be appended to the default list and  should **NOT** include a dot. See the [Settings Reference documentation page](https://intersystems-community.github.io/vscode-objectscript/settings/#vscode-objectscript) for a list of extensions included by default.",
+          "markdownDescription": "When browsing a virtual workspace folder that has a project query parameter, all files with these extensions will be automatically treated as web application files. Extensions added here will be appended to the default list and should **NOT** include a dot. See the [Settings Reference documentation page](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_settings#GVSCO_settings_objectscript) for a list of extensions included by default.",
           "type": "array",
           "default": [],
           "uniqueItems": true,
