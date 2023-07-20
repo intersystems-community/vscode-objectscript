@@ -360,7 +360,7 @@ function sodItemToPickAdditionsItem(
     // Add the expand button if this is a package or directory
     result.buttons = [
       {
-        iconPath: new vscode.ThemeIcon("chevron-left"),
+        iconPath: new vscode.ThemeIcon("chevron-right"),
         tooltip: "Expand",
       },
     ];
@@ -440,7 +440,7 @@ async function pickAdditions(
                 fullName: app,
                 buttons: [
                   {
-                    iconPath: new vscode.ThemeIcon("chevron-left"),
+                    iconPath: new vscode.ThemeIcon("chevron-right"),
                     tooltip: "Expand",
                   },
                 ],
@@ -629,7 +629,7 @@ async function pickAdditions(
         const selected = quickPick.selectedItems;
         quickPick.items[itemIdx].buttons = [
           {
-            iconPath: new vscode.ThemeIcon("chevron-left"),
+            iconPath: new vscode.ThemeIcon("chevron-right"),
             tooltip: "Expand",
           },
         ];
