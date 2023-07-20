@@ -732,6 +732,9 @@ export async function importLocalFilesToServerSideFolder(wsFolderUri: vscode.Uri
     return;
   }
   const api = new AtelierAPI(wsFolderUri);
+  // Get the default URI and remove the file anme
+  let defaultUri = vscode.workspace.workspaceFile;
+  defaultUri = defaultUri.with({ path: defaultUri.path.split("/").slice(0, -1).join("/") });
   // Prompt the user for files to import
   let uris = await vscode.window.showOpenDialog({
     canSelectFiles: true,
@@ -743,7 +746,7 @@ export async function importLocalFilesToServerSideFolder(wsFolderUri: vscode.Uri
     },
     // Need a default URI with file scheme or the open dialog
     // will show the virtual files from the workspace folder
-    defaultUri: vscode.workspace.workspaceFile,
+    defaultUri,
   });
   if (!Array.isArray(uris) || uris.length == 0) {
     // No files to import
@@ -874,6 +877,8 @@ export async function importXMLFiles(): Promise<any> {
           );
           return;
         }
+        // Remove the file name from the URI
+        defaultUri = defaultUri.with({ path: defaultUri.path.split("/").slice(0, -1).join("/") });
       }
       // Prompt the user the file to import
       let uris = await vscode.window.showOpenDialog({

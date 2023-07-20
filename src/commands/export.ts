@@ -437,11 +437,8 @@ export async function exportDocumentsToXMLFile(): Promise<void> {
           );
           return;
         }
-        // Make sure defaultUri is a folder
-        const defaultUriPathSplit = defaultUri.path.split("/");
-        if (defaultUriPathSplit.length && defaultUriPathSplit[defaultUriPathSplit.length - 1].includes(".")) {
-          defaultUri = defaultUri.with({ path: defaultUriPathSplit.slice(0, -1).join("/") });
-        }
+        // Remove the file name from the URI
+        defaultUri = defaultUri.with({ path: defaultUri.path.split("/").slice(0, -1).join("/") });
       }
       // Prompt the user for the documents to export
       const documents = await pickDocuments(api, "to export");
