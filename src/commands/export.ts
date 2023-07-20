@@ -11,6 +11,7 @@ import {
   uriOfWorkspaceFolder,
 } from "../utils";
 import { NodeBase } from "../explorer/models/nodeBase";
+import { pickDocuments } from "../utils/documentPicker";
 
 export const getCategory = (fileName: string, addCategory: any | boolean): string => {
   const fileExt = fileName.split(".").pop().toLowerCase();
@@ -379,4 +380,93 @@ export async function exportCurrentFile(): Promise<any> {
   }
   const api = new AtelierAPI(openDoc.uri);
   return exportList([currentFile(openDoc).name], api.configName, api.config.ns);
+}
+
+export async function exportDocumentsToXMLFile(): Promise<void> {
+  try {
+    // Use the server connection from the active document if possible
+    let connectionUri = currentFile()?.uri;
+    if (!connectionUri) {
+      // Use the server connection from a workspace folder
+      const workspaceFolders = vscode.workspace.workspaceFolders || [];
+      if (workspaceFolders.length == 0) {
+        vscode.window.showErrorMessage(
+          "'Export Documents to XML File...' command requires an open workspace.",
+          "Dismiss"
+        );
+      } else if (workspaceFolders.length == 1) {
+        // Use the current connection
+        connectionUri = workspaceFolders[0].uri;
+      } else {
+        // Pick from the workspace folders
+        connectionUri = (
+          await vscode.window.showWorkspaceFolderPick({
+            ignoreFocusOut: true,
+            placeHolder: "Pick the workspace folder to get server connection information from",
+          })
+        )?.uri;
+      }
+    }
+    if (connectionUri) {
+      const api = new AtelierAPI(connectionUri);
+      // Make sure the server connection is active
+      if (!api.active || api.ns == "") {
+        vscode.window.showErrorMessage(
+          "'Export Documents to XML File...' command requires an active server connection.",
+          "Dismiss"
+        );
+        return;
+      }
+      // Make sure the server has the xml endpoints
+      if (api.config.apiVersion < 7) {
+        vscode.window.showErrorMessage(
+          "'Export Documents to XML File...' command requires InterSystems IRIS version 2023.2 or above.",
+          "Dismiss"
+        );
+        return;
+      }
+      let defaultUri = vscode.workspace.getWorkspaceFolder(connectionUri)?.uri ?? connectionUri;
+      if (defaultUri.scheme != "file") {
+        // Need a default URI with file scheme or the save dialog
+        // will show the virtual files from the workspace folder
+        defaultUri = vscode.workspace.workspaceFile;
+        if (defaultUri.scheme != "file") {
+          vscode.window.showErrorMessage(
+            "'Export Documents to XML File...' command is not supported for unsaved workspaces.",
+            "Dismiss"
+          );
+          return;
+        }
+        // Remove the file name from the URI
+        defaultUri = defaultUri.with({ path: defaultUri.path.split("/").slice(0, -1).join("/") });
+      }
+      // Prompt the user for the documents to export
+      const documents = await pickDocuments(api, "to export");
+      if (documents.length == 0) {
+        return;
+      }
+      // Prompt the user for the export destination
+      const uri = await vscode.window.showSaveDialog({
+        saveLabel: "Export",
+        filters: {
+          "XML Files": ["xml"],
+        },
+        defaultUri,
+      });
+      if (uri) {
+        // Get the XML content
+        const xmlContent = await api.actionXMLExport(documents).then((data) => data.result.content);
+        // Save the file
+        await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(xmlContent.join("\n")));
+      }
+    }
+  } catch (error) {
+    let errorMsg = "Error executing 'Export Documents to XML File...' command.";
+    if (error && error.errorText && error.errorText !== "") {
+      outputChannel.appendLine("\n" + error.errorText);
+      outputChannel.show(true);
+      errorMsg += " Check 'ObjectScript' output channel for details.";
+    }
+    vscode.window.showErrorMessage(errorMsg, "Dismiss");
+  }
 }

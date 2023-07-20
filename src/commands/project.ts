@@ -19,10 +19,6 @@ export interface ProjectItem {
 }
 
 export async function pickProject(api: AtelierAPI): Promise<string | undefined> {
-  const server =
-    api.config.serverName && api.config.serverName !== ""
-      ? api.config.serverName
-      : `${api.config.host}:${api.config.port}${api.config.pathPrefix}`;
   const ns = api.config.ns.toUpperCase();
   const projects: vscode.QuickPickItem[] = await api
     .actionQuery("SELECT Name, Description FROM %Studio.Project", [])
@@ -34,7 +30,7 @@ export async function pickProject(api: AtelierAPI): Promise<string | undefined> 
   if (projects.length === 0) {
     const create = await vscode.window.showQuickPick(["Yes", "No"], {
       ignoreFocusOut: true,
-      placeHolder: `Namespace ${ns} on server '${server}' contains no projects. Create one?`,
+      placeHolder: `Namespace ${ns} on server '${api.serverId}' contains no projects. Create one?`,
     });
     if (create == "Yes") {
       return createProject(undefined, api);
@@ -45,7 +41,7 @@ export async function pickProject(api: AtelierAPI): Promise<string | undefined> 
     let result: string;
     let resolveOnHide = true;
     const quickPick = vscode.window.createQuickPick();
-    quickPick.title = `Select a project in namespace ${ns} on server '${server}', or click '+' to add one.`;
+    quickPick.title = `Select a project in namespace ${ns} on server '${api.serverId}', or click '+' to add one.`;
     quickPick.ignoreFocusOut = true;
     quickPick.items = projects;
     quickPick.buttons = [{ iconPath: new vscode.ThemeIcon("add"), tooltip: "Create new project" }];
@@ -364,7 +360,7 @@ function sodItemToPickAdditionsItem(
     // Add the expand button if this is a package or directory
     result.buttons = [
       {
-        iconPath: new vscode.ThemeIcon("chevron-left"),
+        iconPath: new vscode.ThemeIcon("chevron-right"),
         tooltip: "Expand",
       },
     ];
@@ -444,7 +440,7 @@ async function pickAdditions(
                 fullName: app,
                 buttons: [
                   {
-                    iconPath: new vscode.ThemeIcon("chevron-left"),
+                    iconPath: new vscode.ThemeIcon("chevron-right"),
                     tooltip: "Expand",
                   },
                 ],
@@ -633,7 +629,7 @@ async function pickAdditions(
         const selected = quickPick.selectedItems;
         quickPick.items[itemIdx].buttons = [
           {
-            iconPath: new vscode.ThemeIcon("chevron-left"),
+            iconPath: new vscode.ThemeIcon("chevron-right"),
             tooltip: "Expand",
           },
         ];
