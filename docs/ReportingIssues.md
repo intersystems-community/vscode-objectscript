@@ -5,7 +5,8 @@ permalink: /feedback/
 nav_order: 8
 ---
 
-> **Note:** This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_reporting). This page will be removed at a later date.
+{: .warning }
+This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_reporting). This page will be removed at a later date.
 
 # Reporting Issues
 

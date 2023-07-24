@@ -46,6 +46,14 @@ footer_content: "Copyright &copy; 2023 InterSystems Corp. Distributed under an <
 
 ga_tracking: GTM-PKG7GB
 
+callouts:
+  warning:
+    title: "Warning"
+    color: red
+  note:
+    title: "Note"
+    color: yellow
+
   # Exclude from processing.
 # The following items will not be processed, by default.
 # Any item listed under the `exclude:` key here will be automatically added to

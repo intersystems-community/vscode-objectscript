@@ -5,7 +5,8 @@ permalink: /serverside/
 nav_order: 6
 ---
 
-> **Note:** This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ssworkflow). This page will be removed at a later date.
+{: .warning }
+This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ssworkflow). This page will be removed at a later date.
 
 # Server-side Editing 
 
