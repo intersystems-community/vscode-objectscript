@@ -5,7 +5,8 @@ permalink: /settings/
 nav_order: 7
 ---
 
-> **Note:** This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_settings). This page will be removed at a later date.
+{: .warning }
+This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_settings). This page will be removed at a later date.
 
 # Settings Reference
 

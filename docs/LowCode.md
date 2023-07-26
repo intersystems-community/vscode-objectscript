@@ -5,7 +5,8 @@ permalink: /low-code/
 nav_order: 11
 ---
 
-> **Note:** This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_lowcode). This page will be removed at a later date.
+{: .warning }
+This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_lowcode). This page will be removed at a later date.
 
 # Low-Code Editors
 
