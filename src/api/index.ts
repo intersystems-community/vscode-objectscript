@@ -435,8 +435,12 @@ export class AtelierAPI {
 
       return data;
     } catch (error) {
-      if (error.code === "ECONNREFUSED") {
-        authRequestMap.delete(target);
+      // always discard the cached authentication promise
+      authRequestMap.delete(target);
+
+      // In some cases schedule an automatic retry.
+      // ENOTFOUND occurs if, say, the VPN to the server's network goes down.
+      if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
         panel.text = `${this.connInfo} $(debug-disconnect)`;
         panel.tooltip = "Disconnected";
         workspaceState.update(this.configName.toLowerCase() + ":host", undefined);
@@ -444,9 +448,6 @@ export class AtelierAPI {
         if (!checkingConnection) {
           setTimeout(() => checkConnection(false, undefined, true), 30000);
         }
-      } else if (error.code === "EPROTO") {
-        // This can happen if https was configured but didn't work
-        authRequestMap.delete(target);
       }
       throw error;
     }
