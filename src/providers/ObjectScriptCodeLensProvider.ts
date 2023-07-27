@@ -28,7 +28,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
       return result;
     }
 
-    const pattern = /(?:^ClassMethod\s)([^(]+)\((.*)/i;
+    const pattern = /(?:^(ClassMethod|Query)\s)([^(]+)\((.*)/i;
     let inComment = false;
     for (let i = 0; i < document.lineCount; i++) {
       const line = document.lineAt(i);
@@ -47,7 +47,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
 
       const methodMatch = text.match(pattern);
       if (methodMatch) {
-        const [, name, paramsRaw] = methodMatch;
+        const [, kind, name, paramsRaw] = methodMatch;
         let params = paramsRaw;
         params = params.replace(/"[^"]*"/g, '""');
         params = params.replace(/{[^{}]*}|{[^{}]*{[^{}]*}[^{}]*}/g, '""');
@@ -55,9 +55,15 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
         const args = params.split(")")[0];
         const paramsCount = args.length ? args.split(",").length : params.includes(")") ? 0 : 1; // Need a positive paramsCount when objectscript.multilineMethodArgs is true
 
-        debugThisMethod && result.push(this.addDebugThisMethod(i, [`##class(${className}).${name}`, paramsCount > 0]));
+        const methodName = name + (kind == "Query" ? "Func" : "");
+
+        debugThisMethod &&
+          kind == "ClassMethod" &&
+          result.push(this.addDebugThisMethod(i, [`##class(${className}).${methodName}`, paramsCount > 0]));
         copyToClipboard &&
-          result.push(this.addCopyToClipboard(i, [`##class(${className}).${name}(${Array(paramsCount).join(",")})`]));
+          result.push(
+            this.addCopyToClipboard(i, [`##class(${className}).${methodName}(${Array(paramsCount).join(",")})`])
+          );
       }
     }
     return result;
