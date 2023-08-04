@@ -149,6 +149,12 @@ function searchMatchToLine(
             // This is in the class description
             line = descLineToDocLine(content, match.attrline, i);
             break;
+          } else if (match.attr == "Super") {
+            // This is a superclass
+            if (content[i].includes(match.text)) {
+              line = i;
+            }
+            break;
           } else {
             // This is a class keyword or keyword value
             // Need to keep looping due to the possibility of keywords with multiline values
