@@ -1336,25 +1336,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   );
   reporter && reporter.sendTelemetryEvent("extensionActivated");
 
-  // Report the use of deprecated query parameters
-  (vscode.workspace.workspaceFolders || []).forEach(async (wf) => {
-    if (filesystemSchemas.includes(wf.uri.scheme)) {
-      const params = new URLSearchParams(wf.uri.query);
-      if (params.has("flat") || params.has("type")) {
-        const qp = params.has("flat") ? "flat" : "type";
-        await vscode.window
-          .showWarningMessage(
-            `Workspace folder '${wf.name}' is using deprecated query parameter '${qp}'. Modify it now?`,
-            "Yes",
-            "No"
-          )
-          .then(
-            (answer) => answer == "Yes" && vscode.commands.executeCommand("vscode-objectscript.modifyWsFolder", wf.uri)
-          );
-      }
-    }
-  });
-
   // The API we export
   const extensionApi = {
     serverForUri(uri: vscode.Uri): any {
