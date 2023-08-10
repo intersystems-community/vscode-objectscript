@@ -20,7 +20,7 @@ Minimum VS Code version is now 1.75.0
 - Fixes
   - Improve regex server-side search (#1153)
   - Fix typo in Projects Explorer welcome text (#1154)
-  - Remove `objectscript.serverSideEditing`` setting (#1163)
+  - Remove `objectscript.serverSideEditing` setting (#1163)
   - Deprecate `flat` and `type` isfs query parameters (#1165)
   - Debugger improvements (#1174)
     - Fix debugger losing sync after a step.
