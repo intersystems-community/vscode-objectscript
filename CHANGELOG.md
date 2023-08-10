@@ -1,5 +1,14 @@
 # Change Log
 
+## [2.10.1] 10-Aug-2023
+- Enhancements
+  - Only add WebSocket Terminal button to Server Manager 3.4.2+ tree if server is compatible (#1204)
+  - Add `Copy Invocation` CodeLens above query definition in class (#1198)
+  - Remove previously deprecated `objectscript.serverSideEditing` setting (#1195)
+- Fixes
+  - Flush cached copy of failed authentication (#1196)
+  - Properly report search matches for super classes (#1200)
+
 ## [2.10.0] 20-Jul-2023
 Minimum VS Code version is now 1.75.0
 - Enhancements
