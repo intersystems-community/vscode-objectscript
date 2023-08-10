@@ -99,7 +99,6 @@ export async function projectContentsFromUri(uri: vscode.Uri, overrideFlat?: boo
 export function fileSpecFromURI(uri: vscode.Uri): string {
   const params = new URLSearchParams(uri.query);
   const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
-  const type = params.has("type") && params.get("type").length ? params.get("type") : csp ? "csp" : "all";
 
   const folder = !csp
     ? uri.path.replace(/\//g, ".")
@@ -122,10 +121,6 @@ export function fileSpecFromURI(uri: vscode.Uri): string {
   } // otherwise, reference the type to get the desired files.
   else if (csp) {
     specOpts = folder.length > 1 ? "*" : "*.cspall";
-  } else if (type === "rtn") {
-    specOpts = "*.inc,*.mac,*.int";
-  } else if (type === "cls") {
-    specOpts = "*.cls";
   } else {
     specOpts = "*.cls,*.inc,*.mac,*.int";
   }
@@ -142,7 +137,6 @@ export function studioOpenDialogFromURI(
   }
   const sql = `SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?,?,?)`;
   const params = new URLSearchParams(uri.query);
-  const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
   const spec = fileSpecFromURI(uri);
   const notStudio = "0";
   const dir = "1";
@@ -150,10 +144,7 @@ export function studioOpenDialogFromURI(
   const generated = params.has("generated") && params.get("generated").length ? params.get("generated") : "0";
   const system =
     params.has("system") && params.get("system").length ? params.get("system") : api.ns === "%SYS" ? "1" : "0";
-  let flat = !csp && params.has("flat") && params.get("flat").length ? params.get("flat") : "0";
-  if (overrides && overrides.flat) {
-    flat = "1";
-  }
+  const flat = overrides && overrides.flat ? "1" : "0";
   const mapped = params.has("mapped") && params.get("mapped") == "0" ? "0" : "1";
   return api.actionQuery(sql, [spec, dir, orderBy, system, flat, notStudio, generated, overrides.filter, "0", mapped]);
 }

@@ -377,31 +377,28 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
         max: options.maxResults ?? 100000,
       };
 
-      // Generate the include and exclude filters, except for if 'flat' is present
-      // because there isn't an easy way to convert all dots to slashes except for file extensions.
+      // Generate the include and exclude filters.
       // The matching is case sensitive and file names are normalized so that the first character
       // and path separator are '/' (for example, '/%Api/Atelier/v6.cls' and '/csp/user/menu.csp').
-      if (params.has("flat") && params.get("flat").length ? params.get("flat") != "1" : true) {
-        let includesArr = options.includes;
-        let excludesArr = removeConfigExcludes(options.folder, options.excludes);
-        if (!["", "/"].includes(options.folder.path)) {
-          // Prepend path with a trailing slash
-          const prefix = !options.folder.path.endsWith("/") ? `${options.folder.path}/` : options.folder.path;
-          includesArr = includesArr.map((e) => `${prefix}${e}`);
-          excludesArr = excludesArr.map((e) => `${prefix}${e}`);
-        }
+      let includesArr = options.includes;
+      let excludesArr = removeConfigExcludes(options.folder, options.excludes);
+      if (!["", "/"].includes(options.folder.path)) {
+        // Prepend path with a trailing slash
+        const prefix = !options.folder.path.endsWith("/") ? `${options.folder.path}/` : options.folder.path;
+        includesArr = includesArr.map((e) => `${prefix}${e}`);
+        excludesArr = excludesArr.map((e) => `${prefix}${e}`);
+      }
 
-        // Add leading slash if we don't start with **/
-        includesArr = includesArr.map((e) => (!e.startsWith("**/") ? `/${e}` : e));
-        excludesArr = excludesArr.map((e) => (!e.startsWith("**/") ? `/${e}` : e));
+      // Add leading slash if we don't start with **/
+      includesArr = includesArr.map((e) => (!e.startsWith("**/") ? `/${e}` : e));
+      excludesArr = excludesArr.map((e) => (!e.startsWith("**/") ? `/${e}` : e));
 
-        // Convert the array of glob patterns into a single regular expression
-        if (includesArr.length) {
-          request.include = includesArr.map((e) => makeRe(e).source).join("|");
-        }
-        if (excludesArr.length) {
-          request.exclude = excludesArr.map((e) => makeRe(e).source).join("|");
-        }
+      // Convert the array of glob patterns into a single regular expression
+      if (includesArr.length) {
+        request.include = includesArr.map((e) => makeRe(e).source).join("|");
+      }
+      if (excludesArr.length) {
+        request.exclude = excludesArr.map((e) => makeRe(e).source).join("|");
       }
 
       // Send the queue request
@@ -593,30 +590,6 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
                   if (!projectList.includes(file.doc.slice(1))) {
                     // This web app file isn't in the project, so ignore its matches
                     return;
-                  }
-                }
-
-                // Don't report matches in filetypes we don't want or don't handle
-                const fileType = file.doc.split(".").pop().toLowerCase();
-                if (!csp) {
-                  switch (params.get("type")) {
-                    case "cls":
-                      if (fileType !== "cls") {
-                        return;
-                      }
-                      break;
-
-                    case "rtn":
-                      if (!["inc", "int", "mac"].includes(fileType)) {
-                        return;
-                      }
-                      break;
-
-                    default:
-                      if (!["cls", "inc", "int", "mac"].includes(fileType)) {
-                        return;
-                      }
-                      break;
                   }
                 }
 

@@ -80,13 +80,12 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
       if (authorityParts.length === 2 && namespace?.toLowerCase() === authorityParts[1]) {
         namespace = "";
       }
-      const flat = new URLSearchParams(wFolderUri.query).get("flat") == "1";
       const fileExt = name.split(".").pop();
       const fileName = name
         .split(".")
         .slice(0, -1)
-        .join(/cls|mac|int|inc/i.test(fileExt) && !flat ? "/" : ".");
-      if (/.\.G?[1-9]\.int$/i.test(name) && !flat) {
+        .join(/cls|mac|int|inc/i.test(fileExt) ? "/" : ".");
+      if (/.\.G?[1-9]\.int$/i.test(name)) {
         // This is a generated INT file
         name =
           fileName.slice(0, fileName.lastIndexOf("/")) +
