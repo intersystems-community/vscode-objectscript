@@ -457,7 +457,7 @@
         },
         {
           "command": "vscode-objectscript.intersystems-servermanager.webterminal",
-          "when": "view == intersystems-community_servermanager && viewItem =~ /namespace$/",
+          "when": "view == intersystems-community_servermanager && viewItem =~ /namespace$/ && (viewItem > 6 || !(viewItem =~ /^\\d+/))",
           "group": "inline@1"
         }
       ],
