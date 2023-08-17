@@ -259,9 +259,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         if (error) {
           console.log(error);
           if (error.errorText.includes(" #5540:")) {
+            const nsUpper = api.config.ns.toUpperCase();
             const message = `User '${api.config.username}' cannot list ${
-              csp ? "web application" : "namespace"
-            } contents. To resolve this, execute the following SQL in the ${api.config.ns.toUpperCase()} namespace:\n\t GRANT EXECUTE ON %Library.RoutineMgr_StudioOpenDialog TO ${
+              csp ? `web application '${uri.path}'` : "namespace"
+            } contents. If they do not have READ permission on the default code database of the ${nsUpper} namespace then grant it and retry. If the problem remains then execute the following SQL in that namespace:\n\t GRANT EXECUTE ON %Library.RoutineMgr_StudioOpenDialog TO ${
               api.config.username
             }`;
             outputChannel.appendError(message);
