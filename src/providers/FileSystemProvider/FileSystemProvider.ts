@@ -47,7 +47,7 @@ export function generateFileContent(
       preamble.push(nextLine);
     }
     if (content.length === 0) {
-      content.push(`Class ${className}`, "{", "}");
+      content.push(`Class ${className} Extends %RegisteredObject`, "{", "}");
     }
     return {
       content,
