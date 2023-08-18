@@ -21,7 +21,11 @@ declare function setTimeout(callback: (...args: any[]) => void, ms: number, ...a
 
 export type Entry = File | Directory;
 
-export function generateFileContent(fileName: string, sourceContent: Buffer): { content: string[]; enc: boolean } {
+export function generateFileContent(
+  uri: vscode.Uri,
+  fileName: string,
+  sourceContent: Buffer
+): { content: string[]; enc: boolean } {
   const sourceLines = sourceContent.toString().split("\n");
   const fileExt = fileName.split(".").pop().toLowerCase();
   const csp = fileName.startsWith("/");
@@ -53,6 +57,19 @@ export function generateFileContent(fileName: string, sourceContent: Buffer): { 
     sourceLines.shift();
     const routineName = fileName.split(".").slice(0, -1).join(".");
     const routineType = fileExt != "mac" ? `[Type=${fileExt.toUpperCase()}]` : "";
+    if (sourceLines.length === 0 && fileExt !== "inc") {
+      const languageId = fileExt === "mac" ? "objectscript" : "objectscript-int";
+
+      // Labels cannot contain dots
+      const firstLabel = routineName.replaceAll(".", "");
+
+      // Be smart about whether to use a Tab or a space between label and comment.
+      // Doing this will help autodetect to do the right thing.
+      const lineStart = vscode.workspace.getConfiguration("editor", { languageId, uri }).get("insertSpaces")
+        ? " "
+        : "\t";
+      sourceLines.push(`${firstLabel}${lineStart};`);
+    }
     return {
       content: [`ROUTINE ${routineName} ${routineType}`, ...sourceLines],
       enc: false,
@@ -354,7 +371,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         }
         // File doesn't exist on the server, and we are allowed to create it.
         // Create content (typically a stub, unless the write-phase of a copy operation).
-        const newContent = generateFileContent(fileName, content);
+        const newContent = generateFileContent(uri, fileName, content);
 
         // Write it to the server
         return api
@@ -388,6 +405,12 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             this._lookupAsFile(uri).then(() => {
               this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
             });
+
+            // Ask to put cursor at start of 3rd line.
+            // For CLS stub this will be where properties and methods need to be inserted.
+            // For MAC and INT stubs there is no 3rd line, so cursor goes to the end of the 2nd, which is 1st of actual routine and is ready for comment text.
+            const editor = await vscode.window.showTextDocument(uri);
+            editor.selection = new vscode.Selection(2, 0, 2, 0);
           });
       }
     );
@@ -555,7 +578,11 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const newCsp = newParams.has("csp") && ["", "1"].includes(newParams.get("csp"));
     const newFileName = newCsp ? newUri.path : newUri.path.slice(1).replace(/\//g, ".");
     // Generate content for the new file
-    const newContent = generateFileContent(newFileName, Buffer.from(await vscode.workspace.fs.readFile(oldUri)));
+    const newContent = generateFileContent(
+      newUri,
+      newFileName,
+      Buffer.from(await vscode.workspace.fs.readFile(oldUri))
+    );
     if (newFileStat) {
       // We're overwriting an existing file so prompt the user to check it out
       await fireOtherStudioAction(OtherStudioAction.AttemptedEdit, newUri);
