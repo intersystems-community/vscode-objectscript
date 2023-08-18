@@ -81,26 +81,35 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
       return result;
     }
 
-    debugThisMethod && result.push(this.addDebugThisMethod(0, [`^${routineName}`, false]));
-    copyToClipboard && result.push(this.addCopyToClipboard(0, [`^${routineName}`]));
-
     const symbols: vscode.DocumentSymbol[] = await vscode.commands.executeCommand(
       "vscode.executeDocumentSymbolProvider",
       document.uri
     );
-    symbols
-      .filter((symbol) => symbol.kind === vscode.SymbolKind.Method)
-      .forEach((symbol) => {
-        const line = symbol.selectionRange.start.line;
-        const labelMatch = document.lineAt(line).text.match(/^(\w[^(\n\s]+)(?:\(([^)]*)\))?/i);
-        if (labelMatch) {
-          const [, name, parens] = labelMatch;
 
-          debugThisMethod && result.push(this.addDebugThisMethod(line, [`${name}^${routineName}`, parens !== "()"]));
-          copyToClipboard && result.push(this.addCopyToClipboard(line, [`${name}^${routineName}`]));
-        }
-      });
+    let labelledLine1 = false;
+    if (symbols) {
+      symbols
+        .filter((symbol) => symbol.kind === vscode.SymbolKind.Method)
+        .forEach((symbol) => {
+          const line = symbol.selectionRange.start.line;
+          const labelMatch = document.lineAt(line).text.match(/^(\w[^(\n\s]+)(?:\(([^)]*)\))?/i);
+          if (labelMatch) {
+            if (line === 1) {
+              labelledLine1 = true;
+            }
+            const [, name, parens] = labelMatch;
+            debugThisMethod &&
+              result.push(this.addDebugThisMethod(line, [`${name}^${routineName}`, parens && parens !== "()"]));
+            copyToClipboard && result.push(this.addCopyToClipboard(line, [`${name}^${routineName}`]));
+          }
+        });
+    }
 
+    // Add lenses at the top only if the first code line had no label
+    if (!labelledLine1) {
+      debugThisMethod && result.push(this.addDebugThisMethod(0, [`^${routineName}`, false]));
+      copyToClipboard && result.push(this.addCopyToClipboard(0, [`^${routineName}`]));
+    }
     return result;
   }
 

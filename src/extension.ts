@@ -1028,7 +1028,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.debug.registerDebugAdapterDescriptorFactory("objectscript", debugAdapterFactory),
     debugAdapterFactory,
     vscode.languages.registerCodeLensProvider(
-      documentSelector("objectscript-class", "objectscript"),
+      documentSelector("objectscript-class", "objectscript", "objectscript-int"),
       new ObjectScriptCodeLensProvider()
     ),
     vscode.commands.registerCommand("vscode-objectscript.compileOnly", () => compileOnly(false)),
