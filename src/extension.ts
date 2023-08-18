@@ -1048,17 +1048,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.workspace.onDidCreateFiles((e: vscode.FileCreateEvent) =>
       Promise.all(
         e.files
-          .filter((f) => !filesystemSchemas.includes(f.scheme))
-          .filter((f) => ["cls", "inc", "int", "mac"].includes(f.path.split(".").pop().toLowerCase()))
-          .map(async (f) => {
+          .filter((uri) => !filesystemSchemas.includes(uri.scheme))
+          .filter((uri) => ["cls", "inc", "int", "mac"].includes(uri.path.split(".").pop().toLowerCase()))
+          .map(async (uri) => {
             // Determine the file name
-            const workspace = workspaceFolderOfUri(f);
+            const workspace = workspaceFolderOfUri(uri);
             if (!workspace) {
               // No workspace folders are open
               return null;
             }
             const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
-            const filePathNoWorkspaceArr = f.fsPath.replace(workspacePath + path.sep, "").split(path.sep);
+            const filePathNoWorkspaceArr = uri.fsPath.replace(workspacePath + path.sep, "").split(path.sep);
             const { folder, addCategory } = config("export", workspace);
             const expectedFolder = typeof folder === "string" && folder.length ? folder : null;
             const expectedFolderArr = expectedFolder.split(path.sep);
@@ -1068,15 +1068,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
             ) {
               filePathNoWorkspaceArr.splice(0, expectedFolderArr.length);
             }
-            const expectedCat = addCategory ? getCategory(f.fsPath, addCategory) : null;
+            const expectedCat = addCategory ? getCategory(uri.fsPath, addCategory) : null;
             if (expectedCat !== null && filePathNoWorkspaceArr[0] === expectedCat) {
               filePathNoWorkspaceArr.shift();
             }
             const fileName = filePathNoWorkspaceArr.join(".");
             // Generate the new content
-            const newContent = generateFileContent(fileName, Buffer.from(await vscode.workspace.fs.readFile(f)));
+            const newContent = generateFileContent(uri, fileName, Buffer.from(await vscode.workspace.fs.readFile(uri)));
             // Write the new content to the file
-            return vscode.workspace.fs.writeFile(f, new TextEncoder().encode(newContent.content.join("\n")));
+            return vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(newContent.content.join("\n")));
           })
       )
     ),
