@@ -148,6 +148,12 @@ export function isImportableLocalFile(file: vscode.TextDocument): boolean {
   }
 }
 
+/** A regex for extracting the name of a class from its content */
+export const classNameRegex = /^[ \t]*Class[ \t]+(%?[\p{L}\d\u{100}-\u{ffff}]+(?:\.[\p{L}\d\u{100}-\u{ffff}]+)+)/imu;
+
+/** A regex for extracting the name and type of a routine from its content */
+export const routineNameTypeRegex = /^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i;
+
 export function currentFileFromContent(uri: vscode.Uri, content: string | Buffer): CurrentTextFile | CurrentBinaryFile {
   const fileName = uri.fsPath;
   const workspaceFolder = workspaceFolderOfUri(uri);
@@ -160,12 +166,12 @@ export function currentFileFromContent(uri: vscode.Uri, content: string | Buffer
   let ext = "";
   if (fileExt === "cls" && typeof content === "string") {
     // Allow Unicode letters
-    const match = content.match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
+    const match = content.match(classNameRegex);
     if (match) {
       [, name, ext = "cls"] = match;
     }
   } else if (fileExt.match(/(mac|int|inc)/i) && typeof content === "string") {
-    const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i);
+    const match = content.match(routineNameTypeRegex);
     if (match) {
       [, name, ext = "mac"] = match;
     } else {
@@ -244,12 +250,12 @@ export function currentFile(document?: vscode.TextDocument): CurrentTextFile {
     name = uri.path;
   } else if (fileExt === "cls") {
     // Allow Unicode letters
-    const match = content.match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
+    const match = content.match(classNameRegex);
     if (match) {
       [, name, ext = "cls"] = match;
     }
   } else if (fileExt.match(/(mac|int|inc)/i)) {
-    const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i);
+    const match = content.match(routineNameTypeRegex);
     if (match) {
       [, name, ext = "mac"] = match;
     } else {
