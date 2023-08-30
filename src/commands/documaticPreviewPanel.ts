@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { classNameRegex } from "../utils";
 
 /**
  * The schema of the message that gets sent to the webview.
@@ -59,7 +60,7 @@ export class DocumaticPreviewPanel {
 
     // Get the name of the current class
     let clsname = "";
-    const match = openDoc.getText().match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
+    const match = openDoc.getText().match(classNameRegex);
     if (match) {
       [, clsname] = match;
     }
@@ -282,7 +283,7 @@ export class DocumaticPreviewPanel {
 
           // Get the name of the current class
           let clsname = "";
-          const match = editor.document.getText().match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
+          const match = editor.document.getText().match(classNameRegex);
           if (match) {
             [, clsname] = match;
           }

@@ -6,6 +6,7 @@ import { File } from "./File";
 import { fireOtherStudioAction, OtherStudioAction } from "../../commands/studio";
 import { projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
 import {
+  classNameRegex,
   isClassDeployed,
   notNull,
   outputChannel,
@@ -348,7 +349,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           }
           // Check if the class name and file name match
           let clsname = "";
-          const match = content.toString().match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
+          const match = content.toString().match(classNameRegex);
           if (match) {
             [, clsname] = match;
           }

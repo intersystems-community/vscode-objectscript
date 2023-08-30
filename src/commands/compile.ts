@@ -14,6 +14,7 @@ import {
 } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import {
+  classNameRegex,
   cspAppsForUri,
   CurrentBinaryFile,
   currentFile,
@@ -23,6 +24,7 @@ import {
   isClassDeployed,
   notNull,
   outputChannel,
+  routineNameTypeRegex,
   throttleRequests,
 } from "../utils";
 import { PackageNode } from "../explorer/models/packageNode";
@@ -770,12 +772,12 @@ export async function importLocalFilesToServerSideFolder(wsFolderUri: vscode.Uri
           let ext = "";
           if (uri.path.split(".").pop().toLowerCase() == "cls") {
             // Allow Unicode letters
-            const match = content.match(/^[ \t]*Class[ \t]+(%?[\p{L}\d]+(?:\.[\p{L}\d]+)+)/imu);
+            const match = content.match(classNameRegex);
             if (match) {
               [, docName, ext = "cls"] = match;
             }
           } else {
-            const match = content.match(/^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i);
+            const match = content.match(routineNameTypeRegex);
             if (match) {
               [, docName, ext = "mac"] = match;
             } else {
