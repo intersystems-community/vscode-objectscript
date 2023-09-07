@@ -1,5 +1,15 @@
 # Change Log
 
+## [2.10.2] 07-Sep-2023
+- Enhancements
+  - Improve message to help resolve scenario where isfs user lacks `%DB_IRISSYS:READ` (#1211)
+  - Improve MAC and INT stubs created for new server-side routine (#1218)
+  - Add `Extends` clause to stub code of new server-side class (#1220)
+  - Allow Unicode characters in class names, in readiness for 2023.3+ servers (#1225)
+- Fixes
+  - Resolve some CodeLens issues on routines (#1216)
+  - Display routine members of server-side project correctly (#1226)
+
 ## [2.10.1] 10-Aug-2023
 - Enhancements
   - Only add WebSocket Terminal button to Server Manager 3.4.2+ tree if server is compatible (#1204)
