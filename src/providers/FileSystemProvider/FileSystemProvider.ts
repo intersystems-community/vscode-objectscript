@@ -27,7 +27,7 @@ export function generateFileContent(
   fileName: string,
   sourceContent: Buffer
 ): { content: string[]; enc: boolean } {
-  const sourceLines = sourceContent.toString().split("\n");
+  const sourceLines = new TextDecoder().decode(sourceContent).split("\n");
   const fileExt = fileName.split(".").pop().toLowerCase();
   const csp = fileName.startsWith("/");
   if (fileExt === "cls" && !csp) {
@@ -349,7 +349,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           }
           // Check if the class name and file name match
           let clsname = "";
-          const match = content.toString().match(classNameRegex);
+          const match = new TextDecoder().decode(content).match(classNameRegex);
           if (match) {
             [, clsname] = match;
           }
