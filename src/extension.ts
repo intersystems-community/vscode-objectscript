@@ -990,8 +990,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.previewXml", () => {
       xml2doc(context, vscode.window.activeTextEditor);
     }),
-    vscode.commands.registerCommand("vscode-objectscript.addServerNamespaceToWorkspace", () => {
-      addServerNamespaceToWorkspace();
+    vscode.commands.registerCommand("vscode-objectscript.addServerNamespaceToWorkspace", (resource?: vscode.Uri) => {
+      addServerNamespaceToWorkspace(resource);
     }),
     vscode.commands.registerCommand("vscode-objectscript.connectFolderToServerNamespace", () => {
       connectFolderToServerNamespace();
