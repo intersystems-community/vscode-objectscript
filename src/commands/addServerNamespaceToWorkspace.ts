@@ -32,6 +32,14 @@ export async function pickServerAndNamespace(message?: string): Promise<{ server
   if (!serverName) {
     return;
   }
+  const namespace = await pickNamespaceOnServer(serverName);
+  if (!namespace) {
+    return;
+  }
+  return { serverName, namespace };
+}
+
+async function pickNamespaceOnServer(serverName: string): Promise<string> {
   // Get its namespace list
   const uri = vscode.Uri.parse(`isfs://${serverName}:%sys/`);
   await resolveConnectionSpec(serverName);
@@ -69,18 +77,41 @@ export async function pickServerAndNamespace(message?: string): Promise<{ server
     placeHolder: `Namespace on server '${serverName}' (${connDisplayString})`,
     ignoreFocusOut: true,
   });
-  if (!namespace) {
-    return;
-  }
-  return { serverName, namespace };
+  return namespace;
 }
 
-export async function addServerNamespaceToWorkspace(): Promise<void> {
-  const picks = await pickServerAndNamespace("Adding a server namespace to a workspace");
-  if (picks == undefined) {
-    return;
+export async function addServerNamespaceToWorkspace(resource?: vscode.Uri): Promise<void> {
+  const TITLE = "Add server namespace to workspace";
+  let serverName = "";
+  let namespace = "";
+  if (filesystemSchemas.includes(resource?.scheme)) {
+    serverName = resource.authority.split(":")[0];
+    if (serverName) {
+      const ANOTHER = "Choose another server";
+      const choice = await vscode.window.showQuickPick([`Add a '${serverName}' namespace`, ANOTHER], {
+        title: TITLE,
+      });
+      if (!choice) {
+        return;
+      }
+      if (choice === ANOTHER) {
+        serverName = "";
+      }
+    }
   }
-  const { serverName, namespace } = picks;
+  if (serverName === "") {
+    const picks = await pickServerAndNamespace(TITLE);
+    if (picks == undefined) {
+      return;
+    }
+    serverName = picks.serverName;
+    namespace = picks.namespace;
+  } else {
+    namespace = await pickNamespaceOnServer(serverName);
+    if (!namespace) {
+      return;
+    }
+  }
   // Prompt the user for edit or read-only
   const mode = await vscode.window.showQuickPick(
     [
