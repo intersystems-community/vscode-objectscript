@@ -136,15 +136,10 @@ export async function serverActions(): Promise<void> {
   const classRef = `/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${nsEncoded}${
     classname ? "&CLASSNAME=" + classnameEncoded : ""
   }`;
-  const soapWizardPath = "/isc/studio/templates/%25ZEN.Template.AddInWizard.SOAPWizard.cls";
   const project = new URLSearchParams(uriOfWorkspaceFolder()?.query).get("project") || "";
   let extraLinks = 0;
-  let hasSOAPWizard = false;
   for (const title in links) {
     const rawLink = String(links[title]);
-    if (rawLink.includes(soapWizardPath)) {
-      hasSOAPWizard = true;
-    }
     // Skip link if it requires a classname and we don't currently have one
     if (classname == "" && (rawLink.includes("${classname}") || rawLink.includes("${classnameEncoded}"))) {
       continue;
@@ -191,13 +186,11 @@ export async function serverActions(): Promise<void> {
     label: "Open Class Reference" + (classname ? ` for ${classname}` : ""),
     detail: serverUrl + classRef,
   });
-  if (!hasSOAPWizard) {
-    actions.push({
-      id: "openSOAPWizard",
-      label: "Open SOAP Wizard",
-      detail: `${serverUrl}${soapWizardPath}?$NAMESPACE=${nsEncoded}`,
-    });
-  }
+  actions.push({
+    id: "openStudioAddin",
+    label: "Open Studio Add-in...",
+    detail: "Select a Studio Add-in to open",
+  });
   if (
     !vscode.window.activeTextEditor ||
     vscode.window.activeTextEditor.document.uri.scheme === FILESYSTEM_SCHEMA ||
@@ -234,11 +227,34 @@ export async function serverActions(): Promise<void> {
           vscode.env.openExternal(vscode.Uri.parse(`${serverUrl}${classRef}&CSPCHD=${token}`));
           break;
         }
-        case "openSOAPWizard": {
-          const token = await getCSPToken(api, soapWizardPath);
-          vscode.env.openExternal(
-            vscode.Uri.parse(`${serverUrl}${soapWizardPath}?$NAMESPACE=${nsEncoded}&CSPCHD=${token}`)
-          );
+        case "openStudioAddin": {
+          const addins: ServerAction[] = await api
+            .actionQuery(
+              "SELECT Name AS label, Description AS detail, Url AS id FROM %CSP.StudioTemplateMgr_Templates('ADDIN')",
+              []
+            )
+            .then((data) => data.result.content)
+            .catch((error) => {
+              let message = "Failed to fetch list of Studio Add-ins.";
+              if (error && error.errorText && error.errorText !== "") {
+                outputChannel.appendLine("\n" + error.errorText);
+                outputChannel.show(true);
+                message += " Check 'ObjectScript' output channel for details.";
+              }
+              vscode.window.showErrorMessage(message, "Dismiss");
+              return undefined;
+            });
+          if (addins != undefined) {
+            const addin = await vscode.window.showQuickPick(addins, {
+              placeHolder: `Select Studio Add-In for server: ${connInfo}`,
+            });
+            if (addin) {
+              const token = await getCSPToken(api, addin.id);
+              vscode.env.openExternal(
+                vscode.Uri.parse(`${serverUrl}${addin.id}?$NAMESPACE=${nsEncoded}&CSPCHD=${token}`)
+              );
+            }
+          }
           break;
         }
         case "openDockerTerminal": {
