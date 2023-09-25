@@ -1,5 +1,14 @@
 # Change Log
 
+## [2.10.3] 25-Sep-2023
+- Enhancements
+  - Put link to editor in class comment when creating new BPL/DTL (#1231)
+  - Make it easier to add namespace from same server to workspace (#1232)
+  - Add option in Server Actions menu to open Studio Add-Ins (#1236)
+  - Add command for creating a new KPI (#1237)
+- Fixes
+  - Remove unneeded snippets (#1235)
+
 ## [2.10.2] 07-Sep-2023
 - Enhancements
   - Improve message to help resolve scenario where isfs user lacks `%DB_IRISSYS:READ` (#1211)
