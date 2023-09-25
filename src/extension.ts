@@ -1291,6 +1291,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       newFile(NewFileType.BusinessService)
     ),
     vscode.commands.registerCommand("vscode-objectscript.newFile.dtl", () => newFile(NewFileType.DTL)),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.kpi", () => newFile(NewFileType.KPI)),
     vscode.window.registerFileDecorationProvider(fileDecorationProvider),
     vscode.workspace.onDidOpenTextDocument((doc) => !doc.isUntitled && fileDecorationProvider.emitter.fire(doc.uri)),
     vscode.commands.registerCommand("vscode-objectscript.importLocalFilesServerSide", (wsFolderUri) => {

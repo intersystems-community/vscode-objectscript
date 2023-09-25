@@ -15,6 +15,7 @@ interface InputBoxStepOptions {
   type: "inputBox";
   title: string;
   placeholder?: string;
+  prompt?: string;
   validateInput?(value: string): string | undefined | Promise<string | undefined>;
 }
 
@@ -50,6 +51,7 @@ async function multiStepInput(steps: InputStepOptions[]): Promise<string[] | und
         inputBox.totalSteps = steps.length;
         inputBox.buttons = step > 0 ? [vscode.QuickInputButtons.Back] : [];
         inputBox.placeholder = stepOptions.placeholder;
+        inputBox.prompt = stepOptions.prompt;
         inputBox.title = stepOptions.title;
         if (results[step] != undefined) {
           // Restore the past input
@@ -221,6 +223,7 @@ export enum NewFileType {
   BPL = "Business Process",
   DTL = "Data Transformation",
   Rule = "Business Rule",
+  KPI = "Business Intelligence KPI",
 }
 
 interface RuleAssistClasses {
@@ -264,16 +267,18 @@ export async function newFile(type: NewFileType): Promise<void> {
       api = undefined;
     }
 
-    // Check if we're connected to an Interoperability namespace
-    const ensemble: boolean = api
-      ? await api.getNamespace().then((data) => data.result.content.features[0].enabled)
-      : true;
-    if (!ensemble) {
-      vscode.window.showErrorMessage(
-        `Workspace folder '${wsFolder.name}' is not connected to an Interoperability namespace.`,
-        "Dismiss"
-      );
-      return;
+    if (type != NewFileType.KPI) {
+      // Check if we're connected to an Interoperability namespace
+      const ensemble: boolean = api
+        ? await api.getNamespace().then((data) => data.result.content.features[0].enabled)
+        : true;
+      if (!ensemble) {
+        vscode.window.showErrorMessage(
+          `Workspace folder '${wsFolder.name}' is not connected to an Interoperability namespace.`,
+          "Dismiss"
+        );
+        return;
+      }
     }
 
     const inputSteps: InputStepOptions[] = [];
@@ -282,6 +287,7 @@ export async function newFile(type: NewFileType): Promise<void> {
     let classes: string[] = [];
     let ruleAssists: RuleAssistClasses = {};
     let dtlClassQPItems: vscode.QuickPickItem[] = [];
+    let serverResources: vscode.QuickPickItem[] = [];
     if (api) {
       const classesPromise: Promise<string[]> = api
         .actionQuery("SELECT Name FROM %Dictionary.ClassDefinition", [])
@@ -377,6 +383,20 @@ export async function newFile(type: NewFileType): Promise<void> {
             }),
           classesPromise,
         ]);
+      } else if (type == NewFileType.KPI) {
+        // Get a list of classes on the server to validate the name
+        classes = await classesPromise;
+        // Get a list of server resources
+        const originalNs = api.ns;
+        api.setNamespace("%SYS");
+        serverResources = await api
+          .actionQuery(
+            "SELECT Name AS label, Description AS detail, 'Public Permission: '||PublicPermission AS description FROM Security.Resources_List()",
+            []
+          )
+          .then((data) => data.result.content)
+          .catch(() => []);
+        api.setNamespace(originalNs);
       } else {
         // Get a list of classes on the server to validate the name
         classes = await classesPromise;
@@ -466,7 +486,7 @@ Parameter INVOCATION = "${invocation}";
 /// for tips on how to implement operation methods.
 Method SampleCall(pRequest As Ens.Request, Output pResponse As Ens.Response) As %Status
 {
-  Quit $$$ERROR($$$NotImplemented)
+  Return $$$ERROR($$$NotImplemented)
 }
 
 XData MessageMap
@@ -508,7 +528,7 @@ Parameter ADAPTER = "${adapter}";
 /// for tips on how to implement this method.
 Method OnProcessInput(pInput As %RegisteredObject, pOutput As %RegisteredObject) As %Status
 {
-  Quit $$$ERROR($$$NotImplemented)
+  Return $$$ERROR($$$NotImplemented)
 }
 
 }
@@ -572,7 +592,7 @@ Class ${cls} Extends Ens.BusinessProcess [ ClassType = persistent ]
 /// for tips on how to implement this method.
 Method OnRequest(pRequest As Ens.Request, Output pResponse As Ens.Response) As %Status
 {
-  Quit $$$ERROR($$$NotImplemented)
+  Return $$$ERROR($$$NotImplemented)
 }
 
 }
@@ -667,7 +687,7 @@ Class ${cls} Extends Ens.DataTransform
 /// for tips on how to implement this method.
 ClassMethod Transform(source As ${sourceCls}, ByRef target As ${targetCls}) As %Status
 {
-  Quit $$$ERROR($$$NotImplemented)
+  Return $$$ERROR($$$NotImplemented)
 }
 
 }
@@ -747,6 +767,81 @@ XData RuleDefinition [ XMLNamespace = "http://www.intersystems.com/rule" ]
 <ruleSet name="" effectiveBegin="" effectiveEnd="">
 </ruleSet>
 </ruleDefinition>
+}
+
+}
+`;
+    } else if (type == NewFileType.KPI) {
+      // Create the prompt for the name, domain, resource, and type
+      inputSteps.push(
+        {
+          type: "inputBox",
+          title: "Name",
+          placeholder: "MyFolder/MyKPI",
+          prompt: "Logical name of the KPI.",
+        },
+        {
+          type: "inputBox",
+          title: "Domain",
+          prompt: "Localization domain to which this KPI belongs.",
+        },
+        serverResources.length
+          ? {
+              type: "quickPick",
+              title: "Resource",
+              items: serverResources,
+            }
+          : {
+              type: "inputBox",
+              title: "Resource",
+              prompt: "Resource that secures this KPI.",
+            },
+        {
+          type: "quickPick",
+          title: "Source Type",
+          items: [{ label: "mdx" }, { label: "sql" }, { label: "manual" }],
+        }
+      );
+
+      // Prompt the user
+      const results = await multiStepInput(inputSteps);
+      if (!results) {
+        return;
+      }
+      cls = results[0];
+      const [, desc, kpiName, kpiDomain, kpiResource, kpiType] = results;
+
+      // Generate the file's content
+      clsContent = `
+${typeof desc == "string" ? "/// " + desc.replace(/\n/g, "\n/// ") : ""}
+Class ${cls} Extends %DeepSee.KPI
+{
+
+Parameter DOMAIN = "${kpiDomain}";
+
+Parameter RESOURCE = "${kpiResource}";
+
+/// This XData definition defines the KPI.
+XData KPI [ XMLNamespace = "http://www.intersystems.com/deepsee/kpi" ]
+{
+<kpi xmlns="http://www.intersystems.com/deepsee/kpi" name="${kpiName}" sourceType="${kpiType}" >
+</kpi>
+}
+
+/// Notification that this KPI is being executed.
+/// This is a good place to override properties, such as range and threshold.
+Method %OnLoadKPI() As %Status
+{
+  Return $$$OK
+}
+
+/// This callback is invoked from a dashboard when an action defined by this dashboard is invoked.
+ClassMethod %OnDashboardAction(pAction As %String, pContext As %ZEN.proxyObject) As %Status
+{
+  #; pAction is the name of the action (as defined in the XML list).
+  #; pContext contains information from the client
+  #; and can be used to return information.
+  Return $$$OK
 }
 
 }
