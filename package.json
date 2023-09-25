@@ -300,6 +300,10 @@
           "when": "false"
         },
         {
+          "command": "vscode-objectscript.newFile.kpi",
+          "when": "false"
+        },
+        {
           "command": "vscode-objectscript.importLocalFilesServerSide",
           "when": "false"
         },
@@ -602,6 +606,11 @@
         }
       ],
       "file/newFile": [
+        {
+          "command": "vscode-objectscript.newFile.kpi",
+          "when": "workspaceFolderCount != 0",
+          "group": "file"
+        },
         {
           "command": "vscode-objectscript.newFile.businessOperation",
           "when": "workspaceFolderCount != 0",
@@ -1066,6 +1075,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.loadStudioColors",
         "title": "Load Studio Syntax Colors"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.newFile.kpi",
+        "title": "Business Intelligence KPI"
       },
       {
         "category": "ObjectScript",
