@@ -194,7 +194,7 @@
         "prefix": ["Response","Interoperability","ClassResponse"],
         "body": [
           "/// ${1:Description}",
-          "Class ${2:${TM_DIRECTORY/^.+[/\\\\](.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Response",
+          "Class ${2:${TM_DIRECTORY/^.+[\\/\\\\](.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Response",
           "{",
           "$0",
           "}"
