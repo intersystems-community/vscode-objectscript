@@ -165,7 +165,7 @@
         "prefix": ["Production","Interoperability","ClassProduction"],
         "body": [
           "/// ${1:Description}",
-          "Class ${2:${TM_DIRECTORY/^.+[/\\\\](.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Production",
+          "Class ${2:${TM_DIRECTORY/^.+[\\/\\\\](.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Production",
           "{",
           "",
           "XData ProductionDefinition",
