@@ -183,7 +183,7 @@
         "prefix": ["Request","Interoperability","ClassRequest"],
         "body": [
           "/// ${1:Description}",
-          "Class ${2:${TM_DIRECTORY/^.+[/\\\\](.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Request",
+          "Class ${2:${TM_DIRECTORY/^.+[\\/\\\\](.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Request",
           "{",
           "$0",
           "}"
