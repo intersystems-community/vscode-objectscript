@@ -165,7 +165,7 @@
         "prefix": ["Production","Interoperability","ClassProduction"],
         "body": [
           "/// ${1:Description}",
-          "Class ${2:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Production",
+          "Class ${2:${TM_DIRECTORY/^.+[\\/\\\\](.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Production",
           "{",
           "",
           "XData ProductionDefinition",
@@ -183,7 +183,7 @@
         "prefix": ["Request","Interoperability","ClassRequest"],
         "body": [
           "/// ${1:Description}",
-          "Class ${2:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Request",
+          "Class ${2:${TM_DIRECTORY/^.+[\\/\\\\](.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Request",
           "{",
           "$0",
           "}"
@@ -194,7 +194,7 @@
         "prefix": ["Response","Interoperability","ClassResponse"],
         "body": [
           "/// ${1:Description}",
-          "Class ${2:${TM_DIRECTORY/^.+\\/(.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Response",
+          "Class ${2:${TM_DIRECTORY/^.+[\\/\\\\](.*)$/$1/}.$TM_FILENAME_BASE} Extends Ens.Response",
           "{",
           "$0",
           "}"
