@@ -68,46 +68,37 @@ export class ProjectRootNode extends RootNode {
     return api
       .actionQuery(query, parameters)
       .then((data) => data.result.content.map((e) => e.Name))
+      .then((entries: string[]) => {
+        // Sort the files and folders separately an case-insensitively
+        const folders: string[] = [];
+        const files: string[] = [];
+        const collator = new Intl.Collator("en");
+        for (const entry of entries) entry.includes(".") ? files.push(entry) : folders.push(entry);
+        return [...folders.sort(collator.compare), ...files.sort(collator.compare)];
+      })
       .then((entries: string[]) =>
-        entries
-          .sort((a, b) => {
-            if ((a.match(/\./g) || []).length > (b.match(/\./g) || []).length) {
-              return 1;
-            } else if ((a.match(/\./g) || []).length < (b.match(/\./g) || []).length) {
-              return -1;
+        entries.map((entry) => {
+          const fullName = this.fullName.length
+            ? `${this.fullName}${this.category == "CSP" ? "/" : "."}${entry}`
+            : entry;
+          if (this.category == "CSP") {
+            if (entry.includes(".")) {
+              return new CSPFileNode(entry, fullName, this.options);
             } else {
-              return 0;
+              return new ProjectRootNode(entry, fullName, "dataNode:cspApplication", this.category, this.options, true);
             }
-          })
-          .map((entry) => {
-            const fullName = this.fullName.length
-              ? `${this.fullName}${this.category == "CSP" ? "/" : "."}${entry}`
-              : entry;
-            if (this.category == "CSP") {
-              if (entry.includes(".")) {
-                return new CSPFileNode(entry, fullName, this.options);
+          } else {
+            if (entry.includes(".")) {
+              if (["mac", "int", "inc"].includes(entry.split(".").pop().toLowerCase())) {
+                return new RoutineNode(entry, fullName, this.options);
               } else {
-                return new ProjectRootNode(
-                  entry,
-                  fullName,
-                  "dataNode:cspApplication",
-                  this.category,
-                  this.options,
-                  true
-                );
+                return new ClassNode(entry, fullName, this.options);
               }
             } else {
-              if (entry.includes(".")) {
-                if (["mac", "int", "inc"].includes(entry.split(".").pop().toLowerCase())) {
-                  return new RoutineNode(entry, fullName, this.options);
-                } else {
-                  return new ClassNode(entry, fullName, this.options);
-                }
-              } else {
-                return new ProjectRootNode(entry, fullName, "dataNode:packageNode", this.category, this.options);
-              }
+              return new ProjectRootNode(entry, fullName, "dataNode:packageNode", this.category, this.options);
             }
-          })
+          }
+        })
       );
   }
   public getItems4Export(): Promise<string[]> {
