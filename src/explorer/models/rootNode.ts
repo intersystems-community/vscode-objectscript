@@ -6,6 +6,7 @@ import { RoutineNode } from "./routineNode";
 import { AtelierAPI } from "../../api";
 import { ClassNode } from "./classNode";
 import { CSPFileNode } from "./cspFileNode";
+import { cspApps } from "../../extension";
 
 type IconPath =
   | string
@@ -57,7 +58,7 @@ export class RootNode extends NodeBase {
     return this.getItems(path, this._category);
   }
 
-  public getList(
+  public async getList(
     path: string,
     category: string,
     flat: boolean
@@ -81,7 +82,7 @@ export class RootNode extends NodeBase {
         spec = "*";
         break;
       case "OTH":
-        spec = "*";
+        spec = "*.other";
         break;
       default:
         return;
@@ -97,27 +98,45 @@ export class RootNode extends NodeBase {
 
     const api = new AtelierAPI(this.workspaceFolder);
     api.setNamespace(this.namespace);
-    return api
-      .actionQuery(sql, [spec, direction, orderBy, systemFiles, flat ? "1" : "0", notStudio, generated])
-      .then((data) => {
-        const content = data.result.content;
-        return content;
-      })
-      .then((data) =>
-        data.map((el: { Name: string; Type: number }) => {
-          let fullName = el.Name;
-          if (this instanceof PackageNode) {
-            fullName = this.fullName + "." + el.Name;
-          } else if (this.isCsp) {
-            fullName = this.fullName + "/" + el.Name;
-          }
-          return {
-            Name: el.Name,
-            Type: String(el.Type),
-            fullName,
-          };
+    if (category == "CSP" && path == "") {
+      // Use the results from the getCSPApps() API
+      const cspAppsKey = (
+        api.config.serverName && api.config.serverName != ""
+          ? `${api.config.serverName}:${api.config.ns}`
+          : `${api.config.host}:${api.config.port}${api.config.pathPrefix}:${api.config.ns}`
+      ).toLowerCase();
+      let nsCspApps: string[] | undefined = cspApps.get(cspAppsKey);
+      if (nsCspApps == undefined) {
+        nsCspApps = await api.getCSPApps().then((data) => data.result.content || []);
+        cspApps.set(cspAppsKey, nsCspApps);
+      }
+      return nsCspApps.map((cspApp) => {
+        return { Name: cspApp.slice(1), fullName: cspApp.slice(1), Type: "10" };
+      });
+    } else {
+      // Use StudioOpenDialog
+      return api
+        .actionQuery(sql, [spec, direction, orderBy, systemFiles, flat ? "1" : "0", notStudio, generated])
+        .then((data) => {
+          const content = data.result.content;
+          return content;
         })
-      );
+        .then((data) =>
+          data.map((el: { Name: string; Type: number }) => {
+            let fullName = el.Name;
+            if (this instanceof PackageNode) {
+              fullName = this.fullName + "." + el.Name;
+            } else if (this.isCsp) {
+              fullName = this.fullName + "/" + el.Name;
+            }
+            return {
+              Name: el.Name,
+              Type: String(el.Type),
+              fullName,
+            };
+          })
+        );
+    }
   }
 
   public getItems(path: string, category: string): Promise<NodeBase[]> {
