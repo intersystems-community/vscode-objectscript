@@ -251,7 +251,7 @@ export async function serverActions(): Promise<void> {
             if (addin) {
               const token = await getCSPToken(api, addin.id);
               vscode.env.openExternal(
-                vscode.Uri.parse(`${serverUrl}${addin.id}?$NAMESPACE=${nsEncoded}&CSPCHD=${token}`)
+                vscode.Uri.parse(`${serverUrl}${addin.id}?Namespace=${nsEncoded}&CSPCHD=${token}`)
               );
             }
           }
