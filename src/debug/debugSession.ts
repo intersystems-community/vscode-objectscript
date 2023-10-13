@@ -163,6 +163,9 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       supportsDataBreakpoints: true,
     };
 
+    // Reset this at start of each session because our logic around whether to offer data breakpoints depends on context ids of Private and Public root folders being 1 or 2
+    this._variableIdCounter = 1;
+
     try {
       const file = currentFile();
       this._workspace = file?.workspaceFolder;
