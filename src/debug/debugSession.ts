@@ -484,8 +484,12 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     response: DebugProtocol.DataBreakpointInfoResponse,
     args: DebugProtocol.DataBreakpointInfoArguments
   ): void {
-    if (args.variablesReference !== undefined && (args.variablesReference === 1 || args.variablesReference === 2)) {
-      // This is a private or public local variable
+    if (
+      args.variablesReference !== undefined &&
+      [0, 1].includes(this._contexts.get(args.variablesReference).id) &&
+      !args.name.includes("(")
+    ) {
+      // This is an unsubscripted private or public local variable
       response.body = {
         dataId: args.name,
         description: args.name,
@@ -494,7 +498,8 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       // This is an object property or array element, or args.variablesReference is undefined
       response.body = {
         dataId: null,
-        description: "Can only set a watchpoint on a local variable",
+        // This message isn't surfaced in VS Code, which simply doesn't offer the context menu option when dataId is null
+        description: "Can only set a watchpoint on an unsubscripted local variable",
       };
     }
 
