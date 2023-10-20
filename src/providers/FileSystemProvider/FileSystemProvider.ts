@@ -32,49 +32,66 @@ export function generateFileContent(
   const csp = fileName.startsWith("/");
   if (fileExt === "cls" && !csp) {
     const className = fileName.split(".").slice(0, -1).join(".");
-    const content: string[] = [];
+    let content: string[] = [];
     const preamble: string[] = [];
 
-    // If content was provided (e.g. when copying a file), use all lines except for
-    // the Class x.y one. Replace that with one to match fileName.
-    while (sourceLines.length > 0) {
-      const nextLine = sourceLines.shift();
-      if (nextLine.startsWith("Class ")) {
-        const classLine = nextLine.split(" ");
-        classLine[1] = className;
-        content.push(...preamble, classLine.join(" "), ...sourceLines);
-        break;
+    if (sourceLines.length) {
+      if (uri.scheme == "file" && (fileName.includes(path.sep) || fileName.includes(" "))) {
+        // We couldn't resolve a class name from the file path,
+        // so keep the source text unchanged.
+        content = sourceLines;
+      } else {
+        // Use all lines except for the Class x.y one.
+        // Replace that with one to match fileName.
+        while (sourceLines.length > 0) {
+          const nextLine = sourceLines.shift();
+          if (nextLine.startsWith("Class ")) {
+            const classLine = nextLine.split(" ");
+            classLine[1] = className;
+            content.push(...preamble, classLine.join(" "), ...sourceLines);
+            break;
+          }
+          preamble.push(nextLine);
+        }
       }
-      preamble.push(nextLine);
+    } else {
+      content = [`Class ${className} Extends %RegisteredObject`, "{", "}"];
     }
-    if (content.length === 0) {
-      content.push(`Class ${className} Extends %RegisteredObject`, "{", "}");
-    }
+
     return {
       content,
       enc: false,
     };
   } else if (["int", "inc", "mac"].includes(fileExt) && !csp) {
-    sourceLines.shift();
-    const routineName = fileName.split(".").slice(0, -1).join(".");
-    const routineType = fileExt != "mac" ? `[Type=${fileExt.toUpperCase()}]` : "";
-    if (sourceLines.length === 0 && fileExt !== "inc") {
-      const languageId = fileExt === "mac" ? "objectscript" : "objectscript-int";
+    if (sourceLines.length && uri.scheme == "file" && (fileName.includes(path.sep) || fileName.includes(" "))) {
+      // We couldn't resolve a routine name from the file path,
+      // so keep the source text unchanged.
+      return {
+        content: sourceLines,
+        enc: false,
+      };
+    } else {
+      sourceLines.shift();
+      const routineName = fileName.split(".").slice(0, -1).join(".");
+      const routineType = fileExt != "mac" ? `[Type=${fileExt.toUpperCase()}]` : "";
+      if (sourceLines.length === 0 && fileExt !== "inc") {
+        const languageId = fileExt === "mac" ? "objectscript" : "objectscript-int";
 
-      // Labels cannot contain dots
-      const firstLabel = routineName.replaceAll(".", "");
+        // Labels cannot contain dots
+        const firstLabel = routineName.replaceAll(".", "");
 
-      // Be smart about whether to use a Tab or a space between label and comment.
-      // Doing this will help autodetect to do the right thing.
-      const lineStart = vscode.workspace.getConfiguration("editor", { languageId, uri }).get("insertSpaces")
-        ? " "
-        : "\t";
-      sourceLines.push(`${firstLabel}${lineStart};`);
+        // Be smart about whether to use a Tab or a space between label and comment.
+        // Doing this will help autodetect to do the right thing.
+        const lineStart = vscode.workspace.getConfiguration("editor", { languageId, uri }).get("insertSpaces")
+          ? " "
+          : "\t";
+        sourceLines.push(`${firstLabel}${lineStart};`);
+      }
+      return {
+        content: [`ROUTINE ${routineName} ${routineType}`, ...sourceLines],
+        enc: false,
+      };
     }
-    return {
-      content: [`ROUTINE ${routineName} ${routineType}`, ...sourceLines],
-      enc: false,
-    };
   }
   return {
     content: [sourceContent.toString("base64")],
