@@ -1,7 +1,25 @@
-<?xml version="1.0" standalone="yes"?>
-<svg class="custom-logo " version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="110px" height="110px" viewBox="0 0 110 110" xml:space="preserve">
-  <g id="Canvas" fill="none">
-	  <polygon fill="#fff" points="46.4,15.8 32.6,9.1 32.6,95.7 60.2,109.4 60.2,94.1 46.4,87.2"></polygon>
-	  <polygon fill="#fff" points="60.2,94.1 73.8,101 73.8,14.4 46.4,.6 46.4,15.8 60.2,22.9"></polygon>
-  </g>
-</svg>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   class="custom-logo "
+   version="1.1"
+   id="Layer_1"
+   width="128px"
+   height="128px"
+   viewBox="0 0 128 128"
+   xml:space="preserve"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <g
+   id="Canvas"
+   fill="none"
+   transform="matrix(1.6318908,0,0,1.1754735,-22.624497,-0.68381501)">
+   	  <polygon
+   fill="#ffffff"
+   points="32.6,9.1 32.6,95.7 60.2,109.4 60.2,94.1 46.4,87.2 46.4,15.8 "
+   id="polygon1" />
+   	  <polygon
+   fill="#ffffff"
+   points="73.8,101 73.8,14.4 46.4,0.6 46.4,15.8 60.2,22.9 60.2,94.1 "
+   id="polygon2" />
+    </g>
+  </svg>
