@@ -20,6 +20,8 @@ export class DbgpConnection extends EventEmitter {
   private _chunks: Buffer[];
   private _dataLength: number;
   private _parser: DOMParser;
+  private _messages: Buffer[] = [];
+  private _processingMessages = false;
 
   public constructor(socket: WebSocket) {
     super();
@@ -27,7 +29,14 @@ export class DbgpConnection extends EventEmitter {
     this._parsingState = ParsingState.DataLength;
     this._chunksDataLength = 0;
     this._chunks = [];
-    socket.on("message", (data: string): void => this._handleDataChunk(Buffer.from(data)));
+    socket.on("message", (data: string): void => {
+      this._messages.push(Buffer.from(data));
+      if (!this._processingMessages) {
+        this._processingMessages = true;
+        this._handleDataChunk();
+        this._processingMessages = false;
+      }
+    });
     socket.on("error", (error: Error): boolean => this.emit("error", error));
     socket.on("close", (): boolean => this.emit("close"));
     this._parser = new DOMParser({
@@ -61,7 +70,9 @@ export class DbgpConnection extends EventEmitter {
     });
   }
 
-  private _handleDataChunk(data: Buffer) {
+  private _handleDataChunk() {
+    if (!this._messages.length) return; // Shouldn't ever happen
+    const data: Buffer = this._messages.shift();
     if (this._parsingState === ParsingState.DataLength) {
       // does data contain a NULL byte?
       const separatorIndex = data.indexOf("|");
@@ -80,11 +91,13 @@ export class DbgpConnection extends EventEmitter {
         if (data.length > separatorIndex + 1) {
           // handle the rest of the packet as part of the response
           const rest = data.slice(separatorIndex + 1, this._dataLength + separatorIndex + 1);
-          this._handleDataChunk(rest);
+          this._messages.unshift(rest);
+          this._handleDataChunk();
           // more then one data chunk in one message
           const restData = data.slice(this._dataLength + separatorIndex + 1);
           if (restData.length) {
-            this._handleDataChunk(restData);
+            this._messages.unshift(restData);
+            this._handleDataChunk();
           }
         }
       } else {
@@ -99,7 +112,7 @@ export class DbgpConnection extends EventEmitter {
         // append the last piece of the response
         const lastResponsePiece = data.slice(0, this._dataLength - this._chunksDataLength);
         this._chunks.push(lastResponsePiece);
-        this._chunksDataLength += data.length;
+        this._chunksDataLength += lastResponsePiece.length;
         const response = Buffer.concat(this._chunks, this._chunksDataLength).toString("ascii");
         // call response handler
         const xml = iconv.decode(Buffer.from(response, "base64"), ENCODING);
@@ -110,11 +123,12 @@ export class DbgpConnection extends EventEmitter {
         this._chunksDataLength = 0;
         // switch to data length parsing state
         this._parsingState = ParsingState.DataLength;
-        // if data contains more info (except the NULL byte)
-        if (data.length > lastResponsePiece.length + 1) {
-          // handle the rest of the packet (after the NULL byte) as data length
-          const rest = data.slice(lastResponsePiece.length + 1);
-          this._handleDataChunk(rest);
+        // if data contains more info
+        if (data.length > lastResponsePiece.length) {
+          // handle the rest of the packet as data length
+          const rest = data.slice(lastResponsePiece.length);
+          this._messages.unshift(rest);
+          this._handleDataChunk();
         }
       } else {
         // NO -> this is not the whole response yet. We buffer it and wait for the next data event.
@@ -122,5 +136,6 @@ export class DbgpConnection extends EventEmitter {
         this._chunksDataLength += data.length;
       }
     }
+    while (this._messages.length) this._handleDataChunk();
   }
 }
