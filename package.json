@@ -1685,7 +1685,7 @@
     "@types/mocha": "^7.0.2",
     "@types/node": "^14.18.0",
     "@types/vscode": "1.75.0",
-    "@types/ws": "^7.2.5",
+    "@types/ws": "8.5.4",
     "@types/xmldom": "^0.1.29",
     "@typescript-eslint/eslint-plugin": "^4.32.0",
     "@typescript-eslint/parser": "^4.32.0",
@@ -1720,6 +1720,6 @@
     "@vscode/debugadapter": "^1.61.0",
     "@vscode/debugprotocol": "^1.61.0",
     "vscode-extension-telemetry": "^0.1.6",
-    "ws": "^7.4.6"
+    "ws": "^8.14.2"
   }
 }
