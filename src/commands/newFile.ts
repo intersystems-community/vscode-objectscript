@@ -789,7 +789,7 @@ XData RuleDefinition [ XMLNamespace = "http://www.intersystems.com/rule" ]
           ? {
               type: "quickPick",
               title: "Resource",
-              items: serverResources,
+              items: [{ label: "No Resource" }].concat(serverResources),
             }
           : {
               type: "inputBox",
@@ -819,7 +819,7 @@ Class ${cls} Extends %DeepSee.KPI
 
 Parameter DOMAIN = "${kpiDomain}";
 
-Parameter RESOURCE = "${kpiResource}";
+Parameter RESOURCE = "${kpiResource == "No Resource" ? "" : kpiResource}";
 
 /// This XData definition defines the KPI.
 XData KPI [ XMLNamespace = "http://www.intersystems.com/deepsee/kpi" ]
