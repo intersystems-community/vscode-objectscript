@@ -835,6 +835,17 @@ Method %OnLoadKPI() As %Status
   Return $$$OK
 }
 
+${
+  kpiType == "sql"
+    ? `/// Return a SQL statement to execute.\nMethod %OnGetSQL(ByRef pSQL As %String)`
+    : kpiType == "mdx"
+    ? `/// Return an MDX statement to execute.\nMethod %OnGetMDX(ByRef pMDX As %String)`
+    : `/// Get the data for this KPI manually.\nMethod %OnExecute()`
+} As %Status
+{
+  Return $$$OK
+}
+
 /// This callback is invoked from a dashboard when an action defined by this dashboard is invoked.
 ClassMethod %OnDashboardAction(pAction As %String, pContext As %ZEN.proxyObject) As %Status
 {
