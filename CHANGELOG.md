@@ -1,5 +1,17 @@
 # Change Log
 
+## [2.10.4] 01-Nov-2023
+- Fixes
+  - Fix sorting of items in Projects Explorer (#1246)
+  - Don't show REST APIs in Explorer CSP Files list (#1248)
+  - Pass namespace differently to Studio add-in (#1250)
+  - Support setting data breakpoints on subsequent debug sessions (#1252)
+  - Don't overwrite file name if the new name couldn't be determined (#1253)
+  - Adjust activity bar icon to work correctly with upcoming 1.84 top-bar feature (#1255)
+  - Improve handling of debugging WebSocket messages (#1258)
+  - Add new method stub to KPI classes created via command (#1260)
+  - Allow users to select no resource in new KPI command (#1261)
+
 ## [2.10.3] 25-Sep-2023
 - Enhancements
   - Put link to editor in class comment when creating new BPL/DTL (#1231)
