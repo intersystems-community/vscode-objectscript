@@ -1,7 +1,17 @@
 import path = require("path");
 import { exec } from "child_process";
 import * as vscode from "vscode";
-import { config, schemas, workspaceState, terminals, extensionContext, cspApps } from "../extension";
+import {
+  config,
+  schemas,
+  workspaceState,
+  terminals,
+  extensionContext,
+  cspApps,
+  lsExtensionId,
+  OBJECTSCRIPT_FILE_SCHEMA,
+  documentContentProvider,
+} from "../extension";
 import { getCategory } from "../commands/export";
 import { isCSPFile } from "../providers/FileSystemProvider/FileSystemProvider";
 import { AtelierAPI } from "../api";
@@ -620,6 +630,73 @@ export async function isClassDeployed(cls: string, api: AtelierAPI): Promise<boo
       // Query failure is probably due to a permissions error, so fall back to index
       .catch(() => api.actionIndex([`${clsname}.cls`]).then((data) => data.result.content[0].content?.depl ?? false))
   );
+}
+
+/** Strip quotes from class member `name` if present */
+export function stripClassMemberNameQuotes(name: string): string {
+  return name.charAt(0) == '"' && name.charAt(name.length - 1) == '"' ? name.slice(1, -1).replaceAll('""', '"') : name;
+}
+
+/** Returns `true` if `uri1` is a parent of `uri2`. */
+export function uriIsParentOf(uri1: vscode.Uri, uri2: vscode.Uri): boolean {
+  uri1 = uri1.with({ path: !uri1.path.endsWith("/") ? `${uri1.path}/` : uri1.path });
+  return (
+    uri2
+      .with({ query: "", fragment: "" })
+      .toString()
+      .startsWith(uri1.with({ query: "", fragment: "" }).toString()) &&
+    uri1.query == uri2.query &&
+    uri1.fragment == uri2.fragment
+  );
+}
+
+/** Get the text of file `uri`. Works for all file systems and the `objectscript` `DocumentContentProvider`. */
+export async function getFileText(uri: vscode.Uri): Promise<string> {
+  if (uri.scheme == OBJECTSCRIPT_FILE_SCHEMA) {
+    return await documentContentProvider.provideTextDocumentContent(uri, new vscode.CancellationTokenSource().token);
+  } else {
+    return new TextDecoder().decode(await vscode.workspace.fs.readFile(uri));
+  }
+}
+
+/** Determine the exact line of `method` and `offset` within a class. If the line could be determined, it is returned one-indexed. */
+export function methodOffsetToLine(
+  members: vscode.DocumentSymbol[],
+  fileText: string,
+  method: string,
+  offset = 0
+): number | undefined {
+  let line: number;
+  const languageServer: boolean = vscode.extensions.getExtension(lsExtensionId)?.isActive ?? false;
+  // Find the DocumentSymbol for this method
+  let currentSymbol: vscode.DocumentSymbol;
+  for (const symbol of members) {
+    if (stripClassMemberNameQuotes(symbol.name) === method && symbol.detail.toLowerCase().includes("method")) {
+      currentSymbol = symbol;
+      break;
+    }
+  }
+  if (currentSymbol !== undefined) {
+    const fileTextLines = fileText.split(/\r?\n/);
+    if (languageServer) {
+      for (
+        let methodlinenum = currentSymbol.selectionRange.start.line;
+        methodlinenum <= currentSymbol.range.end.line;
+        methodlinenum++
+      ) {
+        // Find the offset of this breakpoint in the method
+        const methodlinetext: string = fileTextLines[methodlinenum].trim();
+        if (methodlinetext.endsWith("{")) {
+          // This is the last line of the method definition, so count from here
+          line = methodlinenum + offset + 1;
+          break;
+        }
+      }
+    } else {
+      line = currentSymbol.selectionRange.start.line + offset;
+    }
+  }
+  return line;
 }
 
 // ---------------------------------------------------------------------

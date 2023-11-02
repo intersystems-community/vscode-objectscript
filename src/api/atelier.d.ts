@@ -105,4 +105,12 @@ interface AsyncSearchRequest {
   console: false;
 }
 
-export type AsyncRequest = AsyncCompileRequest | AsyncSearchRequest;
+interface AsyncUnitTestRequest {
+  request: "unittest";
+  tests: { class: string; methods?: string[] }[];
+  load?: { file: string; content: string[] }[];
+  console?: boolean;
+  debug?: boolean;
+}
+
+export type AsyncRequest = AsyncCompileRequest | AsyncSearchRequest | AsyncUnitTestRequest;

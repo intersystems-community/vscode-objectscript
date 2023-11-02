@@ -1,5 +1,11 @@
 import vscode = require("vscode");
-import { currentFile, currentFileFromContent } from "../utils";
+import {
+  currentFile,
+  currentFileFromContent,
+  getFileText,
+  methodOffsetToLine,
+  stripClassMemberNameQuotes,
+} from "../utils";
 import {
   InitializedEvent,
   LoggingDebugSession,
@@ -17,7 +23,7 @@ import { DebugProtocol } from "@vscode/debugprotocol";
 import WebSocket = require("ws");
 import { AtelierAPI } from "../api";
 import * as xdebug from "./xdebugConnection";
-import { documentContentProvider, OBJECTSCRIPT_FILE_SCHEMA, schemas } from "../extension";
+import { lsExtensionId, schemas } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { formatPropertyValue } from "./utils";
 
@@ -33,20 +39,8 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
   cspDebugId?: string;
   /** Automatically stop target after connect. If not specified, target does not stop. */
   stopOnEntry?: boolean;
-}
-
-/** Get the text of file `uri`. Works for all file systems and the `objectscript` `DocumentContentProvider`. */
-async function getFileText(uri: vscode.Uri): Promise<string> {
-  if (uri.scheme == OBJECTSCRIPT_FILE_SCHEMA) {
-    return await documentContentProvider.provideTextDocumentContent(uri, new vscode.CancellationTokenSource().token);
-  } else {
-    return new TextDecoder().decode(await vscode.workspace.fs.readFile(uri));
-  }
-}
-
-/** Strip quotes from method `name` if present */
-function stripMethodNameQuotes(name: string): string {
-  return name.charAt(0) == '"' && name.charAt(name.length - 1) == '"' ? name.slice(1, -1).replaceAll('""', '"') : name;
+  /** True if this request is for a unit test debug session. Only passed when `cspDebugId` is set. */
+  isUnitTest?: boolean;
 }
 
 /** converts a uri from VS Code to a server-side XDebug file URI with respect to source root settings */
@@ -102,6 +96,12 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
   /** The condition used for the watchpoint that allows us to detach from a CSPDEBUG session after the page has been loaded. */
   private readonly _cspWatchpointCondition = `(($DATA(allowed)=1)&&(allowed=1)&&($ZNAME="%SYS.cspServer")&&(%response.Timeout'="")&&($CLASSNAME()="%CSP.Session"))`;
+
+  /** If this is a unit test session */
+  private _isUnitTest = false;
+
+  /** The condition used for the watchpoint that allows us to detach from a CSPDEBUG session after the unit tests have finished running. */
+  private readonly _unitTestWatchpointCondition = `(($ZNAME?1"%Api.Atelier.v".E)&&($CLASSNAME()?1"%Api.Atelier.v".E))`;
 
   /** If we're stopped at a breakpoint. */
   private _break = false;
@@ -243,9 +243,18 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       const debugTarget = args.cspDebugId != undefined ? `CSPDEBUG:${args.cspDebugId}` : `PID:${args.processId}`;
       await this._connection.sendFeatureSetCommand("debug_target", debugTarget);
       if (args.cspDebugId != undefined) {
-        // Set a watchpoint so the target breaks after the REST response is sent
-        await this._connection.sendBreakpointSetCommand(new xdebug.Watchpoint("ok", this._cspWatchpointCondition));
-        this._isCsp = true;
+        if (args.isUnitTest) {
+          // Set a watchpoint so the target breaks after the unit tests have finished
+          await this._connection.sendBreakpointSetCommand(
+            new xdebug.Watchpoint("QQQZZZDebugWatchpointTriggerVar", this._unitTestWatchpointCondition)
+          );
+          this._isUnitTest = true;
+        } else {
+          // Set a watchpoint so the target breaks after the REST response is sent
+          await this._connection.sendBreakpointSetCommand(new xdebug.Watchpoint("ok", this._cspWatchpointCondition));
+          this._isCsp = true;
+        }
+        this._stopOnEntry = false;
         this.sendResponse(response);
       } else {
         this._isCsp = false;
@@ -325,7 +334,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       const uri = schemas.includes(scheme) ? vscode.Uri.parse(filePath) : vscode.Uri.file(filePath);
       const fileUri = await convertClientPathToDebugger(uri, this._namespace);
       const [, fileName] = fileUri.match(/\|([^|]+)$/);
-      const languageServer: boolean = vscode.extensions.getExtension("intersystems.language-server")?.isActive ?? false;
+      const languageServer: boolean = vscode.extensions.getExtension(lsExtensionId)?.isActive ?? false;
 
       const currentList = await this._connection.sendBreakpointListCommand();
       currentList.breakpoints
@@ -366,7 +375,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
             ) {
               // This breakpoint is in a method
               const currentdoc = (await getFileText(uri)).split(/\r?\n/);
-              const methodName = stripMethodNameQuotes(currentSymbol.name);
+              const methodName = stripClassMemberNameQuotes(currentSymbol.name);
               if (languageServer) {
                 // selectionRange.start.line is the method definition line
                 for (
@@ -573,8 +582,13 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     args: DebugProtocol.StackTraceArguments
   ): Promise<void> {
     const stack = await this._connection.sendStackGetCommand();
-    const languageServer: boolean = vscode.extensions.getExtension("intersystems.language-server")?.isActive ?? false;
 
+    // Is set to true if we're at the CSP or unit test ending watchpoint.
+    // We need to do this so VS Code doesn't try to open the source of
+    // a stack frame before the debug session terminates. That should
+    // only happen if the server has source code for %SYS.cspServer.mac/int
+    // or %Api.Atelier.v<X>.cls/.int where X >= 8.
+    let noStack = false;
     const stackFrames = await Promise.all(
       stack.stack.map(async (stackFrame: xdebug.StackFrame, index): Promise<StackFrame> => {
         const [, namespace, name] = decodeURI(stackFrame.fileUri).match(/^dbgp:\/\/\|([^|]+)\|(.*)$/);
@@ -610,37 +624,8 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
                 fileUri
               )
             )[0].children;
-            // Find the DocumentSymbol for this method
-            let currentSymbol: vscode.DocumentSymbol;
-            for (const symbol of symbols) {
-              if (
-                stripMethodNameQuotes(symbol.name) === stackFrame.method &&
-                symbol.detail.toLowerCase().includes("method")
-              ) {
-                currentSymbol = symbol;
-                break;
-              }
-            }
-            if (currentSymbol !== undefined) {
-              const fileTextLines = fileText.split(/\r?\n/);
-              if (languageServer) {
-                for (
-                  let methodlinenum = currentSymbol.selectionRange.start.line;
-                  methodlinenum <= currentSymbol.range.end.line;
-                  methodlinenum++
-                ) {
-                  // Find the offset of this breakpoint in the method
-                  const methodlinetext: string = fileTextLines[methodlinenum].trim();
-                  if (methodlinetext.endsWith("{")) {
-                    // This is the last line of the method definition, so count from here
-                    line = methodlinenum + stackFrame.methodOffset + 1;
-                    break;
-                  }
-                }
-              } else {
-                line = currentSymbol.selectionRange.start.line + stackFrame.methodOffset;
-              }
-            }
+            const newLine = methodOffsetToLine(symbols, fileText, stackFrame.method, stackFrame.methodOffset);
+            if (newLine != undefined) line = newLine;
           }
           if (
             this._isCsp &&
@@ -654,6 +639,17 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
               // Stop the debugging session
               const xdebugResponse = await this._connection.sendDetachCommand();
               await this._checkStatus(xdebugResponse);
+              noStack = true;
+            }
+          }
+          if (this._isUnitTest && this._break && source.name.startsWith("%Api.Atelier.v") && index == 0) {
+            // Check if we're at our special watchpoint
+            const { result } = await this._connection.sendEvalCommand(this._unitTestWatchpointCondition);
+            if (result.type == "int" && result.value == "1") {
+              // Stop the debugging session
+              const xdebugResponse = await this._connection.sendDetachCommand();
+              await this._checkStatus(xdebugResponse);
+              noStack = true;
             }
           }
           this._stackFrames.set(stackFrameId, stackFrame);
@@ -671,9 +667,11 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     );
 
     this._break = false;
-    response.body = {
-      stackFrames,
-    };
+    if (!noStack) {
+      response.body = {
+        stackFrames,
+      };
+    }
     this.sendResponse(response);
   }
 

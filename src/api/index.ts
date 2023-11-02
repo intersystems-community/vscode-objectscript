@@ -631,13 +631,13 @@ export class AtelierAPI {
   }
 
   // v1+
-  public queueAsync(request: Atelier.AsyncRequest): Promise<Atelier.Response> {
-    return this.request(1, "POST", `${this.ns}/work`, request);
+  public queueAsync(request: Atelier.AsyncRequest, noOutput = false): Promise<Atelier.Response> {
+    return this.request(1, "POST", `${this.ns}/work`, request, undefined, undefined, { noOutput });
   }
 
   // v1+
-  public pollAsync(id: string): Promise<Atelier.Response> {
-    return this.request(1, "GET", `${this.ns}/work/${id}`);
+  public pollAsync(id: string, noOutput = false): Promise<Atelier.Response> {
+    return this.request(1, "GET", `${this.ns}/work/${id}`, undefined, undefined, { noOutput });
   }
 
   // v1+

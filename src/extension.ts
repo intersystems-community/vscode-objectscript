@@ -1,4 +1,6 @@
 export const extensionId = "intersystems-community.vscode-objectscript";
+export const lsExtensionId = "intersystems.language-server";
+export const smExtensionId = "intersystems-community.servermanager";
 
 import vscode = require("vscode");
 import * as semver from "semver";
@@ -127,6 +129,7 @@ import { FileDecorationProvider } from "./providers/FileDecorationProvider";
 import { RESTDebugPanel } from "./commands/restDebugPanel";
 import { modifyWsFolder } from "./commands/addServerNamespaceToWorkspace";
 import { WebSocketTerminalProfileProvider, launchWebSocketTerminal } from "./commands/webSocketTerminal";
+import { setUpTestController } from "./commands/unitTest";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -472,8 +475,7 @@ function setConnectionState(configName: string, active: boolean) {
 
 // Promise to return the API of the servermanager
 async function serverManager(): Promise<any> {
-  const extId = "intersystems-community.servermanager";
-  let extension = vscode.extensions.getExtension(extId);
+  let extension = vscode.extensions.getExtension(smExtensionId);
   const ignore =
     config("ignoreInstallServerManager") ||
     vscode.workspace.getConfiguration("intersystems.servers").get("/ignore", false);
@@ -482,14 +484,14 @@ async function serverManager(): Promise<any> {
       return;
     }
     try {
-      await vscode.commands.executeCommand("extension.open", extId);
+      await vscode.commands.executeCommand("extension.open", smExtensionId);
     } catch (ex) {
       // Such command do not exists, suppose we are under Theia, it's not possible to install this extension this way
       return;
     }
     await vscode.window
       .showInformationMessage(
-        `The [InterSystems Server Manager extension](https://marketplace.visualstudio.com/items?itemName=${extId}) is recommended to help you [define connections and store passwords securely](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_config#GVSCO_config_addserver) in your keychain.`,
+        `The [InterSystems Server Manager extension](https://marketplace.visualstudio.com/items?itemName=${smExtensionId}) is recommended to help you [define connections and store passwords securely](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_config#GVSCO_config_addserver) in your keychain.`,
         "Install",
         "Later",
         "Never"
@@ -498,8 +500,8 @@ async function serverManager(): Promise<any> {
         switch (action) {
           case "Install":
             await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`).then(null, null);
-            await vscode.commands.executeCommand("workbench.extensions.installExtension", extId);
-            extension = vscode.extensions.getExtension(extId);
+            await vscode.commands.executeCommand("workbench.extensions.installExtension", smExtensionId);
+            extension = vscode.extensions.getExtension(smExtensionId);
             break;
           case "Never":
             config().update("ignoreInstallServerManager", true, vscode.ConfigurationTarget.Global);
@@ -518,22 +520,21 @@ async function serverManager(): Promise<any> {
 }
 
 function languageServer(install = true): vscode.Extension<any> {
-  const extId = "intersystems.language-server";
-  let extension = vscode.extensions.getExtension(extId);
+  let extension = vscode.extensions.getExtension(lsExtensionId);
 
   async function languageServerInstall() {
     if (config("ignoreInstallLanguageServer")) {
       return;
     }
     try {
-      await vscode.commands.executeCommand("extension.open", extId);
+      await vscode.commands.executeCommand("extension.open", lsExtensionId);
     } catch (ex) {
       // Such command do not exists, suppose we are under Theia, it's not possible to install this extension this way
       return;
     }
     await vscode.window
       .showInformationMessage(
-        `Install the [InterSystems Language Server extension](https://marketplace.visualstudio.com/items?itemName=${extId}) for best handling of ObjectScript code.`,
+        `Install the [InterSystems Language Server extension](https://marketplace.visualstudio.com/items?itemName=${lsExtensionId}) for best handling of ObjectScript code.`,
         "Install",
         "Later"
       )
@@ -541,8 +542,8 @@ function languageServer(install = true): vscode.Extension<any> {
         switch (action) {
           case "Install":
             await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`).then(null, null);
-            await vscode.commands.executeCommand("workbench.extensions.installExtension", extId);
-            extension = vscode.extensions.getExtension(extId);
+            await vscode.commands.executeCommand("workbench.extensions.installExtension", lsExtensionId);
+            extension = vscode.extensions.getExtension(lsExtensionId);
             break;
           case "Later":
           default:
@@ -1331,6 +1332,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.commands.registerCommand("vscode-objectscript.importXMLFiles", importXMLFiles),
     vscode.commands.registerCommand("vscode-objectscript.exportToXMLFile", exportDocumentsToXMLFile),
+    ...setUpTestController(),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed

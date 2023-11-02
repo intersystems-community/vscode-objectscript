@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "2.10.6-SNAPSHOT",
+  "version": "2.12.0-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "9cd75d51-697c-406c-a929-2bcf46e97c64",
   "categories": [
@@ -47,7 +47,7 @@
     }
   ],
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.83.0"
   },
   "enabledApiProposals": [
     "fileSearchProvider",
@@ -1387,7 +1387,7 @@
         "objectscript.compileFlags": {
           "type": "string",
           "default": "cuk",
-          "markdownDescription": "Compilation flags. Common compilation flags are ***b*** (compile dependent classes), ***k*** (keep generated source code) and ***u*** (skip related up-to-date documents). For descriptions of all available flags and qualifiers, click [here](https://docs.intersystems.com/irislatest/csp/docbook/Doc.View.cls?KEY=RCOS_vsystem#RCOS_vsystem_flags_qualifiers)."
+          "markdownDescription": "Compilation flags. Common compilation flags are ***b*** (compile dependent classes), ***k*** (keep generated source code) and ***u*** (skip related up-to-date documents). For descriptions of all available flags and qualifiers, click [here](https://docs.intersystems.com/irislatest/csp/docbook/Doc.View.cls?KEY=RCOS_vsystem_flags_qualifiers)."
         },
         "objectscript.overwriteServerChanges": {
           "type": "boolean",
@@ -1507,6 +1507,43 @@
           "description": "Controls whether a prompt to enable VS Code proposed APIs is shown when a server-side workspace folder is opened.",
           "type": "boolean",
           "default": true
+        },
+        "objectscript.unitTest.relativeTestRoots": {
+          "description": "Paths to where client-side test classes are stored. Relative to the workspace folder root.",
+          "type": "array",
+          "default": [],
+          "scope": "resource",
+          "items": {
+            "type": "string",
+            "pattern": "^([\\p{L}\\d_. -]+([\\/\\\\][\\p{L}\\d_. -]*))?$",
+            "patternErrorMessage": "Each folder name can only contain letters, digits, space, hyphen ('-'), period ('.'), or underscore ('_'), and the full path must neither begin nor end with a slash."
+          }
+        },
+        "objectscript.unitTest.autoload.folder": {
+          "markdownDescription": "When running client-side test classes, automatically load the contents of sub-directories with this name. See the [%UnitTest /autoload qualifier documentation](https://docs.intersystems.com/irislatest/csp/documatic/%25CSP.Documatic.cls?LIBRARY=%25SYS&CLASSNAME=%25UnitTest.Manager#RunTest) for details.",
+          "type": "string",
+          "default": "_autoload",
+          "scope": "resource",
+          "pattern": "^[\\p{L}\\d_. -]*$",
+          "patternErrorMessage": "Folder name can only contain letters, digits, space, hyphen ('-'), period ('.'), or underscore ('_')."
+        },
+        "objectscript.unitTest.autoload.xml": {
+          "description": "Controls whether the autoload feature loads XML files.",
+          "type": "boolean",
+          "default": true,
+          "scope": "resource"
+        },
+        "objectscript.unitTest.autoload.udl": {
+          "description": "Controls whether the autoload feature loads UDL files (cls, mac, int, inc).",
+          "type": "boolean",
+          "default": true,
+          "scope": "resource"
+        },
+        "objectscript.unitTest.showOutput": {
+          "description": "Controls whether unit test console output is shown.",
+          "type": "boolean",
+          "default": true,
+          "scope": "resource"
         }
       }
     },
@@ -1676,7 +1713,7 @@
     "test": "node ./out/test/runTest.js",
     "lint": "eslint src/**",
     "lint-fix": "eslint --fix src/**",
-    "download-api": "dts dev 1.75.0",
+    "download-api": "dts dev 1.83.0",
     "postinstall": "npm run download-api"
   },
   "devDependencies": {
@@ -1685,7 +1722,7 @@
     "@types/mocha": "^7.0.2",
     "@types/node": "^14.18.0",
     "@types/semver": "7.5.4",
-    "@types/vscode": "1.75.0",
+    "@types/vscode": "1.83.0",
     "@types/ws": "8.5.4",
     "@types/xmldom": "^0.1.29",
     "@typescript-eslint/eslint-plugin": "^4.32.0",
