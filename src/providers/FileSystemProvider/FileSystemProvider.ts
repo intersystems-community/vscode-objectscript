@@ -27,7 +27,7 @@ export function generateFileContent(
   fileName: string,
   sourceContent: Buffer
 ): { content: string[]; enc: boolean } {
-  const sourceLines = new TextDecoder().decode(sourceContent).split("\n");
+  const sourceLines = sourceContent.length ? new TextDecoder().decode(sourceContent).split("\n") : [];
   const fileExt = fileName.split(".").pop().toLowerCase();
   const csp = fileName.startsWith("/");
   if (fileExt === "cls" && !csp) {
