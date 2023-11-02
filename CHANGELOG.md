@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.10.5] 02-Nov-2023
+- Enhancements
+  - Use new Modern themes when loading Studio syntax colors (#1264)
+- Fixes
+  - Fix new class creation, broken in 2.10.4 (#1266)
+  - Keep file contents when copying class definition if "Class" line not found (#1267)
+
 ## [2.10.4] 01-Nov-2023
 - Fixes
   - Fix sorting of items in Projects Explorer (#1246)
