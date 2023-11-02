@@ -45,13 +45,18 @@ export function generateFileContent(
         // Replace that with one to match fileName.
         while (sourceLines.length > 0) {
           const nextLine = sourceLines.shift();
-          if (nextLine.startsWith("Class ")) {
+          if (nextLine.toLowerCase().startsWith("class ")) {
             const classLine = nextLine.split(" ");
+            classLine[0] = "Class";
             classLine[1] = className;
             content.push(...preamble, classLine.join(" "), ...sourceLines);
             break;
           }
           preamble.push(nextLine);
+        }
+        if (!content.length) {
+          // Transfer sourceLines verbatim in cases where no class header line is found
+          content.push(...preamble);
         }
       }
     } else {
