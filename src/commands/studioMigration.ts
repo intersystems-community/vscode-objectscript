@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import cmd = require("node-cmd");
 import util = require("util");
+import { gte } from "semver";
+
 import { fileExists, outputChannel } from "../utils";
 
 /** Run a command using `node-cmd` and return a Promise */
@@ -323,19 +325,22 @@ export async function loadStudioColors(languageServerExt: vscode.Extension<any> 
           128
             ? "Dark"
             : "Light";
+        const themeName = `InterSystems Default ${darkLight}${
+          gte(languageServerExt.packageJSON.version, "2.4.0") ? " Modern" : ""
+        }`;
 
         // Modify the theme
         const editorConfig = vscode.workspace.getConfiguration("editor");
         const workbenchConfig = vscode.workspace.getConfiguration("workbench");
         const tokensConfig = editorConfig.get("semanticTokenColorCustomizations");
-        tokensConfig[`[InterSystems Default ${darkLight}]`] = { rules };
+        tokensConfig[`[${themeName}]`] = { rules };
         await editorConfig.update("semanticTokenColorCustomizations", tokensConfig, true);
         const colorsConfig = workbenchConfig.get("colorCustomizations");
-        colorsConfig[`[InterSystems Default ${darkLight}]`] = { "editor.background": editorBackground };
+        colorsConfig[`[${themeName}]`] = { "editor.background": editorBackground };
         await workbenchConfig.update("colorCustomizations", colorsConfig, true);
 
         // Activate it globally
-        await workbenchConfig.update("colorTheme", `InterSystems Default ${darkLight}`, true);
+        await workbenchConfig.update("colorTheme", themeName, true);
       }
     )
     .then(
