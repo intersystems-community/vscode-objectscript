@@ -2,7 +2,6 @@ import * as cp from "child_process";
 import * as path from "path";
 
 import { downloadAndUnzipVSCode, resolveCliArgsFromVSCodeExecutablePath, runTests } from "@vscode/test-electron";
-import { smExtensionId, lsExtensionId } from "../extension";
 
 async function main() {
   try {
@@ -27,8 +26,8 @@ async function main() {
       });
 
     // Install dependent extensions
-    installExtension(smExtensionId);
-    installExtension(lsExtensionId);
+    installExtension("intersystems-community.servermanager");
+    installExtension("intersystems.language-server");
 
     const launchArgs = ["-n", workspace, "--enable-proposed-api", "intersystems-community.vscode-objectscript"];
 
