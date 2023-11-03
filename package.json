@@ -1511,27 +1511,18 @@
       }
     },
     "views": {
-      "ObjectScriptView": [
+      "intersystems-community_servermanager": [
         {
           "id": "ObjectScriptExplorer",
           "name": "Explorer",
-          "contextualTitle": "ObjectScript Explorer",
+          "contextualTitle": "InterSystems",
           "when": "workspaceFolderCount != 0 && config.objectscript.showExplorer == true"
         },
         {
           "id": "ObjectScriptProjectsExplorer",
           "name": "Projects",
-          "contextualTitle": "InterSystems Projects",
+          "contextualTitle": "InterSystems",
           "when": "workspaceFolderCount != 0"
-        }
-      ]
-    },
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "icon": "images/InterSystems.svg",
-          "id": "ObjectScriptView",
-          "title": "ObjectScript"
         }
       ]
     },
@@ -1722,5 +1713,8 @@
     "@vscode/debugprotocol": "^1.61.0",
     "vscode-extension-telemetry": "^0.1.6",
     "ws": "^8.14.2"
-  }
+  },
+  "extensionDependencies": [
+    "intersystems-community.servermanager"
+  ]
 }
