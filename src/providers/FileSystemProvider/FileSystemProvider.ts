@@ -28,6 +28,14 @@ export function generateFileContent(
   sourceContent: Buffer
 ): { content: string[]; enc: boolean } {
   const sourceLines = sourceContent.length ? new TextDecoder().decode(sourceContent).split("\n") : [];
+
+  // since this function only changes class package line, disableImplictCodeChange completely skip this function
+  const disableImplictChange = config("disableImplictCodeChange");
+  console.log("generateFileContent called with " + disableImplictChange);
+  if (disableImplictChange === true) {
+    return { content: sourceLines, enc: false };
+  }
+
   const fileExt = fileName.split(".").pop().toLowerCase();
   const csp = fileName.startsWith("/");
   if (fileExt === "cls" && !csp) {
@@ -46,6 +54,7 @@ export function generateFileContent(
         while (sourceLines.length > 0) {
           const nextLine = sourceLines.shift();
           if (nextLine.toLowerCase().startsWith("class ")) {
+            console.log("class matched on line:" + nextLine);
             const classLine = nextLine.split(" ");
             classLine[0] = "Class";
             classLine[1] = className;

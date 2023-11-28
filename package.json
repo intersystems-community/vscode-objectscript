@@ -1458,6 +1458,11 @@
           "type": "boolean",
           "default": false
         },
+        "objectscript.disableImplictCodeChange": {
+          "description": "Disable all implict change to any of your code.",
+          "type": "boolean",
+          "default": false
+        },
         "objectscript.compileOnSave": {
           "description": "Automatically compile an InterSystems file when saved in the editor.",
           "type": "boolean",
