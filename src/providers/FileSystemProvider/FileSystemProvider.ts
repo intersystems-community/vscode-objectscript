@@ -29,10 +29,11 @@ export function generateFileContent(
 ): { content: string[]; enc: boolean } {
   const sourceLines = sourceContent.length ? new TextDecoder().decode(sourceContent).split("\n") : [];
 
-  // since this function only changes class package line, disableImplictCodeChange completely skip this function
-  const disableImplictChange = config("disableImplictCodeChange");
-  console.log("generateFileContent called with " + disableImplictChange);
-  if (disableImplictChange === true) {
+  // Since this function only changes the class package line, disableImplicitCodeChange should completely skip this function.
+  // If, in the future, this function introduces some validation or caching, the below compare-and-return logic should be re-located to a proper position.
+  const disableImplicitCodeChange = config("disableImplicitCodeChange");
+  console.log("generateFileContent called with " + disableImplicitCodeChange);
+  if (disableImplicitCodeChange === true) {
     return { content: sourceLines, enc: false };
   }
 

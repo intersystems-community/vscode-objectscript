@@ -1458,8 +1458,8 @@
           "type": "boolean",
           "default": false
         },
-        "objectscript.disableImplictCodeChange": {
-          "description": "Disable all implict change to any of your code.",
+        "objectscript.disableImplicitCodeChange": {
+          "description": "Disable all implicit changes to your code.",
           "type": "boolean",
           "default": false
         },
