@@ -1050,6 +1050,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         e.files
           .filter((uri) => !filesystemSchemas.includes(uri.scheme))
           .filter((uri) => ["cls", "inc", "int", "mac"].includes(uri.path.split(".").pop().toLowerCase()))
+          // If disableImplicitCodeChange is true, disable all changes
+          // Be aware that if you drag and drop a file for windows expolorer into vscode,
+          // it will trigger create event, but the file is not actually blank.
+          // read file content as text and write it back to the file will corrupt it's binary structure.
+          // so I use filter to skip file instead of 'verbatim output'.
+          .filter((_) => config("disableImplicitCodeChange") !== true)
           .map(async (uri) => {
             // Determine the file name
             const workspace = workspaceFolderOfUri(uri);

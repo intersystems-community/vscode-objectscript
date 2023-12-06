@@ -1459,7 +1459,7 @@
           "default": false
         },
         "objectscript.disableImplicitCodeChange": {
-          "description": "Disable all implicit changes to your code.",
+          "description": "Disable all code modifications that occur without the user's explicit awareness.",
           "type": "boolean",
           "default": false
         },

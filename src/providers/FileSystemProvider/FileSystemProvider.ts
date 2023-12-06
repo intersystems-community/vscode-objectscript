@@ -28,15 +28,6 @@ export function generateFileContent(
   sourceContent: Buffer
 ): { content: string[]; enc: boolean } {
   const sourceLines = sourceContent.length ? new TextDecoder().decode(sourceContent).split("\n") : [];
-
-  // Since this function only changes the class package line, disableImplicitCodeChange should completely skip this function.
-  // If, in the future, this function introduces some validation or caching, the below compare-and-return logic should be re-located to a proper position.
-  const disableImplicitCodeChange = config("disableImplicitCodeChange");
-  console.log("generateFileContent called with " + disableImplicitCodeChange);
-  if (disableImplicitCodeChange === true) {
-    return { content: sourceLines, enc: false };
-  }
-
   const fileExt = fileName.split(".").pop().toLowerCase();
   const csp = fileName.startsWith("/");
   if (fileExt === "cls" && !csp) {
@@ -55,7 +46,6 @@ export function generateFileContent(
         while (sourceLines.length > 0) {
           const nextLine = sourceLines.shift();
           if (nextLine.toLowerCase().startsWith("class ")) {
-            console.log("class matched on line:" + nextLine);
             const classLine = nextLine.split(" ");
             classLine[0] = "Class";
             classLine[1] = className;
