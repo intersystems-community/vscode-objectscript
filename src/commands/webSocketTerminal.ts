@@ -18,6 +18,8 @@ const keys = {
   ctrlE: "\x05",
   ctrlH: "\x08",
   del: "\x1b[3~",
+  home: "\x1b\x5b\x48",
+  end: "\x1b\x5b\x46",
 };
 
 const actions = {
@@ -484,6 +486,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         this._state = "eval";
         return;
       }
+      case keys.home:
       case keys.ctrlA: {
         if (this._state == "prompt" && this._cursorCol - this._margin > 0) {
           // Move the cursor to the beginning of the line
@@ -492,6 +495,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         }
         return;
       }
+      case keys.end:
       case keys.ctrlE: {
         if (this._state == "prompt") {
           // Move the cursor to the end of the line
