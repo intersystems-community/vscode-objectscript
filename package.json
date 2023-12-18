@@ -1458,10 +1458,10 @@
           "type": "boolean",
           "default": false
         },
-        "objectscript.disableImplicitCodeChange": {
-          "description": "Disable all code modifications that occur without the user's explicit awareness.",
+        "objectscript.autoAdjustName": {
+          "markdownDescription": "Automatically modify the class name or ROUTINE header to match the file's path when copying or creating a new file. Does not affect `isfs` files.",
           "type": "boolean",
-          "default": false
+          "default": true
         },
         "objectscript.compileOnSave": {
           "description": "Automatically compile an InterSystems file when saved in the editor.",
