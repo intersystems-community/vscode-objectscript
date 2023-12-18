@@ -374,7 +374,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
             inputArr[inputArr.length - 1].slice(0, this._cursorCol - this._margin) +
             inputArr[inputArr.length - 1].slice(this._cursorCol - this._margin + 1);
           this._input = inputArr.join("\r\n");
-          this._hideCursorWrite(actions.cursorForward + actions.deleteChar + actions.cursorBack);
+          this._hideCursorWrite(actions.deleteChar);
           if (this._input != "" && this._state == "prompt" && this._syntaxColoringEnabled()) {
             // Syntax color input
             this._socket.send(JSON.stringify({ type: "color", input: this._input }));
