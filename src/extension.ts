@@ -1045,7 +1045,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       RESTDebugPanel.create(context.extensionUri)
     ),
     vscode.commands.registerCommand("vscode-objectscript.exportCurrentFile", exportCurrentFile),
-    vscode.workspace.onDidCreateFiles((e: vscode.FileCreateEvent) =>{
+    vscode.workspace.onDidCreateFiles((e: vscode.FileCreateEvent) => {
       if (!config("autoAdjustName")) return;
       return Promise.all(
         e.files
@@ -1079,9 +1079,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
             // Write the new content to the file
             return vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(newContent.content.join("\n")));
           })
-      )
-      }
-    ),
+      );
+    }),
     vscode.window.onDidChangeActiveTextEditor((editor: vscode.TextEditor) => {
       if (config("openClassContracted") && editor && editor.document.languageId === "objectscript-class") {
         const uri: string = editor.document.uri.toString();
