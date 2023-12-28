@@ -327,8 +327,10 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
         .map((match: SearchMatch) => searchMatchToLine(content, match, file.doc, api.configName))
         .filter(notNull);
       // Filter out duplicates and compute all matches for each one
-      [...new Set(lines)].forEach((line) => {
+      [...new Set(lines)].forEach((line, _index, matchedLines) => {
         const text = content[line];
+        const previewFrom = Math.max(line - options.beforeContext || 0, 0);
+        const previewTo = Math.min(line + options.afterContext || 0, content.length - 1);
         const regex = new RegExp(
           query.isRegExp ? query.pattern : query.pattern.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"),
           query.isCaseSensitive ? "g" : "gi"
@@ -344,6 +346,16 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
           counter++;
         }
         if (matchRanges.length && previewRanges.length) {
+          // Add preceding context lines that aren't result lines
+          for (let i = previewFrom; i < line; i++) {
+            if (!matchedLines.includes(i)) {
+              progress.report({
+                uri,
+                text: content[i],
+                lineNumber: i + 1,
+              });
+            }
+          }
           progress.report({
             uri,
             ranges: matchRanges,
@@ -352,6 +364,16 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
               matches: previewRanges,
             },
           });
+          // Add following context lines that aren't result lines
+          for (let i = line + 1; i <= previewTo; i++) {
+            if (!matchedLines.includes(i)) {
+              progress.report({
+                uri,
+                text: content[i],
+                lineNumber: i + 1,
+              });
+            }
+          }
         }
       });
     };
