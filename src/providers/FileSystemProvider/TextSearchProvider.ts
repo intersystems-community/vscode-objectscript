@@ -329,8 +329,8 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
       // Filter out duplicates and compute all matches for each one
       [...new Set(lines)].forEach((line, _index, matchedLines) => {
         const text = content[line];
-        const previewFrom = Math.max(line - options.beforeContext || 0, 0);
-        const previewTo = Math.min(line + options.afterContext || 0, content.length - 1);
+        const previewFrom = Math.max(line - (options.beforeContext || 0), 0);
+        const previewTo = Math.min(line + (options.afterContext || 0), content.length - 1);
         const regex = new RegExp(
           query.isRegExp ? query.pattern : query.pattern.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"),
           query.isCaseSensitive ? "g" : "gi"
