@@ -322,15 +322,16 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
 
       const uri = DocumentContentProvider.getUri(file.doc, "", "", true, options.folder);
       const content = decoder.decode(await vscode.workspace.fs.readFile(uri)).split("\n");
+      const contentLength = content.length;
       // Find all lines that we have matches on
       const lines = file.matches
         .map((match: SearchMatch) => searchMatchToLine(content, match, file.doc, api.configName))
         .filter(notNull);
-      // Filter out duplicates and compute all matches for each one
-      [...new Set(lines)].forEach((line, _index, matchedLines) => {
+      // Remove duplicates and make them quickly searchable
+      const matchedLines = new Set(lines);
+      // Compute all matches for each one
+      matchedLines.forEach((line) => {
         const text = content[line];
-        const previewFrom = Math.max(line - (options.beforeContext || 0), 0);
-        const previewTo = Math.min(line + (options.afterContext || 0), content.length - 1);
         const regex = new RegExp(
           query.isRegExp ? query.pattern : query.pattern.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"),
           query.isCaseSensitive ? "g" : "gi"
@@ -346,14 +347,17 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
           counter++;
         }
         if (matchRanges.length && previewRanges.length) {
-          // Add preceding context lines that aren't result lines
-          for (let i = previewFrom; i < line; i++) {
-            if (!matchedLines.includes(i)) {
-              progress.report({
-                uri,
-                text: content[i],
-                lineNumber: i + 1,
-              });
+          if (options.beforeContext) {
+            // Add preceding context lines that aren't themselves result lines
+            const previewFrom = Math.max(line - options.beforeContext, 0);
+            for (let i = previewFrom; i < line; i++) {
+              if (!matchedLines.has(i)) {
+                progress.report({
+                  uri,
+                  text: content[i],
+                  lineNumber: i + 1,
+                });
+              }
             }
           }
           progress.report({
@@ -364,14 +368,17 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
               matches: previewRanges,
             },
           });
-          // Add following context lines that aren't result lines
-          for (let i = line + 1; i <= previewTo; i++) {
-            if (!matchedLines.includes(i)) {
-              progress.report({
-                uri,
-                text: content[i],
-                lineNumber: i + 1,
-              });
+          if (options.afterContext) {
+            // Add following context lines that aren't themselves result lines
+            const previewTo = Math.min(line + options.afterContext, contentLength - 1);
+            for (let i = line + 1; i <= previewTo; i++) {
+              if (!matchedLines.has(i)) {
+                progress.report({
+                  uri,
+                  text: content[i],
+                  lineNumber: i + 1,
+                });
+              }
             }
           }
         }
