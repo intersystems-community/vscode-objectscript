@@ -326,12 +326,17 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
       const contentLength = content.length;
       // Find all lines that we have matches on
       const lines = file.matches
-        .map((match: SearchMatch) => searchMatchToLine(content, match, file.doc, api.configName))
+        .map((match: SearchMatch) =>
+          token.isCancellationRequested ? null : searchMatchToLine(content, match, file.doc, api.configName)
+        )
         .filter(notNull);
       // Remove duplicates and make them quickly searchable
       const matchedLines = new Set(lines);
       // Compute all matches for each one
       matchedLines.forEach((line) => {
+        if (token.isCancellationRequested) {
+          return;
+        }
         const text = content[line];
         const regex = new RegExp(
           query.isRegExp ? query.pattern : query.pattern.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"),
