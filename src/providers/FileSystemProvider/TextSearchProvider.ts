@@ -315,7 +315,8 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
         !file.matches.length ||
         // The file name is malformed
         (file.doc.includes("/") && !/^\/(?:[^/]+\/)+[^/.]*(?:\.[^/.]+)+$/.test(file.doc)) ||
-        (!file.doc.includes("/") && !/^(%?[\p{L}\d\u{100}-\u{ffff}]+(?:\.[\p{L}\d\u{100}-\u{ffff}]+)+)$/u.test(file.doc))
+        (!file.doc.includes("/") &&
+          !/^(%?[\p{L}\d\u{100}-\u{ffff}]+(?:\.[\p{L}\d\u{100}-\u{ffff}]+)+)$/u.test(file.doc))
       ) {
         return;
       }
