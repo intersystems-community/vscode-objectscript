@@ -170,6 +170,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
       outputChannel.appendLine(
         typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
       );
+      outputChannel.appendLine("Check that the InterSystems server's web server supports WebSockets.");
       outputChannel.show(true);
       vscode.window.showErrorMessage(
         "Failed to initialize WebSocket Terminal. Check 'ObjectScript' Output channel for details.",
