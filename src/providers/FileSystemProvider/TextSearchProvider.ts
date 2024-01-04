@@ -149,8 +149,8 @@ function searchMatchToLine(
             // This is in the class description
             line = descLineToDocLine(content, match.attrline, i);
             break;
-          } else if (match.attr == "Super") {
-            // This is a superclass
+          } else if (match.attr == "Super" || match.attr == "Name") {
+            // This is in the class definition line
             if (content[i].includes(match.text)) {
               line = i;
             }
@@ -306,7 +306,18 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
 
     /** Report matches in `file` to the user */
     const reportMatchesForFile = async (file: SearchResult): Promise<void> => {
-      if (token.isCancellationRequested) {
+      // The last three checks are needed to protect against
+      // bad output from the server due to a bug.
+      if (
+        // The user cancelled the search
+        token.isCancellationRequested ||
+        // The server reported no matches in this file
+        !file.matches.length ||
+        // The file name is malformed
+        (file.doc.includes("/") && !/^\/(?:[^/]+\/)+[^/.]*(?:\.[^/.]+)+$/.test(file.doc)) ||
+        (!file.doc.includes("/") &&
+          !/^(%?[\p{L}\d\u{100}-\u{ffff}]+(?:\.[\p{L}\d\u{100}-\u{ffff}]+)+)$/u.test(file.doc))
+      ) {
         return;
       }
 
