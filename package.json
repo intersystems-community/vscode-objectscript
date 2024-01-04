@@ -79,7 +79,7 @@
     "viewsWelcome": [
       {
         "view": "explorer",
-        "contents": "Begin your local ObjectScript development by opening a folder or cloning a repository. Then switch to the new ObjectScript view in the Activity Bar.\nYou can also create a new workspace to [edit or view code directly on an InterSystems server](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ssworkflow).\n[Choose Server and Namespace](command:vscode-objectscript.addServerNamespaceToWorkspace)"
+        "contents": "Begin your local ObjectScript development by opening a folder or cloning a repository. Then switch to the InterSystems: Explorer view in the Activity Bar.\nYou can also create a new workspace to [edit or view code directly on an InterSystems server](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ssworkflow).\n[Choose Server and Namespace](command:vscode-objectscript.addServerNamespaceToWorkspace)"
       },
       {
         "view": "ObjectScriptExplorer",
