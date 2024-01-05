@@ -149,8 +149,8 @@ function searchMatchToLine(
             // This is in the class description
             line = descLineToDocLine(content, match.attrline, i);
             break;
-          } else if (match.attr == "Super") {
-            // This is a superclass
+          } else if (match.attr == "Super" || match.attr == "Name") {
+            // This is in the class definition line
             if (content[i].includes(match.text)) {
               line = i;
             }
@@ -306,18 +306,37 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
 
     /** Report matches in `file` to the user */
     const reportMatchesForFile = async (file: SearchResult): Promise<void> => {
-      if (token.isCancellationRequested) {
+      // The last three checks are needed to protect against
+      // bad output from the server due to a bug.
+      if (
+        // The user cancelled the search
+        token.isCancellationRequested ||
+        // The server reported no matches in this file
+        !file.matches.length ||
+        // The file name is malformed
+        (file.doc.includes("/") && !/^\/(?:[^/]+\/)+[^/.]*(?:\.[^/.]+)+$/.test(file.doc)) ||
+        (!file.doc.includes("/") &&
+          !/^(%?[\p{L}\d\u{100}-\u{ffff}]+(?:\.[\p{L}\d\u{100}-\u{ffff}]+)+)$/u.test(file.doc))
+      ) {
         return;
       }
 
       const uri = DocumentContentProvider.getUri(file.doc, "", "", true, options.folder);
       const content = decoder.decode(await vscode.workspace.fs.readFile(uri)).split("\n");
+      const contentLength = content.length;
       // Find all lines that we have matches on
       const lines = file.matches
-        .map((match: SearchMatch) => searchMatchToLine(content, match, file.doc, api.configName))
+        .map((match: SearchMatch) =>
+          token.isCancellationRequested ? null : searchMatchToLine(content, match, file.doc, api.configName)
+        )
         .filter(notNull);
-      // Filter out duplicates and compute all matches for each one
-      [...new Set(lines)].forEach((line) => {
+      // Remove duplicates and make them quickly searchable
+      const matchedLines = new Set(lines);
+      // Compute all matches for each one
+      matchedLines.forEach((line) => {
+        if (token.isCancellationRequested) {
+          return;
+        }
         const text = content[line];
         const regex = new RegExp(
           query.isRegExp ? query.pattern : query.pattern.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"),
@@ -334,6 +353,19 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
           counter++;
         }
         if (matchRanges.length && previewRanges.length) {
+          if (options.beforeContext) {
+            // Add preceding context lines that aren't themselves result lines
+            const previewFrom = Math.max(line - options.beforeContext, 0);
+            for (let i = previewFrom; i < line; i++) {
+              if (!matchedLines.has(i)) {
+                progress.report({
+                  uri,
+                  text: content[i],
+                  lineNumber: i + 1,
+                });
+              }
+            }
+          }
           progress.report({
             uri,
             ranges: matchRanges,
@@ -342,6 +374,19 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
               matches: previewRanges,
             },
           });
+          if (options.afterContext) {
+            // Add following context lines that aren't themselves result lines
+            const previewTo = Math.min(line + options.afterContext, contentLength - 1);
+            for (let i = line + 1; i <= previewTo; i++) {
+              if (!matchedLines.has(i)) {
+                progress.report({
+                  uri,
+                  text: content[i],
+                  lineNumber: i + 1,
+                });
+              }
+            }
+          }
         }
       });
     };
