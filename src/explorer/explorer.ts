@@ -158,7 +158,7 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
       .then((data) => data.map((ns) => ({ label: ns })))
       .then((data) =>
         vscode.window.showQuickPick(data, {
-          placeHolder: `Choose a namespace on ${api.config.host}:${api.config.port} to add to ObjectScript Explorer`,
+          placeHolder: `Choose a namespace on ${api.config.host}:${api.config.port} to add to the Explorer`,
         })
       )
       .then((ns) => this.showExtra4Workspace(workspaceFolder, ns.label))

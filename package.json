@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "2.10.6-SNAPSHOT",
+  "version": "2.12.0-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "9cd75d51-697c-406c-a929-2bcf46e97c64",
   "categories": [
@@ -79,11 +79,11 @@
     "viewsWelcome": [
       {
         "view": "explorer",
-        "contents": "Begin your local ObjectScript development by opening a folder or cloning a repository. Then switch to the new ObjectScript view in the Activity Bar.\nYou can also create a new workspace to [edit or view code directly on an InterSystems server](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ssworkflow).\n[Choose Server and Namespace](command:vscode-objectscript.addServerNamespaceToWorkspace)"
+        "contents": "Begin your local ObjectScript development by opening a folder or cloning a repository. Then switch to the InterSystems: Explorer view in the Activity Bar.\nYou can also create a new workspace to [edit or view code directly on an InterSystems server](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ssworkflow).\n[Choose Server and Namespace](command:vscode-objectscript.addServerNamespaceToWorkspace)"
       },
       {
         "view": "ObjectScriptExplorer",
-        "contents": "Connect a local workspace folder to an [InterSystems server](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ssworkflow) if you want to export or import ObjectScript code.\n[Choose Server and Namespace](command:vscode-objectscript.connectFolderToServerNamespace)\nOr [hide this ObjectScript view](command:vscode-objectscript.hideExplorerForWorkspace) if it is not needed for the current workspace.",
+        "contents": "Connect a local workspace folder to an [InterSystems server](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ssworkflow) if you want to export or import ObjectScript code.\n[Choose Server and Namespace](command:vscode-objectscript.connectFolderToServerNamespace)\nOr [hide this view](command:vscode-objectscript.hideExplorerForWorkspace) if it is not needed for the current workspace.",
         "when": "vscode-objectscript.explorerRootCount == 0"
       },
       {
@@ -1382,7 +1382,7 @@
         "objectscript.showExplorer": {
           "type": "boolean",
           "default": true,
-          "description": "Show the ObjectScript Explorer view."
+          "description": "Show the InterSystems Explorer view."
         },
         "objectscript.compileFlags": {
           "type": "string",
@@ -1458,6 +1458,11 @@
           "type": "boolean",
           "default": false
         },
+        "objectscript.autoAdjustName": {
+          "markdownDescription": "Automatically modify the class name or ROUTINE header to match the file's path when copying or creating a new file. Does not affect `isfs` files.",
+          "type": "boolean",
+          "default": true
+        },
         "objectscript.compileOnSave": {
           "description": "Automatically compile an InterSystems file when saved in the editor.",
           "type": "boolean",
@@ -1474,7 +1479,7 @@
           "default": false
         },
         "objectscript.explorer.alwaysShowServerCopy": {
-          "description": "Always show the server copy of a document in the ObjectScript Explorer.",
+          "description": "Always show the server copy of a document opened from the InterSystems Explorer.",
           "type": "boolean",
           "default": false
         },
@@ -1511,27 +1516,18 @@
       }
     },
     "views": {
-      "ObjectScriptView": [
+      "intersystems-community_servermanager": [
         {
           "id": "ObjectScriptExplorer",
           "name": "Explorer",
-          "contextualTitle": "ObjectScript Explorer",
+          "contextualTitle": "InterSystems",
           "when": "workspaceFolderCount != 0 && config.objectscript.showExplorer == true"
         },
         {
           "id": "ObjectScriptProjectsExplorer",
           "name": "Projects",
-          "contextualTitle": "InterSystems Projects",
+          "contextualTitle": "InterSystems",
           "when": "workspaceFolderCount != 0"
-        }
-      ]
-    },
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "icon": "images/InterSystems.svg",
-          "id": "ObjectScriptView",
-          "title": "ObjectScript"
         }
       ]
     },
@@ -1722,5 +1718,8 @@
     "@vscode/debugprotocol": "^1.61.0",
     "vscode-extension-telemetry": "^0.1.6",
     "ws": "^8.14.2"
-  }
+  },
+  "extensionDependencies": [
+    "intersystems-community.servermanager"
+  ]
 }
