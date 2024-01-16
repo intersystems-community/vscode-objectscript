@@ -141,7 +141,7 @@
         },
         {
           "command": "vscode-objectscript.previewXml",
-          "when": "editorLangId == xml && vscode-objectscript.connectActive"
+          "when": "vscode-objectscript.connectActive && resourceExtname =~ /^\\.xml$/i && !(resourceScheme =~ /^isfs(-readonly)?$/)"
         },
         {
           "command": "vscode-objectscript.explorer.export",
@@ -334,6 +334,10 @@
         {
           "command": "vscode-objectscript.exportToXMLFile",
           "when": "vscode-objectscript.connectActive && workspaceFolderCount != 0"
+        },
+        {
+          "command": "vscode-objectscript.extractXMLFileContents",
+          "when": "vscode-objectscript.connectActive && workspaceFolderCount != 0"
         }
       ],
       "view/title": [
@@ -483,7 +487,7 @@
         },
         {
           "command": "vscode-objectscript.previewXml",
-          "when": "editorLangId =~ /^xml/",
+          "when": "vscode-objectscript.connectActive && resourceExtname =~ /^\\.xml$/i && !(resourceScheme =~ /^isfs(-readonly)?$/)",
           "group": "objectscript@4"
         },
         {
@@ -603,6 +607,11 @@
           "command": "vscode-objectscript.modifyWsFolder",
           "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && explorerResourceIsRoot",
           "group": "objectscript_modify@3"
+        },
+        {
+          "command": "vscode-objectscript.extractXMLFileContents",
+          "when": "vscode-objectscript.connectActive && resourceExtname =~ /^\\.xml$/i && !(resourceScheme =~ /^isfs(-readonly)?$/)",
+          "group": "objectscript_modify@4"
         }
       ],
       "file/newFile": [
@@ -1145,6 +1154,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.exportToXMLFile",
         "title": "Export Documents to XML File..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.extractXMLFileContents",
+        "title": "Extract Documents from XML File..."
       }
     ],
     "keybindings": [

@@ -44,13 +44,14 @@ export const getFileName = (
   addCategory: boolean,
   map: {
     [key: string]: string;
-  }
+  },
+  sep = path.sep
 ): string => {
   if (name.includes("/")) {
     // This is a file from a web application
     const nameArr: string[] = name.split("/");
     const cat = addCategory ? getCategory(name, addCategory) : null;
-    return [folder, cat, ...nameArr].filter(notNull).join(path.sep);
+    return [folder, cat, ...nameArr].filter(notNull).join(sep);
   } else {
     let fileNameArray: string[];
     let fileExt: string;
@@ -79,10 +80,10 @@ export const getFileName = (
     }
     const cat = addCategory ? getCategory(name, addCategory) : null;
     if (split) {
-      const fileName = [folder, cat, ...fileNameArray].filter(notNull).join(path.sep);
+      const fileName = [folder, cat, ...fileNameArray].filter(notNull).join(sep);
       return [fileName, fileExt].join(".");
     }
-    return [folder, cat, name].filter(notNull).join(path.sep);
+    return [folder, cat, name].filter(notNull).join(sep);
   }
 };
 
