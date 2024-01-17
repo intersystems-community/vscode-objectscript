@@ -41,7 +41,7 @@ import { serverActions } from "./commands/serverActions";
 import { subclass } from "./commands/subclass";
 import { superclass } from "./commands/superclass";
 import { viewOthers } from "./commands/viewOthers";
-import { xml2doc } from "./commands/xml2doc";
+import { extractXMLFileContents, previewXMLAsUDL } from "./commands/xmlToUdl";
 import {
   mainCommandMenu,
   contextCommandMenu,
@@ -181,15 +181,6 @@ export const config = (setting?: string, workspaceFolderName?: string): vscode.W
   return setting && setting.length ? result.get(setting) : result;
 };
 
-export function getXmlUri(uri: vscode.Uri): vscode.Uri {
-  if (uri.scheme === OBJECTSCRIPTXML_FILE_SCHEMA) {
-    return uri;
-  }
-  return uri.with({
-    path: uri.path,
-    scheme: OBJECTSCRIPTXML_FILE_SCHEMA,
-  });
-}
 let reporter: TelemetryReporter = null;
 
 export let checkingConnection = false;
@@ -667,7 +658,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }
   }
 
-  // This constructor instantiates an AtelierAPI object, so needs to happen after resolving and checking connections above
   xmlContentProvider = new XmlContentProvider();
 
   const documentSelector = (...list) =>
@@ -987,9 +977,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         return explorerProvider.closeExtra4Workspace(workspaceNode.label, workspaceNode.namespace);
       }
     ),
-    vscode.commands.registerCommand("vscode-objectscript.previewXml", () => {
-      xml2doc(context, vscode.window.activeTextEditor);
-    }),
+    vscode.commands.registerCommand("vscode-objectscript.previewXml", () =>
+      previewXMLAsUDL(vscode.window.activeTextEditor)
+    ),
     vscode.commands.registerCommand("vscode-objectscript.addServerNamespaceToWorkspace", (resource?: vscode.Uri) => {
       addServerNamespaceToWorkspace(resource);
     }),
@@ -1235,10 +1225,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     }),
     vscode.window.onDidChangeActiveTextEditor(async (textEditor: vscode.TextEditor) => {
-      await checkConnection(false, textEditor?.document.uri);
+      if (!textEditor) return;
+      await checkConnection(false, textEditor.document.uri);
       posPanel.text = "";
-      if (textEditor?.document.fileName.endsWith(".xml") && config("autoPreviewXML")) {
-        return xml2doc(context, textEditor);
+      if (textEditor.document.uri.path.toLowerCase().endsWith(".xml") && config("autoPreviewXML")) {
+        return previewXMLAsUDL(textEditor, true);
       }
     }),
     vscode.window.onDidChangeTextEditorSelection((event: vscode.TextEditorSelectionChangeEvent) => {
@@ -1332,6 +1323,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.commands.registerCommand("vscode-objectscript.importXMLFiles", importXMLFiles),
     vscode.commands.registerCommand("vscode-objectscript.exportToXMLFile", exportDocumentsToXMLFile),
+    vscode.commands.registerCommand("vscode-objectscript.extractXMLFileContents", extractXMLFileContents),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed

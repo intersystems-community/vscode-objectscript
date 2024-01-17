@@ -1,40 +1,35 @@
 import * as vscode from "vscode";
-import { AtelierAPI } from "../api";
-import { outputChannel } from "../utils";
 
+/** Provides the contents of UDL documents extracted from XML files. */
 export class XmlContentProvider implements vscode.TextDocumentContentProvider {
-  private _api: AtelierAPI;
+  /** A cache of UDL documents extracted from an XML file. */
+  private _udlDocsPerXmlFile: Map<string, { name: string; content: string[] }[]> = new Map();
   private onDidChangeEvent: vscode.EventEmitter<vscode.Uri> = new vscode.EventEmitter<vscode.Uri>();
 
-  public constructor() {
-    this._api = new AtelierAPI();
-  }
-
-  public provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
-    return vscode.workspace
-      .openTextDocument(vscode.Uri.file(uri.fragment))
-      .then((document) => document.getText())
-      .then((text) => {
-        return this._api
-          .cvtXmlUdl(text)
-          .then((data) => data.result.content[0].content.join("\n"))
-          .catch((error) => {
-            let message = `Failed to convert XML of '${uri.path.slice(1)}' to UDL.`;
-            if (error.errorText && error.errorText !== "") {
-              outputChannel.appendLine("\n" + error.errorText);
-              outputChannel.show(true);
-              message += " Check 'ObjectScript' Output channel for details.";
-            }
-            vscode.window.showErrorMessage(message, "Dismiss");
-          });
-      });
+  public provideTextDocumentContent(uri: vscode.Uri): string | undefined {
+    return this._udlDocsPerXmlFile
+      .get(uri.fragment)
+      ?.find((d) => d.name == uri.path)
+      ?.content.join("\n");
   }
 
   public get onDidChange(): vscode.Event<vscode.Uri> {
     return this.onDidChangeEvent.event;
   }
 
-  public update(uri: vscode.Uri, message?: string): void {
-    this.onDidChangeEvent.fire(uri);
+  /**
+   * Add `udlDocs` extracted from XML file `uri` to the cache.
+   * Called by `previewXMLAsUDL()`.
+   */
+  public addUdlDocsForFile(uri: string, udlDocs: { name: string; content: string[] }[]): void {
+    this._udlDocsPerXmlFile.set(uri, udlDocs);
+  }
+
+  /**
+   * Remove UDL documents extracted from XML file `uri` from the cache.
+   * Called by `previewXMLAsUDL()`.
+   */
+  public removeUdlDocsForFile(uri: string): void {
+    this._udlDocsPerXmlFile.delete(uri);
   }
 }
