@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 
 /** Provides the contents of UDL documents extracted from XML files. */
 export class XmlContentProvider implements vscode.TextDocumentContentProvider {
-  /** A cache of UDL documents extratced from an XML file. */
+  /** A cache of UDL documents extracted from an XML file. */
   private _udlDocsPerXmlFile: Map<string, { name: string; content: string[] }[]> = new Map();
   private onDidChangeEvent: vscode.EventEmitter<vscode.Uri> = new vscode.EventEmitter<vscode.Uri>();
 
