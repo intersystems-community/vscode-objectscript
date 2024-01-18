@@ -1690,7 +1690,6 @@
     "postinstall": "npm run download-api"
   },
   "devDependencies": {
-    "@types/glob": "^7.1.2",
     "@types/istextorbinary": "2.3.1",
     "@types/minimatch": "5.1.2",
     "@types/mocha": "^7.0.2",
