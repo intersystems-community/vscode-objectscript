@@ -440,10 +440,24 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
 
       // Convert the array of glob patterns into a single regular expression
       if (includesArr.length) {
-        request.include = includesArr.map((e) => makeRe(e).source).join("|");
+        request.include = includesArr
+          .map((e) => {
+            const re = makeRe(e);
+            if (re == false) return null;
+            return re.source;
+          })
+          .filter(notNull)
+          .join("|");
       }
       if (excludesArr.length) {
-        request.exclude = excludesArr.map((e) => makeRe(e).source).join("|");
+        request.exclude = excludesArr
+          .map((e) => {
+            const re = makeRe(e);
+            if (re == false) return null;
+            return re.source;
+          })
+          .filter(notNull)
+          .join("|");
       }
 
       // Send the queue request
