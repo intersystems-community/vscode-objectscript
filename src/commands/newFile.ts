@@ -816,7 +816,16 @@ XData RuleDefinition [ XMLNamespace = "http://www.intersystems.com/rule" ]
 ${typeof desc == "string" ? "/// " + desc.replace(/\n/g, "\n/// ") : ""}
 Class ${cls} Extends %DeepSee.KPI
 {
-
+  ${
+    api
+      ? `
+  /*
+  You can test this KPI by pasting the following URL into your web browser.
+  ${api.config.https ? "https" : "http"}://${api.config.host}:${api.config.port}${
+          api.config.pathPrefix
+        }/csp/${api.config.ns.toLowerCase()}/${cls}.cls\n*/\n`
+      : ""
+  }
 Parameter DOMAIN = "${kpiDomain}";
 
 Parameter RESOURCE = "${kpiResource == "No Resource" ? "" : kpiResource}";
