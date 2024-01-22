@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { config } from "../extension";
 import { currentFile } from "../utils";
+import { AtelierAPI } from "../api";
 
 export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
   public provideCodeLenses(
@@ -8,7 +9,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
     token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.CodeLens[]> {
     if (document.languageId == "objectscript-class") {
-      return this.classMethods(document);
+      return this.classMembers(document);
     }
     if (["objectscript", "objectscript-int"].includes(document.languageId)) {
       return this.routineLabels(document);
@@ -16,19 +17,20 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
     return [];
   }
 
-  private classMethods(document: vscode.TextDocument): vscode.CodeLens[] {
+  private classMembers(document: vscode.TextDocument): vscode.CodeLens[] {
     const file = currentFile(document);
     const result = new Array<vscode.CodeLens>();
-
-    const className = file.name.split(".").slice(0, -1).join(".");
-
+    const className = file.name.slice(0, -4);
     const { debugThisMethod, copyToClipboard } = config("debug");
-    if (!debugThisMethod && !copyToClipboard) {
-      // Return early if both types are turned off
-      return result;
-    }
+    const methodPattern = /(?:^(ClassMethod|Query)\s)([^(]+)\((.*)/i;
+    const xdataPattern = /^XData\s([^[{\s]+)/i;
+    const superPattern = new RegExp(
+      `^\\s*Class\\s+${className.replace(/\./g, "\\.")}\\s+Extends\\s+(?:(?:\\(([^)]+)\\))|(?:([^\\s]+)))`,
+      "i"
+    );
+    const api = new AtelierAPI(document.uri);
 
-    const pattern = /(?:^(ClassMethod|Query)\s)([^(]+)\((.*)/i;
+    let superclasses: string[] = [];
     let inComment = false;
     for (let i = 0; i < document.lineCount; i++) {
       const line = document.lineAt(i);
@@ -45,8 +47,48 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
         continue;
       }
 
-      const methodMatch = text.match(pattern);
-      if (methodMatch) {
+      const methodMatch = text.match(methodPattern);
+      const xdataMatch = text.match(xdataPattern);
+      const superMatch = text.match(superPattern);
+      if (superMatch) {
+        const [, superclassesList, superclass] = superMatch;
+        if (superclass) {
+          superclasses = [superclass];
+        } else {
+          superclasses = superclassesList.replace(/\s+/g, "").split(",");
+        }
+      } else if (xdataMatch && api.active) {
+        let [, xdataName] = xdataMatch;
+        xdataName = xdataName.trim();
+        let cmd: vscode.Command = undefined;
+        if (
+          (xdataName == "BPL" && superclasses.includes("Ens.BusinessProcessBPL")) ||
+          (xdataName == "DTL" && superclasses.includes("Ens.DataTransformDTL"))
+        ) {
+          cmd = {
+            title: "Open Graphical Editor",
+            command: "vscode-objectscript.openPathInBrowser",
+            arguments: [
+              `/csp/${api.config.ns.toLowerCase()}/EnsPortal.${
+                xdataName == "BPL" ? `BPLEditor.zen?BP=${className}.BPL` : `DTLEditor.zen?DT=${className}.DTL`
+              }`,
+              document.uri,
+            ],
+          };
+        } else if (xdataName == "RuleDefinition" && superclasses.includes("Ens.Rule.Definition")) {
+          cmd = {
+            title: "Re-Open in Graphical Editor",
+            command: "workbench.action.toggleEditorType",
+          };
+        } else if (xdataName == "KPI" && superclasses.includes("%DeepSee.KPI")) {
+          cmd = {
+            title: "Test KPI",
+            command: "vscode-objectscript.openPathInBrowser",
+            arguments: [`/csp/${api.config.ns.toLowerCase()}/${className}.cls`, document.uri],
+          };
+        }
+        if (cmd) result.push(new vscode.CodeLens(new vscode.Range(i, 0, i, 80), cmd));
+      } else if (methodMatch && (debugThisMethod || copyToClipboard)) {
         const [, kind, name, paramsRaw] = methodMatch;
         let params = paramsRaw;
         params = params.replace(/"[^"]*"/g, '""');
