@@ -68,6 +68,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
           cmd = {
             title: "Open Graphical Editor",
             command: "vscode-objectscript.openPathInBrowser",
+            tooltip: "Open graphical editor in an external browser",
             arguments: [
               `/csp/${api.config.ns.toLowerCase()}/EnsPortal.${
                 xdataName == "BPL" ? `BPLEditor.zen?BP=${className}.BPL` : `DTLEditor.zen?DT=${className}.DTL`
@@ -77,13 +78,15 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
           };
         } else if (xdataName == "RuleDefinition" && superclasses.includes("Ens.Rule.Definition")) {
           cmd = {
-            title: "Re-Open in Graphical Editor",
+            title: "Reopen in Graphical Editor",
             command: "workbench.action.toggleEditorType",
+            tooltip: "Replace text editor with graphical editor",
           };
         } else if (xdataName == "KPI" && superclasses.includes("%DeepSee.KPI")) {
           cmd = {
             title: "Test KPI",
             command: "vscode-objectscript.openPathInBrowser",
+            tooltip: "Open testing page in an external browser",
             arguments: [`/csp/${api.config.ns.toLowerCase()}/${className}.cls`, document.uri],
           };
         }
