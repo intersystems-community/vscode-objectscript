@@ -127,6 +127,7 @@ import { FileDecorationProvider } from "./providers/FileDecorationProvider";
 import { RESTDebugPanel } from "./commands/restDebugPanel";
 import { modifyWsFolder } from "./commands/addServerNamespaceToWorkspace";
 import { WebSocketTerminalProfileProvider, launchWebSocketTerminal } from "./commands/webSocketTerminal";
+import { getCSPToken } from "./utils/getCSPToken";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -1324,6 +1325,26 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.importXMLFiles", importXMLFiles),
     vscode.commands.registerCommand("vscode-objectscript.exportToXMLFile", exportDocumentsToXMLFile),
     vscode.commands.registerCommand("vscode-objectscript.extractXMLFileContents", extractXMLFileContents),
+    vscode.commands.registerCommand(
+      "vscode-objectscript.openPathInBrowser",
+      async (path: string, docUri: vscode.Uri) => {
+        if (typeof path == "string" && docUri && docUri instanceof vscode.Uri) {
+          const api = new AtelierAPI(docUri);
+          let uri = vscode.Uri.parse(
+            `${api.config.https ? "https" : "http"}://${api.config.host}:${api.config.port}${
+              api.config.pathPrefix
+            }${path}`
+          );
+          const token = await getCSPToken(api, path.split("?")[0]).catch(() => "");
+          if (token.length > 0) {
+            uri = uri.with({
+              query: uri.query.length ? `${uri.query}&CSPCHD=${token}` : `CSPCHD=${token}`,
+            });
+          }
+          vscode.env.openExternal(uri);
+        }
+      }
+    ),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed
