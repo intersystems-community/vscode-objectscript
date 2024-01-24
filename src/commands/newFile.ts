@@ -555,17 +555,7 @@ Method OnProcessInput(pInput As %RegisteredObject, pOutput As %RegisteredObject)
 ${typeof desc == "string" ? "/// " + desc.replace(/\n/g, "\n/// ") : ""}
 Class ${cls} Extends Ens.BusinessProcessBPL [ ClassType = persistent, ProcedureBlock ]
 {
-${
-  api
-    ? `
-/*
-You can edit this class in the Business Process Editor by pasting the following URL into your web browser.
-You can also edit this XML block directly.
-${api.config.https ? "https" : "http"}://${api.config.host}:${api.config.port}${
-        api.config.pathPrefix
-      }/csp/${api.config.ns.toLowerCase()}/EnsPortal.BPLEditor.zen?BP=${cls}.BPL\n*/\n`
-    : ""
-}
+
 /// BPL Definition
 XData BPL [ XMLNamespace = "http://www.intersystems.com/bpl" ]
 {
@@ -652,17 +642,7 @@ Class ${cls} Extends Ens.DataTransformDTL [ DependsOn = ${
           sourceCls == targetCls ? sourceCls : `(${sourceCls}, ${targetCls})`
         } ]
 {
-${
-  api
-    ? `
-/*
-You can edit this class in the Data Transformation Editor by pasting the following URL into your web browser.
-You can also edit this XML block directly.
-${api.config.https ? "https" : "http"}://${api.config.host}:${api.config.port}${
-        api.config.pathPrefix
-      }/csp/${api.config.ns.toLowerCase()}/EnsPortal.DTLEditor.zen?DT=${cls}.DTL\n*/\n`
-    : ""
-}
+
 Parameter IGNOREMISSINGSOURCE = 1;
 
 Parameter REPORTERRORS = 1;

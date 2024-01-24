@@ -1,6 +1,5 @@
-import glob = require("glob");
-import path = require("path");
 import vscode = require("vscode");
+import { isText } from "istextorbinary";
 import { AtelierAPI } from "../api";
 import {
   config,
@@ -31,7 +30,6 @@ import { PackageNode } from "../explorer/models/packageNode";
 import { NodeBase } from "../explorer/models/nodeBase";
 import { RootNode } from "../explorer/models/rootNode";
 import { StudioActions } from "./studio";
-import { isText } from "istextorbinary";
 
 async function compileFlags(): Promise<string> {
   const defaultFlags = config().compileFlags;
@@ -461,16 +459,15 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
   );
 }
 
-async function importFiles(files: string[], noCompile = false) {
+async function importFiles(files: vscode.Uri[], noCompile = false) {
   const toCompile: CurrentFile[] = [];
   await Promise.all<void>(
     files.map(
-      throttleRequests((file: string) => {
-        const uri = vscode.Uri.file(file);
+      throttleRequests((uri: vscode.Uri) => {
         return vscode.workspace.fs
           .readFile(uri)
           .then((contentBytes) => {
-            if (isText(file, Buffer.from(contentBytes))) {
+            if (isText(uri.path.split("/").pop(), Buffer.from(contentBytes))) {
               const textFile = currentFileFromContent(uri, new TextDecoder().decode(contentBytes));
               toCompile.push(textFile);
               return textFile;
@@ -479,10 +476,7 @@ async function importFiles(files: string[], noCompile = false) {
             }
           })
           .then((curFile) =>
-            importFile(curFile).then((data) => {
-              outputChannel.appendLine("Imported file: " + curFile.fileName);
-              return;
-            })
+            importFile(curFile).then(() => outputChannel.appendLine("Imported file: " + curFile.fileName))
           );
       })
     )
@@ -495,9 +489,8 @@ async function importFiles(files: string[], noCompile = false) {
 }
 
 export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<any> {
-  const uripath = uri.fsPath;
   if ((await vscode.workspace.fs.stat(uri)).type != vscode.FileType.Directory) {
-    return importFiles([uripath], noCompile);
+    return importFiles([uri], noCompile);
   }
   let globpattern = "*.{cls,inc,int,mac}";
   if (cspAppsForUri(uri).findIndex((cspApp) => uri.path.includes(cspApp + "/") || uri.path.endsWith(cspApp)) != -1) {
@@ -506,19 +499,9 @@ export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<
     // include non-InterSystems files
     globpattern = "*";
   }
-  glob(
-    globpattern,
-    {
-      cwd: uripath,
-      matchBase: true,
-      nocase: true,
-    },
-    (_error, files) =>
-      importFiles(
-        files.map((name) => path.join(uripath, name)),
-        noCompile
-      )
-  );
+  vscode.workspace
+    .findFiles(new vscode.RelativePattern(uri, `**/${globpattern}`))
+    .then((files) => importFiles(files, noCompile));
 }
 
 export async function compileExplorerItems(nodes: NodeBase[]): Promise<any> {

@@ -141,7 +141,7 @@
         },
         {
           "command": "vscode-objectscript.previewXml",
-          "when": "editorLangId == xml && vscode-objectscript.connectActive"
+          "when": "vscode-objectscript.connectActive && resourceExtname =~ /^\\.xml$/i && !(resourceScheme =~ /^isfs(-readonly)?$/)"
         },
         {
           "command": "vscode-objectscript.explorer.export",
@@ -334,6 +334,10 @@
         {
           "command": "vscode-objectscript.exportToXMLFile",
           "when": "vscode-objectscript.connectActive && workspaceFolderCount != 0"
+        },
+        {
+          "command": "vscode-objectscript.extractXMLFileContents",
+          "when": "vscode-objectscript.connectActive && workspaceFolderCount != 0"
         }
       ],
       "view/title": [
@@ -483,7 +487,7 @@
         },
         {
           "command": "vscode-objectscript.previewXml",
-          "when": "editorLangId =~ /^xml/",
+          "when": "vscode-objectscript.connectActive && resourceExtname =~ /^\\.xml$/i && !(resourceScheme =~ /^isfs(-readonly)?$/)",
           "group": "objectscript@4"
         },
         {
@@ -603,6 +607,11 @@
           "command": "vscode-objectscript.modifyWsFolder",
           "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && explorerResourceIsRoot",
           "group": "objectscript_modify@3"
+        },
+        {
+          "command": "vscode-objectscript.extractXMLFileContents",
+          "when": "vscode-objectscript.connectActive && resourceExtname =~ /^\\.xml$/i && !(resourceScheme =~ /^isfs(-readonly)?$/)",
+          "group": "objectscript_modify@4"
         }
       ],
       "file/newFile": [
@@ -1145,6 +1154,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.exportToXMLFile",
         "title": "Export Documents to XML File..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.extractXMLFileContents",
+        "title": "Extract Documents from XML File..."
       }
     ],
     "keybindings": [
@@ -1713,8 +1727,8 @@
     "postinstall": "npm run download-api"
   },
   "devDependencies": {
-    "@types/glob": "^7.1.2",
     "@types/istextorbinary": "2.3.1",
+    "@types/minimatch": "5.1.2",
     "@types/mocha": "^7.0.2",
     "@types/node": "^14.18.0",
     "@types/semver": "7.5.4",
@@ -1733,6 +1747,7 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^3.1.4",
     "eslint-plugin-promise": "^4.2.1",
+    "glob": "^7.1.6",
     "mocha": "^9.1.3",
     "path-browserify": "^1.0.1",
     "prettier": "^2.0.5",
@@ -1745,9 +1760,9 @@
   "dependencies": {
     "@xmldom/xmldom": "^0.8.8",
     "core-js": "^3.6.5",
-    "glob": "^7.1.6",
     "iconv-lite": "^0.6.0",
     "istextorbinary": "^6.0.0",
+    "minimatch": "^9.0.3",
     "node-cmd": "^5.0.0",
     "node-fetch-cjs": "3.1.1",
     "vscode-cache": "^0.3.0",

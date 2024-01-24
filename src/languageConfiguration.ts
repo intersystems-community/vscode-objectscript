@@ -24,27 +24,27 @@ export function getLanguageConfiguration(lang: string): LanguageConfiguration {
           ]
         : [
             {
-              beforeText: /^\s\/\/\//,
+              beforeText: /^\s*\/\/\//,
               action: { indentAction: IndentAction.None, appendText: "/// " },
             },
             {
-              beforeText: /^\s\/\/[^/]?/,
+              beforeText: /^\s+\/\/[^/]?/,
               action: { indentAction: IndentAction.None, appendText: "// " },
             },
             {
-              beforeText: /^\s;;/,
+              beforeText: /^\s+;;/,
               action: { indentAction: IndentAction.None, appendText: ";; " },
             },
             {
-              beforeText: /^\s;[^;]?/,
+              beforeText: /^\s+;[^;]?/,
               action: { indentAction: IndentAction.None, appendText: "; " },
             },
             {
-              beforeText: /^\s#;/,
+              beforeText: /^\s*#;/,
               action: { indentAction: IndentAction.None, appendText: "#; " },
             },
             {
-              beforeText: /^\s##;/,
+              beforeText: /^\s*##;/,
               action: { indentAction: IndentAction.None, appendText: "##; " },
             },
           ],
