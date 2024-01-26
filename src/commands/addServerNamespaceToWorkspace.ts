@@ -7,6 +7,7 @@ import {
   FILESYSTEM_SCHEMA,
   FILESYSTEM_READONLY_SCHEMA,
   filesystemSchemas,
+  smExtensionId,
 } from "../extension";
 import { cspAppsForUri, outputChannel } from "../utils";
 import { pickProject } from "./project";
@@ -164,7 +165,7 @@ export async function addServerNamespaceToWorkspace(resource?: vscode.Uri): Prom
 }
 
 export async function getServerManagerApi(): Promise<any> {
-  const targetExtension = vscode.extensions.getExtension("intersystems-community.servermanager");
+  const targetExtension = vscode.extensions.getExtension(smExtensionId);
   if (!targetExtension) {
     return undefined;
   }

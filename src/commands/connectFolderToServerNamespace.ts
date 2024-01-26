@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { panel, resolveConnectionSpec, getResolvedConnectionSpec } from "../extension";
+import { panel, resolveConnectionSpec, getResolvedConnectionSpec, smExtensionId } from "../extension";
 
 interface ConnSettings {
   server: string;
@@ -89,7 +89,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
 }
 
 async function getServerManagerApi(): Promise<any> {
-  const targetExtension = vscode.extensions.getExtension("intersystems-community.servermanager");
+  const targetExtension = vscode.extensions.getExtension(smExtensionId);
   if (!targetExtension) {
     return undefined;
   }
