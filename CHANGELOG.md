@@ -1,5 +1,24 @@
 # Change Log
 
+## [2.12.0] 29-Jan-2024
+Minimum VS Code version is now 1.83.0.
+This extension now depends on the [InterSystems Server Manager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) extension.
+- Enhancements
+  - Add support for running and debugging unit tests (#1269)
+  - Use Server Manager's View Container (#1270)
+  - Add new `autoAdjustName` setting (#1277) (contributed by @hsyhhssyy)
+  - Support home and end keys in WebSocket Terminal (#1283)
+  - Add command for extracting UDL documents from an XML file (#1299)
+  - Add testing link to new KPIs (#1302)
+  - Add CodeLenses for BPLs, DTLs, KPIs and Rules (#1303)
+- Fixes
+  - Harden `TextSearchProvider` (#1276, #1294) 
+  - Fix WebSocket Terminal del key (#1285)
+  - Make server-side search respect Context Lines feature of Search Editor (#1290)
+  - Better message when WebSocket Terminal can't be started (#1293)
+  - Improve auto-commenting of new lines following ObjectScript comments (#1298)
+  - Remove `glob` as a dependency (#1300)
+
 ## [2.10.5] 02-Nov-2023
 - Enhancements
   - Use new Modern themes when loading Studio syntax colors (#1264)
