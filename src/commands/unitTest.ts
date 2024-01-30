@@ -223,7 +223,7 @@ async function getTestItemForClass(
 ): Promise<vscode.TestItem | undefined> {
   let item: vscode.TestItem;
   const rootItem = rootItemForItem(testController, uri);
-  if (rootItem) {
+  if (rootItem && !rootItem.error) {
     // Walk the directory path until we reach a dead end or the TestItem for this class
     let docPath = uri.path.slice(rootItem.uri.path.length);
     docPath = docPath.startsWith("/") ? docPath.slice(1) : docPath;
