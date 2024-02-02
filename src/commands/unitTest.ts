@@ -518,6 +518,7 @@ async function runHandler(
               });
               if (test.parent.uri.scheme == "file") {
                 // Add this class to the list to load
+                if (asyncRequest.load == undefined) asyncRequest.load = [];
                 asyncRequest.load.push({
                   file: test.parent.uri.fsPath,
                   content: textDecoder.decode(await vscode.workspace.fs.readFile(test.parent.uri)).split(/\r?\n/),
@@ -554,6 +555,7 @@ async function runHandler(
             }
             if (test.uri.scheme == "file") {
               // Add this class to the list to load
+              if (asyncRequest.load == undefined) asyncRequest.load = [];
               asyncRequest.load.push({
                 file: test.uri.fsPath,
                 content: textDecoder.decode(await vscode.workspace.fs.readFile(test.uri)).split(/\r?\n/),
