@@ -1534,7 +1534,7 @@
           "scope": "resource",
           "items": {
             "type": "string",
-            "pattern": "^([\\p{L}\\d_. -]+([\\/\\\\][\\p{L}\\d_. -]*))?$",
+            "pattern": "^([\\p{L}\\d_. -]+([\\/\\\\][\\p{L}\\d_. -]+)*)?$",
             "patternErrorMessage": "Each folder name can only contain letters, digits, space, hyphen ('-'), period ('.'), or underscore ('_'), and the full path must neither begin nor end with a slash."
           }
         },
