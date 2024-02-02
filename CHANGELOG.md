@@ -1,5 +1,11 @@
 # Change Log
 
+## [2.12.1] 05-Feb-2024
+- Fixes
+  - Don't create unit test items in workspace folders that don't support running tests (#1307)
+  - Update `objectscript.unitTest.relativeTestRoots` validation regex (#1308)
+  - Fix `undefined` errors when building array of unit tests to load (#1308)
+
 ## [2.12.0] 29-Jan-2024
 Minimum VS Code version is now 1.83.0.
 This extension now depends on the [InterSystems Server Manager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) extension.
