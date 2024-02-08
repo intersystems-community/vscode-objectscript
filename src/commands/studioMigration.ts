@@ -4,6 +4,7 @@ import util = require("util");
 import { gte } from "semver";
 
 import { fileExists, outputChannel } from "../utils";
+import { clsLangId, cspLangId } from "../extension";
 
 /** Run a command using `node-cmd` and return a Promise */
 const runCmd = util.promisify(cmd.run);
@@ -114,9 +115,9 @@ export async function loadStudioSnippets(): Promise<void> {
                     // Use Language to determine the scope
                     scope:
                       parts[1] == "5"
-                        ? "objectscript-csp"
+                        ? cspLangId
                         : parts[1] == "3"
-                        ? "objectscript-class"
+                        ? clsLangId
                         : "objectscript,objectscript-int,objectscript-macros,objectscript-class,objectscript-csp",
                   };
                 }

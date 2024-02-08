@@ -13,7 +13,7 @@ import {
   redirectDotvscodeRoot,
   workspaceFolderOfUri,
 } from "../../utils/index";
-import { config, workspaceState } from "../../extension";
+import { config, intLangId, macLangId, workspaceState } from "../../extension";
 import { addIsfsFileToProject, modifyProject } from "../../commands/project";
 import { DocumentContentProvider } from "../DocumentContentProvider";
 import { Document } from "../../api/atelier";
@@ -80,7 +80,7 @@ export function generateFileContent(
       const routineName = fileName.split(".").slice(0, -1).join(".");
       const routineType = fileExt != "mac" ? `[Type=${fileExt.toUpperCase()}]` : "";
       if (sourceLines.length === 0 && fileExt !== "inc") {
-        const languageId = fileExt === "mac" ? "objectscript" : "objectscript-int";
+        const languageId = fileExt === "mac" ? macLangId : intLangId;
 
         // Labels cannot contain dots
         const firstLabel = routineName.replaceAll(".", "");

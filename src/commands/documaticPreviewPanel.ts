@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { classNameRegex } from "../utils";
+import { clsLangId } from "../extension";
 
 /**
  * The schema of the message that gets sent to the webview.
@@ -45,7 +46,7 @@ export class DocumaticPreviewPanel {
       return;
     }
     const openDoc = openEditor.document;
-    if (openDoc.languageId !== "objectscript-class") {
+    if (openDoc.languageId !== clsLangId) {
       // Documatic preview is for classes only
       return;
     }
@@ -278,7 +279,7 @@ export class DocumaticPreviewPanel {
 
     vscode.window.onDidChangeActiveTextEditor(
       async (editor: vscode.TextEditor) => {
-        if (editor !== undefined && editor.document.languageId === "objectscript-class") {
+        if (editor !== undefined && editor.document.languageId === clsLangId) {
           // The new active editor is a class, so switch our preview to it
 
           // Get the name of the current class

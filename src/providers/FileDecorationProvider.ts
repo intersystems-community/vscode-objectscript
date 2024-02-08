@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { currentFile } from "../utils";
+import { macLangId, clsLangId, intLangId, cspLangId } from "../extension";
 
 export class FileDecorationProvider implements vscode.FileDecorationProvider {
   private _genBadge = String.fromCharCode(9965); // Gear
@@ -20,13 +21,13 @@ export class FileDecorationProvider implements vscode.FileDecorationProvider {
     if (
       doc != undefined &&
       !doc.isUntitled &&
-      ["objectscript", "objectscript-class", "objectscript-int", "objectscript-macros"].includes(doc.languageId) &&
+      [macLangId, clsLangId, intLangId, cspLangId].includes(doc.languageId) &&
       vscode.workspace
         .getConfiguration("objectscript", vscode.workspace.getWorkspaceFolder(uri))
         .get<boolean>("showGeneratedFileDecorations")
     ) {
       // Use the file's contents to check if it's generated
-      if (doc.languageId == "objectscript-class") {
+      if (doc.languageId == clsLangId) {
         for (let line = 0; line < doc.lineCount; line++) {
           const lineText = doc.lineAt(line).text;
           if (lineText.startsWith("Class ")) {
@@ -51,7 +52,7 @@ export class FileDecorationProvider implements vscode.FileDecorationProvider {
               tooltip += ` by ${macMatch[1]}.cls`;
             } else if (intMatch) {
               tooltip += ` by ${intMatch[1]}.cls`;
-            } else if (doc.languageId == "objectscript-int") {
+            } else if (doc.languageId == intLangId) {
               tooltip += ` by ${file.slice(0, -3)}mac`;
             }
           }

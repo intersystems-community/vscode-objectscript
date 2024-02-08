@@ -18,6 +18,12 @@ export const schemas = [
 ];
 export const filesystemSchemas = [FILESYSTEM_SCHEMA, FILESYSTEM_READONLY_SCHEMA];
 
+export const clsLangId = "objectscript-class";
+export const macLangId = "objectscript";
+export const intLangId = "objectscript-int";
+export const incLangId = "objectscript-macros";
+export const cspLangId = "objectscript-csp";
+
 import * as url from "url";
 import path = require("path");
 import {
@@ -717,23 +723,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         }
       }),
       vscode.languages.registerHoverProvider(
-        documentSelector("objectscript-class", "objectscript", "objectscript-int", "objectscript-macros"),
+        documentSelector(clsLangId, macLangId, intLangId, cspLangId),
         new ObjectScriptHoverProvider()
       ),
       vscode.languages.registerDocumentFormattingEditProvider(
-        documentSelector("objectscript-class", "objectscript", "objectscript-int", "objectscript-macros"),
+        documentSelector(clsLangId, macLangId, intLangId, cspLangId),
         new DocumentFormattingEditProvider()
       ),
       vscode.languages.registerDocumentRangeFormattingEditProvider(
-        documentSelector("objectscript-class", "objectscript", "objectscript-int", "objectscript-macros"),
+        documentSelector(clsLangId, macLangId, intLangId, cspLangId),
         new DocumentRangeFormattingEditProvider()
       ),
       vscode.languages.registerDefinitionProvider(
-        documentSelector("objectscript-class", "objectscript", "objectscript-int", "objectscript-macros"),
+        documentSelector(clsLangId, macLangId, intLangId, cspLangId),
         new ObjectScriptDefinitionProvider()
       ),
       vscode.languages.registerCompletionItemProvider(
-        documentSelector("objectscript-class", "objectscript", "objectscript-int", "objectscript-macros"),
+        documentSelector(clsLangId, macLangId, intLangId, cspLangId),
         new ObjectScriptCompletionItemProvider(),
         "$",
         "^",
@@ -741,11 +747,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         "#"
       ),
       vscode.languages.registerDocumentSymbolProvider(
-        documentSelector("objectscript-class"),
+        documentSelector(clsLangId),
         new ObjectScriptClassSymbolProvider()
       ),
       vscode.languages.registerDocumentSymbolProvider(
-        documentSelector("objectscript", "objectscript-int"),
+        documentSelector(macLangId, intLangId),
         new ObjectScriptRoutineSymbolProvider()
       )
     );
@@ -756,11 +762,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     if (semver.lt(lsVersion, "1.0.5")) {
       context.subscriptions.push(
         vscode.languages.registerFoldingRangeProvider(
-          documentSelector("objectscript-class"),
+          documentSelector(clsLangId),
           new ObjectScriptClassFoldingRangeProvider()
         ),
         vscode.languages.registerFoldingRangeProvider(
-          documentSelector("objectscript", "objectscript-int"),
+          documentSelector(macLangId, intLangId),
           new ObjectScriptFoldingRangeProvider()
         )
       );
@@ -1008,19 +1014,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       isCaseSensitive: true,
       isReadonly: true,
     }),
-    vscode.languages.setLanguageConfiguration("objectscript-class", getLanguageConfiguration("class")),
-    vscode.languages.setLanguageConfiguration("objectscript", getLanguageConfiguration("routine")),
-    vscode.languages.setLanguageConfiguration("objectscript-macros", getLanguageConfiguration("routine")),
-    vscode.languages.registerCodeActionsProvider(
-      documentSelector("objectscript-class", "objectscript"),
-      new CodeActionProvider()
-    ),
+    vscode.languages.setLanguageConfiguration(clsLangId, getLanguageConfiguration(clsLangId)),
+    vscode.languages.setLanguageConfiguration(macLangId, getLanguageConfiguration(macLangId)),
+    vscode.languages.setLanguageConfiguration(incLangId, getLanguageConfiguration(incLangId)),
+    vscode.languages.setLanguageConfiguration(intLangId, getLanguageConfiguration(intLangId)),
+    vscode.languages.registerCodeActionsProvider(documentSelector(clsLangId, macLangId), new CodeActionProvider()),
     vscode.languages.registerWorkspaceSymbolProvider(new WorkspaceSymbolProvider()),
     vscode.debug.registerDebugConfigurationProvider("objectscript", new ObjectScriptConfigurationProvider()),
     vscode.debug.registerDebugAdapterDescriptorFactory("objectscript", debugAdapterFactory),
     debugAdapterFactory,
     vscode.languages.registerCodeLensProvider(
-      documentSelector("objectscript-class", "objectscript", "objectscript-int"),
+      documentSelector(clsLangId, macLangId, intLangId),
       new ObjectScriptCodeLensProvider()
     ),
     vscode.commands.registerCommand("vscode-objectscript.compileOnly", () => compileOnly(false)),
@@ -1074,7 +1078,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       );
     }),
     vscode.window.onDidChangeActiveTextEditor((editor: vscode.TextEditor) => {
-      if (config("openClassContracted") && editor && editor.document.languageId === "objectscript-class") {
+      if (config("openClassContracted") && editor && editor.document.languageId === clsLangId) {
         const uri: string = editor.document.uri.toString();
         if (!openedClasses.includes(uri)) {
           vscode.commands.executeCommand("editor.foldLevel1");
@@ -1237,7 +1241,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.window.onDidChangeTextEditorSelection((event: vscode.TextEditorSelectionChangeEvent) => {
       posPanel.text = "";
       const document = event.textEditor.document;
-      if (!["objectscript", "objectscript-int"].includes(document.languageId)) {
+      if (![macLangId, intLangId].includes(document.languageId)) {
         return;
       }
       if (event.selections.length > 1 || !event.selections[0].isEmpty) {
