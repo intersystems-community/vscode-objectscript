@@ -723,23 +723,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         }
       }),
       vscode.languages.registerHoverProvider(
-        documentSelector(clsLangId, macLangId, intLangId, cspLangId),
+        documentSelector(clsLangId, macLangId, intLangId, incLangId),
         new ObjectScriptHoverProvider()
       ),
       vscode.languages.registerDocumentFormattingEditProvider(
-        documentSelector(clsLangId, macLangId, intLangId, cspLangId),
+        documentSelector(clsLangId, macLangId, intLangId, incLangId),
         new DocumentFormattingEditProvider()
       ),
       vscode.languages.registerDocumentRangeFormattingEditProvider(
-        documentSelector(clsLangId, macLangId, intLangId, cspLangId),
+        documentSelector(clsLangId, macLangId, intLangId, incLangId),
         new DocumentRangeFormattingEditProvider()
       ),
       vscode.languages.registerDefinitionProvider(
-        documentSelector(clsLangId, macLangId, intLangId, cspLangId),
+        documentSelector(clsLangId, macLangId, intLangId, incLangId),
         new ObjectScriptDefinitionProvider()
       ),
       vscode.languages.registerCompletionItemProvider(
-        documentSelector(clsLangId, macLangId, intLangId, cspLangId),
+        documentSelector(clsLangId, macLangId, intLangId, incLangId),
         new ObjectScriptCompletionItemProvider(),
         "$",
         "^",
