@@ -143,7 +143,7 @@ async function importFile(
         undefined,
         true
       );
-      documentContentProvider.update(serverUri.with({ scheme: "objectscript" }));
+      documentContentProvider.update(serverUri.with({ scheme: OBJECTSCRIPT_FILE_SCHEMA }));
     })
     .catch((error) => {
       if (error?.statusCode == 409) {

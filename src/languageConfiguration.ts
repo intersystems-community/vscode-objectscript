@@ -1,52 +1,32 @@
-import { IndentAction, LanguageConfiguration } from "vscode";
+import * as vscode from "vscode";
 
-export const WORD_PATTERN =
-  /((?<=(class|extends|as|of) )(%?\b[a-z0-9]+(\.[a-z0-9]+)*\b))|(\^[a-z0-9]+(\.[a-z0-9]+)*)|((\${1,3}|[irm]?%|\^|#)?[a-z0-9]+)/i;
-
-export function getLanguageConfiguration(lang: string): LanguageConfiguration {
+export function getLanguageConfiguration(lang: string): vscode.LanguageConfiguration {
   return {
-    wordPattern: WORD_PATTERN,
+    wordPattern:
+      /((?<=(class|extends|as|of) )(%?\b[a-z0-9]+(\.[a-z0-9]+)*\b))|(\^[a-z0-9]+(\.[a-z0-9]+)*)|((\${1,3}|[irm]?%|\^|#)?[a-z0-9]+)/i,
     brackets: [
       ["{", "}"],
       ["(", ")"],
     ],
     comments: {
-      lineComment: lang === "class" ? "//" : "#;",
+      lineComment: ["objectscript-class", "objectscript-int"].includes(lang) ? "//" : "#;",
       blockComment: ["/*", "*/"],
     },
+    autoClosingPairs: [
+      {
+        open: "/*",
+        close: "*/",
+        notIn: [vscode.SyntaxTokenType.Comment, vscode.SyntaxTokenType.String, vscode.SyntaxTokenType.RegEx],
+      },
+    ],
     onEnterRules:
-      lang === "class"
+      lang == "objectscript-class"
         ? [
             {
               beforeText: /^\/\/\//,
-              action: { indentAction: IndentAction.None, appendText: "/// " },
+              action: { indentAction: vscode.IndentAction.None, appendText: "/// " },
             },
           ]
-        : [
-            {
-              beforeText: /^\s*\/\/\//,
-              action: { indentAction: IndentAction.None, appendText: "/// " },
-            },
-            {
-              beforeText: /^\s+\/\/[^/]?/,
-              action: { indentAction: IndentAction.None, appendText: "// " },
-            },
-            {
-              beforeText: /^\s+;;/,
-              action: { indentAction: IndentAction.None, appendText: ";; " },
-            },
-            {
-              beforeText: /^\s+;[^;]?/,
-              action: { indentAction: IndentAction.None, appendText: "; " },
-            },
-            {
-              beforeText: /^\s*#;/,
-              action: { indentAction: IndentAction.None, appendText: "#; " },
-            },
-            {
-              beforeText: /^\s*##;/,
-              action: { indentAction: IndentAction.None, appendText: "##; " },
-            },
-          ],
+        : undefined,
   };
 }

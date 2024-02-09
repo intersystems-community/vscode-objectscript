@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { loadChanges } from "../commands/compile";
 import { StudioActions } from "../commands/studio";
-import { cspApps } from "../extension";
+import { clsLangId, cspApps } from "../extension";
 import { currentFile, outputChannel } from "../utils";
 
 /**
@@ -28,7 +28,7 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
     token: vscode.CancellationToken
   ): Promise<void> {
     // Check that document is a clean, well-formed class
-    if (document.languageId != "objectscript-class") {
+    if (document.languageId != clsLangId) {
       return RuleEditorProvider._errorMessage(`${document.fileName} is not a class.`);
     }
     if (document.isUntitled) {

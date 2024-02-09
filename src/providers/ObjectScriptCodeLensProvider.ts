@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { config } from "../extension";
+import { clsLangId, config, intLangId, macLangId } from "../extension";
 import { currentFile } from "../utils";
 import { AtelierAPI } from "../api";
 
@@ -8,10 +8,10 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
     document: vscode.TextDocument,
     token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.CodeLens[]> {
-    if (document.languageId == "objectscript-class") {
+    if (document.languageId == clsLangId) {
       return this.classMembers(document);
     }
-    if (["objectscript", "objectscript-int"].includes(document.languageId)) {
+    if ([macLangId, intLangId].includes(document.languageId)) {
       return this.routineLabels(document);
     }
     return [];

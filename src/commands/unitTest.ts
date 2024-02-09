@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as Atelier from "../api/atelier";
-import { extensionId, filesystemSchemas, lsExtensionId } from "../extension";
+import { clsLangId, extensionId, filesystemSchemas, lsExtensionId } from "../extension";
 import { getFileText, methodOffsetToLine, outputChannel, stripClassMemberNameQuotes, uriIsParentOf } from "../utils";
 import { fileSpecFromURI } from "../utils/FileProviderUtil";
 import { AtelierAPI } from "../api";
@@ -998,7 +998,7 @@ export function setUpTestController(): vscode.Disposable[] {
   // Create the initial root items
   replaceRootTestItems(testController);
 
-  const openClass = vscode.workspace.textDocuments.find((d) => d.languageId == "objectscript-class");
+  const openClass = vscode.workspace.textDocuments.find((d) => d.languageId == clsLangId);
   if (openClass) {
     // Create TestItems for any test classes that are open at activation.
     // Must be done after this extension activates because the resolve
@@ -1085,7 +1085,7 @@ export function setUpTestController(): vscode.Disposable[] {
     vscode.workspace.onDidOpenTextDocument((document) => addItemForClassUri(testController, document.uri)),
     vscode.workspace.onDidChangeTextDocument(async (e) => {
       // If this is a test class, re-compute its TestItems
-      if (e.document.languageId == "objectscript-class") {
+      if (e.document.languageId == clsLangId) {
         // Don't pass create flag because if it existed it would
         // have been created already by the onDidOpen handler
         const item = await getTestItemForClass(testController, e.document.uri);
