@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { currentFile } from "../utils";
-import { macLangId, clsLangId, intLangId, cspLangId } from "../extension";
+import { clsLangId, cspLangId, intLangId, macLangId } from "../extension";
 
 export class FileDecorationProvider implements vscode.FileDecorationProvider {
   private _genBadge = String.fromCharCode(9965); // Gear
@@ -21,7 +21,7 @@ export class FileDecorationProvider implements vscode.FileDecorationProvider {
     if (
       doc != undefined &&
       !doc.isUntitled &&
-      [macLangId, clsLangId, intLangId, cspLangId].includes(doc.languageId) &&
+      [clsLangId, macLangId, intLangId, cspLangId].includes(doc.languageId) &&
       vscode.workspace
         .getConfiguration("objectscript", vscode.workspace.getWorkspaceFolder(uri))
         .get<boolean>("showGeneratedFileDecorations")
