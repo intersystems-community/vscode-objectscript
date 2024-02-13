@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import { NodeBase, NodeOptions } from "./nodeBase";
 import { ProjectRootNode } from "./projectRootNode";
+import { OtherStudioAction, StudioActions } from "../../commands/studio";
+import { AtelierAPI } from "../../api";
 
 export class ProjectNode extends NodeBase {
   private description: string;
@@ -12,6 +14,11 @@ export class ProjectNode extends NodeBase {
   public async getChildren(_element: NodeBase): Promise<NodeBase[]> {
     const children = [];
     let node: ProjectRootNode;
+
+    // Technically a project is a "document", so tell the server that we're opening it
+    const api = new AtelierAPI(this.workspaceFolderUri);
+    api.setNamespace(this.namespace);
+    await new StudioActions().fireProjectUserAction(api, this.label, OtherStudioAction.OpenedDocument);
 
     node = new ProjectRootNode(
       "Classes",

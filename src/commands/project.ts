@@ -12,6 +12,7 @@ import { isCSPFile } from "../providers/FileSystemProvider/FileSystemProvider";
 import { notNull, outputChannel } from "../utils";
 import { pickServerAndNamespace } from "./addServerNamespaceToWorkspace";
 import { exportList } from "./export";
+import { OtherStudioAction, StudioActions } from "./studio";
 
 export interface ProjectItem {
   Name: string;
@@ -137,6 +138,20 @@ export async function createProject(node: NodeBase | undefined, api?: AtelierAPI
         return;
       }
 
+      // Technically a project is a "document", so tell the server that we created it
+      try {
+        await new StudioActions().fireProjectUserAction(api, name, OtherStudioAction.CreatedNewDocument);
+        await new StudioActions().fireProjectUserAction(api, name, OtherStudioAction.FirstTimeDocumentSave);
+      } catch (error) {
+        let message = `Source control actions failed for project '${name}'.`;
+        if (error && error.errorText && error.errorText !== "") {
+          outputChannel.appendLine("\n" + error.errorText);
+          outputChannel.show(true);
+          message += " Check 'ObjectScript' output channel for details.";
+        }
+        return vscode.window.showErrorMessage(message, "Dismiss");
+      }
+
       // Refresh the explorer
       projectsExplorerProvider.refresh();
 
@@ -171,6 +186,19 @@ export async function deleteProject(node: ProjectNode | undefined): Promise<any>
     await api.actionQuery("DELETE FROM %Studio.Project WHERE Name = ?", [project]);
   } catch (error) {
     let message = `Failed to delete project '${project}'.`;
+    if (error && error.errorText && error.errorText !== "") {
+      outputChannel.appendLine("\n" + error.errorText);
+      outputChannel.show(true);
+      message += " Check 'ObjectScript' output channel for details.";
+    }
+    return vscode.window.showErrorMessage(message, "Dismiss");
+  }
+
+  // Technically a project is a "document", so tell the server that we deleted it
+  try {
+    await new StudioActions().fireProjectUserAction(api, project, OtherStudioAction.DeletedDocument);
+  } catch (error) {
+    let message = `'DeletedDocument' source control action failed for project '${project}'.`;
     if (error && error.errorText && error.errorText !== "") {
       outputChannel.appendLine("\n" + error.errorText);
       outputChannel.show(true);
@@ -706,6 +734,20 @@ export async function modifyProject(
       return;
     }
   }
+
+  // Technically a project is a "document", so tell the server that we're opening it
+  try {
+    await new StudioActions().fireProjectUserAction(api, project, OtherStudioAction.OpenedDocument);
+  } catch (error) {
+    let message = `'OpenedDocument' source control action failed for project '${project}'.`;
+    if (error && error.errorText && error.errorText !== "") {
+      outputChannel.appendLine("\n" + error.errorText);
+      outputChannel.show(true);
+      message += " Check 'ObjectScript' output channel for details.";
+    }
+    return vscode.window.showErrorMessage(message, "Dismiss");
+  }
+
   let items: ProjectItem[] = await api
     .actionQuery("SELECT Name, Type FROM %Studio.Project_ProjectItemsList(?,?) WHERE Type != 'GBL'", [project, "1"])
     .then((data) => data.result.content);
@@ -862,6 +904,23 @@ export async function modifyProject(
   }
 
   try {
+    if (add.length || remove.length) {
+      // Technically a project is a "document", so tell the server that we're editing it
+      const studioActions = new StudioActions();
+      await studioActions.fireProjectUserAction(api, project, OtherStudioAction.AttemptedEdit);
+      if (studioActions.projectEditAnswer != "1") {
+        // Don't perform the edit
+        if (studioActions.projectEditAnswer == "-1") {
+          // Source control action failed
+          vscode.window.showErrorMessage(
+            `'AttemptedEdit' source control action failed for project '${project}'. Check the 'ObjectScript' Output channel for details.`,
+            "Dismiss"
+          );
+        }
+        return;
+      }
+    }
+
     if (remove.length) {
       // Delete the obsolete items
       await api.actionQuery(
@@ -900,7 +959,7 @@ export async function modifyProject(
 
     // Refresh the files explorer if there's an isfs folder for this project
     if (node == undefined && isfsFolderForProject(project, node ?? api.configName) != -1) {
-      await vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
+      vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
     }
   }
 }
@@ -1070,6 +1129,21 @@ export async function addIsfsFileToProject(
 
   try {
     if (add.length) {
+      // Technically a project is a "document", so tell the server that we're editing it
+      const studioActions = new StudioActions();
+      await studioActions.fireProjectUserAction(api, project, OtherStudioAction.AttemptedEdit);
+      if (studioActions.projectEditAnswer != "1") {
+        // Don't perform the edit
+        if (studioActions.projectEditAnswer == "-1") {
+          // Source control action failed
+          vscode.window.showErrorMessage(
+            `'AttemptedEdit' source control action failed for project '${project}'. Check the 'ObjectScript' Output channel for details.`,
+            "Dismiss"
+          );
+        }
+        return;
+      }
+
       // Add any new items
       await api.actionQuery(
         `INSERT INTO %Studio.ProjectItem (Project,Name,Type) SELECT * FROM (${add

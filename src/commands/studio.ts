@@ -6,7 +6,6 @@ import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { ClassNode } from "../explorer/models/classNode";
 import { PackageNode } from "../explorer/models/packageNode";
 import { RoutineNode } from "../explorer/models/routineNode";
-import { NodeBase } from "../explorer/models/nodeBase";
 import { importAndCompile } from "./compile";
 import { ProjectNode } from "../explorer/models/projectNode";
 import { openCustomEditors } from "../providers/RuleEditorProvider";
@@ -72,18 +71,17 @@ export class StudioActions {
   private uri: vscode.Uri;
   private api: AtelierAPI;
   private name: string;
+  public projectEditAnswer?: string;
 
   public constructor(uriOrNode?: vscode.Uri | PackageNode | ClassNode | RoutineNode) {
     if (uriOrNode instanceof vscode.Uri) {
-      const uri: vscode.Uri = uriOrNode;
-      this.uri = uri;
-      this.name = getServerName(uri);
-      this.api = new AtelierAPI(uri);
+      this.uri = uriOrNode;
+      this.name = getServerName(uriOrNode);
+      this.api = new AtelierAPI(uriOrNode);
     } else if (uriOrNode) {
-      const node: NodeBase = uriOrNode;
-      this.api = new AtelierAPI(node.workspaceFolder);
-      this.api.setNamespace(node.namespace);
-      this.name = node instanceof PackageNode ? node.fullName + ".PKG" : node.fullName;
+      this.api = new AtelierAPI(uriOrNode.workspaceFolder);
+      this.api.setNamespace(uriOrNode.namespace);
+      this.name = uriOrNode instanceof PackageNode ? uriOrNode.fullName + ".PKG" : uriOrNode.fullName;
     } else {
       this.api = new AtelierAPI();
     }
@@ -97,6 +95,22 @@ export class StudioActions {
       {
         id: OtherStudioAction.ImportListOfDocuments.toString(),
         label: getOtherStudioActionLabel(OtherStudioAction.ImportListOfDocuments),
+      },
+      false,
+      "",
+      "",
+      1
+    );
+  }
+
+  /** Fire UserAction `id` on server `api` for project `name`. */
+  public async fireProjectUserAction(api: AtelierAPI, name: string, id: OtherStudioAction): Promise<void> {
+    this.api = api;
+    this.name = `${name}.PRJ`;
+    return this.userAction(
+      {
+        id: id.toString(),
+        label: getOtherStudioActionLabel(id),
       },
       false,
       "",
@@ -318,8 +332,14 @@ export class StudioActions {
               const attemptedEditLabel = getOtherStudioActionLabel(OtherStudioAction.AttemptedEdit);
               if (afterUserAction && actionToProcess.errorText !== "") {
                 if (action.label === attemptedEditLabel) {
-                  suppressEditListenerMap.set(this.uri.toString(), true);
-                  await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
+                  if (this.name.toUpperCase().endsWith(".PRJ")) {
+                    // Store the "answer" so the caller knows there was an error
+                    this.projectEditAnswer = "-1";
+                  } else if (this.uri) {
+                    // Only revert if we have a URI
+                    suppressEditListenerMap.set(this.uri.toString(), true);
+                    await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
+                  }
                 }
                 outputChannel.appendLine(actionToProcess.errorText);
                 outputChannel.show();
@@ -327,9 +347,16 @@ export class StudioActions {
               if (actionToProcess && !afterUserAction) {
                 const answer = await this.processUserAction(actionToProcess);
                 // call AfterUserAction only if there is a valid answer
-                if (action.label === attemptedEditLabel && answer !== "1") {
-                  suppressEditListenerMap.set(this.uri.toString(), true);
-                  await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
+                if (action.label === attemptedEditLabel) {
+                  if (answer != "1" && this.uri) {
+                    // Only revert if we have a URI
+                    suppressEditListenerMap.set(this.uri.toString(), true);
+                    await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
+                  }
+                  if (this.name.toUpperCase().endsWith(".PRJ")) {
+                    // Store the answer
+                    this.projectEditAnswer = answer;
+                  }
                 }
                 if (answer) {
                   answer.msg || answer.msg === ""
