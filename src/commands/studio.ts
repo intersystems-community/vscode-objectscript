@@ -79,7 +79,7 @@ export class StudioActions {
       this.name = getServerName(uriOrNode);
       this.api = new AtelierAPI(uriOrNode);
     } else if (uriOrNode) {
-      this.api = new AtelierAPI(uriOrNode.workspaceFolder);
+      this.api = new AtelierAPI(uriOrNode.workspaceFolderUri || uriOrNode.workspaceFolder);
       this.api.setNamespace(uriOrNode.namespace);
       this.name = uriOrNode instanceof PackageNode ? uriOrNode.fullName + ".PKG" : uriOrNode.fullName;
     } else {
