@@ -140,8 +140,9 @@ export async function createProject(node: NodeBase | undefined, api?: AtelierAPI
 
       // Technically a project is a "document", so tell the server that we created it
       try {
-        await new StudioActions().fireProjectUserAction(api, name, OtherStudioAction.CreatedNewDocument);
-        await new StudioActions().fireProjectUserAction(api, name, OtherStudioAction.FirstTimeDocumentSave);
+        const studioActions = new StudioActions();
+        await studioActions.fireProjectUserAction(api, name, OtherStudioAction.CreatedNewDocument);
+        await studioActions.fireProjectUserAction(api, name, OtherStudioAction.FirstTimeDocumentSave);
       } catch (error) {
         let message = `Source control actions failed for project '${name}'.`;
         if (error && error.errorText && error.errorText !== "") {
@@ -149,7 +150,7 @@ export async function createProject(node: NodeBase | undefined, api?: AtelierAPI
           outputChannel.show(true);
           message += " Check 'ObjectScript' output channel for details.";
         }
-        return vscode.window.showErrorMessage(message, "Dismiss");
+        vscode.window.showErrorMessage(message, "Dismiss");
       }
 
       // Refresh the explorer
@@ -204,7 +205,7 @@ export async function deleteProject(node: ProjectNode | undefined): Promise<any>
       outputChannel.show(true);
       message += " Check 'ObjectScript' output channel for details.";
     }
-    return vscode.window.showErrorMessage(message, "Dismiss");
+    vscode.window.showErrorMessage(message, "Dismiss");
   }
 
   // Refresh the explorer
@@ -736,17 +737,9 @@ export async function modifyProject(
   }
 
   // Technically a project is a "document", so tell the server that we're opening it
-  try {
-    await new StudioActions().fireProjectUserAction(api, project, OtherStudioAction.OpenedDocument);
-  } catch (error) {
-    let message = `'OpenedDocument' source control action failed for project '${project}'.`;
-    if (error && error.errorText && error.errorText !== "") {
-      outputChannel.appendLine("\n" + error.errorText);
-      outputChannel.show(true);
-      message += " Check 'ObjectScript' output channel for details.";
-    }
-    return vscode.window.showErrorMessage(message, "Dismiss");
-  }
+  await new StudioActions()
+    .fireProjectUserAction(api, project, OtherStudioAction.OpenedDocument)
+    .catch(/* Swallow error because showing it is more disruptive than using a potentially outdated project definition */);
 
   let items: ProjectItem[] = await api
     .actionQuery("SELECT Name, Type FROM %Studio.Project_ProjectItemsList(?,?) WHERE Type != 'GBL'", [project, "1"])

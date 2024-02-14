@@ -6,6 +6,7 @@ import { config, OBJECTSCRIPT_FILE_SCHEMA, projectsExplorerProvider } from "../e
 import { WorkspaceNode } from "./models/workspaceNode";
 import { outputChannel } from "../utils";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
+import { StudioActions, OtherStudioAction } from "../commands/studio";
 
 /** Get the URI for this leaf node */
 export function getLeafNodeUri(node: NodeBase, forceServerCopy = false): vscode.Uri {
@@ -74,6 +75,20 @@ export function registerExplorerOpen(): vscode.Disposable {
           if (remove == "Yes") {
             const api = new AtelierAPI(uri);
             try {
+              // Technically a project is a "document", so tell the server that we're editing it
+              const studioActions = new StudioActions();
+              await studioActions.fireProjectUserAction(api, project, OtherStudioAction.AttemptedEdit);
+              if (studioActions.projectEditAnswer != "1") {
+                // Don't perform the edit
+                if (studioActions.projectEditAnswer == "-1") {
+                  // Source control action failed
+                  vscode.window.showErrorMessage(
+                    `'AttemptedEdit' source control action failed for project '${project}'. Check the 'ObjectScript' Output channel for details.`,
+                    "Dismiss"
+                  );
+                }
+                return;
+              }
               // Remove the item from the project
               let prjFileName = fullName.startsWith("/") ? fullName.slice(1) : fullName;
               const ext = prjFileName.split(".").pop().toLowerCase();

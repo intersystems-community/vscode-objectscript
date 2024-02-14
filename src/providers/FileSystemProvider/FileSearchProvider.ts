@@ -3,6 +3,8 @@ import { projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/Fil
 import { notNull } from "../../utils";
 import { DocumentContentProvider } from "../DocumentContentProvider";
 import { ProjectItem } from "../../commands/project";
+import { StudioActions, OtherStudioAction } from "../../commands/studio";
+import { AtelierAPI } from "../../api";
 
 export class FileSearchProvider implements vscode.FileSearchProvider {
   /**
@@ -11,20 +13,25 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
    * @param options A set of options to consider while searching files.
    * @param token A cancellation token.
    */
-  public provideFileSearchResults(
+  public async provideFileSearchResults(
     query: vscode.FileSearchQuery,
     options: vscode.FileSearchOptions,
     token: vscode.CancellationToken
-  ): vscode.ProviderResult<vscode.Uri[]> {
+  ): Promise<vscode.Uri[]> {
     let counter = 0;
     let pattern = query.pattern.charAt(0) == "/" ? query.pattern.slice(1) : query.pattern;
     const params = new URLSearchParams(options.folder.query);
     const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
     if (params.has("project") && params.get("project").length) {
-      const patternRegex = new RegExp(`.*${pattern}.*`.replace(/\.|\//g, "[./]"), "i");
+      // Technically a project is a "document", so tell the server that we're opening it
+      await new StudioActions()
+        .fireProjectUserAction(new AtelierAPI(options.folder), params.get("project"), OtherStudioAction.OpenedDocument)
+        .catch(/* Swallow error because showing it is more disruptive than using a potentially outdated project definition */);
       if (token.isCancellationRequested) {
         return;
       }
+
+      const patternRegex = new RegExp(`.*${pattern}.*`.replace(/\.|\//g, "[./]"), "i");
       return projectContentsFromUri(options.folder, true).then((docs) =>
         docs
           .map((doc: ProjectItem) => {

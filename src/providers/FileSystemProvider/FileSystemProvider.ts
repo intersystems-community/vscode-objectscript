@@ -204,13 +204,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (params.has("project") && params.get("project").length) {
       if (["", "/"].includes(uri.path)) {
         // Technically a project is a "document", so tell the server that we're opening it
-        try {
-          await new StudioActions().fireProjectUserAction(api, params.get("project"), OtherStudioAction.OpenedDocument);
-        } catch {
-          throw vscode.FileSystemError.Unavailable(
-            `'OpenedDocument' source control action failed for '${params.get("project")}.PRJ'`
-          );
-        }
+        await new StudioActions()
+          .fireProjectUserAction(api, params.get("project"), OtherStudioAction.OpenedDocument)
+          .catch(/* Swallow error because showing it is more disruptive than using a potentially outdated project definition */);
       }
 
       // Get all items in the project
