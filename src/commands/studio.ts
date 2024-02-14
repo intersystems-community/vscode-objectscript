@@ -354,8 +354,8 @@ export class StudioActions {
                     await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
                   }
                   if (this.name.toUpperCase().endsWith(".PRJ")) {
-                    // Store the answer
-                    this.projectEditAnswer = answer;
+                    // Store the answer. No answer means "allow the edit".
+                    this.projectEditAnswer = answer ?? "1";
                   }
                 }
                 if (answer) {
