@@ -206,7 +206,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         // Technically a project is a "document", so tell the server that we're opening it
         await new StudioActions()
           .fireProjectUserAction(api, params.get("project"), OtherStudioAction.OpenedDocument)
-          .catch(/* Swallow error because showing it is more disruptive than using a potentially outdated project definition */);
+          .catch(() => {
+            // Swallow error because showing it is more disruptive than using a potentially outdated project definition
+          });
       }
 
       // Get all items in the project

@@ -279,7 +279,9 @@ async function childrenForServerSideFolderItem(
     // Technically a project is a "document", so tell the server that we're opening it
     await new StudioActions()
       .fireProjectUserAction(api, params.get("project"), OtherStudioAction.OpenedDocument)
-      .catch(/* Swallow error because showing it is more disruptive than using a potentially outdated project definition */);
+      .catch(() => {
+        // Swallow error because showing it is more disruptive than using a potentially outdated project definition
+      });
     query =
       "SELECT DISTINCT CASE " +
       "WHEN $LENGTH(SUBSTR(Name,?),'.') > 1 THEN $PIECE(SUBSTR(Name,?),'.') " +

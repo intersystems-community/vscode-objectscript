@@ -737,9 +737,9 @@ export async function modifyProject(
   }
 
   // Technically a project is a "document", so tell the server that we're opening it
-  await new StudioActions()
-    .fireProjectUserAction(api, project, OtherStudioAction.OpenedDocument)
-    .catch(/* Swallow error because showing it is more disruptive than using a potentially outdated project definition */);
+  await new StudioActions().fireProjectUserAction(api, project, OtherStudioAction.OpenedDocument).catch(() => {
+    // Swallow error because showing it is more disruptive than using a potentially outdated project definition
+  });
 
   let items: ProjectItem[] = await api
     .actionQuery("SELECT Name, Type FROM %Studio.Project_ProjectItemsList(?,?) WHERE Type != 'GBL'", [project, "1"])

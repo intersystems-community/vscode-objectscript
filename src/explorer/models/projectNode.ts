@@ -18,9 +18,9 @@ export class ProjectNode extends NodeBase {
     // Technically a project is a "document", so tell the server that we're opening it
     const api = new AtelierAPI(this.workspaceFolderUri);
     api.setNamespace(this.namespace);
-    await new StudioActions()
-      .fireProjectUserAction(api, this.label, OtherStudioAction.OpenedDocument)
-      .catch(/* Swallow error because showing it is more disruptive than using a potentially outdated project definition */);
+    await new StudioActions().fireProjectUserAction(api, this.label, OtherStudioAction.OpenedDocument).catch(() => {
+      // Swallow error because showing it is more disruptive than using a potentially outdated project definition
+    });
 
     node = new ProjectRootNode(
       "Classes",
