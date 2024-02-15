@@ -295,94 +295,85 @@ export class StudioActions {
       ? [type.toString(), action.id, this.name, answer, msg]
       : [type.toString(), action.id, this.name, selectedText];
 
-    return vscode.window.withProgress(
-      {
-        cancellable: false,
-        location: vscode.ProgressLocation.Notification,
-        title: `Executing ${afterUserAction ? "AfterUserAction" : "UserAction"}: ${action.label}`,
-      },
-      () => {
-        return new Promise((resolve, reject) => {
-          this.api
-            .actionQuery(query, parameters)
-            .then(async (data) => {
-              if (action.save && action.id != "6" /* No save for import list */) {
-                await this.processSaveFlag(action.save);
-              }
-              if (!afterUserAction) {
-                outputConsole(data.console);
-              }
-              if (!data.result.content.length) {
-                // nothing to-do, just ignore it
-                return;
-              }
-              const actionToProcess = data.result.content.pop();
+    if (config().studioActionDebugOutput) {
+      outputChannel.appendLine(`${query.slice(0, query.indexOf("("))}(${JSON.stringify(parameters).slice(1, -1)})`);
+    }
 
-              if (actionToProcess.reload) {
-                // Avoid the reload triggering the edit listener here
+    return new Promise((resolve, reject) => {
+      this.api
+        .actionQuery(query, parameters)
+        .then(async (data) => {
+          if (action.save && action.id != "6" /* No save for import list */) {
+            await this.processSaveFlag(action.save);
+          }
+          if (!afterUserAction) {
+            outputConsole(data.console);
+          }
+          if (!data.result.content.length) {
+            // Nothing to do. Most likely no source control class is enabled.
+            this.projectEditAnswer = "1";
+            return;
+          }
+          const actionToProcess = data.result.content.pop();
+
+          if (actionToProcess.reload) {
+            // Avoid the reload triggering the edit listener here
+            suppressEditListenerMap.set(this.uri.toString(), true);
+            await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
+          }
+
+          const attemptedEditLabel = getOtherStudioActionLabel(OtherStudioAction.AttemptedEdit);
+          if (afterUserAction && actionToProcess.errorText !== "") {
+            if (action.label === attemptedEditLabel) {
+              if (this.name.toUpperCase().endsWith(".PRJ")) {
+                // Store the "answer" so the caller knows there was an error
+                this.projectEditAnswer = "-1";
+              } else if (this.uri) {
+                // Only revert if we have a URI
                 suppressEditListenerMap.set(this.uri.toString(), true);
                 await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
               }
-
-              // CSP pages should not have a progress bar
-              if (actionToProcess.action === 2) {
-                resolve();
+            }
+            outputChannel.appendLine(actionToProcess.errorText);
+            outputChannel.show(true);
+          }
+          if (actionToProcess && !afterUserAction) {
+            const answer = await this.processUserAction(actionToProcess);
+            // call AfterUserAction only if there is a valid answer
+            if (action.label === attemptedEditLabel) {
+              if (answer != "1" && this.uri) {
+                // Only revert if we have a URI
+                suppressEditListenerMap.set(this.uri.toString(), true);
+                await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
               }
-
-              const attemptedEditLabel = getOtherStudioActionLabel(OtherStudioAction.AttemptedEdit);
-              if (afterUserAction && actionToProcess.errorText !== "") {
-                if (action.label === attemptedEditLabel) {
-                  if (this.name.toUpperCase().endsWith(".PRJ")) {
-                    // Store the "answer" so the caller knows there was an error
-                    this.projectEditAnswer = "-1";
-                  } else if (this.uri) {
-                    // Only revert if we have a URI
-                    suppressEditListenerMap.set(this.uri.toString(), true);
-                    await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
-                  }
-                }
-                outputChannel.appendLine(actionToProcess.errorText);
-                outputChannel.show();
+              if (this.name.toUpperCase().endsWith(".PRJ")) {
+                // Store the answer. No answer means "allow the edit".
+                this.projectEditAnswer = answer ?? "1";
               }
-              if (actionToProcess && !afterUserAction) {
-                const answer = await this.processUserAction(actionToProcess);
-                // call AfterUserAction only if there is a valid answer
-                if (action.label === attemptedEditLabel) {
-                  if (answer != "1" && this.uri) {
-                    // Only revert if we have a URI
-                    suppressEditListenerMap.set(this.uri.toString(), true);
-                    await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
-                  }
-                  if (this.name.toUpperCase().endsWith(".PRJ")) {
-                    // Store the answer. No answer means "allow the edit".
-                    this.projectEditAnswer = answer ?? "1";
-                  }
-                }
-                if (answer) {
-                  answer.msg || answer.msg === ""
-                    ? this.userAction(action, true, answer.answer, answer.msg, type)
-                    : this.userAction(action, true, answer, "", type);
-                }
-              }
-            })
-            .then(() => resolve())
-            .catch((err) => {
-              outputChannel.appendLine(
-                `Executing Studio Action "${action.label}" on ${this.api.config.host}:${this.api.config.port}${
-                  this.api.config.pathPrefix
-                }[${this.api.config.ns}] failed${
-                  err.errorText && err.errorText !== "" ? " with the following error:" : "."
-                }`
-              );
-              if (err.errorText && err.errorText !== "") {
-                outputChannel.appendLine("\n" + err.errorText);
-              }
-              outputChannel.show();
-              reject();
-            });
+            }
+            if (answer) {
+              answer.msg || answer.msg === ""
+                ? this.userAction(action, true, answer.answer, answer.msg, type)
+                : this.userAction(action, true, answer, "", type);
+            }
+          }
+        })
+        .then(() => resolve())
+        .catch((err) => {
+          outputChannel.appendLine(
+            `Executing Studio Action "${action.label}" on ${this.api.config.host}:${this.api.config.port}${
+              this.api.config.pathPrefix
+            }[${this.api.config.ns}] failed${
+              err.errorText && err.errorText !== "" ? " with the following error:" : "."
+            }`
+          );
+          if (err.errorText && err.errorText !== "") {
+            outputChannel.appendLine("\n" + err.errorText);
+          }
+          outputChannel.show(true);
+          reject();
         });
-      }
-    );
+    });
   }
 
   private prepareMenuItems(menus, sourceControl: boolean): StudioAction[] {
@@ -501,7 +492,8 @@ export class StudioActions {
     return this.api
       .actionQuery("SELECT %Atelier_v1_Utils.Extension_ExtensionEnabled() AS Enabled", [])
       .then((data) => data.result.content)
-      .then((content) => (content && content.length ? content[0].Enabled : false));
+      .then((content) => (content && content.length ? content[0]?.Enabled ?? false : false))
+      .catch(() => false); // Treat any errors as "no source control"
   }
 
   public getServerInfo(): { server: string; namespace: string } {
@@ -576,7 +568,6 @@ export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vsc
   const studioActions = new StudioActions(uri);
   return (
     studioActions &&
-    (await studioActions.isSourceControlEnabled()) &&
     !openCustomEditors.includes(uri?.toString()) && // The custom editor will handle all server-side source control interactions
     studioActions.fireOtherStudioAction(action, userAction)
   );
