@@ -24,6 +24,15 @@ interface ServerInfoFeature {
   enabled: string;
 }
 
+export interface UserAction {
+  action: number;
+  target: string;
+  message: string;
+  reload: boolean;
+  doc: any;
+  errorText: string;
+}
+
 export interface Document {
   name: string;
   db: string;
@@ -34,7 +43,7 @@ export interface Document {
   enc: boolean;
   flags: number;
   content: string[] | Buffer;
-  ext: string;
+  ext?: UserAction | UserAction[];
 }
 
 export interface ServerInfo {

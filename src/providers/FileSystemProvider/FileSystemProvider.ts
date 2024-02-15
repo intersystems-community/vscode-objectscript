@@ -16,7 +16,7 @@ import {
 import { config, intLangId, macLangId, workspaceState } from "../../extension";
 import { addIsfsFileToProject, modifyProject } from "../../commands/project";
 import { DocumentContentProvider } from "../DocumentContentProvider";
-import { Document } from "../../api/atelier";
+import { Document, UserAction } from "../../api/atelier";
 
 declare function setTimeout(callback: (...args: any[]) => void, ms: number, ...args: any[]): NodeJS.Timeout;
 
@@ -453,7 +453,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const events: vscode.FileChangeEvent[] = [];
     try {
       if (doc.ext) {
-        fireOtherStudioAction(OtherStudioAction.DeletedDocument, uri, doc.ext);
+        fireOtherStudioAction(OtherStudioAction.DeletedDocument, uri, <UserAction>doc.ext);
       }
       // Remove entry from our cache, plus any now-empty ancestor entries
       let thisUri = vscode.Uri.parse(uri.toString(), true);
