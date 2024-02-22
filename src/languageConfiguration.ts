@@ -18,6 +18,21 @@ export function getLanguageConfiguration(lang: string): vscode.LanguageConfigura
         close: "*/",
         notIn: [vscode.SyntaxTokenType.Comment, vscode.SyntaxTokenType.String, vscode.SyntaxTokenType.RegEx],
       },
+      {
+        open: "{",
+        close: "}",
+        notIn: [vscode.SyntaxTokenType.Comment, vscode.SyntaxTokenType.String, vscode.SyntaxTokenType.RegEx],
+      },
+      {
+        open: "(",
+        close: ")",
+        notIn: [vscode.SyntaxTokenType.Comment, vscode.SyntaxTokenType.String, vscode.SyntaxTokenType.RegEx],
+      },
+      {
+        open: '"',
+        close: '"',
+        notIn: [vscode.SyntaxTokenType.Comment, vscode.SyntaxTokenType.String, vscode.SyntaxTokenType.RegEx],
+      },
     ],
     onEnterRules:
       lang == "objectscript-class"
