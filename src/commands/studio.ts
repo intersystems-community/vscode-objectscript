@@ -9,6 +9,7 @@ import { RoutineNode } from "../explorer/models/routineNode";
 import { importAndCompile } from "./compile";
 import { ProjectNode } from "../explorer/models/projectNode";
 import { openCustomEditors } from "../providers/RuleEditorProvider";
+import { UserAction } from "../api/atelier";
 
 export let documentBeingProcessed: vscode.TextDocument = null;
 
@@ -119,9 +120,8 @@ export class StudioActions {
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  public processUserAction(userAction): Thenable<any> {
-    const serverAction = parseInt(userAction.action || 0, 10);
+  public processUserAction(userAction: UserAction): Thenable<any> {
+    const serverAction = userAction.action;
     const { target, errorText } = userAction;
     if (errorText !== "") {
       outputChannel.appendLine(errorText);
@@ -295,14 +295,18 @@ export class StudioActions {
       ? [type.toString(), action.id, this.name, answer, msg]
       : [type.toString(), action.id, this.name, selectedText];
 
+    if (config().studioActionDebugOutput) {
+      outputChannel.appendLine(`${query.slice(0, query.indexOf("("))}(${JSON.stringify(parameters).slice(1, -1)})`);
+    }
+
     return vscode.window.withProgress(
       {
         cancellable: false,
-        location: vscode.ProgressLocation.Notification,
-        title: `Executing ${afterUserAction ? "AfterUserAction" : "UserAction"}: ${action.label}`,
+        location: vscode.ProgressLocation.Window,
+        title: `Executing ${afterUserAction ? "After" : ""}UserAction: ${action.label}`,
       },
-      () => {
-        return new Promise((resolve, reject) => {
+      () =>
+        new Promise((resolve, reject) => {
           this.api
             .actionQuery(query, parameters)
             .then(async (data) => {
@@ -313,20 +317,16 @@ export class StudioActions {
                 outputConsole(data.console);
               }
               if (!data.result.content.length) {
-                // nothing to-do, just ignore it
+                // Nothing to do. Most likely no source control class is enabled.
+                this.projectEditAnswer = "1";
                 return;
               }
-              const actionToProcess = data.result.content.pop();
+              const actionToProcess: UserAction = data.result.content.pop();
 
               if (actionToProcess.reload) {
                 // Avoid the reload triggering the edit listener here
                 suppressEditListenerMap.set(this.uri.toString(), true);
                 await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
-              }
-
-              // CSP pages should not have a progress bar
-              if (actionToProcess.action === 2) {
-                resolve();
               }
 
               const attemptedEditLabel = getOtherStudioActionLabel(OtherStudioAction.AttemptedEdit);
@@ -342,7 +342,7 @@ export class StudioActions {
                   }
                 }
                 outputChannel.appendLine(actionToProcess.errorText);
-                outputChannel.show();
+                outputChannel.show(true);
               }
               if (actionToProcess && !afterUserAction) {
                 const answer = await this.processUserAction(actionToProcess);
@@ -377,11 +377,10 @@ export class StudioActions {
               if (err.errorText && err.errorText !== "") {
                 outputChannel.appendLine("\n" + err.errorText);
               }
-              outputChannel.show();
+              outputChannel.show(true);
               reject();
             });
-        });
-      }
+        })
     );
   }
 
@@ -438,8 +437,7 @@ export class StudioActions {
       .then((action) => this.userAction(action));
   }
 
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  public fireOtherStudioAction(action: OtherStudioAction, userAction?): void {
+  public fireOtherStudioAction(action: OtherStudioAction, userAction?: UserAction): void {
     const actionObject = {
       id: action.toString(),
       label: getOtherStudioActionLabel(action),
@@ -501,7 +499,8 @@ export class StudioActions {
     return this.api
       .actionQuery("SELECT %Atelier_v1_Utils.Extension_ExtensionEnabled() AS Enabled", [])
       .then((data) => data.result.content)
-      .then((content) => (content && content.length ? content[0].Enabled : false));
+      .then((content) => (content && content.length ? content[0]?.Enabled ?? false : false))
+      .catch(() => false); // Treat any errors as "no source control"
   }
 
   public getServerInfo(): { server: string; namespace: string } {
@@ -568,15 +567,17 @@ export async function _contextMenu(sourceControl: boolean, node: PackageNode | C
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export async function fireOtherStudioAction(action: OtherStudioAction, uri?: vscode.Uri, userAction?): Promise<void> {
+export async function fireOtherStudioAction(
+  action: OtherStudioAction,
+  uri?: vscode.Uri,
+  userAction?: UserAction
+): Promise<void> {
   if (vscode.workspace.getConfiguration("objectscript.serverSourceControl", uri)?.get("disableOtherActionTriggers")) {
     return;
   }
   const studioActions = new StudioActions(uri);
   return (
     studioActions &&
-    (await studioActions.isSourceControlEnabled()) &&
     !openCustomEditors.includes(uri?.toString()) && // The custom editor will handle all server-side source control interactions
     studioActions.fireOtherStudioAction(action, userAction)
   );

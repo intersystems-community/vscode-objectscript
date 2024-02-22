@@ -201,7 +201,7 @@
         },
         {
           "command": "vscode-objectscript.serverCommands.sourceControl",
-          "when": "vscode-objectscript.connectActive && resourceScheme == isfs || vscode-objectscript.connectActive && !editorIsOpen"
+          "when": "vscode-objectscript.connectActive && resourceScheme == isfs || (vscode-objectscript.connectActive && !editorIsOpen)"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextSourceControl",
@@ -209,7 +209,7 @@
         },
         {
           "command": "vscode-objectscript.serverCommands.other",
-          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ || vscode-objectscript.connectActive && !editorIsOpen"
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ || (vscode-objectscript.connectActive && !editorIsOpen)"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
@@ -575,12 +575,12 @@
         },
         {
           "command": "vscode-objectscript.serverCommands.contextSourceControl",
-          "when": "resourceScheme == isfs && vscode-objectscript.connectActive",
+          "when": "resourceScheme == isfs && vscode-objectscript.connectActive && resourcePath && !(resourcePath =~ /^\\/?$/) && !(explorerResourceIsFolder && resource =~ /\\?csp(%3D1|$)/)",
           "group": "objectscript_servercommand@1"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
-          "when": "resourceScheme =~ /^isfs(-readonly)?$/ && vscode-objectscript.connectActive",
+          "when": "resourceScheme =~ /^isfs(-readonly)?$/ && vscode-objectscript.connectActive && resourcePath && !(resourcePath =~ /^\\/?$/) && !(explorerResourceIsFolder && resource =~ /\\?csp(%3D1|$)/)",
           "group": "objectscript_servercommand@2"
         },
         {

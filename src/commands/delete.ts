@@ -8,6 +8,7 @@ import { explorerProvider } from "../extension";
 import { outputChannel } from "../utils";
 import { OtherStudioAction, fireOtherStudioAction } from "./studio";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
+import { UserAction } from "../api/atelier";
 
 function deleteList(items: string[], workspaceFolder: string, namespace: string): Promise<any> {
   if (!items || !items.length) {
@@ -20,7 +21,7 @@ function deleteList(items: string[], workspaceFolder: string, namespace: string)
     files.forEach((file) => {
       if (file.result.ext) {
         const uri = DocumentContentProvider.getUri(file.result.name);
-        fireOtherStudioAction(OtherStudioAction.DeletedDocument, uri, file.result.ext);
+        fireOtherStudioAction(OtherStudioAction.DeletedDocument, uri, <UserAction>file.result.ext);
       }
     });
     outputChannel.appendLine(`Deleted items: ${files.filter((el) => el.result).length}`);
