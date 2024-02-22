@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 import { AtelierAPI } from "../../api";
 import { Directory } from "./Directory";
 import { File } from "./File";
-import { fireOtherStudioAction, OtherStudioAction } from "../../commands/studio";
+import { fireOtherStudioAction, OtherStudioAction, StudioActions } from "../../commands/studio";
 import { projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
 import {
   classNameRegex,
@@ -202,6 +202,15 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     }
     const params = new URLSearchParams(uri.query);
     if (params.has("project") && params.get("project").length) {
+      if (["", "/"].includes(uri.path)) {
+        // Technically a project is a "document", so tell the server that we're opening it
+        await new StudioActions()
+          .fireProjectUserAction(api, params.get("project"), OtherStudioAction.OpenedDocument)
+          .catch(() => {
+            // Swallow error because showing it is more disruptive than using a potentially outdated project definition
+          });
+      }
+
       // Get all items in the project
       return projectContentsFromUri(uri).then((entries) =>
         entries.map((entry) => {

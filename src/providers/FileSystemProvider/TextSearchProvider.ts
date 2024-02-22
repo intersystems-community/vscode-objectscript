@@ -6,6 +6,7 @@ import { DocumentContentProvider } from "../DocumentContentProvider";
 import { notNull, outputChannel, throttleRequests } from "../../utils";
 import { config } from "../../extension";
 import { fileSpecFromURI } from "../../utils/FileProviderUtil";
+import { OtherStudioAction, StudioActions } from "../../commands/studio";
 
 /**
  * Convert an `attrline` in a description to a line number in document `content`.
@@ -394,6 +395,18 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
     // Generate the query pattern that gets sent to the server
     // Needed because the server matches the full line against the regex and ignores the case parameter when in regex mode
     const pattern = query.isRegExp ? `${!query.isCaseSensitive ? "(?i)" : ""}.*${query.pattern}.*` : query.pattern;
+
+    if (params.has("project") && params.get("project").length) {
+      // Technically a project is a "document", so tell the server that we're opening it
+      await new StudioActions()
+        .fireProjectUserAction(api, params.get("project"), OtherStudioAction.OpenedDocument)
+        .catch(() => {
+          // Swallow error because showing it is more disruptive than using a potentially outdated project definition
+        });
+    }
+    if (token.isCancellationRequested) {
+      return;
+    }
 
     if (api.config.apiVersion >= 6) {
       // Build the request object
