@@ -43,7 +43,8 @@ export async function projectContentsFromUri(uri: vscode.Uri, overrideFlat?: boo
         "(pil.Type = 'CLS' AND ?||sod.Name = pil.Name||'.cls') OR (pil.Type = 'PKG' AND ?||sod.Name = pil.Name) OR " +
         "((pil.Type = 'CLS' OR pil.Type = 'PKG') AND pil.Name %STARTSWITH ?||sod.Name||'.') " +
         "WHERE pil.Type = 'CLS' OR pil.Type = 'PKG' " +
-        "UNION SELECT CASE WHEN $LENGTH(SUBSTR(sod.Name,?),'.') > 2 THEN $PIECE(SUBSTR(sod.Name,?),'.') ELSE SUBSTR(sod.Name,?) END Name, pil.Type FROM " +
+        'UNION SELECT CASE WHEN ($LENGTH(SUBSTR(sod.Name,?),\'.\') > 2 AND NOT (SUBSTR(sod.Name,?) %PATTERN \'.E1"."0.1"G"1N1".int"\')) ' +
+        "THEN $PIECE(SUBSTR(sod.Name,?),'.') ELSE SUBSTR(sod.Name,?) END Name, pil.Type FROM " +
         "%Library.RoutineMgr_StudioOpenDialog(?,1,1,1,1,0,1) AS sod JOIN %Studio.Project_ProjectItemsList(?) AS pil ON " +
         "pil.Type = 'MAC' AND sod.Name = pil.Name " +
         "UNION SELECT sod.Name, pil.Type FROM " +
@@ -62,6 +63,7 @@ export async function projectContentsFromUri(uri: vscode.Uri, overrideFlat?: boo
         folderDots,
         folderDots,
         folderDots,
+        l,
         l,
         l,
         l,
