@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { NodeBase } from "./models/nodeBase";
 
 import { AtelierAPI } from "../api";
-import { config, OBJECTSCRIPT_FILE_SCHEMA, projectsExplorerProvider } from "../extension";
+import { config, documentContentProvider, OBJECTSCRIPT_FILE_SCHEMA, projectsExplorerProvider } from "../extension";
 import { WorkspaceNode } from "./models/workspaceNode";
 import { outputChannel } from "../utils";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
@@ -47,13 +47,25 @@ export function registerExplorerOpen(): vscode.Disposable {
     "vscode-objectscript.explorer.open",
     async function (uri: vscode.Uri, project?: string, fullName?: string) {
       let usePreview = <boolean>vscode.workspace.getConfiguration("workbench.editor").get("enablePreview");
-
-      if (usePreview) {
-        usePreview = !wasDoubleClick(uri);
-      }
+      const double = wasDoubleClick(uri);
+      if (usePreview) usePreview = !double;
 
       try {
         if (uri.scheme === OBJECTSCRIPT_FILE_SCHEMA) {
+          const uriString = uri.toString();
+          if (
+            !double &&
+            vscode.workspace.textDocuments.some((d) => d.uri.toString() == uriString) &&
+            !vscode.window.tabGroups.all.some((tg) =>
+              tg.tabs.some((t) => t.input instanceof vscode.TabInputText && t.input.uri.toString() == uriString)
+            )
+          ) {
+            // Force an refresh from the server if the document was "closed", then "re-opened".
+            // We define "closed" as "not in any tab", but still in VS Code's memory.
+            // We don't need to do this if the document is not in VS Code's memory
+            // because in that case the contents will be fetched from the server.
+            documentContentProvider.update(uri);
+          }
           // This scheme is implemented by our DocumentContentProvider, which always returns text.
           // If the server supplied binary data our provider substitutes a text explanation of how to work with binary content.
           await vscode.window.showTextDocument(uri, { preview: usePreview });
