@@ -426,7 +426,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
         word: query.isWordMatch, // Ignored if regex is true
         case: query.isCaseSensitive, // Ignored if regex is true
         wild: false, // Ignored if regex is true
-        documents: fileSpecFromURI(options.folder), // Ignored if project is defined
+        documents: project ? undefined : fileSpecFromURI(options.folder),
         system, // Ignored if project is defined
         generated, // Ignored if project is defined
         mapped, // Ignored if project is defined
