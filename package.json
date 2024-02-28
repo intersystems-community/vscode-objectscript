@@ -459,6 +459,11 @@
           "group": "5_objectscript_prj@7"
         },
         {
+          "command": "vscode-objectscript.modifyProjectMetadata",
+          "when": "view == ObjectScriptProjectsExplorer && viewItem == dataNode:projectNode",
+          "group": "5_objectscript_prj@8"
+        },
+        {
           "command": "vscode-objectscript.explorer.project.closeOtherServerNs",
           "when": "view == ObjectScriptProjectsExplorer && viewItem == projectsServerNsNode:extra",
           "group": "inline@10"
@@ -597,6 +602,11 @@
           "command": "vscode-objectscript.removeItemsFromProject",
           "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && explorerResourceIsRoot",
           "group": "objectscript_prj@2"
+        },
+        {
+          "command": "vscode-objectscript.modifyProjectMetadata",
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && explorerResourceIsRoot",
+          "group": "objectscript_prj@3"
         },
         {
           "command": "vscode-objectscript.importLocalFilesServerSide",
@@ -1031,6 +1041,11 @@
       {
         "command": "vscode-objectscript.removeItemsFromProject",
         "title": "Remove Items from Project...",
+        "category": "ObjectScript"
+      },
+      {
+        "command": "vscode-objectscript.modifyProjectMetadata",
+        "title": "Modify Project Metadata...",
         "category": "ObjectScript"
       },
       {
