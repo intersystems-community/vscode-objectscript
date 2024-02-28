@@ -1,5 +1,22 @@
 # Change Log
 
+## [2.12.2] 28-Feb-2024
+- Enhancements
+  - Add auto-closing of C-style block comments (#1311)
+  - Server-side source control improvements (#1314):
+    - Don't show source control menu options for root directories or directories in Web Application workspace folders
+    - Don't check if source control is enabled before firing Other Studio Actions
+    - Move the progress notification to the Status Bar
+    - Preserve focus when showing errors in the Output channel
+    - Write queries to the Output channel as well as user actions when `objectscript.studioActionDebugOutput` is `true`
+  - Add auto-closing of quotes (#1316)
+  - Fire source control hooks when creating/opening/editing/deleting projects (#1313, #1319)
+- Fixes
+  - Don't auto-comment new line following a single-line comment (#1311)
+  - Better handling of generated INT routines in project folders (#1317)
+  - Fix searching of project folders for servers with Atelier API >= 6 (#1318)
+  - Refresh ObjectScript Explorer files when they are re-opened (#1321)
+
 ## [2.12.1] 05-Feb-2024
 - Fixes
   - Don't create unit test items in workspace folders that don't support running tests (#1307)
