@@ -706,35 +706,9 @@ export async function modifyProject(
   nodeOrUri: NodeBase | vscode.Uri | undefined,
   type: "add" | "remove"
 ): Promise<any> {
-  let node: NodeBase;
-  let api: AtelierAPI;
-  let project: string;
-  if (nodeOrUri instanceof NodeBase) {
-    // Called from Projects Explorer
-    node = nodeOrUri;
-    api = new AtelierAPI(node.workspaceFolderUri);
-    api.setNamespace(node.namespace);
-    project = node.options.project;
-  } else if (nodeOrUri instanceof vscode.Uri) {
-    // Called from files explorer
-    api = new AtelierAPI(nodeOrUri);
-    project = new URLSearchParams(nodeOrUri.query).get("project");
-  } else {
-    // Function was called from the command palette so there's no first argument
-    // Have the user pick a server and namespace
-    const picks = await pickServerAndNamespace();
-    if (picks == undefined) {
-      return;
-    }
-    const { serverName, namespace } = picks;
-    api = new AtelierAPI(vscode.Uri.parse(`isfs://${serverName}:${namespace}/`));
-  }
-  if (project === undefined) {
-    project = await pickProject(api);
-    if (project === undefined) {
-      return;
-    }
-  }
+  const args = await handleCommandArg(nodeOrUri);
+  if (!args) return;
+  const { node, api, project } = args;
 
   // Technically a project is a "document", so tell the server that we're opening it
   await new StudioActions().fireProjectUserAction(api, project, OtherStudioAction.OpenedDocument).catch(() => {
@@ -1176,4 +1150,90 @@ export function addWorkspaceFolderForProject(node: ProjectNode): void {
   );
   // Switch to Explorer view so user sees the outcome
   vscode.commands.executeCommand("workbench.view.explorer");
+}
+
+async function handleCommandArg(
+  nodeOrUri: NodeBase | vscode.Uri | undefined
+): Promise<{ node: NodeBase; api: AtelierAPI; project: string } | undefined> {
+  let node: NodeBase;
+  let api: AtelierAPI;
+  let project: string;
+  if (nodeOrUri instanceof NodeBase) {
+    // Called from Projects Explorer
+    node = nodeOrUri;
+    api = new AtelierAPI(node.workspaceFolderUri);
+    api.setNamespace(node.namespace);
+    project = node.options.project;
+  } else if (nodeOrUri instanceof vscode.Uri) {
+    // Called from files explorer
+    api = new AtelierAPI(nodeOrUri);
+    project = new URLSearchParams(nodeOrUri.query).get("project");
+  } else {
+    // Function was called from the command palette so there's no first argument
+    // Have the user pick a server and namespace
+    const picks = await pickServerAndNamespace();
+    if (picks == undefined) {
+      return;
+    }
+    const { serverName, namespace } = picks;
+    api = new AtelierAPI(vscode.Uri.parse(`isfs://${serverName}:${namespace}/`));
+  }
+  if (project === undefined) {
+    project = await pickProject(api);
+    if (project === undefined) {
+      return;
+    }
+  }
+  return { node, api, project };
+}
+
+export async function modifyProjectMetadata(nodeOrUri: NodeBase | vscode.Uri | undefined): Promise<void> {
+  const args = await handleCommandArg(nodeOrUri);
+  if (!args) return;
+  const { api, project } = args;
+
+  // Technically a project is a "document", so tell the server that we're opening it
+  await new StudioActions().fireProjectUserAction(api, project, OtherStudioAction.OpenedDocument).catch(() => {
+    // Swallow error because showing it is more disruptive than using a potentially outdated project definition
+  });
+
+  try {
+    const oldDesc: string = await api
+      .actionQuery("SELECT Description FROM %Studio.Project WHERE Name = ?", [project])
+      .then((data) => data.result.content[0]?.Description);
+    const newDesc = await vscode.window.showInputBox({
+      prompt: `Enter a description for project '${project}'`,
+      value: oldDesc,
+    });
+    if (!newDesc || newDesc == oldDesc) return;
+
+    // Technically a project is a "document", so tell the server that we're editing it
+    const studioActions = new StudioActions();
+    await studioActions.fireProjectUserAction(api, project, OtherStudioAction.AttemptedEdit);
+    if (studioActions.projectEditAnswer != "1") {
+      // Don't perform the edit
+      if (studioActions.projectEditAnswer == "-1") {
+        // Source control action failed
+        vscode.window.showErrorMessage(
+          `'AttemptedEdit' source control action failed for project '${project}'. Check the 'ObjectScript' Output channel for details.`,
+          "Dismiss"
+        );
+      }
+      return;
+    }
+
+    // Modify the project
+    await api.actionQuery("UPDATE %Studio.Project SET Description = ? WHERE Name = ?", [newDesc, project]);
+
+    // Refesh the explorer
+    projectsExplorerProvider.refresh();
+  } catch (error) {
+    let message = `Failed to modify metadata of project '${project}'.`;
+    if (error && error.errorText && error.errorText !== "") {
+      outputChannel.appendLine("\n" + error.errorText);
+      outputChannel.show(true);
+      message += " Check 'ObjectScript' output channel for details.";
+    }
+    vscode.window.showErrorMessage(message, "Dismiss");
+  }
 }

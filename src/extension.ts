@@ -126,6 +126,7 @@ import {
   deleteProject,
   exportProjectContents,
   modifyProject,
+  modifyProjectMetadata,
 } from "./commands/project";
 import { NodeBase } from "./explorer/models/nodeBase";
 import { loadStudioColors, loadStudioSnippets } from "./commands/studioMigration";
@@ -1094,25 +1095,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     }),
     vscode.commands.registerCommand("vscode-objectscript.addItemsToProject", (item) => {
-      if (item instanceof NodeBase || item instanceof vscode.Uri) {
-        return modifyProject(item, "add");
-      } else {
-        return modifyProject(undefined, "add");
-      }
+      return modifyProject(item instanceof NodeBase || item instanceof vscode.Uri ? item : undefined, "add");
     }),
     vscode.commands.registerCommand("vscode-objectscript.removeFromProject", (item) => {
-      if (item instanceof NodeBase || item instanceof vscode.Uri) {
-        return modifyProject(item, "remove");
-      } else {
-        return modifyProject(undefined, "remove");
-      }
+      return modifyProject(item instanceof NodeBase || item instanceof vscode.Uri ? item : undefined, "remove");
     }),
     vscode.commands.registerCommand("vscode-objectscript.removeItemsFromProject", (item) => {
-      if (item instanceof NodeBase || item instanceof vscode.Uri) {
-        return modifyProject(item, "remove");
-      } else {
-        return modifyProject(undefined, "remove");
-      }
+      return modifyProject(item instanceof NodeBase || item instanceof vscode.Uri ? item : undefined, "remove");
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.modifyProjectMetadata", (item) => {
+      return modifyProjectMetadata(item instanceof NodeBase || item instanceof vscode.Uri ? item : undefined);
     }),
     vscode.commands.registerCommand("vscode-objectscript.createProject", (node) => createProject(node)),
     vscode.commands.registerCommand("vscode-objectscript.deleteProject", (node) => deleteProject(node)),
