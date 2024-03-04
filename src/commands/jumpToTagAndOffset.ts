@@ -1,19 +1,13 @@
 import * as vscode from "vscode";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
-import { currentFile, outputChannel } from "../utils";
+import { outputChannel } from "../utils";
 
 export async function jumpToTagAndOffset(): Promise<void> {
-  const file = currentFile();
-  if (!file) {
-    return;
-  }
-  const nameMatch = file.name.match(/(.*)\.(int|mac)$/i);
-  if (!nameMatch) {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) return;
+  const document = editor.document;
+  if (!["objectscript", "objectscript-int"].includes(document.languageId)) {
     vscode.window.showWarningMessage("Jump to Tag and Offset only supports .int and .mac routines.", "Dismiss");
-    return;
-  }
-  const document = vscode.window.activeTextEditor?.document;
-  if (!document) {
     return;
   }
 
@@ -23,6 +17,7 @@ export async function jumpToTagAndOffset(): Promise<void> {
     "vscode.executeDocumentSymbolProvider",
     document.uri
   );
+  if (!Array.isArray(symbols) || !symbols.length) return;
   const items: vscode.QuickPickItem[] = symbols
     .filter((symbol) => symbol.kind === vscode.SymbolKind.Method)
     .map((symbol) => {
@@ -35,28 +30,28 @@ export async function jumpToTagAndOffset(): Promise<void> {
   quickPick.title = "Jump to Tag + Offset";
   quickPick.items = items;
   quickPick.canSelectMany = false;
-  quickPick.onDidChangeSelection((_) => {
-    quickPick.value = quickPick.selectedItems[0].label;
-  });
-  quickPick.onDidAccept((_) => {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      quickPick.hide();
+  quickPick.onDidAccept(() => {
+    if (
+      quickPick.selectedItems.length &&
+      !new RegExp(`^${quickPick.selectedItems[0].label}(\\+\\d+)?$`).test(quickPick.value)
+    ) {
+      // Update the value to correct case and allow users to add/update the offset
+      quickPick.value = quickPick.value.includes("+")
+        ? `${quickPick.selectedItems[0].label}+${quickPick.value.split("+")[1]}`
+        : quickPick.selectedItems[0].label;
       return;
     }
-    const parts = quickPick.value.split("+");
+    const parts = quickPick.value.trim().split("+");
     let offset = 0;
-    if (!map.has(parts[0])) {
-      if (parts[0] !== "") {
-        return;
-      }
-    } else {
-      offset += map.get(parts[0]);
+    if (parts[0].length) {
+      const labelLine = map.get(parts[0]);
+      if (labelLine == undefined) return; // Not a valid label
+      offset = labelLine;
     }
     if (parts.length > 1) {
       offset += parseInt(parts[1], 10);
     }
-    const line = editor.document.lineAt(offset);
+    const line = document.lineAt(offset);
     const range = new vscode.Range(line.range.start, line.range.start);
     editor.selection = new vscode.Selection(range.start, range.start);
     editor.revealRange(range, vscode.TextEditorRevealType.AtTop);

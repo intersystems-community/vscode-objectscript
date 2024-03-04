@@ -225,7 +225,7 @@
         },
         {
           "command": "vscode-objectscript.jumpToTagAndOffset",
-          "when": "editorLangId == objectscript"
+          "when": "editorLangId =~ /^objectscript(-int)?$/"
         },
         {
           "command": "vscode-objectscript.compileOnly",
