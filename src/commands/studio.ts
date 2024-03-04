@@ -154,6 +154,8 @@ export class StudioActions {
             if (message.result && message.result === "done") {
               answer = "1";
               panel.dispose();
+            } else if (typeof message.href == "string") {
+              vscode.env.openExternal(vscode.Uri.parse(message.href));
             }
           });
           panel.onDidDispose(() => resolve(answer));
