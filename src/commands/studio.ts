@@ -106,6 +106,13 @@ export class StudioActions {
 
   /** Fire UserAction `id` on server `api` for project `name`. */
   public async fireProjectUserAction(api: AtelierAPI, name: string, id: OtherStudioAction): Promise<void> {
+    const scope = api.wsOrFile instanceof vscode.Uri ? api.wsOrFile : this.uri;
+    if (
+      vscode.workspace.getConfiguration("objectscript.serverSourceControl", scope)?.get("disableOtherActionTriggers")
+    ) {
+      this.projectEditAnswer = "1";
+      return;
+    }
     this.api = api;
     this.name = `${name}.PRJ`;
     return this.userAction(
