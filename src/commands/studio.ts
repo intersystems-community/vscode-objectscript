@@ -154,6 +154,10 @@ export class StudioActions {
             if (message.result && message.result === "done") {
               answer = "1";
               panel.dispose();
+            } else if (typeof message.href == "string") {
+              const linkUri = vscode.Uri.parse(message.href);
+              // Only open http(s) links
+              if (/^https?$/.test(linkUri.scheme)) vscode.env.openExternal(linkUri);
             }
           });
           panel.onDidDispose(() => resolve(answer));
