@@ -155,7 +155,9 @@ export class StudioActions {
               answer = "1";
               panel.dispose();
             } else if (typeof message.href == "string") {
-              vscode.env.openExternal(vscode.Uri.parse(message.href));
+              const linkUri = vscode.Uri.parse(message.href);
+              // Only open http(s) links
+              if (/^https?$/.test(linkUri.scheme)) vscode.env.openExternal(linkUri);
             }
           });
           panel.onDidDispose(() => resolve(answer));
