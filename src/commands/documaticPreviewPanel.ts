@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { classNameRegex } from "../utils";
-import { clsLangId } from "../extension";
+import { clsLangId, iscIcon } from "../extension";
 
 /**
  * The schema of the message that gets sent to the webview.
@@ -84,6 +84,7 @@ export class DocumaticPreviewPanel {
         localResourceRoots: [webviewFolderUri],
       }
     );
+    panel.iconPath = iscIcon;
 
     this.currentPanel = new DocumaticPreviewPanel(panel, webviewFolderUri, openEditor);
   }
@@ -91,12 +92,6 @@ export class DocumaticPreviewPanel {
   private constructor(panel: vscode.WebviewPanel, webviewFolderUri: vscode.Uri, editor: vscode.TextEditor) {
     this._panel = panel;
     this._editor = editor;
-
-    // Update the panel's icon
-    this._panel.iconPath = {
-      dark: vscode.Uri.joinPath(webviewFolderUri, "preview-dark.svg"),
-      light: vscode.Uri.joinPath(webviewFolderUri, "preview-light.svg"),
-    };
 
     // Set the webview's initial content
     this.setWebviewHtml(webviewFolderUri);
