@@ -6,6 +6,7 @@ import * as httpsModule from "https";
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { cspAppsForUri, outputChannel } from "../utils";
+import { iscIcon } from "../extension";
 
 interface WebviewMessage {
   /** Whether this message was triggered by the user pressing the 'Start Debugging' button */
@@ -137,6 +138,7 @@ export class RESTDebugPanel {
         localResourceRoots: [webviewFolderUri],
       }
     );
+    panel.iconPath = iscIcon;
 
     this._file = openEditor.document.uri;
     this.currentPanel = new RESTDebugPanel(panel, webviewFolderUri, api, restWebApps);

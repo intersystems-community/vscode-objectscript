@@ -116,6 +116,7 @@ export let panel: vscode.StatusBarItem;
 export let posPanel: vscode.StatusBarItem;
 export const terminals: vscode.Terminal[] = [];
 export let xmlContentProvider: XmlContentProvider;
+export let iscIcon: vscode.Uri;
 
 import TelemetryReporter from "vscode-extension-telemetry";
 import { CodeActionProvider } from "./providers/CodeActionProvider";
@@ -782,6 +783,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   // Show the proposed API prompt if required
   proposedApiPrompt(proposed.length > 0);
 
+  iscIcon = vscode.Uri.joinPath(context.extensionUri, "images", "fileIcon.svg");
+
   context.subscriptions.push(
     reporter,
     panel,
@@ -1298,9 +1301,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.commands.registerCommand("vscode-objectscript.modifyWsFolder", modifyWsFolder),
     vscode.commands.registerCommand("vscode-objectscript.openErrorLocation", openErrorLocation),
-    vscode.commands.registerCommand("vscode-objectscript.launchWebSocketTerminal", () =>
-      launchWebSocketTerminal(context.extensionUri)
-    ),
+    vscode.commands.registerCommand("vscode-objectscript.launchWebSocketTerminal", () => launchWebSocketTerminal()),
     vscode.commands.registerCommand(
       "vscode-objectscript.intersystems-servermanager.webterminal",
       (namespaceTreeItem) => {
@@ -1308,12 +1309,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         const serverId = idArray[1];
         const namespace = idArray[3];
         const targetUri = vscode.Uri.from({ scheme: "isfs", authority: `${serverId}:${namespace}` });
-        launchWebSocketTerminal(context.extensionUri, targetUri);
+        launchWebSocketTerminal(targetUri);
       }
     ),
     vscode.window.registerTerminalProfileProvider(
       "vscode-objectscript.webSocketTerminal",
-      new WebSocketTerminalProfileProvider(context.extensionUri)
+      new WebSocketTerminalProfileProvider()
     ),
     vscode.workspace.onDidChangeWorkspaceFolders((e) => {
       // Show the proposed API prompt if required

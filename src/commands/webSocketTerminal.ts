@@ -3,7 +3,7 @@ import WebSocket = require("ws");
 
 import { AtelierAPI } from "../api";
 import { connectionTarget, currentFile, outputChannel } from "../utils";
-import { config, resolveConnectionSpec } from "../extension";
+import { config, iscIcon, resolveConnectionSpec } from "../extension";
 
 const keys = {
   enter: "\r",
@@ -609,7 +609,6 @@ function reportError(msg: string, throwErrors = false) {
 
 function terminalConfigForUri(
   api: AtelierAPI,
-  extensionUri: vscode.Uri,
   targetUri: vscode.Uri,
   throwErrors = false
 ): vscode.ExtensionTerminalOptions | undefined {
@@ -635,7 +634,7 @@ function terminalConfigForUri(
         : vscode.TerminalLocation.Panel,
     pty: new WebSocketTerminal(api),
     isTransient: true,
-    iconPath: vscode.Uri.joinPath(extensionUri, "images", "fileIcon.svg"),
+    iconPath: iscIcon,
   };
 }
 
@@ -659,7 +658,7 @@ async function workspaceUriForTerminal(throwErrors = false) {
   return uri;
 }
 
-export async function launchWebSocketTerminal(extensionUri: vscode.Uri, targetUri?: vscode.Uri): Promise<void> {
+export async function launchWebSocketTerminal(targetUri?: vscode.Uri): Promise<void> {
   // Determine the server to connect to
   if (targetUri) {
     // Uri passed as command argument might be for a server we haven't yet resolve connection details such as password,
@@ -679,7 +678,7 @@ export async function launchWebSocketTerminal(extensionUri: vscode.Uri, targetUr
   await api.serverInfo();
 
   // Get the terminal configuration
-  const terminalOpts = terminalConfigForUri(api, extensionUri, targetUri);
+  const terminalOpts = terminalConfigForUri(api, targetUri);
   if (terminalOpts) {
     // Launch the terminal
     const terminal = vscode.window.createTerminal(terminalOpts);
@@ -688,15 +687,13 @@ export async function launchWebSocketTerminal(extensionUri: vscode.Uri, targetUr
 }
 
 export class WebSocketTerminalProfileProvider implements vscode.TerminalProfileProvider {
-  constructor(private readonly _extensionUri: vscode.Uri) {}
-
-  async provideTerminalProfile(_token: vscode.CancellationToken): Promise<vscode.TerminalProfile> {
+  async provideTerminalProfile(): Promise<vscode.TerminalProfile> {
     // Determine the server connection to use
     const uri: vscode.Uri = await workspaceUriForTerminal(true);
 
     if (uri) {
       // Get the terminal configuration. Will throw if there's an error.
-      const terminalOpts = terminalConfigForUri(new AtelierAPI(uri), this._extensionUri, uri, true);
+      const terminalOpts = terminalConfigForUri(new AtelierAPI(uri), uri, true);
       return new vscode.TerminalProfile(terminalOpts);
     } else {
       throw new Error("WebSocket Terminal requires a selected workspace folder.");

@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { config, filesystemSchemas } from "../extension";
+import { config, filesystemSchemas, iscIcon } from "../extension";
 import { outputChannel, outputConsole, getServerName } from "../utils";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { ClassNode } from "../explorer/models/classNode";
@@ -157,6 +157,7 @@ export class StudioActions {
               enableScripts: true,
             }
           );
+          panel.iconPath = iscIcon;
           panel.webview.onDidReceiveMessage((message) => {
             if (message.result && message.result === "done") {
               answer = "1";
