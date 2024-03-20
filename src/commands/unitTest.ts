@@ -1026,6 +1026,38 @@ export function setUpTestController(): vscode.Disposable[] {
     );
   }
 
+  /** Delete the test item for `uri`. Returns `true` if an item was deleted. */
+  const deleteItemForUri = async (uri: vscode.Uri): Promise<boolean> => {
+    let result = false;
+    // If a TestItem was deleted, remove it from the controller
+    if (uri.path.toLowerCase().endsWith(".cls")) {
+      const item = await getTestItemForClass(testController, uri);
+      if (item) {
+        const rootItem = rootItemForItem(testController, uri);
+        if (rootItem) {
+          // Remove from our cache of classes
+          const classes = classesForRoot.get(rootItem);
+          if (classes) {
+            let cls: string;
+            for (const element of classes) {
+              if (element[1].id == item.id) {
+                cls = element[0];
+                break;
+              }
+            }
+            if (cls) {
+              classes.delete(cls);
+              classesForRoot.set(rootItem, classes);
+            }
+          }
+        }
+        item.parent.children.delete(uri.toString());
+        result = true;
+      }
+    }
+    return result;
+  };
+
   // Register disposables
   return [
     testController,
@@ -1098,35 +1130,13 @@ export function setUpTestController(): vscode.Disposable[] {
         }
       }
     }),
-    vscode.workspace.onDidDeleteFiles((e) =>
-      e.files.forEach(async (uri) => {
-        // If a TestItem was deleted, remove it from the controller
-        if (uri.path.toLowerCase().endsWith(".cls")) {
-          const item = await getTestItemForClass(testController, uri);
-          if (item) {
-            const rootItem = rootItemForItem(testController, uri);
-            if (rootItem) {
-              // Remove from our cache of classes
-              const classes = classesForRoot.get(rootItem);
-              if (classes) {
-                let cls: string;
-                for (const element of classes) {
-                  if (element[1].id == item.id) {
-                    cls = element[0];
-                    break;
-                  }
-                }
-                if (cls) {
-                  classes.delete(cls);
-                  classesForRoot.set(rootItem, classes);
-                }
-              }
-            }
-            item.parent.children.delete(uri.toString());
-          }
-        }
+    vscode.workspace.onDidDeleteFiles((e) => e.files.forEach(deleteItemForUri)),
+    vscode.workspace.onDidCreateFiles((e) => e.files.forEach((uri) => addItemForClassUri(testController, uri))),
+    vscode.workspace.onDidRenameFiles((e) =>
+      e.files.forEach(async (file) => {
+        // If the oldUri was a test class, attempt to create a new item for it
+        if (await deleteItemForUri(file.oldUri)) addItemForClassUri(testController, file.newUri);
       })
     ),
-    vscode.workspace.onDidCreateFiles((e) => e.files.forEach((uri) => addItemForClassUri(testController, uri))),
   ];
 }
