@@ -1237,7 +1237,10 @@ export async function modifyProjectMetadata(nodeOrUri: NodeBase | vscode.Uri | u
     }
 
     // Modify the project
-    await api.actionQuery("UPDATE %Studio.Project SET Description = ?, LastModified = NOW() WHERE Name = ?", [newDesc, project]);
+    await api.actionQuery("UPDATE %Studio.Project SET Description = ?, LastModified = NOW() WHERE Name = ?", [
+      newDesc,
+      project,
+    ]);
 
     // Refesh the explorer
     projectsExplorerProvider.refresh();
