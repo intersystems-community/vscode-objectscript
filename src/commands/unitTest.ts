@@ -978,7 +978,10 @@ export function setUpTestController(): vscode.Disposable[] {
     item.busy = false;
   };
   testController.refreshHandler = () => {
+    // Create new roots
     replaceRootTestItems(testController);
+    // Resolve children for the roots
+    testController.items.forEach((item) => testController.resolveHandler(item));
   };
   // Create the run and debug profiles
   const runProfile = testController.createRunProfile(
