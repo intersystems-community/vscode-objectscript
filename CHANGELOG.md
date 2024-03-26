@@ -1,5 +1,18 @@
 # Change Log
 
+## [2.12.3] 26-Mar-2024
+- Enhancements
+  - Improve `Jump to Tag + Offset` UI (#1325)
+  - Add `Modify Project Metadata...` command (#1326)
+  - Support opening links from Studio extension pages (#1329)
+  - Use ISC icon for webviews (#1331)
+  - Update timestamp when modifying a project (#1337)
+- Fixes
+  - Projects Source Control actions should respect `objectscript.serverSourceControl.disableOtherActionTriggers` setting (#1330)
+  - Update Test Explorer when test classes are renamed (#1332)
+  - Only remove blank line ending for web application files (#1334)
+  - Fix manual refresh of Test Explorer (#1336) (suggested by @ollitanska)
+
 ## [2.12.2] 28-Feb-2024
 - Enhancements
   - Add auto-closing of C-style block comments (#1311)
