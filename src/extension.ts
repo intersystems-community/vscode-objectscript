@@ -476,13 +476,7 @@ function setConnectionState(configName: string, active: boolean) {
 // Promise to return the API of the servermanager
 async function serverManager(): Promise<any> {
   let extension = vscode.extensions.getExtension(smExtensionId);
-  const ignore =
-    config("ignoreInstallServerManager") ||
-    vscode.workspace.getConfiguration("intersystems.servers").get("/ignore", false);
   if (!extension) {
-    if (ignore) {
-      return;
-    }
     try {
       await vscode.commands.executeCommand("extension.open", smExtensionId);
     } catch (ex) {
@@ -493,21 +487,13 @@ async function serverManager(): Promise<any> {
       .showInformationMessage(
         `The [InterSystems Server Manager extension](https://marketplace.visualstudio.com/items?itemName=${smExtensionId}) is recommended to help you [define connections and store passwords securely](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_config#GVSCO_config_addserver) in your keychain.`,
         "Install",
-        "Later",
-        "Never"
+        "Later"
       )
       .then(async (action) => {
-        switch (action) {
-          case "Install":
-            await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`).then(null, null);
-            await vscode.commands.executeCommand("workbench.extensions.installExtension", smExtensionId);
-            extension = vscode.extensions.getExtension(smExtensionId);
-            break;
-          case "Never":
-            config().update("ignoreInstallServerManager", true, vscode.ConfigurationTarget.Global);
-            break;
-          case "Later":
-          default:
+        if (action == "Later") {
+          await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`).then(null, null);
+          await vscode.commands.executeCommand("workbench.extensions.installExtension", smExtensionId);
+          extension = vscode.extensions.getExtension(smExtensionId);
         }
       });
   }
@@ -523,9 +509,6 @@ function languageServer(install = true): vscode.Extension<any> {
   let extension = vscode.extensions.getExtension(lsExtensionId);
 
   async function languageServerInstall() {
-    if (config("ignoreInstallLanguageServer")) {
-      return;
-    }
     try {
       await vscode.commands.executeCommand("extension.open", lsExtensionId);
     } catch (ex) {
@@ -539,14 +522,10 @@ function languageServer(install = true): vscode.Extension<any> {
         "Later"
       )
       .then(async (action) => {
-        switch (action) {
-          case "Install":
-            await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`).then(null, null);
-            await vscode.commands.executeCommand("workbench.extensions.installExtension", lsExtensionId);
-            extension = vscode.extensions.getExtension(lsExtensionId);
-            break;
-          case "Later":
-          default:
+        if (action == "Install") {
+          await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`).then(null, null);
+          await vscode.commands.executeCommand("workbench.extensions.installExtension", lsExtensionId);
+          extension = vscode.extensions.getExtension(lsExtensionId);
         }
       });
   }
@@ -707,10 +686,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     context.extensionMode && context.extensionMode !== vscode.ExtensionMode.Test ? languageServer() : null;
   const noLSsubscriptions: { dispose(): any }[] = [];
   if (!languageServerExt) {
-    if (!config("ignoreInstallLanguageServer")) {
-      outputChannel.appendLine(`The intersystems.language-server extension is not installed or has been disabled.\n`);
-      outputChannel.show(true);
-    }
+    outputChannel.appendLine("The intersystems.language-server extension is not installed or has been disabled.");
+    outputChannel.show(true);
 
     if (vscode.window.activeTextEditor) {
       diagnosticProvider.updateDiagnostics(vscode.window.activeTextEditor.document);
