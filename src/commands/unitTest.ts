@@ -77,6 +77,7 @@ function rootItemForItem(testController: vscode.TestController, uri: vscode.Uri)
 
 /** Compute `TestItem`s for `Test*` methods in `parent` */
 async function addTestItemsForClass(testController: vscode.TestController, parent: vscode.TestItem): Promise<void> {
+  const newIds: string[] = [];
   // Get the symbols for the parent class
   const parentSymbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
     "vscode.executeDocumentSymbolProvider",
@@ -98,11 +99,9 @@ async function addTestItemsForClass(testController: vscode.TestController, paren
       const memberName = stripClassMemberNameQuotes(clsMember.name);
       if (clsMember.detail == "Method" && memberName.startsWith("Test")) {
         const displayName = memberName.slice(4);
-        const newItem = testController.createTestItem(
-          `${parent.id}${methodIdSeparator}${displayName}`,
-          displayName,
-          parent.uri
-        );
+        const newId = `${parent.id}${methodIdSeparator}${displayName}`;
+        newIds.push(newId);
+        const newItem = testController.createTestItem(newId, displayName, parent.uri);
         newItem.range = clsMember.range;
         // Always show non-inherited methods at the top
         newItem.sortText = `##${displayName}`;
@@ -142,11 +141,9 @@ async function addTestItemsForClass(testController: vscode.TestController, paren
             );
             if (symbol) {
               const displayName = stripClassMemberNameQuotes(symbol.name).slice(4);
-              const newItem = testController.createTestItem(
-                `${parent.id}${methodIdSeparator}${displayName}`,
-                displayName,
-                parent.uri
-              );
+              const newId = `${parent.id}${methodIdSeparator}${displayName}`;
+              newIds.push(newId);
+              const newItem = testController.createTestItem(newId, displayName, parent.uri);
               newItem.range = symbol.range;
               parent.children.add(newItem);
             }
@@ -154,6 +151,10 @@ async function addTestItemsForClass(testController: vscode.TestController, paren
         }
       }
     }
+    // Remove items for any methods that have been deleted
+    parent.children.forEach((i) => {
+      if (!newIds.includes(i.id)) parent.children.delete(i.id);
+    });
   }
 }
 
@@ -1126,7 +1127,7 @@ export function setUpTestController(): vscode.Disposable[] {
         const item = await getTestItemForClass(testController, e.document.uri);
         if (item) {
           testController.invalidateTestResults(item);
-          if (item.canResolveChildren && !item.children.size) {
+          if (item.canResolveChildren) {
             // Resolve the methods
             testController.resolveHandler(item);
           }
