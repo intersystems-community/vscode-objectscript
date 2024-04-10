@@ -461,8 +461,9 @@ export class AtelierAPI {
         if (this.ns && this.ns.length && !data.namespaces.includes(this.ns) && checkNs) {
           throw {
             code: "WrongNamespace",
-            message: `This server does not have specified namespace '${this.ns}'.\n
-            You must select one of the following: ${data.namespaces.join(", ")}.`,
+            message: `This server does not have specified namespace '${
+              this.ns
+            }'.\nYou must select one of the following: ${data.namespaces.join(", ")}.`,
           };
         }
         return Promise.all([
