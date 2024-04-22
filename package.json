@@ -1573,6 +1573,25 @@
           "type": "boolean",
           "default": true,
           "scope": "resource"
+        },
+        "objectscript.commentToken": {
+          "description": "The line comment characters for ObjectScript in classes and MAC and INC routines.",
+          "type": "string",
+          "enum": ["#;","//",";"],
+          "enumDescriptions": [
+            "Comments do not appear in generated INT code.",
+            "Comments appear in generated INT code.",
+            "Comments appear in generated INT code."
+          ],
+          "default": "#;",
+          "scope": "machine"
+        },
+        "objectscript.intCommentToken": {
+          "description": "The line comment characters for INT routines.",
+          "type": "string",
+          "enum": ["//",";"],
+          "default": "//",
+          "scope": "machine"
         }
       }
     },
