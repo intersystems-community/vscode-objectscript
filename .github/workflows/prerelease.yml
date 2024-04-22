@@ -26,7 +26,7 @@ jobs:
     outputs:
       taggedbranch: ${{ steps.find-branch.outputs.taggedbranch }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
       - name: Find which branch the release tag points at
         id: find-branch
@@ -59,9 +59,9 @@ jobs:
           echo $VERSION > .version
           echo $NAME > .name
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
       - run: npm install
       - name: lint
         if: runner.os == 'Linux'
@@ -75,12 +75,12 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           npx vsce package --pre-release -o ${{ steps.set-version.outputs.name }}.vsix
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: (runner.os == 'Linux') && (github.event_name != 'release')
         with:
           name: ${{ steps.set-version.outputs.name }}.vsix
           path: ${{ steps.set-version.outputs.name }}.vsix
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: runner.os == 'Linux'
         with:
           name: meta
@@ -92,7 +92,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: meta
           path: .
@@ -103,7 +103,7 @@ jobs:
           set -x
           echo "version=`cat .version`" >> $GITHUB_OUTPUT
           echo "name=`cat .name`" >> $GITHUB_OUTPUT
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: ${{ steps.set-version.outputs.name }}.vsix
       - name: Create Pre-Release
@@ -120,18 +120,18 @@ jobs:
     if: github.event_name == 'release' && needs.build.outputs.taggedbranch == 'prerelease'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: prerelease
           token: ${{ secrets.TOKEN }}
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: meta
           path: .
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
       - name: Prepare pre-release build
         id: set-version
         run: |
