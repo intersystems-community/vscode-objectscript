@@ -8,7 +8,6 @@ on:
       - "docs/**"
       - ".vscode/**"
       - ".github/**"
-      - "*.md"
       - "**/*.md"
   pull_request:
     branches:
@@ -19,10 +18,7 @@ on:
 jobs:
   build:
     timeout-minutes: 10
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+    runs-on: ubuntu-latest
     outputs:
       taggedbranch: ${{ steps.find-branch.outputs.taggedbranch }}
     steps:
@@ -30,7 +26,7 @@ jobs:
       - run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
       - name: Find which branch the release tag points at
         id: find-branch
-        if: github.event_name == 'release' && runner.os == 'Linux'
+        if: github.event_name == 'release'
         shell: bash
         run: |
           git fetch --depth=1 origin +refs/heads/*:refs/heads/*
@@ -39,7 +35,6 @@ jobs:
           echo "taggedbranch=$TAGGEDBRANCH" >> $GITHUB_OUTPUT
       - name: Set an output
         id: set-version
-        if: runner.os == 'Linux'
         run: |
           set -x
           VERSION=$(jq -r '.version' package.json | cut -d- -f1)
@@ -64,24 +59,19 @@ jobs:
           node-version: 20
       - run: npm install
       - name: lint
-        if: runner.os == 'Linux'
         run: npm run lint
       - run: npm run compile
       - name: npm test
-        uses: coactions/setup-xvfb@v1
-        with:
-          run: npm run test
+        run: xvfb-run npm test
       - name: Build pre-release package
-        if: runner.os == 'Linux'
         run: |
           npx vsce package --pre-release -o ${{ steps.set-version.outputs.name }}.vsix
       - uses: actions/upload-artifact@v4
-        if: (runner.os == 'Linux') && (github.event_name != 'release')
+        if: github.event_name != 'release'
         with:
           name: ${{ steps.set-version.outputs.name }}.vsix
           path: ${{ steps.set-version.outputs.name }}.vsix
       - uses: actions/upload-artifact@v4
-        if: runner.os == 'Linux'
         with:
           name: meta
           path: |
@@ -98,7 +88,6 @@ jobs:
           path: .
       - name: Set an output
         id: set-version
-        if: runner.os == 'Linux'
         run: |
           set -x
           echo "version=`cat .version`" >> $GITHUB_OUTPUT
@@ -109,7 +98,6 @@ jobs:
       - name: Create Pre-Release
         id: create-release
         uses: softprops/action-gh-release@v1
-        if: runner.os == 'Linux'
         with:
           tag_name: v${{ steps.set-version.outputs.version }}
           prerelease: ${{ github.event_name != 'release' }}
@@ -154,7 +142,6 @@ jobs:
       - name: Upload Release Asset
         id: upload-release-asset
         uses: softprops/action-gh-release@v1
-        if: runner.os == 'Linux'
         with:
           tag_name: ${{ github.event.release.tag_name }}
           files: ${{ steps.set-version.outputs.name }}.vsix
