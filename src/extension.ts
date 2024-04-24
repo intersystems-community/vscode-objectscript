@@ -223,8 +223,15 @@ export async function resolveConnectionSpec(serverName: string): Promise<void> {
 export async function resolvePassword(serverSpec): Promise<void> {
   const AUTHENTICATION_PROVIDER = "intersystems-server-credentials";
   // This arises if setting says to use authentication provider
-  if (typeof serverSpec.password === "undefined") {
-    const scopes = [serverSpec.name, serverSpec.username || ""];
+  if (
+    // Connection isn't unauthenticated
+    serverSpec.username != undefined &&
+    serverSpec.username != "" &&
+    serverSpec.username.toLowerCase() != "unknownuser" &&
+    // A password is missing
+    typeof serverSpec.password == "undefined"
+  ) {
+    const scopes = [serverSpec.name, serverSpec.username];
     let session = await vscode.authentication.getSession(AUTHENTICATION_PROVIDER, scopes, { silent: true });
     if (!session) {
       session = await vscode.authentication.getSession(AUTHENTICATION_PROVIDER, scopes, { createIfNone: true });
