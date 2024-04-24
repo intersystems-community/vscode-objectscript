@@ -540,8 +540,13 @@ function proposedApiPrompt(active: boolean, added?: readonly vscode.WorkspaceFol
   }
 }
 
-// The URIs of all classes that have been opened. Used when objectscript.openClassContracted is true.
+/** The URIs of all classes that have been opened. Used when `objectscript.openClassContracted` is true */
 let openedClasses: string[];
+
+// Disposables for language configurations that can be modifed by settings
+let macLangConf: vscode.Disposable;
+let incLangConf: vscode.Disposable;
+let intLangConf: vscode.Disposable;
 
 export async function activate(context: vscode.ExtensionContext): Promise<any> {
   if (!packageJson.version.includes("SNAPSHOT")) {
@@ -736,6 +741,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   proposedApiPrompt(proposed.length > 0);
 
   iscIcon = vscode.Uri.joinPath(context.extensionUri, "images", "fileIcon.svg");
+
+  macLangConf = vscode.languages.setLanguageConfiguration(macLangId, getLanguageConfiguration(macLangId));
+  incLangConf = vscode.languages.setLanguageConfiguration(incLangId, getLanguageConfiguration(incLangId));
+  intLangConf = vscode.languages.setLanguageConfiguration(intLangId, getLanguageConfiguration(intLangId));
 
   context.subscriptions.push(
     reporter,
@@ -971,9 +980,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       isReadonly: true,
     }),
     vscode.languages.setLanguageConfiguration(clsLangId, getLanguageConfiguration(clsLangId)),
-    vscode.languages.setLanguageConfiguration(macLangId, getLanguageConfiguration(macLangId)),
-    vscode.languages.setLanguageConfiguration(incLangId, getLanguageConfiguration(incLangId)),
-    vscode.languages.setLanguageConfiguration(intLangId, getLanguageConfiguration(intLangId)),
     vscode.languages.registerCodeActionsProvider(documentSelector(clsLangId, macLangId), new CodeActionProvider()),
     vscode.languages.registerWorkspaceSymbolProvider(new WorkspaceSymbolProvider()),
     vscode.debug.registerDebugConfigurationProvider("objectscript", new ObjectScriptConfigurationProvider()),
@@ -1148,6 +1154,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           // This unavoidably switches to the File Explorer view, so only do it if isfs folders were found
           vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
         }
+      }
+      if (affectsConfiguration("objectscript.commentToken")) {
+        // Update the language configuration for "objectscript" and "objectscript-macros"
+        macLangConf?.dispose();
+        incLangConf?.dispose();
+        macLangConf = vscode.languages.setLanguageConfiguration(macLangId, getLanguageConfiguration(macLangId));
+        incLangConf = vscode.languages.setLanguageConfiguration(incLangId, getLanguageConfiguration(incLangId));
+      }
+      if (affectsConfiguration("objectscript.intCommentToken")) {
+        // Update the language configuration for "objectscript-int"
+        intLangConf?.dispose();
+        intLangConf = vscode.languages.setLanguageConfiguration(intLangId, getLanguageConfiguration(intLangId));
       }
     }),
     vscode.window.onDidCloseTerminal((t) => {
@@ -1382,4 +1400,7 @@ export function deactivate(): void {
   if (terminals) {
     terminals.forEach((t) => t.dispose());
   }
+  macLangConf?.dispose();
+  incLangConf?.dispose();
+  intLangConf?.dispose();
 }
