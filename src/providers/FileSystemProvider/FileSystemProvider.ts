@@ -218,7 +218,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           if (!entry.Name.includes(".")) {
             if (!parent.entries.has(entry.Name)) {
               const folder = !csp
-                ? uri.path.replace(/\//g, ".")
+                ? uri.path.replace(/\/$/, "").replace(/\//g, ".")
                 : uri.path === "/"
                 ? ""
                 : uri.path.endsWith("/")
@@ -247,7 +247,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     }
     const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
     const folder = !csp
-      ? uri.path.replace(/\//g, ".")
+      ? uri.path.replace(/\/$/, "").replace(/\//g, ".")
       : uri.path === "/"
       ? ""
       : uri.path.endsWith("/")
