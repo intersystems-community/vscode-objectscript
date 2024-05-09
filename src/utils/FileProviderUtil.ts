@@ -110,7 +110,7 @@ export function fileSpecFromURI(uri: vscode.Uri): string {
   const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
 
   const folder = !csp
-    ? uri.path.replace(/\//g, ".")
+    ? uri.path.replace(/\/$/, "").replace(/\//g, ".")
     : uri.path === "/"
     ? ""
     : uri.path.endsWith("/")
