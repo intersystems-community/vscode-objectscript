@@ -564,6 +564,7 @@ async function systemModeWarning(wsFolders: readonly vscode.WorkspaceFolder[]): 
       serverStr = ![undefined, ""].includes(api.config.serverName)
         ? `'${api.config.serverName}' (${serverUrl})`
         : serverUrl;
+    if (!api.active) continue; // Skip inactive connections
     let systemMode = systemModes.get(mapKey);
     if (systemMode == undefined) {
       systemMode = await api
