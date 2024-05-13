@@ -547,6 +547,50 @@ function proposedApiPrompt(active: boolean, added?: readonly vscode.WorkspaceFol
   }
 }
 
+/**
+ * A map of SystemModes for known servers.
+ * The key is either `serverName`, or `host:port/pathPrefix`, lowercase.
+ * The value is the value of `^%SYS("SystemMode")`, uppercase.
+ */
+const systemModes: Map<string, string> = new Map();
+
+/** Output a message notifying the user of the SystemMode of any servers they are connected to. */
+async function systemModeWarning(wsFolders: readonly vscode.WorkspaceFolder[]): Promise<void> {
+  if (!wsFolders || wsFolders.length == 0) return;
+  for (const wsFolder of wsFolders) {
+    const api = new AtelierAPI(wsFolder.uri),
+      mapKey = api.serverId.toLowerCase(),
+      serverUrl = `${api.config.host}:${api.config.port}${api.config.pathPrefix}`,
+      serverStr = ![undefined, ""].includes(api.config.serverName)
+        ? `'${api.config.serverName}' (${serverUrl})`
+        : serverUrl;
+    let systemMode = systemModes.get(mapKey);
+    if (systemMode == undefined) {
+      systemMode = await api
+        .actionQuery("SELECT UPPER(Value) AS SystemMode FROM %Library.Global_Get(?,'^%SYS(\"SystemMode\")')", [api.ns])
+        .then((data) => data.result.content[0]?.SystemMode ?? "")
+        .catch(() => ""); // Swallow any errors, which will likely be SQL permissions errors
+    }
+    switch (systemMode) {
+      case "LIVE":
+        outputChannel.appendLine(
+          `WARNING: Workspace folder '${wsFolder.name}' is connected to Live System ${serverStr}`
+        );
+        outputChannel.show(); // Steal focus because this is an important message
+        break;
+      case "TEST":
+      case "FAILOVER":
+        outputChannel.appendLine(
+          `NOTE: Workspace folder '${wsFolder.name}' is connected to ${
+            systemMode == "TEST" ? "Test" : "Failover"
+          } System ${serverStr}`
+        );
+        outputChannel.show(true);
+    }
+    systemModes.set(mapKey, systemMode);
+  }
+}
+
 /** The URIs of all classes that have been opened. Used when `objectscript.openClassContracted` is true */
 let openedClasses: string[];
 
@@ -746,6 +790,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   // Show the proposed API prompt if required
   proposedApiPrompt(proposed.length > 0);
+
+  // Warn about SystemMode
+  systemModeWarning(vscode.workspace.workspaceFolders);
 
   iscIcon = vscode.Uri.joinPath(context.extensionUri, "images", "fileIcon.svg");
 
@@ -1296,6 +1343,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.workspace.onDidChangeWorkspaceFolders((e) => {
       // Show the proposed API prompt if required
       proposedApiPrompt(proposed.length > 0, e.added);
+      // Warn about SystemMode
+      systemModeWarning(e.added);
     }),
     vscode.commands.registerCommand("vscode-objectscript.importXMLFiles", importXMLFiles),
     vscode.commands.registerCommand("vscode-objectscript.exportToXMLFile", exportDocumentsToXMLFile),
