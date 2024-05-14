@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "2.12.4-SNAPSHOT",
+  "version": "2.12.5-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "9cd75d51-697c-406c-a929-2bcf46e97c64",
   "categories": [
@@ -1577,7 +1577,11 @@
         "objectscript.commentToken": {
           "description": "The line comment characters for ObjectScript in classes and MAC and INC routines.",
           "type": "string",
-          "enum": ["#;","//",";"],
+          "enum": [
+            "#;",
+            "//",
+            ";"
+          ],
           "enumDescriptions": [
             "Comments do not appear in generated INT code.",
             "Comments appear in generated INT code.",
@@ -1589,7 +1593,10 @@
         "objectscript.intCommentToken": {
           "description": "The line comment characters for INT routines.",
           "type": "string",
-          "enum": ["//",";"],
+          "enum": [
+            "//",
+            ";"
+          ],
           "default": "//",
           "scope": "machine"
         }
