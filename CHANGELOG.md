@@ -1,5 +1,16 @@
 # Change Log
 
+## [2.12.4] 14-May-2024
+- Enhancements
+  - Remove `objectscript.ignoreInstallServerManager` setting (#1339)
+  - Make ObjectScript comment tokens configurable (#1353)
+  - Output message with SystemMode upon connection to server (#1361)
+- Fixes
+  - Remove methods that no longer exist when updating test methods (#1341)
+  - Allow changing namespace from Server Actions menu when connected to an invalid namespace (#1343)
+  - Don't prompt for Server Manager credentials when using minimal security (#1351)
+  - Support trailing slash in `isfs` directory URIs (#1357)
+
 ## [2.12.3] 26-Mar-2024
 - Enhancements
   - Improve `Jump to Tag + Offset` UI (#1325)
