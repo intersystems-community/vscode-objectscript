@@ -5,7 +5,7 @@ import { filesystemSchemas } from "../extension";
 import { fileSpecFromURI } from "../utils/FileProviderUtil";
 
 export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
-  private readonly _sqlPreifx: string =
+  private readonly _sqlPrefix: string =
     "SELECT mem.Name, mem.Parent, mem.Type FROM (" +
     " SELECT Name, Name AS Parent, 'Class' AS Type FROM %Dictionary.ClassDefinition" +
     " UNION SELECT Name, Parent->ID AS Parent, 'Method' AS Type FROM %Dictionary.MethodDefinition" +
@@ -105,7 +105,7 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
             if (!api.active || token.isCancellationRequested) return Promise.resolve([]);
             const project = params.get("project") ?? "";
             return api
-              .actionQuery(`${this._sqlPreifx}${project.length ? this._sqlPrj : this._sqlDocs}${this._sqlSuffix}`, [
+              .actionQuery(`${this._sqlPrefix}${project.length ? this._sqlPrj : this._sqlDocs}${this._sqlSuffix}`, [
                 project.length ? project : fileSpecFromURI(wsFolder.uri),
                 params.has("system") && params.get("system").length
                   ? params.get("system")
@@ -123,7 +123,7 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
           const api = new AtelierAPI(wsFolder.uri);
           if (!api.active || token.isCancellationRequested) return Promise.resolve([]);
           return api
-            .actionQuery(`${this._sqlPreifx}${this._sqlDocs}${this._sqlSuffix}`, ["*.cls", "0", "0", "1", pattern])
+            .actionQuery(`${this._sqlPrefix}${this._sqlDocs}${this._sqlSuffix}`, ["*.cls", "0", "0", "1", pattern])
             .then((data) => (token.isCancellationRequested ? [] : this._queryResultToSymbols(data, wsFolder)));
         }
       })
