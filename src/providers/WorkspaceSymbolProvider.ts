@@ -90,7 +90,7 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
     if (!vscode.workspace.workspaceFolders?.length) return;
     // Convert query to a LIKE compatible pattern
     let pattern = "%";
-    for (const c of query) pattern += `${["_", "%"].includes(c) ? "\\" : ""}${c}%`;
+    for (const c of query) pattern += `${["_", "%", "\\"].includes(c) ? "\\" : ""}${c}%`;
     if (token.isCancellationRequested) return;
     // Get results for all workspace folders
     return Promise.allSettled(
