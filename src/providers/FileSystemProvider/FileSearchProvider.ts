@@ -47,7 +47,7 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
       pattern = !csp ? query.pattern.replace(/\//g, ".") : query.pattern;
       if (pattern.includes("_") || pattern.includes("%")) {
         // Need to escape any % or _ characters
-        filter = `Name LIKE '%${pattern.replace(/_/g, "$_").replace(/%/g, "$%")}%' ESCAPE '$'`;
+        filter = `Name LIKE '%${pattern.replace(/(_|%|\\)/g, "\\$1")}%' ESCAPE '\\'`;
       } else {
         filter = `Name LIKE '%${pattern}%'`;
       }
