@@ -1,12 +1,15 @@
 ---
-layout: default
+layout: forward
+target: https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO
+time: 2
+
 title: Installation
 permalink: /installation/
 nav_order: 2
 ---
 
 {: .warning }
-This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_install). This page will be removed at a later date.
+This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_install). This page will be removed soon.
 
 # Installation
 

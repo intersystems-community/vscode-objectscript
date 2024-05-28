@@ -1,12 +1,15 @@
 ---
-layout: default
+layout: forward
+target: https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO
+time: 2
+
 title: Configuration
 permalink: /configuration/
 nav_order: 4
 ---
 
 {: .warning }
-This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_config). This page will be removed at a later date.
+This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_config). This page will be removed soon.
 
 # Configuration
 

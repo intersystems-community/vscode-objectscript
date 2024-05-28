@@ -1,12 +1,15 @@
 ---
-layout: default
+layout: forward
+target: https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO
+time: 2
+
 title: Low-Code Editors
 permalink: /low-code/
 nav_order: 11
 ---
 
 {: .warning }
-This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_lowcode). This page will be removed at a later date.
+This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_lowcode). This page will be removed soon.
 
 # Low-Code Editors
 

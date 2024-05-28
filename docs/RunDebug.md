@@ -1,12 +1,15 @@
 ---
-layout: default
+layout: forward
+target: https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO
+time: 2
+
 title: Running and Debugging
 permalink: /rundebug/
 nav_order: 5
 ---
 
 {: .warning }
-This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_debug). This page will be removed at a later date.
+This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_debug). This page will be removed soon.
 
 # Running and Debugging
 

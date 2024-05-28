@@ -1,10 +1,12 @@
 ---
-layout: home
+layout: forward
+target: https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO
+time: 2
 nav_exclude: true
 ---
 
 {: .warning }
-This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO). This page will be removed at a later date.
+This documentation has been moved to the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO). This page will be removed soon.
 
 # Welcome to the VS Code InterSystems ObjectScript documentation
 
