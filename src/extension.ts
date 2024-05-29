@@ -223,8 +223,15 @@ export async function resolveConnectionSpec(serverName: string): Promise<void> {
 export async function resolvePassword(serverSpec): Promise<void> {
   const AUTHENTICATION_PROVIDER = "intersystems-server-credentials";
   // This arises if setting says to use authentication provider
-  if (typeof serverSpec.password === "undefined") {
-    const scopes = [serverSpec.name, serverSpec.username || ""];
+  if (
+    // Connection isn't unauthenticated
+    serverSpec.username != undefined &&
+    serverSpec.username != "" &&
+    serverSpec.username.toLowerCase() != "unknownuser" &&
+    // A password is missing
+    typeof serverSpec.password == "undefined"
+  ) {
+    const scopes = [serverSpec.name, serverSpec.username];
     let session = await vscode.authentication.getSession(AUTHENTICATION_PROVIDER, scopes, { silent: true });
     if (!session) {
       session = await vscode.authentication.getSession(AUTHENTICATION_PROVIDER, scopes, { createIfNone: true });
@@ -473,52 +480,6 @@ function setConnectionState(configName: string, active: boolean) {
   return connConfig.update("conn", { ...targetConfig, active }, target);
 }
 
-// Promise to return the API of the servermanager
-async function serverManager(): Promise<any> {
-  let extension = vscode.extensions.getExtension(smExtensionId);
-  const ignore =
-    config("ignoreInstallServerManager") ||
-    vscode.workspace.getConfiguration("intersystems.servers").get("/ignore", false);
-  if (!extension) {
-    if (ignore) {
-      return;
-    }
-    try {
-      await vscode.commands.executeCommand("extension.open", smExtensionId);
-    } catch (ex) {
-      // Such command do not exists, suppose we are under Theia, it's not possible to install this extension this way
-      return;
-    }
-    await vscode.window
-      .showInformationMessage(
-        `The [InterSystems Server Manager extension](https://marketplace.visualstudio.com/items?itemName=${smExtensionId}) is recommended to help you [define connections and store passwords securely](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_config#GVSCO_config_addserver) in your keychain.`,
-        "Install",
-        "Later",
-        "Never"
-      )
-      .then(async (action) => {
-        switch (action) {
-          case "Install":
-            await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`).then(null, null);
-            await vscode.commands.executeCommand("workbench.extensions.installExtension", smExtensionId);
-            extension = vscode.extensions.getExtension(smExtensionId);
-            break;
-          case "Never":
-            config().update("ignoreInstallServerManager", true, vscode.ConfigurationTarget.Global);
-            break;
-          case "Later":
-          default:
-        }
-      });
-  }
-  if (extension) {
-    if (!extension.isActive) {
-      await extension.activate();
-    }
-    return extension.exports;
-  }
-}
-
 function languageServer(install = true): vscode.Extension<any> {
   let extension = vscode.extensions.getExtension(lsExtensionId);
 
@@ -534,19 +495,15 @@ function languageServer(install = true): vscode.Extension<any> {
     }
     await vscode.window
       .showInformationMessage(
-        `Install the [InterSystems Language Server extension](https://marketplace.visualstudio.com/items?itemName=${lsExtensionId}) for best handling of ObjectScript code.`,
+        `Install the [InterSystems Language Server extension](https://marketplace.visualstudio.com/items?itemName=${lsExtensionId}) for improved intellisense and syntax coloring for ObjectScript code.`,
         "Install",
         "Later"
       )
       .then(async (action) => {
-        switch (action) {
-          case "Install":
-            await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`).then(null, null);
-            await vscode.commands.executeCommand("workbench.extensions.installExtension", lsExtensionId);
-            extension = vscode.extensions.getExtension(lsExtensionId);
-            break;
-          case "Later":
-          default:
+        if (action == "Install") {
+          await vscode.commands.executeCommand("workbench.extensions.search", `@tag:"intersystems"`).then(null, null);
+          await vscode.commands.executeCommand("workbench.extensions.installExtension", lsExtensionId);
+          extension = vscode.extensions.getExtension(lsExtensionId);
         }
       });
   }
@@ -590,8 +547,58 @@ function proposedApiPrompt(active: boolean, added?: readonly vscode.WorkspaceFol
   }
 }
 
-// The URIs of all classes that have been opened. Used when objectscript.openClassContracted is true.
+/**
+ * A map of SystemModes for known servers.
+ * The key is either `serverName`, or `host:port/pathPrefix`, lowercase.
+ * The value is the value of `^%SYS("SystemMode")`, uppercase.
+ */
+const systemModes: Map<string, string> = new Map();
+
+/** Output a message notifying the user of the SystemMode of any servers they are connected to. */
+async function systemModeWarning(wsFolders: readonly vscode.WorkspaceFolder[]): Promise<void> {
+  if (!wsFolders || wsFolders.length == 0) return;
+  for (const wsFolder of wsFolders) {
+    const api = new AtelierAPI(wsFolder.uri),
+      mapKey = api.serverId.toLowerCase(),
+      serverUrl = `${api.config.host}:${api.config.port}${api.config.pathPrefix}`,
+      serverStr = ![undefined, ""].includes(api.config.serverName)
+        ? `'${api.config.serverName}' (${serverUrl})`
+        : serverUrl;
+    if (!api.active) continue; // Skip inactive connections
+    let systemMode = systemModes.get(mapKey);
+    if (systemMode == undefined) {
+      systemMode = await api
+        .actionQuery("SELECT UPPER(Value) AS SystemMode FROM %Library.Global_Get(?,'^%SYS(\"SystemMode\")')", [api.ns])
+        .then((data) => data.result.content[0]?.SystemMode ?? "")
+        .catch(() => ""); // Swallow any errors, which will likely be SQL permissions errors
+    }
+    switch (systemMode) {
+      case "LIVE":
+        outputChannel.appendLine(
+          `WARNING: Workspace folder '${wsFolder.name}' is connected to Live System ${serverStr}`
+        );
+        outputChannel.show(); // Steal focus because this is an important message
+        break;
+      case "TEST":
+      case "FAILOVER":
+        outputChannel.appendLine(
+          `NOTE: Workspace folder '${wsFolder.name}' is connected to ${
+            systemMode == "TEST" ? "Test" : "Failover"
+          } System ${serverStr}`
+        );
+        outputChannel.show(true);
+    }
+    systemModes.set(mapKey, systemMode);
+  }
+}
+
+/** The URIs of all classes that have been opened. Used when `objectscript.openClassContracted` is true */
 let openedClasses: string[];
+
+// Disposables for language configurations that can be modifed by settings
+let macLangConf: vscode.Disposable;
+let incLangConf: vscode.Disposable;
+let intLangConf: vscode.Disposable;
 
 export async function activate(context: vscode.ExtensionContext): Promise<any> {
   if (!packageJson.version.includes("SNAPSHOT")) {
@@ -613,8 +620,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   extensionContext = context;
   workspaceState.update("workspaceFolder", undefined);
 
-  // Get api for servermanager extension, perhaps offering to install it
-  serverManagerApi = await serverManager();
+  // Get api for servermanager extension
+  const smExt = vscode.extensions.getExtension(smExtensionId);
+  if (!smExt.isActive) await smExt.activate();
+  serverManagerApi = smExt.exports;
 
   documentContentProvider = new DocumentContentProvider();
   fileSystemProvider = new FileSystemProvider();
@@ -708,7 +717,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   const noLSsubscriptions: { dispose(): any }[] = [];
   if (!languageServerExt) {
     if (!config("ignoreInstallLanguageServer")) {
-      outputChannel.appendLine(`The intersystems.language-server extension is not installed or has been disabled.\n`);
+      outputChannel.appendLine("The intersystems.language-server extension is not installed or has been disabled.");
       outputChannel.show(true);
     }
 
@@ -783,7 +792,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   // Show the proposed API prompt if required
   proposedApiPrompt(proposed.length > 0);
 
+  // Warn about SystemMode
+  systemModeWarning(vscode.workspace.workspaceFolders);
+
   iscIcon = vscode.Uri.joinPath(context.extensionUri, "images", "fileIcon.svg");
+
+  macLangConf = vscode.languages.setLanguageConfiguration(macLangId, getLanguageConfiguration(macLangId));
+  incLangConf = vscode.languages.setLanguageConfiguration(incLangId, getLanguageConfiguration(incLangId));
+  intLangConf = vscode.languages.setLanguageConfiguration(intLangId, getLanguageConfiguration(intLangId));
 
   context.subscriptions.push(
     reporter,
@@ -1019,9 +1035,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       isReadonly: true,
     }),
     vscode.languages.setLanguageConfiguration(clsLangId, getLanguageConfiguration(clsLangId)),
-    vscode.languages.setLanguageConfiguration(macLangId, getLanguageConfiguration(macLangId)),
-    vscode.languages.setLanguageConfiguration(incLangId, getLanguageConfiguration(incLangId)),
-    vscode.languages.setLanguageConfiguration(intLangId, getLanguageConfiguration(intLangId)),
     vscode.languages.registerCodeActionsProvider(documentSelector(clsLangId, macLangId), new CodeActionProvider()),
     vscode.languages.registerWorkspaceSymbolProvider(new WorkspaceSymbolProvider()),
     vscode.debug.registerDebugConfigurationProvider("objectscript", new ObjectScriptConfigurationProvider()),
@@ -1197,6 +1210,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
         }
       }
+      if (affectsConfiguration("objectscript.commentToken")) {
+        // Update the language configuration for "objectscript" and "objectscript-macros"
+        macLangConf?.dispose();
+        incLangConf?.dispose();
+        macLangConf = vscode.languages.setLanguageConfiguration(macLangId, getLanguageConfiguration(macLangId));
+        incLangConf = vscode.languages.setLanguageConfiguration(incLangId, getLanguageConfiguration(incLangId));
+      }
+      if (affectsConfiguration("objectscript.intCommentToken")) {
+        // Update the language configuration for "objectscript-int"
+        intLangConf?.dispose();
+        intLangConf = vscode.languages.setLanguageConfiguration(intLangId, getLanguageConfiguration(intLangId));
+      }
     }),
     vscode.window.onDidCloseTerminal((t) => {
       const terminalIndex = terminals.findIndex((terminal) => terminal.name == t.name);
@@ -1319,6 +1344,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.workspace.onDidChangeWorkspaceFolders((e) => {
       // Show the proposed API prompt if required
       proposedApiPrompt(proposed.length > 0, e.added);
+      // Warn about SystemMode
+      systemModeWarning(e.added);
     }),
     vscode.commands.registerCommand("vscode-objectscript.importXMLFiles", importXMLFiles),
     vscode.commands.registerCommand("vscode-objectscript.exportToXMLFile", exportDocumentsToXMLFile),
@@ -1430,4 +1457,7 @@ export function deactivate(): void {
   if (terminals) {
     terminals.forEach((t) => t.dispose());
   }
+  macLangConf?.dispose();
+  incLangConf?.dispose();
+  intLangConf?.dispose();
 }

@@ -126,7 +126,10 @@ export async function createProject(node: NodeBase | undefined, api?: AtelierAPI
     if (desc !== undefined) {
       try {
         // Create the project
-        await api.actionQuery("INSERT INTO %Studio.Project (Name,Description) VALUES (?,?)", [name, desc]);
+        await api.actionQuery("INSERT INTO %Studio.Project (Name,Description,LastModified) VALUES (?,?,NOW())", [
+          name,
+          desc,
+        ]);
       } catch (error) {
         let message = `Failed to create project '${name}'.`;
         if (error && error.errorText && error.errorText !== "") {
@@ -910,6 +913,12 @@ export async function modifyProject(
         []
       );
     }
+    if (add.length || remove.length) {
+      // Update the project's timestamp
+      await api.actionQuery("UPDATE %Studio.Project SET LastModified = NOW() WHERE Name = ?", [project]).catch(() => {
+        // Swallow error because VS Code doesn't care about the timestamp
+      });
+    }
   } catch (error) {
     let message = `Failed to modify project '${project}'.`;
     if (error && error.errorText && error.errorText !== "") {
@@ -1118,6 +1127,11 @@ export async function addIsfsFileToProject(
           .join(" UNION ")})`,
         []
       );
+
+      // Update the project's timestamp
+      await api.actionQuery("UPDATE %Studio.Project SET LastModified = NOW() WHERE Name = ?", [project]).catch(() => {
+        // Swallow error because VS Code doesn't care about the timestamp
+      });
     }
   } catch (error) {
     let message = `Failed to modify project '${project}'.`;
@@ -1223,7 +1237,10 @@ export async function modifyProjectMetadata(nodeOrUri: NodeBase | vscode.Uri | u
     }
 
     // Modify the project
-    await api.actionQuery("UPDATE %Studio.Project SET Description = ? WHERE Name = ?", [newDesc, project]);
+    await api.actionQuery("UPDATE %Studio.Project SET Description = ?, LastModified = NOW() WHERE Name = ?", [
+      newDesc,
+      project,
+    ]);
 
     // Refesh the explorer
     projectsExplorerProvider.refresh();

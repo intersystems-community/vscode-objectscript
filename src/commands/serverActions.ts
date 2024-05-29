@@ -73,12 +73,10 @@ export async function serverActions(): Promise<void> {
         break;
       }
       case "switchNamespace": {
-        // NOTE: List of all namespaces except the current one as it doesn't make sense to allow switching to the current one
-        const allNamespaces: string[] | undefined = await api
-          .serverInfo()
-          .then((data) =>
-            data.result.content.namespaces.filter((ns) => ns.toLowerCase() !== api.config.ns.toLowerCase())
-          )
+        // List of all namespaces except the current one as it doesn't make sense to allow switching to the current one
+        let allNamespaces: string[] | undefined = await api
+          .serverInfo(false)
+          .then((data) => data.result.content.namespaces)
           .catch((error) => {
             let message = `Failed to fetch a list of namespaces.`;
             if (error && error.errorText && error.errorText !== "") {
@@ -94,6 +92,13 @@ export async function serverActions(): Promise<void> {
           return;
         }
 
+        if (!allNamespaces.length) {
+          vscode.window.showErrorMessage(`You don't have access to any namespaces.`, "Dismiss");
+          return;
+        }
+
+        // Filter out the current namespace
+        allNamespaces = allNamespaces.filter((ns) => ns.toLowerCase() != api.config.ns.toLowerCase());
         if (!allNamespaces.length) {
           vscode.window.showErrorMessage(`You don't have access to any other namespaces.`, "Dismiss");
           return;

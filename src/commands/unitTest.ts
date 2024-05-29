@@ -77,6 +77,7 @@ function rootItemForItem(testController: vscode.TestController, uri: vscode.Uri)
 
 /** Compute `TestItem`s for `Test*` methods in `parent` */
 async function addTestItemsForClass(testController: vscode.TestController, parent: vscode.TestItem): Promise<void> {
+  const newIds: string[] = [];
   // Get the symbols for the parent class
   const parentSymbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
     "vscode.executeDocumentSymbolProvider",
@@ -98,11 +99,9 @@ async function addTestItemsForClass(testController: vscode.TestController, paren
       const memberName = stripClassMemberNameQuotes(clsMember.name);
       if (clsMember.detail == "Method" && memberName.startsWith("Test")) {
         const displayName = memberName.slice(4);
-        const newItem = testController.createTestItem(
-          `${parent.id}${methodIdSeparator}${displayName}`,
-          displayName,
-          parent.uri
-        );
+        const newId = `${parent.id}${methodIdSeparator}${displayName}`;
+        newIds.push(newId);
+        const newItem = testController.createTestItem(newId, displayName, parent.uri);
         newItem.range = clsMember.range;
         // Always show non-inherited methods at the top
         newItem.sortText = `##${displayName}`;
@@ -142,11 +141,9 @@ async function addTestItemsForClass(testController: vscode.TestController, paren
             );
             if (symbol) {
               const displayName = stripClassMemberNameQuotes(symbol.name).slice(4);
-              const newItem = testController.createTestItem(
-                `${parent.id}${methodIdSeparator}${displayName}`,
-                displayName,
-                parent.uri
-              );
+              const newId = `${parent.id}${methodIdSeparator}${displayName}`;
+              newIds.push(newId);
+              const newItem = testController.createTestItem(newId, displayName, parent.uri);
               newItem.range = symbol.range;
               parent.children.add(newItem);
             }
@@ -154,6 +151,10 @@ async function addTestItemsForClass(testController: vscode.TestController, paren
         }
       }
     }
+    // Remove items for any methods that have been deleted
+    parent.children.forEach((i) => {
+      if (!newIds.includes(i.id)) parent.children.delete(i.id);
+    });
   }
 }
 
@@ -978,7 +979,10 @@ export function setUpTestController(): vscode.Disposable[] {
     item.busy = false;
   };
   testController.refreshHandler = () => {
+    // Create new roots
     replaceRootTestItems(testController);
+    // Resolve children for the roots
+    testController.items.forEach((item) => testController.resolveHandler(item));
   };
   // Create the run and debug profiles
   const runProfile = testController.createRunProfile(
@@ -1025,6 +1029,38 @@ export function setUpTestController(): vscode.Disposable[] {
       vscode.workspace.textDocuments.forEach((document) => addItemForClassUri(testController, document.uri))
     );
   }
+
+  /** Delete the test item for `uri`. Returns `true` if an item was deleted. */
+  const deleteItemForUri = async (uri: vscode.Uri): Promise<boolean> => {
+    let result = false;
+    // If a TestItem was deleted, remove it from the controller
+    if (uri.path.toLowerCase().endsWith(".cls")) {
+      const item = await getTestItemForClass(testController, uri);
+      if (item) {
+        const rootItem = rootItemForItem(testController, uri);
+        if (rootItem) {
+          // Remove from our cache of classes
+          const classes = classesForRoot.get(rootItem);
+          if (classes) {
+            let cls: string;
+            for (const element of classes) {
+              if (element[1].id == item.id) {
+                cls = element[0];
+                break;
+              }
+            }
+            if (cls) {
+              classes.delete(cls);
+              classesForRoot.set(rootItem, classes);
+            }
+          }
+        }
+        item.parent.children.delete(uri.toString());
+        result = true;
+      }
+    }
+    return result;
+  };
 
   // Register disposables
   return [
@@ -1091,42 +1127,20 @@ export function setUpTestController(): vscode.Disposable[] {
         const item = await getTestItemForClass(testController, e.document.uri);
         if (item) {
           testController.invalidateTestResults(item);
-          if (item.canResolveChildren && !item.children.size) {
+          if (item.canResolveChildren) {
             // Resolve the methods
             testController.resolveHandler(item);
           }
         }
       }
     }),
-    vscode.workspace.onDidDeleteFiles((e) =>
-      e.files.forEach(async (uri) => {
-        // If a TestItem was deleted, remove it from the controller
-        if (uri.path.toLowerCase().endsWith(".cls")) {
-          const item = await getTestItemForClass(testController, uri);
-          if (item) {
-            const rootItem = rootItemForItem(testController, uri);
-            if (rootItem) {
-              // Remove from our cache of classes
-              const classes = classesForRoot.get(rootItem);
-              if (classes) {
-                let cls: string;
-                for (const element of classes) {
-                  if (element[1].id == item.id) {
-                    cls = element[0];
-                    break;
-                  }
-                }
-                if (cls) {
-                  classes.delete(cls);
-                  classesForRoot.set(rootItem, classes);
-                }
-              }
-            }
-            item.parent.children.delete(uri.toString());
-          }
-        }
+    vscode.workspace.onDidDeleteFiles((e) => e.files.forEach(deleteItemForUri)),
+    vscode.workspace.onDidCreateFiles((e) => e.files.forEach((uri) => addItemForClassUri(testController, uri))),
+    vscode.workspace.onDidRenameFiles((e) =>
+      e.files.forEach(async (file) => {
+        // If the oldUri was a test class, attempt to create a new item for it
+        if (await deleteItemForUri(file.oldUri)) addItemForClassUri(testController, file.newUri);
       })
     ),
-    vscode.workspace.onDidCreateFiles((e) => e.files.forEach((uri) => addItemForClassUri(testController, uri))),
   ];
 }

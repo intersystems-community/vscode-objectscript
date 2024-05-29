@@ -100,7 +100,7 @@ async function importFile(
     content = file.content.split(/\r?\n/);
 
     // Avoid appending a blank line on every save, which would cause a web app file to grow each time
-    if (content.length > 1 && content[content.length - 1] === "") {
+    if (file.name.includes("/") && content.length > 1 && content[content.length - 1] == "") {
       content.pop();
     }
   } else {

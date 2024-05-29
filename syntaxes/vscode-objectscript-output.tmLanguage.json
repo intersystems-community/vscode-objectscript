@@ -78,6 +78,14 @@
     {
       "match": "\\b(?i:(0?x)?[0-9a-f][0-9a-f]+)\\b",
       "name": "constant.numeric"
+    },
+    {
+      "match": "^WARNING:",
+      "name": "invalid"
+    },
+    {
+      "match": "^NOTE:",
+      "name": "string.quoted"
     }
   ]
 }

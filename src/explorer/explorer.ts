@@ -123,6 +123,12 @@ export function registerExplorerOpen(): vscode.Disposable {
                   `${prjFileName}${prjType}`.toLowerCase(),
                 ]);
               }
+              // Update the project's timestamp
+              await api
+                .actionQuery("UPDATE %Studio.Project SET LastModified = NOW() WHERE Name = ?", [project])
+                .catch(() => {
+                  // Swallow error because VS Code doesn't care about the timestamp
+                });
             } catch (error) {
               let message = `Failed to remove '${fullName}' from project '${project}'.`;
               if (error && error.errorText && error.errorText !== "") {
