@@ -221,12 +221,12 @@ export async function resolveConnectionSpec(serverName: string): Promise<void> {
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export async function resolvePassword(serverSpec, ignoreUnauthentiated = false): Promise<void> {
+export async function resolvePassword(serverSpec, ignoreUnauthenticated = false): Promise<void> {
   const AUTHENTICATION_PROVIDER = "intersystems-server-credentials";
   // This arises if setting says to use authentication provider
   if (
     // Connection isn't unauthenticated
-    (!isUnauthenticated(serverSpec.username) || ignoreUnauthentiated) &&
+    (!isUnauthenticated(serverSpec.username) || ignoreUnauthenticated) &&
     // A password is missing
     typeof serverSpec.password == "undefined"
   ) {
