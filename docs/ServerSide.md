@@ -1,7 +1,7 @@
 ---
 layout: forward
 target: https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO
-time: 2
+time: 4
 
 title: Server-side Editing
 permalink: /serverside/
