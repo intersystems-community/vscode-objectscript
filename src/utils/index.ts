@@ -699,6 +699,11 @@ export function methodOffsetToLine(
   return line;
 }
 
+/** Return `true` if this username signals unauthenticated access  */
+export function isUnauthenticated(username: string): boolean {
+  return username == undefined || username == "" || username.toLowerCase() == "unknownuser";
+}
+
 // ---------------------------------------------------------------------
 // Source: https://github.com/amsterdamharu/lib/blob/master/src/index.js
 

@@ -97,6 +97,7 @@ import {
   isImportableLocalFile,
   workspaceFolderOfUri,
   uriOfWorkspaceFolder,
+  isUnauthenticated,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentRangeFormattingEditProvider } from "./providers/DocumentRangeFormattingEditProvider";
@@ -220,18 +221,16 @@ export async function resolveConnectionSpec(serverName: string): Promise<void> {
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export async function resolvePassword(serverSpec): Promise<void> {
+export async function resolvePassword(serverSpec, ignoreUnauthentiated = false): Promise<void> {
   const AUTHENTICATION_PROVIDER = "intersystems-server-credentials";
   // This arises if setting says to use authentication provider
   if (
     // Connection isn't unauthenticated
-    serverSpec.username != undefined &&
-    serverSpec.username != "" &&
-    serverSpec.username.toLowerCase() != "unknownuser" &&
+    (!isUnauthenticated(serverSpec.username) || ignoreUnauthentiated) &&
     // A password is missing
     typeof serverSpec.password == "undefined"
   ) {
-    const scopes = [serverSpec.name, serverSpec.username];
+    const scopes = [serverSpec.name, serverSpec.username || ""];
     let session = await vscode.authentication.getSession(AUTHENTICATION_PROVIDER, scopes, { silent: true });
     if (!session) {
       session = await vscode.authentication.getSession(AUTHENTICATION_PROVIDER, scopes, { createIfNone: true });
@@ -392,10 +391,47 @@ export async function checkConnection(
         message = "Not Authorized.";
         errorMessage = `Authorization error: Check your credentials in Settings, and that you have sufficient privileges on the /api/atelier web application on ${connInfo}`;
         const username = api.config.username;
-        if (username === "") {
-          vscode.window.showErrorMessage(`Anonymous access rejected by ${connInfo}.`);
-          if (!api.externalServer) {
-            vscode.window.showErrorMessage("Connection has been disabled.");
+        if (isUnauthenticated(username)) {
+          vscode.window.showErrorMessage(
+            `Unauthenticated access rejected by '${api.serverId}'.${
+              !api.externalServer ? " Connection has been disabled." : ""
+            }`,
+            "Dismiss"
+          );
+          if (api.externalServer) {
+            // Attempt to resolve a username and password
+            const newSpec: { name: string; username?: string; password?: string } = {
+              name: api.config.serverName,
+              username,
+            };
+            await resolvePassword(newSpec, true);
+            if (newSpec.password) {
+              // Update the connection spec and try again
+              await workspaceState.update(wsKey + ":password", newSpec.password);
+              resolvedConnSpecs.set(api.config.serverName, {
+                ...resolvedConnSpecs.get(api.config.serverName),
+                username: newSpec.username,
+                password: newSpec.password,
+              });
+              api = new AtelierAPI(apiTarget, false);
+              await api
+                .serverInfo()
+                .then(async (info) => {
+                  await gotServerInfo(info);
+                  _onDidChangeConnection.fire();
+                  success = true;
+                })
+                .catch(async (error) => {
+                  console.log(`Second connect failed: ${error}`);
+                  await setConnectionState(configName, false);
+                  await workspaceState.update(wsKey + ":password", undefined);
+                  success = false;
+                })
+                .finally(() => {
+                  checkingConnection = false;
+                });
+            }
+          } else {
             await setConnectionState(configName, false);
           }
         } else {
@@ -440,10 +476,8 @@ export async function checkConnection(
                 }
               );
           });
-          if (success) {
-            return;
-          }
         }
+        if (success) return;
       } else {
         errorMessage = `${message}\nCheck your server details in Settings (${connInfo}).`;
       }
