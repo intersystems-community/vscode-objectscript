@@ -1,5 +1,15 @@
 # Change Log
 
+## [2.12.5] 29-May-2024
+- Enhancements
+  - [Open symbol by name](https://code.visualstudio.com/docs/editor/editingevolved#_open-symbol-by-name) (`Ctrl/Cmd-T`) improvements (#1366):
+    - Show classes as well as class members
+    - Respect server-side workspace folder [filtering options](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ssworkflow#GVSCO_ssworkflow_filters)
+    - Link to local URI if present for client-side editing workspace folders
+    - Resolves location correctly for class members with quoted names
+- Fixes
+  - Show prompt for username if unauthenticated access fails when no username is specified in the server definition (#1372)
+
 ## [2.12.4] 14-May-2024
 - Enhancements
   - Remove `objectscript.ignoreInstallServerManager` setting (#1339)
