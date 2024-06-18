@@ -1805,7 +1805,7 @@
     "@vscode/debugadapter": "^1.61.0",
     "@vscode/debugprotocol": "^1.61.0",
     "vscode-extension-telemetry": "^0.1.6",
-    "ws": "^8.14.2"
+    "ws": "^8.17.1"
   },
   "extensionDependencies": [
     "intersystems-community.servermanager"
