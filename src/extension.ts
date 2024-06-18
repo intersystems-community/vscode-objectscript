@@ -849,9 +849,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.workspace.onDidChangeTextDocument((event) => {
       if (
-        event.contentChanges.length !== 0 &&
-        event.document.uri.scheme === FILESYSTEM_SCHEMA &&
-        !event.document.isDirty
+        event.document.uri.scheme == FILESYSTEM_SCHEMA &&
+        // These two expressions will both be true only for
+        // the edit that makes a document go from clean to dirty
+        event.contentChanges.length == 0 &&
+        event.document.isDirty
       ) {
         fireOtherStudioAction(OtherStudioAction.AttemptedEdit, event.document.uri);
       }
