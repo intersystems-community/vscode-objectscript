@@ -506,7 +506,7 @@ export class AtelierAPI {
     name = this.transformNameIfCsp(name);
     const headers = {};
     if (mtime && mtime > 0) {
-      headers["IF_NONE_MATCH"] = new Date(mtime).toISOString().replace(/T|Z/g, " ").trim();
+      headers["IF-NONE-MATCH"] = new Date(mtime).toISOString().replace(/T|Z/g, " ").trim();
     }
     return this.request(1, "GET", `${this.ns}/doc/${name}`, null, params, headers);
   }
@@ -531,7 +531,7 @@ export class AtelierAPI {
     name = this.transformNameIfCsp(name);
     const headers = {};
     if (!ignoreConflict && data.mtime && data.mtime > 0) {
-      headers["IF_NONE_MATCH"] = new Date(data.mtime).toISOString().replace(/T|Z/g, " ").trim();
+      headers["IF-NONE-MATCH"] = new Date(data.mtime).toISOString().replace(/T|Z/g, " ").trim();
     }
     return this.request(1, "PUT", `${this.ns}/doc/${name}`, data, params, headers);
   }
