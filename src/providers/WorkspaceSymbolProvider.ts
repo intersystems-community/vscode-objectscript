@@ -26,7 +26,7 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
   private readonly _sqlDocs: string =
     "%Library.RoutineMgr_StudioOpenDialog(?,1,1,?,1,0,?,'Type = 4',0,?) AS sod ON mem.Parent = $EXTRACT(sod.Name,1,$LENGTH(sod.Name)-4)";
 
-  private readonly _sqlSuffix: string = " WHERE mem.Name LIKE ? ESCAPE '\\'";
+  private readonly _sqlSuffix: string = " WHERE LOWER(mem.Name) LIKE ? ESCAPE '\\'";
 
   /**
    * Convert the query results to VS Code symbols. Needs to be typed as `any[]`
@@ -90,7 +90,7 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
     if (!vscode.workspace.workspaceFolders?.length) return;
     // Convert query to a LIKE compatible pattern
     let pattern = "%";
-    for (const c of query) pattern += `${["_", "%", "\\"].includes(c) ? "\\" : ""}${c}%`;
+    for (const c of query.toLowerCase()) pattern += `${["_", "%", "\\"].includes(c) ? "\\" : ""}${c}%`;
     if (token.isCancellationRequested) return;
     // Get results for all workspace folders
     return Promise.allSettled(
