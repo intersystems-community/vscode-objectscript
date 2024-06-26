@@ -385,28 +385,25 @@ export async function exportCurrentFile(): Promise<any> {
 
 export async function exportDocumentsToXMLFile(): Promise<void> {
   try {
-    // Use the server connection from the active document if possible
-    let connectionUri = currentFile()?.uri;
-    if (!connectionUri) {
-      // Use the server connection from a workspace folder
-      const workspaceFolders = vscode.workspace.workspaceFolders || [];
-      if (workspaceFolders.length == 0) {
-        vscode.window.showErrorMessage(
-          "'Export Documents to XML File...' command requires an open workspace.",
-          "Dismiss"
-        );
-      } else if (workspaceFolders.length == 1) {
-        // Use the current connection
-        connectionUri = workspaceFolders[0].uri;
-      } else {
-        // Pick from the workspace folders
-        connectionUri = (
-          await vscode.window.showWorkspaceFolderPick({
-            ignoreFocusOut: true,
-            placeHolder: "Pick the workspace folder to get server connection information from",
-          })
-        )?.uri;
-      }
+    // Use the server connection from a workspace folder
+    let connectionUri: vscode.Uri;
+    const workspaceFolders = vscode.workspace.workspaceFolders || [];
+    if (workspaceFolders.length == 0) {
+      vscode.window.showErrorMessage(
+        "'Export Documents to XML File...' command requires an open workspace.",
+        "Dismiss"
+      );
+    } else if (workspaceFolders.length == 1) {
+      // Use the current connection
+      connectionUri = workspaceFolders[0].uri;
+    } else {
+      // Pick from the workspace folders
+      connectionUri = (
+        await vscode.window.showWorkspaceFolderPick({
+          ignoreFocusOut: true,
+          placeHolder: "Pick the workspace folder to get server connection information from",
+        })
+      )?.uri;
     }
     if (connectionUri) {
       const api = new AtelierAPI(connectionUri);
