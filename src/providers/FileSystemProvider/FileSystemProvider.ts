@@ -13,7 +13,7 @@ import {
   redirectDotvscodeRoot,
   workspaceFolderOfUri,
 } from "../../utils/index";
-import { config, intLangId, macLangId, workspaceState } from "../../extension";
+import { config, FILESYSTEM_SCHEMA, intLangId, macLangId, workspaceState } from "../../extension";
 import { addIsfsFileToProject, modifyProject } from "../../commands/project";
 import { DocumentContentProvider } from "../DocumentContentProvider";
 import { Document, UserAction } from "../../api/atelier";
@@ -512,10 +512,12 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         // Ignore the recursive flag for project folders
         toDeletePromise = projectContentsFromUri(uri, true);
       } else {
-        toDeletePromise = studioOpenDialogFromURI(uri, options.recursive ? { flat: true } : undefined);
+        toDeletePromise = studioOpenDialogFromURI(uri, options.recursive ? { flat: true } : undefined).then(
+          (data) => data.result.content
+        );
       }
       const toDelete: string[] = await toDeletePromise.then((data) =>
-        data.result.content
+        data
           .map((entry) => {
             if (options.recursive || project) {
               return entry.Name;
@@ -656,6 +658,110 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       });
     // Delete the old file
     await vscode.workspace.fs.delete(oldUri);
+  }
+
+  /**
+   * If `uri` is a file, compile it.
+   * If `uri` is a directory, compile its contents.
+   */
+  public async compile(uri: vscode.Uri): Promise<void> {
+    if (!uri || uri.scheme != FILESYSTEM_SCHEMA) return;
+    uri = redirectDotvscodeRoot(uri);
+    const compileList: string[] = [];
+    try {
+      const entry = await this._lookup(uri, true);
+      if (!entry) return;
+      if (entry instanceof Directory) {
+        // Get the list of files to compile
+        let compileListPromise: Promise<any>;
+        if (new URLSearchParams(uri.query).get("project")?.length) {
+          compileListPromise = projectContentsFromUri(uri, true);
+        } else {
+          compileListPromise = studioOpenDialogFromURI(uri, { flat: true }).then((data) => data.result.content);
+        }
+        compileList.push(...(await compileListPromise.then((data) => data.map((e) => e.Name))));
+      } else {
+        // Compile this file
+        compileList.push(isCSPFile(uri) ? uri.path : uri.path.slice(1).replace(/\//g, "."));
+      }
+    } catch (error) {
+      console.log(error);
+      let errorMsg = "Error determining documents to compile.";
+      if (error && error.errorText && error.errorText !== "") {
+        outputChannel.appendLine("\n" + error.errorText);
+        outputChannel.show(true);
+        errorMsg += " Check 'ObjectScript' output channel for details.";
+      }
+      vscode.window.showErrorMessage(errorMsg, "Dismiss");
+      return;
+    }
+    if (!compileList.length) return;
+    const api = new AtelierAPI(uri);
+    const conf = vscode.workspace.getConfiguration("objectscript");
+    // Compile the files
+    await vscode.window.withProgress(
+      {
+        cancellable: true,
+        location: vscode.ProgressLocation.Notification,
+        title: `Compiling: ${compileList.length == 1 ? compileList[0] : compileList.length + " files"}`,
+      },
+      (progress, token: vscode.CancellationToken) =>
+        api
+          .asyncCompile(compileList, token, conf.get("compileFlags"))
+          .then((data) => {
+            const info = compileList.length > 1 ? "" : `${compileList}: `;
+            if (data.status && data.status.errors && data.status.errors.length) {
+              throw new Error(`${info}Compile error`);
+            } else if (!conf.get("suppressCompileMessages")) {
+              vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
+            }
+          })
+          .catch(() => {
+            if (!conf.get("suppressCompileErrorMessages")) {
+              vscode.window
+                .showErrorMessage(
+                  "Compilation failed. Check 'ObjectScript' output channel for details.",
+                  "Show",
+                  "Dismiss"
+                )
+                .then((action) => {
+                  if (action === "Show") {
+                    outputChannel.show(true);
+                  }
+                });
+            }
+          })
+    );
+    // Tell the client to update all "other" files affected by compilation
+    const workspaceFolder = workspaceFolderOfUri(uri);
+    const otherList: string[] = await api
+      .actionIndex(compileList)
+      .then((data) =>
+        data.result.content.flatMap((idx) => {
+          if (!idx.status.length) {
+            // Update the timestamp for this file
+            const mtime = Number(new Date(idx.ts + "Z"));
+            workspaceState.update(`${workspaceFolder}:${idx.name}:mtime`, mtime > 0 ? mtime : undefined);
+            // Tell the client that it changed
+            this.fireFileChanged(DocumentContentProvider.getUri(idx.name, undefined, undefined, undefined, uri));
+            // Return the list of "other" documents
+            return idx.others;
+          } else {
+            // The server failed to index the document. This should never happen.
+            return [];
+          }
+        })
+      )
+      .catch(() => {
+        // Index API returned an error. This should never happen.
+        return [];
+      });
+    // Only fire the event for files that weren't in the compile list
+    otherList.forEach(
+      (f) =>
+        !compileList.includes(f) &&
+        this.fireFileChanged(DocumentContentProvider.getUri(f, undefined, undefined, undefined, uri))
+    );
   }
 
   public watch(uri: vscode.Uri): vscode.Disposable {

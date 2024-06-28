@@ -25,16 +25,16 @@ export async function projectContentsFromUri(uri: vscode.Uri, overrideFlat?: boo
       "SELECT CASE " +
       "WHEN Type = 'CLS' THEN Name||'.cls' " +
       "ELSE Name END Name, Type FROM %Studio.Project_ProjectItemsList(?) " +
-      "WHERE (Name %STARTSWITH ? OR Name %STARTSWITH ?) AND (" +
+      "WHERE (Name %STARTSWITH ? OR Name %STARTSWITH ?) AND ((" +
       "(Type = 'MAC' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.mac,*.int,*.inc,*.bas,*.mvi',1,1,1,1,0,1) AS sod WHERE Name = sod.Name)) OR " +
       "(Type = 'CSP' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,1,0,1) AS sod WHERE '/'||Name = sod.Name)) OR " +
       "(Type NOT IN ('CLS','PKG','MAC','CSP','DIR','GBL') AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.other',1,1,1,1,0,1) AS sod WHERE Name = sod.Name))) OR " +
-      "(Type = 'CLS' AND (Package IS NOT NULL OR (Package IS NULL AND EXISTS (SELECT dcd.ID FROM %Dictionary.ClassDefinition AS dcd WHERE dcd.ID = Name)))) " +
+      "(Type = 'CLS' AND (Package IS NOT NULL OR (Package IS NULL AND EXISTS (SELECT dcd.ID FROM %Dictionary.ClassDefinition AS dcd WHERE dcd.ID = Name))))) " +
       "UNION " +
-      "SELECT SUBSTR(sod.Name,2) AS Name, pil.Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,1,1,0,1) AS sod " +
+      "SELECT SUBSTR(sod.Name,2) AS Name, pil.Type FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,1,0,1,?) AS sod " +
       "JOIN %Studio.Project_ProjectItemsList(?,1) AS pil ON " +
       "pil.Type = 'DIR' AND SUBSTR(sod.Name,2) %STARTSWITH ? AND SUBSTR(sod.Name,2) %STARTSWITH pil.Name||'/'";
-    parameters = [project, folderDots, folder, folder + "*.cspall", project, folder];
+    parameters = [project, folderDots, folder, `Name %STARTSWITH '/${folder}'`, project, folder];
   } else {
     if (folder.length) {
       const l = String(folder.length + 1); // Need the + 1 because SUBSTR is 1 indexed

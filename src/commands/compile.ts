@@ -5,7 +5,6 @@ import {
   config,
   documentContentProvider,
   FILESYSTEM_SCHEMA,
-  FILESYSTEM_READONLY_SCHEMA,
   OBJECTSCRIPT_FILE_SCHEMA,
   fileSystemProvider,
   workspaceState,
@@ -213,24 +212,14 @@ What do you want to do?`,
 
 function updateOthers(others: string[], baseUri: vscode.Uri) {
   let workspaceFolder = vscode.workspace.getWorkspaceFolder(baseUri);
-  if (!workspaceFolder && (baseUri.scheme === FILESYSTEM_SCHEMA || baseUri.scheme === FILESYSTEM_READONLY_SCHEMA)) {
+  if (!workspaceFolder && filesystemSchemas.includes(baseUri.scheme)) {
     // hack to deal with problem seen with isfs* schemes
     workspaceFolder = vscode.workspace.getWorkspaceFolder(baseUri.with({ path: "" }));
   }
-  const workspaceFolderName = workspaceFolder ? workspaceFolder.name : "";
   others.forEach((item) => {
-    const uri = DocumentContentProvider.getUri(item, workspaceFolderName);
-    if (uri.scheme === FILESYSTEM_SCHEMA || uri.scheme === FILESYSTEM_READONLY_SCHEMA) {
-      // Massage uri.path to change the first N-1 dots to slashes, where N is the number of slashes in baseUri.path
-      // For example, when baseUri.path is /Foo/Bar.cls and uri.path is /Foo.Bar.1.int
-      const partsToConvert = baseUri.path.split("/").length - 1;
-      const dotParts = uri.path.split(".");
-      const correctPath =
-        dotParts.length <= partsToConvert
-          ? uri.path
-          : dotParts.slice(0, partsToConvert).join("/") + "." + dotParts.slice(partsToConvert).join(".");
-      //console.log(`updateOthers: uri.path=${uri.path} baseUri.path=${baseUri.path} correctPath=${correctPath}`);
-      fileSystemProvider.fireFileChanged(uri.with({ path: correctPath }));
+    const uri = DocumentContentProvider.getUri(item, undefined, undefined, undefined, workspaceFolder?.uri);
+    if (filesystemSchemas.includes(uri.scheme)) {
+      fileSystemProvider.fireFileChanged(uri);
     } else {
       documentContentProvider.update(uri);
     }
@@ -242,33 +231,25 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
     return;
   }
   const api = new AtelierAPI(files[0].uri);
-  return Promise.all(
-    files.map((file) =>
-      api
-        .getDoc(file.name)
-        .then(async (data) => {
-          const mtime = Number(new Date(data.result.ts + "Z"));
-          workspaceState.update(`${file.uniqueId}:mtime`, mtime > 0 ? mtime : undefined);
-          if (file.uri.scheme === "file") {
-            if (Buffer.isBuffer(data.result.content)) {
-              // This is a binary file
-              await vscode.workspace.fs.writeFile(file.uri, data.result.content);
-            } else {
-              // This is a text file
-              const content = (data.result.content || []).join(
-                (file as CurrentTextFile).eol === vscode.EndOfLine.LF ? "\n" : "\r\n"
-              );
-              await vscode.workspace.fs.writeFile(file.uri, new TextEncoder().encode(content));
-            }
-          } else if (file.uri.scheme === FILESYSTEM_SCHEMA || file.uri.scheme === FILESYSTEM_READONLY_SCHEMA) {
-            fileSystemProvider.fireFileChanged(file.uri);
-          }
-        })
-        .then(() => api.actionIndex([file.name]))
-        .then((data) => data.result.content[0].others)
-        .then((others) => {
-          updateOthers(others, file.uri);
-        })
+  // Use allSettled so we attempt to load changes for all files, even if some fail
+  return api.actionIndex(files.map((f) => f.name)).then((data) =>
+    Promise.allSettled(
+      data.result.content.map(async (doc) => {
+        if (doc.status.length) return;
+        const file = files.find((f) => f.name == doc.name);
+        const mtime = Number(new Date(doc.ts + "Z"));
+        workspaceState.update(`${file.uniqueId}:mtime`, mtime > 0 ? mtime : undefined);
+        if (file.uri.scheme === "file") {
+          const content = await api.getDoc(file.name).then((data) => data.result.content);
+          await vscode.workspace.fs.writeFile(
+            file.uri,
+            Buffer.isBuffer(content) ? content : new TextEncoder().encode(content.join("\n"))
+          );
+        } else if (filesystemSchemas.includes(file.uri.scheme)) {
+          fileSystemProvider.fireFileChanged(file.uri);
+        }
+        updateOthers(doc.others, file.uri);
+      })
     )
   );
 }
@@ -347,13 +328,13 @@ export async function importAndCompile(
         if (compileFile) {
           compile([file], flags);
         } else {
-          if (file.uri.scheme === FILESYSTEM_SCHEMA || file.uri.scheme === FILESYSTEM_READONLY_SCHEMA) {
+          if (filesystemSchemas.includes(file.uri.scheme)) {
             // Fire the file changed event to avoid VSCode alerting the user on the next save that
             // "The content of the file is newer."
             fileSystemProvider.fireFileChanged(file.uri);
           }
         }
-      } else if (file.uri.scheme === FILESYSTEM_SCHEMA || file.uri.scheme === FILESYSTEM_READONLY_SCHEMA) {
+      } else if (filesystemSchemas.includes(file.uri.scheme)) {
         // Fire the file changed event to avoid VSCode alerting the user on the next folder-specific save (e.g. of settings.json) that
         // "The content of the file is newer."
         fileSystemProvider.fireFileChanged(file.unredirectedUri ?? file.uri);
