@@ -877,7 +877,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.compileWithFlags", () => importAndCompile(true)),
     vscode.commands.registerCommand("vscode-objectscript.compileAll", () => namespaceCompile(false)),
     vscode.commands.registerCommand("vscode-objectscript.compileAllWithFlags", () => namespaceCompile(true)),
-    vscode.commands.registerCommand("vscode-objectscript.refreshLocalFile", async (_file, files) => {
+    vscode.commands.registerCommand("vscode-objectscript.refreshLocalFile", async () => {
       const file = currentFile();
       if (!file) {
         return;
@@ -1404,6 +1404,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         }
       }
     ),
+    vscode.commands.registerCommand("vscode-objectscript.compileIsfs", (uri) => fileSystemProvider.compile(uri)),
     ...setUpTestController(),
 
     /* Anything we use from the VS Code proposed API */

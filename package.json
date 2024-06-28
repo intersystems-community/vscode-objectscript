@@ -196,10 +196,6 @@
           "when": "vscode-objectscript.connectActive"
         },
         {
-          "command": "vscode-objectscript.compileFolder",
-          "when": "false"
-        },
-        {
           "command": "vscode-objectscript.serverCommands.sourceControl",
           "when": "vscode-objectscript.connectActive && resourceScheme == isfs || (vscode-objectscript.connectActive && !editorIsOpen)"
         },
@@ -338,6 +334,10 @@
         {
           "command": "vscode-objectscript.extractXMLFileContents",
           "when": "vscode-objectscript.connectActive && workspaceFolderCount != 0"
+        },
+        {
+          "command": "vscode-objectscript.compileIsfs",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -622,6 +622,11 @@
           "command": "vscode-objectscript.extractXMLFileContents",
           "when": "vscode-objectscript.connectActive && resourceExtname =~ /^\\.xml$/i && !(resourceScheme =~ /^isfs(-readonly)?$/)",
           "group": "objectscript_modify@4"
+        },
+        {
+          "command": "vscode-objectscript.compileIsfs",
+          "when": "vscode-objectscript.connectActive && resourceScheme == isfs && resourcePath && !(resourcePath =~ /^\\/?$/) && !listMultiSelection",
+          "group": "objectscript_modify@1"
         }
       ],
       "file/newFile": [
@@ -1174,6 +1179,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.extractXMLFileContents",
         "title": "Extract Documents from XML File..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.compileIsfs",
+        "title": "Compile"
       }
     ],
     "keybindings": [
