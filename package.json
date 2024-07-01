@@ -360,12 +360,7 @@
       "view/item/context": [
         {
           "command": "vscode-objectscript.explorer.export",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/",
-          "group": "1_objectscript_modify"
-        },
-        {
-          "command": "vscode-objectscript.explorer.export",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataRootNode:(?!cspRootNode)/",
+          "when": "view == ObjectScriptExplorer && (viewItem =~ /^dataNode:/ || viewItem =~ /^dataRootNode:(?!cspRootNode)/)",
           "group": "1_objectscript_modify"
         },
         {
@@ -580,47 +575,47 @@
         },
         {
           "command": "vscode-objectscript.serverCommands.contextSourceControl",
-          "when": "resourceScheme == isfs && vscode-objectscript.connectActive && resourcePath && !(resourcePath =~ /^\\/?$/) && !(explorerResourceIsFolder && resource =~ /\\?csp(%3D1|$)/)",
+          "when": "resourceScheme == isfs && vscode-objectscript.connectActive && resourcePath && !(resourcePath =~ /^\\/?$/) && !(explorerResourceIsFolder && resource =~ /\\?csp(%3D1|$)/) && !listMultiSelection",
           "group": "objectscript_servercommand@1"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
-          "when": "resourceScheme =~ /^isfs(-readonly)?$/ && vscode-objectscript.connectActive && resourcePath && !(resourcePath =~ /^\\/?$/) && !(explorerResourceIsFolder && resource =~ /\\?csp(%3D1|$)/)",
+          "when": "resourceScheme =~ /^isfs(-readonly)?$/ && vscode-objectscript.connectActive && resourcePath && !(resourcePath =~ /^\\/?$/) && !(explorerResourceIsFolder && resource =~ /\\?csp(%3D1|$)/) && !listMultiSelection",
           "group": "objectscript_servercommand@2"
         },
         {
           "command": "vscode-objectscript.addItemsToProject",
-          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && explorerResourceIsRoot",
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && explorerResourceIsRoot && !listMultiSelection",
           "group": "objectscript_prj@1"
         },
         {
           "command": "vscode-objectscript.removeFromProject",
-          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && !explorerResourceIsRoot",
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && !explorerResourceIsRoot && !listMultiSelection",
           "group": "objectscript_prj@2"
         },
         {
           "command": "vscode-objectscript.removeItemsFromProject",
-          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && explorerResourceIsRoot",
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && explorerResourceIsRoot && !listMultiSelection",
           "group": "objectscript_prj@2"
         },
         {
           "command": "vscode-objectscript.modifyProjectMetadata",
-          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && explorerResourceIsRoot",
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && explorerResourceIsRoot && !listMultiSelection",
           "group": "objectscript_prj@3"
         },
         {
           "command": "vscode-objectscript.importLocalFilesServerSide",
-          "when": "vscode-objectscript.connectActive && resourceScheme == isfs && explorerResourceIsRoot",
+          "when": "vscode-objectscript.connectActive && resourceScheme == isfs && explorerResourceIsRoot && !listMultiSelection",
           "group": "objectscript_modify@2"
         },
         {
           "command": "vscode-objectscript.modifyWsFolder",
-          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && explorerResourceIsRoot",
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && explorerResourceIsRoot && !listMultiSelection",
           "group": "objectscript_modify@3"
         },
         {
           "command": "vscode-objectscript.extractXMLFileContents",
-          "when": "vscode-objectscript.connectActive && resourceExtname =~ /^\\.xml$/i && !(resourceScheme =~ /^isfs(-readonly)?$/)",
+          "when": "vscode-objectscript.connectActive && resourceExtname =~ /^\\.xml$/i && !(resourceScheme =~ /^isfs(-readonly)?$/) && !listMultiSelection",
           "group": "objectscript_modify@4"
         },
         {
