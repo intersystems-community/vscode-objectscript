@@ -941,12 +941,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           .actionQuery("SELECT Job, ConfigName FROM Ens.Job_Enumerate() WHERE State = 'Alive'", [])
           .then((data) => Object.fromEntries(data.result.content.map((x) => [x.Job, x.ConfigName])))
           .catch((error) => {
-            if (
-              error &&
-              error.errorText &&
-              !error.errorText.includes("'ENS.JOB_ENUMERATE'(...)") &&
-              error.errorText != ""
-            ) {
+            if (error?.errorText && error.errorText != "" && !error.errorText.includes("ENS.JOB_ENUMERATE")) {
               // Hide errors about Ens.Job_Enumerate procedure not existing because
               // the current namespace may not be Interoperability-enabled
               outputChannel.appendLine("\n" + error.errorText);
