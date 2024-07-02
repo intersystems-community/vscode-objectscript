@@ -70,7 +70,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
             command: "vscode-objectscript.openPathInBrowser",
             tooltip: "Open graphical editor in an external browser",
             arguments: [
-              `/csp/${api.config.ns.toLowerCase()}/EnsPortal.${
+              `/EnsPortal.${
                 xdataName == "BPL" ? `BPLEditor.zen?BP=${className}.BPL` : `DTLEditor.zen?DT=${className}.DTL`
               }`,
               document.uri,
@@ -87,7 +87,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
             title: "Test KPI",
             command: "vscode-objectscript.openPathInBrowser",
             tooltip: "Open testing page in an external browser",
-            arguments: [`/csp/${api.config.ns.toLowerCase()}/${className}.cls`, document.uri],
+            arguments: [`/${className}.cls`, document.uri],
           };
         }
         if (cmd) result.push(new vscode.CodeLens(new vscode.Range(i, 0, i, 80), cmd));
