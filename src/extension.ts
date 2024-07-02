@@ -138,7 +138,6 @@ import { FileDecorationProvider } from "./providers/FileDecorationProvider";
 import { RESTDebugPanel } from "./commands/restDebugPanel";
 import { modifyWsFolder } from "./commands/addServerNamespaceToWorkspace";
 import { WebSocketTerminalProfileProvider, launchWebSocketTerminal } from "./commands/webSocketTerminal";
-import { getCSPToken } from "./utils/getCSPToken";
 import { setUpTestController } from "./commands/unitTest";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
@@ -1387,20 +1386,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand(
       "vscode-objectscript.openPathInBrowser",
       async (path: string, docUri: vscode.Uri) => {
-        if (typeof path == "string" && docUri && docUri instanceof vscode.Uri) {
+        if (typeof path == "string" && docUri instanceof vscode.Uri) {
           const api = new AtelierAPI(docUri);
-          let uri = vscode.Uri.parse(
-            `${api.config.https ? "https" : "http"}://${api.config.host}:${api.config.port}${
-              api.config.pathPrefix
-            }${path}`
+          // Get the default web application for this namespace.
+          // If it can't be determined, fall back to the /csp/<namespace> web application.
+          const app: string =
+            (await api
+              .getCSPApps(true)
+              .then((data) => data.result.content.find((a) => a.default)?.name)
+              .catch(() => {
+                // Swallow errors
+              })) ?? `/csp/${api.ns}`;
+          vscode.env.openExternal(
+            vscode.Uri.parse(
+              `${api.config.https ? "https" : "http"}://${api.config.host}:${api.config.port}${
+                api.config.pathPrefix
+              }${app}${path}`
+            )
           );
-          const token = await getCSPToken(api, path.split("?")[0]).catch(() => "");
-          if (token.length > 0) {
-            uri = uri.with({
-              query: uri.query.length ? `${uri.query}&CSPCHD=${token}` : `CSPCHD=${token}`,
-            });
-          }
-          vscode.env.openExternal(uri);
         }
       }
     ),
