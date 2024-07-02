@@ -391,6 +391,14 @@ export class StackFrame {
   public line: number;
   /** The line number inside of method of class */
   public methodOffset: number;
+  /** The start line number of the current command */
+  public cmdBeginLine?: number;
+  /** The start position of the current command within the line */
+  public cmdBeginPos?: number;
+  /** The end line number of the current command */
+  public cmdEndLine?: number;
+  /** The end position of the current command within the line */
+  public cmdEndPos?: number;
   /** The level (index) inside the stack trace at which the stack frame receides */
   public level: number;
   /** The connection this stackframe belongs to */
@@ -406,6 +414,16 @@ export class StackFrame {
     this.line = parseInt(stackFrameNode.getAttribute("lineno"), 10);
     this.methodOffset = parseInt(stackFrameNode.getAttribute("methodoffset"), 10);
     this.level = parseInt(stackFrameNode.getAttribute("level"), 10);
+    const cmdBegin = stackFrameNode.getAttribute("cmdbegin");
+    const cmdEnd = stackFrameNode.getAttribute("cmdend");
+    if (cmdBegin && cmdEnd) {
+      const [cmdBeginLine, cmdBeginPos] = cmdBegin.split(":");
+      const [cmdEndLine, cmdEndPos] = cmdEnd.split(":");
+      this.cmdBeginLine = parseInt(cmdBeginLine, 10);
+      this.cmdBeginPos = parseInt(cmdBeginPos, 10);
+      this.cmdEndLine = parseInt(cmdEndLine, 10);
+      this.cmdEndPos = parseInt(cmdEndPos, 10);
+    }
     this.connection = connection;
   }
   /** Returns the available contexts (scopes, such as "Local" and "Superglobals") by doing a context_names command */
