@@ -65,9 +65,6 @@ function getOtherStudioActionLabel(action: OtherStudioAction): string {
   return label;
 }
 
-// Used to avoid triggering the edit listener when files are reloaded by an extension
-const suppressEditListenerMap = new Map<string, boolean>();
-
 export class StudioActions {
   private uri: vscode.Uri;
   private api: AtelierAPI;
@@ -336,8 +333,6 @@ export class StudioActions {
               const actionToProcess: UserAction = data.result.content.pop();
 
               if (actionToProcess.reload) {
-                // Avoid the reload triggering the edit listener here
-                suppressEditListenerMap.set(this.uri.toString(), true);
                 await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
               }
 
@@ -349,7 +344,6 @@ export class StudioActions {
                     this.projectEditAnswer = "-1";
                   } else if (this.uri) {
                     // Only revert if we have a URI
-                    suppressEditListenerMap.set(this.uri.toString(), true);
                     await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
                   }
                 }
@@ -362,7 +356,6 @@ export class StudioActions {
                 if (action.label === attemptedEditLabel) {
                   if (answer != "1" && this.uri) {
                     // Only revert if we have a URI
-                    suppressEditListenerMap.set(this.uri.toString(), true);
                     await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
                   }
                   if (this.name.toUpperCase().endsWith(".PRJ")) {
@@ -455,12 +448,6 @@ export class StudioActions {
       label: getOtherStudioActionLabel(action),
     };
     if (action === OtherStudioAction.AttemptedEdit) {
-      // Check to see if this "attempted edit" was an action by this extension due to a reload.
-      // There's no way to detect at a higher level from the event.
-      if (suppressEditListenerMap.has(this.uri.toString())) {
-        suppressEditListenerMap.delete(this.uri.toString());
-        return;
-      }
       const query = "select * from %Atelier_v1_Utils.Extension_GetStatus(?)";
       this.api.actionQuery(query, [this.name]).then((statusObj) => {
         const docStatus = statusObj.result.content.pop();
