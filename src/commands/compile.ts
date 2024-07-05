@@ -725,6 +725,7 @@ export async function importLocalFilesToServerSideFolder(wsFolderUri: vscode.Uri
     return;
   }
   // Get the name and content of the files to import
+  const textDecoder = new TextDecoder();
   const docs = await Promise.allSettled<{ name: string; content: string; uri: vscode.Uri }>(
     uris.map((uri) =>
       vscode.workspace.fs
@@ -768,11 +769,12 @@ export async function importLocalFilesToServerSideFolder(wsFolderUri: vscode.Uri
     docs.map((e) => e.name)
   );
   // Import the files
-  const textDecoder = new TextDecoder();
   return Promise.allSettled<string>(
     docs.map(
       throttleRequests((doc: { name: string; content: string; uri: vscode.Uri }) => {
-        return importFileFromContent(doc.name, doc.content, api).then(() => {
+        // Allow importing over deployed classes since the XML import
+        // command and SMP, terminal, and Studio imports allow it
+        return importFileFromContent(doc.name, doc.content, api, false, true).then(() => {
           outputChannel.appendLine("Imported file: " + doc.uri.path.split("/").pop());
           return doc.name;
         });
