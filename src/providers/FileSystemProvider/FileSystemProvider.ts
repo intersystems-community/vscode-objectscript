@@ -7,13 +7,21 @@ import { fireOtherStudioAction, OtherStudioAction, StudioActions } from "../../c
 import { projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
 import {
   classNameRegex,
+  getServerName,
   isClassDeployed,
   notNull,
   outputChannel,
   redirectDotvscodeRoot,
   workspaceFolderOfUri,
 } from "../../utils/index";
-import { config, FILESYSTEM_SCHEMA, intLangId, macLangId, workspaceState } from "../../extension";
+import {
+  config,
+  FILESYSTEM_READONLY_SCHEMA,
+  FILESYSTEM_SCHEMA,
+  intLangId,
+  macLangId,
+  workspaceState,
+} from "../../extension";
 import { addIsfsFileToProject, modifyProject } from "../../commands/project";
 import { DocumentContentProvider } from "../DocumentContentProvider";
 import { Document, UserAction } from "../../api/atelier";
@@ -184,13 +192,53 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
   }
 
-  public stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+  public async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+    let entryPromise: Promise<Entry>;
+    let result: Entry;
     const redirectedUri = redirectDotvscodeRoot(uri);
     if (redirectedUri.path !== uri.path) {
       // When redirecting the /.vscode subtree we must fill in as-yet-unvisited folders to fix https://github.com/intersystems-community/vscode-objectscript/issues/1143
-      return this._lookup(redirectedUri, true);
+      entryPromise = this._lookup(redirectedUri, true);
+    } else {
+      entryPromise = this._lookup(uri);
     }
-    return this._lookup(uri);
+
+    // If this is our readonly variant there's no point checking server-side whether the file sould be marked readonly
+    if (uri.scheme === FILESYSTEM_READONLY_SCHEMA) {
+      return entryPromise;
+    }
+
+    if (entryPromise instanceof File) {
+      // previously resolved as a file
+      result = entryPromise;
+    } else if (entryPromise instanceof Promise && uri.path.split("/").pop()?.split(".").length > 1) {
+      // apparently a file, so resolve ahead of adding permissions
+      result = await entryPromise;
+    } else {
+      // otherwise return the promise
+      return entryPromise;
+    }
+
+    //
+    if (result instanceof File) {
+      const api = new AtelierAPI(uri);
+      const serverName = getServerName(uri);
+      if (serverName.slice(-4).toLowerCase() == ".cls") {
+        if (await isClassDeployed(serverName, api)) {
+          result.permissions |= vscode.FilePermission.Readonly;
+          return result;
+        }
+      }
+
+      // Does server-side source control report it as editable?
+      const query = "select * from %Atelier_v1_Utils.Extension_GetStatus(?)";
+      const statusObj = await api.actionQuery(query, [serverName]);
+      const docStatus = statusObj.result.content.pop();
+      if (docStatus) {
+        result.permissions = docStatus.editable ? undefined : result.permissions | vscode.FilePermission.Readonly;
+      }
+    }
+    return result;
   }
 
   public async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
