@@ -1312,6 +1312,11 @@
           "type": "boolean",
           "scope": "resource"
         },
+        "objectscript.serverSourceControl.respectEditableStatus": {
+          "description": "Set ISFS document readonly if GetStatus method of server-side source control class returns Editable=0",
+          "type": "boolean",
+          "scope": "resource"
+        },
         "objectscript.export": {
           "type": "object",
           "description": "Control what to export from the server into the local folder.",

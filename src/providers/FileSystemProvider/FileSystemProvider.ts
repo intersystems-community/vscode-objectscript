@@ -231,11 +231,13 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       }
 
       // Does server-side source control report it as editable?
-      const query = "select * from %Atelier_v1_Utils.Extension_GetStatus(?)";
-      const statusObj = await api.actionQuery(query, [serverName]);
-      const docStatus = statusObj.result.content.pop();
-      if (docStatus) {
-        result.permissions = docStatus.editable ? undefined : result.permissions | vscode.FilePermission.Readonly;
+      if (vscode.workspace.getConfiguration("objectscript.serverSourceControl", uri)?.get("respectEditableStatus")) {
+        const query = "select * from %Atelier_v1_Utils.Extension_GetStatus(?)";
+        const statusObj = await api.actionQuery(query, [serverName]);
+        const docStatus = statusObj.result.content.pop();
+        if (docStatus) {
+          result.permissions = docStatus.editable ? undefined : result.permissions | vscode.FilePermission.Readonly;
+        }
       }
     }
     return result;
