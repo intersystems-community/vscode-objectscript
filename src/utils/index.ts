@@ -70,17 +70,21 @@ export interface ConnectionTarget {
   configName: string;
 }
 
-/**
- * Get a list of all CSP web apps in the server-namespace that `uri` is connected to.
- */
+/** Get a list of all CSP web apps in the server-namespace that `uri` is connected to. */
 export function cspAppsForUri(uri: vscode.Uri): string[] {
-  const api = new AtelierAPI(uri);
-  const key = (
-    api.config.serverName && api.config.serverName != ""
-      ? `${api.config.serverName}:${api.config.ns}`
-      : `${api.config.host}:${api.config.port}${api.config.pathPrefix}:${api.config.ns}`
-  ).toLowerCase();
-  return cspApps.get(key) ?? [];
+  return cspAppsForApi(new AtelierAPI(uri));
+}
+
+/** Get a list of all CSP web apps in the server-namespace that `api` is connected to. */
+export function cspAppsForApi(api: AtelierAPI): string[] {
+  return (
+    cspApps.get(
+      (api.config.serverName && api.config.serverName != ""
+        ? `${api.config.serverName}:${api.config.ns}`
+        : `${api.config.host}:${api.config.port}${api.config.pathPrefix}:${api.config.ns}`
+      ).toLowerCase()
+    ) ?? []
+  );
 }
 
 /**

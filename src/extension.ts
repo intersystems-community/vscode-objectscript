@@ -139,6 +139,7 @@ import { RESTDebugPanel } from "./commands/restDebugPanel";
 import { modifyWsFolder } from "./commands/addServerNamespaceToWorkspace";
 import { WebSocketTerminalProfileProvider, launchWebSocketTerminal } from "./commands/webSocketTerminal";
 import { setUpTestController } from "./commands/unitTest";
+import { pickDocument } from "./utils/documentPicker";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -1405,6 +1406,31 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     ),
     vscode.commands.registerCommand("vscode-objectscript.compileIsfs", (uri) => fileSystemProvider.compile(uri)),
+    vscode.commands.registerCommand("vscode-objectscript.openISCDocument", async () => {
+      const workspaceFolders = vscode.workspace.workspaceFolders || [];
+      let wsFolder: vscode.WorkspaceFolder;
+      if (workspaceFolders.length == 1) {
+        // Use the current connection
+        wsFolder = workspaceFolders[0];
+      } else if (workspaceFolders.length > 1) {
+        // Pick from the workspace folders
+        wsFolder = await vscode.window.showWorkspaceFolderPick();
+      }
+      if (!wsFolder) return;
+      const api = new AtelierAPI(wsFolder.uri);
+      if (!api.active) {
+        vscode.window.showErrorMessage(
+          "'Open InterSystems Document...' command requires an active server connection.",
+          "Dismiss"
+        );
+        return;
+      }
+      const doc = await pickDocument(api, "to open");
+      if (!doc) return;
+      vscode.window.showTextDocument(
+        DocumentContentProvider.getUri(doc, undefined, undefined, undefined, wsFolder.uri)
+      );
+    }),
     ...setUpTestController(),
 
     /* Anything we use from the VS Code proposed API */

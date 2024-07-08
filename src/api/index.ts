@@ -314,7 +314,7 @@ export class AtelierAPI {
     const target = `${username}@${host}:${port}`;
     let auth: Promise<any>;
     let authRequest = authRequestMap.get(target);
-    if (cookies.length || method === "HEAD") {
+    if (cookies.length || (method === "HEAD" && !originalPath)) {
       auth = Promise.resolve(cookies);
 
       // Only send basic authorization if username and password specified (including blank, for unauthenticated access)
@@ -367,8 +367,16 @@ export class AtelierAPI {
       }
       await this.updateCookies(response.headers.raw()["set-cookie"] || []);
       if (method === "HEAD") {
-        authRequestMap.delete(target);
-        return this.cookies;
+        if (!originalPath) {
+          authRequestMap.delete(target);
+          return this.cookies;
+        } else if (response.status >= 400) {
+          // The HEAD /doc request errored out
+          throw { statusCode: response.status, message: response.statusText, errorText: "" };
+        } else {
+          // The HEAD /doc request succeeded
+          return response.headers.get("ETAG");
+        }
       }
 
       // Not Modified
@@ -490,6 +498,11 @@ export class AtelierAPI {
       filter,
       generated,
     });
+  }
+
+  // api v1+
+  public headDoc(name: string): Promise<string> {
+    return this.request(1, "HEAD", `${this.ns}/doc/${name}`);
   }
 
   // api v1+
