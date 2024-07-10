@@ -205,6 +205,10 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       await this._connection.sendFeatureSetCommand("max_children", 32);
       await this._connection.sendFeatureSetCommand("max_depth", 2);
       await this._connection.sendFeatureSetCommand("notify_ok", 1);
+      await this._connection.sendFeatureSetCommand(
+        "step_granularity",
+        vscode.workspace.getConfiguration("objectscript.debug").get<string>("stepGranularity")
+      );
 
       this.sendResponse(response);
 
@@ -599,6 +603,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
         const place = `${stackFrame.method}+${stackFrame.methodOffset}`;
         const stackFrameId = this._stackFrameIdCounter++;
         const fileText: string | undefined = await getFileText(fileUri).catch(() => undefined);
+        const hasCmdLoc = typeof stackFrame.cmdBeginLine == "number";
         if (fileText == undefined) {
           // Can't get the source for the document
           this._stackFrames.set(stackFrameId, stackFrame);
@@ -611,7 +616,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
               presentationHint: "deemphasize",
             },
             line,
-            column: 1,
+            column: 0,
           };
         }
         let noSource = false;
@@ -656,12 +661,20 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
         } catch (ex) {
           noSource = true;
         }
+        const lineDiff = line - stackFrame.line;
         return {
           id: stackFrameId,
           name: place,
           source: noSource ? null : source,
           line,
-          column: 1,
+          column: hasCmdLoc ? stackFrame.cmdBeginPos + 1 : 0,
+          endLine: hasCmdLoc ? stackFrame.cmdEndLine + lineDiff : undefined,
+          endColumn: hasCmdLoc
+            ? (stackFrame.cmdEndPos == 0
+                ? // A command that ends at position zero means "rest of this line"
+                  fileText.split(/\r?\n/)[stackFrame.cmdEndLine + lineDiff - 1].length
+                : stackFrame.cmdEndPos) + 1
+            : undefined,
         };
       })
     );
