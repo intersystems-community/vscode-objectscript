@@ -891,13 +891,17 @@ async function runHandler(
           }
         }
         // Start the debugging session
-        startedDebugging = await vscode.debug.startDebugging(undefined, {
-          type: "objectscript",
-          request: "attach",
-          name: "Unit tests",
-          cspDebugId: queueResp.result.content.debugId,
-          isUnitTest: true,
-        });
+        startedDebugging = await vscode.debug.startDebugging(
+          undefined,
+          {
+            type: "objectscript",
+            request: "attach",
+            name: "Unit tests",
+            cspDebugId: queueResp.result.content.debugId,
+            isUnitTest: true,
+          },
+          { testRun }
+        );
       }
 
       if (pollResp.retryafter) {
