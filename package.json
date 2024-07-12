@@ -359,6 +359,10 @@
           "command": "vscode-objectscript.explorer.project.openOtherServerNs",
           "when": "view == ObjectScriptProjectsExplorer && vscode-objectscript.projectsExplorerRootCount > 0",
           "group": "navigation"
+        },
+        {
+          "command": "vscode-objectscript.openISCDocument",
+          "when": "view == workbench.explorer.fileView && vscode-objectscript.connectActive && workspaceFolderCount != 0"
         }
       ],
       "view/item/context": [

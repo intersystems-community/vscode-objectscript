@@ -351,9 +351,7 @@ export async function pickDocument(api: AtelierAPI, prompt?: string): Promise<st
 
   return new Promise<string>((resolve) => {
     const quickPick = vscode.window.createQuickPick<DocumentPickerItem>();
-    quickPick.title = `Select a document in namespace '${api.ns}' on server '${api.serverId}'${
-      prompt ? " " + prompt : ""
-    }`;
+    quickPick.title = `${prompt ? prompt : "Select a document"} in namespace '${api.ns}' on server '${api.serverId}'`;
     quickPick.ignoreFocusOut = true;
     quickPick.buttons = [
       { iconPath: sysBtn, tooltip: "Show system documents" },

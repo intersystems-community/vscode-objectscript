@@ -1425,7 +1425,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         );
         return;
       }
-      const doc = await pickDocument(api, "to open");
+      const doc = await pickDocument(api, "Open a document");
       if (!doc) return;
       vscode.window.showTextDocument(
         DocumentContentProvider.getUri(doc, undefined, undefined, undefined, wsFolder.uri)
