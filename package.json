@@ -338,6 +338,10 @@
         {
           "command": "vscode-objectscript.compileIsfs",
           "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.openISCDocument",
+          "when": "vscode-objectscript.connectActive && workspaceFolderCount != 0"
         }
       ],
       "view/title": [
@@ -354,6 +358,11 @@
         {
           "command": "vscode-objectscript.explorer.project.openOtherServerNs",
           "when": "view == ObjectScriptProjectsExplorer && vscode-objectscript.projectsExplorerRootCount > 0",
+          "group": "navigation"
+        },
+        {
+          "command": "vscode-objectscript.openISCDocument",
+          "when": "view == workbench.explorer.fileView && vscode-objectscript.connectActive && workspaceFolderCount != 0",
           "group": "navigation"
         }
       ],
@@ -1179,6 +1188,12 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.compileIsfs",
         "title": "Compile"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.openISCDocument",
+        "title": "Open InterSystems Document...",
+        "icon": "$(go-to-file)"
       }
     ],
     "keybindings": [
