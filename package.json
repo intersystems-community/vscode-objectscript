@@ -1313,7 +1313,7 @@
           "scope": "resource"
         },
         "objectscript.serverSourceControl.respectEditableStatus": {
-          "description": "Set ISFS document readonly if GetStatus method of server-side source control class returns Editable=0",
+          "markdownDescription": "Set `isfs` document readonly if GetStatus method of server-side source control class returns Editable = 0.",
           "type": "boolean",
           "scope": "resource"
         },
