@@ -1381,13 +1381,11 @@
             },
             "atelier": {
               "description": "Export source code as Atelier did it, with packages as subfolders. This setting only affects classes, routines, include files and DFI files.",
-              "type": "boolean",
-              "default": false
+              "type": "boolean"
             },
             "generated": {
               "description": "Export generated source code files, such as INTs generated from classes.",
-              "type": "boolean",
-              "default": false
+              "type": "boolean"
             },
             "filter": {
               "markdownDescription": "SQL filter to limit what to export. The filter is applied to document names using the [LIKE predicate](https://irisdocs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_like) (i.e. `Name LIKE '%filter%'`).",
@@ -1406,13 +1404,11 @@
             },
             "noStorage": {
               "description": "Strip the storage definition on export. Can be useful when working across multiple systems.",
-              "type": "boolean",
-              "default": false
+              "type": "boolean"
             },
             "dontExportIfNoChanges": {
               "description": "Do not rewrite the local file if the content is identical to what came from the server.",
-              "type": "boolean",
-              "default": false
+              "type": "boolean"
             },
             "maxConcurrentConnections": {
               "description": "Maximum number of concurrent export connections. (0 = unlimited)",
@@ -1420,8 +1416,7 @@
             },
             "mapped": {
               "description": "Export source code files mapped from a non-default database.",
-              "type": "boolean",
-              "default": false
+              "type": "boolean"
             }
           }
         },
