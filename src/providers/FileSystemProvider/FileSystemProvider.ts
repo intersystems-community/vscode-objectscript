@@ -7,7 +7,6 @@ import { fireOtherStudioAction, OtherStudioAction, StudioActions } from "../../c
 import { projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
 import {
   classNameRegex,
-  getServerName,
   isClassDeployed,
   notNull,
   outputChannel,
@@ -222,7 +221,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     //
     if (result instanceof File) {
       const api = new AtelierAPI(uri);
-      const serverName = getServerName(uri);
+      const serverName = isCSPFile(uri) ? uri.path : uri.path.slice(1).replace(/\//g, ".");
       if (serverName.slice(-4).toLowerCase() == ".cls") {
         if (await isClassDeployed(serverName, api)) {
           result.permissions |= vscode.FilePermission.Readonly;
@@ -234,7 +233,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       if (vscode.workspace.getConfiguration("objectscript.serverSourceControl", uri)?.get("respectEditableStatus")) {
         const query = "select * from %Atelier_v1_Utils.Extension_GetStatus(?)";
         const statusObj = await api.actionQuery(query, [serverName]);
-        const docStatus = statusObj.result.content.pop();
+        const docStatus = statusObj.result?.content?.pop();
         if (docStatus) {
           result.permissions = docStatus.editable ? undefined : result.permissions | vscode.FilePermission.Readonly;
         }
