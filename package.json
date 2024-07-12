@@ -362,7 +362,8 @@
         },
         {
           "command": "vscode-objectscript.openISCDocument",
-          "when": "view == workbench.explorer.fileView && vscode-objectscript.connectActive && workspaceFolderCount != 0"
+          "when": "view == workbench.explorer.fileView && vscode-objectscript.connectActive && workspaceFolderCount != 0",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -1191,7 +1192,8 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.openISCDocument",
-        "title": "Open InterSystems Document..."
+        "title": "Open InterSystems Document...",
+        "icon": "$(go-to-file)"
       }
     ],
     "keybindings": [
