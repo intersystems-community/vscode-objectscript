@@ -1310,12 +1310,14 @@
         "objectscript.serverSourceControl.disableOtherActionTriggers": {
           "description": "Prevent server-side source control 'other action' triggers from firing.",
           "type": "boolean",
-          "scope": "resource"
+          "scope": "resource",
+          "default": false
         },
         "objectscript.serverSourceControl.respectEditableStatus": {
           "markdownDescription": "Set `isfs` document readonly if GetStatus method of server-side source control class returns Editable = 0.",
           "type": "boolean",
-          "scope": "resource"
+          "scope": "resource",
+          "default": false
         },
         "objectscript.export": {
           "type": "object",
@@ -1379,11 +1381,13 @@
             },
             "atelier": {
               "description": "Export source code as Atelier did it, with packages as subfolders. This setting only affects classes, routines, include files and DFI files.",
-              "type": "boolean"
+              "type": "boolean",
+              "default": false
             },
             "generated": {
               "description": "Export generated source code files, such as INTs generated from classes.",
-              "type": "boolean"
+              "type": "boolean",
+              "default": false
             },
             "filter": {
               "markdownDescription": "SQL filter to limit what to export. The filter is applied to document names using the [LIKE predicate](https://irisdocs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_like) (i.e. `Name LIKE '%filter%'`).",
@@ -1402,11 +1406,13 @@
             },
             "noStorage": {
               "description": "Strip the storage definition on export. Can be useful when working across multiple systems.",
-              "type": "boolean"
+              "type": "boolean",
+              "default": false
             },
             "dontExportIfNoChanges": {
               "description": "Do not rewrite the local file if the content is identical to what came from the server.",
-              "type": "boolean"
+              "type": "boolean",
+              "default": false
             },
             "maxConcurrentConnections": {
               "description": "Maximum number of concurrent export connections. (0 = unlimited)",
@@ -1414,7 +1420,8 @@
             },
             "mapped": {
               "description": "Export source code files mapped from a non-default database.",
-              "type": "boolean"
+              "type": "boolean",
+              "default": false
             }
           }
         },
@@ -1693,7 +1700,8 @@
               },
               "stopOnEntry": {
                 "type": "boolean",
-                "description": "Automatically stop target after attach. If not specified, target does not stop."
+                "description": "Automatically stop target after attach. If not specified, target does not stop.",
+                "default": false
               }
             }
           }
