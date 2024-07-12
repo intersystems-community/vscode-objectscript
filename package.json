@@ -1609,6 +1609,19 @@
           ],
           "default": "//",
           "scope": "machine"
+        },
+        "objectscript.debug.stepGranularity": {
+          "markdownDescription": "Controls the granularity of the debugger's [step action buttons](https://code.visualstudio.com/docs/editor/debugging#_debug-actions). Changing this setting while a debugging session is active will not change the behavior of the active session. **NOTE:** Only supported on IRIS 2023.1.5, 2024.1.1+, 2024.2 and subsequent versions! On all other versions, line stepping will be used.",
+          "type": "string",
+          "enum": [
+            "command",
+            "line"
+          ],
+          "enumDescriptions": [
+            "The step buttons execute a single command.",
+            "The step buttons execute an entire line."
+          ],
+          "default": "command"
         }
       }
     },
