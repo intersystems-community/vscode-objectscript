@@ -70,7 +70,7 @@ export class RootNode extends NodeBase {
         spec = "*.cls";
         break;
       case "RTN":
-        spec = "*.mac,*.int,*.bas";
+        spec = "*.mac,*.int,*.bas,*.mvb,*.mvi";
         break;
       case "INC":
         spec = "*.inc";
@@ -82,7 +82,7 @@ export class RootNode extends NodeBase {
         spec = "*";
         break;
       case "OTH":
-        spec = "*.other";
+        spec = "*.other,'*.bpl,'*.dtl";
         break;
       default:
         return;

@@ -5,9 +5,11 @@ import { config, explorerProvider, OBJECTSCRIPT_FILE_SCHEMA, schemas, workspaceS
 import {
   currentFile,
   currentFileFromContent,
-  fileExists,
+  handleError,
   notNull,
   outputChannel,
+  stringifyError,
+  throttleRequests,
   uriOfWorkspaceFolder,
 } from "../utils";
 import { NodeBase } from "../explorer/models/nodeBase";
@@ -87,34 +89,15 @@ export const getFileName = (
   }
 };
 
-export const getFolderName = (folder: string, name: string, split: boolean, cat: string = null): string => {
-  const folderNameArray: string[] = name.split(".");
-  if (split) {
-    return [folder, cat, ...folderNameArray].filter(notNull).join(path.sep);
-  }
-  return [folder, cat, name].filter(notNull).join(path.sep);
-};
-
-export async function exportFile(
-  workspaceFolder: string,
-  namespace: string,
-  name: string,
-  fileName: string
-): Promise<void> {
-  if (!config("conn", workspaceFolder).active) {
-    return Promise.reject("Connection not active");
-  }
-  const api = new AtelierAPI(workspaceFolder);
+async function exportFile(wsFolderUri: vscode.Uri, namespace: string, name: string, fileName: string): Promise<void> {
+  const api = new AtelierAPI(wsFolderUri);
   api.setNamespace(namespace);
-  const log = (status) => outputChannel.appendLine(`export "${name}" as "${fileName}" - ${status}`);
-  const fileUri = vscode.Uri.file(fileName);
-  const foldersUri = vscode.Uri.file(path.dirname(fileName));
-  try {
-    if (!(await fileExists(foldersUri))) {
-      // Only attempt to create directories that don't exist
-      await vscode.workspace.fs.createDirectory(foldersUri);
-    }
+  let fileUri = vscode.Uri.file(fileName);
+  if (wsFolderUri.scheme != "file") fileUri = wsFolderUri.with({ path: fileUri.path });
+  const log = (status: string) =>
+    outputChannel.appendLine(`Export '${name}' to '${fileUri.toString(true)}' - ${status}`);
 
+  try {
     const data = await api.getDoc(name);
     if (!data || !data.result) {
       throw new Error("Received malformed JSON object from server fetching document");
@@ -127,127 +110,59 @@ export async function exportFile(
       const file = currentFileFromContent(fileUri, contentString);
       const serverTime = Number(new Date(data.result.ts + "Z"));
       await workspaceState.update(`${file.uniqueId}:mtime`, serverTime);
-      return;
     };
-
-    const { noStorage, dontExportIfNoChanges } = config("export");
-
-    const storageResult: { found: boolean; content?: string } = await new Promise((resolve, reject) => {
-      if (noStorage) {
-        // get only the storage xml for the doc.
-        api
-          .getDoc(name + "?storageOnly=1")
-          .then((storageData) => {
-            if (!storageData || !storageData.result) {
-              reject(new Error("Received malformed JSON object from server fetching storage only"));
-            }
-            const storageContent = storageData.result.content;
-
-            if (storageContent.length > 1 && storageContent[0] && storageContent.length < content.length) {
-              const storageContentString = storageContent.join("\n");
-              const contentString = content.join("\n");
-
-              // find and replace the docs storage section with ''
-              resolve({
-                content: contentString.replace(storageContentString, ""),
-                found: contentString.indexOf(storageContentString) >= 0,
-              });
-            } else {
-              resolve({ found: false });
-            }
-          })
-          .catch((error) => reject(error));
-      } else {
-        resolve({ found: false });
-      }
-    });
 
     if (Buffer.isBuffer(content)) {
       // This is a binary file
-      let isSkipped = "";
-      if (dontExportIfNoChanges && (await fileExists(fileUri))) {
-        const existingContent = await vscode.workspace.fs.readFile(fileUri);
-        if (!content.equals(existingContent)) {
-          await vscode.workspace.fs.writeFile(fileUri, content);
-          await recordMtime();
-        } else {
-          isSkipped = " => skipped - no changes.";
-        }
-      } else {
-        await vscode.workspace.fs.writeFile(fileUri, content);
-        await recordMtime();
-      }
-      log(`Success ${isSkipped}`);
+      await vscode.workspace.fs.writeFile(fileUri, content);
+      await recordMtime();
+      log("Success");
     } else {
       // This is a text file
-      let joinedContent = content.join("\n");
-      let isSkipped = "";
-
-      if (storageResult.found) {
-        joinedContent = storageResult.content;
-      }
-
-      if (dontExportIfNoChanges && (await fileExists(fileUri))) {
-        const existingContent = new TextDecoder().decode(await vscode.workspace.fs.readFile(fileUri));
-        // stringify to harmonise the text encoding.
-        if (JSON.stringify(joinedContent) !== JSON.stringify(existingContent)) {
-          await vscode.workspace.fs.writeFile(fileUri, new TextEncoder().encode(joinedContent));
-          await recordMtime();
-        } else {
-          isSkipped = " => skipped - no changes.";
-        }
-      } else {
-        await vscode.workspace.fs.writeFile(fileUri, new TextEncoder().encode(joinedContent));
-        await recordMtime();
-      }
-
-      log(`Success ${isSkipped}`);
+      const joinedContent = content.join("\n");
+      await vscode.workspace.fs.writeFile(fileUri, new TextEncoder().encode(joinedContent));
+      await recordMtime();
+      log("Success");
     }
   } catch (error) {
-    const errorStr = typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error);
-    log(`ERROR${errorStr.length ? `: ${errorStr}` : ""}`);
-    throw errorStr;
+    const errorStr = stringifyError(error);
+    log(errorStr == "" ? "ERROR" : errorStr);
   }
 }
 
 export async function exportList(files: string[], workspaceFolder: string, namespace: string): Promise<any> {
   if (!files || !files.length) {
-    vscode.window.showWarningMessage("Nothing to export");
-  }
-  const { atelier, folder, addCategory, map } = config("export", workspaceFolder);
-
-  if (!workspaceFolder) {
-    // No workspace folders are open
+    vscode.window.showWarningMessage("No documents to export.", "Dismiss");
     return;
   }
-  const root = [
-    uriOfWorkspaceFolder(workspaceFolder).fsPath,
-    typeof folder === "string" && folder.length ? folder : null,
-  ]
-    .filter(notNull)
-    .join(path.sep);
-  const run = async (fileList) => {
-    const errors = [];
-    for (const file of fileList) {
-      await exportFile(workspaceFolder, namespace, file, getFileName(root, file, atelier, addCategory, map)).catch(
-        (error) => {
-          errors.push(`${file} - ${error}`);
-        }
-      );
-    }
-    outputChannel.appendLine(`Exported items: ${fileList.length - errors.length}`);
-    if (errors.length) {
-      outputChannel.appendLine(`Items failed to export: \n${errors.join("\n")}`);
-    }
-  };
+  const wsFolderUri = uriOfWorkspaceFolder(workspaceFolder);
+  if (!workspaceFolder || !wsFolderUri) return;
+  if (!vscode.workspace.fs.isWritableFileSystem(wsFolderUri.scheme)) {
+    vscode.window.showErrorMessage(`Cannot export to read-only file system '${wsFolderUri.scheme}'.`, "Dismiss");
+    return;
+  }
+  if (!new AtelierAPI(wsFolderUri).active) {
+    vscode.window.showErrorMessage("Exporting documents requires an active server connection.", "Dismiss");
+    return;
+  }
+
+  const { atelier, folder, addCategory, map } = config("export", workspaceFolder);
+  const root = wsFolderUri.fsPath + (folder.length ? path.sep + folder : "");
+  outputChannel.show(true);
   return vscode.window.withProgress(
     {
-      title: "Export items",
+      title: `Exporting ${files.length == 1 ? files[0] : files.length + " documents"}`,
       location: vscode.ProgressLocation.Notification,
+      cancellable: false,
     },
-    () => {
-      return run(files);
-    }
+    () =>
+      Promise.allSettled<void>(
+        files.map(
+          throttleRequests((file: string) =>
+            exportFile(wsFolderUri, namespace, file, getFileName(root, file, atelier, addCategory, map))
+          )
+        )
+      )
   );
 }
 
@@ -277,7 +192,6 @@ export async function exportAll(): Promise<any> {
     return;
   }
   const api = new AtelierAPI(workspaceFolder);
-  outputChannel.show(true);
   const { category, generated, filter, exactFilter, mapped } = config("export", workspaceFolder);
   // Replicate the behavior of getDocNames() but use StudioOpenDialog for better performance
   let filterStr = "";
@@ -459,12 +373,6 @@ export async function exportDocumentsToXMLFile(): Promise<void> {
       }
     }
   } catch (error) {
-    let errorMsg = "Error executing 'Export Documents to XML File...' command.";
-    if (error && error.errorText && error.errorText !== "") {
-      outputChannel.appendLine("\n" + error.errorText);
-      outputChannel.show(true);
-      errorMsg += " Check 'ObjectScript' output channel for details.";
-    }
-    vscode.window.showErrorMessage(errorMsg, "Dismiss");
+    handleError(error, "Error executing 'Export Documents to XML File...' command.");
   }
 }

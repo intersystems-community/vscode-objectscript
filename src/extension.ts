@@ -98,9 +98,10 @@ import {
   workspaceFolderOfUri,
   uriOfWorkspaceFolder,
   isUnauthenticated,
+  notIsfs,
+  handleError,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
-import { DocumentRangeFormattingEditProvider } from "./providers/DocumentRangeFormattingEditProvider";
 import { DocumentLinkProvider } from "./providers/DocumentLinkProvider";
 
 /* proposed */
@@ -140,6 +141,12 @@ import { modifyWsFolder } from "./commands/addServerNamespaceToWorkspace";
 import { WebSocketTerminalProfileProvider, launchWebSocketTerminal } from "./commands/webSocketTerminal";
 import { setUpTestController } from "./commands/unitTest";
 import { pickDocument } from "./utils/documentPicker";
+import {
+  disposeDocumentIndex,
+  indexWorkspaceFolder,
+  removeIndexOfWorkspaceFolder,
+  updateIndexForDocument,
+} from "./utils/documentIndex";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -256,6 +263,13 @@ export function getResolvedConnectionSpec(key: string, dflt: any): any {
  */
 export const cspApps: Map<string, string[]> = new Map();
 
+/**
+ * A map of all Studio Abstract Document extensions in a server-namespace.
+ * The key is either `serverName:ns`, or `host:port/pathPrefix:ns`, lowercase.
+ * The value is lowercase array of file extensions, without the dot.
+ */
+export const otherDocExts: Map<string, string[]> = new Map();
+
 export async function checkConnection(
   clearCookies = false,
   uri?: vscode.Uri,
@@ -307,7 +321,7 @@ export async function checkConnection(
       if (withDocker) {
         if (!dockerPort) {
           const errorMessage = `Something is wrong with your docker-compose connection settings, or your service is not running.`;
-          outputChannel.appendError(errorMessage);
+          handleError(errorMessage);
           panel.text = `${PANEL_LABEL} $(error)`;
           panel.tooltip = `ERROR - ${errorMessage}`;
           return;
@@ -322,7 +336,7 @@ export async function checkConnection(
         _onDidChangeConnection.fire();
       }
     } catch (error) {
-      outputChannel.appendError(error);
+      handleError(error);
       workspaceState.update(wsKey + ":docker", true);
       panel.text = `${PANEL_LABEL} $(error)`;
       panel.tooltip = error;
@@ -339,7 +353,7 @@ export async function checkConnection(
 
   if (!api.config.host || !api.config.port || !api.config.ns) {
     const message = "'host', 'port' and 'ns' must be specified.";
-    outputChannel.appendError(message);
+    handleError(message);
     panel.text = `${PANEL_LABEL} $(error)`;
     panel.tooltip = `ERROR - ${message}`;
     if (!api.externalServer) {
@@ -372,6 +386,15 @@ export async function checkConnection(
     const key = `${api.serverId}:${api.config.ns}`.toLowerCase();
     if (!cspApps.has(key)) {
       cspApps.set(key, await api.getCSPApps().then((data) => data.result.content || []));
+    }
+    if (!otherDocExts.has(key)) {
+      otherDocExts.set(
+        key,
+        await api
+          .actionQuery("SELECT Extension FROM %Library.RoutineMgr_DocumentTypes()", [])
+          .then((data) => data.result?.content?.map((e) => e.Extension) ?? [])
+          .catch(() => [])
+      );
     }
     if (!api.externalServer) {
       await setConnectionState(configName, true);
@@ -481,7 +504,7 @@ export async function checkConnection(
       } else {
         errorMessage = `${message}\nCheck your server details in Settings (${connInfo}).`;
       }
-      outputChannel.appendError(errorMessage);
+      handleError(errorMessage);
       panel.text = `${connInfo} $(error)`;
       panel.tooltip = `ERROR - ${message}`;
       throw error;
@@ -626,6 +649,27 @@ async function systemModeWarning(wsFolders: readonly vscode.WorkspaceFolder[]): 
   }
 }
 
+/**
+ * Set when clause context keys so the ObjectScript Explorer and
+ * Projects Explorer views are correctly shown or hidden depending
+ * on the folders in this workspace
+ */
+function setExplorerContextKeys(): void {
+  const wsFolders = vscode.workspace.workspaceFolders ?? [];
+  // Need to show both views if there are no folders in
+  // this workspace so the "viewsWelcome" messages are shown
+  vscode.commands.executeCommand(
+    "setContext",
+    "vscode-objectscript.showExplorer",
+    wsFolders.length == 0 || wsFolders.some((wf) => notIsfs(wf.uri))
+  );
+  vscode.commands.executeCommand(
+    "setContext",
+    "vscode-objectscript.showProjectsExplorer",
+    wsFolders.length == 0 || wsFolders.some((wf) => filesystemSchemas.includes(wf.uri.scheme))
+  );
+}
+
 /** The URIs of all classes that have been opened. Used when `objectscript.openClassContracted` is true */
 let openedClasses: string[];
 
@@ -687,13 +731,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   const debugAdapterFactory = new ObjectScriptDebugAdapterDescriptorFactory();
 
+  // Show or hide explorer views as needed
+  setExplorerContextKeys();
+
   // Check one time (flushing cookies) each connection that is used by the workspace.
   // This gets any prompting for missing credentials done upfront, for simplicity.
   const toCheck = new Map<string, vscode.Uri>();
   vscode.workspace.workspaceFolders?.map((workspaceFolder) => {
     const uri = workspaceFolder.uri;
     const { configName } = connectionTarget(uri);
-    const serverName = uri.scheme === "file" ? config("conn", configName).server : configName;
+    const serverName = notIsfs(uri) ? config("conn", configName).server : configName;
     toCheck.set(serverName, uri);
   });
   for await (const oneToCheck of toCheck) {
@@ -775,10 +822,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         documentSelector(clsLangId, macLangId, intLangId, incLangId),
         new DocumentFormattingEditProvider()
       ),
-      vscode.languages.registerDocumentRangeFormattingEditProvider(
-        documentSelector(clsLangId, macLangId, intLangId, incLangId),
-        new DocumentRangeFormattingEditProvider()
-      ),
       vscode.languages.registerDefinitionProvider(
         documentSelector(clsLangId, macLangId, intLangId, incLangId),
         new ObjectScriptDefinitionProvider()
@@ -831,6 +874,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   iscIcon = vscode.Uri.joinPath(context.extensionUri, "images", "fileIcon.svg");
 
+  // Index documents in all local workspace folders
+  for (const wf of vscode.workspace.workspaceFolders ?? []) indexWorkspaceFolder(wf);
+
   macLangConf = vscode.languages.setLanguageConfiguration(macLangId, getLanguageConfiguration(macLangId));
   incLangConf = vscode.languages.setLanguageConfiguration(incLangId, getLanguageConfiguration(incLangId));
   intLangConf = vscode.languages.setLanguageConfiguration(intLangId, getLanguageConfiguration(intLangId));
@@ -860,6 +906,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       if (!event.document.isDirty) {
         checkChangedOnServer(currentFile(event.document));
       }
+      if (
+        [clsLangId, macLangId, intLangId, incLangId].includes(event.document.languageId) &&
+        notIsfs(event.document.uri)
+      ) {
+        // Update the local workspace folder index to incorporate this change
+        updateIndexForDocument(event.document.uri);
+      }
     }),
     vscode.window.onDidChangeActiveTextEditor(async (editor) => {
       if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 1) {
@@ -881,21 +934,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.compileAllWithFlags", () => namespaceCompile(true)),
     vscode.commands.registerCommand("vscode-objectscript.refreshLocalFile", async () => {
       const file = currentFile();
-      if (!file) {
-        return;
-      }
-
+      if (!file) return;
       try {
         await loadChanges([file]);
       } catch (error) {
-        let message = `Failed to overwrite file from server '${file.fileName}'.`;
-        if (error && error.errorText && error.errorText !== "") {
-          outputChannel.appendLine("\n" + error.errorText);
-          outputChannel.show(true);
-          message += " Check 'ObjectScript' output channel for details.";
-        }
-        vscode.window.showErrorMessage(message, "Dismiss");
-        return;
+        handleError(
+          error,
+          `Failed to overwrite contents of file '${file.uri.toString(true)}' with server copy of '${file.fileName}'.`
+        );
       }
     }),
     vscode.commands.registerCommand("vscode-objectscript.compileFolder", (_file, files) =>
@@ -937,8 +983,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       const api = new AtelierAPI(vscode.window.activeTextEditor?.document.uri);
 
       const list = await api.getJobs(system).then(async (jobData) => {
-        // NOTE: We do not know if the current user has permissions to other namespaces
-        // so lets only fetch the job info for the current namespace
+        // We do not know if the current user has permissions in other namespaces,
+        // so only fetch the job info for the current namespace
         const currNamespaceJobs: { [k: string]: string } = await api
           .actionQuery("SELECT Job, ConfigName FROM Ens.Job_Enumerate() WHERE State = 'Alive'", [])
           .then((data) => Object.fromEntries(data.result.content.map((x) => [x.Job, x.ConfigName])))
@@ -1045,17 +1091,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.connectFolderToServerNamespace", () => {
       connectFolderToServerNamespace();
     }),
-    vscode.commands.registerCommand("vscode-objectscript.hideExplorerForWorkspace", () => {
-      vscode.workspace
-        .getConfiguration("objectscript")
-        .update("showExplorer", false, vscode.ConfigurationTarget.Workspace);
-    }),
-    vscode.commands.registerCommand("vscode-objectscript.showExplorerForWorkspace", () => {
-      vscode.workspace
-        .getConfiguration("objectscript")
-        .update("showExplorer", true, vscode.ConfigurationTarget.Workspace);
-    }),
-
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPT_FILE_SCHEMA, documentContentProvider),
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPTXML_FILE_SCHEMA, xmlContentProvider),
     vscode.workspace.registerFileSystemProvider(FILESYSTEM_SCHEMA, fileSystemProvider, {
@@ -1093,7 +1128,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       if (!config("autoAdjustName")) return;
       return Promise.all(
         e.files
-          .filter((uri) => !filesystemSchemas.includes(uri.scheme))
+          .filter(notIsfs)
           .filter((uri) => ["cls", "inc", "int", "mac"].includes(uri.path.split(".").pop().toLowerCase()))
           .map(async (uri) => {
             // Determine the file name
@@ -1180,9 +1215,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       },
       supportsMultipleEditorsPerDocument: false,
     }),
-    vscode.workspace.onDidChangeWorkspaceFolders(async ({ added, removed }) => {
-      const folders = vscode.workspace.workspaceFolders;
-
+    vscode.workspace.onDidChangeWorkspaceFolders(async ({ added }) => {
       // Make sure we have a resolved connection spec for the targets of all added folders
       const toCheck = new Map<string, vscode.Uri>();
       added.map((workspaceFolder) => {
@@ -1193,20 +1226,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       for await (const oneToCheck of toCheck) {
         const configName = oneToCheck[0];
         const uri = oneToCheck[1];
-        const serverName = uri.scheme === "file" ? config("conn", configName).server : configName;
+        const serverName = notIsfs(uri) ? config("conn", configName).server : configName;
         await resolveConnectionSpec(serverName);
-      }
-
-      // If it was just the addition of the first folder, and this is one of the isfs types, hide the ObjectScript Explorer for this workspace
-      if (
-        folders?.length === 1 &&
-        added?.length === 1 &&
-        removed?.length === 0 &&
-        filesystemSchemas.includes(added[0].uri.scheme)
-      ) {
-        vscode.workspace
-          .getConfiguration("objectscript")
-          .update("showExplorer", false, vscode.ConfigurationTarget.Workspace);
       }
     }),
     vscode.workspace.onDidChangeConfiguration(async ({ affectsConfiguration }) => {
@@ -1265,16 +1286,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         // Saving is handled by a different event listener
         return;
       }
-      if (!schemas.includes(file.uri.scheme) && !config("importOnSave")) {
+      const conf = vscode.workspace.getConfiguration("objectscript", file.uri);
+      if (notIsfs(file.uri) && !conf.get("importOnSave")) {
         // Don't save this local file on the server
         return;
       }
       if (schemas.includes(file.uri.scheme) || languages.includes(file.languageId)) {
         if (documentBeingProcessed !== file) {
-          return importAndCompile(false, file, config("compileOnSave"));
+          return importAndCompile(false, file, conf.get("compileOnSave"));
         }
-      } else if (file.uri.scheme === "file") {
-        if (isImportableLocalFile(file) && new AtelierAPI(file.uri).active) {
+      } else if (notIsfs(file.uri)) {
+        if (isImportableLocalFile(file.uri) && new AtelierAPI(file.uri).active) {
           // This local file is part of a CSP application
           // or matches our export settings, so import it on save
           return importFileOrFolder(file.uri, true);
@@ -1377,6 +1399,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       proposedApiPrompt(proposed.length > 0, e.added);
       // Warn about SystemMode
       systemModeWarning(e.added);
+      // Update the local workspace folder index
+      for (const a of e.added) indexWorkspaceFolder(a);
+      for (const r of e.removed) removeIndexOfWorkspaceFolder(r);
+      // Show or hide explorer views as needed
+      setExplorerContextKeys();
     }),
     vscode.commands.registerCommand("vscode-objectscript.importXMLFiles", importXMLFiles),
     vscode.commands.registerCommand("vscode-objectscript.exportToXMLFile", exportDocumentsToXMLFile),
@@ -1521,4 +1548,5 @@ export function deactivate(): void {
   macLangConf?.dispose();
   incLangConf?.dispose();
   intLangConf?.dispose();
+  disposeDocumentIndex();
 }

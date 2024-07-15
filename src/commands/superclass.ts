@@ -1,15 +1,12 @@
 import * as vscode from "vscode";
 import { config } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
-import { currentFile } from "../utils";
+import { currentFile, notIsfs } from "../utils";
 import { ClassDefinition } from "../utils/classDefinition";
 
 export async function superclass(): Promise<void> {
   const file = currentFile();
-  if (file.uri.scheme === "file" && !config("conn").active) {
-    return;
-  }
-  if (!file || !file.name.toLowerCase().endsWith(".cls")) {
+  if (!file || !file.name.toLowerCase().endsWith(".cls") || (notIsfs(file.uri) && !config("conn").active)) {
     return;
   }
 

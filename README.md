@@ -30,7 +30,7 @@
   - press <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>F7</kbd>
   - or, select `ObjectScript: Import and Compile Current File` from Command Palette
 - Direct access to edit or view server code in the VS Code Explorer via `isfs` and `isfs-readonly` FileSystemProviders (e.g. using a [multi-root workspace](https://code.visualstudio.com/docs/editor/multi-root-workspaces)). Server-side source control is respected.
-- Server Explorer view (ObjectScript: Explorer) with ability to export items to your working folder.
+- Server Explorer view (InterSystems: Explorer) with ability to export items to your working folder.
 - Integration with with [InterSystems Server Manager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) for secure storage of connection passwords.
 
 ## Installation

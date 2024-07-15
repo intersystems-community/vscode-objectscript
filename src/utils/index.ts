@@ -11,29 +11,63 @@ import {
   lsExtensionId,
   OBJECTSCRIPT_FILE_SCHEMA,
   documentContentProvider,
+  filesystemSchemas,
+  otherDocExts,
 } from "../extension";
 import { getCategory } from "../commands/export";
 import { isCSPFile } from "../providers/FileSystemProvider/FileSystemProvider";
 import { AtelierAPI } from "../api";
 
-let latestErrorMessage = "";
-export const outputChannel: {
-  resetError?(): void;
-  appendError?(value: string, show?: boolean): void;
-} & vscode.OutputChannel = vscode.window.createOutputChannel("ObjectScript", "vscode-objectscript-output");
+export const outputChannel = vscode.window.createOutputChannel("ObjectScript", "vscode-objectscript-output");
 
-/// Append Error if no duplicates previous one
-outputChannel.appendError = (value: string, show = true): void => {
-  if (latestErrorMessage === value) {
-    return;
+/**
+ * Return a string represenattion of `error`.
+ * If `error` is `undefined`, returns the empty string.
+ */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export function stringifyError(error): string {
+  try {
+    return (
+      error == undefined
+        ? ""
+        : error.errorText
+          ? <string>error.errorText
+          : typeof error == "string"
+            ? error
+            : error instanceof Error
+              ? error.toString()
+              : JSON.stringify(error)
+    ).trim();
+  } catch {
+    // Need to catch errors from JSON.stringify()
+    return "";
   }
-  latestErrorMessage = value;
-  outputChannel.appendLine(value);
-  show && outputChannel.show(true);
-};
-outputChannel.resetError = (): void => {
-  latestErrorMessage = "";
-};
+}
+
+/** The last error string written to the Output channel */
+let lastErrorStr = "";
+
+/**
+ * Stringify `error` and append it to the Output channel, followed by line feed character.
+ * Doesn't append `error` if it's a duplicate of the last error appended, or if it's
+ * stringified value is the empty string. If `message` is defined, calls
+ * `vscode.window.showErrorMessage()` with that message plus a reminder to check
+ * the Output channel, if an error was appended to it.
+ */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export function handleError(error, message?: string): void {
+  if (!error) return;
+  const errorStr = stringifyError(error);
+  if (errorStr.length) {
+    if (errorStr != lastErrorStr) {
+      lastErrorStr = errorStr;
+      outputChannel.appendLine(errorStr);
+    }
+    outputChannel.show(true);
+    if (message) message += " Check the 'ObjectScript' Output channel for details.";
+  }
+  if (message) vscode.window.showErrorMessage(message, "Dismiss");
+}
 
 export function outputConsole(data: string[]): void {
   data.forEach((line): void => {
@@ -41,7 +75,6 @@ export function outputConsole(data: string[]): void {
   });
 }
 
-// tslint:disable-next-line: interface-name
 export interface CurrentFile {
   name: string;
   fileName: string;
@@ -88,78 +121,118 @@ export function cspAppsForApi(api: AtelierAPI): string[] {
 }
 
 /**
+ * Get a list of Studio Abstract Document extensions in the server-namespace that `uri` is connected to.
+ */
+function otherDocExtsForUri(uri: vscode.Uri): string[] {
+  const api = new AtelierAPI(uri);
+  return otherDocExts.get(`${api.serverId}:${api.config.ns}`.toLowerCase()) ?? [];
+}
+
+/**
+ * Returns the path of file `uri` relative to workspace folder `wsUri`.
+ * Returns the emptry string if `uri` is not in `wsUri`.
+ */
+function filePathNoWsFolder(uri: vscode.Uri, wsUri: vscode.Uri): string {
+  let wsPath = wsUri.path;
+  if (!wsPath.endsWith("/")) wsPath += "/";
+  return uri.path.startsWith(wsPath) ? uri.path.slice(wsPath.length) : "";
+}
+
+/**
  * Determine the server name of a local non-ObjectScript file (any file that's not CLS,MAC,INT,INC).
- * @param localPath The full path to the file on disk.
+ * @param uri The uri of the file.
  * @param workspace The workspace the file is in.
  * @param fileExt The extension of the file.
  */
-function getServerDocName(localPath: string, workspace: string, fileExt: string): string {
+function getServerDocName(uri: vscode.Uri, workspace: string, fileExt: string): string {
   if (!workspace) {
     // No workspace folders are open
     return null;
   }
-  const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
-  const filePathNoWorkspaceArr = localPath.replace(workspacePath + path.sep, "").split(path.sep);
-  const uri = vscode.Uri.file(localPath);
-  const cspIdx = uri.path.indexOf(cspAppsForUri(uri).find((cspApp) => uri.path.includes(cspApp + "/")));
+  const relativeFilePath = filePathNoWsFolder(uri, uriOfWorkspaceFolder(workspace));
+  if (relativeFilePath == "") return null;
+  const cspIdx = uri.path.lastIndexOf(cspAppsForUri(uri).find((cspApp) => uri.path.includes(cspApp + "/")));
   if (cspIdx != -1) {
     return uri.path.slice(cspIdx);
-  } else {
-    const { atelier, folder, addCategory } = config("export", workspace);
-    const root = [
-      typeof folder === "string" && folder.length ? folder : null,
-      addCategory ? getCategory(localPath, addCategory) : null,
+  } else if (fileExt == "dfi") {
+    // Check for matching export settings first. If no match, use base name.
+    const { folder, addCategory } = config("export", workspace);
+    let root = [
+      typeof folder == "string" && folder.length ? folder : null,
+      addCategory ? getCategory(uri.fsPath, addCategory) : null,
     ]
       .filter(notNull)
-      .join(path.sep);
-    let filePath = filePathNoWorkspaceArr.join(path.sep).slice(root.length + path.sep.length);
-    if (fileExt == "dfi" && atelier) {
-      filePath = filePath.replaceAll(path.sep, "-");
+      .join("/")
+      .replace(/\\/g, "/");
+    if (!root.endsWith("/")) root += "/";
+    if (relativeFilePath.startsWith(root)) {
+      // Convert any folders into "-"
+      return relativeFilePath.slice(root.length).replace(/\//g, "-");
+    } else {
+      // Use the last part of the path since it didn't match the export settings
+      return uri.path.split("/").pop();
     }
-    return filePath;
+  } else {
+    // Use the last part of the path without checking the export settings
+    return uri.path.split("/").pop();
   }
 }
 
 /**
- * Determine if this non-ObjectScript local file is importable
- * (i.e. is part of a CSP application or matches our export settings).
- * @param file The file to check.
+ * Determine if this non-ObjectScript local file is importable.
+ * @param uri The file to check.
  */
-export function isImportableLocalFile(file: vscode.TextDocument): boolean {
-  const workspace = currentWorkspaceFolder(file);
+export function isImportableLocalFile(uri: vscode.Uri): boolean {
+  // A non-class or routine file is only importable
+  // if it's in a web application folder or it's a
+  // known Studio abstract document type within a workspace folder
+  if (!vscode.workspace.getWorkspaceFolder(uri)) return false;
+  return (
+    cspAppsForUri(uri).some((cspApp) => uri.path.includes(cspApp + "/")) ||
+    otherDocExtsForUri(uri).includes(uri.path.split(".").pop().toLowerCase())
+  );
+  /*
+  const workspace = workspaceFolderOfUri(uri);
   if (workspace == "") {
     // No workspace folders are open
     return false;
   }
   const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
-  const filePathNoWorkspaceArr = file.fileName.replace(workspacePath + path.sep, "").split(path.sep);
-  const isCSP = cspAppsForUri(file.uri).findIndex((cspApp) => file.uri.path.includes(cspApp + "/")) != -1;
-  if (isCSP) {
+  const filePathNoWorkspaceArr = uri.fsPath.replace(workspacePath + path.sep, "").split(path.sep);
+  if (cspAppsForUri(uri).some((cspApp) => uri.path.includes(cspApp + "/"))) {
     return true;
   } else {
-    // Check if this file matches our export settings
-    const { atelier, folder, addCategory } = config("export", workspace);
-    const expectedRoot = [
-      typeof folder === "string" && folder.length ? folder : null,
-      addCategory ? getCategory(file.fileName, addCategory) : null,
-    ]
-      .filter(notNull)
-      .join(path.sep);
-    let filePath = filePathNoWorkspaceArr.join(path.sep);
-    if (filePath.startsWith(expectedRoot)) {
-      filePath = filePath.slice(expectedRoot.length + path.sep.length);
-      if (file.uri.path.toLowerCase().endsWith(".dfi")) {
-        // DFI files can be split using the atelier setting
-        if ((atelier && !filePath.includes("-")) || !atelier) {
-          return true;
+    // Check if this is a known "other" document
+    const fileExt = uri.path.split(".").pop().toLowerCase();
+    if (otherDocExtsForUri(uri).includes(fileExt)) {
+      // The server-namespace supports this document type
+      return true;
+    } else {
+      // Fall back to checking if this file matches our export settings
+      const { atelier, folder, addCategory } = config("export", workspace);
+      const expectedRoot = [
+        typeof folder === "string" && folder.length ? folder : null,
+        addCategory ? getCategory(uri.fsPath, addCategory) : null,
+      ]
+        .filter(notNull)
+        .join(path.sep);
+      let filePath = filePathNoWorkspaceArr.join(path.sep);
+      if (filePath.startsWith(expectedRoot)) {
+        filePath = filePath.slice(expectedRoot.length + path.sep.length);
+        if (fileExt == "dfi") {
+          // DFI files can be split using the atelier setting
+          if ((atelier && !filePath.includes("-")) || !atelier) {
+            return true;
+          }
+        } else {
+          // Non-CSP or DFI files cannot be in subdirectories
+          return !filePath.includes(path.sep);
         }
-      } else {
-        // Non-CSP or DFI files cannot be in subdirectories
-        return !filePath.includes(path.sep);
       }
     }
     return false;
   }
+    */
 }
 
 /** A regex for extracting the name of a class from its content */
@@ -176,6 +249,14 @@ export function currentFileFromContent(uri: vscode.Uri, content: string | Buffer
     return null;
   }
   const fileExt = fileName.split(".").pop().toLowerCase();
+  if (
+    notIsfs(uri) &&
+    !["cls", "mac", "int", "inc"].includes(fileExt) &&
+    // This is a non-class or routine local file, so check if we can import it
+    !isImportableLocalFile(uri)
+  ) {
+    return null;
+  }
   let name = "";
   let ext = "";
   if (fileExt === "cls" && typeof content === "string") {
@@ -188,16 +269,18 @@ export function currentFileFromContent(uri: vscode.Uri, content: string | Buffer
     const match = content.match(routineNameTypeRegex);
     if (match) {
       [, name, ext = "mac"] = match;
-    } else {
-      [name, ext = "mac"] = path.basename(fileName).split(".");
     }
   } else {
-    name = getServerDocName(fileName, workspaceFolder, fileExt);
+    if (notIsfs(uri)) {
+      name = getServerDocName(uri, workspaceFolder, fileExt);
+    } else {
+      name = uri.path;
+    }
     // Need to strip leading / for custom Studio documents which should not be treated as files.
     // e.g. For a custom Studio document Test.ZPM, the variable name would be /Test.ZPM which is
     // not the document name. The document name is Test.ZPM so requests made to the Atelier APIs
     // using the name with the leading / would fail to find the document.
-    if (name.charAt(0) === "/") {
+    if (name?.charAt(0) == "/") {
       name = name.slice(1);
     }
   }
@@ -241,28 +324,19 @@ export function currentFile(document?: vscode.TextDocument): CurrentTextFile {
   const fileName = document.fileName;
   const fileExt = fileName.split(".").pop().toLowerCase();
   if (
-    !schemas.includes(document.uri.scheme) &&
-    (!document ||
-      !document.fileName ||
-      !document.languageId ||
-      !document.languageId.startsWith("objectscript") ||
-      document.languageId === "objectscript-output")
+    notIsfs(document.uri) &&
+    !["cls", "mac", "int", "inc"].includes(fileExt) &&
+    // This is a non-class or routine local file, so check if we can import it
+    !isImportableLocalFile(document.uri)
   ) {
-    // This is a non-InterSystems local file, so check if we can import it
-    if (!isImportableLocalFile(document)) {
-      return null;
-    }
+    return null;
   }
   const eol = document.eol || vscode.EndOfLine.LF;
   const uri = redirectDotvscodeRoot(document.uri);
   const content = document.getText();
   let name = "";
   let ext = "";
-  const params = new URLSearchParams(uri.query);
-  const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
-  if (csp) {
-    name = uri.path;
-  } else if (fileExt === "cls") {
+  if (fileExt === "cls") {
     // Allow Unicode letters
     const match = content.match(classNameRegex);
     if (match) {
@@ -272,24 +346,18 @@ export function currentFile(document?: vscode.TextDocument): CurrentTextFile {
     const match = content.match(routineNameTypeRegex);
     if (match) {
       [, name, ext = "mac"] = match;
-    } else {
-      [name, ext = "mac"] = path.basename(document.fileName).split(".");
     }
   } else {
-    if (document.uri.scheme === "file") {
-      if (fileExt.match(/(csp|csr)/i) && !isImportableLocalFile(document)) {
-        // This is a csp or csr file that's not in a csp directory
-        return null;
-      }
-      name = getServerDocName(fileName, currentWorkspaceFolder(document), fileExt);
+    if (notIsfs(document.uri)) {
+      name = getServerDocName(document.uri, currentWorkspaceFolder(document), fileExt);
     } else {
-      name = fileName;
+      name = uri.path;
     }
     // Need to strip leading / for custom Studio documents which should not be treated as files.
     // e.g. For a custom Studio document Test.ZPM, the variable name would be /Test.ZPM which is
     // not the document name. The document name is Test.ZPM so requests made to the Atelier APIs
     // using the name with the leading / would fail to find the document.
-    if (name.charAt(0) === "/") {
+    if (name?.charAt(0) == "/") {
       name = name.slice(1);
     }
   }
@@ -317,12 +385,11 @@ export function connectionTarget(uri?: vscode.Uri): ConnectionTarget {
   uri = uri
     ? uri
     : vscode.window.activeTextEditor && vscode.window.activeTextEditor.document
-    ? vscode.window.activeTextEditor.document.uri
-    : undefined;
+      ? vscode.window.activeTextEditor.document.uri
+      : undefined;
   if (uri) {
-    if (uri.scheme === "file") {
+    if (notIsfs(uri)) {
       const folder = vscode.workspace.getWorkspaceFolder(uri);
-
       // Active document might not be from any folder in the workspace (e.g. user's settings.json)
       if (folder) {
         result.configName = folder.name;
@@ -400,11 +467,11 @@ export function currentWorkspaceFolder(document?: vscode.TextDocument): string {
 }
 
 export function workspaceFolderOfUri(uri: vscode.Uri): string {
-  if (uri.scheme === "file") {
+  if (notIsfs(uri)) {
     if (vscode.workspace.getWorkspaceFolder(uri)) {
       return vscode.workspace.getWorkspaceFolder(uri).name;
     }
-  } else if (schemas.includes(uri.scheme)) {
+  } else {
     const rootUri = uri.with({ path: "/" }).toString();
     const foundFolder = vscode.workspace.workspaceFolders.find(
       (workspaceFolder) => workspaceFolder.uri.toString() == rootUri
@@ -708,11 +775,16 @@ export function isUnauthenticated(username: string): boolean {
   return username == undefined || username == "" || username.toLowerCase() == "unknownuser";
 }
 
+/** Returns `true` if `uri.scheme` is neither `isfs` nor `isfs-readonly` */
+export function notIsfs(uri: vscode.Uri): boolean {
+  return !filesystemSchemas.includes(uri.scheme);
+}
+
 // ---------------------------------------------------------------------
 // Source: https://github.com/amsterdamharu/lib/blob/master/src/index.js
 
 const promiseLike = (x) => x !== undefined && typeof x.then === "function";
-const ifPromise = (fn) => (x) => promiseLike(x) ? x.then(fn) : fn(x);
+const ifPromise = (fn) => (x) => (promiseLike(x) ? x.then(fn) : fn(x));
 
 /*
   causes a promise returning function not to be called

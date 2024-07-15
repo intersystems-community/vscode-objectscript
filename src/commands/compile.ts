@@ -19,7 +19,9 @@ import {
   CurrentFile,
   currentFileFromContent,
   CurrentTextFile,
+  handleError,
   isClassDeployed,
+  notIsfs,
   notNull,
   outputChannel,
   routineNameTypeRegex,
@@ -80,7 +82,7 @@ export async function checkChangedOnServer(file: CurrentTextFile | CurrentBinary
   return mtime;
 }
 
-async function importFile(
+export async function importFile(
   file: CurrentTextFile | CurrentBinaryFile,
   ignoreConflict?: boolean,
   skipDeplCheck = false
@@ -115,7 +117,11 @@ async function importFile(
     }
   }
   const mtime = await checkChangedOnServer(file);
-  ignoreConflict = ignoreConflict || mtime < 0 || (file.uri.scheme === "file" && config("overwriteServerChanges"));
+  ignoreConflict =
+    ignoreConflict ||
+    mtime < 0 ||
+    (notIsfs(file.uri) &&
+      vscode.workspace.getConfiguration("objectscript", file.uri).get<boolean>("overwriteServerChanges"));
   return api
     .putDoc(
       file.name,
@@ -189,22 +195,7 @@ What do you want to do?`,
             return Promise.reject();
           });
       } else {
-        if (error && error.errorText && error.errorText !== "") {
-          outputChannel.appendLine("\n" + error.errorText);
-          vscode.window
-            .showErrorMessage(
-              `Failed to save file '${file.name}' on the server. Check 'ObjectScript' output channel for details.`,
-              "Show",
-              "Dismiss"
-            )
-            .then((action) => {
-              if (action === "Show") {
-                outputChannel.show(true);
-              }
-            });
-        } else {
-          vscode.window.showErrorMessage(`Failed to save file '${file.name}' on the server.`, "Dismiss");
-        }
+        handleError(error, `Failed to save file '${file.name}' on the server.`);
         return Promise.reject();
       }
     });
@@ -220,7 +211,7 @@ function updateOthers(others: string[], baseUri: vscode.Uri) {
     const uri = DocumentContentProvider.getUri(item, undefined, undefined, undefined, workspaceFolder?.uri);
     if (filesystemSchemas.includes(uri.scheme)) {
       fileSystemProvider.fireFileChanged(uri);
-    } else {
+    } else if (uri.scheme == OBJECTSCRIPT_FILE_SCHEMA) {
       documentContentProvider.update(uri);
     }
   });
@@ -239,7 +230,7 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
         const file = files.find((f) => f.name == doc.name);
         const mtime = Number(new Date(doc.ts + "Z"));
         workspaceState.update(`${file.uniqueId}:mtime`, mtime > 0 ? mtime : undefined);
-        if (file.uri.scheme === "file") {
+        if (notIsfs(file.uri)) {
           const content = await api.getDoc(file.name).then((data) => data.result.content);
           await vscode.workspace.fs.writeFile(
             file.uri,
@@ -255,7 +246,11 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
 }
 
 export async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
-  flags = flags || config("compileFlags");
+  const conf = vscode.workspace.getConfiguration(
+    "objectscript",
+    vscode.workspace.getWorkspaceFolder(docs[0].uri) || docs[0].uri
+  );
+  flags = flags || conf.get("compileFlags");
   const api = new AtelierAPI(docs[0].uri);
   return vscode.window
     .withProgress(
@@ -275,24 +270,17 @@ export async function compile(docs: CurrentFile[], flags?: string): Promise<any>
             const info = docs.length > 1 ? "" : `${docs[0].name}: `;
             if (data.status && data.status.errors && data.status.errors.length) {
               throw new Error(`${info}Compile error`);
-            } else if (!config("suppressCompileMessages")) {
+            } else if (!conf.get("suppressCompileMessages")) {
               vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
             }
             return docs;
           })
           .catch(() => {
-            if (!config("suppressCompileErrorMessages")) {
-              vscode.window
-                .showErrorMessage(
-                  "Compilation failed. Check 'ObjectScript' output channel for details.",
-                  "Show",
-                  "Dismiss"
-                )
-                .then((action) => {
-                  if (action === "Show") {
-                    outputChannel.show(true);
-                  }
-                });
+            if (!conf.get("suppressCompileErrorMessages")) {
+              vscode.window.showErrorMessage(
+                "Compilation failed. Check the 'ObjectScript' Output channel for details.",
+                "Dismiss"
+              );
             }
             // Always fetch server changes, even when compile failed or got cancelled
             return docs;
@@ -312,7 +300,7 @@ export async function importAndCompile(
   }
 
   // Do nothing if it is a local file and objectscript.conn.active is false
-  if (file.uri.scheme === "file" && !config("conn").active) {
+  if (notIsfs(file.uri) && !config("conn").active) {
     return;
   }
 
@@ -359,7 +347,7 @@ export async function compileOnly(askFlags = false, document?: vscode.TextDocume
   }
 
   // Do nothing if it is a local file and objectscript.conn.active is false
-  if (file.uri.scheme === "file" && !config("conn").active) {
+  if (notIsfs(file.uri) && !config("conn").active) {
     return;
   }
 
@@ -419,17 +407,10 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
         })
         .catch(() => {
           if (!config("suppressCompileErrorMessages")) {
-            vscode.window
-              .showErrorMessage(
-                `Compiling namespace ${api.ns} failed. Check 'ObjectScript' output channel for details.`,
-                "Show",
-                "Dismiss"
-              )
-              .then((action) => {
-                if (action === "Show") {
-                  outputChannel.show(true);
-                }
-              });
+            vscode.window.showErrorMessage(
+              `Compiling namespace '${api.ns}' failed. Check the 'ObjectScript' Output channel for details.`,
+              "Dismiss"
+            );
           }
         })
         .then(() => {
@@ -442,7 +423,7 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
 
 async function importFiles(files: vscode.Uri[], noCompile = false) {
   const toCompile: CurrentFile[] = [];
-  await Promise.all<void>(
+  await Promise.allSettled<void>(
     files.map(
       throttleRequests((uri: vscode.Uri) => {
         return vscode.workspace.fs
@@ -526,17 +507,10 @@ export async function compileExplorerItems(nodes: NodeBase[]): Promise<any> {
         })
         .catch(() => {
           if (!config("suppressCompileErrorMessages")) {
-            vscode.window
-              .showErrorMessage(
-                `Compilation failed. Check 'ObjectScript' output channel for details.`,
-                "Show",
-                "Dismiss"
-              )
-              .then((action) => {
-                if (action === "Show") {
-                  outputChannel.show(true);
-                }
-              });
+            vscode.window.showErrorMessage(
+              "Compilation failed. Check the 'ObjectScript' Output channel for details.",
+              "Dismiss"
+            );
           }
         })
   );
@@ -551,8 +525,7 @@ async function importFileFromContent(
   skipDeplCheck = false
 ): Promise<void> {
   if (name.split(".").pop().toLowerCase() === "cls" && !skipDeplCheck) {
-    const result = await api.actionIndex([name]);
-    if (result.result.content[0].content.depl) {
+    if (await isClassDeployed(name, api)) {
       vscode.window.showErrorMessage(`Cannot import ${name} because it is deployed on the server.`, "Dismiss");
       return Promise.reject();
     }
@@ -588,22 +561,7 @@ async function importFileFromContent(
             }
           });
       } else {
-        if (error && error.errorText && error.errorText !== "") {
-          outputChannel.appendLine("\n" + error.errorText);
-          vscode.window
-            .showErrorMessage(
-              `Failed to save file '${name}' on the server. Check 'ObjectScript' output channel for details.`,
-              "Show",
-              "Dismiss"
-            )
-            .then((action) => {
-              if (action === "Show") {
-                outputChannel.show(true);
-              }
-            });
-        } else {
-          vscode.window.showErrorMessage(`Failed to save file '${name}' on the server.`, "Dismiss");
-        }
+        handleError(error, `Failed to save file '${name}' on the server.`);
         return Promise.reject();
       }
     });
@@ -643,17 +601,10 @@ async function promptForCompile(imported: string[], api: AtelierAPI, refresh: bo
                 })
                 .catch(() => {
                   if (!config("suppressCompileErrorMessages")) {
-                    vscode.window
-                      .showErrorMessage(
-                        "Compilation failed. Check 'ObjectScript' output channel for details.",
-                        "Show",
-                        "Dismiss"
-                      )
-                      .then((action) => {
-                        if (action === "Show") {
-                          outputChannel.show(true);
-                        }
-                      });
+                    vscode.window.showErrorMessage(
+                      "Compilation failed. Check the 'ObjectScript' Output channel for details.",
+                      "Dismiss"
+                    );
                   }
                 })
                 .finally(() => {
@@ -953,12 +904,6 @@ export async function importXMLFiles(): Promise<any> {
       promptForCompile([...new Set(imported)], api, filesystemSchemas.includes(connectionUri.scheme));
     }
   } catch (error) {
-    let errorMsg = "Error executing 'Import XML Files...' command.";
-    if (error && error.errorText && error.errorText !== "") {
-      outputChannel.appendLine("\n" + error.errorText);
-      outputChannel.show(true);
-      errorMsg += " Check 'ObjectScript' output channel for details.";
-    }
-    vscode.window.showErrorMessage(errorMsg, "Dismiss");
+    handleError(error, "Error executing 'Import XML Files...' command.");
   }
 }

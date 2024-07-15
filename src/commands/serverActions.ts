@@ -13,7 +13,8 @@ import {
   shellWithDocker,
   currentFile,
   uriOfWorkspaceFolder,
-  outputChannel,
+  notIsfs,
+  handleError,
 } from "../utils";
 import { mainCommandMenu, mainSourceControlMenu } from "./studio";
 import { AtelierAPI } from "../api";
@@ -45,8 +46,9 @@ export async function serverActions(): Promise<void> {
       detail: "Force attempt to connect to the server",
     });
 
-    // Switching namespace makes only sense if the user has a local folder open and not a server-side folder!
-    if (uriOfWorkspaceFolder()?.scheme === "file") {
+    // Switching namespace makes only sense for non-ISFS folders
+    const wsUri = uriOfWorkspaceFolder();
+    if (wsUri && notIsfs(wsUri)) {
       actions.push({
         id: "switchNamespace",
         label: "Switch Namespace",
@@ -78,13 +80,7 @@ export async function serverActions(): Promise<void> {
           .serverInfo(false)
           .then((data) => data.result.content.namespaces)
           .catch((error) => {
-            let message = `Failed to fetch a list of namespaces.`;
-            if (error && error.errorText && error.errorText !== "") {
-              outputChannel.appendLine("\n" + error.errorText);
-              outputChannel.show(true);
-              message += " Check 'ObjectScript' output channel for details.";
-            }
-            vscode.window.showErrorMessage(message, "Dismiss");
+            handleError(error, "Failed to fetch a list of namespaces.");
             return undefined;
           });
 
@@ -240,13 +236,7 @@ export async function serverActions(): Promise<void> {
             )
             .then((data) => data.result.content)
             .catch((error) => {
-              let message = "Failed to fetch list of Studio Add-ins.";
-              if (error && error.errorText && error.errorText !== "") {
-                outputChannel.appendLine("\n" + error.errorText);
-                outputChannel.show(true);
-                message += " Check 'ObjectScript' output channel for details.";
-              }
-              vscode.window.showErrorMessage(message, "Dismiss");
+              handleError(error, "Failed to fetch list of Studio Add-ins.");
               return undefined;
             });
           if (addins != undefined) {
