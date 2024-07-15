@@ -5,6 +5,7 @@ export class File implements vscode.FileStat {
   public ctime: number;
   public mtime: number;
   public size: number;
+  public permissions?: vscode.FilePermission;
   public fileName: string;
   public name: string;
   public data?: Uint8Array;

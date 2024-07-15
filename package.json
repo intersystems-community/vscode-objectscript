@@ -1325,7 +1325,14 @@
         "objectscript.serverSourceControl.disableOtherActionTriggers": {
           "description": "Prevent server-side source control 'other action' triggers from firing.",
           "type": "boolean",
-          "scope": "resource"
+          "scope": "resource",
+          "default": false
+        },
+        "objectscript.serverSourceControl.respectEditableStatus": {
+          "markdownDescription": "Set `isfs` document readonly if GetStatus method of server-side source control class returns Editable = 0.",
+          "type": "boolean",
+          "scope": "resource",
+          "default": false
         },
         "objectscript.export": {
           "type": "object",
@@ -1703,7 +1710,8 @@
               },
               "stopOnEntry": {
                 "type": "boolean",
-                "description": "Automatically stop target after attach. If not specified, target does not stop."
+                "description": "Automatically stop target after attach. If not specified, target does not stop.",
+                "default": false
               }
             }
           }
