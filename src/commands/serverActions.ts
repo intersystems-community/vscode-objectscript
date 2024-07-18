@@ -257,7 +257,9 @@ export async function serverActions(): Promise<void> {
               const token = await getCSPToken(api, addin.id);
               let params = `Namespace=${nsEncoded}`;
               params += `&User=${encodeURIComponent(username)}`;
-              params += `&Project=${encodeURIComponent(project)}`;
+              if (project !== "") {
+                params += `&Project=${encodeURIComponent(project)}`;
+              }
               params += `&CSPCHD=${token}`;
               vscode.env.openExternal(vscode.Uri.parse(`${serverUrl}${addin.id}?${params}`));
             }
