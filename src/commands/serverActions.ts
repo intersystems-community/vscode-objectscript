@@ -255,9 +255,13 @@ export async function serverActions(): Promise<void> {
             });
             if (addin) {
               const token = await getCSPToken(api, addin.id);
-              vscode.env.openExternal(
-                vscode.Uri.parse(`${serverUrl}${addin.id}?Namespace=${nsEncoded}&CSPCHD=${token}`)
-              );
+              let params = `Namespace=${nsEncoded}`;
+              params += `&User=${encodeURIComponent(username)}`;
+              if (project !== "") {
+                params += `&Project=${encodeURIComponent(project)}`;
+              }
+              params += `&CSPCHD=${token}`;
+              vscode.env.openExternal(vscode.Uri.parse(`${serverUrl}${addin.id}?${params}`));
             }
           }
           break;
