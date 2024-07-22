@@ -2,11 +2,12 @@
 
 ## [2.12.6] 23-Jul-2024
 - Enhancements
-  - Support command stepping in debugger (#1385)
+  - Support command stepping in debugger (requires InterSystems IRIS 2023.1.5, 2024.1.1+, or 2024.2+) (#1385)
   - Add `Compile` command to server-side file explorer (#1389)
   - Associate unit test debug sessions with the test runs (#1395)
   - Add command for opening InterSystems documents (#1398)
-  - Set file readonly if class is deployed or if server-side source control reports it not editable (off by default) (#1399)
+  - Make server-side class readonly if it's deployed (#1399)
+  - Add new `objectscript.serverSourceControl.respectEditableStatus` setting to make server-side file readonly if source control reports it i not editable (#1399)
 - Fixes
   - Improve triggering of `AttemptedEdit` source control action (#1380)
   - Use hyphen instead of underscore in HTTP request header names (#1384)
