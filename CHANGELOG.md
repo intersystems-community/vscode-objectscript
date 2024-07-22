@@ -7,7 +7,7 @@
   - Associate unit test debug sessions with the test runs (#1395)
   - Add command for opening InterSystems documents (#1398)
   - Make server-side class readonly if it's deployed (#1399)
-  - Add new `objectscript.serverSourceControl.respectEditableStatus` setting to make server-side file readonly if source control reports it i not editable (#1399)
+  - Add new `objectscript.serverSourceControl.respectEditableStatus` setting to make server-side file readonly if source control reports it is not editable (#1399)
 - Fixes
   - Improve triggering of `AttemptedEdit` source control action (#1380)
   - Use hyphen instead of underscore in HTTP request header names (#1384)
