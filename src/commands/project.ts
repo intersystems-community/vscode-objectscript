@@ -181,11 +181,14 @@ export async function deleteProject(node: ProjectNode | undefined): Promise<any>
     api = new AtelierAPI(vscode.Uri.parse(`isfs://${serverName}:${namespace}/`));
     project = await pickProject(api);
   }
-  if (project === undefined) {
+  if (project == undefined) {
     return;
   }
 
   try {
+    // Ask the user for confirmation
+    const answer = await vscode.window.showWarningMessage(`Delete project '${project}'?`, { modal: true }, "Yes", "No");
+    if (answer != "Yes") return;
     // Delete the project
     await api.actionQuery("DELETE FROM %Studio.Project WHERE Name = ?", [project]);
   } catch (error) {
