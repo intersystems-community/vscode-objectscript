@@ -469,7 +469,7 @@ async function pickAdditions(
             if (items.findIndex((pi) => pi.Type == "DIR" && pi.Name == app) == -1) {
               return {
                 label: "$(folder) " + app,
-                fullName: app,
+                fullName: i,
                 buttons: [
                   {
                     iconPath: new vscode.ThemeIcon("chevron-right"),
@@ -536,7 +536,7 @@ async function pickAdditions(
       if (category == "CLS" || !item.fullName.includes("/")) {
         tmpParams = [item.fullName + "/*.cls", sys, gen, project, item.fullName + ".", item.fullName + "."];
       } else {
-        tmpParams = [item.fullName + "/*", sys, gen, project, item.fullName + "/"];
+        tmpParams = [item.fullName + "/*", sys, gen, project, item.fullName.slice(1) + "/"];
       }
       if (category == undefined) {
         if (item.fullName.includes("/")) {
@@ -749,7 +749,11 @@ export async function modifyProject(
 
         let newAdd: ProjectItem[] = [];
         let newRemove: ProjectItem[] = [];
-        const addResult = addProjectItem(type == "CLS" || type == "PKG" ? pick.slice(0, -4) : pick, type, items);
+        const addResult = addProjectItem(
+          type == "CLS" || type == "PKG" ? pick.slice(0, -4) : type == "CSP" || type == "DIR" ? pick.slice(1) : pick,
+          type,
+          items
+        );
         newAdd = addResult.add;
         newRemove = addResult.remove;
 
