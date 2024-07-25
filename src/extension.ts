@@ -934,7 +934,42 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.commands.registerCommand("vscode-objectscript.pickProcess", async (config) => {
       const system = config.system;
-      const api = new AtelierAPI(vscode.window.activeTextEditor?.document.uri);
+      let connectionUri = vscode.window.activeTextEditor?.document.uri;
+      if (connectionUri) {
+        // Ignore active editor if its document is outside the workspace (e.g. user settings.json)
+        connectionUri = vscode.workspace.getWorkspaceFolder(connectionUri)?.uri;
+      }
+      if (!connectionUri) {
+        // May need to ask the user
+        const workspaceFolders = vscode.workspace.workspaceFolders || [];
+        if (workspaceFolders.length == 0) {
+          vscode.window.showErrorMessage(`Attaching to a server process requires a workspace to be open.`, {
+            modal: true,
+          });
+          return;
+        }
+        if (workspaceFolders.length == 1) {
+          connectionUri = workspaceFolders[0].uri;
+        } else {
+          // Pick from the workspace folders
+          connectionUri = (
+            await vscode.window.showWorkspaceFolderPick({
+              ignoreFocusOut: true,
+              placeHolder: "Pick the workspace folder to get server connection information from",
+            })
+          )?.uri;
+        }
+      }
+      if (!connectionUri) {
+        return;
+      }
+      const api = new AtelierAPI(connectionUri);
+      if (!api.active) {
+        vscode.window.showErrorMessage(`No active server connection.`, {
+          modal: true,
+        });
+        return;
+      }
 
       const list = await api.getJobs(system).then(async (jobData) => {
         // NOTE: We do not know if the current user has permissions to other namespaces
@@ -969,14 +1004,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         });
       });
       if (!list.length) {
-        vscode.window.showInformationMessage(`No attachable processes are running in ${api.ns}.`, {
+        vscode.window.showInformationMessage(`No attachable processes are running in ${api.ns} on '${api.serverId}'.`, {
           modal: true,
         });
         return;
       }
       return vscode.window
         .showQuickPick<vscode.QuickPickItem>(list, {
-          placeHolder: "Pick the process to attach to",
+          placeHolder: `Pick the process to attach to in ${api.ns} on '${api.serverId}'`,
           matchOnDescription: true,
         })
         .then((value) => {
