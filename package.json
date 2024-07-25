@@ -1706,7 +1706,7 @@
                   "number",
                   "string"
                 ],
-                "description": "The CSP debug ID to use to identify the target process. If provided, 'processId' and 'stopOnEntry' are ignored."
+                "description": "The CSP debug ID to use to identify the target process. If provided, 'processId' is ignored."
               }
             }
           }
