@@ -820,6 +820,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   openedClasses = workspaceState.get("openedClasses") ?? [];
 
+  /** The stringified URIs of all `isfs` documents that are currently open in a UI tab */
+  const isfsTabs: string[] = [];
+
   // Create this here so we can fire its event
   const fileDecorationProvider = new FileDecorationProvider();
 
@@ -1140,6 +1143,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       if (idx > -1) {
         openedClasses.splice(idx, 1);
       }
+      const isfsIdx = isfsTabs.indexOf(uri);
+      if (isfsIdx > -1) {
+        isfsTabs.splice(isfsIdx, 1);
+        fireOtherStudioAction(OtherStudioAction.ClosedDocument, doc.uri);
+      }
     }),
     vscode.commands.registerCommand("vscode-objectscript.addItemsToProject", (item) => {
       return modifyProject(item instanceof NodeBase || item instanceof vscode.Uri ? item : undefined, "add");
@@ -1430,6 +1438,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       vscode.window.showTextDocument(
         DocumentContentProvider.getUri(doc, undefined, undefined, undefined, wsFolder.uri)
       );
+    }),
+    vscode.window.tabGroups.onDidChangeTabs((e) => {
+      const processUri = (uri: vscode.Uri): void => {
+        if (uri.scheme == FILESYSTEM_SCHEMA) {
+          isfsTabs.push(uri.toString());
+          fireOtherStudioAction(OtherStudioAction.OpenedDocument, uri);
+        }
+      };
+      for (const t of e.opened) {
+        if (t.input instanceof vscode.TabInputText || t.input instanceof vscode.TabInputCustom) {
+          processUri(t.input.uri);
+        } else if (t.input instanceof vscode.TabInputTextDiff) {
+          processUri(t.input.original);
+          processUri(t.input.modified);
+        }
+      }
     }),
     ...setUpTestController(),
 
