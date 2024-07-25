@@ -106,9 +106,6 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
   /** If we're stopped at a breakpoint. */
   private _break = false;
 
-  /** If we should automatically stop target */
-  private _stopOnEntry: boolean;
-
   /** If this is a `launch` session */
   private _isLaunch = false;
 
@@ -228,7 +225,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
   protected async launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments): Promise<void> {
     try {
-      this._debugTargetSet = this._stopOnEntry = false;
+      this._debugTargetSet = false;
       this._isLaunch = true;
       const debugTarget = `${this._namespace}:${args.program}`;
       await this._connection.sendFeatureSetCommand("debug_target", debugTarget, true);
@@ -243,7 +240,6 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
   protected async attachRequest(response: DebugProtocol.AttachResponse, args: AttachRequestArguments): Promise<void> {
     try {
       this._debugTargetSet = this._isLaunch = false;
-      this._stopOnEntry = args.stopOnEntry;
       const debugTarget = args.cspDebugId != undefined ? `CSPDEBUG:${args.cspDebugId}` : `PID:${args.processId}`;
       await this._connection.sendFeatureSetCommand("debug_target", debugTarget);
       if (args.cspDebugId != undefined) {
@@ -258,7 +254,6 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
           await this._connection.sendBreakpointSetCommand(new xdebug.Watchpoint("ok", this._cspWatchpointCondition));
           this._isCsp = true;
         }
-        this._stopOnEntry = false;
         this.sendResponse(response);
       } else {
         this._isCsp = false;
@@ -291,11 +286,9 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     args: DebugProtocol.ConfigurationDoneArguments
   ): Promise<void> {
     if (!this._isLaunch && !this._isCsp) {
-      // The debug agent ignores the first run command for non-CSP attaches,
-      // so send one right away, regardless of the stopOnEntry value
+      // The debug agent ignores the first run command
+      // for non-CSP attaches, so send one right away
       await this._connection.sendRunCommand();
-    }
-    if (this._stopOnEntry && !this._isLaunch && !this._isCsp) {
       // Tell VS Code that we're stopped
       this.sendResponse(response);
       const event: DebugProtocol.StoppedEvent = new StoppedEvent("entry", this._connection.id);
