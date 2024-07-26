@@ -93,7 +93,7 @@ export async function projectContentsFromUri(uri: vscode.Uri, overrideFlat?: boo
         `SELECT DISTINCT BY (${nameCol}) ${nameCol} ` +
         "Name, Type FROM %Studio.Project_ProjectItemsList(?,1) AS pil WHERE " +
         "(Type = 'MAC' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.mac,*.int,*.inc,*.bas,*.mvi',1,1,1,1,0,1) AS sod WHERE pil.Name = sod.Name)) OR " +
-        "(Type = 'CSP' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,1,0,1) AS sod WHERE pil.Name = sod.Name)) OR " +
+        "(Type = 'CSP' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,1,0,1) AS sod WHERE '/'||pil.Name = sod.Name)) OR " +
         "(Type NOT IN ('CLS','PKG','MAC','CSP','DIR','GBL') AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.other',1,1,1,1,0,1) AS sod WHERE " +
         "$PIECE(sod.Name,'.',1,$LENGTH(sod.Name,'.')-1) = $PIECE(pil.Name,'.',1,$LENGTH(pil.Name,'.')-1) AND UPPER($PIECE(sod.Name,'.',$LENGTH(sod.Name,'.'))) = $PIECE(pil.Name,'.',$LENGTH(pil.Name,'.')))) OR " +
         "(Type = 'CLS' AND EXISTS (SELECT dcd.ID FROM %Dictionary.ClassDefinition AS dcd WHERE dcd.ID = pil.Name)) OR " +

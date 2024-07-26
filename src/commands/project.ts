@@ -169,11 +169,14 @@ export async function deleteProject(node: ProjectNode | undefined): Promise<any>
     api = new AtelierAPI(vscode.Uri.parse(`isfs://${serverName}:${namespace}/`));
     project = await pickProject(api);
   }
-  if (project === undefined) {
+  if (project == undefined) {
     return;
   }
 
   try {
+    // Ask the user for confirmation
+    const answer = await vscode.window.showWarningMessage(`Delete project '${project}'?`, { modal: true }, "Yes", "No");
+    if (answer != "Yes") return;
     // Delete the project
     await api.actionQuery("DELETE FROM %Studio.Project WHERE Name = ?", [project]);
   } catch (error) {
@@ -446,7 +449,7 @@ async function pickAdditions(
             if (items.findIndex((pi) => pi.Type == "DIR" && pi.Name == app) == -1) {
               return {
                 label: "$(folder) " + app,
-                fullName: app,
+                fullName: i,
                 buttons: [
                   {
                     iconPath: new vscode.ThemeIcon("chevron-right"),
@@ -507,7 +510,7 @@ async function pickAdditions(
       if (category == "CLS" || !item.fullName.includes("/")) {
         tmpParams = [item.fullName + "/*.cls", sys, gen, project, item.fullName + ".", item.fullName + "."];
       } else {
-        tmpParams = [item.fullName + "/*", sys, gen, project, item.fullName + "/"];
+        tmpParams = [item.fullName + "/*", sys, gen, project, item.fullName.slice(1) + "/"];
       }
       if (category == undefined) {
         if (item.fullName.includes("/")) {
@@ -714,7 +717,11 @@ export async function modifyProject(
 
         let newAdd: ProjectItem[] = [];
         let newRemove: ProjectItem[] = [];
-        const addResult = addProjectItem(type == "CLS" || type == "PKG" ? pick.slice(0, -4) : pick, type, items);
+        const addResult = addProjectItem(
+          type == "CLS" || type == "PKG" ? pick.slice(0, -4) : type == "CSP" || type == "DIR" ? pick.slice(1) : pick,
+          type,
+          items
+        );
         newAdd = addResult.add;
         newRemove = addResult.remove;
 

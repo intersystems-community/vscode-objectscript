@@ -863,6 +863,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   openedClasses = workspaceState.get("openedClasses") ?? [];
 
+  /** The stringified URIs of all `isfs` documents that are currently open in a UI tab */
+  const isfsTabs: string[] = [];
+
   // Create this here so we can fire its event
   const fileDecorationProvider = new FileDecorationProvider();
 
@@ -918,7 +921,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 1) {
         const workspaceFolder = currentWorkspaceFolder();
         if (workspaceFolder && workspaceFolder !== workspaceState.get<string>("workspaceFolder")) {
-          workspaceState.update("workspaceFolder", workspaceFolder);
+          await workspaceState.update("workspaceFolder", workspaceFolder);
           await checkConnection(false, editor?.document.uri);
         }
       }
@@ -980,7 +983,42 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.commands.registerCommand("vscode-objectscript.pickProcess", async (config) => {
       const system = config.system;
-      const api = new AtelierAPI(vscode.window.activeTextEditor?.document.uri);
+      let connectionUri = vscode.window.activeTextEditor?.document.uri;
+      if (connectionUri) {
+        // Ignore active editor if its document is outside the workspace (e.g. user settings.json)
+        connectionUri = vscode.workspace.getWorkspaceFolder(connectionUri)?.uri;
+      }
+      if (!connectionUri) {
+        // May need to ask the user
+        const workspaceFolders = vscode.workspace.workspaceFolders || [];
+        if (workspaceFolders.length == 0) {
+          vscode.window.showErrorMessage(`Attaching to a server process requires a workspace to be open.`, {
+            modal: true,
+          });
+          return;
+        }
+        if (workspaceFolders.length == 1) {
+          connectionUri = workspaceFolders[0].uri;
+        } else {
+          // Pick from the workspace folders
+          connectionUri = (
+            await vscode.window.showWorkspaceFolderPick({
+              ignoreFocusOut: true,
+              placeHolder: "Pick the workspace folder to get server connection information from",
+            })
+          )?.uri;
+        }
+      }
+      if (!connectionUri) {
+        return;
+      }
+      const api = new AtelierAPI(connectionUri);
+      if (!api.active) {
+        vscode.window.showErrorMessage(`No active server connection.`, {
+          modal: true,
+        });
+        return;
+      }
 
       const list = await api.getJobs(system).then(async (jobData) => {
         // We do not know if the current user has permissions in other namespaces,
@@ -1015,18 +1053,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         });
       });
       if (!list.length) {
-        vscode.window.showInformationMessage(`No attachable processes are running in ${api.ns}.`, {
+        vscode.window.showInformationMessage(`No attachable processes are running in ${api.ns} on '${api.serverId}'.`, {
           modal: true,
         });
         return;
       }
       return vscode.window
         .showQuickPick<vscode.QuickPickItem>(list, {
-          placeHolder: "Pick the process to attach to",
+          placeHolder: `Pick the process to attach to in ${api.ns} on '${api.serverId}'`,
           matchOnDescription: true,
         })
         .then((value) => {
-          if (value) return value.label;
+          if (value) {
+            const workspaceFolderIndex = vscode.workspace.workspaceFolders.findIndex(
+              (folder) => folder.uri.toString() === connectionUri.toString()
+            );
+            return workspaceFolderIndex < 0 ? value.label : `${value.label}@${workspaceFolderIndex}`;
+          }
         });
     }),
     vscode.commands.registerCommand("vscode-objectscript.jumpToTagAndOffset", jumpToTagAndOffset),
@@ -1175,6 +1218,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       if (idx > -1) {
         openedClasses.splice(idx, 1);
       }
+      const isfsIdx = isfsTabs.indexOf(uri);
+      if (isfsIdx > -1) {
+        isfsTabs.splice(isfsIdx, 1);
+        fireOtherStudioAction(OtherStudioAction.ClosedDocument, doc.uri);
+      }
     }),
     vscode.commands.registerCommand("vscode-objectscript.addItemsToProject", (item) => {
       return modifyProject(item instanceof NodeBase || item instanceof vscode.Uri ? item : undefined, "add");
@@ -1305,15 +1353,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.window.onDidChangeActiveTextEditor(async (textEditor: vscode.TextEditor) => {
       if (!textEditor) return;
-      await checkConnection(false, textEditor.document.uri);
       posPanel.text = "";
+      await checkConnection(false, textEditor.document.uri);
       if (textEditor.document.uri.path.toLowerCase().endsWith(".xml") && config("autoPreviewXML")) {
         return previewXMLAsUDL(textEditor, true);
       }
     }),
     vscode.window.onDidChangeTextEditorSelection((event: vscode.TextEditorSelectionChangeEvent) => {
-      posPanel.text = "";
       const document = event.textEditor.document;
+
+      // Avoid losing position indicator if event came from output channel
+      if (document.uri.scheme == "output") {
+        return;
+      }
+      posPanel.text = "";
       if (![macLangId, intLangId].includes(document.languageId)) {
         return;
       }
@@ -1457,6 +1510,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       vscode.window.showTextDocument(
         DocumentContentProvider.getUri(doc, undefined, undefined, undefined, wsFolder.uri)
       );
+    }),
+    vscode.window.tabGroups.onDidChangeTabs((e) => {
+      const processUri = (uri: vscode.Uri): void => {
+        if (uri.scheme == FILESYSTEM_SCHEMA) {
+          isfsTabs.push(uri.toString());
+          fireOtherStudioAction(OtherStudioAction.OpenedDocument, uri);
+        }
+      };
+      for (const t of e.opened) {
+        if (t.input instanceof vscode.TabInputText || t.input instanceof vscode.TabInputCustom) {
+          processUri(t.input.uri);
+        } else if (t.input instanceof vscode.TabInputTextDiff) {
+          processUri(t.input.original);
+          processUri(t.input.modified);
+        }
+      }
     }),
     ...setUpTestController(),
 

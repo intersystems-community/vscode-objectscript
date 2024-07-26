@@ -1668,12 +1668,7 @@
                   "number",
                   "string"
                 ],
-                "description": "The CSP debug ID to use to identify the target process. If provided, 'processId' and 'stopOnEntry' are ignored."
-              },
-              "stopOnEntry": {
-                "type": "boolean",
-                "description": "Automatically stop target after attach. If not specified, target does not stop.",
-                "default": false
+                "description": "The CSP debug ID to use to identify the target process. If provided, 'processId' is ignored."
               }
             }
           }
@@ -1686,7 +1681,12 @@
             "type": "objectscript",
             "request": "launch",
             "name": "XDebug"
-          }
+          },
+          {
+            "type": "objectscript",
+            "request": "attach",
+            "name": "Attach to running process"
+          }    
         ],
         "configurationSnippets": [
           {
