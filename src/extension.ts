@@ -1015,7 +1015,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           matchOnDescription: true,
         })
         .then((value) => {
-          if (value) return value.label;
+          if (value) {
+            const workspaceFolderIndex = vscode.workspace.workspaceFolders.findIndex(
+              (folder) => folder.uri.toString() === connectionUri.toString()
+            );
+            return workspaceFolderIndex < 0 ? value.label : `${value.label}@${workspaceFolderIndex}`;
+          }
         });
     }),
     vscode.commands.registerCommand("vscode-objectscript.jumpToTagAndOffset", jumpToTagAndOffset),
