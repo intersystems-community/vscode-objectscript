@@ -1719,7 +1719,12 @@
             "type": "objectscript",
             "request": "launch",
             "name": "XDebug"
-          }
+          },
+          {
+            "type": "objectscript",
+            "request": "attach",
+            "name": "Attach to running process"
+          }    
         ],
         "configurationSnippets": [
           {

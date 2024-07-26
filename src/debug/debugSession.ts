@@ -63,6 +63,15 @@ async function convertClientPathToDebugger(uri: vscode.Uri, namespace: string): 
 }
 
 export class ObjectScriptDebugSession extends LoggingDebugSession {
+  /** After setupAPI() has been called this will return the serverId string */
+  public get serverId(): string | undefined {
+    return this._api?.serverId;
+  }
+
+  private _api?: AtelierAPI;
+
+  private _workspaceFolderUri?: vscode.Uri;
+
   private _statuses = new Map<xdebug.Connection, xdebug.StatusResponse>();
 
   private _connection: xdebug.Connection;
@@ -88,8 +97,6 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
   private _evalResultProperties = new Map<number, xdebug.EvalResultProperty>();
 
   private _workspace: string;
-
-  private cookies: string[] = [];
 
   /** If this is a CSPDEBUG session */
   private _isCsp = false;
@@ -122,6 +129,27 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     do {
       await new Promise((resolve) => setTimeout(resolve, 100)); // Wait 100 ms
     } while (!this._debugTargetSet);
+  }
+
+  /** To be called immediately after construction */
+  public setupAPI(workspaceFolderUri?: vscode.Uri): void {
+    // Only effective the first time
+    if (this._api) {
+      return;
+    }
+
+    this._workspaceFolderUri = workspaceFolderUri;
+    if (workspaceFolderUri) {
+      // The uri of the relevant workspace folder was set after construction
+      this._workspace = undefined;
+      this._api = new AtelierAPI(workspaceFolderUri);
+    } else {
+      // Fall back to old way of deciding where to connect
+      const file = currentFile();
+      this._workspace = file?.workspaceFolder;
+      this._api = new AtelierAPI(file?.uri);
+    }
+    return;
   }
 
   /** Check if the target is stopped */
@@ -161,21 +189,16 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     };
 
     try {
-      const file = currentFile();
-      this._workspace = file?.workspaceFolder;
-
-      const api = new AtelierAPI(file?.uri);
-      this.cookies = api.cookies;
-      if (!api.active) {
+      if (!this._api.active) {
         throw new Error("Connection not active");
       }
-      this._namespace = api.ns;
-      this._url = api.xdebugUrl();
+      this._namespace = this._api.ns;
+      this._url = this._api.xdebugUrl();
 
       const socket = new WebSocket(this._url, {
         rejectUnauthorized: vscode.workspace.getConfiguration("http").get("proxyStrictSSL"),
         headers: {
-          cookie: this.cookies,
+          cookie: this._api.cookies,
         },
       });
 
@@ -240,7 +263,8 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
   protected async attachRequest(response: DebugProtocol.AttachResponse, args: AttachRequestArguments): Promise<void> {
     try {
       this._debugTargetSet = this._isLaunch = false;
-      const debugTarget = args.cspDebugId != undefined ? `CSPDEBUG:${args.cspDebugId}` : `PID:${args.processId}`;
+      const debugTarget =
+        args.cspDebugId != undefined ? `CSPDEBUG:${args.cspDebugId}` : `PID:${args.processId.split("@")[0]}`;
       await this._connection.sendFeatureSetCommand("debug_target", debugTarget);
       if (args.cspDebugId != undefined) {
         if (args.isUnitTest) {
@@ -590,7 +614,13 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       stack.stack.map(async (stackFrame: xdebug.StackFrame, index): Promise<StackFrame> => {
         const [, namespace, name] = decodeURI(stackFrame.fileUri).match(/^dbgp:\/\/\|([^|]+)\|(.*)$/);
         const routine = name;
-        const fileUri = DocumentContentProvider.getUri(routine, this._workspace, namespace);
+        const fileUri = DocumentContentProvider.getUri(
+          routine,
+          this._workspace,
+          namespace,
+          undefined,
+          this._workspaceFolderUri
+        );
         const source = new Source(routine, fileUri.toString());
         let line = stackFrame.line + 1;
         const place = `${stackFrame.method}+${stackFrame.methodOffset}`;
