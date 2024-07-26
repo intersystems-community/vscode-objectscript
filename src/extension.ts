@@ -865,7 +865,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 1) {
         const workspaceFolder = currentWorkspaceFolder();
         if (workspaceFolder && workspaceFolder !== workspaceState.get<string>("workspaceFolder")) {
-          workspaceState.update("workspaceFolder", workspaceFolder);
+          await workspaceState.update("workspaceFolder", workspaceFolder);
           await checkConnection(false, editor?.document.uri);
         }
       }
@@ -1318,15 +1318,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.window.onDidChangeActiveTextEditor(async (textEditor: vscode.TextEditor) => {
       if (!textEditor) return;
-      await checkConnection(false, textEditor.document.uri);
       posPanel.text = "";
+      await checkConnection(false, textEditor.document.uri);
       if (textEditor.document.uri.path.toLowerCase().endsWith(".xml") && config("autoPreviewXML")) {
         return previewXMLAsUDL(textEditor, true);
       }
     }),
     vscode.window.onDidChangeTextEditorSelection((event: vscode.TextEditorSelectionChangeEvent) => {
-      posPanel.text = "";
       const document = event.textEditor.document;
+
+      // Avoid losing position indicator if event came from output channel
+      if (document.uri.scheme == "output") {
+        return;
+      }
+      posPanel.text = "";
       if (![macLangId, intLangId].includes(document.languageId)) {
         return;
       }
