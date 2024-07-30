@@ -1162,11 +1162,11 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.launchWebSocketTerminal",
-        "title": "Launch WebSocket Terminal"
+        "title": "Launch Lite Terminal"
       },
       {
         "command": "vscode-objectscript.intersystems-servermanager.webterminal",
-        "title": "Launch WebSocket Terminal",
+        "title": "Launch Lite Terminal",
         "icon": "$(terminal)"
       },
       {
@@ -1555,7 +1555,7 @@
           "default": true
         },
         "objectscript.webSocketTerminal.syntaxColoring": {
-          "description": "Enable syntax coloring for command input in the InterSystems WebSocket Terminal.",
+          "description": "Enable syntax coloring for command input in the InterSystems Lite Terminal.",
           "type": "boolean",
           "default": true
         },
@@ -1782,7 +1782,7 @@
       "profiles": [
         {
           "id": "vscode-objectscript.webSocketTerminal",
-          "title": "InterSystems WebSocket Terminal",
+          "title": "InterSystems Lite Terminal",
           "icon": "./images/fileIcon.svg"
         }
       ]

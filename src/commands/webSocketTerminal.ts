@@ -173,7 +173,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
       outputChannel.appendLine("Check that the InterSystems server's web server supports WebSockets.");
       outputChannel.show(true);
       vscode.window.showErrorMessage(
-        "Failed to initialize WebSocket Terminal. Check 'ObjectScript' Output channel for details.",
+        "Failed to initialize Lite Terminal. Check 'ObjectScript' Output channel for details.",
         "Dismiss"
       );
       this._closeEmitter.fire();
@@ -190,7 +190,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         outputChannel.appendLine(`WebSocket error: ${error.toString()}`);
         outputChannel.show(true);
         vscode.window.showErrorMessage(
-          "WebSocket Terminal failed. Check 'ObjectScript' Output channel for details.",
+          "Lite Terminal failed. Check 'ObjectScript' Output channel for details.",
           "Dismiss"
         );
         this._closeEmitter.fire();
@@ -212,7 +212,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
             outputChannel.appendLine(message.text);
             outputChannel.show(true);
             vscode.window.showErrorMessage(
-              "WebSocket Terminal failed. Check 'ObjectScript' Output channel for details.",
+              "Lite Terminal failed. Check 'ObjectScript' Output channel for details.",
               "Dismiss"
             );
             this._closeEmitter.fire();
@@ -614,12 +614,12 @@ function terminalConfigForUri(
 ): vscode.ExtensionTerminalOptions | undefined {
   // Make sure the server connection is active
   if (!api.active || api.ns == "") {
-    reportError("WebSocket Terminal requires an active server connection.", throwErrors);
+    reportError("Lite Terminal requires an active server connection.", throwErrors);
     return;
   }
   // Make sure the server has the terminal endpoint
   if (api.config.apiVersion < 7) {
-    reportError("WebSocket Terminal requires InterSystems IRIS version 2023.2 or above.", throwErrors);
+    reportError("Lite Terminal requires InterSystems IRIS version 2023.2 or above.", throwErrors);
     return;
   }
 
@@ -642,7 +642,7 @@ async function workspaceUriForTerminal(throwErrors = false) {
   let uri: vscode.Uri;
   const workspaceFolders = vscode.workspace.workspaceFolders || [];
   if (workspaceFolders.length == 0) {
-    reportError("WebSocket Terminal requires an open workspace.", throwErrors);
+    reportError("Lite Terminal requires an open workspace.", throwErrors);
   } else if (workspaceFolders.length == 1) {
     // Use the current connection
     uri = workspaceFolders[0].uri;
@@ -696,7 +696,7 @@ export class WebSocketTerminalProfileProvider implements vscode.TerminalProfileP
       const terminalOpts = terminalConfigForUri(new AtelierAPI(uri), uri, true);
       return new vscode.TerminalProfile(terminalOpts);
     } else {
-      throw new Error("WebSocket Terminal requires a selected workspace folder.");
+      throw new Error("Lite Terminal requires a selected workspace folder.");
     }
   }
 }
