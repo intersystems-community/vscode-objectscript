@@ -261,6 +261,7 @@ export async function serverActions(): Promise<void> {
                 params += `&Project=${encodeURIComponent(project)}`;
               }
               params += `&CSPCHD=${token}`;
+              params += "&CSPSHARE=1";
               vscode.env.openExternal(vscode.Uri.parse(`${serverUrl}${addin.id}?${params}`));
             }
           }
