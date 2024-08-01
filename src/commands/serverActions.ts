@@ -282,7 +282,16 @@ export async function serverActions(): Promise<void> {
           break;
         }
         default: {
-          vscode.env.openExternal(vscode.Uri.parse(action.detail));
+          let url = vscode.Uri.parse(action.detail);
+          if (action.rawLink?.startsWith("${serverUrl}")) {
+            const token = await getCSPToken(api, url.path);
+            if (token.length > 0) {
+              url = url.with({
+                query: url.query.length ? `${url.query}&CSPCHD=${token}` : `CSPCHD=${token}`,
+              });
+            }
+          }
+          vscode.env.openExternal(url);
         }
       }
     });
