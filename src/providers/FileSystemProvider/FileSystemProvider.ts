@@ -8,10 +8,13 @@ import { projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/Fil
 import {
   classNameRegex,
   isClassDeployed,
+  notIsfs,
   notNull,
   outputChannel,
+  handleError,
   redirectDotvscodeRoot,
   workspaceFolderOfUri,
+  stringifyError,
 } from "../../utils/index";
 import {
   config,
@@ -43,7 +46,7 @@ export function generateFileContent(
     const preamble: string[] = [];
 
     if (sourceLines.length) {
-      if (uri.scheme == "file" && (fileName.includes(path.sep) || fileName.includes(" "))) {
+      if (notIsfs(uri) && (fileName.includes(path.sep) || fileName.includes(" "))) {
         // We couldn't resolve a class name from the file path,
         // so keep the source text unchanged.
         content = sourceLines;
@@ -75,7 +78,7 @@ export function generateFileContent(
       enc: false,
     };
   } else if (["int", "inc", "mac"].includes(fileExt) && !csp) {
-    if (sourceLines.length && uri.scheme == "file" && (fileName.includes(path.sep) || fileName.includes(" "))) {
+    if (sourceLines.length && notIsfs(uri) && (fileName.includes(path.sep) || fileName.includes(" "))) {
       // We couldn't resolve a routine name from the file path,
       // so keep the source text unchanged.
       return {
@@ -269,10 +272,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               const folder = !csp
                 ? uri.path.replace(/\/$/, "").replace(/\//g, ".")
                 : uri.path === "/"
-                ? ""
-                : uri.path.endsWith("/")
-                ? uri.path
-                : uri.path + "/";
+                  ? ""
+                  : uri.path.endsWith("/")
+                    ? uri.path
+                    : uri.path + "/";
               const fullName = folder === "" ? entry.Name : csp ? folder + entry.Name : folder + "/" + entry.Name;
               parent.entries.set(entry.Name, new Directory(entry.Name, fullName));
             }
@@ -298,10 +301,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const folder = !csp
       ? uri.path.replace(/\/$/, "").replace(/\//g, ".")
       : uri.path === "/"
-      ? ""
-      : uri.path.endsWith("/")
-      ? uri.path
-      : uri.path + "/";
+        ? ""
+        : uri.path.endsWith("/")
+          ? uri.path
+          : uri.path + "/";
     // get all web apps that have a filepath (Studio dialog used below returns REST ones too)
     const cspApps = csp ? await api.getCSPApps().then((data) => data.result.content || []) : [];
     const cspSubfolderMap = new Map<string, vscode.FileType>();
@@ -323,10 +326,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             item.Type == 10
               ? csp && !item.Name.includes("/") // ignore web apps here because there may be REST ones
               : item.Type == 9 // class package
-              ? !csp
-              : csp
-              ? item.Type == 5 // web app file
-              : true
+                ? !csp
+                : csp
+                  ? item.Type == 5 // web app file
+                  : true
           )
           .map((item: { Name: string; Type: number }) => {
             const name = item.Name;
@@ -355,15 +358,13 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       })
       .catch((error) => {
         if (error) {
-          console.log(error);
           if (error.errorText.includes(" #5540:")) {
-            const nsUpper = api.config.ns.toUpperCase();
             const message = `User '${api.config.username}' cannot list ${
               csp ? `web application '${uri.path}'` : "namespace"
-            } contents. If they do not have READ permission on the default code database of the ${nsUpper} namespace then grant it and retry. If the problem remains then execute the following SQL in that namespace:\n\t GRANT EXECUTE ON %Library.RoutineMgr_StudioOpenDialog TO ${
+            } contents. If they do not have READ permission on the default code database of the ${api.config.ns.toUpperCase()} namespace then grant it and retry. If the problem remains then execute the following SQL in that namespace:\n\t GRANT EXECUTE ON %Library.RoutineMgr_StudioOpenDialog TO ${
               api.config.username
             }`;
-            outputChannel.appendError(message);
+            handleError(message);
           }
         }
       });
@@ -466,10 +467,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           )
           .catch((error) => {
             // Throw all failures
-            if (error && error.errorText && error.errorText !== "") {
-              throw vscode.FileSystemError.Unavailable(error.errorText);
-            }
-            throw vscode.FileSystemError.Unavailable(uri);
+            throw vscode.FileSystemError.Unavailable(stringifyError(error) || uri);
           })
           .then(async (response) => {
             // New file has been written
@@ -607,7 +605,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           throw new vscode.FileSystemError(
             `Failed to delete ${failed} document${
               failed > 1 ? "s" : ""
-            }. Check 'ObjectScript' Output channel for details.`
+            }. Check the 'ObjectScript' Output channel for details.`
           );
         }
       });
@@ -621,13 +619,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         }
       },
       (error) => {
-        let message = `Failed to delete file '${fileName}'.`;
-        if (error && error.errorText && error.errorText !== "") {
-          outputChannel.appendLine("\n" + error.errorText);
-          outputChannel.show(true);
-          message += " Check 'ObjectScript' Output channel for details.";
-        }
-        throw new vscode.FileSystemError(message);
+        handleError(error);
+        throw new vscode.FileSystemError(
+          `Failed to delete file '${fileName}'. Check the 'ObjectScript' Output channel for details.`
+        );
       }
     );
   }
@@ -684,10 +679,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       )
       .catch((error) => {
         // Throw all failures
-        if (error && error.errorText && error.errorText !== "") {
-          throw vscode.FileSystemError.Unavailable(error.errorText);
-        }
-        throw vscode.FileSystemError.Unavailable(error.message);
+        throw vscode.FileSystemError.Unavailable(stringifyError(error) || newUri);
       })
       .then(async (response) => {
         // New file has been written
@@ -734,14 +726,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         compileList.push(isCSPFile(uri) ? uri.path : uri.path.slice(1).replace(/\//g, "."));
       }
     } catch (error) {
-      console.log(error);
-      let errorMsg = "Error determining documents to compile.";
-      if (error && error.errorText && error.errorText !== "") {
-        outputChannel.appendLine("\n" + error.errorText);
-        outputChannel.show(true);
-        errorMsg += " Check 'ObjectScript' output channel for details.";
-      }
-      vscode.window.showErrorMessage(errorMsg, "Dismiss");
+      handleError(error, "Error determining documents to compile.");
       return;
     }
     if (!compileList.length) return;
@@ -769,7 +754,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             if (!conf.get("suppressCompileErrorMessages")) {
               vscode.window
                 .showErrorMessage(
-                  "Compilation failed. Check 'ObjectScript' output channel for details.",
+                  "Compilation failed. Check 'ObjectScript' Output channel for details.",
                   "Show",
                   "Dismiss"
                 )
@@ -827,10 +812,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         .serverInfo()
         .then()
         .catch((error) => {
-          if (error && error.errorText && error.errorText !== "") {
-            throw vscode.FileSystemError.Unavailable(error.errorText);
-          }
-          throw vscode.FileSystemError.Unavailable(uri);
+          throw vscode.FileSystemError.Unavailable(stringifyError(error) || uri);
         });
     }
     const config = api.config;
@@ -938,13 +920,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         })
       )
       .catch((error) => {
-        if (error?.statusCode === 304 && cachedFile) {
-          return cachedFile;
-        }
-        if (error && error.errorText && error.errorText !== "") {
-          throw vscode.FileSystemError.FileNotFound(error.errorText);
-        }
-        throw vscode.FileSystemError.FileNotFound(uri);
+        if (error?.statusCode == 304 && cachedFile) return cachedFile;
+        throw vscode.FileSystemError.FileNotFound(stringifyError(error) || uri);
       });
   }
 

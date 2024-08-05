@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { config, filesystemSchemas, iscIcon } from "../extension";
-import { outputChannel, outputConsole, getServerName } from "../utils";
+import { config, iscIcon } from "../extension";
+import { outputChannel, outputConsole, getServerName, notIsfs, handleError } from "../utils";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { ClassNode } from "../explorer/models/classNode";
 import { PackageNode } from "../explorer/models/packageNode";
@@ -129,7 +129,7 @@ export class StudioActions {
     const { target, errorText } = userAction;
     if (errorText !== "") {
       outputChannel.appendLine(errorText);
-      outputChannel.show();
+      outputChannel.show(true);
     }
     if (config().studioActionDebugOutput) {
       outputChannel.appendLine(JSON.stringify(userAction));
@@ -371,18 +371,11 @@ export class StudioActions {
               }
             })
             .then(() => resolve())
-            .catch((err) => {
-              outputChannel.appendLine(
-                `Executing Studio Action "${action.label}" on ${this.api.config.host}:${this.api.config.port}${
-                  this.api.config.pathPrefix
-                }[${this.api.config.ns}] failed${
-                  err.errorText && err.errorText !== "" ? " with the following error:" : "."
-                }`
+            .catch((error) => {
+              handleError(
+                error,
+                `Executing Studio Action "${action.label}" on ${this.api.config.host}:${this.api.config.port}${this.api.config.pathPrefix}[${this.api.config.ns}] failed.`
               );
-              if (err.errorText && err.errorText !== "") {
-                outputChannel.appendLine("\n" + err.errorText);
-              }
-              outputChannel.show(true);
               reject();
             });
         })
@@ -520,9 +513,7 @@ export async function mainSourceControlMenu(uri?: vscode.Uri): Promise<void> {
 
 async function _mainMenu(sourceControl: boolean, uri?: vscode.Uri): Promise<void> {
   uri = uri || vscode.window.activeTextEditor?.document.uri;
-  if (uri && !filesystemSchemas.includes(uri.scheme)) {
-    return;
-  }
+  if (uri && notIsfs(uri)) return;
   const studioActions = new StudioActions(uri);
   if (studioActions) {
     if (await studioActions.isSourceControlEnabled()) {
@@ -549,9 +540,7 @@ export async function contextSourceControlMenu(
 
 export async function _contextMenu(sourceControl: boolean, node: PackageNode | ClassNode | RoutineNode): Promise<void> {
   const nodeOrUri = node || vscode.window.activeTextEditor?.document.uri;
-  if (!nodeOrUri || (nodeOrUri instanceof vscode.Uri && !filesystemSchemas.includes(nodeOrUri.scheme))) {
-    return;
-  }
+  if (!nodeOrUri || (nodeOrUri instanceof vscode.Uri && notIsfs(nodeOrUri))) return;
   const studioActions = new StudioActions(nodeOrUri);
   if (studioActions) {
     if (await studioActions.isSourceControlEnabled()) {

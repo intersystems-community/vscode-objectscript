@@ -340,7 +340,6 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       text = range ? document.getText(range) : "";
       className = text.split(" ").pop();
     }
-    // tslint:disable-next-line: max-line-length
     pattern =
       /(?:(Extends |CompileAfter *=|DependsOn *=|PropertyClass *=) *\(? *)((%?[a-zA-Z0-9]*(?:\.[a-zA-Z0-9]*)*)(, *%?[a-zA-Z0-9]*(?:\.[a-zA-Z0-9]*)*|, *)*.?)?/i;
     if (

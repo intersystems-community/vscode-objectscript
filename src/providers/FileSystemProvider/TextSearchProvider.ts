@@ -3,7 +3,7 @@ import { makeRe } from "minimatch";
 import { AsyncSearchRequest, SearchResult, SearchMatch } from "../../api/atelier";
 import { AtelierAPI } from "../../api";
 import { DocumentContentProvider } from "../DocumentContentProvider";
-import { notNull, outputChannel, throttleRequests } from "../../utils";
+import { handleError, notNull, outputChannel, throttleRequests } from "../../utils";
 import { config } from "../../extension";
 import { fileSpecFromURI } from "../../utils/FileProviderUtil";
 
@@ -183,22 +183,11 @@ function searchMatchToLine(
 /**
  * Handle errors produced during the retrieving of search results.
  */
-function handleSearchError(error): vscode.TextSearchComplete {
-  let message = "An error occurred during the search.";
-  if (error.errorText && error.errorText !== "") {
-    outputChannel.appendLine("\n" + error.errorText);
-    message += " Check `ObjectScript` Output channel for details.";
-  } else {
-    try {
-      outputChannel.appendLine(typeof error == "object" ? JSON.stringify(error) : String(error));
-      message += " Check `ObjectScript` Output channel for details.";
-    } catch {
-      // Ignore a JSON stringify failure
-    }
-  }
+function handleSearchError(error: any): vscode.TextSearchComplete {
+  handleError(error);
   return {
     message: {
-      text: message,
+      text: "An error occurred during the search. Check the `ObjectScript` Output channel for details.",
       type: vscode.TextSearchCompleteMessageType.Warning,
     },
   };
@@ -232,7 +221,7 @@ async function processSearchResults(
     message = {
       text: `Failed to display results from ${rejected} file${
         rejected > 1 ? "s" : ""
-      }. Check \`ObjectScript\` Output channel for details.`,
+      }. Check the \`ObjectScript\` Output channel for details.`,
       type: vscode.TextSearchCompleteMessageType.Warning,
     };
   }
@@ -607,8 +596,8 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
             options.includes.length > 0
               ? convertFilters(options.includes).join(",")
               : filterExclude
-              ? fileSpecFromURI(uri) // Excludes were specified but no includes, so start with the default includes (this step makes type=cls|rtn effective)
-              : "";
+                ? fileSpecFromURI(uri) // Excludes were specified but no includes, so start with the default includes (this step makes type=cls|rtn effective)
+                : "";
           const filter = filterInclude + (!filterExclude ? "" : ",'" + filterExclude);
           if (filter) {
             // Unless isfs is serving CSP files, slash separators in filters must be converted to dot ones before sending to server

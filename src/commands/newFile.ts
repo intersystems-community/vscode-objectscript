@@ -1,11 +1,12 @@
 import * as vscode from "vscode";
 import path = require("path");
 import { AtelierAPI } from "../api";
-import { config, FILESYSTEM_READONLY_SCHEMA, FILESYSTEM_SCHEMA } from "../extension";
+import { FILESYSTEM_SCHEMA } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
-import { fileExists, notNull, outputChannel } from "../utils";
+import { handleError } from "../utils";
 import { getFileName } from "./export";
 import { importFolder } from "./compile";
+import { getUrisForDocument } from "../utils/documentIndex";
 
 interface InputStepItem extends vscode.QuickPickItem {
   value?: string;
@@ -156,11 +157,15 @@ async function multiStepInput(steps: InputStepOptions[]): Promise<string[] | und
 
 /** Use the export settings to determine the local URI */
 function getLocalUri(cls: string, wsFolder: vscode.WorkspaceFolder): vscode.Uri {
-  const { atelier, folder, addCategory, map } = config("export", wsFolder.name);
-  const root = [wsFolder.uri.fsPath, typeof folder === "string" && folder.length ? folder : null]
-    .filter(notNull)
-    .join(path.sep);
-  const fileName = getFileName(root, `${cls}.cls`, atelier, addCategory, map);
+  const conf = vscode.workspace.getConfiguration("objectscript.export", wsFolder);
+  const confFolder = conf.get("folder", "");
+  const fileName = getFileName(
+    wsFolder.uri.fsPath + (confFolder.length ? path.sep + confFolder : ""),
+    `${cls}.cls`,
+    conf.get("atelier"),
+    conf.get("addCategory"),
+    conf.get("map")
+  );
   let clsUri = vscode.Uri.file(fileName);
   if (wsFolder.uri.scheme != "file") {
     clsUri = wsFolder.uri.with({ path: clsUri.path });
@@ -249,7 +254,7 @@ export async function newFile(type: NewFileType): Promise<void> {
     if (!wsFolder) {
       return;
     }
-    if (wsFolder.uri.scheme == FILESYSTEM_READONLY_SCHEMA) {
+    if (!vscode.workspace.fs.isWritableFileSystem(wsFolder.uri.scheme)) {
       vscode.window.showErrorMessage(`Workspace folder '${wsFolder.name}' is read-only.`, "Dismiss");
       return;
     }
@@ -417,10 +422,8 @@ export async function newFile(type: NewFileType): Promise<void> {
           if (classes.length && classes.includes(value.toLowerCase())) {
             return "A class with this name already exists on the server";
           }
-          if (wsFolder.uri.scheme != FILESYSTEM_SCHEMA) {
-            return fileExists(getLocalUri(value, wsFolder)).then((exists) =>
-              exists ? `A class with this name already exists in workspace folder '${wsFolder.name}'` : undefined
-            );
+          if (wsFolder.uri.scheme != FILESYSTEM_SCHEMA && getUrisForDocument(`${value}.cls`, wsFolder).length) {
+            return `A class with this name already exists in workspace folder '${wsFolder.name}'`;
           }
         },
       },
@@ -819,8 +822,8 @@ ${
   kpiType == "sql"
     ? `/// Return a SQL statement to execute.\nMethod %OnGetSQL(ByRef pSQL As %String)`
     : kpiType == "mdx"
-    ? `/// Return an MDX statement to execute.\nMethod %OnGetMDX(ByRef pMDX As %String)`
-    : `/// Get the data for this KPI manually.\nMethod %OnExecute()`
+      ? `/// Return an MDX statement to execute.\nMethod %OnGetMDX(ByRef pMDX As %String)`
+      : `/// Get the data for this KPI manually.\nMethod %OnExecute()`
 } As %Status
 {
   Return $$$OK
@@ -839,19 +842,29 @@ ClassMethod %OnDashboardAction(pAction As %String, pContext As %ZEN.proxyObject)
 `;
     }
 
-    // Generate the file's URI
+    // Determine the file's URI
     let clsUri: vscode.Uri;
     if (wsFolder.uri.scheme == FILESYSTEM_SCHEMA) {
+      // Generate the URI
       clsUri = DocumentContentProvider.getUri(`${cls}.cls`, undefined, undefined, undefined, wsFolder.uri);
     } else {
-      // Use the export settings to determine the URI
-      clsUri = getLocalUri(cls, wsFolder);
+      // Ask the user for the URI
+      clsUri = await vscode.window.showSaveDialog({
+        defaultUri: getLocalUri(cls, wsFolder), // Use the export settings to determine the default URI
+        filters: {
+          Classes: ["cls"],
+        },
+      });
     }
 
     if (clsUri && clsContent) {
       // Write the file content
       await vscode.workspace.fs.writeFile(clsUri, new TextEncoder().encode(clsContent.trimStart()));
-      if (clsUri.scheme != FILESYSTEM_SCHEMA && api && config("importOnSave", wsFolder.name)) {
+      if (
+        clsUri.scheme != FILESYSTEM_SCHEMA &&
+        api &&
+        vscode.workspace.getConfiguration("objectscript", wsFolder).get("importOnSave")
+      ) {
         // Save this local file on the server
         await importFolder(clsUri, true);
       }
@@ -859,12 +872,6 @@ ClassMethod %OnDashboardAction(pAction As %String, pContext As %ZEN.proxyObject)
       vscode.window.showTextDocument(clsUri, { preview: false });
     }
   } catch (error) {
-    outputChannel.appendLine(
-      typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
-    );
-    vscode.window.showErrorMessage(
-      `An error occurred while creating a ${type} class. Check 'ObjectScript' Output channel for details.`,
-      "Dismiss"
-    );
+    handleError(error, `An error occurred while creating a ${type} class.`);
   }
 }
