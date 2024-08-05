@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "2.12.7-SNAPSHOT",
+  "version": "2.12.8-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "9cd75d51-697c-406c-a929-2bcf46e97c64",
   "categories": [
@@ -1724,7 +1724,7 @@
             "type": "objectscript",
             "request": "attach",
             "name": "Attach to running process"
-          }    
+          }
         ],
         "configurationSnippets": [
           {
