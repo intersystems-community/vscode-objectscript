@@ -1,6 +1,21 @@
 # Change Log
 
+## [2.12.7] 05-Aug-2024
+- Enhancements
+  - Fire source control hooks for opened and closed documents (#1414)
+  - Always stop the debug target process when attaching (#1415)
+  - Prompt user for workspace folder before process ID when attaching to a process in a multi-root workspace (#1417)
+  - Rename `InterSystems WebSocket Terminal` to `InterSystems Lite Terminal` (#1418)
+- Fixes
+  - Fix showing of CSP files in project folders (#1408)
+  - Add confirmation dialog when deleting a project (#1410)
+  - Fix attach debugging when no file is open (#1412)
+  - Improve reliability of updating status bar panels (#1416)
+  - Add CSPSHARE=1 to Studio Add-In links to align behavior with Studio (#1419)
+  - Don't append CSPCHD for web applications that don't support it by default (#1420)
+
 ## [2.12.6] 23-Jul-2024
+Minimum VS Code version is now 1.91.0.
 - Enhancements
   - Support command stepping in debugger (requires InterSystems IRIS 2023.1.5, 2024.1.1+, or 2024.2+) (#1385)
   - Add `Compile` command to server-side file explorer (#1389)

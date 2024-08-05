@@ -219,13 +219,11 @@ export async function serverActions(): Promise<void> {
       }
       switch (action.id) {
         case "openPortal": {
-          const token = await getCSPToken(api, portalPath);
-          vscode.env.openExternal(vscode.Uri.parse(`${serverUrl}${portalPath}&CSPCHD=${token}`));
+          vscode.env.openExternal(vscode.Uri.parse(`${serverUrl}${portalPath}`));
           break;
         }
         case "openClassReference": {
-          const token = await getCSPToken(api, classRef);
-          vscode.env.openExternal(vscode.Uri.parse(`${serverUrl}${classRef}&CSPCHD=${token}`));
+          vscode.env.openExternal(vscode.Uri.parse(`${serverUrl}${classRef}`));
           break;
         }
         case "openStudioAddin": {
@@ -251,6 +249,7 @@ export async function serverActions(): Promise<void> {
                 params += `&Project=${encodeURIComponent(project)}`;
               }
               params += `&CSPCHD=${token}`;
+              params += "&CSPSHARE=1";
               vscode.env.openExternal(vscode.Uri.parse(`${serverUrl}${addin.id}?${params}`));
             }
           }

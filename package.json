@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "2.12.7-SNAPSHOT",
+  "version": "2.12.8-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "9cd75d51-697c-406c-a929-2bcf46e97c64",
   "categories": [
@@ -1139,11 +1139,11 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.launchWebSocketTerminal",
-        "title": "Launch WebSocket Terminal"
+        "title": "Launch Lite Terminal"
       },
       {
         "command": "vscode-objectscript.intersystems-servermanager.webterminal",
-        "title": "Launch WebSocket Terminal",
+        "title": "Launch Lite Terminal",
         "icon": "$(terminal)"
       },
       {
@@ -1517,7 +1517,7 @@
           "default": true
         },
         "objectscript.webSocketTerminal.syntaxColoring": {
-          "description": "Enable syntax coloring for command input in the InterSystems WebSocket Terminal.",
+          "description": "Enable syntax coloring for command input in the InterSystems Lite Terminal.",
           "type": "boolean",
           "default": true
         },
@@ -1686,7 +1686,7 @@
             "type": "objectscript",
             "request": "attach",
             "name": "Attach to running process"
-          }    
+          }
         ],
         "configurationSnippets": [
           {
@@ -1744,7 +1744,7 @@
       "profiles": [
         {
           "id": "vscode-objectscript.webSocketTerminal",
-          "title": "InterSystems WebSocket Terminal",
+          "title": "InterSystems Lite Terminal",
           "icon": "./images/fileIcon.svg"
         }
       ]
