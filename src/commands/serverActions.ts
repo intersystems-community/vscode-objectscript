@@ -32,6 +32,7 @@ export async function serverActions(): Promise<void> {
   const { links } = config("conn");
   const nsEncoded = encodeURIComponent(ns);
   const actions: ServerAction[] = [];
+  const wsUri = uriOfWorkspaceFolder();
   if (!api.externalServer) {
     actions.push({
       detail: (active ? "Disable" : "Enable") + " current connection",
@@ -47,7 +48,6 @@ export async function serverActions(): Promise<void> {
     });
 
     // Switching namespace makes only sense for non-ISFS folders
-    const wsUri = uriOfWorkspaceFolder();
     if (wsUri && notIsfs(wsUri)) {
       actions.push({
         id: "switchNamespace",
@@ -137,7 +137,7 @@ export async function serverActions(): Promise<void> {
   const classRef = `/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${nsEncoded}${
     classname ? "&CLASSNAME=" + classnameEncoded : ""
   }`;
-  const project = new URLSearchParams(uriOfWorkspaceFolder()?.query).get("project") || "";
+  const project = new URLSearchParams(wsUri?.query).get("project") || "";
   let extraLinks = 0;
   for (const title in links) {
     const rawLink = String(links[title]);
@@ -193,7 +193,7 @@ export async function serverActions(): Promise<void> {
     detail: "Select a Studio Add-in to open",
   });
   if (
-    !vscode.window.activeTextEditor ||
+    (!vscode.window.activeTextEditor && wsUri && notIsfs(wsUri)) ||
     vscode.window.activeTextEditor.document.uri.scheme === FILESYSTEM_SCHEMA ||
     vscode.window.activeTextEditor.document.uri.scheme === FILESYSTEM_READONLY_SCHEMA
   ) {

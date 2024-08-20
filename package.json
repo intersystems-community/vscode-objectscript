@@ -192,7 +192,7 @@
         },
         {
           "command": "vscode-objectscript.serverCommands.sourceControl",
-          "when": "(vscode-objectscript.connectActive && resourceScheme == isfs) || (vscode-objectscript.connectActive && !editorIsOpen)"
+          "when": "(vscode-objectscript.connectActive && resourceScheme == isfs) || (vscode-objectscript.connectActive && !editorIsOpen && virtualWorkspace)"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextSourceControl",
@@ -200,7 +200,7 @@
         },
         {
           "command": "vscode-objectscript.serverCommands.other",
-          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ || (vscode-objectscript.connectActive && !editorIsOpen)"
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ || (vscode-objectscript.connectActive && !editorIsOpen && virtualWorkspace)"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
