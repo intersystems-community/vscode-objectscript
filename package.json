@@ -21,6 +21,7 @@
     "type": "git",
     "url": "https://github.com/intersystems-community/vscode-objectscript"
   },
+  "homepage": "https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO",
   "license": "MIT",
   "publisher": "intersystems-community",
   "capabilities": {
