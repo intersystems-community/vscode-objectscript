@@ -274,6 +274,7 @@ export async function checkConnection(
     await workspaceState.update(wsKey + ":port", undefined);
     await workspaceState.update(wsKey + ":password", undefined);
     await workspaceState.update(wsKey + ":apiVersion", undefined);
+    await workspaceState.update(wsKey + ":serverVersion", undefined);
     await workspaceState.update(wsKey + ":docker", undefined);
     _onDidChangeConnection.fire();
   }
@@ -1528,6 +1529,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         password,
         ns = "",
         apiVersion,
+        serverVersion,
       } = api.config;
       return {
         serverName,
@@ -1545,6 +1547,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
                 .get("password"),
         namespace: ns,
         apiVersion: active ? apiVersion : undefined,
+        serverVersion: active ? serverVersion : undefined,
       };
     },
     serverDocumentUriForUri(uri: vscode.Uri): vscode.Uri {

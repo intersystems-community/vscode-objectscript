@@ -5,6 +5,7 @@ import * as httpModule from "http";
 import * as httpsModule from "https";
 import * as vscode from "vscode";
 import * as Cache from "vscode-cache";
+import * as semver from "semver";
 import {
   getResolvedConnectionSpec,
   config,
@@ -18,6 +19,7 @@ import {
 import { currentWorkspaceFolder, outputChannel, outputConsole } from "../utils";
 
 const DEFAULT_API_VERSION = 1;
+const DEFAULT_SERVER_VERSION = "2016.2.0";
 import * as Atelier from "./atelier";
 
 // Map of the authRequest promises for each username@host:port target to avoid concurrency issues
@@ -27,6 +29,7 @@ export interface ConnectionSettings {
   serverName: string;
   active: boolean;
   apiVersion: number;
+  serverVersion: string;
   https: boolean;
   host: string;
   port: number;
@@ -61,12 +64,14 @@ export class AtelierAPI {
     const port = this.externalServer ? this._config.port : workspaceState.get(wsKey + ":port", this._config.port);
     const password = workspaceState.get(wsKey + ":password", this._config.password);
     const apiVersion = workspaceState.get(wsKey + ":apiVersion", DEFAULT_API_VERSION);
+    const serverVersion = workspaceState.get(wsKey + ":serverVersion", DEFAULT_SERVER_VERSION);
     const docker = workspaceState.get(wsKey + ":docker", false);
     const dockerService = workspaceState.get<string>(wsKey + ":dockerService");
     return {
       serverName,
       active,
       apiVersion,
+      serverVersion,
       https,
       host,
       port,
@@ -200,6 +205,7 @@ export class AtelierAPI {
         serverName,
         active: this.externalServer || conn.active,
         apiVersion: workspaceState.get(this.configName.toLowerCase() + ":apiVersion", DEFAULT_API_VERSION),
+        serverVersion: workspaceState.get(this.configName.toLowerCase() + ":serverVersion", DEFAULT_SERVER_VERSION),
         https: scheme === "https",
         ns,
         host,
@@ -466,6 +472,12 @@ export class AtelierAPI {
       if (info && info.result && info.result.content && info.result.content.api > 0) {
         const data = info.result.content;
         const apiVersion = data.api;
+        const serverVersion = semver.coerce(
+          data.version
+            .slice(data.version.indexOf(") ") + 2)
+            .split(" ")
+            .shift()
+        ).version;
         if (this.ns && this.ns.length && !data.namespaces.includes(this.ns) && checkNs) {
           throw {
             code: "WrongNamespace",
@@ -476,6 +488,7 @@ export class AtelierAPI {
         }
         return Promise.all([
           workspaceState.update(this.configName.toLowerCase() + ":apiVersion", apiVersion),
+          workspaceState.update(this.configName.toLowerCase() + ":serverVersion", serverVersion),
           workspaceState.update(this.configName.toLowerCase() + ":iris", data.version.startsWith("IRIS")),
         ]).then(() => info);
       }
