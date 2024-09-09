@@ -241,8 +241,8 @@ export class AtelierAPI {
       (docker
         ? "docker" + (dockerService ? `:${dockerService}:${port}` : "")
         : serverName
-        ? serverName
-        : `${host}:${port}`) + `[${ns}]`
+          ? serverName
+          : `${host}:${port}`) + `[${ns}]`
     );
   }
 
@@ -594,8 +594,6 @@ export class AtelierAPI {
 
   // v1+
   public actionQuery(query: string, parameters: string[]): Promise<Atelier.Response> {
-    // outputChannel.appendLine('SQL: ' + query);
-    // outputChannel.appendLine('SQLPARAMS: ' + JSON.stringify(parameters));
     return this.request(1, "POST", `${this.ns}/action/query`, {
       parameters,
       query,
@@ -681,6 +679,7 @@ export class AtelierAPI {
       outputChannel.appendLine(
         "\nWARNING: Compilation was cancelled. Partially-compiled documents may result in unexpected behavior."
       );
+      outputChannel.show(true);
     }
     let cancelResp = await this.cancelAsync(id);
     while (cancelResp.retryafter) {

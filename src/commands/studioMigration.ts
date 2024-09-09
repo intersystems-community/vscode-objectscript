@@ -3,8 +3,8 @@ import cmd = require("node-cmd");
 import util = require("util");
 import { gte } from "semver";
 
-import { fileExists, outputChannel } from "../utils";
-import { clsLangId, cspLangId, incLangId, intLangId, macLangId } from "../extension";
+import { fileExists, handleError } from "../utils";
+import { clsLangId, cspLangId, incLangId, intLangId, lsExtensionId, macLangId } from "../extension";
 
 /** Run a command using `node-cmd` and return a Promise */
 const runCmd = util.promisify(cmd.run);
@@ -117,8 +117,8 @@ export async function loadStudioSnippets(): Promise<void> {
                       parts[1] == "5"
                         ? cspLangId
                         : parts[1] == "3"
-                        ? clsLangId
-                        : `${macLangId},${intLangId},${incLangId},${clsLangId},${cspLangId}`,
+                          ? clsLangId
+                          : `${macLangId},${intLangId},${incLangId},${clsLangId},${cspLangId}`,
                   };
                 }
               });
@@ -155,15 +155,7 @@ export async function loadStudioSnippets(): Promise<void> {
           vscode.window.showInformationMessage(uriOrReason, "Dismiss");
         }
       },
-      (error) => {
-        outputChannel.appendLine(
-          typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
-        );
-        vscode.window.showErrorMessage(
-          "An error occurred while loading Studio snippets. Check 'ObjectScript' Output channel for details.",
-          "Dismiss"
-        );
-      }
+      (error) => handleError(error, "An error occurred while loading Studio snippets.")
     );
 }
 
@@ -183,7 +175,7 @@ export async function loadStudioColors(languageServerExt: vscode.Extension<any> 
   // Check that the Language Server is installed
   if (!languageServerExt) {
     vscode.window.showErrorMessage(
-      "Loading Studio syntax colors requires the [InterSystems Language Server extension](https://marketplace.visualstudio.com/items?itemName=${extId}).",
+      `Loading Studio syntax colors requires the [InterSystems Language Server extension](https://marketplace.visualstudio.com/items?itemName=${lsExtensionId}).`,
       "Dismiss"
     );
     return;
@@ -359,14 +351,6 @@ export async function loadStudioColors(languageServerExt: vscode.Extension<any> 
             }
           });
       },
-      (error) => {
-        outputChannel.appendLine(
-          typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
-        );
-        vscode.window.showErrorMessage(
-          "An error occurred while loading Studio syntax colors. Check 'ObjectScript' Output channel for details.",
-          "Dismiss"
-        );
-      }
+      (error) => handleError(error, "An error occurred while loading Studio syntax colors.")
     );
 }

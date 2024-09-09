@@ -1,7 +1,14 @@
 import * as vscode from "vscode";
 import * as Atelier from "../api/atelier";
 import { clsLangId, extensionId, filesystemSchemas, lsExtensionId } from "../extension";
-import { getFileText, methodOffsetToLine, outputChannel, stripClassMemberNameQuotes, uriIsParentOf } from "../utils";
+import {
+  getFileText,
+  handleError,
+  methodOffsetToLine,
+  notIsfs,
+  stripClassMemberNameQuotes,
+  uriIsParentOf,
+} from "../utils";
 import { fileSpecFromURI } from "../utils/FileProviderUtil";
 import { AtelierAPI } from "../api";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
@@ -50,18 +57,6 @@ const classesForRoot: WeakMap<vscode.TestItem, Map<string, vscode.TestItem>> = n
 const methodIdSeparator = "\\\\\\";
 
 const textDecoder = new TextDecoder();
-
-/** Write the string represenation of `error` to `outputChannel` and show it */
-function outputErrorAsString(error: any): void {
-  if (error && error.errorText && error.errorText !== "") {
-    outputChannel.appendLine(error.errorText);
-  } else {
-    outputChannel.appendLine(
-      typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
-    );
-  }
-  outputChannel.show(true);
-}
 
 /** Find the root `TestItem` for `uri` */
 function rootItemForItem(testController: vscode.TestController, uri: vscode.Uri): vscode.TestItem | undefined {
@@ -175,44 +170,43 @@ function createRootItemsForWorkspaceFolder(
   folder: vscode.WorkspaceFolder
 ): vscode.TestItem[] {
   let newItems: vscode.TestItem[] = [];
-  if ([...filesystemSchemas, "file"].includes(folder.uri.scheme)) {
-    const api = new AtelierAPI(folder.uri);
-    // Must have an active server connection to a non-%SYS namespace and Atelier API version 8 or above
-    const errorMsg =
-      !api.active || api.ns == ""
-        ? "Server connection is inactive"
-        : api.ns == "%SYS"
+  const api = new AtelierAPI(folder.uri);
+  // Must have an active server connection to a non-%SYS namespace and Atelier API version 8 or above
+  const errorMsg =
+    !api.active || api.ns == ""
+      ? "Server connection is inactive"
+      : api.ns == "%SYS"
         ? "Connected to the %SYS namespace"
         : api.config.apiVersion < 8
-        ? "Must be connected to InterSystems IRIS version 2023.3 or above"
-        : folder.uri.scheme != "file" && ["", "1"].includes(new URLSearchParams(folder.uri.query).get("csp"))
-        ? "Web application folder"
-        : undefined;
-    let itemUris: vscode.Uri[];
-    if (folder.uri.scheme == "file") {
-      const roots = relativeTestRootsForUri(folder.uri);
-      const baseUri = folder.uri.with({ path: `${folder.uri.path}${!folder.uri.path.endsWith("/") ? "/" : ""}` });
-      itemUris = roots.map((root) => baseUri.with({ path: `${baseUri.path}${root}` }));
-    } else {
-      itemUris = [folder.uri];
-    }
-    newItems = itemUris.map((uri) => {
-      const newItem = testController.createTestItem(uri.toString(), folder.name, uri);
-      if (uri.scheme == "file") {
-        // Add the root as the description
-        newItem.description = uri.path.slice(folder.uri.path.length + (!folder.uri.path.endsWith("/") ? 1 : 0));
-        newItem.sortText = newItem.label + newItem.description;
-      }
-      if (errorMsg != undefined) {
-        // Show the user why we can't run tests from this folder
-        newItem.canResolveChildren = false;
-        newItem.error = errorMsg;
-      } else {
-        newItem.canResolveChildren = true;
-      }
-      return newItem;
-    });
+          ? "Must be connected to InterSystems IRIS version 2023.3 or above"
+          : filesystemSchemas.includes(folder.uri.scheme) &&
+              ["", "1"].includes(new URLSearchParams(folder.uri.query).get("csp"))
+            ? "Web application folder"
+            : undefined;
+  let itemUris: vscode.Uri[];
+  if (notIsfs(folder.uri)) {
+    const roots = relativeTestRootsForUri(folder.uri);
+    const baseUri = folder.uri.with({ path: `${folder.uri.path}${!folder.uri.path.endsWith("/") ? "/" : ""}` });
+    itemUris = roots.map((root) => baseUri.with({ path: `${baseUri.path}${root}` }));
+  } else {
+    itemUris = [folder.uri];
   }
+  newItems = itemUris.map((uri) => {
+    const newItem = testController.createTestItem(uri.toString(), folder.name, uri);
+    if (notIsfs(uri)) {
+      // Add the root as the description
+      newItem.description = uri.path.slice(folder.uri.path.length + (!folder.uri.path.endsWith("/") ? 1 : 0));
+      newItem.sortText = newItem.label + newItem.description;
+    }
+    if (errorMsg != undefined) {
+      // Show the user why we can't run tests from this folder
+      newItem.canResolveChildren = false;
+      newItem.error = errorMsg;
+    } else {
+      newItem.canResolveChildren = true;
+    }
+    return newItem;
+  });
   return newItems;
 }
 
@@ -439,7 +433,7 @@ async function runHandler(
     const autoloadFolder: string = autoload.get("folder");
     const autoloadXml: boolean = autoload.get("xml");
     const autoloadUdl: boolean = autoload.get("udl");
-    const autoloadEnabled: boolean = autoloadFolder != "" && (autoloadXml || autoloadUdl) && root.uri.scheme == "file";
+    const autoloadEnabled: boolean = autoloadFolder != "" && (autoloadXml || autoloadUdl) && notIsfs(root.uri);
     const autoloadProcessed: string[] = [];
 
     // Process every test that was queued
@@ -517,7 +511,7 @@ async function runHandler(
                 class: cls,
                 methods: [test.label],
               });
-              if (test.parent.uri.scheme == "file") {
+              if (notIsfs(test.parent.uri)) {
                 // Add this class to the list to load
                 if (asyncRequest.load == undefined) asyncRequest.load = [];
                 asyncRequest.load.push({
@@ -554,7 +548,7 @@ async function runHandler(
                 delete clsObj.methods;
               }
             }
-            if (test.uri.scheme == "file") {
+            if (notIsfs(test.uri)) {
               // Add this class to the list to load
               if (asyncRequest.load == undefined) asyncRequest.load = [];
               asyncRequest.load.push({
@@ -576,11 +570,7 @@ async function runHandler(
       return;
     }
   } catch (error) {
-    outputErrorAsString(error);
-    vscode.window.showErrorMessage(
-      `Error determining tests to ${action}. Check 'ObjectScript' output channel for details.`,
-      "Dismiss"
-    );
+    handleError(error, `Error determining tests to ${action}.`);
     return;
   }
 
@@ -595,11 +585,7 @@ async function runHandler(
   // Send the queue request
   const api = new AtelierAPI(root.uri);
   const queueResp: Atelier.Response<any> = await api.queueAsync(asyncRequest, true).catch((error) => {
-    outputErrorAsString(error);
-    vscode.window.showErrorMessage(
-      `Error creating job to ${action} tests. Check 'ObjectScript' output channel for details.`,
-      "Dismiss"
-    );
+    handleError(error, `Error creating job to ${action} tests.`);
     return undefined;
   });
   if (!queueResp) return;
@@ -738,10 +724,9 @@ async function runHandler(
                             if (locationUri) {
                               if (!documentSymbols.has(locationUri.toString())) {
                                 const newSymbols = await vscode.commands
-                                  .executeCommand<vscode.DocumentSymbol[]>(
-                                    "vscode.executeDocumentSymbolProvider",
-                                    locationUri
-                                  )
+                                  .executeCommand<
+                                    vscode.DocumentSymbol[]
+                                  >("vscode.executeDocumentSymbolProvider", locationUri)
                                   .then(
                                     (r) => r[0]?.children,
                                     () => undefined
@@ -921,11 +906,7 @@ async function runHandler(
     };
     await processUnitTestResults();
   } catch (error) {
-    outputErrorAsString(error);
-    vscode.window.showErrorMessage(
-      `Error ${action}${debug ? "g" : "n"}ing tests. Check 'ObjectScript' output channel for details.`,
-      "Dismiss"
-    );
+    handleError(error, `Error ${action}${debug ? "g" : "n"}ing tests.`);
   }
   testRun.end();
 }
@@ -951,7 +932,7 @@ export function setUpTestController(): vscode.Disposable[] {
         // Compute items for the Test* methods in this class
         await addTestItemsForClass(testController, item);
       } else {
-        if (item.uri.scheme == "file") {
+        if (notIsfs(item.uri)) {
           // Read the local directory for non-autoload subdirectories and classes
           const autoload = vscode.workspace.getConfiguration("objectscript.unitTest.autoload", item.uri);
           const autoloadFolder: string = autoload.get("folder");
@@ -975,9 +956,9 @@ export function setUpTestController(): vscode.Disposable[] {
         }
       }
     } catch (error) {
-      outputErrorAsString(error);
+      handleError(error);
       item.error = new vscode.MarkdownString(
-        "Error fetching children. Check `ObjectScript` output channel for details."
+        "Error fetching children. Check the `ObjectScript` Output channel for details."
       );
     }
     item.busy = false;
@@ -1096,7 +1077,7 @@ export function setUpTestController(): vscode.Disposable[] {
       const replace: vscode.TestItem[] = [];
       testController.items.forEach((item) => {
         if (
-          (item.uri.scheme == "file" && e.affectsConfiguration("objectscript.unitTest", item.uri)) ||
+          (notIsfs(item.uri) && e.affectsConfiguration("objectscript.unitTest", item.uri)) ||
           e.affectsConfiguration("objectscript.conn", item.uri) ||
           e.affectsConfiguration("intersystems.servers", item.uri)
         ) {

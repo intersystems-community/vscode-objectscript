@@ -112,10 +112,10 @@ export function fileSpecFromURI(uri: vscode.Uri): string {
   const folder = !csp
     ? uri.path.replace(/\/$/, "").replace(/\//g, ".")
     : uri.path === "/"
-    ? ""
-    : uri.path.endsWith("/")
-    ? uri.path
-    : uri.path + "/";
+      ? ""
+      : uri.path.endsWith("/")
+        ? uri.path
+        : uri.path + "/";
   // The query filter represents the studio spec to be used,
   // overrides.filter represents the SQL query that will be passed to the server
 

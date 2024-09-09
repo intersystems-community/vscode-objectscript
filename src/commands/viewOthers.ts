@@ -1,17 +1,11 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { config } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
-import { currentFile, outputChannel } from "../utils";
+import { currentFile, handleError } from "../utils";
 
 export async function viewOthers(forceEditable = false): Promise<void> {
   const file = currentFile();
-  if (!file) {
-    return;
-  }
-  if (file.uri.scheme === "file" && !config("conn").active) {
-    return;
-  }
+  if (!file) return;
 
   const open = async (item: string, forceEditable: boolean) => {
     const colonidx: number = item.indexOf(":");
@@ -103,6 +97,7 @@ export async function viewOthers(forceEditable = false): Promise<void> {
   };
 
   const api = new AtelierAPI(file.uri);
+  if (!api.active) return;
   let indexarg: string = file.name;
   const cursorpos: vscode.Position = vscode.window.activeTextEditor.selection.active;
   const fileExt: string = file.name.split(".").pop().toLowerCase();
@@ -197,22 +192,5 @@ export async function viewOthers(forceEditable = false): Promise<void> {
         });
       }
     })
-    .catch((err) => {
-      if (err.errorText && err.errorText !== "") {
-        outputChannel.appendLine("\n" + err.errorText);
-        vscode.window
-          .showErrorMessage(
-            `Failed to get other documents. Check 'ObjectScript' output channel for details.`,
-            "Show",
-            "Dismiss"
-          )
-          .then((action) => {
-            if (action === "Show") {
-              outputChannel.show(true);
-            }
-          });
-      } else {
-        vscode.window.showErrorMessage(`Failed to get other documents.`, "Dismiss");
-      }
-    });
+    .catch((error) => handleError(error, "Failed to get other documents."));
 }

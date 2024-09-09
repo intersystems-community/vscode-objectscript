@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { cspAppsForApi, outputChannel } from ".";
+import { cspAppsForApi, handleError } from ".";
 
 interface DocumentPickerItem extends vscode.QuickPickItem {
   /** The full name of this item, including its parent(s). */
@@ -144,13 +144,7 @@ export async function pickDocuments(api: AtelierAPI, prompt?: string): Promise<s
         })
         .catch((error) => {
           quickPick.hide();
-          let message = `Failed to get namespace contents.`;
-          if (error && error.errorText && error.errorText !== "") {
-            outputChannel.appendLine("\n" + error.errorText);
-            outputChannel.show(true);
-            message += " Check 'ObjectScript' output channel for details.";
-          }
-          vscode.window.showErrorMessage(message, "Dismiss");
+          handleError(error, "Failed to get namespace contents.");
         });
     };
     const expandItem = (itemIdx: number): Promise<void> => {
@@ -177,13 +171,7 @@ export async function pickDocuments(api: AtelierAPI, prompt?: string): Promise<s
         })
         .catch((error) => {
           quickPick.hide();
-          let message = `Failed to get namespace contents.`;
-          if (error && error.errorText && error.errorText !== "") {
-            outputChannel.appendLine("\n" + error.errorText);
-            outputChannel.show(true);
-            message += " Check 'ObjectScript' output channel for details.";
-          }
-          vscode.window.showErrorMessage(message, "Dismiss");
+          handleError(error, "Failed to get namespace contents.");
         });
     };
 
@@ -304,13 +292,7 @@ export async function pickDocuments(api: AtelierAPI, prompt?: string): Promise<s
           .then((data) => data.result.content.map((e) => e.Name))
           .catch((error) => {
             quickPick.hide();
-            let message = `Failed to resolve documents in selected packages or folders.`;
-            if (error && error.errorText && error.errorText !== "") {
-              outputChannel.appendLine("\n" + error.errorText);
-              outputChannel.show(true);
-              message += " Check 'ObjectScript' output channel for details.";
-            }
-            vscode.window.showErrorMessage(message, "Dismiss");
+            handleError(error, "Failed to resolve documents in selected packages or folders.");
           });
         // Remove duplicates
         result = [...new Set(resolved.concat(result.filter((e) => !e.endsWith("*"))))];
@@ -383,13 +365,7 @@ export async function pickDocument(api: AtelierAPI, prompt?: string): Promise<st
         })
         .catch((error) => {
           quickPick.hide();
-          let message = `Failed to get namespace contents.`;
-          if (error && error.errorText && error.errorText !== "") {
-            outputChannel.appendLine("\n" + error.errorText);
-            outputChannel.show(true);
-            message += " Check 'ObjectScript' output channel for details.";
-          }
-          vscode.window.showErrorMessage(message, "Dismiss");
+          handleError(error, "Failed to get namespace contents.");
         });
     };
 
@@ -462,8 +438,8 @@ export async function pickDocument(api: AtelierAPI, prompt?: string): Promise<st
                 error?.statusCode == 400
                   ? `'${doc}' is an invalid document name.`
                   : error?.statusCode == 404
-                  ? `Document '${doc}' does not exist.`
-                  : `Internal Server Error encountered trying to validate document '${doc}'.`,
+                    ? `Document '${doc}' does not exist.`
+                    : `Internal Server Error encountered trying to validate document '${doc}'.`,
                 "Dismiss"
               );
               resolve(undefined);
@@ -499,13 +475,7 @@ export async function pickDocument(api: AtelierAPI, prompt?: string): Promise<st
             })
             .catch((error) => {
               quickPick.hide();
-              let message = `Failed to get namespace contents.`;
-              if (error && error.errorText && error.errorText !== "") {
-                outputChannel.appendLine("\n" + error.errorText);
-                outputChannel.show(true);
-                message += " Check 'ObjectScript' output channel for details.";
-              }
-              vscode.window.showErrorMessage(message, "Dismiss");
+              handleError(error, "Failed to get namespace contents.");
             });
         }
       }

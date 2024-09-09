@@ -4,8 +4,8 @@ import { AtelierAPI } from "../api";
 import { PackageNode } from "../explorer/models/packageNode";
 import { RootNode } from "../explorer/models/rootNode";
 import { NodeBase } from "../explorer/models/nodeBase";
-import { explorerProvider } from "../extension";
-import { outputChannel } from "../utils";
+import { FILESYSTEM_SCHEMA, explorerProvider } from "../extension";
+import { outputChannel, uriOfWorkspaceFolder } from "../utils";
 import { OtherStudioAction, fireOtherStudioAction } from "./studio";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { UserAction } from "../api/atelier";
@@ -15,11 +15,13 @@ function deleteList(items: string[], workspaceFolder: string, namespace: string)
     vscode.window.showWarningMessage("Nothing to delete");
   }
 
+  const wsFolderUri = uriOfWorkspaceFolder(workspaceFolder);
   const api = new AtelierAPI(workspaceFolder);
   api.setNamespace(namespace);
   return Promise.all(items.map((item) => api.deleteDoc(item))).then((files) => {
     files.forEach((file) => {
-      if (file.result.ext) {
+      if (file.result.ext && wsFolderUri?.scheme == FILESYSTEM_SCHEMA) {
+        // Only process source control output if we're in an isfs folder
         const uri = DocumentContentProvider.getUri(file.result.name);
         fireOtherStudioAction(OtherStudioAction.DeletedDocument, uri, <UserAction>file.result.ext);
       }

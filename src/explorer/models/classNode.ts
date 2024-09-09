@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { NodeBase, NodeOptions } from "./nodeBase";
 import { config } from "../../extension";
 import { getLeafNodeUri } from "../explorer";
+import { notIsfs } from "../../utils";
 
 export class ClassNode extends NodeBase {
   public static readonly contextValue: string = "dataNode:classNode";
@@ -12,7 +13,7 @@ export class ClassNode extends NodeBase {
   public getTreeItem(): vscode.TreeItem {
     const displayName: string = this.label;
     const itemUri = getLeafNodeUri(this);
-    const isLocalFile = itemUri.scheme === "file";
+    const isLocalFile = notIsfs(itemUri);
     const showServerCopy: boolean = config("explorer.alwaysShowServerCopy", this.workspaceFolder);
     const serverCopyUri = getLeafNodeUri(this, true);
 
