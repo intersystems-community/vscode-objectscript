@@ -1770,7 +1770,7 @@
     "@types/istextorbinary": "2.3.1",
     "@types/minimatch": "5.1.2",
     "@types/mocha": "^7.0.2",
-    "@types/node": "^14.18.0",
+    "@types/node": "^20.16.5",
     "@types/semver": "7.5.4",
     "@types/vscode": "1.91.0",
     "@types/ws": "8.5.4",
@@ -1792,7 +1792,7 @@
     "path-browserify": "^1.0.1",
     "prettier": "^3.3.1",
     "ts-loader": "^9.5.1",
-    "typescript": "^5.4.5",
+    "typescript": "^5.6.2",
     "@vscode/debugadapter-testsupport": "^1.67.0",
     "webpack": "^5.94.0",
     "webpack-cli": "^5.1.4"
@@ -1809,7 +1809,7 @@
     "@vscode/debugadapter": "^1.65.0",
     "@vscode/debugprotocol": "^1.65.0",
     "vscode-extension-telemetry": "^0.1.6",
-    "ws": "^8.17.1"
+    "ws": "^8.18.0"
   },
   "extensionDependencies": [
     "intersystems-community.servermanager"
