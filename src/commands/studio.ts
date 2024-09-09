@@ -491,7 +491,7 @@ export class StudioActions {
     return this.api
       .actionQuery("SELECT %Atelier_v1_Utils.Extension_ExtensionEnabled() AS Enabled", [])
       .then((data) => data.result.content)
-      .then((content) => (content && content.length ? content[0]?.Enabled ?? false : false))
+      .then((content) => (content && content.length ? (content[0]?.Enabled ?? false) : false))
       .catch(() => false); // Treat any errors as "no source control"
   }
 

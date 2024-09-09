@@ -193,7 +193,7 @@ async function updateIndexAndSyncChanges(
 /** Get all `Uri`s for `document` in `wsFolder` */
 export function getUrisForDocument(document: string, wsFolder: vscode.WorkspaceFolder): vscode.Uri[] {
   const index = wsFolderIndex.get(wsFolder.uri.toString());
-  return index ? index.documents.get(document) ?? [] : [];
+  return index ? (index.documents.get(document) ?? []) : [];
 }
 
 /** Clean up all `FileSystemWatcher`s */
