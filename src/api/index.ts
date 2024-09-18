@@ -43,6 +43,7 @@ export interface ConnectionSettings {
 
 export class AtelierAPI {
   private _config: ConnectionSettings;
+  private _agent?: httpModule.Agent | httpsModule.Agent;
   private namespace: string;
   public configName: string;
 
@@ -303,11 +304,13 @@ export class AtelierAPI {
 
     const proto = this._config.https ? "https" : "http";
     const http = this._config.https ? httpsModule : httpModule;
-    const agent = new http.Agent({
-      keepAlive: true,
-      maxSockets: 10,
-      rejectUnauthorized: https && vscode.workspace.getConfiguration("http").get("proxyStrictSSL"),
-    });
+    if (!this._agent) {
+      this._agent = new http.Agent({
+        keepAlive: true,
+        maxSockets: 10,
+        rejectUnauthorized: https && vscode.workspace.getConfiguration("http").get("proxyStrictSSL"),
+      });
+    }
 
     let pathPrefix = this._config.pathPrefix || "";
     if (pathPrefix.length && !pathPrefix.startsWith("/")) {
@@ -340,7 +343,7 @@ export class AtelierAPI {
       const cookie = await auth;
       const response = await fetch(`${proto}://${host}:${port}${path}`, {
         method,
-        agent,
+        agent: this._agent,
         body: body ? (typeof body !== "string" ? JSON.stringify(body) : body) : null,
         headers: {
           ...headers,
