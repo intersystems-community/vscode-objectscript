@@ -415,7 +415,7 @@ export class AtelierAPI {
 
       // Handle console output
       if (data.console) {
-        // Let studio actions handle their console output
+        // Let Studio actions handle their console output
         const isStudioAction =
           data.result.content != undefined &&
           data.result.content.length !== 0 &&

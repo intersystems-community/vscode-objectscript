@@ -55,8 +55,8 @@ jobs:
           tmp=$(mktemp)
           jq --arg version "$VERSION" '.version = $version' package.json > "$tmp" && mv "$tmp" package.json
           mkdir dist
-          echo $VERSION > .version
-          echo $NAME > .name
+          echo $VERSION > meta.version
+          echo $NAME > meta.name
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
@@ -77,10 +77,10 @@ jobs:
           path: ${{ steps.set-version.outputs.name }}.vsix
       - uses: actions/upload-artifact@v4
         with:
-          name: meta-build
+          name: meta
           path: |
-            .name
-            .version
+            meta.name
+            meta.version
   beta:
     if: (github.event_name == 'push')
     runs-on: ubuntu-latest
@@ -88,14 +88,14 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: meta-beta
+          name: meta
           path: .
       - name: Set an output
         id: set-version
         run: |
           set -x
-          echo "version=`cat .version`" >> $GITHUB_OUTPUT
-          echo "name=`cat .name`" >> $GITHUB_OUTPUT
+          echo "version=`cat meta.version`" >> $GITHUB_OUTPUT
+          echo "name=`cat meta.name`" >> $GITHUB_OUTPUT
       - uses: actions/download-artifact@v4
         with:
           name: ${{ steps.set-version.outputs.name }}.vsix
@@ -118,7 +118,7 @@ jobs:
           token: ${{ secrets.TOKEN }}
       - uses: actions/download-artifact@v4
         with:
-          name: meta-publish
+          name: meta
           path: .
       - name: Use Node.js
         uses: actions/setup-node@v4
@@ -127,9 +127,9 @@ jobs:
       - name: Prepare build
         id: set-version
         run: |
-          VERSION=`cat .version`
-          NEXT_VERSION=`cat .version | awk -F. '/[0-9]+\./{$NF++;print}' OFS=.`
-          echo "name=`cat .name`" >> $GITHUB_OUTPUT
+          VERSION=`cat meta.version`
+          NEXT_VERSION=`cat meta.version | awk -F. '/[0-9]+\./{$NF++;print}' OFS=.`
+          echo "name=`cat meta.name`" >> $GITHUB_OUTPUT
           tmp=$(mktemp)
           git config --global user.name 'ProjectBot'
           git config --global user.email 'bot@users.noreply.github.com'
