@@ -43,6 +43,7 @@ export interface ConnectionSettings {
 
 export class AtelierAPI {
   private _config: ConnectionSettings;
+  private _agent?: httpModule.Agent | httpsModule.Agent;
   private namespace: string;
   public configName: string;
 
@@ -303,11 +304,18 @@ export class AtelierAPI {
 
     const proto = this._config.https ? "https" : "http";
     const http = this._config.https ? httpsModule : httpModule;
-    const agent = new http.Agent({
-      keepAlive: true,
-      maxSockets: 10,
-      rejectUnauthorized: https && vscode.workspace.getConfiguration("http").get("proxyStrictSSL"),
-    });
+    if (!this._agent) {
+      this._agent = new http.Agent({
+        /* VS Code 1.93 adopted a version of vscode-proxy-agent that fixed a failure to pass-through the keepAlive option (see https://github.com/microsoft/vscode/issues/173861 and https://github.com/microsoft/vscode-proxy-agent/commit/4eddc930d4fbc6b88ca5557ea7af07d623d390d6)
+         * This caused poor performance on some operations by our extension (see https://github.com/intersystems-community/vscode-objectscript/issues/1428)
+         * Short term solution adopted by PR https://github.com/intersystems-community/vscode-objectscript/pull/1432 is not to enable keepAlive
+         * We should revisit this in the future - TODO
+         */
+        //keepAlive: true,
+        //maxSockets: 10,
+        rejectUnauthorized: https && vscode.workspace.getConfiguration("http").get("proxyStrictSSL"),
+      });
+    }
 
     let pathPrefix = this._config.pathPrefix || "";
     if (pathPrefix.length && !pathPrefix.startsWith("/")) {
@@ -340,7 +348,7 @@ export class AtelierAPI {
       const cookie = await auth;
       const response = await fetch(`${proto}://${host}:${port}${path}`, {
         method,
-        agent,
+        agent: this._agent,
         body: body ? (typeof body !== "string" ? JSON.stringify(body) : body) : null,
         headers: {
           ...headers,
