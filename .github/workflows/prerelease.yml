@@ -72,7 +72,7 @@ jobs:
           path: ${{ steps.set-version.outputs.name }}.vsix
       - uses: actions/upload-artifact@v4
         with:
-          name: meta
+          name: meta-build
           path: |
             .name
             .version
@@ -83,7 +83,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: meta
+          name: meta-beta
           path: .
       - name: Set an output
         id: set-version
@@ -113,7 +113,7 @@ jobs:
           token: ${{ secrets.TOKEN }}
       - uses: actions/download-artifact@v4
         with:
-          name: meta
+          name: meta-publish
           path: .
       - name: Use Node.js
         uses: actions/setup-node@v4
