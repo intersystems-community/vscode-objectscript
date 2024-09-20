@@ -306,8 +306,8 @@ export class AtelierAPI {
     const http = this._config.https ? httpsModule : httpModule;
     if (!this._agent) {
       this._agent = new http.Agent({
-        keepAlive: true,
-        maxSockets: 10,
+        //keepAlive: true,
+        //maxSockets: 10,
         rejectUnauthorized: https && vscode.workspace.getConfiguration("http").get("proxyStrictSSL"),
       });
     }
