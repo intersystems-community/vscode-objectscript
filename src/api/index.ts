@@ -354,9 +354,6 @@ export class AtelierAPI {
           ...headers,
           Cookie: cookie,
         },
-        // json: true,
-        // resolveWithFullResponse: true,
-        // simple: true,
       });
       if (response.status === 503) {
         // User likely ran out of licenses
