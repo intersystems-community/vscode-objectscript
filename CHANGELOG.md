@@ -1,5 +1,9 @@
 # Change Log
 
+## [2.12.8] 23-Sep-2024
+- Fixes
+  - Solve 1.93 performance issue (#1428)
+
 ## [2.12.7] 05-Aug-2024
 - Enhancements
   - Fire source control hooks for opened and closed documents (#1414)
