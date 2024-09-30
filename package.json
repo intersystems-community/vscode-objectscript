@@ -325,6 +325,10 @@
           "when": "false"
         },
         {
+          "command": "vscode-objectscript.ObjectScriptExplorer.webterminal",
+          "when": "false"
+        },
+        {
           "command": "vscode-objectscript.importXMLFiles",
           "when": "vscode-objectscript.connectActive && workspaceFolderCount != 0"
         },
@@ -402,6 +406,11 @@
           "command": "vscode-objectscript.explorer.otherNamespaceClose",
           "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode.*:extra:/",
           "group": "inline@30"
+        },
+        {
+          "command": "vscode-objectscript.ObjectScriptExplorer.webterminal",
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode/",
+          "group": "inline@25"
         },
         {
           "command": "vscode-objectscript.explorer.showGenerated",
@@ -1167,6 +1176,11 @@
       },
       {
         "command": "vscode-objectscript.intersystems-servermanager.webterminal",
+        "title": "Launch Lite Terminal",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "vscode-objectscript.ObjectScriptExplorer.webterminal",
         "title": "Launch Lite Terminal",
         "icon": "$(terminal)"
       },
