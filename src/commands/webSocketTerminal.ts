@@ -624,10 +624,7 @@ function terminalConfigForUri(
   }
 
   return {
-    name:
-      api.config.serverName && api.config.serverName != ""
-        ? api.config.serverName
-        : `${api.config.host}:${api.config.port}${api.config.pathPrefix}`,
+    name: api.config.serverName && api.config.serverName != "" ? api.config.serverName : "iris",
     location:
       // Mimic what a built-in profile does. When it is the default and the Terminal tab is selected while empty,
       // a terminal is always created in the Panel.
