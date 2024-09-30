@@ -69,7 +69,9 @@ export async function checkChangedOnServer(file: CurrentTextFile | CurrentBinary
             ? false
             : (content as string[]).every((line, index) => line.trim() == (fileContent[index] || "").trim());
         } else {
-          sameContent = force ? false : Buffer.compare(content as Buffer, file.content) === 0;
+          sameContent = force
+            ? false
+            : Buffer.compare(content as unknown as Uint8Array, file.content as unknown as Uint8Array) === 0;
         }
         const mtime =
           force || sameContent ? serverTime : Math.max((await vscode.workspace.fs.stat(file.uri)).mtime, serverTime);
@@ -243,7 +245,7 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
           const content = await api.getDoc(file.name).then((data) => data.result.content);
           await vscode.workspace.fs.writeFile(
             file.uri,
-            Buffer.isBuffer(content) ? content : new TextEncoder().encode(content.join("\n"))
+            Buffer.isBuffer(content) ? (content as unknown as Uint8Array) : new TextEncoder().encode(content.join("\n"))
           );
         } else if (filesystemSchemas.includes(file.uri.scheme)) {
           fileSystemProvider.fireFileChanged(file.uri);
