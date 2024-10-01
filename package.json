@@ -1844,7 +1844,7 @@
     "path-browserify": "^1.0.1",
     "prettier": "^2.0.5",
     "ts-loader": "^7.0.5",
-    "typescript": "^4.4.3",
+    "typescript": "^5.5.4",
     "vscode-debugadapter-testsupport": "^1.41.0",
     "webpack": "^5.94.0",
     "webpack-cli": "^4.5.0"
