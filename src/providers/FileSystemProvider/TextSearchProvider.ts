@@ -89,7 +89,7 @@ function searchMatchToLine(
                 line = memend + (match.attrline ?? 1);
               } else {
                 // This is a keyword with a multiline value
-                line = i + (match.attrline - 1 ?? 0);
+                line = i + (match.attrline - 1 || 0);
               }
             } else {
               // This is in the class member definition
