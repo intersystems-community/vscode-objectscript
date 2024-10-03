@@ -58,7 +58,8 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
             return vscode.SymbolKind.Interface;
           case "Class":
             return vscode.SymbolKind.Class;
-          default: // Property and Relationship
+          default:
+            // Property and Relationship
             return vscode.SymbolKind.Property;
         }
       })();
