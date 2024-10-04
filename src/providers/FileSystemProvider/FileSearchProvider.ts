@@ -22,8 +22,8 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
     // Drop a leading **/ from the glob pattern if it exists. This gets added by Find widget of Explorer tree (non-fuzzy mode), which since 1.94 uses FileSearchProvider
     if (pattern.startsWith("**/")) {
       pattern = pattern.slice(3);
-    } else if (pattern.length && !pattern.includes("*") && options.useGlobalIgnoreFiles) {
-      // Heuristic to detect a fuzzy search from Explorer's Find widget (see https://github.com/microsoft/vscode/issues/230483#issuecomment-2393928617)
+    } else if (pattern.length) {
+      // Do a fuzzy search
       pattern = "*" + pattern.split("").join("*") + "*";
     }
     const params = new URLSearchParams(options.folder.query);
