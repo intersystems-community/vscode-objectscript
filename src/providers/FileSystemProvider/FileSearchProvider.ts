@@ -49,17 +49,13 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
     // When this is called without a query.pattern, every file is supposed to be returned, so do not provide a filter
     let filter = "";
     if (pattern.length) {
-      let escapeClause = "";
       pattern = !csp ? pattern.replace(/\//g, ".") : pattern;
-      if (pattern.includes("_") || pattern.includes("%")) {
-        // Need to escape any % or _ characters
-        pattern = pattern.replace(/(_|%|\\)/g, "\\$1");
-        escapeClause = " ESCAPE '\\'";
-      }
-      // Change glob syntax to SQL LIKE syntax
-      pattern = pattern.replace(/\*/g, "%");
-      pattern = pattern.replace(/\?/g, "_");
-      filter = `Name LIKE '%${pattern}%'${escapeClause}`;
+      filter = `Name LIKE '%${pattern
+        // Escape % or _ characters
+        .replace(/(_|%|\\)/g, "\\$1")
+        // Change glob syntax to SQL LIKE syntax
+        .replace(/\*/g, "%")
+        .replace(/\?/g, "_")}%' ESCAPE '\\'`;
     }
     if (token.isCancellationRequested) {
       return;
