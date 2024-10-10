@@ -150,9 +150,6 @@ export class RESTDebugPanel {
       api.config.pathPrefix
     }`;
 
-    // Get the path to the @vscode/webview-ui-toolkit minimized js
-    const toolkitUri = this._panel.webview.asWebviewUri(vscode.Uri.joinPath(webviewFolderUri, "toolkit-1.2.1.min.js"));
-
     // Set the webview's content
     this._panel.webview.html = `
 			<!DOCTYPE html>
@@ -160,7 +157,9 @@ export class RESTDebugPanel {
 			<head>
 				<meta charset="UTF-8">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script type="module" src="${toolkitUri}"></script>
+        <script type="module" src="${this._panel.webview.asWebviewUri(
+          vscode.Uri.joinPath(webviewFolderUri, "elements-1.6.3.js")
+        )}"></script>
         <title>${RESTDebugPanel._viewTitle}</title>
         <style>
           .path-grid {
@@ -171,10 +170,10 @@ export class RESTDebugPanel {
           .component-container > * {
             margin: 0.5rem 0;
           }
-          vscode-text-area, vscode-text-field {
+          vscode-textarea, vscode-textfield {
             width: 100%;
           }
-          vscode-panels {
+          vscode-tabs {
             display: contents;
           }
           .path-grid-container {
@@ -187,90 +186,88 @@ export class RESTDebugPanel {
             max-width: 45vw;
           }
           #button {
-            margin-top: 1rem;
+            margin-top: 0.5rem;
+          }
+          vscode-tab-panel {
+            overflow: visible;
           }
         </style>
 			</head>
 			<body>
         <h1>${RESTDebugPanel._viewTitle}</h1>
-        <form id="form"> 
-          <p>
-            Use the tabs below to specify the REST request method, path, headers, query parameters and body.
-            Click the 'Start Debugging' button to send the REST request and start the debugging session.
-          </p>
-          <vscode-panels id="panels" activeid="methodPathTab" aria-label="Method & Path, Headers, Query Parameters and Body">
-            <vscode-panel-tab id="methodPathTab">METHOD & PATH</vscode-panel-tab>
-            <vscode-panel-tab id="headersTab">HEADERS</vscode-panel-tab>
-            <vscode-panel-tab id="paramsTab">QUERY PARAMETERS</vscode-panel-tab>
-            <vscode-panel-tab id="bodyTab">BODY</vscode-panel-tab>
-            <vscode-panel-view id="methodPathView">
+        <form id="form">
+          <p>Use the tabs below to specify the REST request method, path, headers, query parameters and body.</p>
+          <p>Click the <vscode-badge>Start Debugging</vscode-badge> button to send the REST request and start the debugging session.</p>
+          <vscode-divider></vscode-divider>
+          <vscode-tabs id="panels" selected-index="0" aria-label="Method & Path, Headers, Query Parameters and Body">
+            <vscode-tab-header id="methodPathTab">METHOD & PATH</vscode-tab-header>
+            <vscode-tab-header id="headersTab">HEADERS</vscode-tab-header>
+            <vscode-tab-header id="paramsTab">QUERY PARAMETERS</vscode-tab-header>
+            <vscode-tab-header id="bodyTab">BODY</vscode-tab-header>
+            <vscode-tab-panel id="methodPathView">
               <section class="component-container">
                 <p>
                   Select a method for this request, then select the web application
                   to use from the dropdown and enter the rest of the path in the input field
-                  next to the dropdown. The connection information of the server definition
+                  next to the dropdown. 
+                </p>
+                <p>
+                  The connection information of the server definition
                   is shown for clarity but it cannot be edited.
                 </p>
-                <vscode-radio-group id="method" orientation="horizontal">
-                  <vscode-radio checked value="GET">GET</vscode-radio>
-                  <vscode-radio value="POST">POST</vscode-radio>
-                  <vscode-radio value="PUT">PUT</vscode-radio>
-                  <vscode-radio value="PATCH">PATCH</vscode-radio>
-                  <vscode-radio value="DELETE">DELETE</vscode-radio>
-                  <vscode-radio value="HEAD">HEAD</vscode-radio>
-                  <vscode-radio value="OPTIONS">OPTIONS</vscode-radio>
+                <vscode-radio-group id="method" name="method">
+                  <vscode-radio value="GET" name="method" checked>GET</vscode-radio>
+                  <vscode-radio value="POST" name="method">POST</vscode-radio>
+                  <vscode-radio value="PUT" name="method">PUT</vscode-radio>
+                  <vscode-radio value="PATCH" name="method">PATCH</vscode-radio>
+                  <vscode-radio value="DELETE" name="method">DELETE</vscode-radio>
+                  <vscode-radio value="HEAD" name="method">HEAD</vscode-radio>
+                  <vscode-radio value="OPTIONS" name="method">OPTIONS</vscode-radio>
                 </vscode-radio-group>
-                <vscode-text-field readonly id="serverInfo"></vscode-text-field>
+                <vscode-textfield readonly id="serverInfo"></vscode-textfield>
                 <section class="path-grid">
                   <section class="path-grid-container">
-                    <vscode-dropdown id="webApp" position="below"></vscode-dropdown>
+                    <vscode-single-select id="webApp" name="webApp" position="below"></vscode-single-select>
                   </section>
                   <section class="path-grid-container">
-                    <vscode-text-field id="path" placeholder="/path"></vscode-text-field>
+                    <vscode-textfield id="path" name="path" placeholder="/path" pattern="^/.*$" required></vscode-textfield>
                   </section>
                 </section>
               </section>
-            </vscode-panel-view>
-            <vscode-panel-view id="headersView">
+            </vscode-tab-panel>
+            <vscode-tab-panel id="headersView">
               <section class="component-container">
-                <p>
-                  Enter your HTTP headers below, one per line, using the format 'HEADER: value'.
-                  If no 'Authorization' header is present, the username and password of the server connection will be used.
-                  If you provide a body, the 'Content-Type' header will be set automatically.
-                  To disable a header, add a hash (#) to the start of that line.
-                </p>
-                <vscode-text-area id="headersText" resize="vertical" placeholder="HEADER: value\n# INACTIVE_HEADER: value" rows="5"></vscode-text-area>
+                <p>Enter your HTTP headers below, one per line, using the format 'HEADER: value'.</p>
+                <p>If no 'Authorization' header is present, the username and password of the server connection will be used.</p>
+                <p>If you provide a body, the 'Content-Type' header will be set automatically.</p>
+                <p>To disable a header, add a hash (<vscode-badge>#</vscode-badge>) to the start of that line.</p>
+                <vscode-textarea id="headersText" name="headersText" resize="vertical" placeholder="HEADER: value\n# INACTIVE_HEADER: value" rows="5"></vscode-textarea>
               </section>
-            </vscode-panel-view>
-            <vscode-panel-view id="paramsView">
+            </vscode-tab-panel>
+            <vscode-tab-panel id="paramsView">
               <section class="component-container">
-                <p>
-                  Enter your query parameters below, one per line, using the format 'param=1'.
-                  To disable a query parameter, add a hash (#) to the start of that line.
-                </p>
-                <vscode-text-area id="paramsText" resize="vertical" placeholder="param=1\n# inactive-param=1" rows="5"></vscode-text-area>
+                <p>Enter your query parameters below, one per line, using the format 'param=value'.</p>
+                <p>To disable a query parameter, add a hash (<vscode-badge>#</vscode-badge>) to the start of that line.</p>
+                <vscode-textarea id="paramsText" name="paramsText" resize="vertical" placeholder="param=1\n# inactive-param=1" rows="5"></vscode-textarea>
               </section>
-            </vscode-panel-view>
-            <vscode-panel-view id="bodyView">
+            </vscode-tab-panel>
+            <vscode-tab-panel id="bodyView">
               <section class="component-container">
-                <p>
-                  To provide a request body, select the type of the body content
-                  and enter the content in the text box that appears. 
-                </p>
-                <vscode-radio-group id="bodyType" orientation="horizontal">
-                  <vscode-radio checked value="No Body">No Body</vscode-radio>
-                  <vscode-radio value="JSON">JSON</vscode-radio>
-                  <vscode-radio value="Text">Text</vscode-radio>
-                  <vscode-radio value="XML">XML</vscode-radio>
-                  <vscode-radio value="HTML">HTML</vscode-radio>
+                <p>To provide a request body, select the type of the body content and enter the content in the text box that appears.</p>
+                <vscode-radio-group id="bodyType" name="bodyType">
+                  <vscode-radio checked value="No Body" name="bodyType">No Body</vscode-radio>
+                  <vscode-radio value="JSON" name="bodyType">JSON</vscode-radio>
+                  <vscode-radio value="Text" name="bodyType">Text</vscode-radio>
+                  <vscode-radio value="XML" name="bodyType">XML</vscode-radio>
+                  <vscode-radio value="HTML" name="bodyType">HTML</vscode-radio>
                 </vscode-radio-group>
-                <vscode-text-area id="bodyContent" resize="vertical" rows="10" hidden></vscode-text-area>
+                <vscode-textarea id="bodyContent" name="bodyContent" resize="vertical" rows="10" hidden></vscode-textarea>
               </section>
-            </vscode-panel-view>
-          </vscode-panels>
+            </vscode-tab-panel>
+          </vscode-tabs>
         </form>
         <vscode-divider></vscode-divider>
-        <vscode-button id="button" appearance="primary" type="button">Start Debugging</vscode-button>
+        <vscode-button id="button">Start Debugging</vscode-button>
         <script>
           const vscode = acquireVsCodeApi();
           const form = document.getElementById("form");
@@ -284,76 +281,75 @@ export class RESTDebugPanel {
           const button = document.getElementById("button");
           const webApp = document.getElementById("webApp");
           const formFields = [method, serverInfo, path, headersText, paramsText, bodyType, bodyContent, webApp];
+          const sendData = (submitted) => {
+            const data = Object.fromEntries(new FormData(form));
+            if (
+              Object.keys(data).length == (formFields.length - 1) &&
+              data.webApp != "" && data.method != "" && data.bodyType != "" &&
+              (!submitted || (submitted && path.checkValidity()))
+            ) {
+              vscode.postMessage({
+                submitted,
+                ...data
+              });
+            }
+          };
 
-          const setFormData = (data) => {
+          window.onmessage = (event) => {
+            const data = event.data, currentVals = new FormData(form);
             formFields.forEach((field) => {
-              if (data[field.id] && field.value != data[field.id]) {
-                field.value = data[field.id];
-              }
               if (field.id == "webApp" && webApp.children.length == 0) {
                 // Create options and set the initial value
+                const initIdx = data.webApps.findIndex((e) => e == data.webApp) ?? 0;
                 data.webApps.forEach((webAppStr, idx) => {
                   const option = document.createElement("vscode-option");
                   option.innerText = webAppStr;
                   option.setAttribute("value",webAppStr);
-                  if (idx == 0) {
-                    option.setAttribute("selected",true);
+                  if (idx == initIdx) {
+                    option.selected = true;
                   }
                   webApp.appendChild(option);
-                  if (idx == 0) {
-                    webApp.value = webAppStr;
-                  }
                 });
-                if (data.webApp != undefined && data.webApp != "" && data.webApps.includes(data.webApp)) {
-                  webApp.value = data.webApp;
-                }
                 // Update width of dropdown
                 const longest = data.webApps.reduce((a,b) => a.length > b.length ? a : b);
                 const context = document.createElement("canvas").getContext("2d");
                 context.font = window.getComputedStyle(webApp,null).getPropertyValue("font");
-                webApp.style.width = Math.ceil(context.measureText(longest).width) + "px";
+                webApp.style.width = Math.ceil(context.measureText(longest).width*(4/3)) + "px";
+              } else if (data[field.id] != undefined && currentVals.get(field.id) != data[field.id]) {
+                if (["method","bodyType"].includes(field.id)) {
+                  // Check the correct radio
+                  for (const c of field.children) {
+                    c.checked = (c.value == data[field.id]);
+                  }
+                  if (field.id == "bodyType") {
+                    // Make sure bodyContent is shown or hidden correctly
+                    bodyContent.hidden = (data[field.id] == "No Body");
+                  }
+                } else {
+                  field.value = data[field.id];
+                  if (field.id == "path") {
+                    // Make sure valid path is marked as valid
+                  }
+                }
               }
             });
-            form.dispatchEvent(new Event("change"));
-          }
-          const getFormData = () => {
-            const data = {};
-            formFields.forEach((field) => {
-              if (field.id != "serverInfo" && field.value != undefined) {
-                data[field.id] = field.value;
-              }
-            });
-            return data;
-          }
-
-          window.onmessage = (event) => setFormData(event.data);
-          button.onclick = () => {
-            vscode.postMessage({
-              submitted: true,
-              ...getFormData()
-            });
-          }
-          form.onchange = (event) => {
-            if (event.target.id != "panels") {
-              const data = getFormData();
-              if (
-                Object.keys(data).length == formFields.length - 1 &&
-                data.webApp != "" && data.method != "" && data.bodyType != ""
-              ) {
-                vscode.postMessage({
-                  submitted: false,
-                  ...data
-                });
-              }
-            }
-          }
+          };
+          form.onchange = () => sendData(false);
+          button.onclick = () => sendData(true);
           bodyType.onchange = () => {
-            if (bodyType.value == "No Body") {
-              bodyContent.setAttribute("hidden","hidden");
-            } else {
-              bodyContent.removeAttribute("hidden");
+            let bt;
+            for (const c of bodyType.children) {
+              if (c.checked) {
+                bt = c.value;
+                break;
+              }
             }
+            bodyContent.hidden = (bt == "No Body");
           }
+          // Bubble change events up to the form
+          bodyContent.onchange = headersText.onchange = 
+            paramsText.onchange = path.onchange = 
+            webApp.onchange = () => form.dispatchEvent(new Event("change"));
         </script>
 			</body>
 			</html>`;
