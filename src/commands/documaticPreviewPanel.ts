@@ -115,9 +115,6 @@ export class DocumaticPreviewPanel {
    * Set the static html for the webview.
    */
   private setWebviewHtml(webviewFolderUri: vscode.Uri) {
-    // Get the path to the @vscode/webview-ui-toolkit minimized js
-    const toolkitUri = this._panel.webview.asWebviewUri(vscode.Uri.joinPath(webviewFolderUri, "toolkit-1.2.1.min.js"));
-
     // Set the webview's html
     this._panel.webview.html = `
 			<!DOCTYPE html>
@@ -125,7 +122,7 @@ export class DocumaticPreviewPanel {
 			<head>
 				<meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script type="module" src="${toolkitUri}"></script>
+        <script type="module" src="${this._panel.webview.asWebviewUri(vscode.Uri.joinPath(webviewFolderUri, "elements-1.6.3.js"))}"></script>
 			</head>
 			<body>
 				<h1 id="header"></h1>
