@@ -157,7 +157,9 @@ export class RESTDebugPanel {
 			<head>
 				<meta charset="UTF-8">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script type="module" src="${this._panel.webview.asWebviewUri(vscode.Uri.joinPath(webviewFolderUri, "elements-1.6.3.js"))}"></script>
+        <script type="module" src="${this._panel.webview.asWebviewUri(
+          vscode.Uri.joinPath(webviewFolderUri, "elements-1.6.3.js")
+        )}"></script>
         <title>${RESTDebugPanel._viewTitle}</title>
         <style>
           .path-grid {
