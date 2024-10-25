@@ -86,6 +86,13 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   /** The WebSocket used to talk to the server */
   private _socket: WebSocket;
 
+  /** The number of columns in the terminal */
+  private _cols: number;
+
+  /** The `RegExp` used to strip ANSI color escape codes from a string */
+  // eslint-disable-next-line no-control-regex
+  private _colorsRegex = /\x1b[^m]*?m/g;
+
   constructor(private readonly _api: AtelierAPI) {}
 
   /** Hide the cursor, write `data` to the terminal, then show the cursor again. */
@@ -157,7 +164,45 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     return result;
   }
 
-  open(): void {
+  /**
+   * Move the cursor based on user changes (typing/deleting characters, arrow keys) or
+   * changes to the width of the terminal window
+   */
+  private _moveCursor(cursorColDelta = 0, colsDelta = 0): void {
+    if (cursorColDelta == 0 && colsDelta == 0) return;
+    // Calculate the row/column number of the current position
+    const currCol = this._cursorCol % this._cols;
+    const currRow = (this._cursorCol - currCol) / this._cols;
+    // Make the adjustment
+    if (cursorColDelta != 0) {
+      this._cursorCol += cursorColDelta;
+    } else {
+      this._cols += colsDelta;
+    }
+    // Calculate the row/column number of the new position
+    const newCol = this._cursorCol % this._cols;
+    const newRow = (this._cursorCol - newCol) / this._cols;
+    // Move the cursor
+    const rowDelta = newRow - currRow;
+    const colDelta = newCol - currCol;
+    const rowStr = rowDelta ? (rowDelta > 0 ? `\x1b[${rowDelta}B` : `\x1b[${Math.abs(rowDelta)}A`) : "";
+    const colStr = colDelta ? (colDelta > 0 ? `\x1b[${colDelta}C` : `\x1b[${Math.abs(colDelta)}D`) : "";
+    this._hideCursorWrite(`${rowStr}${colStr}`);
+  }
+
+  /**
+   * Move the cursor to the last line of the input (prompt or read)
+   * so any output doesn't overwrite the end of the input
+   */
+  private _moveCursorToLastLine(): void {
+    const currRow = (this._cursorCol - (this._cursorCol % this._cols)) / this._cols;
+    const newRow = Math.ceil((this._margin + this._input.split("\r\n").pop().length + 1) / this._cols) - 1;
+    const rowDelta = newRow - currRow;
+    if (rowDelta) this._hideCursorWrite(`\x1b[${rowDelta}B`);
+  }
+
+  open(initialDimensions?: vscode.TerminalDimensions): void {
+    this._cols = initialDimensions?.columns ?? 100000;
     try {
       // Open the WebSocket
       this._socket = new WebSocket(this._api.terminalUrl(), {
@@ -244,7 +289,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
                   message.text
                 }\x1b]633;B\x07`
               );
-              this._margin = this._cursorCol = message.text.length;
+              this._margin = this._cursorCol = message.text.replace(this._colorsRegex, "").length;
               this._prompt = message.text;
               this._promptExitCode = ";0";
             }
@@ -264,17 +309,18 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
             break;
           case "color": {
             // Replace the input with the syntax colored text, keeping the cursor at the same spot
-            const lines = message.text.split("\r\n").length;
-            if (lines > 1) {
-              this._hideCursorWrite(
-                `\x1b7\x1b[${lines - 1}A\r\x1b[0J${this._prompt}${message.text.replace(
-                  /\r\n/g,
-                  `\r\n${this._multiLinePrompt}`
-                )}\x1b8`
-              );
-            } else {
-              this._hideCursorWrite(`\x1b7\x1b[2K\r${this._prompt}${message.text}\x1b8`);
+            let cursorLine = Math.ceil((this._cursorCol + 1) / this._cols) - 1;
+            if (message.text.includes("\r\n")) {
+              const lines = message.text.replace(this._colorsRegex, "").split("\r\n");
+              lines.pop();
+              cursorLine += lines.reduce((sum, line) => sum + Math.ceil((line.length + 1) / this._cols), 0);
             }
+            this._hideCursorWrite(
+              `\x1b7${cursorLine > 0 ? `\x1b[${cursorLine}A` : ""}\r\x1b[0J${this._prompt}${message.text.replace(
+                /\r\n/g,
+                `\r\n${this._multiLinePrompt}`
+              )}\x1b8`
+            );
             break;
           }
         }
@@ -326,6 +372,8 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           // Reset first line tracker
           this._firstOutputLineSincePrompt = false;
         }
+        // Move cursor to the last line of the input
+        this._moveCursorToLastLine();
 
         // Send the input to the server for processing
         this._socket.send(JSON.stringify({ type: this._state, input: this._input }));
@@ -351,12 +399,12 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           return;
         }
         const inputArr = this._input.split("\r\n");
+        const trailingText = inputArr[inputArr.length - 1].slice(this._cursorCol - this._margin);
         inputArr[inputArr.length - 1] =
-          inputArr[inputArr.length - 1].slice(0, this._cursorCol - this._margin - 1) +
-          inputArr[inputArr.length - 1].slice(this._cursorCol - this._margin);
+          inputArr[inputArr.length - 1].slice(0, this._cursorCol - this._margin - 1) + trailingText;
         this._input = inputArr.join("\r\n");
-        this._cursorCol--;
-        this._hideCursorWrite(actions.cursorBack + actions.deleteChar);
+        this._moveCursor(-1);
+        this._hideCursorWrite(`\x1b7\x1b[0J${trailingText}\x1b8`);
         if (this._input != "" && this._state == "prompt" && this._syntaxColoringEnabled()) {
           // Syntax color input
           this._socket.send(JSON.stringify({ type: "color", input: this._input }));
@@ -371,11 +419,11 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         }
         const inputArr = this._input.split("\r\n");
         if (this._margin + inputArr[inputArr.length - 1].length - this._cursorCol > 0) {
+          const trailingText = inputArr[inputArr.length - 1].slice(this._cursorCol - this._margin + 1);
           inputArr[inputArr.length - 1] =
-            inputArr[inputArr.length - 1].slice(0, this._cursorCol - this._margin) +
-            inputArr[inputArr.length - 1].slice(this._cursorCol - this._margin + 1);
+            inputArr[inputArr.length - 1].slice(0, this._cursorCol - this._margin) + trailingText;
           this._input = inputArr.join("\r\n");
-          this._hideCursorWrite(actions.deleteChar);
+          this._hideCursorWrite(`\x1b7\x1b[0J${trailingText}\x1b8`);
           if (this._input != "" && this._state == "prompt" && this._syntaxColoringEnabled()) {
             // Syntax color input
             this._socket.send(JSON.stringify({ type: "color", input: this._input }));
@@ -401,7 +449,6 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           // Scroll back one more input
           this._historyIdx--;
         }
-        const oldInput = this._input;
         if (this._historyIdx >= 0) {
           this._input = this._history[this._historyIdx];
         } else if (this._historyIdx == -1) {
@@ -411,8 +458,10 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           // If we hit the end, leave the input blank
           this._input = "";
         }
+        // Move cursor to start of input, clear everything, then write new input
+        this._moveCursor(this._margin - this._cursorCol);
+        this._hideCursorWrite(`\x1b[0J${this._input}`);
         this._cursorCol = this._margin + this._input.length;
-        this._hideCursorWrite(`${oldInput.length ? `\x1b[${oldInput.length}D\x1b[0K` : ""}${this._input}`);
         if (this._input != "" && this._syntaxColoringEnabled()) {
           // Syntax color input
           this._socket.send(JSON.stringify({ type: "color", input: this._input }));
@@ -436,15 +485,16 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         } else {
           this._historyIdx++;
         }
-        const oldInput = this._input;
         if (this._historyIdx != -1) {
           this._input = this._history[this._historyIdx];
         } else {
           // If we hit the beginning, leave the input blank
           this._input = "";
         }
+        // Move cursor to start of input, clear everything, then write new input
+        this._moveCursor(this._margin - this._cursorCol);
+        this._hideCursorWrite(`\x1b[0J${this._input}`);
         this._cursorCol = this._margin + this._input.length;
-        this._hideCursorWrite(`${oldInput.length ? `\x1b[${oldInput.length}D\x1b[0K` : ""}${this._input}`);
         if (this._input != "" && this._syntaxColoringEnabled()) {
           // Syntax color input
           this._socket.send(JSON.stringify({ type: "color", input: this._input }));
@@ -457,9 +507,14 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           return;
         }
         if (this._cursorCol > this._margin) {
-          // Move the cursor back one column
+          if (this._cursorCol % this._cols == 0) {
+            // Move the cursor to the end of the previous line
+            this._hideCursorWrite(`${actions.cursorUp}\x1b[${this._cols}G`);
+          } else {
+            // Move the cursor back one column
+            this._hideCursorWrite(actions.cursorBack);
+          }
           this._cursorCol--;
-          this._hideCursorWrite(actions.cursorBack);
         }
         return;
       }
@@ -468,10 +523,15 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           // User can't move cursor
           return;
         }
-        if (this._cursorCol < this._margin + this._input.length) {
-          // Move the cursor forward one column
+        if (this._cursorCol < this._margin + this._input.split("\r\n").pop().length) {
           this._cursorCol++;
-          this._hideCursorWrite(actions.cursorForward);
+          if (this._cursorCol % this._cols == 0) {
+            // Move the cursor to the beginning of the next line
+            this._hideCursorWrite("\x1b[1E");
+          } else {
+            // Move the cursor forward one column
+            this._hideCursorWrite(actions.cursorForward);
+          }
         }
         return;
       }
@@ -490,31 +550,31 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
       case keys.home:
       case keys.ctrlA: {
         if (this._state == "prompt" && this._cursorCol - this._margin > 0) {
-          // Move the cursor to the beginning of the line
-          this._hideCursorWrite(`\x1b[${this._cursorCol - this._margin}D`);
-          this._cursorCol = this._margin;
+          // Move the cursor to the beginning of the input
+          this._moveCursor(this._margin - this._cursorCol);
         }
         return;
       }
       case keys.end:
       case keys.ctrlE: {
         if (this._state == "prompt") {
-          // Move the cursor to the end of the line
-          const inputArr = this._input.split("\r\n");
-          if (this._margin + inputArr[inputArr.length - 1].length - this._cursorCol > 0) {
-            this._hideCursorWrite(`\x1b[${this._margin + inputArr[inputArr.length - 1].length - this._cursorCol}C`);
-            this._cursorCol = this._margin + inputArr[inputArr.length - 1].length;
+          // Move the cursor to the end of the input
+          const lineLength = this._input.split("\r\n").pop().length;
+          if (lineLength > this._cursorCol) {
+            this._moveCursor(lineLength - this._cursorCol);
           }
         }
         return;
       }
       case keys.ctrlU: {
         if (this._state == "prompt") {
-          // Erase the line if the cursor is at the end
+          // Erase the input if the cursor is at the end of it
           const inputArr = this._input.split("\r\n");
           if (this._cursorCol == this._margin + inputArr[inputArr.length - 1].length) {
-            this._hideCursorWrite(`\x1b[2K\r${inputArr.length > 1 ? this._multiLinePrompt : this._prompt}`);
-            this._cursorCol = this._margin;
+            // Move the cursor to the beginning of the input
+            this._moveCursor(this._margin - this._cursorCol);
+            // Erase everyhting to the right of the cursor
+            this._hideCursorWrite("\x1b[0J");
             inputArr[inputArr.length - 1] = "";
             this._input = inputArr.join("\r\n");
             if (this._input != "" && this._syntaxColoringEnabled()) {
@@ -545,21 +605,66 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         // Replace all single \r with \r\n (prompt) or space (read)
         char = char.replace(/\r/g, this._state == "prompt" ? "\r\n" : " ");
         const inputArr = this._input.split("\r\n");
+        let eraseAfterCursor = "",
+          trailingText = "";
         if (this._cursorCol < this._margin + inputArr[inputArr.length - 1].length) {
           // Insert the new char(s)
+          trailingText = inputArr[inputArr.length - 1].slice(this._cursorCol - this._margin);
           inputArr[inputArr.length - 1] = `${inputArr[inputArr.length - 1].slice(
             0,
             this._cursorCol - this._margin
-          )}${char}${inputArr[inputArr.length - 1].slice(this._cursorCol - this._margin)}`;
+          )}${char}${trailingText}`;
           this._input = inputArr.join("\r\n");
-          this._cursorCol += char.length;
-          this._hideCursorWrite(`\x1b[4h${char.replace(/\r\n/g, `\r\n${this._multiLinePrompt}`)}\x1b[4l`);
+          eraseAfterCursor = "\x1b[0J";
         } else {
           // Append the new char(s)
           this._input += char;
-          this._cursorCol += char.length;
-          this._hideCursorWrite(char.replace(/\r\n/g, `\r\n${this._multiLinePrompt}`));
         }
+        const currCol = this._cursorCol % this._cols;
+        const currRow = (this._cursorCol - currCol) / this._cols;
+        const originalCol = this._cursorCol;
+        let newRow: number;
+        if (char.includes("\r\n")) {
+          char = char.replace(/\r\n/g, `\r\n${this._multiLinePrompt}`);
+          this._margin = this._multiLinePrompt.length;
+          const charLines = char.split("\r\n");
+          newRow =
+            charLines.reduce(
+              (sum, line, i) => sum + Math.ceil(((i == 0 ? this._cursorCol : 0) + line.length + 1) / this._cols),
+              0
+            ) - 1;
+          this._cursorCol = charLines[charLines.length - 1].length;
+        } else {
+          newRow = Math.ceil((this._cursorCol + char.length + 1) / this._cols) - 1;
+          this._cursorCol += char.length;
+        }
+        const rowDelta = newRow - currRow;
+        const colDelta = (this._cursorCol % this._cols) - currCol;
+        const rowStr = rowDelta ? (rowDelta > 0 ? `\x1b[${rowDelta}B` : `\x1b[${Math.abs(rowDelta)}A`) : "";
+        const colStr = colDelta ? (colDelta > 0 ? `\x1b[${colDelta}C` : `\x1b[${Math.abs(colDelta)}D`) : "";
+        char += trailingText;
+        const spaceOnCurrentLine = this._cols - (originalCol % this._cols);
+        if (this._state == "read" && char.length >= spaceOnCurrentLine) {
+          // There's no auto-line wrapping when in read mode, so we must move the cursor manually
+          // Extract all the characters that fit on the cursor's line
+          const firstLine = char.slice(0, spaceOnCurrentLine);
+          const otherLines = char.slice(spaceOnCurrentLine);
+          const lines: string[] = [];
+          if (otherLines.length) {
+            // Split the rest into an array of lines that fit in the viewport
+            for (let line = 0, i = 0; line < Math.ceil(otherLines.length / this._cols); line++, i += this._cols) {
+              lines[line] = otherLines.slice(i, i + this._cols);
+            }
+          } else {
+            // Add a blank "line" to move the cursor to the next viewport row
+            lines.push("");
+          }
+          // Join the lines with the cursor escape code
+          lines.unshift(firstLine);
+          char = lines.join("\r\n");
+        }
+        // Save the cursor position, write the text, restore the cursor position, then move the cursor manually
+        this._hideCursorWrite(`\x1b7${eraseAfterCursor}${char}\x1b8${rowStr}${colStr}`);
         if (submit) {
           if (this._state == "prompt") {
             // Reset historyIdx
@@ -579,6 +684,8 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
             // Reset first line tracker
             this._firstOutputLineSincePrompt = false;
           }
+          // Move cursor to the last line of the input
+          this._moveCursorToLastLine();
 
           // Send the input to the server for processing
           this._socket.send(JSON.stringify({ type: this._state, input: this._input }));
@@ -595,6 +702,33 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           this._socket.send(JSON.stringify({ type: "color", input: this._input }));
         }
       }
+    }
+  }
+
+  setDimensions(dimensions: vscode.TerminalDimensions): void {
+    if (this._state != "eval" && this._input != "") {
+      // Move the cursor to the correct new position
+      this._moveCursor(undefined, dimensions.columns - this._cols);
+      // Save the cursor position, move the cursor to just after the margin,
+      // clear the screen from that point, write the input, then restore the cursor
+      let cursorLine = Math.ceil((this._cursorCol + 1) / this._cols) - 1;
+      if (this._input.includes("\r\n")) {
+        const lines = this._input.split("\r\n");
+        lines.pop();
+        cursorLine += lines.reduce((sum, line) => sum + Math.ceil((line.length + 1) / this._cols), 0);
+      }
+      this._hideCursorWrite(
+        `\x1b7${cursorLine > 0 ? `\x1b[${cursorLine}A` : ""}\r\x1b[${this._margin}C\x1b[0J${this._input.replace(
+          /\r\n/g,
+          `\r\n${this._multiLinePrompt}`
+        )}\x1b8`
+      );
+      if (this._state == "prompt" && this._syntaxColoringEnabled()) {
+        // Syntax color input
+        this._socket.send(JSON.stringify({ type: "color", input: this._input }));
+      }
+    } else {
+      this._cols = dimensions.columns;
     }
   }
 }
