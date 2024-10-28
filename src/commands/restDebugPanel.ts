@@ -1,6 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { default: fetch } = require("node-fetch-cjs");
-import * as httpModule from "http";
+import axios from "axios";
 import * as httpsModule from "https";
 
 import * as vscode from "vscode";
@@ -423,28 +421,31 @@ export class RESTDebugPanel {
                   break;
               }
             }
-            const agent = new (api.config.https ? httpsModule : httpModule).Agent({
-              keepAlive: true,
-              maxSockets: 10,
-              rejectUnauthorized: api.config.https && vscode.workspace.getConfiguration("http").get("proxyStrictSSL"),
+            const httpsAgent = new httpsModule.Agent({
+              rejectUnauthorized: vscode.workspace.getConfiguration("http").get("proxyStrictSSL"),
             });
 
             // Send the request
-            fetch(`${encodeURI(`${serverInfo}${message.webApp}${path}`)}?${urlParams.toString()}`, {
-              method: message.method,
-              agent,
-              body: hasBody ? message.bodyContent : undefined,
-              headers,
-            }).catch((error) => {
-              outputChannel.appendLine(
-                typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
-              );
-              vscode.window.showErrorMessage(
-                "Failed to send debuggee REST request. Check 'ObjectScript' Output channel for details.",
-                "Dismiss"
-              );
-              vscode.debug.stopDebugging(vscode.debug.activeDebugSession);
-            });
+            axios
+              .request({
+                method: message.method,
+                url: `${encodeURI(`${serverInfo}${message.webApp}${path}`)}?${urlParams.toString()}`,
+                headers,
+                data: hasBody ? message.bodyContent : undefined,
+                withCredentials: true,
+                httpsAgent,
+                validateStatus: undefined, // Only reject if we didn't get a response
+              })
+              .catch((error) => {
+                outputChannel.appendLine(
+                  typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
+                );
+                vscode.window.showErrorMessage(
+                  "Failed to send debuggee REST request. Check 'ObjectScript' Output channel for details.",
+                  "Dismiss"
+                );
+                vscode.debug.stopDebugging(vscode.debug.activeDebugSession);
+              });
 
             // Wait 500ms to allow the server to associate this request with the CSDPDEBUG id
             await new Promise((resolve) => setTimeout(resolve, 500));

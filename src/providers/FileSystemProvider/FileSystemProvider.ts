@@ -25,8 +25,6 @@ import { addIsfsFileToProject, modifyProject } from "../../commands/project";
 import { DocumentContentProvider } from "../DocumentContentProvider";
 import { Document, UserAction } from "../../api/atelier";
 
-declare function setTimeout(callback: (...args: any[]) => void, ms: number, ...args: any[]): NodeJS.Timeout;
-
 export type Entry = File | Directory;
 
 export function generateFileContent(
@@ -174,7 +172,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
 
   private _emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
   private _bufferedEvents: vscode.FileChangeEvent[] = [];
-  private _fireSoonHandle?: NodeJS.Timer;
+  private _fireSoonHandle?: NodeJS.Timeout;
 
   public constructor() {
     this.onDidChangeFile = this._emitter.event;
