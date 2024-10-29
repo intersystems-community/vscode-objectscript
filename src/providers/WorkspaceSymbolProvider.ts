@@ -40,19 +40,28 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
     for (const element of data.result.content) {
       const kind: vscode.SymbolKind = (() => {
         switch (element.Type) {
-          case "Query":
           case "Method":
             return vscode.SymbolKind.Method;
+          case "Query":
+            return vscode.SymbolKind.Function;
+          case "Trigger":
+            return vscode.SymbolKind.Event;
           case "Parameter":
             return vscode.SymbolKind.Constant;
           case "Index":
+            return vscode.SymbolKind.Array;
+          case "ForeignKey":
             return vscode.SymbolKind.Key;
           case "XData":
-          case "Storage":
             return vscode.SymbolKind.Struct;
+          case "Storage":
+            return vscode.SymbolKind.Object;
+          case "Projection":
+            return vscode.SymbolKind.Interface;
           case "Class":
             return vscode.SymbolKind.Class;
           default:
+            // Property and Relationship
             return vscode.SymbolKind.Property;
         }
       })();

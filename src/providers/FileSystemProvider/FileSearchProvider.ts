@@ -18,6 +18,14 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
   ): Promise<vscode.Uri[]> {
     let counter = 0;
     let pattern = query.pattern.charAt(0) == "/" ? query.pattern.slice(1) : query.pattern;
+
+    // Drop a leading **/ from the glob pattern if it exists. This gets added by Find widget of Explorer tree (non-fuzzy mode), which since 1.94 uses FileSearchProvider
+    if (pattern.startsWith("**/")) {
+      pattern = pattern.slice(3);
+    } else if (pattern.length) {
+      // Do a fuzzy search
+      pattern = "*" + pattern.split("").join("*") + "*";
+    }
     const params = new URLSearchParams(options.folder.query);
     const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
     if (params.has("project") && params.get("project").length) {
@@ -44,13 +52,13 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
     // When this is called without a query.pattern, every file is supposed to be returned, so do not provide a filter
     let filter = "";
     if (pattern.length) {
-      pattern = !csp ? query.pattern.replace(/\//g, ".") : query.pattern;
-      if (pattern.includes("_") || pattern.includes("%")) {
-        // Need to escape any % or _ characters
-        filter = `Name LIKE '%${pattern.replace(/(_|%|\\)/g, "\\$1")}%' ESCAPE '\\'`;
-      } else {
-        filter = `Name LIKE '%${pattern}%'`;
-      }
+      pattern = !csp ? pattern.replace(/\//g, ".") : pattern;
+      filter = `Name LIKE '%${pattern
+        // Escape % or _ characters
+        .replace(/(_|%|\\)/g, "\\$1")
+        // Change glob syntax to SQL LIKE syntax
+        .replace(/\*/g, "%")
+        .replace(/\?/g, "_")}%' ESCAPE '\\'`;
     }
     if (token.isCancellationRequested) {
       return;

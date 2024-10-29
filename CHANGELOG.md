@@ -1,5 +1,20 @@
 # Change Log
 
+## [2.12.9] 29-Oct-2024
+- Enhancements
+  - Add `Launch Lite Terminal` action to Explorer (#1438)
+  - Add timeout to initial connection request (#1440)
+  - Use more granular symbols for class members (#1442)
+  - Migrate to `@vscode-elements/elements` (#1449)
+- Fixes
+  - Make Explorer Find widget work in 1.94 as long as proposed APIs are enabled (#1444)
+  - Fix fuzzy match in Explorer tree Find on an ISFS folder in 1.94 (#1446)
+  - Support for line wrapping in Lite Terminal (#1452)
+
+## [2.12.8] 23-Sep-2024
+- Fixes
+  - Solve 1.93 performance issue (#1428)
+
 ## [2.12.7] 05-Aug-2024
 - Enhancements
   - Fire source control hooks for opened and closed documents (#1414)

@@ -404,8 +404,9 @@ export async function checkConnection(
   };
 
   // Do the check
+  const serverInfoTimeout = 5000;
   return api
-    .serverInfo()
+    .serverInfo(true, serverInfoTimeout)
     .then(gotServerInfo)
     .catch(async (error) => {
       let message = error.message;
@@ -439,7 +440,7 @@ export async function checkConnection(
               });
               api = new AtelierAPI(apiTarget, false);
               await api
-                .serverInfo()
+                .serverInfo(true, serverInfoTimeout)
                 .then(async (info) => {
                   await gotServerInfo(info);
                   _onDidChangeConnection.fire();
@@ -473,7 +474,7 @@ export async function checkConnection(
                     await workspaceState.update(wsKey + ":password", password);
                     resolve(
                       api
-                        .serverInfo()
+                        .serverInfo(true, serverInfoTimeout)
                         .then(async (info): Promise<boolean> => {
                           await gotServerInfo(info);
                           _onDidChangeConnection.fire();
@@ -1444,6 +1445,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         launchWebSocketTerminal(targetUri);
       }
     ),
+    vscode.commands.registerCommand("vscode-objectscript.ObjectScriptExplorer.webterminal", (node: NodeBase) => {
+      const targetUri = DocumentContentProvider.getUri(
+        node.fullName,
+        node.workspaceFolder,
+        node.namespace,
+        undefined,
+        undefined,
+        true
+      );
+      launchWebSocketTerminal(targetUri);
+    }),
     vscode.window.registerTerminalProfileProvider(
       "vscode-objectscript.webSocketTerminal",
       new WebSocketTerminalProfileProvider()

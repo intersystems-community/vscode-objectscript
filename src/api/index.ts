@@ -1,7 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { default: fetch } = require("node-fetch-cjs");
-
-import * as httpModule from "http";
+import axios from "axios";
 import * as httpsModule from "https";
 import * as vscode from "vscode";
 import * as Cache from "vscode-cache";
@@ -40,6 +37,14 @@ export interface ConnectionSettings {
   docker: boolean;
   dockerService?: string;
 }
+
+// Needed to fix a TS error
+declare let AbortSignal: {
+  prototype: AbortSignal;
+  new (): AbortSignal;
+  abort(reason?: any): AbortSignal;
+  timeout(milliseconds: number): AbortSignal;
+};
 
 export class AtelierAPI {
   private _config: ConnectionSettings;
@@ -301,12 +306,9 @@ export class AtelierAPI {
     }
     headers["Cache-Control"] = "no-cache";
 
-    const proto = this._config.https ? "https" : "http";
-    const http = this._config.https ? httpsModule : httpModule;
-    const agent = new http.Agent({
-      keepAlive: true,
-      maxSockets: 10,
-      rejectUnauthorized: https && vscode.workspace.getConfiguration("http").get("proxyStrictSSL"),
+    const proto = https ? "https" : "http";
+    const httpsAgent = new httpsModule.Agent({
+      rejectUnauthorized: vscode.workspace.getConfiguration("http").get("proxyStrictSSL"),
     });
 
     let pathPrefix = this._config.pathPrefix || "";
@@ -338,17 +340,19 @@ export class AtelierAPI {
 
     try {
       const cookie = await auth;
-      const response = await fetch(`${proto}://${host}:${port}${path}`, {
+      const response = await axios.request({
         method,
-        agent,
-        body: body ? (typeof body !== "string" ? JSON.stringify(body) : body) : null,
+        url: `${proto}://${host}:${port}${path}`,
         headers: {
           ...headers,
           Cookie: cookie,
         },
-        // json: true,
-        // resolveWithFullResponse: true,
-        // simple: true,
+        data: body,
+        withCredentials: true,
+        httpsAgent,
+        timeout: options?.timeout ? options.timeout : 0,
+        signal: options?.timeout ? AbortSignal.timeout(options.timeout) : undefined,
+        validateStatus: (status) => status < 504,
       });
       if (response.status === 503) {
         // User likely ran out of licenses
@@ -371,7 +375,7 @@ export class AtelierAPI {
         }
         throw { statusCode: response.status, message: response.statusText };
       }
-      await this.updateCookies(response.headers.raw()["set-cookie"] || []);
+      await this.updateCookies(response.headers["set-cookie"] || []);
       if (method === "HEAD") {
         if (!originalPath) {
           authRequestMap.delete(target);
@@ -381,7 +385,7 @@ export class AtelierAPI {
           throw { statusCode: response.status, message: response.statusText, errorText: "" };
         } else {
           // The HEAD /doc request succeeded
-          return response.headers.get("ETAG");
+          return response.headers["etag"];
         }
       }
 
@@ -390,17 +394,14 @@ export class AtelierAPI {
         throw { statusCode: response.status, message: response.statusText };
       }
 
-      const responseString = new TextDecoder().decode(await response.arrayBuffer());
-      let data: Atelier.Response;
-      try {
-        data = JSON.parse(responseString);
-      } catch {
+      if (typeof response.data != "object") {
         throw {
           statusCode: response.status,
           message: response.statusText,
           errorText: `Non-JSON response to ${path} request. Is the web server suppressing detailed errors?`,
         };
       }
+      const data: Atelier.Response = response.data;
 
       // Decode encoded content
       if (data.result && data.result.enc && data.result.content) {
@@ -410,7 +411,7 @@ export class AtelierAPI {
 
       // Handle console output
       if (data.console) {
-        // Let studio actions handle their console output
+        // Let Studio actions handle their console output
         const isStudioAction =
           data.result.content != undefined &&
           data.result.content.length !== 0 &&
@@ -439,11 +440,11 @@ export class AtelierAPI {
       // Handle headers for the /work endpoints by storing the header values in the result object
       if (originalPath && originalPath.endsWith("/work") && method == "POST") {
         // This is a POST /work request, so we need to get the Location header
-        data.result.location = response.headers.get("Location");
+        data.result.location = response.headers["location"];
       } else if (originalPath && /^[^/]+\/work\/[^/]+$/.test(originalPath)) {
         // This is a GET or DELETE /work request, so we need to check the Retry-After header
-        if (response.headers.has("Retry-After")) {
-          data.retryafter = response.headers.get("Retry-After");
+        if (response.headers["retry-after"]) {
+          data.retryafter = response.headers["retry-after"];
         }
       }
 
@@ -454,7 +455,7 @@ export class AtelierAPI {
 
       // In some cases schedule an automatic retry.
       // ENOTFOUND occurs if, say, the VPN to the server's network goes down.
-      if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
+      if (["ECONNREFUSED", "ENOTFOUND", "ECONNABORTED", "ERR_CANCELED"].includes(error.code)) {
         panel.text = `${this.connInfo} $(debug-disconnect)`;
         panel.tooltip = "Disconnected";
         workspaceState.update(this.configName.toLowerCase() + ":host", undefined);
@@ -467,8 +468,8 @@ export class AtelierAPI {
     }
   }
 
-  public serverInfo(checkNs = true): Promise<Atelier.Response<Atelier.Content<Atelier.ServerInfo>>> {
-    return this.request(0, "GET").then((info) => {
+  public serverInfo(checkNs = true, timeout?: number): Promise<Atelier.Response<Atelier.Content<Atelier.ServerInfo>>> {
+    return this.request(0, "GET", undefined, undefined, undefined, undefined, { timeout }).then((info) => {
       if (info && info.result && info.result.content && info.result.content.api > 0) {
         const data = info.result.content;
         const apiVersion = data.api;
