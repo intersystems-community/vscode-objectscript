@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { CurrentBinaryFile, CurrentTextFile, currentFileFromContent, handleError, notIsfs, outputChannel } from ".";
 import { AtelierAPI } from "../api";
 import { compile, importFile } from "../commands/compile";
+import { exportedUris } from "../commands/export";
 
 interface WSFolderIndex {
   /** The `FileSystemWatcher` for this workspace folder */
@@ -22,7 +23,7 @@ interface WSFolderIndexChange {
 /** Map of stringified workspace folder `Uri`s to collection of InterSystems classes and routines contained therein */
 const wsFolderIndex: Map<string, WSFolderIndex> = new Map();
 
-/** Glob pattern that matches files we want to index */
+/** Glob pattern that matches classes and routines */
 const filePattern = "{**/*.cls,**/*.mac,**/*.int,**/*.inc}";
 
 /** We want decoding errors to be thrown */
@@ -42,11 +43,12 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
   watcher.onDidChange((uri) => updateIndexAndSyncChanges(uri, documents, uris));
   watcher.onDidCreate((uri) => updateIndexAndSyncChanges(uri, documents, uris));
   watcher.onDidDelete((uri) => {
+    // Remove the class/routine in the file from the index,
+    // then delete it on the server if required
     const change = removeDocumentFromIndex(uri, documents, uris);
     if (change.removed) {
       const api = new AtelierAPI(uri);
       if (!api.active) return;
-      // Delete document on the server
       api.deleteDoc(change.removed).catch((error) => handleError(error));
     }
   });
@@ -94,7 +96,7 @@ export async function updateIndexForDocument(
       // since the file may be a non-text file
       // with a cls, mac, int or inc extension.
       if (error instanceof vscode.FileSystemError) {
-        outputChannel.appendLine(`Failed to get text contents of '${uri.toString(true)}': ${error.toString()}`);
+        outputChannel.appendLine(`Failed to read contents of '${uri.toString(true)}': ${error.toString()}`);
       }
       return result;
     }
@@ -168,6 +170,18 @@ async function updateIndexAndSyncChanges(
 ): Promise<void> {
   const change = await updateIndexForDocument(uri, documents, uris);
   if (!change.added && !change.removed) return;
+  const uriString = uri.toString();
+  const exportedIdx = exportedUris.findIndex((e) => e == uriString);
+  if (exportedIdx != -1) {
+    // This creation/change event was fired due to a server
+    // export, so don't re-sync the file with the server
+    exportedUris.splice(exportedIdx, 1);
+    return;
+  }
+  if (vscode.workspace.textDocuments.some((td) => td.uri.toString() == uriString)) {
+    // Don't sync with the server because onDidSaveTextDocument will handle it
+    return;
+  }
   const api = new AtelierAPI(uri);
   if (!api.active) return;
   const config = vscode.workspace.getConfiguration("objectscript", uri);

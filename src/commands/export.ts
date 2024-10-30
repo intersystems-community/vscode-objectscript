@@ -15,6 +15,14 @@ import {
 import { NodeBase } from "../explorer/models/nodeBase";
 import { pickDocuments } from "../utils/documentPicker";
 
+/**
+ * Array of stringified `Uri`s that have been exported.
+ * Used by the documentIndex to determine if a created/changed
+ * file needs to be synced with the server. If the documentIndex
+ * finds a match in this array, the element is then removed.
+ */
+export const exportedUris: string[] = [];
+
 export const getCategory = (fileName: string, addCategory: any | boolean): string => {
   const fileExt = fileName.split(".").pop().toLowerCase();
   if (typeof addCategory === "object") {
@@ -94,6 +102,7 @@ async function exportFile(wsFolderUri: vscode.Uri, namespace: string, name: stri
   api.setNamespace(namespace);
   let fileUri = vscode.Uri.file(fileName);
   if (wsFolderUri.scheme != "file") fileUri = wsFolderUri.with({ path: fileUri.path });
+  exportedUris.push(fileUri.toString());
   const log = (status: string) =>
     outputChannel.appendLine(`Export '${name}' to '${fileUri.toString(true)}' - ${status}`);
 
