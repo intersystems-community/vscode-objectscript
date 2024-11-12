@@ -1164,7 +1164,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
             }
             const fileName = filePathNoWorkspaceArr.join(".");
             // Generate the new content
-            const newContent = generateFileContent(uri, fileName, Buffer.from(await vscode.workspace.fs.readFile(uri)));
+            const newContent = generateFileContent(uri, fileName, await vscode.workspace.fs.readFile(uri));
             // Write the new content to the file
             return vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(newContent.content.join("\n")));
           })
