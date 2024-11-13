@@ -1,5 +1,9 @@
 # Change Log
 
+## [2.12.10] 13-Nov-2024
+- Fixes
+  - Prevent overprompting for permission and account (#1456)
+
 ## [2.12.9] 29-Oct-2024
 - Enhancements
   - Add `Launch Lite Terminal` action to Explorer (#1438)
