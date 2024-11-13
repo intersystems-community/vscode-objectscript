@@ -4,6 +4,7 @@ export const smExtensionId = "intersystems-community.servermanager";
 
 import vscode = require("vscode");
 import * as semver from "semver";
+import * as serverManager from "@intersystems-community/intersystems-servermanager";
 
 import { AtelierJob, Content, Response, ServerInfo } from "./api/atelier";
 export const OBJECTSCRIPT_FILE_SCHEMA = "objectscript";
@@ -205,7 +206,7 @@ let reporter: TelemetryReporter = null;
 
 export let checkingConnection = false;
 
-let serverManagerApi: any;
+let serverManagerApi: serverManager.ServerManagerAPI;
 
 // Map of the intersystems.server connection specs we have resolved via the API to that extension
 const resolvedConnSpecs = new Map<string, any>();
@@ -229,8 +230,6 @@ export async function resolveConnectionSpec(serverName: string): Promise<void> {
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function resolvePassword(serverSpec, ignoreUnauthenticated = false): Promise<void> {
-  const AUTHENTICATION_PROVIDER = "intersystems-server-credentials";
-  // This arises if setting says to use authentication provider
   if (
     // Connection isn't unauthenticated
     (!isUnauthenticated(serverSpec.username) || ignoreUnauthenticated) &&
@@ -238,9 +237,19 @@ export async function resolvePassword(serverSpec, ignoreUnauthenticated = false)
     typeof serverSpec.password == "undefined"
   ) {
     const scopes = [serverSpec.name, serverSpec.username || ""];
-    let session = await vscode.authentication.getSession(AUTHENTICATION_PROVIDER, scopes, { silent: true });
+
+    // Handle Server Manager extension version < 3.8.0
+    const account = serverManagerApi.getAccount ? serverManagerApi.getAccount(serverSpec) : undefined;
+
+    let session = await vscode.authentication.getSession(serverManager.AUTHENTICATION_PROVIDER, scopes, {
+      silent: true,
+      account,
+    });
     if (!session) {
-      session = await vscode.authentication.getSession(AUTHENTICATION_PROVIDER, scopes, { createIfNone: true });
+      session = await vscode.authentication.getSession(serverManager.AUTHENTICATION_PROVIDER, scopes, {
+        createIfNone: true,
+        account,
+      });
     }
     if (session) {
       // If original spec lacked username use the one obtained by the authprovider
@@ -1199,7 +1208,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
             }
             const fileName = filePathNoWorkspaceArr.join(".");
             // Generate the new content
-            const newContent = generateFileContent(uri, fileName, Buffer.from(await vscode.workspace.fs.readFile(uri)));
+            const newContent = generateFileContent(uri, fileName, await vscode.workspace.fs.readFile(uri));
             // Write the new content to the file
             return vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(newContent.content.join("\n")));
           })

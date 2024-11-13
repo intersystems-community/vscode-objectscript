@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "2.12.10-SNAPSHOT",
+  "version": "2.12.11-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "9cd75d51-697c-406c-a929-2bcf46e97c64",
   "categories": [
@@ -48,7 +48,7 @@
     }
   ],
   "engines": {
-    "vscode": "^1.91.0"
+    "vscode": "^1.93.0"
   },
   "enabledApiProposals": [
     "fileSearchProvider",
@@ -1777,16 +1777,17 @@
     "test": "node ./out/test/runTest.js",
     "lint": "eslint src/**",
     "lint-fix": "eslint --fix src/**",
-    "download-api": "dts dev 1.91.0",
+    "download-api": "dts dev 1.93.0",
     "postinstall": "npm run download-api"
   },
   "devDependencies": {
+    "@intersystems-community/intersystems-servermanager": "^3.8.0",
     "@types/istextorbinary": "2.3.1",
     "@types/minimatch": "5.1.2",
     "@types/mocha": "^7.0.2",
     "@types/node": "20.16.5",
     "@types/semver": "7.5.4",
-    "@types/vscode": "1.91.0",
+    "@types/vscode": "1.93.0",
     "@types/ws": "8.5.4",
     "@types/xmldom": "^0.1.29",
     "@typescript-eslint/eslint-plugin": "^7.12.0",

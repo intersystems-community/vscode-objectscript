@@ -33,7 +33,7 @@ export type Entry = File | Directory;
 export function generateFileContent(
   uri: vscode.Uri,
   fileName: string,
-  sourceContent: Buffer
+  sourceContent: Uint8Array
 ): { content: string[]; enc: boolean } {
   const sourceLines = sourceContent.length ? new TextDecoder().decode(sourceContent).split("\n") : [];
   const fileExt = fileName.split(".").pop().toLowerCase();
@@ -107,7 +107,7 @@ export function generateFileContent(
     }
   }
   return {
-    content: [sourceContent.toString("base64")],
+    content: [Buffer.from(sourceContent).toString("base64")],
     enc: true,
   };
 }
@@ -397,7 +397,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
 
   public writeFile(
     uri: vscode.Uri,
-    content: Buffer,
+    content: Uint8Array,
     options: {
       create: boolean;
       overwrite: boolean;
@@ -654,11 +654,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const newCsp = newParams.has("csp") && ["", "1"].includes(newParams.get("csp"));
     const newFileName = newCsp ? newUri.path : newUri.path.slice(1).replace(/\//g, ".");
     // Generate content for the new file
-    const newContent = generateFileContent(
-      newUri,
-      newFileName,
-      Buffer.from(await vscode.workspace.fs.readFile(oldUri))
-    );
+    const newContent = generateFileContent(newUri, newFileName, await vscode.workspace.fs.readFile(oldUri));
     if (newFileStat) {
       // We're overwriting an existing file so prompt the user to check it out
       await fireOtherStudioAction(OtherStudioAction.AttemptedEdit, newUri);
