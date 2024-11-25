@@ -54,7 +54,6 @@ import { extractXMLFileContents, previewXMLAsUDL } from "./commands/xmlToUdl";
 import {
   mainCommandMenu,
   contextCommandMenu,
-  documentBeingProcessed,
   fireOtherStudioAction,
   OtherStudioAction,
   contextSourceControlMenu,
@@ -84,7 +83,6 @@ import { ObjectScriptDebugAdapterDescriptorFactory } from "./debug/debugAdapterF
 import { ObjectScriptConfigurationProvider } from "./debug/debugConfProvider";
 import { ProjectsExplorerProvider } from "./explorer/projectsExplorer";
 import { ObjectScriptExplorerProvider, registerExplorerOpen } from "./explorer/explorer";
-import { WorkspaceNode } from "./explorer/models/workspaceNode";
 import { FileSystemProvider, generateFileContent } from "./providers/FileSystemProvider/FileSystemProvider";
 import { WorkspaceSymbolProvider } from "./providers/WorkspaceSymbolProvider";
 import {
@@ -95,12 +93,13 @@ import {
   terminalWithDocker,
   notNull,
   currentFile,
-  isImportableLocalFile,
   workspaceFolderOfUri,
   uriOfWorkspaceFolder,
   isUnauthenticated,
   notIsfs,
   handleError,
+  cspApps,
+  otherDocExts,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentLinkProvider } from "./providers/DocumentLinkProvider";
@@ -132,9 +131,8 @@ import {
   modifyProject,
   modifyProjectMetadata,
 } from "./commands/project";
-import { NodeBase } from "./explorer/models/nodeBase";
 import { loadStudioColors, loadStudioSnippets } from "./commands/studioMigration";
-import { openCustomEditors, RuleEditorProvider } from "./providers/RuleEditorProvider";
+import { RuleEditorProvider } from "./providers/RuleEditorProvider";
 import { newFile, NewFileType } from "./commands/newFile";
 import { FileDecorationProvider } from "./providers/FileDecorationProvider";
 import { RESTDebugPanel } from "./commands/restDebugPanel";
@@ -148,6 +146,7 @@ import {
   removeIndexOfWorkspaceFolder,
   updateIndexForDocument,
 } from "./utils/documentIndex";
+import { WorkspaceNode, NodeBase } from "./explorer/nodes";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -208,7 +207,7 @@ export let checkingConnection = false;
 
 let serverManagerApi: serverManager.ServerManagerAPI;
 
-// Map of the intersystems.server connection specs we have resolved via the API to that extension
+/** Map of the intersystems.server connection specs we have resolved via the API to that extension */
 const resolvedConnSpecs = new Map<string, any>();
 
 /**
@@ -228,8 +227,7 @@ export async function resolveConnectionSpec(serverName: string): Promise<void> {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export async function resolvePassword(serverSpec, ignoreUnauthenticated = false): Promise<void> {
+async function resolvePassword(serverSpec, ignoreUnauthenticated = false): Promise<void> {
   if (
     // Connection isn't unauthenticated
     (!isUnauthenticated(serverSpec.username) || ignoreUnauthenticated) &&
@@ -259,25 +257,10 @@ export async function resolvePassword(serverSpec, ignoreUnauthenticated = false)
   }
 }
 
-// Accessor for the cache of resolved connection specs
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+/** Accessor for the cache of resolved connection specs */
 export function getResolvedConnectionSpec(key: string, dflt: any): any {
   return resolvedConnSpecs.has(key) ? resolvedConnSpecs.get(key) : dflt;
 }
-
-/**
- * A map of all CSP web apps in a server-namespace.
- * The key is either `serverName:ns`, or `host:port/pathPrefix:ns`, lowercase.
- * The value is an array of CSP apps as returned by GET %25SYS/cspapps.
- */
-export const cspApps: Map<string, string[]> = new Map();
-
-/**
- * A map of all Studio Abstract Document extensions in a server-namespace.
- * The key is either `serverName:ns`, or `host:port/pathPrefix:ns`, lowercase.
- * The value is lowercase array of file extensions, without the dot.
- */
-export const otherDocExts: Map<string, string[]> = new Map();
 
 export async function checkConnection(
   clearCookies = false,
@@ -401,8 +384,8 @@ export async function checkConnection(
       otherDocExts.set(
         key,
         await api
-          .actionQuery("SELECT Extension FROM %Library.RoutineMgr_DocumentTypes()", [])
-          .then((data) => data.result?.content?.map((e) => e.Extension) ?? [])
+          .actionQuery("SELECT Extention FROM %Library.RoutineMgr_DocumentTypes()", [])
+          .then((data) => data.result?.content?.map((e) => e.Extention) ?? [])
           .catch(() => [])
       );
     }
@@ -455,9 +438,9 @@ export async function checkConnection(
                   _onDidChangeConnection.fire();
                   success = true;
                 })
-                .catch(async (error) => {
-                  console.log(`Second connect failed: ${error}`);
-                  await setConnectionState(configName, false);
+                .catch(async (err) => {
+                  error = err;
+                  if (error?.statusCode != 401) errorMessage = undefined;
                   await workspaceState.update(wsKey + ":password", undefined);
                   success = false;
                 })
@@ -477,48 +460,43 @@ export async function checkConnection(
                 prompt: !api.externalServer ? "If no password is entered the connection will be disabled." : "",
                 ignoreFocusOut: true,
               })
-              .then(
-                async (password) => {
-                  if (password) {
-                    await workspaceState.update(wsKey + ":password", password);
-                    resolve(
-                      api
-                        .serverInfo(true, serverInfoTimeout)
-                        .then(async (info): Promise<boolean> => {
-                          await gotServerInfo(info);
-                          _onDidChangeConnection.fire();
-                          return true;
-                        })
-                        .catch(async (error) => {
-                          console.log(`Second connect failed: ${error}`);
-                          await setConnectionState(configName, false);
-                          await workspaceState.update(wsKey + ":password", undefined);
-                          return false;
-                        })
-                        .finally(() => {
-                          checkingConnection = false;
-                        })
-                    );
-                  } else if (!api.externalServer) {
-                    await setConnectionState(configName, false);
-                  }
-                  console.log(`Finished prompting for password`);
-                  resolve(false);
-                },
-                (reason) => {
-                  console.log(`showInputBox for password dismissed: ${reason}`);
+              .then(async (password) => {
+                if (password) {
+                  await workspaceState.update(wsKey + ":password", password);
+                  resolve(
+                    api
+                      .serverInfo(true, serverInfoTimeout)
+                      .then(async (info): Promise<boolean> => {
+                        await gotServerInfo(info);
+                        _onDidChangeConnection.fire();
+                        return true;
+                      })
+                      .catch(async (err) => {
+                        error = err;
+                        if (error?.statusCode != 401) errorMessage = undefined;
+                        await workspaceState.update(wsKey + ":password", undefined);
+                        return false;
+                      })
+                      .finally(() => {
+                        checkingConnection = false;
+                      })
+                  );
+                } else if (!api.externalServer) {
+                  await setConnectionState(configName, false);
                 }
-              );
+                resolve(false);
+              });
           });
         }
         if (success) return;
-      } else {
-        errorMessage = `${message}\nCheck your server details in Settings (${connInfo}).`;
       }
-      handleError(errorMessage);
+      handleError(
+        errorMessage ?? error,
+        `Failed to connect to server '${api.serverId}'. Check your server configuration.`
+      );
       panel.text = `${connInfo} $(error)`;
       panel.tooltip = `ERROR - ${message}`;
-      throw error;
+      await setConnectionState(configName, false);
     })
     .finally(() => {
       checkingConnection = false;
@@ -536,8 +514,10 @@ export async function checkConnection(
     });
 }
 
-// Set objectscript.conn.active at WorkspaceFolder level if objectscript.conn is defined there,
-//  else set it at Workspace level
+/**
+ * Set objectscript.conn.active at WorkspaceFolder level if objectscript.conn
+ * is defined there, else set it at Workspace level.
+ */
 function setConnectionState(configName: string, active: boolean) {
   const connConfig: vscode.WorkspaceConfiguration = config("", configName);
   const target: vscode.ConfigurationTarget = connConfig.inspect("conn").workspaceFolderValue
@@ -698,7 +678,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }
   }
 
-  const languages = packageJson.contributes.languages.map((lang) => lang.id);
   // workaround for Theia, issue https://github.com/eclipse-theia/theia/issues/8435
   workspaceState = {
     keys: context.workspaceState.keys,
@@ -894,6 +873,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   macLangConf = vscode.languages.setLanguageConfiguration(macLangId, getLanguageConfiguration(macLangId));
   incLangConf = vscode.languages.setLanguageConfiguration(incLangId, getLanguageConfiguration(incLangId));
   intLangConf = vscode.languages.setLanguageConfiguration(intLangId, getLanguageConfiguration(intLangId));
+
+  // Migrate removed importOnSave setting to new, more generic syncLocalChanges
+  const conf = vscode.workspace.getConfiguration("objectscript");
+  const importOnSave = conf.inspect("importOnSave");
+  if (typeof importOnSave.globalValue == "boolean") {
+    if (!importOnSave.globalValue) {
+      conf.update("syncLocalChanges", false, vscode.ConfigurationTarget.Global);
+    }
+    conf.update("importOnSave", undefined, vscode.ConfigurationTarget.Global);
+  }
+  if (typeof importOnSave.workspaceValue == "boolean") {
+    if (!importOnSave.workspaceValue) {
+      conf.update("syncLocalChanges", false, vscode.ConfigurationTarget.Workspace);
+    }
+    conf.update("importOnSave", undefined, vscode.ConfigurationTarget.Workspace);
+  }
 
   context.subscriptions.push(
     reporter,
@@ -1338,28 +1333,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       const terminalIndex = terminals.findIndex((terminal) => terminal.name == t.name);
       if (terminalIndex > -1) {
         terminals.splice(terminalIndex, 1);
-      }
-    }),
-    vscode.workspace.onDidSaveTextDocument((file) => {
-      if (openCustomEditors.includes(file.uri.toString())) {
-        // Saving is handled by a different event listener
-        return;
-      }
-      const conf = vscode.workspace.getConfiguration("objectscript", file.uri);
-      if (notIsfs(file.uri) && !conf.get("importOnSave")) {
-        // Don't save this local file on the server
-        return;
-      }
-      if (schemas.includes(file.uri.scheme) || languages.includes(file.languageId)) {
-        if (documentBeingProcessed !== file) {
-          return importAndCompile(false, file, conf.get("compileOnSave"));
-        }
-      } else if (notIsfs(file.uri)) {
-        if (isImportableLocalFile(file.uri) && new AtelierAPI(file.uri).active) {
-          // This local file is part of a CSP application
-          // or matches our export settings, so import it on save
-          return importFileOrFolder(file.uri, true);
-        }
       }
     }),
     vscode.window.onDidChangeActiveTextEditor(async (textEditor: vscode.TextEditor) => {

@@ -3,9 +3,9 @@ import {
   config,
   workspaceState,
   checkConnection,
-  FILESYSTEM_SCHEMA,
-  FILESYSTEM_READONLY_SCHEMA,
   explorerProvider,
+  filesystemSchemas,
+  FILESYSTEM_SCHEMA,
 } from "../extension";
 import {
   connectionTarget,
@@ -47,7 +47,7 @@ export async function serverActions(): Promise<void> {
       detail: "Force attempt to connect to the server",
     });
 
-    // Switching namespace makes only sense for non-ISFS folders
+    // Switching namespace only makes sense for client-side folders
     if (wsUri && notIsfs(wsUri)) {
       actions.push({
         id: "switchNamespace",
@@ -193,15 +193,19 @@ export async function serverActions(): Promise<void> {
     detail: "Select a Studio Add-in to open",
   });
   if (
-    (!vscode.window.activeTextEditor && wsUri && notIsfs(wsUri)) ||
-    vscode.window.activeTextEditor.document.uri.scheme === FILESYSTEM_SCHEMA ||
-    vscode.window.activeTextEditor.document.uri.scheme === FILESYSTEM_READONLY_SCHEMA
+    (!vscode.window.activeTextEditor && wsUri && wsUri.scheme == FILESYSTEM_SCHEMA) ||
+    vscode.window.activeTextEditor?.document.uri.scheme == FILESYSTEM_SCHEMA
   ) {
     actions.push({
       id: "serverSourceControlMenu",
       label: "Server Source Control...",
       detail: "Pick server-side source control action",
     });
+  }
+  if (
+    (!vscode.window.activeTextEditor && wsUri && filesystemSchemas.includes(wsUri.scheme)) ||
+    filesystemSchemas.includes(vscode.window.activeTextEditor?.document.uri.scheme)
+  ) {
     actions.push({
       id: "serverCommandMenu",
       label: "Server Command Menu...",

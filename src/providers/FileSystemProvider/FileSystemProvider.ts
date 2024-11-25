@@ -1,5 +1,6 @@
 import * as path from "path";
 import * as vscode from "vscode";
+import { isText } from "istextorbinary";
 import { AtelierAPI } from "../../api";
 import { Directory } from "./Directory";
 import { File } from "./File";
@@ -15,7 +16,9 @@ import {
   redirectDotvscodeRoot,
   workspaceFolderOfUri,
   stringifyError,
-} from "../../utils/index";
+  base64EncodeContent,
+  openCustomEditors,
+} from "../../utils";
 import {
   config,
   FILESYSTEM_READONLY_SCHEMA,
@@ -28,7 +31,7 @@ import { addIsfsFileToProject, modifyProject } from "../../commands/project";
 import { DocumentContentProvider } from "../DocumentContentProvider";
 import { Document, UserAction } from "../../api/atelier";
 
-export type Entry = File | Directory;
+type Entry = File | Directory;
 
 export function generateFileContent(
   uri: vscode.Uri,
@@ -107,7 +110,7 @@ export function generateFileContent(
     }
   }
   return {
-    content: [Buffer.from(sourceContent).toString("base64")],
+    content: base64EncodeContent(Buffer.from(sourceContent)),
     enc: true,
   };
 }
@@ -415,82 +418,111 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const api = new AtelierAPI(uri);
     // Use _lookup() instead of _lookupAsFile() so we send
     // our cached mtime with the GET /doc request if we have it
-    return this._lookup(uri).then(
-      async () => {
-        // Weirdly, if the file exists on the server we don't actually write its content here.
-        // Instead we simply return as though we wrote it successfully.
-        // The actual writing is done by our workspace.onDidSaveTextDocument handler.
-        // But first check cases for which we should fail the write and leave the document dirty if changed.
-        if (!csp && fileName.split(".").pop().toLowerCase() === "cls") {
-          // Check if the class is deployed
-          if (await isClassDeployed(fileName, api)) {
-            throw new Error("Cannot overwrite a deployed class");
-          }
-          // Check if the class name and file name match
-          let clsname = "";
-          const match = new TextDecoder().decode(content).match(classNameRegex);
-          if (match) {
-            [, clsname] = match;
-          }
-          if (clsname === "") {
-            throw new Error("Cannot save a malformed class");
-          }
-          if (fileName.slice(0, -4) !== clsname) {
-            throw new Error("Cannot save an isfs class where the class name and file name do not match");
-          }
-        }
-        // Set a -1 mtime cache entry so the actual write by the workspace.onDidSaveTextDocument handler always overwrites.
-        // By the time we get here VS Code's built-in conflict resolution mechanism will already have interacted with the user.
-        const uniqueId = `${workspaceFolderOfUri(uri)}:${fileName}`;
-        workspaceState.update(`${uniqueId}:mtime`, -1);
-        return;
-      },
-      (error) => {
-        if (error.code !== "FileNotFound" || !options.create) {
-          return Promise.reject();
-        }
-        // File doesn't exist on the server, and we are allowed to create it.
-        // Create content (typically a stub, unless the write-phase of a copy operation).
-        const newContent = generateFileContent(uri, fileName, content);
-
-        // Write it to the server
-        return api
-          .putDoc(
-            fileName,
-            {
-              ...newContent,
-              mtime: Date.now(),
-            },
-            false
-          )
-          .catch((error) => {
-            // Throw all failures
-            throw vscode.FileSystemError.Unavailable(stringifyError(error) || uri);
-          })
-          .then(async (response) => {
-            // New file has been written
-            if (response && response.result.ext && response.result.ext[0] && response.result.ext[1]) {
-              fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, uri, response.result.ext[0]);
-              fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, uri, response.result.ext[1]);
+    return this._lookup(uri)
+      .then(
+        async () => {
+          // Check cases for which we should fail the write and leave the document dirty if changed
+          if (!csp && fileName.split(".").pop().toLowerCase() == "cls") {
+            // Check if the class is deployed
+            if (await isClassDeployed(fileName, api)) {
+              throw new Error("Cannot overwrite a deployed class");
             }
-            const params = new URLSearchParams(uri.query);
-            if (params.has("project") && params.get("project").length) {
-              // Add this document to the project if required
-              await addIsfsFileToProject(params.get("project"), uri, fileName, csp, api);
+            // Check if the class name and file name match
+            let clsname = "";
+            const match = new TextDecoder().decode(content).match(classNameRegex);
+            if (match) {
+              [, clsname] = match;
             }
-            // Sanity check that we find it there, then make client side update things
-            this._lookupAsFile(uri).then(() => {
-              this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
+            if (clsname == "") {
+              throw new Error("Cannot save a malformed class");
+            }
+            if (fileName.slice(0, -4) != clsname) {
+              throw new Error("Cannot save an isfs class where the class name and file name do not match");
+            }
+          }
+          if (openCustomEditors.includes(uri.toString())) {
+            // This class is open in a graphical editor, so any
+            // updates to the class will be handled by that editor
+            return;
+          }
+          const contentBuffer = Buffer.from(content);
+          const putContent = isText(uri.path.split("/").pop(), contentBuffer)
+            ? {
+                content: new TextDecoder().decode(content).split(/\r?\n/),
+                enc: false,
+              }
+            : {
+                content: base64EncodeContent(contentBuffer),
+                enc: true,
+              };
+          // By the time we get here VS Code's built-in conflict resolution mechanism will already have interacted with the user.
+          // Therefore, it's safe to ignore any conflicts.
+          return api
+            .putDoc(
+              fileName,
+              {
+                ...putContent,
+                mtime: -1,
+              },
+              true
+            )
+            .then((data) => {
+              workspaceState.update(
+                `${workspaceFolderOfUri(uri)}:${fileName}:mtime`,
+                Number(new Date(data.result.ts + "Z"))
+              );
+            })
+            .catch((error) => {
+              // Throw all failures
+              throw vscode.FileSystemError.Unavailable(stringifyError(error) || uri);
             });
+        },
+        (error) => {
+          if (error.code !== "FileNotFound" || !options.create) {
+            return Promise.reject();
+          }
+          // File doesn't exist on the server, and we are allowed to create it.
+          // Create content (typically a stub, unless the write-phase of a copy operation).
+          const newContent = generateFileContent(uri, fileName, content);
 
-            // Ask to put cursor at start of 3rd line.
-            // For CLS stub this will be where properties and methods need to be inserted.
-            // For MAC and INT stubs there is no 3rd line, so cursor goes to the end of the 2nd, which is 1st of actual routine and is ready for comment text.
-            const editor = await vscode.window.showTextDocument(uri);
-            editor.selection = new vscode.Selection(2, 0, 2, 0);
-          });
-      }
-    );
+          // Write it to the server
+          return api
+            .putDoc(
+              fileName,
+              {
+                ...newContent,
+                mtime: Date.now(),
+              },
+              false
+            )
+            .catch((error) => {
+              // Throw all failures
+              throw vscode.FileSystemError.Unavailable(stringifyError(error) || uri);
+            })
+            .then((data) => {
+              // New file has been written
+              if (data && data.result.ext && data.result.ext[0] && data.result.ext[1]) {
+                fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, uri, data.result.ext[0]);
+                fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, uri, data.result.ext[1]);
+              }
+              const params = new URLSearchParams(uri.query);
+              if (params.has("project") && params.get("project").length) {
+                // Add this document to the project if required
+                addIsfsFileToProject(params.get("project"), fileName, csp, api);
+              }
+              // Create an entry in our cache for the document
+              this._lookupAsFile(uri);
+            });
+        }
+      )
+      .then(() => {
+        // Compile the document if required
+        if (vscode.workspace.getConfiguration("objectscript", uri).get("compileOnSave")) {
+          this.compile(uri);
+        } else {
+          this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
+        }
+      });
   }
 
   /** Process a Document object that was successfully deleted. */

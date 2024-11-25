@@ -1,8 +1,7 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { NodeBase } from "./models/nodeBase";
-import { ProjectsServerNsNode } from "./models/projectsServerNsNode";
 import { notIsfs } from "../utils";
+import { NodeBase, ProjectsServerNsNode } from "./nodes";
 
 export class ProjectsExplorerProvider implements vscode.TreeDataProvider<NodeBase> {
   public onDidChangeTreeData: vscode.Event<NodeBase>;

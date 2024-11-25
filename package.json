@@ -375,16 +375,6 @@
           "group": "1_objectscript_modify"
         },
         {
-          "command": "vscode-objectscript.serverCommands.contextSourceControl",
-          "when": "view == ObjectScriptProjectsExplorer && viewItem =~ /^dataNode:/",
-          "group": "9_objectscript_servercommand@1"
-        },
-        {
-          "command": "vscode-objectscript.serverCommands.contextOther",
-          "when": "view == ObjectScriptProjectsExplorer && viewItem =~ /^dataNode:/",
-          "group": "9_objectscript_servercommand@2"
-        },
-        {
           "command": "vscode-objectscript.explorer.otherNamespace",
           "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode((?!:extra:).)*$/",
           "group": "inline@30"
@@ -1425,7 +1415,7 @@
         "objectscript.overwriteServerChanges": {
           "type": "boolean",
           "default": false,
-          "description": "Overwrite a changed server version without confirmation when importing the local file."
+          "description": "Controls whether synching a file to the server in a client-side workspace folder will always overwrite the server version, even if it changed since it was last accessed."
         },
         "objectscript.autoPreviewXML": {
           "type": "boolean",
@@ -1487,9 +1477,9 @@
           "default": false
         },
         "objectscript.autoAdjustName": {
-          "markdownDescription": "Automatically modify the class name or ROUTINE header to match the file's path when copying or creating a new file. Does not affect `isfs` files.",
+          "markdownDescription": "Automatically modify the class name or ROUTINE header of a file in a client-side workspace folder to match the file's path when copying or creating a new file. Uses the `#objectscript.export#` settings to determine the new name.",
           "type": "boolean",
-          "default": true
+          "default": false
         },
         "objectscript.compileOnSave": {
           "description": "Automatically compile an InterSystems file when saved in the editor.",
@@ -1520,11 +1510,6 @@
             "type": "string",
             "pattern": "^[^.]+$"
           }
-        },
-        "objectscript.importOnSave": {
-          "description": "Automatically save a client-side InterSystems file on the server when saved in the editor.",
-          "type": "boolean",
-          "default": true
         },
         "objectscript.showGeneratedFileDecorations": {
           "description": "Controls whether a badge is shown in the file explorer and open editors view for generated files.",
@@ -1616,6 +1601,11 @@
             "The step buttons execute an entire line."
           ],
           "default": "command"
+        },
+        "objectscript.syncLocalChanges": {
+          "description": "Controls whether files in client-side workspace folders that are created, deleted, or changed are automatically synced to the server. Synching will occur whether changes are made due to user actions in VS Code (for example, saving a file that's being actively edited) or outside of VS Code (for example, deleting a file from the OS file explorer while VS Code has its folder open).",
+          "type": "boolean",
+          "default": true
         }
       }
     },
@@ -1781,35 +1771,36 @@
     "postinstall": "npm run download-api"
   },
   "devDependencies": {
+    "@eslint/js": "^9.15.0",
     "@intersystems-community/intersystems-servermanager": "^3.8.0",
     "@types/istextorbinary": "2.3.1",
     "@types/minimatch": "5.1.2",
     "@types/mocha": "^7.0.2",
-    "@types/node": "20.16.5",
+    "@types/node": "20.17.6",
     "@types/semver": "7.5.4",
     "@types/vscode": "1.93.0",
     "@types/ws": "8.5.4",
     "@types/xmldom": "^0.1.29",
-    "@typescript-eslint/eslint-plugin": "^7.12.0",
-    "@typescript-eslint/parser": "^7.12.0",
-    "@vscode/dts": "^0.4.0",
-    "@vscode/test-electron": "^2.4.0",
-    "eslint": "^8.56.0",
-    "eslint-config-airbnb-base": "^15.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "@vscode/debugadapter-testsupport": "^1.67.0",
+    "@vscode/dts": "^0.4.1",
+    "@vscode/test-electron": "^2.4.1",
+    "eslint": "^9.15.0",
     "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-jsx-a11y": "^6.8.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^5.1.3",
-    "eslint-plugin-promise": "^6.2.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "eslint-plugin-promise": "^7.1.0",
     "glob": "^7.1.6",
+    "globals": "^15.12.0",
     "mocha": "^9.1.3",
     "path-browserify": "^1.0.1",
     "prettier": "^3.3.1",
     "ts-loader": "^9.5.1",
     "typescript": "^5.6.2",
-    "@vscode/debugadapter-testsupport": "^1.67.0",
-    "webpack": "^5.94.0",
+    "webpack": "^5.96.1",
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {

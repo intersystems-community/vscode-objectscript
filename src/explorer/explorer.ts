@@ -1,37 +1,9 @@
 import * as vscode from "vscode";
-import { NodeBase } from "./models/nodeBase";
-
 import { AtelierAPI } from "../api";
 import { config, documentContentProvider, OBJECTSCRIPT_FILE_SCHEMA, projectsExplorerProvider } from "../extension";
-import { WorkspaceNode } from "./models/workspaceNode";
 import { handleError, notIsfs } from "../utils";
-import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { StudioActions, OtherStudioAction } from "../commands/studio";
-
-/** Get the URI for this leaf node */
-export function getLeafNodeUri(node: NodeBase, forceServerCopy = false): vscode.Uri {
-  if (node.workspaceFolder == undefined) {
-    // Should only be the case for leaf nodes in the projects explorer
-    // that are children of an extra server namespace node
-    return DocumentContentProvider.getUri(
-      node.fullName,
-      undefined,
-      undefined,
-      true,
-      node.workspaceFolderUri,
-      forceServerCopy
-    );
-  } else {
-    return DocumentContentProvider.getUri(
-      node.fullName,
-      node.workspaceFolder,
-      node.namespace,
-      undefined,
-      undefined,
-      forceServerCopy
-    );
-  }
-}
+import { NodeBase, WorkspaceNode } from "./nodes";
 
 /** Use for detecting doubleclick */
 let lastOpened: { uri: vscode.Uri; date: Date };

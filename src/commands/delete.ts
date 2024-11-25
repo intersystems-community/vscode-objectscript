@@ -1,14 +1,12 @@
 import * as vscode from "vscode";
 
 import { AtelierAPI } from "../api";
-import { PackageNode } from "../explorer/models/packageNode";
-import { RootNode } from "../explorer/models/rootNode";
-import { NodeBase } from "../explorer/models/nodeBase";
 import { FILESYSTEM_SCHEMA, explorerProvider } from "../extension";
 import { outputChannel, uriOfWorkspaceFolder } from "../utils";
 import { OtherStudioAction, fireOtherStudioAction } from "./studio";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { UserAction } from "../api/atelier";
+import { NodeBase, PackageNode, RootNode } from "../explorer/nodes";
 
 function deleteList(items: string[], workspaceFolder: string, namespace: string): Promise<any> {
   if (!items || !items.length) {

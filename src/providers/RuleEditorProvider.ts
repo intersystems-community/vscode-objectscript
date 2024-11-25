@@ -2,13 +2,8 @@ import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { loadChanges } from "../commands/compile";
 import { StudioActions } from "../commands/studio";
-import { clsLangId, cspApps } from "../extension";
-import { currentFile, handleError, outputChannel } from "../utils";
-
-/**
- * The URI strings for all documents that are open in a custom editor.
- */
-export const openCustomEditors: string[] = [];
+import { clsLangId } from "../extension";
+import { cspApps, currentFile, handleError, openCustomEditors, outputChannel } from "../utils";
 
 export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
   private static readonly _webapp: string = "/ui/interop/rule-editor";

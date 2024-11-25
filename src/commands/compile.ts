@@ -12,6 +12,7 @@ import {
 } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import {
+  base64EncodeContent,
   classNameRegex,
   cspAppsForUri,
   CurrentBinaryFile,
@@ -19,6 +20,7 @@ import {
   CurrentFile,
   currentFileFromContent,
   CurrentTextFile,
+  exportedUris,
   handleError,
   isClassDeployed,
   notIsfs,
@@ -27,10 +29,8 @@ import {
   routineNameTypeRegex,
   throttleRequests,
 } from "../utils";
-import { PackageNode } from "../explorer/models/packageNode";
-import { NodeBase } from "../explorer/models/nodeBase";
-import { RootNode } from "../explorer/models/rootNode";
 import { StudioActions } from "./studio";
+import { NodeBase, PackageNode, RootNode } from "../explorer/nodes";
 
 async function compileFlags(): Promise<string> {
   const defaultFlags = config().compileFlags;
@@ -105,16 +105,8 @@ export async function importFile(
       content.pop();
     }
   } else {
-    // Base64 encoding must be in chunk size multiple of 3 and within the server's potential 32K string limit
-    // Output is 4 chars for each 3 input, so 24573/3*4 = 32764
-    const chunkSize = 24573;
-    let start = 0;
-    content = [];
     enc = true;
-    while (start < file.content.byteLength) {
-      content.push(file.content.toString("base64", start, start + chunkSize));
-      start += chunkSize;
-    }
+    content = base64EncodeContent(file.content);
   }
   const mtime = await checkChangedOnServer(file);
   ignoreConflict =
@@ -132,11 +124,9 @@ export async function importFile(
       },
       ignoreConflict
     )
-    .then(() => {
-      // Clear cache entry
-      workspaceState.update(`${file.uniqueId}:mtime`, undefined);
-      // Create fresh cache entry
-      checkChangedOnServer(file, true);
+    .then((data) => {
+      // Update cache entry
+      workspaceState.update(`${file.uniqueId}:mtime`, Number(new Date(data.result.ts + "Z")));
 
       // In case another extension has used an 'objectscript://' uri to load a document read-only from the server,
       // make it reload with what we just imported to the server.
@@ -236,6 +226,7 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
             file.uri,
             Buffer.isBuffer(content) ? content : new TextEncoder().encode(content.join("\n"))
           );
+          exportedUris.push(file.uri.toString());
         } else if (filesystemSchemas.includes(file.uri.scheme)) {
           fileSystemProvider.fireFileChanged(file.uri);
         }
@@ -257,7 +248,7 @@ export async function compile(docs: CurrentFile[], flags?: string): Promise<any>
       {
         cancellable: true,
         location: vscode.ProgressLocation.Notification,
-        title: `Compiling: ${docs.length === 1 ? docs.map((el) => el.name).join(", ") : docs.length + " files"}`,
+        title: `Compiling: ${docs.length == 1 ? docs[0].name : docs.length + " files"}`,
       },
       (progress, token: vscode.CancellationToken) =>
         api

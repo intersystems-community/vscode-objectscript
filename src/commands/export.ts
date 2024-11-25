@@ -5,6 +5,7 @@ import { config, explorerProvider, OBJECTSCRIPT_FILE_SCHEMA, schemas, workspaceS
 import {
   currentFile,
   currentFileFromContent,
+  exportedUris,
   handleError,
   notNull,
   outputChannel,
@@ -12,18 +13,10 @@ import {
   throttleRequests,
   uriOfWorkspaceFolder,
 } from "../utils";
-import { NodeBase } from "../explorer/models/nodeBase";
 import { pickDocuments } from "../utils/documentPicker";
+import { NodeBase } from "../explorer/nodes";
 
-/**
- * Array of stringified `Uri`s that have been exported.
- * Used by the documentIndex to determine if a created/changed
- * file needs to be synced with the server. If the documentIndex
- * finds a match in this array, the element is then removed.
- */
-export const exportedUris: string[] = [];
-
-export const getCategory = (fileName: string, addCategory: any | boolean): string => {
+export function getCategory(fileName: string, addCategory: any | boolean): string {
   const fileExt = fileName.split(".").pop().toLowerCase();
   if (typeof addCategory === "object") {
     for (const pattern of Object.keys(addCategory)) {
@@ -45,9 +38,9 @@ export const getCategory = (fileName: string, addCategory: any | boolean): strin
     default:
       return "oth";
   }
-};
+}
 
-export const getFileName = (
+export function getFileName(
   folder: string,
   name: string,
   split: boolean,
@@ -56,7 +49,7 @@ export const getFileName = (
     [key: string]: string;
   },
   sep = path.sep
-): string => {
+): string {
   if (name.includes("/")) {
     // This is a file from a web application
     const nameArr: string[] = name.split("/");
@@ -65,12 +58,7 @@ export const getFileName = (
   } else {
     let fileNameArray: string[];
     let fileExt: string;
-    if (/\.dfi$/i.test(name)) {
-      // This is a DFI file
-      fileNameArray = name.split("-");
-      fileNameArray.push(fileNameArray.pop().slice(0, -4));
-      fileExt = "dfi";
-    } else if (/\.(?:cls|mac|int|inc)$/.test(name)) {
+    if (/\.(?:cls|mac|int|inc)$/.test(name)) {
       // This is a class, routine or include file
       if (map) {
         for (const pattern of Object.keys(map)) {
@@ -95,14 +83,13 @@ export const getFileName = (
     }
     return [folder, cat, name].filter(notNull).join(sep);
   }
-};
+}
 
 async function exportFile(wsFolderUri: vscode.Uri, namespace: string, name: string, fileName: string): Promise<void> {
   const api = new AtelierAPI(wsFolderUri);
   api.setNamespace(namespace);
   let fileUri = vscode.Uri.file(fileName);
   if (wsFolderUri.scheme != "file") fileUri = wsFolderUri.with({ path: fileUri.path });
-  exportedUris.push(fileUri.toString());
   const log = (status: string) =>
     outputChannel.appendLine(`Export '${name}' to '${fileUri.toString(true)}' - ${status}`);
 
@@ -120,16 +107,17 @@ async function exportFile(wsFolderUri: vscode.Uri, namespace: string, name: stri
       const serverTime = Number(new Date(data.result.ts + "Z"));
       await workspaceState.update(`${file.uniqueId}:mtime`, serverTime);
     };
-
     if (Buffer.isBuffer(content)) {
       // This is a binary file
       await vscode.workspace.fs.writeFile(fileUri, content);
+      exportedUris.push(fileUri.toString());
       await recordMtime();
       log("Success");
     } else {
       // This is a text file
       const joinedContent = content.join("\n");
       await vscode.workspace.fs.writeFile(fileUri, new TextEncoder().encode(joinedContent));
+      exportedUris.push(fileUri.toString());
       await recordMtime();
       log("Success");
     }

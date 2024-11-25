@@ -1,8 +1,19 @@
 import * as vscode from "vscode";
-import { CurrentBinaryFile, CurrentTextFile, currentFileFromContent, handleError, notIsfs, outputChannel } from ".";
+import {
+  CurrentBinaryFile,
+  CurrentTextFile,
+  currentFile,
+  currentFileFromContent,
+  exportedUris,
+  getServerDocName,
+  isImportableLocalFile,
+  notIsfs,
+  openCustomEditors,
+  outputChannel,
+} from ".";
+import { isText } from "istextorbinary";
 import { AtelierAPI } from "../api";
 import { compile, importFile } from "../commands/compile";
-import { exportedUris } from "../commands/export";
 
 interface WSFolderIndex {
   /** The `FileSystemWatcher` for this workspace folder */
@@ -14,8 +25,8 @@ interface WSFolderIndex {
 }
 
 interface WSFolderIndexChange {
-  /** InterSystems document added to the index, if any */
-  added?: CurrentTextFile | CurrentBinaryFile;
+  /** InterSystems document added to the index or changed on disk, if any */
+  addedOrChanged?: CurrentTextFile | CurrentBinaryFile;
   /** InterSystems document removed from the index, if any */
   removed?: string;
 }
@@ -29,27 +40,178 @@ const filePattern = "{**/*.cls,**/*.mac,**/*.int,**/*.inc}";
 /** We want decoding errors to be thrown */
 const textDecoder = new TextDecoder("utf-8", { fatal: true });
 
+/** The number of milliseconds that we should wait before sending a compile or delete request */
+const debounceDelay = 500;
+
+/** Returns `true` if `uri` has a class or routine file extension */
+function isClassOrRtn(uri: vscode.Uri): boolean {
+  return ["cls", "mac", "int", "inc"].includes(uri.path.split(".").pop().toLowerCase());
+}
+
+/**
+ * Create an object describing the file in `uri`. Will use the version
+ * of the file in VS Code if it's loaded and supports binary files.
+ */
+async function getCurrentFile(
+  uri: vscode.Uri,
+  forceText = false
+): Promise<CurrentTextFile | CurrentBinaryFile | undefined> {
+  const uriString = uri.toString();
+  const textDocument = vscode.workspace.textDocuments.find((d) => d.uri.toString() == uriString);
+  if (textDocument) {
+    return currentFile(textDocument);
+  } else {
+    try {
+      const contentBytes = await vscode.workspace.fs.readFile(uri);
+      const contentBuffer = Buffer.from(contentBytes);
+      return currentFileFromContent(
+        uri,
+        forceText || isText(uri.path.split("/").pop(), contentBuffer) ? textDecoder.decode(contentBytes) : contentBuffer
+      );
+    } catch (error) {
+      // Either a vscode.FileSystemError from readFile()
+      // or a TypeError from decode(). Don't log TypeError
+      // since the file may be a non-text file that has
+      // an extension that we interpret as text (like cls or mac).
+      // We should ignore such files rather than alerting the user.
+      if (error instanceof vscode.FileSystemError) {
+        outputChannel.appendLine(`Failed to read contents of '${uri.toString(true)}': ${error.toString()}`);
+      }
+    }
+  }
+}
+
+/** Generate a debounced compile function */
+function generateCompileFn(): (doc: CurrentTextFile | CurrentBinaryFile) => void {
+  let timeout: NodeJS.Timeout;
+  const docs: (CurrentTextFile | CurrentBinaryFile)[] = [];
+
+  return (doc: CurrentTextFile | CurrentBinaryFile): void => {
+    docs.push(doc);
+
+    // Clear the previous timeout to reset the debounce timer
+    clearTimeout(timeout);
+
+    // Compile right away if this document is in the active text editor
+    if (vscode.window.activeTextEditor?.document.uri.toString() == doc.uri.toString()) {
+      compile([...docs]);
+      docs.length = 0;
+      return;
+    }
+
+    // Set a new timeout to call the function after the specified delay
+    timeout = setTimeout(() => {
+      compile([...docs]);
+      docs.length = 0;
+    }, debounceDelay);
+  };
+}
+
+/** Generate a debounced delete function. */
+function generateDeleteFn(wsFolderUri: vscode.Uri): (doc: string) => void {
+  let timeout: NodeJS.Timeout;
+  const docs: string[] = [];
+  const api = new AtelierAPI(wsFolderUri);
+
+  return (doc: string): void => {
+    docs.push(doc);
+
+    // Clear the previous timeout to reset the debounce timer
+    clearTimeout(timeout);
+
+    // Set a new timeout to call the function after the specified delay
+    timeout = setTimeout(() => {
+      api.deleteDocs([...docs]).then((data) => {
+        let failed = 0;
+        for (const doc of data.result) {
+          if (doc.status != "") {
+            // The document was not deleted, so log the error
+            failed++;
+            outputChannel.appendLine(`${failed == 1 ? "\n" : ""}${doc.status}`);
+          }
+        }
+        if (failed > 0) {
+          outputChannel.show(true);
+          vscode.window.showErrorMessage(
+            `Failed to delete ${failed} document${
+              failed > 1 ? "s" : ""
+            }. Check the 'ObjectScript' Output channel for details.`,
+            "Dismiss"
+          );
+        }
+      });
+      docs.length = 0;
+    }, debounceDelay);
+  };
+}
+
 /** Create index of `wsFolder` and set up a `FileSystemWatcher` to keep the index up to date */
 export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Promise<void> {
   if (!notIsfs(wsFolder.uri)) return;
-  const pattern = new vscode.RelativePattern(wsFolder, filePattern);
   const documents: Map<string, vscode.Uri[]> = new Map();
   const uris: Map<string, string> = new Map();
-  // Index files that currently exist
-  const files = await vscode.workspace.findFiles(pattern);
+  // Index classes and routines that currently exist
+  const files = await vscode.workspace.findFiles(new vscode.RelativePattern(wsFolder, filePattern));
   for (const file of files) updateIndexForDocument(file, documents, uris);
-  // Watch for changes that may require an index update
-  const watcher = vscode.workspace.createFileSystemWatcher(pattern);
-  watcher.onDidChange((uri) => updateIndexAndSyncChanges(uri, documents, uris));
-  watcher.onDidCreate((uri) => updateIndexAndSyncChanges(uri, documents, uris));
-  watcher.onDidDelete((uri) => {
-    // Remove the class/routine in the file from the index,
-    // then delete it on the server if required
-    const change = removeDocumentFromIndex(uri, documents, uris);
+  // Watch for all file changes
+  const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(wsFolder, "**/*"));
+  const debouncedCompile = generateCompileFn();
+  const debouncedDelete = generateDeleteFn(wsFolder.uri);
+  const updateIndexAndSyncChanges = async (uri: vscode.Uri): Promise<void> => {
+    const uriString = uri.toString();
+    if (openCustomEditors.includes(uriString)) {
+      // This class is open in a graphical editor, so its name will not change
+      // and any updates to the class will be handled by that editor
+      return;
+    }
+    const conf = vscode.workspace.getConfiguration("objectscript", uri);
+    const sync: boolean = conf.get("syncLocalChanges");
+    let change: WSFolderIndexChange = {};
+    if (isClassOrRtn(uri)) {
+      change = await updateIndexForDocument(uri, documents, uris);
+    } else if (sync && isImportableLocalFile(uri)) {
+      change.addedOrChanged = await getCurrentFile(uri);
+    }
+    if (!sync || (!change.addedOrChanged && !change.removed)) return;
+    const exportedIdx = exportedUris.findIndex((e) => e == uriString);
+    if (exportedIdx != -1) {
+      // This creation/change event was fired due to a server
+      // export, so don't re-sync the file with the server
+      exportedUris.splice(exportedIdx, 1);
+      return;
+    }
+    const api = new AtelierAPI(uri);
+    if (!api.active) return;
+    if (change.addedOrChanged) {
+      // Create or update the document on the server
+      importFile(change.addedOrChanged)
+        .then(() => {
+          if (conf.get("compileOnSave")) debouncedCompile(change.addedOrChanged);
+        })
+        .catch(() => {});
+    }
     if (change.removed) {
-      const api = new AtelierAPI(uri);
-      if (!api.active) return;
-      api.deleteDoc(change.removed).catch((error) => handleError(error));
+      // Delete document on the server
+      debouncedDelete(change.removed);
+    }
+  };
+  watcher.onDidChange((uri) => updateIndexAndSyncChanges(uri));
+  watcher.onDidCreate((uri) => updateIndexAndSyncChanges(uri));
+  watcher.onDidDelete((uri) => {
+    const sync: boolean = vscode.workspace.getConfiguration("objectscript", uri).get("syncLocalChanges");
+    const api = new AtelierAPI(uri);
+    if (isClassOrRtn(uri)) {
+      // Remove the class/routine in the file from the index,
+      // then delete it on the server if required
+      const change = removeDocumentFromIndex(uri, documents, uris);
+      if (sync && api.active && change.removed) {
+        debouncedDelete(change.removed);
+      }
+    } else if (sync && api.active && isImportableLocalFile(uri)) {
+      // Delete this web application file or Studio abstract document on the server
+      const docName = getServerDocName(uri);
+      if (!docName) return;
+      debouncedDelete(docName);
     }
   });
   wsFolderIndex.set(wsFolder.uri.toString(), { watcher, documents, uris });
@@ -81,32 +243,12 @@ export async function updateIndexForDocument(
     uris = index.uris;
   }
   const documentName = uris.get(uriString);
-  const textDocument = vscode.workspace.textDocuments.find((d) => d.uri.toString() == uriString);
-  let content: string;
-  if (textDocument) {
-    // Get the content from the text document
-    content = textDocument.getText();
-  } else {
-    // Get the content from the file system
-    try {
-      content = textDecoder.decode(await vscode.workspace.fs.readFile(uri));
-    } catch (error) {
-      // Either a vscode.FileSystemError from readFile()
-      // or a TypeError from decode(). Don't log TypeError
-      // since the file may be a non-text file
-      // with a cls, mac, int or inc extension.
-      if (error instanceof vscode.FileSystemError) {
-        outputChannel.appendLine(`Failed to read contents of '${uri.toString(true)}': ${error.toString()}`);
-      }
-      return result;
-    }
-  }
-  const file = currentFileFromContent(uri, content);
+  const file = await getCurrentFile(uri, true);
   if (!file) return result;
+  result.addedOrChanged = file;
   // This file contains an InterSystems document, so add it to the index
   if (!documentName || (documentName && documentName != file.name)) {
     const documentUris = documents.get(file.name) ?? [];
-    if (documentUris.length == 0) result.added = file;
     documentUris.push(uri);
     documents.set(file.name, documentUris);
     uris.set(uriString, file.name);
@@ -160,48 +302,6 @@ function removeDocumentFromIndex(
   }
   uris.delete(uriString);
   return result;
-}
-
-/** Update the entries in the index for `uri` and sync any changes with the server */
-async function updateIndexAndSyncChanges(
-  uri: vscode.Uri,
-  documents?: Map<string, vscode.Uri[]>,
-  uris?: Map<string, string>
-): Promise<void> {
-  const change = await updateIndexForDocument(uri, documents, uris);
-  if (!change.added && !change.removed) return;
-  const uriString = uri.toString();
-  const exportedIdx = exportedUris.findIndex((e) => e == uriString);
-  if (exportedIdx != -1) {
-    // This creation/change event was fired due to a server
-    // export, so don't re-sync the file with the server
-    exportedUris.splice(exportedIdx, 1);
-    return;
-  }
-  if (vscode.workspace.textDocuments.some((td) => td.uri.toString() == uriString)) {
-    // Don't sync with the server because onDidSaveTextDocument will handle it
-    return;
-  }
-  const api = new AtelierAPI(uri);
-  if (!api.active) return;
-  const config = vscode.workspace.getConfiguration("objectscript", uri);
-  if (change.added && config.get("importOnSave")) {
-    // Create the document on the server
-    try {
-      await importFile(change.added);
-      if (config.get("compileOnSave")) await compile([change.added]);
-    } catch (error) {
-      handleError(error);
-    }
-  }
-  if (change.removed) {
-    try {
-      // Delete document on the server
-      await api.deleteDoc(change.removed);
-    } catch (error) {
-      handleError(error);
-    }
-  }
 }
 
 /** Get all `Uri`s for `document` in `wsFolder` */

@@ -123,13 +123,10 @@ export abstract class Breakpoint {
   public static fromXml(breakpointNode: Element, connection: Connection): Breakpoint {
     switch (breakpointNode.getAttribute("type")) {
       case "line":
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
         return new LineBreakpoint(breakpointNode, connection);
       case "conditional":
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
         return new ConditionalBreakpoint(breakpointNode, connection);
       case "watch":
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
         return new Watchpoint(breakpointNode, connection);
       default:
         throw new Error(`Invalid type ${breakpointNode.getAttribute("type")}`);

@@ -5,7 +5,6 @@ import { FILESYSTEM_SCHEMA } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { handleError } from "../utils";
 import { getFileName } from "./export";
-import { importFolder } from "./compile";
 import { getUrisForDocument } from "../utils/documentIndex";
 
 interface InputStepItem extends vscode.QuickPickItem {
@@ -860,14 +859,6 @@ ClassMethod %OnDashboardAction(pAction As %String, pContext As %ZEN.proxyObject)
     if (clsUri && clsContent) {
       // Write the file content
       await vscode.workspace.fs.writeFile(clsUri, new TextEncoder().encode(clsContent.trimStart()));
-      if (
-        clsUri.scheme != FILESYSTEM_SCHEMA &&
-        api &&
-        vscode.workspace.getConfiguration("objectscript", wsFolder).get("importOnSave")
-      ) {
-        // Save this local file on the server
-        await importFolder(clsUri, true);
-      }
       // Show the file
       vscode.window.showTextDocument(clsUri, { preview: false });
     }

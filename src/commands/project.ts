@@ -1,11 +1,5 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { ClassNode } from "../explorer/models/classNode";
-import { CSPFileNode } from "../explorer/models/cspFileNode";
-import { NodeBase } from "../explorer/models/nodeBase";
-import { ProjectNode } from "../explorer/models/projectNode";
-import { ProjectRootNode } from "../explorer/models/projectRootNode";
-import { RoutineNode } from "../explorer/models/routineNode";
 import { config, filesystemSchemas, projectsExplorerProvider, schemas } from "../extension";
 import { compareConns } from "../providers/DocumentContentProvider";
 import { isCSPFile } from "../providers/FileSystemProvider/FileSystemProvider";
@@ -13,6 +7,7 @@ import { handleError, notIsfs, notNull } from "../utils";
 import { pickServerAndNamespace } from "./addServerNamespaceToWorkspace";
 import { exportList } from "./export";
 import { OtherStudioAction, StudioActions } from "./studio";
+import { NodeBase, ProjectNode, ProjectRootNode, RoutineNode, CSPFileNode, ClassNode } from "../explorer/nodes";
 
 export interface ProjectItem {
   Name: string;
@@ -1048,7 +1043,6 @@ function isfsFolderForProject(project: string, nodeOrWorkspaceFolder: string | N
  */
 export async function addIsfsFileToProject(
   project: string,
-  uri: vscode.Uri,
   fileName: string,
   csp: boolean,
   api: AtelierAPI

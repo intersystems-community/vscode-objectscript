@@ -7,12 +7,10 @@ import {
   workspaceState,
   terminals,
   extensionContext,
-  cspApps,
   lsExtensionId,
   OBJECTSCRIPT_FILE_SCHEMA,
   documentContentProvider,
   filesystemSchemas,
-  otherDocExts,
 } from "../extension";
 import { getCategory } from "../commands/export";
 import { isCSPFile } from "../providers/FileSystemProvider/FileSystemProvider";
@@ -21,10 +19,36 @@ import { AtelierAPI } from "../api";
 export const outputChannel = vscode.window.createOutputChannel("ObjectScript", "vscode-objectscript-output");
 
 /**
+ * A map of all CSP web apps in a server-namespace.
+ * The key is either `serverName:ns`, or `host:port/pathPrefix:ns`, lowercase.
+ * The value is an array of CSP apps as returned by GET %25SYS/cspapps.
+ */
+export const cspApps: Map<string, string[]> = new Map();
+
+/**
+ * A map of all Studio Abstract Document extensions in a server-namespace.
+ * The key is either `serverName:ns`, or `host:port/pathPrefix:ns`, lowercase.
+ * The value is lowercase array of file extensions, without the dot.
+ */
+export const otherDocExts: Map<string, string[]> = new Map();
+
+/**
+ * The URI strings for all documents that are open in a custom editor.
+ */
+export const openCustomEditors: string[] = [];
+
+/**
+ * Array of stringified `Uri`s that have been exported.
+ * Used by the documentIndex to determine if a created/changed
+ * file needs to be synced with the server. If the documentIndex
+ * finds a match in this array, the element is then removed.
+ */
+export const exportedUris: string[] = [];
+
+/**
  * Return a string represenattion of `error`.
  * If `error` is `undefined`, returns the empty string.
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function stringifyError(error): string {
   try {
     return (
@@ -54,7 +78,6 @@ let lastErrorStr = "";
  * `vscode.window.showErrorMessage()` with that message plus a reminder to check
  * the Output channel, if an error was appended to it.
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function handleError(error, message?: string): void {
   if (!error) return;
   const errorStr = stringifyError(error);
@@ -93,11 +116,13 @@ export interface CurrentBinaryFile extends CurrentFile {
   content: Buffer;
 }
 
-// For workspace roots in the local filesystem, configName is the root's name
-//  which defaults to the folder name, and apiTarget is the same.
-// For isfs roots, configName is the uri.authority (i.e. isfs://this-bit/...)
-//  which is normally the server name as looked up in intersystems.servers, and
-//  apiTarget is the uri.
+/**
+ * For workspace roots in the local filesystem, configName is the root's name
+ * which defaults to the folder name, and apiTarget is the same.
+ * For isfs roots, configName is the uri.authority (i.e. isfs://this-bit/...)
+ * which is normally the server name as looked up in intersystems.servers, and
+ * apiTarget is the uri.
+ */
 export interface ConnectionTarget {
   apiTarget: string | vscode.Uri;
   configName: string;
@@ -128,35 +153,22 @@ function otherDocExtsForUri(uri: vscode.Uri): string[] {
   return otherDocExts.get(`${api.serverId}:${api.config.ns}`.toLowerCase()) ?? [];
 }
 
-/**
- * Returns the path of file `uri` relative to workspace folder `wsUri`.
- * Returns the emptry string if `uri` is not in `wsUri`.
- */
-function filePathNoWsFolder(uri: vscode.Uri, wsUri: vscode.Uri): string {
-  let wsPath = wsUri.path;
-  if (!wsPath.endsWith("/")) wsPath += "/";
-  return uri.path.startsWith(wsPath) ? uri.path.slice(wsPath.length) : "";
-}
-
-/**
- * Determine the server name of a local non-ObjectScript file (any file that's not CLS,MAC,INT,INC).
- * @param uri The uri of the file.
- * @param workspace The workspace the file is in.
- * @param fileExt The extension of the file.
- */
-function getServerDocName(uri: vscode.Uri, workspace: string, fileExt: string): string {
-  if (!workspace) {
-    // No workspace folders are open
-    return null;
-  }
-  const relativeFilePath = filePathNoWsFolder(uri, uriOfWorkspaceFolder(workspace));
-  if (relativeFilePath == "") return null;
+/** Determine the server name of a non-`isfs` non-ObjectScript file (any file that's not CLS,MAC,INT,INC). */
+export function getServerDocName(uri: vscode.Uri): string {
+  const wsFolder = vscode.workspace.getWorkspaceFolder(uri);
+  if (!wsFolder) return;
   const cspIdx = uri.path.lastIndexOf(cspAppsForUri(uri).find((cspApp) => uri.path.includes(cspApp + "/")));
   if (cspIdx != -1) {
     return uri.path.slice(cspIdx);
-  } else if (fileExt == "dfi") {
+  } else if (uri.path.toLowerCase().endsWith(".dfi")) {
+    // Determine the file path relative to the workspace folder path
+    const wsPath = wsFolder.uri.path + wsFolder.uri.path.endsWith("/") ? "" : "/";
+    const relativeFilePath = uri.path.startsWith(wsPath) ? uri.path.slice(wsPath.length) : "";
+    if (relativeFilePath == "") return;
     // Check for matching export settings first. If no match, use base name.
-    const { folder, addCategory } = config("export", workspace);
+    const config = vscode.workspace.getConfiguration("objectscript.export", uri);
+    const folder: string = config.get("folder");
+    const addCategory: boolean = config.get("addCategory");
     let root = [
       typeof folder == "string" && folder.length ? folder : null,
       addCategory ? getCategory(uri.fsPath, addCategory) : null,
@@ -191,48 +203,6 @@ export function isImportableLocalFile(uri: vscode.Uri): boolean {
     cspAppsForUri(uri).some((cspApp) => uri.path.includes(cspApp + "/")) ||
     otherDocExtsForUri(uri).includes(uri.path.split(".").pop().toLowerCase())
   );
-  /*
-  const workspace = workspaceFolderOfUri(uri);
-  if (workspace == "") {
-    // No workspace folders are open
-    return false;
-  }
-  const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
-  const filePathNoWorkspaceArr = uri.fsPath.replace(workspacePath + path.sep, "").split(path.sep);
-  if (cspAppsForUri(uri).some((cspApp) => uri.path.includes(cspApp + "/"))) {
-    return true;
-  } else {
-    // Check if this is a known "other" document
-    const fileExt = uri.path.split(".").pop().toLowerCase();
-    if (otherDocExtsForUri(uri).includes(fileExt)) {
-      // The server-namespace supports this document type
-      return true;
-    } else {
-      // Fall back to checking if this file matches our export settings
-      const { atelier, folder, addCategory } = config("export", workspace);
-      const expectedRoot = [
-        typeof folder === "string" && folder.length ? folder : null,
-        addCategory ? getCategory(uri.fsPath, addCategory) : null,
-      ]
-        .filter(notNull)
-        .join(path.sep);
-      let filePath = filePathNoWorkspaceArr.join(path.sep);
-      if (filePath.startsWith(expectedRoot)) {
-        filePath = filePath.slice(expectedRoot.length + path.sep.length);
-        if (fileExt == "dfi") {
-          // DFI files can be split using the atelier setting
-          if ((atelier && !filePath.includes("-")) || !atelier) {
-            return true;
-          }
-        } else {
-          // Non-CSP or DFI files cannot be in subdirectories
-          return !filePath.includes(path.sep);
-        }
-      }
-    }
-    return false;
-  }
-    */
 }
 
 /** A regex for extracting the name of a class from its content */
@@ -272,7 +242,7 @@ export function currentFileFromContent(uri: vscode.Uri, content: string | Buffer
     }
   } else {
     if (notIsfs(uri)) {
-      name = getServerDocName(uri, workspaceFolder, fileExt);
+      name = getServerDocName(uri);
     } else {
       name = uri.path;
     }
@@ -349,7 +319,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentTextFile {
     }
   } else {
     if (notIsfs(document.uri)) {
-      name = getServerDocName(document.uri, currentWorkspaceFolder(document), fileExt);
+      name = getServerDocName(document.uri);
     } else {
       name = uri.path;
     }
@@ -499,7 +469,6 @@ export function onlyUnique(value: { name: string }, index: number, self: { name:
   return self.indexOf(value) === index;
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function notNull(el: any): boolean {
   return el !== null;
 }
@@ -778,6 +747,19 @@ export function isUnauthenticated(username: string): boolean {
 /** Returns `true` if `uri.scheme` is neither `isfs` nor `isfs-readonly` */
 export function notIsfs(uri: vscode.Uri): boolean {
   return !filesystemSchemas.includes(uri.scheme);
+}
+
+/** Base64 encoding must be in chunk size multiple of 3 and within the server's potential 32K string limit */
+export function base64EncodeContent(content: Buffer): string[] {
+  // Output is 4 chars for each 3 input, so 24573/3*4 = 32764
+  const chunkSize = 24573;
+  let start = 0;
+  const result = [];
+  while (start < content.byteLength) {
+    result.push(content.toString("base64", start, start + chunkSize));
+    start += chunkSize;
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------

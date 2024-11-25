@@ -921,7 +921,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     response: DebugProtocol.Response,
     codeOrMessage: number | DebugProtocol.Message,
     format?: string,
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+
     variables?: any,
     dest?: ErrorDestination
   ): void;

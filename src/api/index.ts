@@ -22,7 +22,7 @@ import * as Atelier from "./atelier";
 // Map of the authRequest promises for each username@host:port target to avoid concurrency issues
 const authRequestMap = new Map<string, Promise<any>>();
 
-export interface ConnectionSettings {
+interface ConnectionSettings {
   serverName: string;
   active: boolean;
   apiVersion: number;
@@ -261,13 +261,9 @@ export class AtelierAPI {
     minVersion: number,
     method: string,
     path?: string,
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     body?: any,
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     params?: any,
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     headers?: any,
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     options?: any
   ): Promise<any> {
     const { active, apiVersion, host, port, username, password, https } = this.config;
