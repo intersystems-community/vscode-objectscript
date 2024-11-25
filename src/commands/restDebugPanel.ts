@@ -3,7 +3,7 @@ import * as httpsModule from "https";
 
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { cspAppsForUri, outputChannel } from "../utils";
+import { cspAppsForUri, handleError } from "../utils";
 import { iscIcon } from "../extension";
 
 interface WebviewMessage {
@@ -89,13 +89,7 @@ export class RESTDebugPanel {
       .actionQuery("CALL %CSP.Apps_CSPAppList()", [])
       .then((data) => data.result.content.map((obj) => obj.AppUrl))
       .catch((error) => {
-        let errorMsg = "Failed to fetch the list of web applications from the server.";
-        if (error && error.errorText && error.errorText !== "") {
-          outputChannel.appendLine("\n" + error.errorText);
-          outputChannel.show(true);
-          errorMsg += " Check 'ObjectScript' output channel for details.";
-        }
-        vscode.window.showErrorMessage(errorMsg, "Dismiss");
+        handleError(error, "Failed to fetch the list of web applications from the server.");
         return null;
       });
     if (allWebApps == null) {
@@ -437,13 +431,7 @@ export class RESTDebugPanel {
                 validateStatus: undefined, // Only reject if we didn't get a response
               })
               .catch((error) => {
-                outputChannel.appendLine(
-                  typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
-                );
-                vscode.window.showErrorMessage(
-                  "Failed to send debuggee REST request. Check 'ObjectScript' Output channel for details.",
-                  "Dismiss"
-                );
+                handleError(error, "Failed to send debuggee REST request.");
                 vscode.debug.stopDebugging(vscode.debug.activeDebugSession);
               });
 
@@ -458,13 +446,8 @@ export class RESTDebugPanel {
               cspDebugId,
             });
           } catch (error) {
-            let errorMsg = "Failed to start debugging.";
-            if (error && error.errorText && error.errorText !== "") {
-              outputChannel.appendLine("\n" + error.errorText);
-              outputChannel.show(true);
-              errorMsg += " Check 'ObjectScript' output channel for details.";
-            }
-            return vscode.window.showErrorMessage(errorMsg, "Dismiss");
+            handleError(error, "Failed to start debugging.");
+            return;
           }
         }
       },

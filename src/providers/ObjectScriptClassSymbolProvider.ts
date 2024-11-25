@@ -5,7 +5,6 @@ export class ObjectScriptClassSymbolProvider implements vscode.DocumentSymbolPro
     document: vscode.TextDocument,
     token: vscode.CancellationToken
   ): Thenable<vscode.DocumentSymbol[]> {
-    // tslint:disable-next-line:cyclomatic-complexity
     return new Promise((resolve) => {
       let classItSelf = null;
       let symbols: vscode.DocumentSymbol[] = [];

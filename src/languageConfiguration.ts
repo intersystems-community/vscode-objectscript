@@ -14,8 +14,8 @@ export function getLanguageConfiguration(lang: string): vscode.LanguageConfigura
         lang == "objectscript-class"
           ? "//"
           : ["objectscript", "objectscript-macros"].includes(lang)
-          ? conf.get("commentToken")
-          : conf.get("intCommentToken"),
+            ? conf.get("commentToken")
+            : conf.get("intCommentToken"),
       blockComment: ["/*", "*/"],
     },
     autoClosingPairs: [

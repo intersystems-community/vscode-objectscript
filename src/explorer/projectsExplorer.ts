@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { NodeBase } from "./models/nodeBase";
-import { ProjectsServerNsNode } from "./models/projectsServerNsNode";
+import { notIsfs } from "../utils";
+import { NodeBase, ProjectsServerNsNode } from "./nodes";
 
 export class ProjectsExplorerProvider implements vscode.TreeDataProvider<NodeBase> {
   public onDidChangeTreeData: vscode.Event<NodeBase>;
@@ -67,17 +67,19 @@ export class ProjectsExplorerProvider implements vscode.TreeDataProvider<NodeBas
     const workspaceFolders = vscode.workspace.workspaceFolders || [];
     const alreadyAdded: string[] = [];
     // Add the workspace root nodes
-    workspaceFolders.forEach((workspaceFolder) => {
-      const conn = new AtelierAPI(workspaceFolder.uri).config;
-      if (conn.active && conn.ns) {
-        node = new ProjectsServerNsNode(workspaceFolder.name, this._onDidChangeTreeData, workspaceFolder.uri);
-        const label = <string>node.getTreeItem().label;
-        if (!alreadyAdded.includes(label)) {
-          alreadyAdded.push(label);
-          rootNodes.push(node);
+    workspaceFolders
+      .filter((workspaceFolder) => workspaceFolder.uri && !notIsfs(workspaceFolder.uri))
+      .forEach((workspaceFolder) => {
+        const conn = new AtelierAPI(workspaceFolder.uri).config;
+        if (conn.active && conn.ns) {
+          node = new ProjectsServerNsNode(workspaceFolder.name, this._onDidChangeTreeData, workspaceFolder.uri);
+          const label = <string>node.getTreeItem().label;
+          if (!alreadyAdded.includes(label)) {
+            alreadyAdded.push(label);
+            rootNodes.push(node);
+          }
         }
-      }
-    });
+      });
     // Add the extra root nodes
     this._extraRoots.forEach((authority) => {
       node = new ProjectsServerNsNode(

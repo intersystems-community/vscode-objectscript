@@ -9,7 +9,7 @@ import {
   filesystemSchemas,
   smExtensionId,
 } from "../extension";
-import { cspAppsForUri, outputChannel } from "../utils";
+import { cspAppsForUri, handleError, notIsfs } from "../utils";
 import { pickProject } from "./project";
 
 /**
@@ -53,12 +53,9 @@ async function pickNamespaceOnServer(serverName: string): Promise<string> {
   const allNamespaces: string[] | undefined = await api
     .serverInfo(false)
     .then((data) => data.result.content.namespaces)
-    .catch((reason) => {
+    .catch((error) => {
       // Notify user about serverInfo failure
-      vscode.window.showErrorMessage(
-        reason.errorText || `Failed to fetch namespace list from server at ${connDisplayString}`,
-        "Dismiss"
-      );
+      handleError(error, `Failed to fetch namespace list from server at ${connDisplayString}.`);
       return undefined;
     });
   // Clear the panel entry created by the connection
@@ -113,27 +110,35 @@ export async function addServerNamespaceToWorkspace(resource?: vscode.Uri): Prom
       return;
     }
   }
-  // Prompt the user for edit or read-only
-  const mode = await vscode.window.showQuickPick(
-    [
-      {
-        value: FILESYSTEM_SCHEMA,
-        label: `$(pencil) Edit Code in ${namespace}`,
-        detail: "Documents opened in this folder will be editable.",
-      },
-      {
-        value: FILESYSTEM_READONLY_SCHEMA,
-        label: `$(lock) View Code in ${namespace}`,
-        detail: "Documents opened in this folder will be read-only.",
-      },
-    ],
-    { placeHolder: "Choose the type of access", ignoreFocusOut: true }
-  );
-  if (!mode) {
-    return;
+  const wsFolders = vscode.workspace.workspaceFolders ?? [];
+  let scheme: string;
+  if (wsFolders.length && wsFolders.some((wf) => notIsfs(wf.uri))) {
+    // Don't allow the creation of an editable ISFS folder
+    // if the workspace contains non-ISFS folders already
+    scheme = FILESYSTEM_READONLY_SCHEMA;
+  } else {
+    // Prompt the user for edit or read-only
+    scheme = await vscode.window
+      .showQuickPick(
+        [
+          {
+            value: FILESYSTEM_SCHEMA,
+            label: `$(pencil) Edit Code in ${namespace}`,
+            detail: "Documents opened in this folder will be editable.",
+          },
+          {
+            value: FILESYSTEM_READONLY_SCHEMA,
+            label: `$(lock) View Code in ${namespace}`,
+            detail: "Documents opened in this folder will be read-only.",
+          },
+        ],
+        { placeHolder: "Choose the type of access", ignoreFocusOut: true }
+      )
+      .then((mode) => mode?.value);
   }
+  if (!scheme) return;
   // Prompt the user to fill in the uri
-  const uri = await modifyWsFolderUri(vscode.Uri.parse(`${mode.value}://${serverName}:${namespace}/`));
+  const uri = await modifyWsFolderUri(vscode.Uri.parse(`${scheme}://${serverName}:${namespace}/`));
   if (!uri) {
     return;
   }
@@ -142,7 +147,7 @@ export async function addServerNamespaceToWorkspace(resource?: vscode.Uri): Prom
   const project = params.get("project");
   const csp = params.has("csp");
   const name = `${project ? `${project} - ` : ""}${serverName}:${namespace}${csp ? " web files" : ""}${
-    mode.value == FILESYSTEM_READONLY_SCHEMA && !project ? " (read-only)" : ""
+    scheme == FILESYSTEM_READONLY_SCHEMA && !project ? " (read-only)" : ""
   }`;
   // Append it to the workspace
   const added = vscode.workspace.updateWorkspaceFolders(
@@ -155,7 +160,7 @@ export async function addServerNamespaceToWorkspace(resource?: vscode.Uri): Prom
   // Handle failure
   if (!added) {
     vscode.window
-      .showErrorMessage("Folder not added. Maybe it already exists in the workspace.", "Retry", "Close")
+      .showErrorMessage("Folder not added. Maybe it already exists in the workspace.", "Retry", "Dismiss")
       .then((value) => {
         if (value === "Retry") {
           vscode.commands.executeCommand("vscode-objectscript.addServerNamespaceToWorkspace");
@@ -182,9 +187,7 @@ export async function getServerManagerApi(): Promise<any> {
 
 /** Prompt the user to fill in the `path` and `query` of `uri`. */
 async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefined> {
-  if (!filesystemSchemas.includes(uri.scheme)) {
-    return;
-  }
+  if (notIsfs(uri)) return;
   const params = new URLSearchParams(uri.query);
   const api = new AtelierAPI(uri);
 
@@ -248,17 +251,7 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
         .getCSPApps()
         .then((data) => data.result.content ?? [])
         .catch((error) => {
-          if (error && error.errorText && error.errorText !== "") {
-            outputChannel.appendLine(error.errorText);
-          } else {
-            outputChannel.appendLine(
-              typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
-            );
-          }
-          vscode.window.showErrorMessage(
-            "Failed to fetch web application list. Check 'ObjectScript' output channel for details.",
-            "Dismiss"
-          );
+          handleError(error, "Failed to fetch web application list.");
           return;
         });
       if (cspApps == undefined) {
@@ -404,7 +397,7 @@ export async function modifyWsFolder(wsFolderUri?: vscode.Uri): Promise<void> {
     if (!wsFolder) {
       return;
     }
-    if (!filesystemSchemas.includes(wsFolder.uri.scheme)) {
+    if (notIsfs(wsFolder.uri)) {
       vscode.window.showErrorMessage(
         `Workspace folder '${wsFolder.name}' does not have scheme 'isfs' or 'isfs-readonly'.`,
         "Dismiss"
