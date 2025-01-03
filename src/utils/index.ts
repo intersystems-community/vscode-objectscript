@@ -509,12 +509,18 @@ export async function portFromDockerCompose(): Promise<{ port: number; docker: b
   const workspaceFolderPath = workspaceFolder.fsPath;
   const workspaceRootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
 
-  const cwd: string = await fileExists(vscode.Uri.file(path.join(workspaceFolderPath, file))).then((exists) => {
+  const cwd: string = await fileExists(vscode.Uri.file(path.join(workspaceFolderPath, file))).then(async (exists) => {
     if (exists) {
-      return workspaceRootPath;
-    } else {
-      throw new Error(`File '${file}' not found.`);
+      return workspaceFolderPath;
     }
+    if (workspaceFolderPath !== workspaceRootPath) {
+      exists = await fileExists(vscode.Uri.file(path.join(workspaceRootPath, file)));
+      if (exists) {
+        return workspaceRootPath;
+      }
+      throw new Error(`File '${file}' not found in ${workspaceFolderPath} or ${workspaceRootPath}.`);
+    }
+    throw new Error(`File '${file}' not found in ${workspaceFolderPath}.`);
   });
 
   if (!cwd) {
@@ -530,7 +536,7 @@ export async function portFromDockerCompose(): Promise<{ port: number; docker: b
         reject(error.message);
       }
       if (!stdout.replaceAll("\r", "").split("\n").includes(service)) {
-        reject(`Service '${service}' not found in '${file}', or not running.`);
+        reject(`Service '${service}' not found in '${path.join(cwd, file)}', or not running.`);
       }
 
       exec(`${cmd} port --protocol=tcp ${service} ${internalPort}`, { cwd }, (error, stdout) => {
@@ -539,7 +545,7 @@ export async function portFromDockerCompose(): Promise<{ port: number; docker: b
         }
         const [, port] = stdout.match(/:(\d+)/) || [];
         if (!port) {
-          reject(`Port ${internalPort} not published for service '${service}'.`);
+          reject(`Port ${internalPort} not published for service '${service}' in '${path.join(cwd, file)}'.`);
         }
         resolve({ port: parseInt(port, 10), docker: true, service });
       });

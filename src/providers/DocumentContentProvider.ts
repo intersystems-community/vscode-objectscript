@@ -9,17 +9,30 @@ import { currentWorkspaceFolder, notIsfs, uriOfWorkspaceFolder } from "../utils"
 import { getUrisForDocument } from "../utils/documentIndex";
 
 export function compareConns(
-  conn1: { ns: any; server: any; host: any; port: any },
-  conn2: { ns: any; server: any; host: any; port: any }
+  conn1: { ns: any; server: any; host: any; port: any; "docker-compose": any },
+  conn2: { ns: any; server: any; host: any; port: any; "docker-compose": any }
 ): boolean {
   if (conn1.ns === conn2.ns) {
+    // Same namespace name
     if (conn1.server && conn2.server) {
+      // Both connections name an entry in intersystems.servers
       if (conn1.server === conn2.server) {
         return true;
       }
     } else if (!conn1.server && !conn2.server) {
-      if (conn1.host === conn2.host && conn1.port === conn2.port) {
-        return true;
+      if (conn1.port && conn2.port) {
+        // Both connections specify a target port
+        if (conn1.host === conn2.host && conn1.port === conn2.port) {
+          return true;
+        }
+      } else if (conn1["docker-compose"] && conn2["docker-compose"]) {
+        // Both connections specify a docker-compose object
+        if (conn1["docker-compose"].service === conn2["docker-compose"].service) {
+          // Assume that if the service names match then the connection is to the same place.
+          // This may not be true (e.g. if the same service name is used in folder-specific docker-compose files)
+          // but it's the best we can do here without more information.
+          return true;
+        }
       }
     }
   }
