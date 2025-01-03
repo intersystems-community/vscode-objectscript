@@ -34,7 +34,6 @@ export class ClassDefinition {
     return vscode.workspace.openTextDocument(this.uri);
   }
 
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   public store(kind: string, data: any): any {
     return this._cache.put(kind, data, 36000).then(() => data);
   }

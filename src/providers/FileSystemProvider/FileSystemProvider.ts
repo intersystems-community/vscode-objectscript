@@ -1,5 +1,6 @@
 import * as path from "path";
 import * as vscode from "vscode";
+import { isText } from "istextorbinary";
 import { AtelierAPI } from "../../api";
 import { Directory } from "./Directory";
 import { File } from "./File";
@@ -8,11 +9,16 @@ import { projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/Fil
 import {
   classNameRegex,
   isClassDeployed,
+  notIsfs,
   notNull,
   outputChannel,
+  handleError,
   redirectDotvscodeRoot,
   workspaceFolderOfUri,
-} from "../../utils/index";
+  stringifyError,
+  base64EncodeContent,
+  openCustomEditors,
+} from "../../utils";
 import {
   config,
   FILESYSTEM_READONLY_SCHEMA,
@@ -25,7 +31,7 @@ import { addIsfsFileToProject, modifyProject } from "../../commands/project";
 import { DocumentContentProvider } from "../DocumentContentProvider";
 import { Document, UserAction } from "../../api/atelier";
 
-export type Entry = File | Directory;
+type Entry = File | Directory;
 
 export function generateFileContent(
   uri: vscode.Uri,
@@ -41,7 +47,7 @@ export function generateFileContent(
     const preamble: string[] = [];
 
     if (sourceLines.length) {
-      if (uri.scheme == "file" && (fileName.includes(path.sep) || fileName.includes(" "))) {
+      if (notIsfs(uri) && (fileName.includes(path.sep) || fileName.includes(" "))) {
         // We couldn't resolve a class name from the file path,
         // so keep the source text unchanged.
         content = sourceLines;
@@ -73,7 +79,7 @@ export function generateFileContent(
       enc: false,
     };
   } else if (["int", "inc", "mac"].includes(fileExt) && !csp) {
-    if (sourceLines.length && uri.scheme == "file" && (fileName.includes(path.sep) || fileName.includes(" "))) {
+    if (sourceLines.length && notIsfs(uri) && (fileName.includes(path.sep) || fileName.includes(" "))) {
       // We couldn't resolve a routine name from the file path,
       // so keep the source text unchanged.
       return {
@@ -104,7 +110,7 @@ export function generateFileContent(
     }
   }
   return {
-    content: [Buffer.from(sourceContent).toString("base64")],
+    content: base64EncodeContent(Buffer.from(sourceContent)),
     enc: true,
   };
 }
@@ -267,10 +273,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               const folder = !csp
                 ? uri.path.replace(/\/$/, "").replace(/\//g, ".")
                 : uri.path === "/"
-                ? ""
-                : uri.path.endsWith("/")
-                ? uri.path
-                : uri.path + "/";
+                  ? ""
+                  : uri.path.endsWith("/")
+                    ? uri.path
+                    : uri.path + "/";
               const fullName = folder === "" ? entry.Name : csp ? folder + entry.Name : folder + "/" + entry.Name;
               parent.entries.set(entry.Name, new Directory(entry.Name, fullName));
             }
@@ -296,10 +302,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const folder = !csp
       ? uri.path.replace(/\/$/, "").replace(/\//g, ".")
       : uri.path === "/"
-      ? ""
-      : uri.path.endsWith("/")
-      ? uri.path
-      : uri.path + "/";
+        ? ""
+        : uri.path.endsWith("/")
+          ? uri.path
+          : uri.path + "/";
     // get all web apps that have a filepath (Studio dialog used below returns REST ones too)
     const cspApps = csp ? await api.getCSPApps().then((data) => data.result.content || []) : [];
     const cspSubfolderMap = new Map<string, vscode.FileType>();
@@ -321,10 +327,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             item.Type == 10
               ? csp && !item.Name.includes("/") // ignore web apps here because there may be REST ones
               : item.Type == 9 // class package
-              ? !csp
-              : csp
-              ? item.Type == 5 // web app file
-              : true
+                ? !csp
+                : csp
+                  ? item.Type == 5 // web app file
+                  : true
           )
           .map((item: { Name: string; Type: number }) => {
             const name = item.Name;
@@ -353,15 +359,13 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       })
       .catch((error) => {
         if (error) {
-          console.log(error);
           if (error.errorText.includes(" #5540:")) {
-            const nsUpper = api.config.ns.toUpperCase();
             const message = `User '${api.config.username}' cannot list ${
               csp ? `web application '${uri.path}'` : "namespace"
-            } contents. If they do not have READ permission on the default code database of the ${nsUpper} namespace then grant it and retry. If the problem remains then execute the following SQL in that namespace:\n\t GRANT EXECUTE ON %Library.RoutineMgr_StudioOpenDialog TO ${
+            } contents. If they do not have READ permission on the default code database of the ${api.config.ns.toUpperCase()} namespace then grant it and retry. If the problem remains then execute the following SQL in that namespace:\n\t GRANT EXECUTE ON %Library.RoutineMgr_StudioOpenDialog TO ${
               api.config.username
             }`;
-            outputChannel.appendError(message);
+            handleError(message);
           }
         }
       });
@@ -414,85 +418,111 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const api = new AtelierAPI(uri);
     // Use _lookup() instead of _lookupAsFile() so we send
     // our cached mtime with the GET /doc request if we have it
-    return this._lookup(uri).then(
-      async () => {
-        // Weirdly, if the file exists on the server we don't actually write its content here.
-        // Instead we simply return as though we wrote it successfully.
-        // The actual writing is done by our workspace.onDidSaveTextDocument handler.
-        // But first check cases for which we should fail the write and leave the document dirty if changed.
-        if (!csp && fileName.split(".").pop().toLowerCase() === "cls") {
-          // Check if the class is deployed
-          if (await isClassDeployed(fileName, api)) {
-            throw new Error("Cannot overwrite a deployed class");
-          }
-          // Check if the class name and file name match
-          let clsname = "";
-          const match = new TextDecoder().decode(content).match(classNameRegex);
-          if (match) {
-            [, clsname] = match;
-          }
-          if (clsname === "") {
-            throw new Error("Cannot save a malformed class");
-          }
-          if (fileName.slice(0, -4) !== clsname) {
-            throw new Error("Cannot save an isfs class where the class name and file name do not match");
-          }
-        }
-        // Set a -1 mtime cache entry so the actual write by the workspace.onDidSaveTextDocument handler always overwrites.
-        // By the time we get here VS Code's built-in conflict resolution mechanism will already have interacted with the user.
-        const uniqueId = `${workspaceFolderOfUri(uri)}:${fileName}`;
-        workspaceState.update(`${uniqueId}:mtime`, -1);
-        return;
-      },
-      (error) => {
-        if (error.code !== "FileNotFound" || !options.create) {
-          return Promise.reject();
-        }
-        // File doesn't exist on the server, and we are allowed to create it.
-        // Create content (typically a stub, unless the write-phase of a copy operation).
-        const newContent = generateFileContent(uri, fileName, content);
-
-        // Write it to the server
-        return api
-          .putDoc(
-            fileName,
-            {
-              ...newContent,
-              mtime: Date.now(),
-            },
-            false
-          )
-          .catch((error) => {
-            // Throw all failures
-            if (error && error.errorText && error.errorText !== "") {
-              throw vscode.FileSystemError.Unavailable(error.errorText);
+    return this._lookup(uri)
+      .then(
+        async () => {
+          // Check cases for which we should fail the write and leave the document dirty if changed
+          if (!csp && fileName.split(".").pop().toLowerCase() == "cls") {
+            // Check if the class is deployed
+            if (await isClassDeployed(fileName, api)) {
+              throw new Error("Cannot overwrite a deployed class");
             }
-            throw vscode.FileSystemError.Unavailable(uri);
-          })
-          .then(async (response) => {
-            // New file has been written
-            if (response && response.result.ext && response.result.ext[0] && response.result.ext[1]) {
-              fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, uri, response.result.ext[0]);
-              fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, uri, response.result.ext[1]);
+            // Check if the class name and file name match
+            let clsname = "";
+            const match = new TextDecoder().decode(content).match(classNameRegex);
+            if (match) {
+              [, clsname] = match;
             }
-            const params = new URLSearchParams(uri.query);
-            if (params.has("project") && params.get("project").length) {
-              // Add this document to the project if required
-              await addIsfsFileToProject(params.get("project"), uri, fileName, csp, api);
+            if (clsname == "") {
+              throw new Error("Cannot save a malformed class");
             }
-            // Sanity check that we find it there, then make client side update things
-            this._lookupAsFile(uri).then(() => {
-              this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
+            if (fileName.slice(0, -4) != clsname) {
+              throw new Error("Cannot save an isfs class where the class name and file name do not match");
+            }
+          }
+          if (openCustomEditors.includes(uri.toString())) {
+            // This class is open in a graphical editor, so any
+            // updates to the class will be handled by that editor
+            return;
+          }
+          const contentBuffer = Buffer.from(content);
+          const putContent = isText(uri.path.split("/").pop(), contentBuffer)
+            ? {
+                content: new TextDecoder().decode(content).split(/\r?\n/),
+                enc: false,
+              }
+            : {
+                content: base64EncodeContent(contentBuffer),
+                enc: true,
+              };
+          // By the time we get here VS Code's built-in conflict resolution mechanism will already have interacted with the user.
+          // Therefore, it's safe to ignore any conflicts.
+          return api
+            .putDoc(
+              fileName,
+              {
+                ...putContent,
+                mtime: -1,
+              },
+              true
+            )
+            .then((data) => {
+              workspaceState.update(
+                `${workspaceFolderOfUri(uri)}:${fileName}:mtime`,
+                Number(new Date(data.result.ts + "Z"))
+              );
+            })
+            .catch((error) => {
+              // Throw all failures
+              throw vscode.FileSystemError.Unavailable(stringifyError(error) || uri);
             });
+        },
+        (error) => {
+          if (error.code !== "FileNotFound" || !options.create) {
+            return Promise.reject();
+          }
+          // File doesn't exist on the server, and we are allowed to create it.
+          // Create content (typically a stub, unless the write-phase of a copy operation).
+          const newContent = generateFileContent(uri, fileName, content);
 
-            // Ask to put cursor at start of 3rd line.
-            // For CLS stub this will be where properties and methods need to be inserted.
-            // For MAC and INT stubs there is no 3rd line, so cursor goes to the end of the 2nd, which is 1st of actual routine and is ready for comment text.
-            const editor = await vscode.window.showTextDocument(uri);
-            editor.selection = new vscode.Selection(2, 0, 2, 0);
-          });
-      }
-    );
+          // Write it to the server
+          return api
+            .putDoc(
+              fileName,
+              {
+                ...newContent,
+                mtime: Date.now(),
+              },
+              false
+            )
+            .catch((error) => {
+              // Throw all failures
+              throw vscode.FileSystemError.Unavailable(stringifyError(error) || uri);
+            })
+            .then((data) => {
+              // New file has been written
+              if (data && data.result.ext && data.result.ext[0] && data.result.ext[1]) {
+                fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, uri, data.result.ext[0]);
+                fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, uri, data.result.ext[1]);
+              }
+              const params = new URLSearchParams(uri.query);
+              if (params.has("project") && params.get("project").length) {
+                // Add this document to the project if required
+                addIsfsFileToProject(params.get("project"), fileName, csp, api);
+              }
+              // Create an entry in our cache for the document
+              this._lookupAsFile(uri);
+            });
+        }
+      )
+      .then(() => {
+        // Compile the document if required
+        if (vscode.workspace.getConfiguration("objectscript", uri).get("compileOnSave")) {
+          this.compile(uri);
+        } else {
+          this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
+        }
+      });
   }
 
   /** Process a Document object that was successfully deleted. */
@@ -605,7 +635,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           throw new vscode.FileSystemError(
             `Failed to delete ${failed} document${
               failed > 1 ? "s" : ""
-            }. Check 'ObjectScript' Output channel for details.`
+            }. Check the 'ObjectScript' Output channel for details.`
           );
         }
       });
@@ -619,13 +649,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         }
       },
       (error) => {
-        let message = `Failed to delete file '${fileName}'.`;
-        if (error && error.errorText && error.errorText !== "") {
-          outputChannel.appendLine("\n" + error.errorText);
-          outputChannel.show(true);
-          message += " Check 'ObjectScript' Output channel for details.";
-        }
-        throw new vscode.FileSystemError(message);
+        handleError(error);
+        throw new vscode.FileSystemError(
+          `Failed to delete file '${fileName}'. Check the 'ObjectScript' Output channel for details.`
+        );
       }
     );
   }
@@ -678,10 +705,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       )
       .catch((error) => {
         // Throw all failures
-        if (error && error.errorText && error.errorText !== "") {
-          throw vscode.FileSystemError.Unavailable(error.errorText);
-        }
-        throw vscode.FileSystemError.Unavailable(error.message);
+        throw vscode.FileSystemError.Unavailable(stringifyError(error) || newUri);
       })
       .then(async (response) => {
         // New file has been written
@@ -728,14 +752,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         compileList.push(isCSPFile(uri) ? uri.path : uri.path.slice(1).replace(/\//g, "."));
       }
     } catch (error) {
-      console.log(error);
-      let errorMsg = "Error determining documents to compile.";
-      if (error && error.errorText && error.errorText !== "") {
-        outputChannel.appendLine("\n" + error.errorText);
-        outputChannel.show(true);
-        errorMsg += " Check 'ObjectScript' output channel for details.";
-      }
-      vscode.window.showErrorMessage(errorMsg, "Dismiss");
+      handleError(error, "Error determining documents to compile.");
       return;
     }
     if (!compileList.length) return;
@@ -763,7 +780,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             if (!conf.get("suppressCompileErrorMessages")) {
               vscode.window
                 .showErrorMessage(
-                  "Compilation failed. Check 'ObjectScript' output channel for details.",
+                  "Compilation failed. Check 'ObjectScript' Output channel for details.",
                   "Show",
                   "Dismiss"
                 )
@@ -821,10 +838,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         .serverInfo()
         .then()
         .catch((error) => {
-          if (error && error.errorText && error.errorText !== "") {
-            throw vscode.FileSystemError.Unavailable(error.errorText);
-          }
-          throw vscode.FileSystemError.Unavailable(uri);
+          throw vscode.FileSystemError.Unavailable(stringifyError(error) || uri);
         });
     }
     const config = api.config;
@@ -932,13 +946,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         })
       )
       .catch((error) => {
-        if (error?.statusCode === 304 && cachedFile) {
-          return cachedFile;
-        }
-        if (error && error.errorText && error.errorText !== "") {
-          throw vscode.FileSystemError.FileNotFound(error.errorText);
-        }
-        throw vscode.FileSystemError.FileNotFound(uri);
+        if (error?.statusCode == 304 && cachedFile) return cachedFile;
+        throw vscode.FileSystemError.FileNotFound(stringifyError(error) || uri);
       });
   }
 

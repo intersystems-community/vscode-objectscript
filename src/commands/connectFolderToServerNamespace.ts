@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { panel, resolveConnectionSpec, getResolvedConnectionSpec, smExtensionId } from "../extension";
+import { notIsfs } from "../utils";
 
 interface ConnSettings {
   server: string;
@@ -19,7 +20,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
   // Which folder?
   const allFolders = vscode.workspace.workspaceFolders;
   const items: vscode.QuickPickItem[] = allFolders
-    .filter((folder) => folder.uri.scheme === "file")
+    .filter((folder) => notIsfs(folder.uri))
     .map((folder) => {
       const config = vscode.workspace.getConfiguration("objectscript", folder);
       const conn: ConnSettings = config.get("conn");

@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import WebSocket = require("ws");
 
 import { AtelierAPI } from "../api";
-import { connectionTarget, currentFile, outputChannel } from "../utils";
+import { connectionTarget, currentFile, handleError, notIsfs, outputChannel } from "../utils";
 import { config, iscIcon, resolveConnectionSpec } from "../extension";
 
 const keys = {
@@ -212,15 +212,8 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         },
       });
     } catch (error) {
-      outputChannel.appendLine(
-        typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
-      );
+      handleError(error, "Failed to initialize Lite Terminal.");
       outputChannel.appendLine("Check that the InterSystems server's web server supports WebSockets.");
-      outputChannel.show(true);
-      vscode.window.showErrorMessage(
-        "Failed to initialize Lite Terminal. Check 'ObjectScript' Output channel for details.",
-        "Dismiss"
-      );
       this._closeEmitter.fire();
       return;
     }
@@ -232,12 +225,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     this._socket
       .on("error", (error) => {
         // Log the error and close
-        outputChannel.appendLine(`WebSocket error: ${error.toString()}`);
-        outputChannel.show(true);
-        vscode.window.showErrorMessage(
-          "Lite Terminal failed. Check 'ObjectScript' Output channel for details.",
-          "Dismiss"
-        );
+        handleError(`WebSocket error: ${error.toString()}`, "Lite Terminal failed.");
         this._closeEmitter.fire();
       })
       .on("close", () => {
@@ -254,12 +242,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         switch (message.type) {
           case "error":
             // Log the error and close
-            outputChannel.appendLine(message.text);
-            outputChannel.show(true);
-            vscode.window.showErrorMessage(
-              "Lite Terminal failed. Check 'ObjectScript' Output channel for details.",
-              "Dismiss"
-            );
+            handleError(message.text, "Lite Terminal failed.");
             this._closeEmitter.fire();
             break;
           case "output":
@@ -795,10 +778,10 @@ async function workspaceUriForTerminal(throwErrors = false) {
 export async function launchWebSocketTerminal(targetUri?: vscode.Uri): Promise<void> {
   // Determine the server to connect to
   if (targetUri) {
-    // Uri passed as command argument might be for a server we haven't yet resolve connection details such as password,
-    // so make sure that happens now if needed
+    // Uri passed as command argument might be for a server we haven't yet resolved
+    // connection details such as password, so make sure that happens now if needed
     const { configName } = connectionTarget(targetUri);
-    const serverName = targetUri.scheme === "file" ? config("conn", configName).server : configName;
+    const serverName = notIsfs(targetUri) ? config("conn", configName).server : configName;
     await resolveConnectionSpec(serverName);
   } else {
     targetUri = currentFile()?.uri;

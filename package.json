@@ -84,18 +84,13 @@
       },
       {
         "view": "ObjectScriptExplorer",
-        "contents": "Connect a local workspace folder to an [InterSystems server](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ssworkflow) if you want to export or import ObjectScript code.\n[Choose Server and Namespace](command:vscode-objectscript.connectFolderToServerNamespace)\nOr [hide this view](command:vscode-objectscript.hideExplorerForWorkspace) if it is not needed for the current workspace.",
+        "contents": "Connect a local workspace folder to an [InterSystems server](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_clientflow) if you want to export or import ObjectScript code.\n[Choose Server and Namespace](command:vscode-objectscript.connectFolderToServerNamespace)",
         "when": "vscode-objectscript.explorerRootCount == 0"
       },
       {
         "view": "ObjectScriptProjectsExplorer",
         "contents": "To view or edit projects, create a virtual workspace folder to [edit or view code directly on an InterSystems server](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ssworkflow).\n[Add Server Namespace to Workspace](command:vscode-objectscript.addServerNamespaceToWorkspace)",
-        "when": "vscode-objectscript.projectsExplorerRootCount == 0 && workspaceFolderCount <= 0"
-      },
-      {
-        "view": "ObjectScriptProjectsExplorer",
-        "contents": "To view or edit projects, create a virtual workspace folder to [edit or view code directly on an InterSystems server](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ssworkflow).\n[Add Server Namespace to Workspace](command:vscode-objectscript.addServerNamespaceToWorkspace)\nOr connect a local workspace folder to an [InterSystems server](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_ssworkflow).\n[Choose Server and Namespace](command:vscode-objectscript.connectFolderToServerNamespace)",
-        "when": "vscode-objectscript.projectsExplorerRootCount == 0 && workspaceFolderCount > 0"
+        "when": "vscode-objectscript.projectsExplorerRootCount == 0"
       }
     ],
     "menus": {
@@ -114,7 +109,7 @@
         },
         {
           "command": "vscode-objectscript.refreshLocalFile",
-          "when": "resourceScheme == file && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "!(resourceScheme =~ /^isfs(-readonly)?$/) && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.compileWithFlags",
@@ -198,7 +193,7 @@
         },
         {
           "command": "vscode-objectscript.serverCommands.sourceControl",
-          "when": "vscode-objectscript.connectActive && resourceScheme == isfs || (vscode-objectscript.connectActive && !editorIsOpen)"
+          "when": "(vscode-objectscript.connectActive && resourceScheme == isfs) || (vscode-objectscript.connectActive && !editorIsOpen && virtualWorkspace =~ /^isfs(-readonly)?$/)"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextSourceControl",
@@ -206,19 +201,11 @@
         },
         {
           "command": "vscode-objectscript.serverCommands.other",
-          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ || (vscode-objectscript.connectActive && !editorIsOpen)"
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ || (vscode-objectscript.connectActive && !editorIsOpen && virtualWorkspace =~ /^isfs(-readonly)?$/)"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
           "when": "false"
-        },
-        {
-          "command": "vscode-objectscript.hideExplorerForWorkspace",
-          "when": "config.objectscript.showExplorer"
-        },
-        {
-          "command": "vscode-objectscript.showExplorerForWorkspace",
-          "when": "!config.objectscript.showExplorer"
         },
         {
           "command": "vscode-objectscript.jumpToTagAndOffset",
@@ -388,16 +375,6 @@
           "group": "1_objectscript_modify"
         },
         {
-          "command": "vscode-objectscript.serverCommands.contextSourceControl",
-          "when": "view =~ /^ObjectScript(Projects)?Explorer$/ && viewItem =~ /^dataNode:/",
-          "group": "9_objectscript_servercommand@1"
-        },
-        {
-          "command": "vscode-objectscript.serverCommands.contextOther",
-          "when": "view =~ /^ObjectScript(Projects)?Explorer$/ && viewItem =~ /^dataNode:/",
-          "group": "9_objectscript_servercommand@2"
-        },
-        {
           "command": "vscode-objectscript.explorer.otherNamespace",
           "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode((?!:extra:).)*$/",
           "group": "inline@30"
@@ -496,7 +473,7 @@
         },
         {
           "command": "vscode-objectscript.editOthers",
-          "when": "resourceScheme == file && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "when": "!(resourceScheme =~ /^isfs(-readonly)?$/) && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
           "group": "objectscript@2"
         },
         {
@@ -584,12 +561,12 @@
         },
         {
           "command": "vscode-objectscript.compileFolder",
-          "when": "vscode-objectscript.connectActive && resourceScheme == file",
+          "when": "vscode-objectscript.connectActive && !(resourceScheme =~ /^isfs(-readonly)?$/)",
           "group": "objectscript_modify@1"
         },
         {
           "command": "vscode-objectscript.importFolder",
-          "when": "vscode-objectscript.connectActive && resourceScheme == file",
+          "when": "vscode-objectscript.connectActive && !(resourceScheme =~ /^isfs(-readonly)?$/)",
           "group": "objectscript_modify@1"
         },
         {
@@ -1018,16 +995,6 @@
       },
       {
         "category": "ObjectScript",
-        "command": "vscode-objectscript.hideExplorerForWorkspace",
-        "title": "Hide Explorer for Workspace"
-      },
-      {
-        "category": "ObjectScript",
-        "command": "vscode-objectscript.showExplorerForWorkspace",
-        "title": "Show Explorer for Workspace"
-      },
-      {
-        "category": "ObjectScript",
         "command": "vscode-objectscript.compileOnly",
         "title": "Compile Current File"
       },
@@ -1362,8 +1329,6 @@
             "filter": "",
             "exactFilter": "",
             "category": "*",
-            "noStorage": false,
-            "dontExportIfNoChanges": false,
             "maxConcurrentConnections": 0,
             "mapped": true
           },
@@ -1432,14 +1397,6 @@
                 "object"
               ]
             },
-            "noStorage": {
-              "description": "Strip the storage definition on export. Can be useful when working across multiple systems.",
-              "type": "boolean"
-            },
-            "dontExportIfNoChanges": {
-              "description": "Do not rewrite the local file if the content is identical to what came from the server.",
-              "type": "boolean"
-            },
             "maxConcurrentConnections": {
               "description": "Maximum number of concurrent export connections. (0 = unlimited)",
               "type": "number"
@@ -1450,11 +1407,6 @@
             }
           }
         },
-        "objectscript.showExplorer": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show the InterSystems Explorer view."
-        },
         "objectscript.compileFlags": {
           "type": "string",
           "default": "cuk",
@@ -1463,7 +1415,7 @@
         "objectscript.overwriteServerChanges": {
           "type": "boolean",
           "default": false,
-          "description": "Overwrite a changed server version without confirmation when importing the local file."
+          "description": "Controls whether synching a file to the server in a client-side workspace folder will always overwrite the server version, even if it changed since it was last accessed."
         },
         "objectscript.autoPreviewXML": {
           "type": "boolean",
@@ -1525,9 +1477,9 @@
           "default": false
         },
         "objectscript.autoAdjustName": {
-          "markdownDescription": "Automatically modify the class name or ROUTINE header to match the file's path when copying or creating a new file. Does not affect `isfs` files.",
+          "markdownDescription": "Automatically modify the class name or ROUTINE header of a file in a client-side workspace folder to match the file's path when copying or creating a new file. Uses the `#objectscript.export#` settings to determine the new name.",
           "type": "boolean",
-          "default": true
+          "default": false
         },
         "objectscript.compileOnSave": {
           "description": "Automatically compile an InterSystems file when saved in the editor.",
@@ -1547,7 +1499,7 @@
         "objectscript.explorer.alwaysShowServerCopy": {
           "description": "Always show the server copy of a document opened from the InterSystems Explorer.",
           "type": "boolean",
-          "default": false
+          "default": true
         },
         "objectscript.projects.webAppFileExtensions": {
           "markdownDescription": "When browsing a virtual workspace folder that has a project query parameter, all files with these extensions will be automatically treated as web application files. Extensions added here will be appended to the default list and should **NOT** include a dot. See the [Settings Reference documentation page](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_settings#GVSCO_settings_objectscript) for a list of extensions included by default.",
@@ -1558,11 +1510,6 @@
             "type": "string",
             "pattern": "^[^.]+$"
           }
-        },
-        "objectscript.importOnSave": {
-          "description": "Automatically save a client-side InterSystems file on the server when saved in the editor.",
-          "type": "boolean",
-          "default": true
         },
         "objectscript.showGeneratedFileDecorations": {
           "description": "Controls whether a badge is shown in the file explorer and open editors view for generated files.",
@@ -1654,6 +1601,11 @@
             "The step buttons execute an entire line."
           ],
           "default": "command"
+        },
+        "objectscript.syncLocalChanges": {
+          "description": "Controls whether files in client-side workspace folders that are created, deleted, or changed are automatically synced to the server. Synching will occur whether changes are made due to user actions in VS Code (for example, saving a file that's being actively edited) or outside of VS Code (for example, deleting a file from the OS file explorer while VS Code has its folder open).",
+          "type": "boolean",
+          "default": true
         }
       }
     },
@@ -1663,13 +1615,13 @@
           "id": "ObjectScriptExplorer",
           "name": "Explorer",
           "contextualTitle": "InterSystems",
-          "when": "workspaceFolderCount != 0 && config.objectscript.showExplorer == true"
+          "when": "vscode-objectscript.showExplorer"
         },
         {
           "id": "ObjectScriptProjectsExplorer",
           "name": "Projects",
           "contextualTitle": "InterSystems",
-          "when": "workspaceFolderCount != 0"
+          "when": "vscode-objectscript.showProjectsExplorer"
         }
       ]
     },
@@ -1819,50 +1771,51 @@
     "postinstall": "npm run download-api"
   },
   "devDependencies": {
+    "@eslint/js": "^9.15.0",
     "@intersystems-community/intersystems-servermanager": "^3.8.0",
     "@types/istextorbinary": "2.3.1",
     "@types/minimatch": "5.1.2",
     "@types/mocha": "^7.0.2",
-    "@types/node": "20.16.5",
+    "@types/node": "20.17.6",
     "@types/semver": "7.5.4",
     "@types/vscode": "1.93.0",
     "@types/ws": "8.5.4",
     "@types/xmldom": "^0.1.29",
-    "@typescript-eslint/eslint-plugin": "^4.32.0",
-    "@typescript-eslint/parser": "^4.32.0",
-    "@vscode/dts": "^0.4.0",
-    "@vscode/test-electron": "^2.3.8",
-    "eslint": "^7.32.0",
-    "eslint-config-airbnb-base": "^14.2.1",
-    "eslint-config-prettier": "^6.11.0",
-    "eslint-plugin-import": "^2.24.2",
-    "eslint-plugin-jsx-a11y": "^6.3.1",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "@vscode/debugadapter-testsupport": "^1.67.0",
+    "@vscode/dts": "^0.4.1",
+    "@vscode/test-electron": "^2.4.1",
+    "eslint": "^9.15.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^3.1.4",
-    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-prettier": "^5.2.1",
+    "eslint-plugin-promise": "^7.1.0",
     "glob": "^7.1.6",
+    "globals": "^15.12.0",
     "mocha": "^9.1.3",
     "path-browserify": "^1.0.1",
-    "prettier": "^2.0.5",
-    "ts-loader": "^7.0.5",
-    "typescript": "^5.5.4",
-    "vscode-debugadapter-testsupport": "^1.41.0",
-    "webpack": "^5.94.0",
-    "webpack-cli": "^4.5.0"
+    "prettier": "^3.3.1",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.6.2",
+    "webpack": "^5.96.1",
+    "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "@vscode/debugadapter": "^1.61.0",
-    "@vscode/debugprotocol": "^1.61.0",
+    "@vscode/debugadapter": "^1.65.0",
+    "@vscode/debugprotocol": "^1.65.0",
     "@xmldom/xmldom": "^0.8.8",
     "axios": "^1.7.7",
     "core-js": "^3.6.5",
     "iconv-lite": "^0.6.0",
-    "istextorbinary": "^6.0.0",
+    "istextorbinary": "^7.0.0",
     "minimatch": "^9.0.3",
     "node-cmd": "^5.0.0",
     "vscode-cache": "^0.3.0",
     "vscode-extension-telemetry": "^0.1.6",
-    "ws": "^8.14.2"
+    "ws": "^8.18.0"
   },
   "extensionDependencies": [
     "intersystems-community.servermanager"

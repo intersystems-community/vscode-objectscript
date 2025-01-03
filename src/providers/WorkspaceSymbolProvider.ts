@@ -3,6 +3,8 @@ import { AtelierAPI } from "../api";
 import { DocumentContentProvider } from "./DocumentContentProvider";
 import { filesystemSchemas } from "../extension";
 import { fileSpecFromURI } from "../utils/FileProviderUtil";
+import { allDocumentsInWorkspace } from "../utils/documentIndex";
+import { handleError } from "../utils";
 
 export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
   private readonly _sqlPrefix: string =
@@ -18,13 +20,13 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
     " UNION SELECT Name, Parent->ID AS Parent, 'Trigger' AS Type FROM %Dictionary.TriggerDefinition" +
     " UNION SELECT Name, Parent->ID AS Parent, 'Storage' AS Type FROM %Dictionary.StorageDefinition" +
     " UNION SELECT Name, Parent->ID AS Parent, 'Projection' AS Type FROM %Dictionary.ProjectionDefinition" +
-    ") AS mem JOIN ";
+    ") AS mem ";
 
   private readonly _sqlPrj: string =
-    "%Studio.Project_ProjectItemsList(?) AS pil ON mem.Parent = pil.Name AND pil.Type = 'CLS'";
+    "JOIN %Studio.Project_ProjectItemsList(?) AS pil ON mem.Parent = pil.Name AND pil.Type = 'CLS'";
 
   private readonly _sqlDocs: string =
-    "%Library.RoutineMgr_StudioOpenDialog(?,1,1,?,1,0,?,'Type = 4',0,?) AS sod ON mem.Parent = $EXTRACT(sod.Name,1,$LENGTH(sod.Name)-4)";
+    "JOIN %Library.RoutineMgr_StudioOpenDialog(?,1,1,?,1,0,?,'Type = 4',0,?) AS sod ON mem.Parent = $EXTRACT(sod.Name,1,$LENGTH(sod.Name)-4)";
 
   private readonly _sqlSuffix: string = " WHERE LOWER(mem.Name) LIKE ? ESCAPE '\\'";
 
@@ -119,8 +121,8 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
                 params.has("system") && params.get("system").length
                   ? params.get("system")
                   : api.ns == "%SYS"
-                  ? "1"
-                  : "0",
+                    ? "1"
+                    : "0",
                 params.has("generated") && params.get("generated").length ? params.get("generated") : "0",
                 params.has("mapped") && params.get("mapped") == "0" ? "0" : "1",
                 pattern,
@@ -128,15 +130,29 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
               .then((data) => (token.isCancellationRequested ? [] : this._queryResultToSymbols(data, wsFolder)));
           }
         } else {
-          // Client-side folders should use the isfs default parameters
+          // Use the document index to determien the classes to search
           const api = new AtelierAPI(wsFolder.uri);
-          if (!api.active || token.isCancellationRequested) return Promise.resolve([]);
+          if (!api.active) return Promise.resolve([]);
+          const docs = allDocumentsInWorkspace(wsFolder).filter((d) => d.endsWith(".cls"));
+          if (!docs.length || token.isCancellationRequested) return Promise.resolve([]);
           return api
-            .actionQuery(`${this._sqlPrefix}${this._sqlDocs}${this._sqlSuffix}`, ["*.cls", "0", "0", "1", pattern])
+            .actionQuery(`${this._sqlPrefix}${this._sqlSuffix} AND mem.Parent %INLIST $LISTFROMSTRING(?)`, [
+              pattern,
+              docs.map((d) => d.slice(0, -4)).join(","),
+            ])
             .then((data) => (token.isCancellationRequested ? [] : this._queryResultToSymbols(data, wsFolder)));
         }
       })
-    ).then((results) => results.flatMap((result) => (result.status == "fulfilled" ? result.value : [])));
+    ).then((results) =>
+      results.flatMap((result) => {
+        if (result.status == "fulfilled") {
+          return result.value;
+        } else {
+          handleError(result.reason);
+          return [];
+        }
+      })
+    );
   }
 
   resolveWorkspaceSymbol(symbol: vscode.SymbolInformation): vscode.ProviderResult<vscode.SymbolInformation> {
