@@ -312,7 +312,7 @@ export async function exportDocumentsToXMLFile(): Promise<void> {
       connectionUri = (
         await vscode.window.showWorkspaceFolderPick({
           ignoreFocusOut: true,
-          placeHolder: "Pick the workspace folder to get server connection information from",
+          placeHolder: "Pick a workspace folder. Server-side folders export to the local file system.",
         })
       )?.uri;
     }
@@ -335,8 +335,8 @@ export async function exportDocumentsToXMLFile(): Promise<void> {
         return;
       }
       let defaultUri = vscode.workspace.getWorkspaceFolder(connectionUri)?.uri ?? connectionUri;
-      if (defaultUri.scheme != "file") {
-        // Need a default URI with file scheme or the save dialog
+      if (schemas.includes(defaultUri.scheme)) {
+        // Need a default URI without the isfs scheme or the save dialog
         // will show the virtual files from the workspace folder
         defaultUri = vscode.workspace.workspaceFile;
         if (defaultUri.scheme != "file") {
@@ -348,6 +348,10 @@ export async function exportDocumentsToXMLFile(): Promise<void> {
         }
         // Remove the file name from the URI
         defaultUri = defaultUri.with({ path: defaultUri.path.split("/").slice(0, -1).join("/") });
+      }
+      if (!vscode.workspace.fs.isWritableFileSystem(defaultUri.scheme)) {
+        vscode.window.showErrorMessage(`Cannot export to read-only file system '${defaultUri.scheme}'.`, "Dismiss");
+        return;
       }
       // Prompt the user for the documents to export
       const documents = await pickDocuments(api, "to export");

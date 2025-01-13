@@ -750,7 +750,7 @@ export async function importXMLFiles(): Promise<any> {
       connectionUri = (
         await vscode.window.showWorkspaceFolderPick({
           ignoreFocusOut: true,
-          placeHolder: "Pick the workspace folder to get server connection information from",
+          placeHolder: "Pick a workspace folder. Server-side folders import from the local file system.",
         })
       )?.uri;
     }
@@ -773,9 +773,9 @@ export async function importXMLFiles(): Promise<any> {
         return;
       }
       let defaultUri = vscode.workspace.getWorkspaceFolder(connectionUri)?.uri ?? connectionUri;
-      if (defaultUri.scheme != "file") {
-        // Need a default URI with file scheme or the open dialog
-        // will show the virtual files from the workspace folder
+      if (defaultUri.scheme == FILESYSTEM_SCHEMA) {
+        // Need a default URI without the isfs scheme or the open dialog
+        // will show the server-side files instead of local ones
         defaultUri = vscode.workspace.workspaceFile;
         if (defaultUri.scheme != "file") {
           vscode.window.showErrorMessage(
