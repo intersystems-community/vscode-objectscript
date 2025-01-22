@@ -334,8 +334,27 @@ export class AtelierAPI {
       auth = authRequest;
     }
 
+    const outputTraffic = vscode.workspace.getConfiguration("objectscript").get<boolean>("outputRESTTraffic");
+    let cookie;
+    let reqTs: Date;
+    const outputRequest = () => {
+      outputChannel.appendLine(`+- REQUEST - ${reqTs.toLocaleTimeString()} ----------------------------`);
+      outputChannel.appendLine(`${method} ${proto}://${host}:${port}${path}`);
+      if (cookie) outputChannel.appendLine("COOKIE: <value>");
+      for (const [h, v] of Object.entries(headers)) {
+        // Don't output value of the Authorization header
+        const hUpper = h.toUpperCase();
+        outputChannel.appendLine(`${hUpper}: ${hUpper == "AUTHORIZATION" ? "<value>" : v}`);
+      }
+      if (body) {
+        outputChannel.appendLine(
+          `Body:\n${headers["Content-Type"] == "application/json" ? JSON.stringify(body, null, 2) : body}`
+        );
+      }
+    };
     try {
-      const cookie = await auth;
+      cookie = await auth;
+      reqTs = new Date();
       const response = await axios.request({
         method,
         url: `${proto}://${host}:${port}${path}`,
@@ -350,6 +369,22 @@ export class AtelierAPI {
         signal: options?.timeout ? AbortSignal.timeout(options.timeout) : undefined,
         validateStatus: (status) => status < 504,
       });
+      if (outputTraffic) {
+        outputRequest();
+        outputChannel.appendLine(`+- RESPONSE - ${new Date().toLocaleTimeString()} ---------------------------`);
+        outputChannel.appendLine(`${response.status} ${response.statusText}`);
+        for (const [h, v] of Object.entries(response.headers)) {
+          // Don't output value of the Set-Cookie header
+          const hUpper = h.toUpperCase();
+          outputChannel.appendLine(`${hUpper}: ${hUpper == "SET-COOKIE" ? "<value>" : v}`);
+        }
+        if (response.data) {
+          outputChannel.appendLine(
+            `Body:\n${typeof response.data == "object" ? JSON.stringify(response.data, null, 2) : response.data}`
+          );
+        }
+        outputChannel.appendLine(`+- END ----------------------------------------------`);
+      }
       if (response.status === 503) {
         // User likely ran out of licenses
         throw {
@@ -394,7 +429,7 @@ export class AtelierAPI {
         throw {
           statusCode: response.status,
           message: response.statusText,
-          errorText: `Non-JSON response to ${path} request. Is the web server suppressing detailed errors?`,
+          errorText: `Body of '${response.status} ${response.statusText}' response to ${path} request is not JSON. Is the web server suppressing detailed errors?`,
         };
       }
       const data: Atelier.Response = response.data;
@@ -446,6 +481,13 @@ export class AtelierAPI {
 
       return data;
     } catch (error) {
+      if (outputTraffic && !error.statusCode) {
+        // Only output errors here if they were "hard" errors, not HTTP response errors
+        outputRequest();
+        outputChannel.appendLine(`+- ERROR --------------------------------------------`);
+        outputChannel.appendLine(`${JSON.stringify(error, null, 2)}`);
+        outputChannel.appendLine(`+- END ----------------------------------------------`);
+      }
       // always discard the cached authentication promise
       authRequestMap.delete(target);
 

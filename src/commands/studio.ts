@@ -119,9 +119,6 @@ export class StudioActions {
       outputChannel.appendLine(errorText);
       outputChannel.show(true);
     }
-    if (vscode.workspace.getConfiguration("objectscript").get("studioActionDebugOutput")) {
-      outputChannel.appendLine(JSON.stringify(userAction));
-    }
     switch (serverAction) {
       case 0:
         /// do nothing
@@ -291,10 +288,6 @@ export class StudioActions {
     const parameters = afterUserAction
       ? [type.toString(), action.id, this.name, answer, msg]
       : [type.toString(), action.id, this.name, selectedText];
-
-    if (vscode.workspace.getConfiguration("objectscript").get("studioActionDebugOutput")) {
-      outputChannel.appendLine(`${query.slice(0, query.indexOf("("))}(${JSON.stringify(parameters).slice(1, -1)})`);
-    }
 
     return vscode.window.withProgress(
       {
