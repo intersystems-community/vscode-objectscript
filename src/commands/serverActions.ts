@@ -3,9 +3,9 @@ import {
   config,
   workspaceState,
   checkConnection,
-  FILESYSTEM_SCHEMA,
-  FILESYSTEM_READONLY_SCHEMA,
   explorerProvider,
+  filesystemSchemas,
+  FILESYSTEM_SCHEMA,
 } from "../extension";
 import {
   connectionTarget,
@@ -13,7 +13,8 @@ import {
   shellWithDocker,
   currentFile,
   uriOfWorkspaceFolder,
-  outputChannel,
+  notIsfs,
+  handleError,
 } from "../utils";
 import { mainCommandMenu, mainSourceControlMenu } from "./studio";
 import { AtelierAPI } from "../api";
@@ -31,6 +32,7 @@ export async function serverActions(): Promise<void> {
   const { links } = config("conn");
   const nsEncoded = encodeURIComponent(ns);
   const actions: ServerAction[] = [];
+  const wsUri = uriOfWorkspaceFolder();
   if (!api.externalServer) {
     actions.push({
       detail: (active ? "Disable" : "Enable") + " current connection",
@@ -45,8 +47,8 @@ export async function serverActions(): Promise<void> {
       detail: "Force attempt to connect to the server",
     });
 
-    // Switching namespace makes only sense if the user has a local folder open and not a server-side folder!
-    if (uriOfWorkspaceFolder()?.scheme === "file") {
+    // Switching namespace only makes sense for client-side folders
+    if (wsUri && notIsfs(wsUri)) {
       actions.push({
         id: "switchNamespace",
         label: "Switch Namespace",
@@ -78,13 +80,7 @@ export async function serverActions(): Promise<void> {
           .serverInfo(false)
           .then((data) => data.result.content.namespaces)
           .catch((error) => {
-            let message = `Failed to fetch a list of namespaces.`;
-            if (error && error.errorText && error.errorText !== "") {
-              outputChannel.appendLine("\n" + error.errorText);
-              outputChannel.show(true);
-              message += " Check 'ObjectScript' output channel for details.";
-            }
-            vscode.window.showErrorMessage(message, "Dismiss");
+            handleError(error, "Failed to fetch a list of namespaces.");
             return undefined;
           });
 
@@ -141,7 +137,7 @@ export async function serverActions(): Promise<void> {
   const classRef = `/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${nsEncoded}${
     classname ? "&CLASSNAME=" + classnameEncoded : ""
   }`;
-  const project = new URLSearchParams(uriOfWorkspaceFolder()?.query).get("project") || "";
+  const project = new URLSearchParams(wsUri?.query).get("project") || "";
   let extraLinks = 0;
   for (const title in links) {
     const rawLink = String(links[title]);
@@ -197,15 +193,19 @@ export async function serverActions(): Promise<void> {
     detail: "Select a Studio Add-in to open",
   });
   if (
-    !vscode.window.activeTextEditor ||
-    vscode.window.activeTextEditor.document.uri.scheme === FILESYSTEM_SCHEMA ||
-    vscode.window.activeTextEditor.document.uri.scheme === FILESYSTEM_READONLY_SCHEMA
+    (!vscode.window.activeTextEditor && wsUri && wsUri.scheme == FILESYSTEM_SCHEMA) ||
+    vscode.window.activeTextEditor?.document.uri.scheme == FILESYSTEM_SCHEMA
   ) {
     actions.push({
       id: "serverSourceControlMenu",
       label: "Server Source Control...",
       detail: "Pick server-side source control action",
     });
+  }
+  if (
+    (!vscode.window.activeTextEditor && wsUri && filesystemSchemas.includes(wsUri.scheme)) ||
+    filesystemSchemas.includes(vscode.window.activeTextEditor?.document.uri.scheme)
+  ) {
     actions.push({
       id: "serverCommandMenu",
       label: "Server Command Menu...",
@@ -238,13 +238,7 @@ export async function serverActions(): Promise<void> {
             )
             .then((data) => data.result.content)
             .catch((error) => {
-              let message = "Failed to fetch list of Studio Add-ins.";
-              if (error && error.errorText && error.errorText !== "") {
-                outputChannel.appendLine("\n" + error.errorText);
-                outputChannel.show(true);
-                message += " Check 'ObjectScript' output channel for details.";
-              }
-              vscode.window.showErrorMessage(message, "Dismiss");
+              handleError(error, "Failed to fetch list of Studio Add-ins.");
               return undefined;
             });
           if (addins != undefined) {

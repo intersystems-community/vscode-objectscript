@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
-import { outputChannel } from "../utils";
+import { handleError } from "../utils";
 
 export async function jumpToTagAndOffset(): Promise<void> {
   const editor = vscode.window.activeTextEditor;
@@ -101,13 +101,6 @@ export async function openErrorLocation(): Promise<void> {
     // Show the document
     await vscode.window.showTextDocument(uri, { preview: false, selection });
   } catch (error) {
-    outputChannel.appendLine(
-      typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
-    );
-    outputChannel.show(true);
-    vscode.window.showErrorMessage(
-      `Failed to open routine '${routine}.int'. Check 'ObjectScript' Output channel for details.`,
-      "Dismiss"
-    );
+    handleError(error, `Failed to open routine '${routine}.int'.`);
   }
 }

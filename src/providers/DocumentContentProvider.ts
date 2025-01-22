@@ -3,9 +3,10 @@ import * as path from "path";
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 
-import { getFileName, getFolderName } from "../commands/export";
+import { getFileName } from "../commands/export";
 import { config, FILESYSTEM_SCHEMA, FILESYSTEM_READONLY_SCHEMA, OBJECTSCRIPT_FILE_SCHEMA } from "../extension";
-import { currentWorkspaceFolder, uriOfWorkspaceFolder } from "../utils";
+import { currentWorkspaceFolder, notIsfs, uriOfWorkspaceFolder } from "../utils";
+import { getUrisForDocument } from "../utils/documentIndex";
 
 export function compareConns(
   conn1: { ns: any; server: any; host: any; port: any; "docker-compose": any },
@@ -43,29 +44,73 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     return this.onDidChangeEvent.event;
   }
 
-  public static getAsFile(name: string, workspaceFolder: string): string {
-    const { atelier, folder, addCategory, map } = config("export", workspaceFolder);
-
-    if (!workspaceFolder) {
-      return;
-    }
-    const root = [uriOfWorkspaceFolder(workspaceFolder).fsPath, folder].join(path.sep);
-    const fileName = getFileName(root, name, atelier, addCategory, map);
-    if (fs.existsSync(fileName)) {
-      return fs.realpathSync.native(fileName);
-    }
-  }
-
-  public static getAsFolder(name: string, workspaceFolder: string, category?: string): string {
-    const { atelier, folder, addCategory } = config("export", workspaceFolder);
-
-    if (!workspaceFolder) {
-      return;
-    }
-    const root = [uriOfWorkspaceFolder(workspaceFolder).fsPath, folder].join(path.sep);
-    const folderName = getFolderName(root, name, atelier, addCategory ? category : null);
-    if (fs.existsSync(folderName)) {
-      return fs.realpathSync.native(folderName);
+  /** Returns the `Uri` of `name` in `workspaceFolder` if it exists */
+  private static findLocalUri(name: string, workspaceFolder: string): vscode.Uri {
+    if (!workspaceFolder) return;
+    const wsFolder = vscode.workspace.workspaceFolders.find((wf) => wf.name == workspaceFolder);
+    if (!wsFolder) return;
+    if (!notIsfs(wsFolder.uri)) return;
+    const conf = vscode.workspace.getConfiguration("objectscript.export", wsFolder);
+    const confFolder = conf.get("folder", "");
+    if (["cls", "mac", "int", "inc"].includes(name.split(".").pop().toLowerCase())) {
+      // Use the document index to find the local URI
+      const uris = getUrisForDocument(name, wsFolder);
+      switch (uris.length) {
+        case 0:
+          // Document doesn't exist in a file
+          return;
+        case 1:
+          // Document exists in exactly one file
+          return uris[0];
+        default: {
+          // Document exists in multiple files, so try to "break the tie" by
+          // finding the URI that's "closest" to a point of reference
+          let referenceUriParts: string[];
+          if (
+            vscode.window.activeTextEditor &&
+            vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri)?.uri.toString() ==
+              wsFolder.uri.toString()
+          ) {
+            // Use the active editor's document for comparison
+            const base = vscode.window.activeTextEditor.document.uri.path.slice(wsFolder.uri.path.length);
+            referenceUriParts = base.split("/").slice(base.startsWith("/") ? 1 : 0, -1);
+          } else {
+            // Use the export settings for comparison
+            const base = getFileName(confFolder, name, conf.get("atelier"), conf.get("addCategory"), conf.get("map"));
+            referenceUriParts = base.split(path.sep).slice(base.startsWith(path.sep) ? 1 : 0, -1);
+          }
+          return uris.sort((a, b) => {
+            const aParts = a.path.split("/").slice(0, -1);
+            const bParts = b.path.split("/").slice(0, -1);
+            let aSame = 0,
+              bSame = 0,
+              aDone = false,
+              bDone = false;
+            for (let i = 0; i < referenceUriParts.length; i++) {
+              if (!aDone && aParts[i] != referenceUriParts[i]) aDone = true;
+              if (!bDone && bParts[i] != referenceUriParts[i]) bDone = true;
+              if (aDone && bDone) break;
+              if (!aDone) aSame++;
+              if (!bDone) bSame++;
+            }
+            if (aSame == bSame) {
+              return aParts.slice(aSame).length - bParts.slice(bSame).length;
+            } else {
+              return bSame - aSame;
+            }
+          })[0];
+        }
+      }
+    } else if (wsFolder.uri.scheme == "file") {
+      // Fall back to our old mechanism which only works for "file" scheme
+      const fileName = getFileName(
+        wsFolder.uri.fsPath + (confFolder.length ? path.sep + confFolder : ""),
+        name,
+        conf.get("atelier"),
+        conf.get("addCategory"),
+        conf.get("map")
+      );
+      if (fs.existsSync(fileName)) return vscode.Uri.file(fileName);
     }
   }
 
@@ -84,6 +129,11 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     if (!wFolderUri) {
       workspaceFolder = workspaceFolder && workspaceFolder !== "" ? workspaceFolder : currentWorkspaceFolder();
       wFolderUri = uriOfWorkspaceFolder(workspaceFolder);
+    } else if (!workspaceFolder) {
+      // Make sure workspaceFolder is set correctly if only wFolderUri was passed
+      workspaceFolder = vscode.workspace.workspaceFolders.find(
+        (wf) => wf.uri.toString() == wFolderUri.toString()
+      )?.name;
     }
     let uri: vscode.Uri;
     if (wFolderUri && (wFolderUri.scheme === FILESYSTEM_SCHEMA || wFolderUri.scheme === FILESYSTEM_READONLY_SCHEMA)) {
@@ -124,11 +174,11 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
       const conn = config("conn", workspaceFolder);
       if (!forceServerCopy) {
         // Look for the document in the local file system
-        const localFile = this.getAsFile(name, workspaceFolder);
+        const localFile = this.findLocalUri(name, workspaceFolder);
         if (localFile && (!namespace || namespace === conn.ns)) {
           // Exists as a local file and we aren't viewing a different namespace on the same server,
-          // so return a file:// uri that will open the local file.
-          return vscode.Uri.file(localFile);
+          // so return a uri that will open the local file.
+          return localFile;
         } else {
           // The local file doesn't exist in this folder, so check any other
           // local folders in this workspace if it's a multi-root workspace
@@ -136,15 +186,13 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
           if (wFolders && wFolders.length > 1) {
             // This is a multi-root workspace
             for (const wFolder of wFolders) {
-              if (wFolder.uri.scheme === "file" && wFolder.name !== workspaceFolder) {
+              if (notIsfs(wFolder.uri) && wFolder.name != workspaceFolder) {
                 // This isn't the folder that we checked originally
                 const wFolderConn = config("conn", wFolder.name);
                 if (compareConns(conn, wFolderConn) && (!namespace || namespace === wFolderConn.ns)) {
                   // This folder is connected to the same server:ns combination as the original folder
-                  const wFolderFile = this.getAsFile(name, wFolder.name);
-                  if (wFolderFile) {
-                    return vscode.Uri.file(wFolderFile);
-                  }
+                  const wFolderFile = this.findLocalUri(name, wFolder.name);
+                  if (wFolderFile) return wFolderFile;
                 }
               }
             }

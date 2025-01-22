@@ -12,6 +12,7 @@ import {
 } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import {
+  base64EncodeContent,
   classNameRegex,
   cspAppsForUri,
   CurrentBinaryFile,
@@ -19,16 +20,17 @@ import {
   CurrentFile,
   currentFileFromContent,
   CurrentTextFile,
+  exportedUris,
+  handleError,
   isClassDeployed,
+  notIsfs,
   notNull,
   outputChannel,
   routineNameTypeRegex,
   throttleRequests,
 } from "../utils";
-import { PackageNode } from "../explorer/models/packageNode";
-import { NodeBase } from "../explorer/models/nodeBase";
-import { RootNode } from "../explorer/models/rootNode";
 import { StudioActions } from "./studio";
+import { NodeBase, PackageNode, RootNode } from "../explorer/nodes";
 
 async function compileFlags(): Promise<string> {
   const defaultFlags = config().compileFlags;
@@ -80,7 +82,7 @@ export async function checkChangedOnServer(file: CurrentTextFile | CurrentBinary
   return mtime;
 }
 
-async function importFile(
+export async function importFile(
   file: CurrentTextFile | CurrentBinaryFile,
   ignoreConflict?: boolean,
   skipDeplCheck = false
@@ -103,19 +105,15 @@ async function importFile(
       content.pop();
     }
   } else {
-    // Base64 encoding must be in chunk size multiple of 3 and within the server's potential 32K string limit
-    // Output is 4 chars for each 3 input, so 24573/3*4 = 32764
-    const chunkSize = 24573;
-    let start = 0;
-    content = [];
     enc = true;
-    while (start < file.content.byteLength) {
-      content.push(file.content.toString("base64", start, start + chunkSize));
-      start += chunkSize;
-    }
+    content = base64EncodeContent(file.content);
   }
   const mtime = await checkChangedOnServer(file);
-  ignoreConflict = ignoreConflict || mtime < 0 || (file.uri.scheme === "file" && config("overwriteServerChanges"));
+  ignoreConflict =
+    ignoreConflict ||
+    mtime < 0 ||
+    (notIsfs(file.uri) &&
+      vscode.workspace.getConfiguration("objectscript", file.uri).get<boolean>("overwriteServerChanges"));
   return api
     .putDoc(
       file.name,
@@ -126,11 +124,9 @@ async function importFile(
       },
       ignoreConflict
     )
-    .then(() => {
-      // Clear cache entry
-      workspaceState.update(`${file.uniqueId}:mtime`, undefined);
-      // Create fresh cache entry
-      checkChangedOnServer(file, true);
+    .then((data) => {
+      // Update cache entry
+      workspaceState.update(`${file.uniqueId}:mtime`, Number(new Date(data.result.ts + "Z")));
 
       // In case another extension has used an 'objectscript://' uri to load a document read-only from the server,
       // make it reload with what we just imported to the server.
@@ -189,22 +185,7 @@ What do you want to do?`,
             return Promise.reject();
           });
       } else {
-        if (error && error.errorText && error.errorText !== "") {
-          outputChannel.appendLine("\n" + error.errorText);
-          vscode.window
-            .showErrorMessage(
-              `Failed to save file '${file.name}' on the server. Check 'ObjectScript' output channel for details.`,
-              "Show",
-              "Dismiss"
-            )
-            .then((action) => {
-              if (action === "Show") {
-                outputChannel.show(true);
-              }
-            });
-        } else {
-          vscode.window.showErrorMessage(`Failed to save file '${file.name}' on the server.`, "Dismiss");
-        }
+        handleError(error, `Failed to save file '${file.name}' on the server.`);
         return Promise.reject();
       }
     });
@@ -220,7 +201,7 @@ function updateOthers(others: string[], baseUri: vscode.Uri) {
     const uri = DocumentContentProvider.getUri(item, undefined, undefined, undefined, workspaceFolder?.uri);
     if (filesystemSchemas.includes(uri.scheme)) {
       fileSystemProvider.fireFileChanged(uri);
-    } else {
+    } else if (uri.scheme == OBJECTSCRIPT_FILE_SCHEMA) {
       documentContentProvider.update(uri);
     }
   });
@@ -239,12 +220,13 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
         const file = files.find((f) => f.name == doc.name);
         const mtime = Number(new Date(doc.ts + "Z"));
         workspaceState.update(`${file.uniqueId}:mtime`, mtime > 0 ? mtime : undefined);
-        if (file.uri.scheme === "file") {
+        if (notIsfs(file.uri)) {
           const content = await api.getDoc(file.name).then((data) => data.result.content);
           await vscode.workspace.fs.writeFile(
             file.uri,
             Buffer.isBuffer(content) ? content : new TextEncoder().encode(content.join("\n"))
           );
+          exportedUris.push(file.uri.toString());
         } else if (filesystemSchemas.includes(file.uri.scheme)) {
           fileSystemProvider.fireFileChanged(file.uri);
         }
@@ -255,14 +237,18 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
 }
 
 export async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
-  flags = flags || config("compileFlags");
+  const conf = vscode.workspace.getConfiguration(
+    "objectscript",
+    vscode.workspace.getWorkspaceFolder(docs[0].uri) || docs[0].uri
+  );
+  flags = flags || conf.get("compileFlags");
   const api = new AtelierAPI(docs[0].uri);
   return vscode.window
     .withProgress(
       {
         cancellable: true,
         location: vscode.ProgressLocation.Notification,
-        title: `Compiling: ${docs.length === 1 ? docs.map((el) => el.name).join(", ") : docs.length + " files"}`,
+        title: `Compiling: ${docs.length == 1 ? docs[0].name : docs.length + " files"}`,
       },
       (progress, token: vscode.CancellationToken) =>
         api
@@ -275,24 +261,17 @@ export async function compile(docs: CurrentFile[], flags?: string): Promise<any>
             const info = docs.length > 1 ? "" : `${docs[0].name}: `;
             if (data.status && data.status.errors && data.status.errors.length) {
               throw new Error(`${info}Compile error`);
-            } else if (!config("suppressCompileMessages")) {
+            } else if (!conf.get("suppressCompileMessages")) {
               vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
             }
             return docs;
           })
           .catch(() => {
-            if (!config("suppressCompileErrorMessages")) {
-              vscode.window
-                .showErrorMessage(
-                  "Compilation failed. Check 'ObjectScript' output channel for details.",
-                  "Show",
-                  "Dismiss"
-                )
-                .then((action) => {
-                  if (action === "Show") {
-                    outputChannel.show(true);
-                  }
-                });
+            if (!conf.get("suppressCompileErrorMessages")) {
+              vscode.window.showErrorMessage(
+                "Compilation failed. Check the 'ObjectScript' Output channel for details.",
+                "Dismiss"
+              );
             }
             // Always fetch server changes, even when compile failed or got cancelled
             return docs;
@@ -312,7 +291,7 @@ export async function importAndCompile(
   }
 
   // Do nothing if it is a local file and objectscript.conn.active is false
-  if (file.uri.scheme === "file" && !config("conn").active) {
+  if (notIsfs(file.uri) && !config("conn").active) {
     return;
   }
 
@@ -359,7 +338,7 @@ export async function compileOnly(askFlags = false, document?: vscode.TextDocume
   }
 
   // Do nothing if it is a local file and objectscript.conn.active is false
-  if (file.uri.scheme === "file" && !config("conn").active) {
+  if (notIsfs(file.uri) && !config("conn").active) {
     return;
   }
 
@@ -419,17 +398,10 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
         })
         .catch(() => {
           if (!config("suppressCompileErrorMessages")) {
-            vscode.window
-              .showErrorMessage(
-                `Compiling namespace ${api.ns} failed. Check 'ObjectScript' output channel for details.`,
-                "Show",
-                "Dismiss"
-              )
-              .then((action) => {
-                if (action === "Show") {
-                  outputChannel.show(true);
-                }
-              });
+            vscode.window.showErrorMessage(
+              `Compiling namespace '${api.ns}' failed. Check the 'ObjectScript' Output channel for details.`,
+              "Dismiss"
+            );
           }
         })
         .then(() => {
@@ -442,7 +414,7 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
 
 async function importFiles(files: vscode.Uri[], noCompile = false) {
   const toCompile: CurrentFile[] = [];
-  await Promise.all<void>(
+  await Promise.allSettled<void>(
     files.map(
       throttleRequests((uri: vscode.Uri) => {
         return vscode.workspace.fs
@@ -526,17 +498,10 @@ export async function compileExplorerItems(nodes: NodeBase[]): Promise<any> {
         })
         .catch(() => {
           if (!config("suppressCompileErrorMessages")) {
-            vscode.window
-              .showErrorMessage(
-                `Compilation failed. Check 'ObjectScript' output channel for details.`,
-                "Show",
-                "Dismiss"
-              )
-              .then((action) => {
-                if (action === "Show") {
-                  outputChannel.show(true);
-                }
-              });
+            vscode.window.showErrorMessage(
+              "Compilation failed. Check the 'ObjectScript' Output channel for details.",
+              "Dismiss"
+            );
           }
         })
   );
@@ -551,8 +516,7 @@ async function importFileFromContent(
   skipDeplCheck = false
 ): Promise<void> {
   if (name.split(".").pop().toLowerCase() === "cls" && !skipDeplCheck) {
-    const result = await api.actionIndex([name]);
-    if (result.result.content[0].content.depl) {
+    if (await isClassDeployed(name, api)) {
       vscode.window.showErrorMessage(`Cannot import ${name} because it is deployed on the server.`, "Dismiss");
       return Promise.reject();
     }
@@ -588,22 +552,7 @@ async function importFileFromContent(
             }
           });
       } else {
-        if (error && error.errorText && error.errorText !== "") {
-          outputChannel.appendLine("\n" + error.errorText);
-          vscode.window
-            .showErrorMessage(
-              `Failed to save file '${name}' on the server. Check 'ObjectScript' output channel for details.`,
-              "Show",
-              "Dismiss"
-            )
-            .then((action) => {
-              if (action === "Show") {
-                outputChannel.show(true);
-              }
-            });
-        } else {
-          vscode.window.showErrorMessage(`Failed to save file '${name}' on the server.`, "Dismiss");
-        }
+        handleError(error, `Failed to save file '${name}' on the server.`);
         return Promise.reject();
       }
     });
@@ -643,17 +592,10 @@ async function promptForCompile(imported: string[], api: AtelierAPI, refresh: bo
                 })
                 .catch(() => {
                   if (!config("suppressCompileErrorMessages")) {
-                    vscode.window
-                      .showErrorMessage(
-                        "Compilation failed. Check 'ObjectScript' output channel for details.",
-                        "Show",
-                        "Dismiss"
-                      )
-                      .then((action) => {
-                        if (action === "Show") {
-                          outputChannel.show(true);
-                        }
-                      });
+                    vscode.window.showErrorMessage(
+                      "Compilation failed. Check the 'ObjectScript' Output channel for details.",
+                      "Dismiss"
+                    );
                   }
                 })
                 .finally(() => {
@@ -808,7 +750,7 @@ export async function importXMLFiles(): Promise<any> {
       connectionUri = (
         await vscode.window.showWorkspaceFolderPick({
           ignoreFocusOut: true,
-          placeHolder: "Pick the workspace folder to get server connection information from",
+          placeHolder: "Pick a workspace folder. Server-side folders import from the local file system.",
         })
       )?.uri;
     }
@@ -831,9 +773,9 @@ export async function importXMLFiles(): Promise<any> {
         return;
       }
       let defaultUri = vscode.workspace.getWorkspaceFolder(connectionUri)?.uri ?? connectionUri;
-      if (defaultUri.scheme != "file") {
-        // Need a default URI with file scheme or the open dialog
-        // will show the virtual files from the workspace folder
+      if (defaultUri.scheme == FILESYSTEM_SCHEMA) {
+        // Need a default URI without the isfs scheme or the open dialog
+        // will show the server-side files instead of local ones
         defaultUri = vscode.workspace.workspaceFile;
         if (defaultUri.scheme != "file") {
           vscode.window.showErrorMessage(
@@ -953,12 +895,6 @@ export async function importXMLFiles(): Promise<any> {
       promptForCompile([...new Set(imported)], api, filesystemSchemas.includes(connectionUri.scheme));
     }
   } catch (error) {
-    let errorMsg = "Error executing 'Import XML Files...' command.";
-    if (error && error.errorText && error.errorText !== "") {
-      outputChannel.appendLine("\n" + error.errorText);
-      outputChannel.show(true);
-      errorMsg += " Check 'ObjectScript' output channel for details.";
-    }
-    vscode.window.showErrorMessage(errorMsg, "Dismiss");
+    handleError(error, "Error executing 'Import XML Files...' command.");
   }
 }

@@ -1,37 +1,9 @@
 import * as vscode from "vscode";
-import { NodeBase } from "./models/nodeBase";
-
 import { AtelierAPI } from "../api";
 import { config, documentContentProvider, OBJECTSCRIPT_FILE_SCHEMA, projectsExplorerProvider } from "../extension";
-import { WorkspaceNode } from "./models/workspaceNode";
-import { outputChannel } from "../utils";
-import { DocumentContentProvider } from "../providers/DocumentContentProvider";
+import { handleError, notIsfs } from "../utils";
 import { StudioActions, OtherStudioAction } from "../commands/studio";
-
-/** Get the URI for this leaf node */
-export function getLeafNodeUri(node: NodeBase, forceServerCopy = false): vscode.Uri {
-  if (node.workspaceFolder == undefined) {
-    // Should only be the case for leaf nodes in the projects explorer
-    // that are children of an extra server namepsace node
-    return DocumentContentProvider.getUri(
-      node.fullName,
-      undefined,
-      undefined,
-      true,
-      node.workspaceFolderUri,
-      forceServerCopy
-    );
-  } else {
-    return DocumentContentProvider.getUri(
-      node.fullName,
-      node.workspaceFolder,
-      node.namespace,
-      undefined,
-      undefined,
-      forceServerCopy
-    );
-  }
-}
+import { NodeBase, WorkspaceNode } from "./nodes";
 
 /** Use for detecting doubleclick */
 let lastOpened: { uri: vscode.Uri; date: Date };
@@ -108,10 +80,10 @@ export function registerExplorerOpen(): vscode.Disposable {
               const prjType = prjFileName.includes("/")
                 ? "CSP"
                 : ext == "cls"
-                ? "CLS"
-                : ["mac", "int", "inc"].includes(ext)
-                ? "MAC"
-                : "OTH";
+                  ? "CLS"
+                  : ["mac", "int", "inc"].includes(ext)
+                    ? "MAC"
+                    : "OTH";
               if (prjType == "OTH") {
                 await api.actionQuery(
                   "DELETE FROM %Studio.ProjectItem WHERE Project = ? AND Name = ? AND Type NOT IN ('CLS','PKG','MAC','CSP','DIR','GBL')",
@@ -130,23 +102,15 @@ export function registerExplorerOpen(): vscode.Disposable {
                   // Swallow error because VS Code doesn't care about the timestamp
                 });
             } catch (error) {
-              let message = `Failed to remove '${fullName}' from project '${project}'.`;
-              if (error && error.errorText && error.errorText !== "") {
-                outputChannel.appendLine("\n" + error.errorText);
-                outputChannel.show(true);
-                message += " Check 'ObjectScript' output channel for details.";
-              }
-              return vscode.window.showErrorMessage(message, "Dismiss");
+              handleError(error, `Failed to remove '${fullName}' from project '${project}'.`);
+              return;
             }
 
             // Refresh the explorer
             projectsExplorerProvider.refresh();
           }
         } else {
-          outputChannel.appendLine(
-            typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
-          );
-          outputChannel.show();
+          handleError(error);
         }
       }
     }
@@ -238,7 +202,7 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
 
     const workspaceFolders = vscode.workspace.workspaceFolders || [];
     workspaceFolders
-      .filter((workspaceFolder) => workspaceFolder.uri && workspaceFolder.uri.scheme === "file")
+      .filter((workspaceFolder) => workspaceFolder.uri && notIsfs(workspaceFolder.uri))
       .forEach((workspaceFolder) => {
         const conn: any = config("conn", workspaceFolder.name);
         if (conn.active && conn.ns) {

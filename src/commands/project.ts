@@ -1,18 +1,13 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { ClassNode } from "../explorer/models/classNode";
-import { CSPFileNode } from "../explorer/models/cspFileNode";
-import { NodeBase } from "../explorer/models/nodeBase";
-import { ProjectNode } from "../explorer/models/projectNode";
-import { ProjectRootNode } from "../explorer/models/projectRootNode";
-import { RoutineNode } from "../explorer/models/routineNode";
 import { config, filesystemSchemas, projectsExplorerProvider, schemas } from "../extension";
 import { compareConns } from "../providers/DocumentContentProvider";
 import { isCSPFile } from "../providers/FileSystemProvider/FileSystemProvider";
-import { notNull, outputChannel } from "../utils";
+import { handleError, notIsfs, notNull } from "../utils";
 import { pickServerAndNamespace } from "./addServerNamespaceToWorkspace";
 import { exportList } from "./export";
 import { OtherStudioAction, StudioActions } from "./studio";
+import { NodeBase, ProjectNode, ProjectRootNode, RoutineNode, CSPFileNode, ClassNode } from "../explorer/nodes";
 
 export interface ProjectItem {
   Name: string;
@@ -131,13 +126,7 @@ export async function createProject(node: NodeBase | undefined, api?: AtelierAPI
           desc,
         ]);
       } catch (error) {
-        let message = `Failed to create project '${name}'.`;
-        if (error && error.errorText && error.errorText !== "") {
-          outputChannel.appendLine("\n" + error.errorText);
-          outputChannel.show(true);
-          message += " Check 'ObjectScript' output channel for details.";
-        }
-        vscode.window.showErrorMessage(message, "Dismiss");
+        handleError(error, `Failed to create project '${name}'.`);
         return;
       }
 
@@ -147,13 +136,7 @@ export async function createProject(node: NodeBase | undefined, api?: AtelierAPI
         await studioActions.fireProjectUserAction(api, name, OtherStudioAction.CreatedNewDocument);
         await studioActions.fireProjectUserAction(api, name, OtherStudioAction.FirstTimeDocumentSave);
       } catch (error) {
-        let message = `Source control actions failed for project '${name}'.`;
-        if (error && error.errorText && error.errorText !== "") {
-          outputChannel.appendLine("\n" + error.errorText);
-          outputChannel.show(true);
-          message += " Check 'ObjectScript' output channel for details.";
-        }
-        vscode.window.showErrorMessage(message, "Dismiss");
+        handleError(error, `Source control actions failed for project '${name}'.`);
       }
 
       // Refresh the explorer
@@ -192,26 +175,15 @@ export async function deleteProject(node: ProjectNode | undefined): Promise<any>
     // Delete the project
     await api.actionQuery("DELETE FROM %Studio.Project WHERE Name = ?", [project]);
   } catch (error) {
-    let message = `Failed to delete project '${project}'.`;
-    if (error && error.errorText && error.errorText !== "") {
-      outputChannel.appendLine("\n" + error.errorText);
-      outputChannel.show(true);
-      message += " Check 'ObjectScript' output channel for details.";
-    }
-    return vscode.window.showErrorMessage(message, "Dismiss");
+    handleError(error, `Failed to delete project '${project}'.`);
+    return;
   }
 
   // Technically a project is a "document", so tell the server that we deleted it
   try {
     await new StudioActions().fireProjectUserAction(api, project, OtherStudioAction.DeletedDocument);
   } catch (error) {
-    let message = `'DeletedDocument' source control action failed for project '${project}'.`;
-    if (error && error.errorText && error.errorText !== "") {
-      outputChannel.appendLine("\n" + error.errorText);
-      outputChannel.show(true);
-      message += " Check 'ObjectScript' output channel for details.";
-    }
-    vscode.window.showErrorMessage(message, "Dismiss");
+    handleError(error, `'DeletedDocument' source control action failed for project '${project}'.`);
   }
 
   // Refresh the explorer
@@ -516,13 +488,7 @@ async function pickAdditions(
         })
         .catch((error) => {
           quickPick.hide();
-          let message = `Failed to get namespace contents.`;
-          if (error && error.errorText && error.errorText !== "") {
-            outputChannel.appendLine("\n" + error.errorText);
-            outputChannel.show(true);
-            message += " Check 'ObjectScript' output channel for details.";
-          }
-          vscode.window.showErrorMessage(message, "Dismiss");
+          handleError(error, "Failed to get namespace contents.");
         });
     };
     const expandItem = (itemIdx: number): Promise<void> => {
@@ -569,13 +535,7 @@ async function pickAdditions(
           })
           .catch((error) => {
             quickPick.hide();
-            let message = `Failed to get namespace contents.`;
-            if (error && error.errorText && error.errorText !== "") {
-              outputChannel.appendLine("\n" + error.errorText);
-              outputChannel.show(true);
-              message += " Check 'ObjectScript' output channel for details.";
-            }
-            vscode.window.showErrorMessage(message, "Dismiss");
+            handleError(error, "Failed to get namespace contents.");
           });
       }
     };
@@ -927,13 +887,8 @@ export async function modifyProject(
       });
     }
   } catch (error) {
-    let message = `Failed to modify project '${project}'.`;
-    if (error && error.errorText && error.errorText !== "") {
-      outputChannel.appendLine("\n" + error.errorText);
-      outputChannel.show(true);
-      message += " Check 'ObjectScript' output channel for details.";
-    }
-    return vscode.window.showErrorMessage(message, "Dismiss");
+    handleError(error, `Failed to modify project '${project}'.`);
+    return;
   }
 
   if (add.length || remove.length) {
@@ -952,7 +907,7 @@ export async function exportProjectContents(node: ProjectNode | undefined): Prom
   const api = new AtelierAPI(node.workspaceFolderUri);
   api.setNamespace(node.namespace);
   const project = node.label;
-  if (node.workspaceFolderUri.scheme == "file") {
+  if (notIsfs(node.workspaceFolderUri)) {
     workspaceFolder = node.workspaceFolder;
   } else {
     const conn = config("conn", node.workspaceFolder);
@@ -1009,6 +964,7 @@ export async function exportProjectContents(node: ProjectNode | undefined): Prom
 
 export async function compileProjectContents(node: ProjectNode): Promise<any> {
   const { workspaceFolderUri, namespace, label } = node;
+  const conf = vscode.workspace.getConfiguration("objectscript", workspaceFolderUri);
   const api = new AtelierAPI(workspaceFolderUri);
   api.setNamespace(namespace);
   const compileList: string[] = await api
@@ -1033,23 +989,16 @@ export async function compileProjectContents(node: ProjectNode): Promise<any> {
         .then((data) => {
           if (data.status && data.status.errors && data.status.errors.length) {
             throw new Error("Compile error");
-          } else if (!config("suppressCompileMessages")) {
+          } else if (!conf.get("suppressCompileMessages")) {
             vscode.window.showInformationMessage("Compilation succeeded.", "Dismiss");
           }
         })
         .catch(() => {
-          if (!config("suppressCompileErrorMessages")) {
-            vscode.window
-              .showErrorMessage(
-                `Compilation failed. Check 'ObjectScript' output channel for details.`,
-                "Show",
-                "Dismiss"
-              )
-              .then((action) => {
-                if (action === "Show") {
-                  outputChannel.show(true);
-                }
-              });
+          if (!conf.get("suppressCompileErrorMessages")) {
+            vscode.window.showErrorMessage(
+              "Compilation failed. Check the 'ObjectScript' Output channel for details.",
+              "Dismiss"
+            );
           }
         })
   );
@@ -1094,7 +1043,6 @@ function isfsFolderForProject(project: string, nodeOrWorkspaceFolder: string | N
  */
 export async function addIsfsFileToProject(
   project: string,
-  uri: vscode.Uri,
   fileName: string,
   csp: boolean,
   api: AtelierAPI
@@ -1141,14 +1089,7 @@ export async function addIsfsFileToProject(
       });
     }
   } catch (error) {
-    let message = `Failed to modify project '${project}'.`;
-    if (error && error.errorText && error.errorText !== "") {
-      outputChannel.appendLine("\n" + error.errorText);
-      outputChannel.show(true);
-      message += " Check 'ObjectScript' output channel for details.";
-    }
-    vscode.window.showErrorMessage(message, "Dismiss");
-    return;
+    handleError(error, `Failed to modify project '${project}'.`);
   }
 }
 
@@ -1252,12 +1193,6 @@ export async function modifyProjectMetadata(nodeOrUri: NodeBase | vscode.Uri | u
     // Refesh the explorer
     projectsExplorerProvider.refresh();
   } catch (error) {
-    let message = `Failed to modify metadata of project '${project}'.`;
-    if (error && error.errorText && error.errorText !== "") {
-      outputChannel.appendLine("\n" + error.errorText);
-      outputChannel.show(true);
-      message += " Check 'ObjectScript' output channel for details.";
-    }
-    vscode.window.showErrorMessage(message, "Dismiss");
+    handleError(error, `Failed to modify metadata of project '${project}'.`);
   }
 }

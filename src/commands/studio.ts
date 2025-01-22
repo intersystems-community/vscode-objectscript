@@ -1,17 +1,9 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { config, filesystemSchemas, iscIcon } from "../extension";
-import { outputChannel, outputConsole, getServerName } from "../utils";
+import { iscIcon } from "../extension";
+import { outputChannel, outputConsole, getServerName, notIsfs, handleError, openCustomEditors } from "../utils";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
-import { ClassNode } from "../explorer/models/classNode";
-import { PackageNode } from "../explorer/models/packageNode";
-import { RoutineNode } from "../explorer/models/routineNode";
-import { importAndCompile } from "./compile";
-import { ProjectNode } from "../explorer/models/projectNode";
-import { openCustomEditors } from "../providers/RuleEditorProvider";
 import { UserAction } from "../api/atelier";
-
-export let documentBeingProcessed: vscode.TextDocument = null;
 
 export enum OtherStudioAction {
   AttemptedEdit = 0,
@@ -71,15 +63,11 @@ export class StudioActions {
   private name: string;
   public projectEditAnswer?: string;
 
-  public constructor(uriOrNode?: vscode.Uri | PackageNode | ClassNode | RoutineNode) {
-    if (uriOrNode instanceof vscode.Uri) {
-      this.uri = uriOrNode;
-      this.name = getServerName(uriOrNode);
-      this.api = new AtelierAPI(uriOrNode);
-    } else if (uriOrNode) {
-      this.api = new AtelierAPI(uriOrNode.workspaceFolderUri || uriOrNode.workspaceFolder);
-      this.api.setNamespace(uriOrNode.namespace);
-      this.name = uriOrNode instanceof PackageNode ? uriOrNode.fullName + ".PKG" : uriOrNode.fullName;
+  public constructor(uri?: vscode.Uri) {
+    if (uri instanceof vscode.Uri) {
+      this.uri = uri;
+      this.name = getServerName(uri);
+      this.api = new AtelierAPI(uri);
     } else {
       this.api = new AtelierAPI();
     }
@@ -129,9 +117,9 @@ export class StudioActions {
     const { target, errorText } = userAction;
     if (errorText !== "") {
       outputChannel.appendLine(errorText);
-      outputChannel.show();
+      outputChannel.show(true);
     }
-    if (config().studioActionDebugOutput) {
+    if (vscode.workspace.getConfiguration("objectscript").get("studioActionDebugOutput")) {
       outputChannel.appendLine(JSON.stringify(userAction));
     }
     switch (serverAction) {
@@ -304,7 +292,7 @@ export class StudioActions {
       ? [type.toString(), action.id, this.name, answer, msg]
       : [type.toString(), action.id, this.name, selectedText];
 
-    if (config().studioActionDebugOutput) {
+    if (vscode.workspace.getConfiguration("objectscript").get("studioActionDebugOutput")) {
       outputChannel.appendLine(`${query.slice(0, query.indexOf("("))}(${JSON.stringify(parameters).slice(1, -1)})`);
     }
 
@@ -319,8 +307,29 @@ export class StudioActions {
           this.api
             .actionQuery(query, parameters)
             .then(async (data) => {
-              if (action.save && action.id != "6" /* No save for import list */) {
-                await this.processSaveFlag(action.save);
+              if (action.save && action.id != "6" && !this.name.endsWith(".PRJ") && this.uri) {
+                // Save the requested documents.
+                // Ignore the save flag if this is a project or bulk import action.
+                const bitString: string = action.save.toString().padStart(3, "0");
+                // Save all documents
+                if (bitString.charAt(2) == "1") {
+                  // Save all documents in this workspace folder
+                  const wsFolderUriString = vscode.workspace.getWorkspaceFolder(this.uri)?.uri.toString();
+                  if (wsFolderUriString) {
+                    await Promise.allSettled(
+                      vscode.workspace.textDocuments.map((td) =>
+                        td.isDirty && vscode.workspace.getWorkspaceFolder(td.uri)?.uri.toString() == wsFolderUriString
+                          ? td.save()
+                          : undefined
+                      )
+                    );
+                  }
+                } else if (bitString.charAt(0) == "1") {
+                  // Save just the current document
+                  const uriString = this.uri.toString();
+                  const textDocument = vscode.workspace.textDocuments.find((td) => td.uri.toString() == uriString);
+                  if (textDocument?.isDirty) await textDocument.save();
+                }
               }
               if (!afterUserAction) {
                 outputConsole(data.console);
@@ -371,18 +380,11 @@ export class StudioActions {
               }
             })
             .then(() => resolve())
-            .catch((err) => {
-              outputChannel.appendLine(
-                `Executing Studio Action "${action.label}" on ${this.api.config.host}:${this.api.config.port}${
-                  this.api.config.pathPrefix
-                }[${this.api.config.ns}] failed${
-                  err.errorText && err.errorText !== "" ? " with the following error:" : "."
-                }`
+            .catch((error) => {
+              handleError(
+                error,
+                `Executing Studio Action "${action.label}" on ${this.api.config.host}:${this.api.config.port}${this.api.config.pathPrefix}[${this.api.config.ns}] failed.`
               );
-              if (err.errorText && err.errorText !== "") {
-                outputChannel.appendLine("\n" + err.errorText);
-              }
-              outputChannel.show(true);
               reject();
             });
         })
@@ -468,37 +470,11 @@ export class StudioActions {
     }
   }
 
-  private async processSaveFlag(saveFlag: number) {
-    const bitString = saveFlag.toString().padStart(3, "0");
-    const saveAndCompile = async (document: vscode.TextDocument) => {
-      if (document.isDirty) {
-        // Prevent onDidSave from compiling the file
-        // in order to await the importAndCompile function
-        documentBeingProcessed = document;
-        await document.save();
-        await importAndCompile(false, document);
-        documentBeingProcessed = null;
-      }
-    };
-
-    // Save the current document
-    if (bitString.charAt(0) === "1") {
-      await saveAndCompile(vscode.window.activeTextEditor.document);
-    }
-
-    // Save all documents
-    if (bitString.charAt(2) === "1") {
-      for (const document of vscode.workspace.textDocuments) {
-        await saveAndCompile(document);
-      }
-    }
-  }
-
   public async isSourceControlEnabled(): Promise<boolean> {
     return this.api
       .actionQuery("SELECT %Atelier_v1_Utils.Extension_ExtensionEnabled() AS Enabled", [])
       .then((data) => data.result.content)
-      .then((content) => (content && content.length ? content[0]?.Enabled ?? false : false))
+      .then((content) => (content && content.length ? (content[0]?.Enabled ?? false) : false))
       .catch(() => false); // Treat any errors as "no source control"
   }
 
@@ -520,9 +496,7 @@ export async function mainSourceControlMenu(uri?: vscode.Uri): Promise<void> {
 
 async function _mainMenu(sourceControl: boolean, uri?: vscode.Uri): Promise<void> {
   uri = uri || vscode.window.activeTextEditor?.document.uri;
-  if (uri && !filesystemSchemas.includes(uri.scheme)) {
-    return;
-  }
+  if (uri && notIsfs(uri)) return;
   const studioActions = new StudioActions(uri);
   if (studioActions) {
     if (await studioActions.isSourceControlEnabled()) {
@@ -537,29 +511,25 @@ async function _mainMenu(sourceControl: boolean, uri?: vscode.Uri): Promise<void
   }
 }
 
-export async function contextCommandMenu(node: PackageNode | ClassNode | RoutineNode | ProjectNode): Promise<void> {
-  return _contextMenu(false, node);
+export async function contextCommandMenu(uri?: vscode.Uri): Promise<void> {
+  return _contextMenu(false, uri);
 }
 
-export async function contextSourceControlMenu(
-  node: PackageNode | ClassNode | RoutineNode | ProjectNode
-): Promise<void> {
-  return _contextMenu(true, node);
+export async function contextSourceControlMenu(uri?: vscode.Uri): Promise<void> {
+  return _contextMenu(true, uri);
 }
 
-export async function _contextMenu(sourceControl: boolean, node: PackageNode | ClassNode | RoutineNode): Promise<void> {
-  const nodeOrUri = node || vscode.window.activeTextEditor?.document.uri;
-  if (!nodeOrUri || (nodeOrUri instanceof vscode.Uri && !filesystemSchemas.includes(nodeOrUri.scheme))) {
-    return;
-  }
-  const studioActions = new StudioActions(nodeOrUri);
+async function _contextMenu(sourceControl: boolean, uri?: vscode.Uri): Promise<void> {
+  uri = uri || vscode.window.activeTextEditor?.document.uri;
+  if (!uri || !(uri instanceof vscode.Uri) || notIsfs(uri)) return;
+  const studioActions = new StudioActions(uri);
   if (studioActions) {
     if (await studioActions.isSourceControlEnabled()) {
       return studioActions.getMenu(StudioMenuType.Context, sourceControl);
     } else {
       const serverInfo = studioActions.getServerInfo();
       vscode.window.showInformationMessage(
-        `No source control class is configured for namespace "${serverInfo.namespace}" on server ${serverInfo.server}.`,
+        `No source control class is configured for namespace '${serverInfo.namespace}' on server '${serverInfo.server}'.`,
         "Dismiss"
       );
     }
@@ -568,7 +538,7 @@ export async function _contextMenu(sourceControl: boolean, node: PackageNode | C
 
 export async function fireOtherStudioAction(
   action: OtherStudioAction,
-  uri?: vscode.Uri,
+  uri: vscode.Uri,
   userAction?: UserAction
 ): Promise<void> {
   if (vscode.workspace.getConfiguration("objectscript.serverSourceControl", uri)?.get("disableOtherActionTriggers")) {
@@ -577,7 +547,7 @@ export async function fireOtherStudioAction(
   const studioActions = new StudioActions(uri);
   return (
     studioActions &&
-    !openCustomEditors.includes(uri?.toString()) && // The custom editor will handle all server-side source control interactions
+    !openCustomEditors.includes(uri.toString()) && // The custom editor will handle all server-side source control interactions
     studioActions.fireOtherStudioAction(action, userAction)
   );
 }

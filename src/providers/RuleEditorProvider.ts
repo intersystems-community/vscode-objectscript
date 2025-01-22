@@ -2,13 +2,8 @@ import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { loadChanges } from "../commands/compile";
 import { StudioActions } from "../commands/studio";
-import { clsLangId, cspApps } from "../extension";
-import { currentFile, outputChannel } from "../utils";
-
-/**
- * The URI strings for all documents that are open in a custom editor.
- */
-export const openCustomEditors: string[] = [];
+import { clsLangId } from "../extension";
+import { cspApps, currentFile, handleError, openCustomEditors, outputChannel } from "../utils";
 
 export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
   private static readonly _webapp: string = "/ui/interop/rule-editor";
@@ -263,25 +258,15 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
                         type: "revert",
                       });
                     }
-                    if (actionToProcess.errorText !== "") {
+                    if (actionToProcess.errorText != "") {
                       outputChannel.appendLine(
                         `\nError executing AfterUserAction '${event.label}':\n${actionToProcess.errorText}`
                       );
-                      outputChannel.show();
+                      outputChannel.show(true);
                     }
                   }
                 })
-                .catch((error) => {
-                  outputChannel.appendLine(`\nError executing AfterUserAction '${event.label}':`);
-                  if (error && error.errorText && error.errorText !== "") {
-                    outputChannel.appendLine(error.errorText);
-                  } else {
-                    outputChannel.appendLine(
-                      typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
-                    );
-                  }
-                  outputChannel.show();
-                });
+                .catch((error) => handleError(error, `Error executing AfterUserAction '${event.label}'.`));
             }
           });
           return;

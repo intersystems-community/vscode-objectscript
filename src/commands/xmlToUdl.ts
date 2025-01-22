@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
-import { config, filesystemSchemas, OBJECTSCRIPTXML_FILE_SCHEMA, xmlContentProvider } from "../extension";
+import path = require("path");
+import { config, OBJECTSCRIPTXML_FILE_SCHEMA, xmlContentProvider } from "../extension";
 import { AtelierAPI } from "../api";
-import { fileExists, outputChannel } from "../utils";
+import { fileExists, handleError, notIsfs, outputChannel } from "../utils";
 import { getFileName } from "./export";
 
 const exportHeader = /^\s*<Export generator="(Cache|IRIS)" version="\d+"/;
@@ -9,11 +10,7 @@ const exportHeader = /^\s*<Export generator="(Cache|IRIS)" version="\d+"/;
 export async function previewXMLAsUDL(textEditor: vscode.TextEditor, auto = false): Promise<void> {
   const uri = textEditor.document.uri;
   const content = textEditor.document.getText();
-  if (
-    !filesystemSchemas.includes(uri.scheme) &&
-    uri.path.toLowerCase().endsWith("xml") &&
-    textEditor.document.lineCount > 2
-  ) {
+  if (notIsfs(uri) && uri.path.toLowerCase().endsWith("xml") && textEditor.document.lineCount > 2) {
     if (exportHeader.test(textEditor.document.lineAt(1).text)) {
       const api = new AtelierAPI(uri);
       if (!api.active) return;
@@ -75,13 +72,7 @@ export async function previewXMLAsUDL(textEditor: vscode.TextEditor, auto = fals
         // Remove the UDL text from the content provider's cache
         xmlContentProvider.removeUdlDocsForFile(uri.toString());
       } catch (error) {
-        let errorMsg = "Error executing 'Preview XML as UDL' command.";
-        if (error && error.errorText && error.errorText !== "") {
-          outputChannel.appendLine("\n" + error.errorText);
-          outputChannel.show(true);
-          errorMsg += " Check 'ObjectScript' output channel for details.";
-        }
-        vscode.window.showErrorMessage(errorMsg, "Dismiss");
+        handleError(error, "Error executing 'Preview XML as UDL' command.");
       }
     } else if (!auto) {
       vscode.window.showErrorMessage(`XML file '${uri.toString(true)}' is not an InterSystems export.`, "Dismiss");
@@ -94,11 +85,7 @@ export async function extractXMLFileContents(xmlUri?: vscode.Uri): Promise<void>
   if (!xmlUri && vscode.window.activeTextEditor) {
     // Check if the active text editor contains an XML file
     const activeDoc = vscode.window.activeTextEditor.document;
-    if (
-      !filesystemSchemas.includes(activeDoc.uri.scheme) &&
-      activeDoc.uri.path.toLowerCase().endsWith("xml") &&
-      activeDoc.lineCount > 2
-    ) {
+    if (notIsfs(activeDoc.uri) && activeDoc.uri.path.toLowerCase().endsWith("xml") && activeDoc.lineCount > 2) {
       // The active text editor contains an XML file, so process it
       xmlUri = activeDoc.uri;
     }
@@ -110,9 +97,7 @@ export async function extractXMLFileContents(xmlUri?: vscode.Uri): Promise<void>
       wsFolder = vscode.workspace.getWorkspaceFolder(xmlUri);
     } else {
       // Can only run this command on non-isfs folders with an active server connection
-      const options = vscode.workspace.workspaceFolders.filter(
-        (f) => !filesystemSchemas.includes(f.uri.scheme) && new AtelierAPI(f.uri).active
-      );
+      const options = vscode.workspace.workspaceFolders.filter((f) => notIsfs(f.uri) && new AtelierAPI(f.uri).active);
       if (options.length == 0) {
         vscode.window.showErrorMessage(
           "'Extract Documents from XML File...' command requires a non-isfs workspace folder with an active server connection.",
@@ -195,7 +180,8 @@ export async function extractXMLFileContents(xmlUri?: vscode.Uri): Promise<void>
     const docWhitelist = docsToExtract.map((d) => d.label);
     // Write the UDL files
     const { atelier, folder, addCategory, map } = config("export", wsFolder.name);
-    const rootFolder = wsFolder.uri.path + (typeof folder == "string" && folder.length ? `/${folder}` : "");
+    const rootFolder =
+      wsFolder.uri.path + (typeof folder == "string" && folder.length ? `/${folder.replaceAll(path.sep, "/")}` : "");
     const textEncoder = new TextEncoder();
     let errs = 0;
     for (const udlDoc of udlDocs) {
@@ -210,24 +196,18 @@ export async function extractXMLFileContents(xmlUri?: vscode.Uri): Promise<void>
         await vscode.workspace.fs.writeFile(fileUri, textEncoder.encode(udlDoc.content.join("\n")));
       } catch (error) {
         outputChannel.appendLine(
-          typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
+          typeof error == "string" ? error : error instanceof Error ? error.toString() : JSON.stringify(error)
         );
         errs++;
       }
     }
     if (errs) {
       vscode.window.showErrorMessage(
-        `Failed to write ${errs} file${errs > 1 ? "s" : ""}. Check 'ObjectScript' output channel for details.`,
+        `Failed to write ${errs} file${errs > 1 ? "s" : ""}. Check the 'ObjectScript' Output channel for details.`,
         "Dismiss"
       );
     }
   } catch (error) {
-    let errorMsg = "Error executing 'Extract Documents from XML File...' command.";
-    if (error && error.errorText && error.errorText !== "") {
-      outputChannel.appendLine("\n" + error.errorText);
-      outputChannel.show(true);
-      errorMsg += " Check 'ObjectScript' output channel for details.";
-    }
-    vscode.window.showErrorMessage(errorMsg, "Dismiss");
+    handleError(error, "Error executing 'Extract Documents from XML File...' command.");
   }
 }
