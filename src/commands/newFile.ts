@@ -247,7 +247,7 @@ export async function newFile(type: NewFileType): Promise<void> {
       wsFolder = vscode.workspace.workspaceFolders[0];
     } else {
       wsFolder = await vscode.window.showWorkspaceFolderPick({
-        placeHolder: "Pick the workspace folder to create the file in.",
+        placeHolder: "Pick the workspace folder where you want to create the file",
       });
     }
     if (!wsFolder) {

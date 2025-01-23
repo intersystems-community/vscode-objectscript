@@ -100,6 +100,7 @@ import {
   handleError,
   cspApps,
   otherDocExts,
+  getWsServerConnection,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentLinkProvider } from "./providers/DocumentLinkProvider";
@@ -996,31 +997,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
       if (!connectionUri) {
         // May need to ask the user
-        const workspaceFolders = vscode.workspace.workspaceFolders || [];
-        if (workspaceFolders.length == 0) {
-          vscode.window.showErrorMessage(`Attaching to a server process requires a workspace to be open.`, {
-            modal: true,
-          });
-          return;
-        }
-        if (workspaceFolders.length == 1) {
-          connectionUri = workspaceFolders[0].uri;
-        } else {
-          // Pick from the workspace folders
-          connectionUri = (
-            await vscode.window.showWorkspaceFolderPick({
-              ignoreFocusOut: true,
-              placeHolder: "Pick the workspace folder to get server connection information from",
-            })
-          )?.uri;
-        }
+        connectionUri = await getWsServerConnection();
       }
       if (!connectionUri) {
         return;
       }
       const api = new AtelierAPI(connectionUri);
       if (!api.active) {
-        vscode.window.showErrorMessage(`No active server connection.`, {
+        vscode.window.showErrorMessage(`Server connection is inactive.`, {
           modal: true,
         });
         return;
@@ -1489,7 +1473,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         wsFolder = workspaceFolders[0];
       } else if (workspaceFolders.length > 1) {
         // Pick from the workspace folders
-        wsFolder = await vscode.window.showWorkspaceFolderPick();
+        wsFolder = await vscode.window.showWorkspaceFolderPick({
+          placeHolder: "Pick the workspace folder where you want to open a document",
+        });
       }
       if (!wsFolder) return;
       const api = new AtelierAPI(wsFolder.uri);

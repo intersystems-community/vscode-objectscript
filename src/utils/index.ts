@@ -1,6 +1,7 @@
 import path = require("path");
 import { exec } from "child_process";
 import * as vscode from "vscode";
+import { lt } from "semver";
 import {
   config,
   schemas,
@@ -766,6 +767,51 @@ export function base64EncodeContent(content: Buffer): string[] {
     start += chunkSize;
   }
   return result;
+}
+
+interface ConnQPItem extends vscode.QuickPickItem {
+  uri: vscode.Uri;
+  ns: string;
+}
+
+/**
+ * Prompt the user to pick an active server connection that's used in this workspace.
+ * Returns the uri of the workspace folder corresponding to the chosen connection.
+ * Returns `undefined` if there are no active server connections in this workspace,
+ * or if the user dismisses the QuickPick. If there is only one active server
+ * connection, that will be returned without prompting the user.
+ *
+ * @param minVersion Optional minimum server version to enforce, in semantic version form (20XX.Y.Z).
+ */
+export async function getWsServerConnection(minVersion?: string): Promise<vscode.Uri> {
+  if (!vscode.workspace.workspaceFolders?.length) return;
+  const conns: ConnQPItem[] = [];
+  for (const wsFolder of vscode.workspace.workspaceFolders) {
+    const api = new AtelierAPI(wsFolder.uri);
+    if (!api.active) continue;
+    const config = api.config;
+    if (minVersion && lt(config.serverVersion, minVersion)) continue;
+    const conn = {
+      label: api.connInfo,
+      description: isUnauthenticated(config.username) ? "Unauthenticated" : config.username,
+      detail: `http${config.https ? "s" : ""}://${config.host}:${config.port}${config.pathPrefix}`,
+      uri: wsFolder.uri,
+      ns: api.ns,
+    };
+    if (!conns.some((c) => c.detail == conn.detail && c.description == conn.description && c.ns == conn.ns))
+      conns.push(conn);
+  }
+  if (!conns.length) return;
+  if (conns.length == 1) return conns[0].uri;
+  return vscode.window
+    .showQuickPick(conns, {
+      canPickMany: false,
+      ignoreFocusOut: true,
+      matchOnDescription: true,
+      matchOnDetail: true,
+      title: "Pick a server connection from the current workspace",
+    })
+    .then((c) => c?.uri);
 }
 
 // ---------------------------------------------------------------------
