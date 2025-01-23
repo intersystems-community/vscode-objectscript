@@ -1603,7 +1603,7 @@
           "default": true
         },
         "objectscript.outputRESTTraffic": {
-          "description": "If true, REST requests and responses to InterSystems servers will be logged to the ObjectScript Output channel. This should only be enabled when debugging a potential issue.",
+          "description": "If true, REST requests and responses to and from InterSystems servers will be logged to the ObjectScript Output channel. This should only be enabled when debugging a potential issue.",
           "type": "boolean",
           "default": false
         }
