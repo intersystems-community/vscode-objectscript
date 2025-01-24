@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import WebSocket = require("ws");
 
 import { AtelierAPI } from "../api";
-import { connectionTarget, currentFile, handleError, notIsfs, outputChannel } from "../utils";
+import { connectionTarget, currentFile, getWsServerConnection, handleError, notIsfs, outputChannel } from "../utils";
 import { config, iscIcon, resolveConnectionSpec } from "../extension";
 
 const keys = {
@@ -755,26 +755,6 @@ function terminalConfigForUri(
   };
 }
 
-async function workspaceUriForTerminal(throwErrors = false) {
-  let uri: vscode.Uri;
-  const workspaceFolders = vscode.workspace.workspaceFolders || [];
-  if (workspaceFolders.length == 0) {
-    reportError("Lite Terminal requires an open workspace.", throwErrors);
-  } else if (workspaceFolders.length == 1) {
-    // Use the current connection
-    uri = workspaceFolders[0].uri;
-  } else {
-    // Pick from the workspace folders
-    uri = (
-      await vscode.window.showWorkspaceFolderPick({
-        ignoreFocusOut: true,
-        placeHolder: "Pick the workspace folder to get server connection information from",
-      })
-    )?.uri;
-  }
-  return uri;
-}
-
 export async function launchWebSocketTerminal(targetUri?: vscode.Uri): Promise<void> {
   // Determine the server to connect to
   if (targetUri) {
@@ -784,10 +764,9 @@ export async function launchWebSocketTerminal(targetUri?: vscode.Uri): Promise<v
     const serverName = notIsfs(targetUri) ? config("conn", configName).server : configName;
     await resolveConnectionSpec(serverName);
   } else {
-    targetUri = currentFile()?.uri;
-    if (!targetUri) {
-      targetUri = await workspaceUriForTerminal();
-    }
+    // Determine the server connection to use
+    targetUri = currentFile()?.uri ?? (await getWsServerConnection("2023.2.0"));
+    if (!targetUri) return;
   }
   const api = new AtelierAPI(targetUri);
 
@@ -806,14 +785,16 @@ export async function launchWebSocketTerminal(targetUri?: vscode.Uri): Promise<v
 export class WebSocketTerminalProfileProvider implements vscode.TerminalProfileProvider {
   async provideTerminalProfile(): Promise<vscode.TerminalProfile> {
     // Determine the server connection to use
-    const uri: vscode.Uri = await workspaceUriForTerminal(true);
+    const uri: vscode.Uri = await getWsServerConnection("2023.2.0");
 
     if (uri) {
       // Get the terminal configuration. Will throw if there's an error.
       const terminalOpts = terminalConfigForUri(new AtelierAPI(uri), uri, true);
       return new vscode.TerminalProfile(terminalOpts);
-    } else {
-      throw new Error("Lite Terminal requires a selected workspace folder.");
+    } else if (uri == undefined) {
+      throw new Error(
+        "Lite Terminal requires an active server connection to InterSystems IRIS version 2023.2 or above."
+      );
     }
   }
 }
