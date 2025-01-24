@@ -61,30 +61,25 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
         let [, xdataName] = xdataMatch;
         xdataName = xdataName.trim();
         let cmd: vscode.Command = undefined;
-        if (
-          (xdataName == "BPL" && superclasses.includes("Ens.BusinessProcessBPL")) ||
+        if (xdataName == "BPL" && superclasses.includes("Ens.BusinessProcessBPL")) {
+          cmd = {
+            title: "Open Low-Code Editor in Browser",
+            command: "vscode-objectscript.openPathInBrowser",
+            tooltip: "Open low-code editor in an external browser",
+            arguments: [`/EnsPortal.BPLEditor.zen?BP=${className}.BPL`, document.uri],
+          };
+        } else if (
+          (xdataName == "RuleDefinition" && superclasses.includes("Ens.Rule.Definition")) ||
           (xdataName == "DTL" && superclasses.includes("Ens.DataTransformDTL"))
         ) {
           cmd = {
-            title: "Open Graphical Editor",
-            command: "vscode-objectscript.openPathInBrowser",
-            tooltip: "Open graphical editor in an external browser",
-            arguments: [
-              `/EnsPortal.${
-                xdataName == "BPL" ? `BPLEditor.zen?BP=${className}.BPL` : `DTLEditor.zen?DT=${className}.DTL`
-              }`,
-              document.uri,
-            ],
-          };
-        } else if (xdataName == "RuleDefinition" && superclasses.includes("Ens.Rule.Definition")) {
-          cmd = {
-            title: "Reopen in Graphical Editor",
+            title: "Reopen in Low-Code Editor",
             command: "workbench.action.toggleEditorType",
-            tooltip: "Replace text editor with graphical editor",
+            tooltip: "Replace text editor with low-code editor",
           };
         } else if (xdataName == "KPI" && superclasses.includes("%DeepSee.KPI")) {
           cmd = {
-            title: "Test KPI",
+            title: "Test KPI in Browser",
             command: "vscode-objectscript.openPathInBrowser",
             tooltip: "Open testing page in an external browser",
             arguments: [`/${className}.cls`, document.uri],
