@@ -791,7 +791,7 @@ export class WebSocketTerminalProfileProvider implements vscode.TerminalProfileP
       // Get the terminal configuration. Will throw if there's an error.
       const terminalOpts = terminalConfigForUri(new AtelierAPI(uri), uri, true);
       return new vscode.TerminalProfile(terminalOpts);
-    } else {
+    } else if (uri == undefined) {
       throw new Error(
         "Lite Terminal requires an active server connection to InterSystems IRIS version 2023.2 or above."
       );

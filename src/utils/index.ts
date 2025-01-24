@@ -782,6 +782,8 @@ interface ConnQPItem extends vscode.QuickPickItem {
  * connection, that will be returned without prompting the user.
  *
  * @param minVersion Optional minimum server version to enforce, in semantic version form (20XX.Y.Z).
+ * @returns `undefined` if there were no suitable server connections and `null` if the
+ * user explicitly escaped from the QuickPick.
  */
 export async function getWsServerConnection(minVersion?: string): Promise<vscode.Uri> {
   if (!vscode.workspace.workspaceFolders?.length) return;
@@ -811,7 +813,7 @@ export async function getWsServerConnection(minVersion?: string): Promise<vscode
       matchOnDetail: true,
       title: "Pick a server connection from the current workspace",
     })
-    .then((c) => c?.uri);
+    .then((c) => c?.uri ?? null);
 }
 
 // ---------------------------------------------------------------------
