@@ -2,10 +2,11 @@ import * as vscode from "vscode";
 import {
   CurrentBinaryFile,
   CurrentTextFile,
-  currentFile,
+  RateLimiter,
   currentFileFromContent,
   exportedUris,
   getServerDocName,
+  isClassOrRtn,
   isImportableLocalFile,
   notIsfs,
   openCustomEditors,
@@ -34,49 +35,42 @@ interface WSFolderIndexChange {
 /** Map of stringified workspace folder `Uri`s to collection of InterSystems classes and routines contained therein */
 const wsFolderIndex: Map<string, WSFolderIndex> = new Map();
 
-/** Glob pattern that matches classes and routines */
-const filePattern = "{**/*.cls,**/*.mac,**/*.int,**/*.inc}";
-
 /** We want decoding errors to be thrown */
 const textDecoder = new TextDecoder("utf-8", { fatal: true });
 
 /** The number of milliseconds that we should wait before sending a compile or delete request */
 const debounceDelay = 500;
 
-/** Returns `true` if `uri` has a class or routine file extension */
-function isClassOrRtn(uri: vscode.Uri): boolean {
-  return ["cls", "mac", "int", "inc"].includes(uri.path.split(".").pop().toLowerCase());
-}
-
 /**
- * Create an object describing the file in `uri`. Will use the version
- * of the file in VS Code if it's loaded and supports binary files.
+ * Create an object describing the file in `uri`.
+ * Supports binary files and will use `content` if it's defined.
  */
 async function getCurrentFile(
   uri: vscode.Uri,
-  forceText = false
+  forceText = false,
+  content?: string[] | Buffer
 ): Promise<CurrentTextFile | CurrentBinaryFile | undefined> {
-  const uriString = uri.toString();
-  const textDocument = vscode.workspace.textDocuments.find((d) => d.uri.toString() == uriString);
-  if (textDocument) {
-    return currentFile(textDocument);
-  } else {
-    try {
-      const contentBytes = await vscode.workspace.fs.readFile(uri);
-      const contentBuffer = Buffer.from(contentBytes);
-      return currentFileFromContent(
-        uri,
-        forceText || isText(uri.path.split("/").pop(), contentBuffer) ? textDecoder.decode(contentBytes) : contentBuffer
-      );
-    } catch (error) {
-      // Either a vscode.FileSystemError from readFile()
-      // or a TypeError from decode(). Don't log TypeError
-      // since the file may be a non-text file that has
-      // an extension that we interpret as text (like cls or mac).
-      // We should ignore such files rather than alerting the user.
-      if (error instanceof vscode.FileSystemError) {
-        outputChannel.appendLine(`Failed to read contents of '${uri.toString(true)}': ${error.toString()}`);
-      }
+  if (content) {
+    // forceText is always true when content is passed
+    return currentFileFromContent(uri, Buffer.isBuffer(content) ? textDecoder.decode(content) : content.join("\n"));
+  }
+  try {
+    const contentBytes = await vscode.workspace.fs.readFile(uri);
+    const contentBuffer = Buffer.from(contentBytes);
+    return currentFileFromContent(
+      uri,
+      forceText || isText(uri.path.split("/").pop(), contentBuffer) ? textDecoder.decode(contentBytes) : contentBuffer
+    );
+  } catch (error) {
+    // Either a vscode.FileSystemError from readFile()
+    // or a TypeError from decode(). Don't log TypeError
+    // since the file may be a non-text file that has
+    // an extension that we interpret as text (like cls or mac).
+    // Also don't log "FileNotFound" errors, which are probably
+    // caused by concurrency issues. We should ignore such files
+    // rather than alerting the user.
+    if (error instanceof vscode.FileSystemError && error.code != "FileNotFound") {
+      outputChannel.appendLine(`Failed to read contents of '${uri.toString(true)}': ${error.toString()}`);
     }
   }
 }
@@ -150,9 +144,15 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
   if (!notIsfs(wsFolder.uri)) return;
   const documents: Map<string, vscode.Uri[]> = new Map();
   const uris: Map<string, string> = new Map();
+  // Limit the initial indexing to 250 files at once to avoid EMFILE errors
+  const fsRateLimiter = new RateLimiter(250);
+  // Limit FileSystemWatcher events that may produce a putDoc()
+  // request to 50 concurrent calls to avoid hammering the server
+  const restRateLimiter = new RateLimiter(50);
   // Index classes and routines that currently exist
-  const files = await vscode.workspace.findFiles(new vscode.RelativePattern(wsFolder, filePattern));
-  for (const file of files) updateIndexForDocument(file, documents, uris);
+  vscode.workspace
+    .findFiles(new vscode.RelativePattern(wsFolder, "{**/*.cls,**/*.mac,**/*.int,**/*.inc}"))
+    .then((files) => files.forEach((file) => fsRateLimiter.call(() => updateIndexForDocument(file, documents, uris))));
   // Watch for all file changes
   const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(wsFolder, "**/*"));
   const debouncedCompile = generateCompileFn();
@@ -164,6 +164,14 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       // and any updates to the class will be handled by that editor
       return;
     }
+    const exportedIdx = exportedUris.findIndex((e) => e == uriString);
+    if (exportedIdx != -1) {
+      // This creation/change event was fired due to a server
+      // export, so don't re-sync the file with the server.
+      // The index has already been updated.
+      exportedUris.splice(exportedIdx, 1);
+      return;
+    }
     const conf = vscode.workspace.getConfiguration("objectscript", uri);
     const sync: boolean = conf.get("syncLocalChanges");
     let change: WSFolderIndexChange = {};
@@ -173,13 +181,6 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       change.addedOrChanged = await getCurrentFile(uri);
     }
     if (!sync || (!change.addedOrChanged && !change.removed)) return;
-    const exportedIdx = exportedUris.findIndex((e) => e == uriString);
-    if (exportedIdx != -1) {
-      // This creation/change event was fired due to a server
-      // export, so don't re-sync the file with the server
-      exportedUris.splice(exportedIdx, 1);
-      return;
-    }
     const api = new AtelierAPI(uri);
     if (!api.active) return;
     if (change.addedOrChanged) {
@@ -188,6 +189,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
         .then(() => {
           if (conf.get("compileOnSave")) debouncedCompile(change.addedOrChanged);
         })
+        // importFile handles any server errors
         .catch(() => {});
     }
     if (change.removed) {
@@ -195,8 +197,8 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       debouncedDelete(change.removed);
     }
   };
-  watcher.onDidChange((uri) => updateIndexAndSyncChanges(uri));
-  watcher.onDidCreate((uri) => updateIndexAndSyncChanges(uri));
+  watcher.onDidChange((uri) => restRateLimiter.call(() => updateIndexAndSyncChanges(uri)));
+  watcher.onDidCreate((uri) => restRateLimiter.call(() => updateIndexAndSyncChanges(uri)));
   watcher.onDidDelete((uri) => {
     const sync: boolean = vscode.workspace.getConfiguration("objectscript", uri).get("syncLocalChanges");
     const api = new AtelierAPI(uri);
@@ -226,11 +228,15 @@ export function removeIndexOfWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): 
   wsFolderIndex.delete(key);
 }
 
-/** Update the entries in the index for `uri` */
+/**
+ * Update the entries in the index for `uri`. `content` will only be passed if this
+ * function is called for a document that was just exported from the server.
+ */
 export async function updateIndexForDocument(
   uri: vscode.Uri,
   documents?: Map<string, vscode.Uri[]>,
-  uris?: Map<string, string>
+  uris?: Map<string, string>,
+  content?: string[] | Buffer
 ): Promise<WSFolderIndexChange> {
   const result: WSFolderIndexChange = {};
   const uriString = uri.toString();
@@ -243,7 +249,7 @@ export async function updateIndexForDocument(
     uris = index.uris;
   }
   const documentName = uris.get(uriString);
-  const file = await getCurrentFile(uri, true);
+  const file = await getCurrentFile(uri, true, content);
   if (!file) return result;
   result.addedOrChanged = file;
   // This file contains an InterSystems document, so add it to the index
