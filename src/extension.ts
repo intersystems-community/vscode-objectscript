@@ -214,17 +214,51 @@ const resolvedConnSpecs = new Map<string, any>();
 /**
  * If servermanager extension is available, fetch the connection spec unless already cached.
  * Prompt for credentials if necessary.
- * @param serverName authority element of an isfs uri, or `objectscript.conn.server` property
+ * @param serverName authority element of an isfs uri, or `objectscript.conn.server` property, or the name of a root folder with an `objectscript.conn.docker-compose` property object
+ * @param uri if passed, re-check the `objectscript.conn.docker-compose` case in case servermanager API couldn't do that because we're still running our own `activate` method.
  */
-export async function resolveConnectionSpec(serverName: string): Promise<void> {
-  if (serverManagerApi && serverManagerApi.getServerSpec) {
-    if (serverName && serverName !== "" && !resolvedConnSpecs.has(serverName)) {
-      const connSpec = await serverManagerApi.getServerSpec(serverName);
-      if (connSpec) {
-        await resolvePassword(connSpec);
-        resolvedConnSpecs.set(serverName, connSpec);
+export async function resolveConnectionSpec(serverName: string, uri?: vscode.Uri): Promise<void> {
+  if (!serverManagerApi || !serverManagerApi.getServerSpec || serverName === "") {
+    return;
+  }
+  if (resolvedConnSpecs.has(serverName)) {
+    // Already resolved
+    return;
+  }
+  if (!vscode.workspace.getConfiguration("intersystems.servers", null).has(serverName)) {
+    // When not a defined server see it already resolved as a foldername that matches case-insensitively
+    if (getResolvedConnectionSpec(serverName, undefined)) {
+      return;
+    }
+  }
+
+  let connSpec = await serverManagerApi.getServerSpec(serverName);
+
+  if (!connSpec && uri) {
+    // Caller passed uri as a signal to process any docker-compose settings
+    const { configName } = connectionTarget(uri);
+    if (config("conn", configName)["docker-compose"]) {
+      const serverForUri = await asyncServerForUri(uri);
+      if (serverForUri) {
+        connSpec = {
+          name: serverForUri.serverName,
+          webServer: {
+            scheme: serverForUri.scheme,
+            host: serverForUri.host,
+            port: serverForUri.port,
+            pathPrefix: serverForUri.pathPrefix,
+          },
+          username: serverForUri.username,
+          password: serverForUri.password ? serverForUri.password : undefined,
+          description: `Server for workspace folder '${serverName}'`,
+        };
       }
     }
+  }
+
+  if (connSpec) {
+    await resolvePassword(connSpec);
+    resolvedConnSpecs.set(serverName, connSpec);
   }
 }
 
@@ -260,7 +294,22 @@ async function resolvePassword(serverSpec, ignoreUnauthenticated = false): Promi
 
 /** Accessor for the cache of resolved connection specs */
 export function getResolvedConnectionSpec(key: string, dflt: any): any {
-  return resolvedConnSpecs.has(key) ? resolvedConnSpecs.get(key) : dflt;
+  let spec = resolvedConnSpecs.get(key);
+  if (spec) {
+    return spec;
+  }
+
+  // Try a case-insensitive match
+  key = resolvedConnSpecs.keys().find((oneKey) => oneKey.toLowerCase() === key.toLowerCase());
+  if (key) {
+    spec = resolvedConnSpecs.get(key);
+    if (spec) {
+      return spec;
+    }
+  }
+
+  // Return the default if not found
+  return dflt;
 }
 
 export async function checkConnection(
@@ -731,7 +780,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   vscode.workspace.workspaceFolders?.map((workspaceFolder) => {
     const uri = workspaceFolder.uri;
     const { configName } = connectionTarget(uri);
-    const serverName = notIsfs(uri) ? config("conn", configName).server : configName;
+    const conn = config("conn", configName);
+
+    // When docker-compose object is defined don't fall back to server name, which may have come from user-level settings
+    const serverName = notIsfs(uri) && !conn["docker-compose"] ? conn.server : configName;
     toCheck.set(serverName, uri);
   });
   for await (const oneToCheck of toCheck) {
@@ -739,7 +791,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     const uri = oneToCheck[1];
     try {
       try {
-        await resolveConnectionSpec(serverName);
+        // Pass the uri to resolveConnectionSpec so it will fall back to docker-compose logic if required.
+        // Necessary because we are in our activate method, so its call to the Server Manager API cannot call back to our API to do that.
+        await resolveConnectionSpec(serverName, uri);
       } finally {
         await checkConnection(true, uri, true);
       }
@@ -1517,46 +1571,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   // The API we export
   const extensionApi = {
-    serverForUri(uri: vscode.Uri): any {
-      const { apiTarget } = connectionTarget(uri);
-      const api = new AtelierAPI(apiTarget);
-
-      // This function intentionally no longer exposes the password for a named server UNLESS it is already exposed as plaintext in settings.
-      // API client extensions should use Server Manager 3's authentication provider to request a missing password themselves,
-      // which will require explicit user consent to divulge the password to the requesting extension.
-
-      const {
-        serverName,
-        active,
-        host = "",
-        https,
-        port,
-        pathPrefix,
-        username,
-        password,
-        ns = "",
-        apiVersion,
-        serverVersion,
-      } = api.config;
-      return {
-        serverName,
-        active,
-        scheme: https ? "https" : "http",
-        host,
-        port,
-        pathPrefix,
-        username,
-        password:
-          serverName === ""
-            ? password
-            : vscode.workspace
-                .getConfiguration(`intersystems.servers.${serverName.toLowerCase()}`, uri)
-                .get("password"),
-        namespace: ns,
-        apiVersion: active ? apiVersion : undefined,
-        serverVersion: active ? serverVersion : undefined,
-      };
-    },
+    serverForUri,
+    asyncServerForUri,
     serverDocumentUriForUri(uri: vscode.Uri): vscode.Uri {
       const { apiTarget } = connectionTarget(uri);
       if (typeof apiTarget === "string") {
@@ -1586,6 +1602,66 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   // 'export' our public API
   return extensionApi;
+}
+
+// This function is exported as one of our API functions but is also used internally
+// for example to implement the async variant capable of resolving docker port number.
+function serverForUri(uri: vscode.Uri): any {
+  const { apiTarget } = connectionTarget(uri);
+  const api = new AtelierAPI(apiTarget);
+
+  // This function intentionally no longer exposes the password for a named server UNLESS it is already exposed as plaintext in settings.
+  // API client extensions should use Server Manager 3's authentication provider to request a missing password themselves,
+  // which will require explicit user consent to divulge the password to the requesting extension.
+  const {
+    serverName,
+    active,
+    host = "",
+    https,
+    port,
+    pathPrefix,
+    username,
+    password,
+    ns = "",
+    apiVersion,
+    serverVersion,
+  } = api.config;
+  return {
+    serverName,
+    active,
+    scheme: https ? "https" : "http",
+    host,
+    port,
+    pathPrefix,
+    username,
+    password:
+      serverName === ""
+        ? password
+        : vscode.workspace.getConfiguration(`intersystems.servers.${serverName.toLowerCase()}`, uri).get("password"),
+    namespace: ns,
+    apiVersion: active ? apiVersion : undefined,
+    serverVersion: active ? serverVersion : undefined,
+  };
+}
+
+// An async variant capable of resolving docker port number.
+// It is exported as one of our API functions but is also used internally.
+async function asyncServerForUri(uri: vscode.Uri): Promise<any> {
+  const server = serverForUri(uri);
+  if (!server.port) {
+    let { apiTarget } = connectionTarget(uri);
+    if (apiTarget instanceof vscode.Uri) {
+      apiTarget = vscode.workspace.getWorkspaceFolder(apiTarget)?.name;
+    }
+    const { port: dockerPort, docker: withDocker } = await portFromDockerCompose(apiTarget);
+    if (withDocker && dockerPort) {
+      server.port = dockerPort;
+      server.host = "localhost";
+      server.pathPrefix = "";
+      server.https = false;
+    }
+  }
+  return server;
 }
 
 export function deactivate(): void {

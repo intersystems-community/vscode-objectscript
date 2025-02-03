@@ -488,21 +488,23 @@ async function composeCommand(cwd?: string): Promise<string> {
   });
 }
 
-export async function portFromDockerCompose(): Promise<{ port: number; docker: boolean; service?: string }> {
+export async function portFromDockerCompose(
+  workspaceFolderName?: string
+): Promise<{ port: number; docker: boolean; service?: string }> {
   // When running remotely, behave as if there is no docker-compose object within objectscript.conn
   if (extensionContext.extension.extensionKind === vscode.ExtensionKind.Workspace) {
     return { docker: false, port: null };
   }
 
   // Seek a valid docker-compose object within objectscript.conn
-  const { "docker-compose": dockerCompose = {} } = config("conn");
+  const { "docker-compose": dockerCompose = {} } = config("conn", workspaceFolderName);
   const { service, file = "docker-compose.yml", internalPort = 52773, envFile } = dockerCompose;
   if (!internalPort || !file || !service || service === "") {
     return { docker: false, port: null };
   }
 
   const result = { port: null, docker: true, service };
-  const workspaceFolder = uriOfWorkspaceFolder();
+  const workspaceFolder = uriOfWorkspaceFolder(workspaceFolderName);
   if (!workspaceFolder) {
     // No workspace folders are open
     return { docker: false, port: null };

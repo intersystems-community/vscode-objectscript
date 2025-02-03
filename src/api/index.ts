@@ -110,7 +110,13 @@ export class AtelierAPI {
         if (schemas.includes(wsOrFile.scheme)) {
           workspaceFolderName = wsOrFile.authority;
           const parts = workspaceFolderName.split(":");
-          if (parts.length === 2 && config("intersystems.servers").has(parts[0].toLowerCase())) {
+          if (
+            parts.length === 2 &&
+            (config("intersystems.servers").has(parts[0].toLowerCase()) ||
+              vscode.workspace.workspaceFolders.find(
+                (ws) => ws.uri.scheme === "file" && ws.name.toLowerCase() === parts[0].toLowerCase()
+              ))
+          ) {
             workspaceFolderName = parts[0];
             namespace = parts[1];
           } else {
@@ -226,6 +232,35 @@ export class AtelierAPI {
       // This arises when a server-only workspace is editing the user's settings.json, or the .code-workspace file.
       if (this._config.ns === "" && this.externalServer) {
         this._config.active = false;
+      }
+    } else if (conn["docker-compose"]) {
+      // Provided a docker-compose type connection spec has previously been resolved we can use its values
+      const resolvedSpec = getResolvedConnectionSpec(workspaceFolderName, undefined);
+      if (resolvedSpec) {
+        const {
+          webServer: { scheme, host, port, pathPrefix = "" },
+          username,
+          password,
+        } = resolvedSpec;
+        this._config = {
+          serverName: "",
+          active: true,
+          apiVersion: workspaceState.get(this.configName.toLowerCase() + ":apiVersion", DEFAULT_API_VERSION),
+          serverVersion: workspaceState.get(this.configName.toLowerCase() + ":serverVersion", DEFAULT_SERVER_VERSION),
+          https: scheme === "https",
+          ns,
+          host,
+          port,
+          username,
+          password,
+          pathPrefix,
+          docker: true,
+          dockerService: conn["docker-compose"].service,
+        };
+      } else {
+        this._config = conn;
+        this._config.ns = ns;
+        this._config.serverName = "";
       }
     } else {
       this._config = conn;
