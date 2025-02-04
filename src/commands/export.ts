@@ -4,17 +4,19 @@ import { AtelierAPI } from "../api";
 import { config, explorerProvider, OBJECTSCRIPT_FILE_SCHEMA, schemas, workspaceState } from "../extension";
 import {
   currentFile,
-  currentFileFromContent,
   exportedUris,
   handleError,
+  isClassOrRtn,
   notNull,
   outputChannel,
+  RateLimiter,
   stringifyError,
-  throttleRequests,
   uriOfWorkspaceFolder,
+  workspaceFolderOfUri,
 } from "../utils";
 import { pickDocuments } from "../utils/documentPicker";
 import { NodeBase } from "../explorer/nodes";
+import { updateIndexForDocument } from "../utils/documentIndex";
 
 export function getCategory(fileName: string, addCategory: any | boolean): string {
   const fileExt = fileName.split(".").pop().toLowerCase();
@@ -99,28 +101,19 @@ async function exportFile(wsFolderUri: vscode.Uri, namespace: string, name: stri
       throw new Error("Received malformed JSON object from server fetching document");
     }
     const content = data.result.content;
-
-    // Local function to update local record of mtime
-    const recordMtime = async () => {
-      const contentString = Buffer.isBuffer(content) ? "" : content.join("\n");
-      const file = currentFileFromContent(fileUri, contentString);
-      const serverTime = Number(new Date(data.result.ts + "Z"));
-      await workspaceState.update(`${file.uniqueId}:mtime`, serverTime);
-    };
-    if (Buffer.isBuffer(content)) {
-      // This is a binary file
-      await vscode.workspace.fs.writeFile(fileUri, content);
-      exportedUris.push(fileUri.toString());
-      await recordMtime();
-      log("Success");
-    } else {
-      // This is a text file
-      const joinedContent = content.join("\n");
-      await vscode.workspace.fs.writeFile(fileUri, new TextEncoder().encode(joinedContent));
-      exportedUris.push(fileUri.toString());
-      await recordMtime();
-      log("Success");
+    await vscode.workspace.fs.writeFile(
+      fileUri,
+      Buffer.isBuffer(content) ? content : new TextEncoder().encode(content.join("\n"))
+    );
+    if (isClassOrRtn(fileUri)) {
+      // Update the document index
+      updateIndexForDocument(fileUri, undefined, undefined, content);
     }
+    exportedUris.push(fileUri.toString());
+    const ws = workspaceFolderOfUri(fileUri);
+    const mtime = Number(new Date(data.result.ts + "Z"));
+    if (ws) await workspaceState.update(`${ws}:${name}:mtime`, mtime > 0 ? mtime : undefined);
+    log("Success");
   } catch (error) {
     const errorStr = stringifyError(error);
     log(errorStr == "" ? "ERROR" : errorStr);
@@ -146,6 +139,7 @@ export async function exportList(files: string[], workspaceFolder: string, names
   const { atelier, folder, addCategory, map } = config("export", workspaceFolder);
   const root = wsFolderUri.fsPath + (folder.length ? path.sep + folder : "");
   outputChannel.show(true);
+  const rateLimiter = new RateLimiter(50);
   return vscode.window.withProgress(
     {
       title: `Exporting ${files.length == 1 ? files[0] : files.length + " documents"}`,
@@ -154,8 +148,8 @@ export async function exportList(files: string[], workspaceFolder: string, names
     },
     () =>
       Promise.allSettled<void>(
-        files.map(
-          throttleRequests((file: string) =>
+        files.map((file) =>
+          rateLimiter.call(() =>
             exportFile(wsFolderUri, namespace, file, getFileName(root, file, atelier, addCategory, map))
           )
         )

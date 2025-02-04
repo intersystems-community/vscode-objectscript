@@ -222,7 +222,7 @@ export function currentFileFromContent(uri: vscode.Uri, content: string | Buffer
   const fileExt = fileName.split(".").pop().toLowerCase();
   if (
     notIsfs(uri) &&
-    !["cls", "mac", "int", "inc"].includes(fileExt) &&
+    !isClassOrRtn(uri) &&
     // This is a non-class or routine local file, so check if we can import it
     !isImportableLocalFile(uri)
   ) {
@@ -296,7 +296,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentTextFile {
   const fileExt = fileName.split(".").pop().toLowerCase();
   if (
     notIsfs(document.uri) &&
-    !["cls", "mac", "int", "inc"].includes(fileExt) &&
+    !isClassOrRtn(document.uri) &&
     // This is a non-class or routine local file, so check if we can import it
     !isImportableLocalFile(document.uri)
   ) {
@@ -769,6 +769,13 @@ export function base64EncodeContent(content: Buffer): string[] {
   return result;
 }
 
+/** Returns `true` if `uri` has a class or routine file extension */
+export function isClassOrRtn(uriOrName: vscode.Uri | string): boolean {
+  return ["cls", "mac", "int", "inc"].includes(
+    (uriOrName instanceof vscode.Uri ? uriOrName.path : uriOrName).split(".").pop().toLowerCase()
+  );
+}
+
 interface ConnQPItem extends vscode.QuickPickItem {
   uri: vscode.Uri;
   ns: string;
@@ -816,52 +823,62 @@ export async function getWsServerConnection(minVersion?: string): Promise<vscode
     .then((c) => c?.uri ?? null);
 }
 
-// ---------------------------------------------------------------------
-// Source: https://github.com/amsterdamharu/lib/blob/master/src/index.js
+class Semaphore {
+  /** Queue of tasks waiting to acquire the semaphore */
+  private _tasks: (() => void)[] = [];
+  /** Current available slots in the semaphore */
+  private _counter: number;
 
-const promiseLike = (x) => x !== undefined && typeof x.then === "function";
-const ifPromise = (fn) => (x) => (promiseLike(x) ? x.then(fn) : fn(x));
+  constructor(maxConcurrent: number) {
+    // Initialize the counter with the maximum number of concurrent tasks
+    this._counter = maxConcurrent;
+  }
 
-/*
-  causes a promise returning function not to be called
-  until less than max are active
-  usage example:
-  max2 = throttle(2);
-  urls = [url1,url2,url3...url100]
-  Promise.all(//even though a 100 promises are created, only 2 are active
-    urls.map(max2(fetch))
-  )
-*/
-const throttle = (max: number): ((fn: any) => (arg: any) => Promise<any>) => {
-  let que = [];
-  let queIndex = -1;
-  let running = 0;
-  const wait = (resolve, fn, arg) => () => resolve(ifPromise(fn)(arg)) || true; //should always return true
-  const nextInQue = () => {
-    ++queIndex;
-    if (typeof que[queIndex] === "function") {
-      return que[queIndex]();
+  /** Acquire a slot in the semaphore */
+  async acquire(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      if (this._counter > 0) {
+        // If a slot is available, decrease the counter and resolve immediately
+        this._counter--;
+        resolve();
+      } else {
+        // If no slots are available, add the task to the queue
+        this._tasks.push(resolve);
+      }
+    });
+  }
+
+  /** Release a slot in the semaphore */
+  release(): void {
+    if (this._tasks.length > 0) {
+      // If there are tasks waiting, take the next task from the queue and run it
+      const nextTask = this._tasks.shift();
+      if (nextTask) nextTask();
     } else {
-      que = [];
-      queIndex = -1;
-      running = 0;
-      return "Does not matter, not used";
+      // If no tasks are waiting, increase the counter
+      this._counter++;
     }
-  };
-  const queItem = (fn, arg) => new Promise((resolve, reject) => que.push(wait(resolve, fn, arg)));
-  return (fn) => (arg) => {
-    const p = queItem(fn, arg).then((x) => nextInQue() && x);
-    running++;
-    if (running <= max) {
-      nextInQue();
+  }
+}
+
+export class RateLimiter {
+  private _semaphore: Semaphore;
+
+  constructor(maxConcurrent: number) {
+    // Initialize the semaphore with the maximum number of concurrent tasks
+    this._semaphore = new Semaphore(maxConcurrent);
+  }
+
+  /** Execute a function with rate limiting */
+  async call<T>(fn: () => Promise<T>): Promise<T> {
+    // Acquire a slot in the semaphore. Will not reject.
+    await this._semaphore.acquire();
+    try {
+      // Execute the provided function
+      return await fn();
+    } finally {
+      // Always release the slot in the semaphore after the function completes
+      this._semaphore.release();
     }
-    return p;
-  };
-};
-
-// ---------------------------------------------------------------------
-
-/**
- * Wrap around each promise in array to avoid overloading the server.
- */
-export const throttleRequests = throttle(50);
+  }
+}

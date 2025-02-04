@@ -5,7 +5,7 @@ import { AtelierAPI } from "../api";
 
 import { getFileName } from "../commands/export";
 import { config, FILESYSTEM_SCHEMA, FILESYSTEM_READONLY_SCHEMA, OBJECTSCRIPT_FILE_SCHEMA } from "../extension";
-import { currentWorkspaceFolder, notIsfs, uriOfWorkspaceFolder } from "../utils";
+import { currentWorkspaceFolder, isClassOrRtn, notIsfs, uriOfWorkspaceFolder } from "../utils";
 import { getUrisForDocument } from "../utils/documentIndex";
 
 export function compareConns(
@@ -52,7 +52,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     if (!notIsfs(wsFolder.uri)) return;
     const conf = vscode.workspace.getConfiguration("objectscript.export", wsFolder);
     const confFolder = conf.get("folder", "");
-    if (["cls", "mac", "int", "inc"].includes(name.split(".").pop().toLowerCase())) {
+    if (isClassOrRtn(name)) {
       // Use the document index to find the local URI
       const uris = getUrisForDocument(name, wsFolder);
       switch (uris.length) {
