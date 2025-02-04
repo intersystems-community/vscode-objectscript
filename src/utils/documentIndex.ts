@@ -87,7 +87,10 @@ function generateCompileFn(): (doc: CurrentTextFile | CurrentBinaryFile) => void
     clearTimeout(timeout);
 
     // Compile right away if this document is in the active text editor
-    if (vscode.window.activeTextEditor?.document.uri.toString() == doc.uri.toString()) {
+    // and there are no other documents in the queue. This is needed
+    // to avoid noticeable latency when a user is editing a client-side
+    // file, saves it, and the auto-compile kicks in.
+    if (docs.length == 1 && vscode.window.activeTextEditor?.document.uri.toString() == doc.uri.toString()) {
       compile([...docs]);
       docs.length = 0;
       return;
