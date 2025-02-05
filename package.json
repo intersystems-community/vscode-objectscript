@@ -297,7 +297,7 @@
         },
         {
           "command": "vscode-objectscript.modifyWsFolder",
-          "when": "vscode-objectscript.connectActive && workspaceFolderCount != 0"
+          "when": "workspaceFolderCount != 0"
         },
         {
           "command": "vscode-objectscript.openErrorLocation",
@@ -606,7 +606,7 @@
         },
         {
           "command": "vscode-objectscript.modifyWsFolder",
-          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && explorerResourceIsRoot && !listMultiSelection",
+          "when": "explorerResourceIsRoot && !listMultiSelection",
           "group": "objectscript_modify@3"
         },
         {
