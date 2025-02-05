@@ -606,7 +606,7 @@
         },
         {
           "command": "vscode-objectscript.modifyWsFolder",
-          "when": "explorerResourceIsRoot && !listMultiSelection",
+          "when": "(!resourceScheme || resourceScheme =~ /^isfs(-readonly)?$/) && explorerResourceIsRoot && !listMultiSelection",
           "group": "objectscript_modify@3"
         },
         {
