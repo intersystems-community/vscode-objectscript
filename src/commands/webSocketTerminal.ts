@@ -5,6 +5,9 @@ import { AtelierAPI } from "../api";
 import { connectionTarget, currentFile, getWsServerConnection, handleError, notIsfs, outputChannel } from "../utils";
 import { config, iscIcon, resolveConnectionSpec } from "../extension";
 
+const NO_ELIGIBLE_CONNECTIONS =
+  "Lite Terminal requires an active server connection to InterSystems IRIS version 2023.2 or above.";
+
 const keys = {
   enter: "\r",
   backspace: "\x7f",
@@ -766,6 +769,9 @@ export async function launchWebSocketTerminal(targetUri?: vscode.Uri): Promise<v
   } else {
     // Determine the server connection to use
     targetUri = currentFile()?.uri ?? (await getWsServerConnection("2023.2.0"));
+    if (targetUri === undefined) {
+      vscode.window.showErrorMessage(NO_ELIGIBLE_CONNECTIONS);
+    }
     if (!targetUri) return;
   }
   const api = new AtelierAPI(targetUri);
@@ -791,10 +797,10 @@ export class WebSocketTerminalProfileProvider implements vscode.TerminalProfileP
       // Get the terminal configuration. Will throw if there's an error.
       const terminalOpts = terminalConfigForUri(new AtelierAPI(uri), uri, true);
       return new vscode.TerminalProfile(terminalOpts);
-    } else if (uri == undefined) {
-      throw new Error(
-        "Lite Terminal requires an active server connection to InterSystems IRIS version 2023.2 or above."
-      );
+    } else if (uri === undefined) {
+      throw new Error(NO_ELIGIBLE_CONNECTIONS);
+    } else {
+      throw new Error("No connection was chosen.");
     }
   }
 }
