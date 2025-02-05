@@ -397,19 +397,19 @@ export async function modifyWsFolder(wsFolderUri?: vscode.Uri): Promise<void> {
     if (!wsFolder) {
       return;
     }
-    if (notIsfs(wsFolder.uri)) {
-      vscode.window.showErrorMessage(
-        `Workspace folder '${wsFolder.name}' does not have scheme 'isfs' or 'isfs-readonly'.`,
-        "Dismiss"
-      );
-      return;
-    }
   } else {
     // Find the workspace folder for this uri
     wsFolder = vscode.workspace.getWorkspaceFolder(wsFolderUri);
     if (!wsFolder) {
       return;
     }
+  }
+  if (notIsfs(wsFolder.uri)) {
+    vscode.window.showErrorMessage(
+      `Workspace folder '${wsFolder.name}' does not have scheme 'isfs' or 'isfs-readonly'.`,
+      "Dismiss"
+    );
+    return;
   }
 
   // Prompt the user to modify the uri
