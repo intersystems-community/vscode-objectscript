@@ -258,6 +258,7 @@ export async function updateIndexForDocument(
   // This file contains an InterSystems document, so add it to the index
   if (!documentName || (documentName && documentName != file.name)) {
     const documentUris = documents.get(file.name) ?? [];
+    if (documentUris.some((u) => u.toString() == uriString)) return result;
     documentUris.push(uri);
     documents.set(file.name, documentUris);
     uris.set(uriString, file.name);
