@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { gte } from "semver";
 import { clsLangId, config, intLangId, macLangId } from "../extension";
 import { currentFile } from "../utils";
 import { AtelierAPI } from "../api";
@@ -69,8 +70,12 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
             arguments: [`/EnsPortal.BPLEditor.zen?BP=${className}.BPL`, document.uri],
           };
         } else if (
-          (xdataName == "RuleDefinition" && superclasses.includes("Ens.Rule.Definition")) ||
-          (xdataName == "DTL" && superclasses.includes("Ens.DataTransformDTL"))
+          (xdataName == "RuleDefinition" &&
+            superclasses.includes("Ens.Rule.Definition") &&
+            gte(api.config.serverVersion, "2023.1.0")) ||
+          (xdataName == "DTL" &&
+            superclasses.includes("Ens.DataTransformDTL") &&
+            gte(api.config.serverVersion, "2025.1.0"))
         ) {
           cmd = {
             title: "Reopen in Low-Code Editor",
