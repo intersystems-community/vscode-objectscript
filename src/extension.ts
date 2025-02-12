@@ -803,7 +803,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       continue;
     }
   }
-  for await (const workspaceFolder of vscode.workspace.workspaceFolders) {
+  for await (const workspaceFolder of vscode.workspace.workspaceFolders ?? []) {
     await addWsServerRootFolderData(workspaceFolder.uri);
   }
 
@@ -1344,7 +1344,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         }
         // Check connections sequentially for each workspace folder
         let refreshFilesExplorer = false;
-        for await (const folder of vscode.workspace.workspaceFolders) {
+        for await (const folder of vscode.workspace.workspaceFolders ?? []) {
           if (schemas.includes(folder.uri.scheme)) {
             refreshFilesExplorer = true;
           }

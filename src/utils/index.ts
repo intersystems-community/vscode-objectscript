@@ -633,12 +633,15 @@ export async function addWsServerRootFolderData(uri: vscode.Uri): Promise<void> 
   const value: WSServerRootFolderData = {
     redirectDotvscode: true,
   };
-  if (isCSPFile(uri)) {
-    // A CSP-type root folder that already has a .vscode/settings.json file must not redirect .vscode/* references
+  if (isCSPFile(uri) && !["", "/"].includes(uri.path)) {
+    // A CSP-type root folder for a specific webapp that already has a .vscode/settings.json file must not redirect .vscode/* references
     const api = new AtelierAPI(uri);
-    api.getDoc(`${uri.path}/.vscode/settings.json`).then(() => {
-      value.redirectDotvscode = false;
-    });
+    api
+      .headDoc(`${uri.path}/.vscode/settings.json`)
+      .then(() => {
+        value.redirectDotvscode = false;
+      })
+      .catch(() => {});
   }
   wsServerRootFolders.set(uri.toString(), value);
 }
