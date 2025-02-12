@@ -101,6 +101,7 @@ import {
   cspApps,
   otherDocExts,
   getWsServerConnection,
+  addWsServerRootFolderData,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentLinkProvider } from "./providers/DocumentLinkProvider";
@@ -802,6 +803,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       continue;
     }
   }
+  for await (const workspaceFolder of vscode.workspace.workspaceFolders) {
+    await addWsServerRootFolderData(workspaceFolder.uri);
+  }
 
   xmlContentProvider = new XmlContentProvider();
 
@@ -1320,6 +1324,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         const uri = oneToCheck[1];
         const serverName = notIsfs(uri) ? config("conn", configName).server : configName;
         await resolveConnectionSpec(serverName);
+      }
+      for await (const workspaceFolder of added) {
+        await addWsServerRootFolderData(workspaceFolder.uri);
       }
     }),
     vscode.workspace.onDidChangeConfiguration(async ({ affectsConfiguration }) => {
