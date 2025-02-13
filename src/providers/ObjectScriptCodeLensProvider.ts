@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { gte } from "semver";
 import { clsLangId, config, intLangId, macLangId } from "../extension";
 import { currentFile } from "../utils";
 import { AtelierAPI } from "../api";
@@ -61,30 +62,29 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
         let [, xdataName] = xdataMatch;
         xdataName = xdataName.trim();
         let cmd: vscode.Command = undefined;
-        if (
-          (xdataName == "BPL" && superclasses.includes("Ens.BusinessProcessBPL")) ||
-          (xdataName == "DTL" && superclasses.includes("Ens.DataTransformDTL"))
+        if (xdataName == "BPL" && superclasses.includes("Ens.BusinessProcessBPL")) {
+          cmd = {
+            title: "Open Low-Code Editor in Browser",
+            command: "vscode-objectscript.openPathInBrowser",
+            tooltip: "Open low-code editor in an external browser",
+            arguments: [`/EnsPortal.BPLEditor.zen?BP=${className}.BPL`, document.uri],
+          };
+        } else if (
+          (xdataName == "RuleDefinition" &&
+            superclasses.includes("Ens.Rule.Definition") &&
+            gte(api.config.serverVersion, "2023.1.0")) ||
+          (xdataName == "DTL" &&
+            superclasses.includes("Ens.DataTransformDTL") &&
+            gte(api.config.serverVersion, "2025.1.0"))
         ) {
           cmd = {
-            title: "Open Graphical Editor",
-            command: "vscode-objectscript.openPathInBrowser",
-            tooltip: "Open graphical editor in an external browser",
-            arguments: [
-              `/EnsPortal.${
-                xdataName == "BPL" ? `BPLEditor.zen?BP=${className}.BPL` : `DTLEditor.zen?DT=${className}.DTL`
-              }`,
-              document.uri,
-            ],
-          };
-        } else if (xdataName == "RuleDefinition" && superclasses.includes("Ens.Rule.Definition")) {
-          cmd = {
-            title: "Reopen in Graphical Editor",
+            title: "Reopen in Low-Code Editor",
             command: "workbench.action.toggleEditorType",
-            tooltip: "Replace text editor with graphical editor",
+            tooltip: "Replace text editor with low-code editor",
           };
         } else if (xdataName == "KPI" && superclasses.includes("%DeepSee.KPI")) {
           cmd = {
-            title: "Test KPI",
+            title: "Test KPI in Browser",
             command: "vscode-objectscript.openPathInBrowser",
             tooltip: "Open testing page in an external browser",
             arguments: [`/${className}.cls`, document.uri],
