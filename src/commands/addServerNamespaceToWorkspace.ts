@@ -146,7 +146,7 @@ export async function addServerNamespaceToWorkspace(resource?: vscode.Uri): Prom
   const params = new URLSearchParams(uri.query);
   const project = params.get("project");
   const csp = params.has("csp");
-  const name = `${serverName}${project ? `:${namespace} (${project})` : !csp ? `:${namespace}` : ["", "/"].includes(uri.path) ? `:${namespace} web files` : ` (${uri.path})`}${
+  const name = `${project ? `${project} - ${serverName}:${namespace}` : !csp ? `${serverName}:${namespace}` : ["", "/"].includes(uri.path) ? `${serverName}:${namespace} web files` : `${serverName} (${uri.path})`}${
     scheme == FILESYSTEM_READONLY_SCHEMA && !project ? " (read-only)" : ""
   }`;
   // Append it to the workspace
