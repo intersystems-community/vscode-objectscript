@@ -23,14 +23,16 @@ import {
   exportedUris,
   handleError,
   isClassDeployed,
+  isClassOrRtn,
   notIsfs,
   notNull,
   outputChannel,
+  RateLimiter,
   routineNameTypeRegex,
-  throttleRequests,
 } from "../utils";
 import { StudioActions } from "./studio";
 import { NodeBase, PackageNode, RootNode } from "../explorer/nodes";
+import { updateIndexForDocument } from "../utils/documentIndex";
 
 async function compileFlags(): Promise<string> {
   const defaultFlags = config().compileFlags;
@@ -226,6 +228,10 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
             file.uri,
             Buffer.isBuffer(content) ? content : new TextEncoder().encode(content.join("\n"))
           );
+          if (isClassOrRtn(file.uri)) {
+            // Update the document index
+            updateIndexForDocument(file.uri, undefined, undefined, content);
+          }
           exportedUris.push(file.uri.toString());
         } else if (filesystemSchemas.includes(file.uri.scheme)) {
           fileSystemProvider.fireFileChanged(file.uri);
@@ -414,9 +420,10 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
 
 async function importFiles(files: vscode.Uri[], noCompile = false) {
   const toCompile: CurrentFile[] = [];
+  const rateLimiter = new RateLimiter(50);
   await Promise.allSettled<void>(
-    files.map(
-      throttleRequests((uri: vscode.Uri) => {
+    files.map((uri) =>
+      rateLimiter.call(async () => {
         return vscode.workspace.fs
           .readFile(uri)
           .then((contentBytes) => {
@@ -661,7 +668,7 @@ export async function importLocalFilesToServerSideFolder(wsFolderUri: vscode.Uri
     return;
   }
   // Filter out non-ISC files
-  uris = uris.filter((uri) => ["cls", "mac", "int", "inc"].includes(uri.path.split(".").pop().toLowerCase()));
+  uris = uris.filter(isClassOrRtn);
   if (uris.length == 0) {
     vscode.window.showErrorMessage("No classes or routines were selected.", "Dismiss");
     return;
@@ -711,9 +718,10 @@ export async function importLocalFilesToServerSideFolder(wsFolderUri: vscode.Uri
     docs.map((e) => e.name)
   );
   // Import the files
+  const rateLimiter = new RateLimiter(50);
   return Promise.allSettled<string>(
-    docs.map(
-      throttleRequests((doc: { name: string; content: string; uri: vscode.Uri }) => {
+    docs.map((doc) =>
+      rateLimiter.call(async () => {
         // Allow importing over deployed classes since the XML import
         // command and SMP, terminal, and Studio imports allow it
         return importFileFromContent(doc.name, doc.content, api, false, true).then(() => {
