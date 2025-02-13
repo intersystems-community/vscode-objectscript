@@ -637,7 +637,7 @@ export async function addWsServerRootFolderData(uri: vscode.Uri): Promise<void> 
     // A CSP-type root folder for a specific webapp that already has a .vscode/settings.json file must not redirect .vscode/* references
     const api = new AtelierAPI(uri);
     api
-      .headDoc(`${uri.path}/.vscode/settings.json`)
+      .headDoc(`${uri.path}${!uri.path.endsWith("/") ? "/" : ""}.vscode/settings.json`)
       .then(() => {
         value.redirectDotvscode = false;
       })
