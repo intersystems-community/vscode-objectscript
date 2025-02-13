@@ -617,6 +617,35 @@ export async function shellWithDocker(): Promise<vscode.Terminal> {
   return terminal;
 }
 
+interface WSServerRootFolderData {
+  redirectDotvscode: boolean;
+}
+
+const wsServerRootFolders = new Map<string, WSServerRootFolderData>();
+
+/**
+ * Add uri to the wsServerRootFolders map if eligible
+ */
+export async function addWsServerRootFolderData(uri: vscode.Uri): Promise<void> {
+  if (!schemas.includes(uri.scheme)) {
+    return;
+  }
+  const value: WSServerRootFolderData = {
+    redirectDotvscode: true,
+  };
+  if (isCSPFile(uri) && !["", "/"].includes(uri.path)) {
+    // A CSP-type root folder for a specific webapp that already has a .vscode/settings.json file must not redirect .vscode/* references
+    const api = new AtelierAPI(uri);
+    api
+      .headDoc(`${uri.path}${!uri.path.endsWith("/") ? "/" : ""}.vscode/settings.json`)
+      .then(() => {
+        value.redirectDotvscode = false;
+      })
+      .catch(() => {});
+  }
+  wsServerRootFolders.set(uri.toString(), value);
+}
+
 /**
  * Alter isfs-type uri.path of /.vscode/* files or subdirectories.
  * Rewrite `/.vscode/path/to/file` as `/_vscode/XYZ/path/to/file`
@@ -633,13 +662,18 @@ export function redirectDotvscodeRoot(uri: vscode.Uri): vscode.Uri {
   if (!schemas.includes(uri.scheme)) {
     return uri;
   }
-  const dotMatch = uri.path.match(/^\/(\.[^/]*)(\/.*)?$/);
-  if (dotMatch && dotMatch[1] === ".vscode") {
+  const dotMatch = uri.path.match(/^(.*)\/\.vscode(\/.*)?$/);
+  if (dotMatch) {
+    const dotvscodeRoot = uri.with({ path: dotMatch[1] || "/" });
+    if (!wsServerRootFolders.get(dotvscodeRoot.toString())?.redirectDotvscode) {
+      return uri;
+    }
     let namespace: string;
+    const andCSP = !isCSPFile(uri) ? "&csp" : "";
     const nsMatch = `&${uri.query}&`.match(/&ns=([^&]+)&/);
     if (nsMatch) {
       namespace = nsMatch[1].toUpperCase();
-      const newQueryString = (("&" + uri.query).replace(`ns=${namespace}`, "ns=%SYS") + "&csp").slice(1);
+      const newQueryString = (("&" + uri.query).replace(`ns=${namespace}`, "ns=%SYS") + andCSP).slice(1);
       return uri.with({ path: `/_vscode/${namespace}${dotMatch[2] || ""}`, query: newQueryString });
     } else {
       const parts = uri.authority.split(":");
@@ -648,7 +682,7 @@ export function redirectDotvscodeRoot(uri: vscode.Uri): vscode.Uri {
         return uri.with({
           authority: `${parts[0]}:%SYS`,
           path: `/_vscode/${namespace}${dotMatch[2] || ""}`,
-          query: uri.query + "&csp",
+          query: uri.query + andCSP,
         });
       }
     }
