@@ -30,6 +30,7 @@ interface ConnectionSettings {
   https: boolean;
   host: string;
   port: number;
+  superserverPort?: number;
   pathPrefix: string;
   ns: string;
   username: string;
@@ -67,6 +68,9 @@ export class AtelierAPI {
     const wsKey = this.configName.toLowerCase();
     const host = this.externalServer ? this._config.host : workspaceState.get(wsKey + ":host", this._config.host);
     const port = this.externalServer ? this._config.port : workspaceState.get(wsKey + ":port", this._config.port);
+    const superserverPort = this.externalServer
+      ? this._config.superserverPort
+      : workspaceState.get(wsKey + ":superserverPort", this._config.superserverPort);
     const password = workspaceState.get(wsKey + ":password", this._config.password);
     const apiVersion = workspaceState.get(wsKey + ":apiVersion", DEFAULT_API_VERSION);
     const serverVersion = workspaceState.get(wsKey + ":serverVersion", DEFAULT_SERVER_VERSION);
@@ -80,6 +84,7 @@ export class AtelierAPI {
       https,
       host,
       port,
+      superserverPort,
       pathPrefix,
       ns,
       username,
@@ -211,6 +216,7 @@ export class AtelierAPI {
         webServer: { scheme, host, port, pathPrefix = "" },
         username,
         password,
+        superServer,
       } = getResolvedConnectionSpec(serverName, config("intersystems.servers", workspaceFolderName).get(serverName));
       this._config = {
         serverName,
@@ -221,6 +227,7 @@ export class AtelierAPI {
         ns,
         host,
         port,
+        superserverPort: superServer.port,
         username,
         password,
         pathPrefix,
@@ -241,6 +248,7 @@ export class AtelierAPI {
           webServer: { scheme, host, port, pathPrefix = "" },
           username,
           password,
+          superServer,
         } = resolvedSpec;
         this._config = {
           serverName: "",
@@ -251,6 +259,7 @@ export class AtelierAPI {
           ns,
           host,
           port,
+          superserverPort: superServer.port,
           username,
           password,
           pathPrefix,
