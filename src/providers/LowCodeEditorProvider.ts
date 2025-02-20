@@ -1,20 +1,22 @@
 import * as vscode from "vscode";
+import { lt } from "semver";
 import { AtelierAPI } from "../api";
 import { loadChanges } from "../commands/compile";
 import { StudioActions } from "../commands/studio";
 import { clsLangId } from "../extension";
-import { cspApps, currentFile, handleError, openCustomEditors, outputChannel } from "../utils";
+import { currentFile, openCustomEditors, outputChannel } from "../utils";
 
-export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
-  private static readonly _webapp: string = "/ui/interop/rule-editor";
+export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
+  private readonly _rule: string = "/ui/interop/rule-editor";
+  private readonly _dtl: string = "/ui/interop/dtl-editor";
 
-  private static _errorMessage(detail: string) {
+  private _errorMessage(detail: string) {
     return vscode.window
-      .showErrorMessage("Cannot open Rule Editor.", {
+      .showErrorMessage("Cannot open Low-Code Editor.", {
         modal: true,
         detail,
       })
-      .then(() => vscode.commands.executeCommand<void>("workbench.action.toggleEditorType"));
+      .then(() => vscode.commands.executeCommand<void>("workbench.action.reopenTextEditor"));
   }
 
   async resolveCustomTextEditor(
@@ -24,57 +26,66 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
   ): Promise<void> {
     // Check that document is a clean, well-formed class
     if (document.languageId != clsLangId) {
-      return RuleEditorProvider._errorMessage(`${document.fileName} is not a class.`);
+      return this._errorMessage(`${document.fileName} is not a class.`);
     }
     if (document.isUntitled) {
-      return RuleEditorProvider._errorMessage(`${document.fileName} is untitled.`);
+      return this._errorMessage(`${document.fileName} is untitled.`);
     }
     if (document.isDirty) {
-      return RuleEditorProvider._errorMessage(`${document.fileName} is dirty.`);
+      return this._errorMessage(`${document.fileName} is dirty.`);
     }
     const file = currentFile(document);
-    if (file == null) {
-      return RuleEditorProvider._errorMessage(`${document.fileName} is a malformed class definition.`);
+    if (!file) {
+      return this._errorMessage(`${document.fileName} is a malformed class definition.`);
+    }
+    if (!vscode.workspace.fs.isWritableFileSystem(document.uri.scheme)) {
+      return this._errorMessage(`File system '${document.uri.scheme}' is read-only.`);
     }
 
     const className = file.name.slice(0, -4);
     const api = new AtelierAPI(document.uri);
-    const documentUriString = document.uri.toString();
-
-    // Check that the server has the webapp for the angular rule editor
-    const cspAppsKey = `${api.serverId}:%SYS`.toLowerCase();
-    let sysCspApps: string[] | undefined = cspApps.get(cspAppsKey);
-    if (sysCspApps == undefined) {
-      sysCspApps = await api.getCSPApps(false, "%SYS").then((data) => data.result.content || []);
-      cspApps.set(cspAppsKey, sysCspApps);
+    if (!api.active) {
+      return this._errorMessage("Server connection is not active.");
     }
-    if (!sysCspApps.includes(RuleEditorProvider._webapp)) {
-      return RuleEditorProvider._errorMessage(`Server '${api.serverId}' does not support the Angular Rule Editor.`);
+    if (lt(api.config.serverVersion, "2023.1.0")) {
+      return this._errorMessage(
+        "Opening a low-code editor in VS Code requires InterSystems IRIS version 2023.1 or above."
+      );
     }
 
-    // Check that the class exists on the server and is a rule class
-    const queryData = await api.actionQuery("SELECT Super FROM %Dictionary.ClassDefinition WHERE Name = ?", [
-      className,
-    ]);
-    if (
-      queryData.result.content.length &&
-      !queryData.result.content[0].Super.split(",").includes("Ens.Rule.Definition")
-    ) {
-      // Class exists but is not a rule class
-      return RuleEditorProvider._errorMessage(`${className} is not a rule definition class.`);
-    } else if (queryData.result.content.length == 0) {
+    // Check that the class exists on the server and is a rule or DTL class
+    let webApp: string;
+    const queryData = await api.actionQuery(
+      "SELECT $LENGTH(rule.Name) AS Rule, $LENGTH(dtl.Name) AS DTL " +
+        "FROM %Dictionary.ClassDefinition AS dcd " +
+        "LEFT OUTER JOIN %Dictionary.ClassDefinition_SubclassOf('Ens.Rule.Definition') AS rule ON dcd.Name = rule.Name " +
+        "LEFT OUTER JOIN %Dictionary.ClassDefinition_SubclassOf('Ens.DataTransformDTL') AS dtl ON dcd.Name = dtl.Name " +
+        "WHERE dcd.Name = ?",
+      [className]
+    );
+    if (queryData.result.content.length == 0) {
       // Class doesn't exist on the server
-      return RuleEditorProvider._errorMessage(`Class ${className} does not exist on the server.`);
+      return this._errorMessage(`${file.name} does not exist on the server.`);
+    } else if (queryData.result.content[0].Rule) {
+      webApp = this._rule;
+    } else if (queryData.result.content[0].DTL) {
+      if (lt(api.config.serverVersion, "2025.1.0")) {
+        return this._errorMessage(
+          "Opening the DTL editor in VS Code requires InterSystems IRIS version 2025.1 or above."
+        );
+      }
+      webApp = this._dtl;
+    } else {
+      // Class exists but is not a rule or DTL class
+      return this._errorMessage(`${className} is neither a rule definition class nor a DTL transformation class.`);
     }
 
     // Add this document to the array of open custom editors
+    const documentUriString = document.uri.toString();
     openCustomEditors.push(documentUriString);
 
     // Initialize the webview
     const targetOrigin = `${api.config.https ? "https" : "http"}://${api.config.host}:${api.config.port}`;
-    const iframeUri = `${targetOrigin}${api.config.pathPrefix}${
-      RuleEditorProvider._webapp
-    }/index.html?$NAMESPACE=${api.config.ns.toUpperCase()}&VSCODE=1&rule=${className}`;
     webviewPanel.webview.options = {
       enableScripts: true,
       localResourceRoots: [],
@@ -95,7 +106,9 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
       </head>
       <body>
       <div id="content">
-        <iframe id="editor" title="Rule Editor" src="${iframeUri}" width="100%" height="100%" frameborder="0"></iframe>
+        <iframe id="editor" title="Low-Code Editor" src="${targetOrigin}${api.config.pathPrefix}${webApp}/index.html?$NAMESPACE=${api.config.ns.toUpperCase()}&VSCODE=1&${
+          webApp == this._rule ? "rule" : "DTL"
+        }=${className}" width="100%" height="100%" frameborder="0"></iframe>
       </div>
       <script>
         (function() {
@@ -177,13 +190,12 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
           editorCompatible = true;
           return;
         case "badrule":
-          RuleEditorProvider._errorMessage(event.reason);
+        case "baddtl":
+          this._errorMessage(event.reason);
           return;
         case "loaded":
           if (!editorCompatible) {
-            RuleEditorProvider._errorMessage(
-              "This server's Angular Rule Editor does not support embedding in VS Code."
-            );
+            this._errorMessage("This low-code editor does not support embedding in VS Code.");
           } else {
             // Editor is compatible so send the credentials
             webviewPanel.webview.postMessage({
@@ -258,15 +270,25 @@ export class RuleEditorProvider implements vscode.CustomTextEditorProvider {
                         type: "revert",
                       });
                     }
-                    if (actionToProcess.errorText != "") {
+                    if (actionToProcess.errorText !== "") {
                       outputChannel.appendLine(
                         `\nError executing AfterUserAction '${event.label}':\n${actionToProcess.errorText}`
                       );
-                      outputChannel.show(true);
+                      outputChannel.show();
                     }
                   }
                 })
-                .catch((error) => handleError(error, `Error executing AfterUserAction '${event.label}'.`));
+                .catch((error) => {
+                  outputChannel.appendLine(`\nError executing AfterUserAction '${event.label}':`);
+                  if (error && error.errorText && error.errorText !== "") {
+                    outputChannel.appendLine(error.errorText);
+                  } else {
+                    outputChannel.appendLine(
+                      typeof error == "string" ? error : error instanceof Error ? error.message : JSON.stringify(error)
+                    );
+                  }
+                  outputChannel.show();
+                });
             }
           });
           return;
