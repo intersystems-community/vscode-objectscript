@@ -490,24 +490,30 @@ async function composeCommand(cwd?: string): Promise<string> {
 
 export async function portFromDockerCompose(
   workspaceFolderName?: string
-): Promise<{ port: number; docker: boolean; service?: string }> {
+): Promise<{ port: number; superserverPort: number; docker: boolean; service?: string }> {
   // When running remotely, behave as if there is no docker-compose object within objectscript.conn
   if (extensionContext.extension.extensionKind === vscode.ExtensionKind.Workspace) {
-    return { docker: false, port: null };
+    return { docker: false, port: null, superserverPort: null };
   }
 
   // Seek a valid docker-compose object within objectscript.conn
   const { "docker-compose": dockerCompose = {} } = config("conn", workspaceFolderName);
-  const { service, file = "docker-compose.yml", internalPort = 52773, envFile } = dockerCompose;
-  if (!internalPort || !file || !service || service === "") {
-    return { docker: false, port: null };
+  const {
+    service,
+    file = "docker-compose.yml",
+    internalPort = 52773,
+    internalSuperserverPort = 1972,
+    envFile,
+  } = dockerCompose;
+  if (!internalPort || !internalSuperserverPort || !file || !service || service === "") {
+    return { docker: false, port: null, superserverPort: null };
   }
 
-  const result = { port: null, docker: true, service };
+  const result = { port: null, superserverPort: null, docker: true, service };
   const workspaceFolder = uriOfWorkspaceFolder(workspaceFolderName);
   if (!workspaceFolder) {
     // No workspace folders are open
-    return { docker: false, port: null };
+    return { docker: false, port: null, superserverPort: null };
   }
   const workspaceFolderPath = workspaceFolder.fsPath;
   const workspaceRootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
@@ -548,9 +554,23 @@ export async function portFromDockerCompose(
         }
         const [, port] = stdout.match(/:(\d+)/) || [];
         if (!port) {
-          reject(`Port ${internalPort} not published for service '${service}' in '${path.join(cwd, file)}'.`);
+          reject(`Webserver port ${internalPort} not published for service '${service}' in '${path.join(cwd, file)}'.`);
         }
-        resolve({ port: parseInt(port, 10), docker: true, service });
+        result.port = parseInt(port, 10);
+
+        exec(`${cmd} port --protocol=tcp ${service} ${internalSuperserverPort}`, { cwd }, (error, stdout) => {
+          if (error) {
+            reject(error.message);
+          }
+          const [, superserverPort] = stdout.match(/:(\d+)/) || [];
+          if (!superserverPort) {
+            reject(
+              `Superserver port ${internalSuperserverPort} not published for service '${service}' in '${path.join(cwd, file)}'.`
+            );
+          }
+          result.superserverPort = parseInt(superserverPort, 10);
+          resolve(result);
+        });
       });
     });
   });
