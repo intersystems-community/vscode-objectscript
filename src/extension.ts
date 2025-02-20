@@ -101,6 +101,7 @@ import {
   cspApps,
   otherDocExts,
   getWsServerConnection,
+  isClassOrRtn,
   addWsServerRootFolderData,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
@@ -1220,7 +1221,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       return Promise.all(
         e.files
           .filter(notIsfs)
-          .filter((uri) => ["cls", "inc", "int", "mac"].includes(uri.path.split(".").pop().toLowerCase()))
+          .filter(isClassOrRtn)
           .map(async (uri) => {
             // Determine the file name
             const workspace = workspaceFolderOfUri(uri);
