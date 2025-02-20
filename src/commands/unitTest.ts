@@ -111,7 +111,7 @@ async function addTestItemsForClass(testController: vscode.TestController, paren
       const inheritedMethods: { Name: string; Origin: string }[] = await api
         .actionQuery(
           "SELECT Name, Origin FROM %Dictionary.CompiledMethod WHERE " +
-            "parent->ID = ? AND Origin != parent->ID AND Name %STARTSWITH 'Test' " +
+            "Parent = ? AND Origin != Parent AND Name %STARTSWITH 'Test' " +
             "AND ClassMethod = 0 AND ClientMethod = 0 ORDER BY Name",
           [parentSymbols[0].name]
         )

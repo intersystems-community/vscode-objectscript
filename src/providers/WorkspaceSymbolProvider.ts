@@ -10,16 +10,16 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
   private readonly _sqlPrefix: string =
     "SELECT mem.Name, mem.Parent, mem.Type FROM (" +
     " SELECT Name, Name AS Parent, 'Class' AS Type FROM %Dictionary.ClassDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'Method' AS Type FROM %Dictionary.MethodDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'Property' AS Type FROM %Dictionary.PropertyDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'Parameter' AS Type FROM %Dictionary.ParameterDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'Index' AS Type FROM %Dictionary.IndexDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'ForeignKey' AS Type FROM %Dictionary.ForeignKeyDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'XData' AS Type FROM %Dictionary.XDataDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'Query' AS Type FROM %Dictionary.QueryDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'Trigger' AS Type FROM %Dictionary.TriggerDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'Storage' AS Type FROM %Dictionary.StorageDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'Projection' AS Type FROM %Dictionary.ProjectionDefinition" +
+    " UNION SELECT Name, Parent, 'Method' AS Type FROM %Dictionary.MethodDefinition" +
+    " UNION SELECT Name, Parent, 'Property' AS Type FROM %Dictionary.PropertyDefinition" +
+    " UNION SELECT Name, Parent, 'Parameter' AS Type FROM %Dictionary.ParameterDefinition" +
+    " UNION SELECT Name, Parent, 'Index' AS Type FROM %Dictionary.IndexDefinition" +
+    " UNION SELECT Name, Parent, 'ForeignKey' AS Type FROM %Dictionary.ForeignKeyDefinition" +
+    " UNION SELECT Name, Parent, 'XData' AS Type FROM %Dictionary.XDataDefinition" +
+    " UNION SELECT Name, Parent, 'Query' AS Type FROM %Dictionary.QueryDefinition" +
+    " UNION SELECT Name, Parent, 'Trigger' AS Type FROM %Dictionary.TriggerDefinition" +
+    " UNION SELECT Name, Parent, 'Storage' AS Type FROM %Dictionary.StorageDefinition" +
+    " UNION SELECT Name, Parent, 'Projection' AS Type FROM %Dictionary.ProjectionDefinition" +
     ") AS mem ";
 
   private readonly _sqlPrj: string =
