@@ -122,7 +122,9 @@ export class AtelierAPI {
             namespace = parts[1];
           } else {
             const { ns } = isfsConfig(wsOrFile);
-            if (ns) namespace = ns;
+            if (ns) {
+              namespace = ns;
+            }
           }
         } else {
           const wsFolderOfFile = vscode.workspace.getWorkspaceFolder(wsOrFile);
