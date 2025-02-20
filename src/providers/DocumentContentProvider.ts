@@ -245,7 +245,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
 
   public async provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): Promise<string> {
     const api = new AtelierAPI(uri);
-    // Even though this is technically a "objectscript" Uri, the query parameters are the same as "isfs"
+    // Even though this is technically an "objectscript" Uri, the query parameters are the same as "isfs"
     const { csp, ns } = isfsConfig(uri);
     const fileName = csp ? uri.path.slice(1) : uri.path.split("/").slice(1).join(".");
     if (ns) api.setNamespace(ns);
