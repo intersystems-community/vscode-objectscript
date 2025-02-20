@@ -2,11 +2,11 @@ import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-
 import { getFileName } from "../commands/export";
 import { config, FILESYSTEM_SCHEMA, FILESYSTEM_READONLY_SCHEMA, OBJECTSCRIPT_FILE_SCHEMA } from "../extension";
 import { currentWorkspaceFolder, isClassOrRtn, notIsfs, uriOfWorkspaceFolder } from "../utils";
 import { getUrisForDocument } from "../utils/documentIndex";
+import { isfsConfig, IsfsUriParam } from "../utils/FileProviderUtil";
 
 export function compareConns(
   conn1: { ns: any; server: any; host: any; port: any; "docker-compose": any },
@@ -143,31 +143,25 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
       if (authorityParts.length === 2 && namespace?.toLowerCase() === authorityParts[1]) {
         namespace = "";
       }
-      const fileExt = name.split(".").pop();
-      const fileName = name
-        .split(".")
-        .slice(0, -1)
-        .join(/cls|mac|int|inc/i.test(fileExt) ? "/" : ".");
-      if (/.\.G?[1-9]\.int$/i.test(name)) {
+      const params = new URLSearchParams(wFolderUri.query);
+      const cspParam = params.has(IsfsUriParam.CSP) && ["", "1"].includes(params.get(IsfsUriParam.CSP));
+      const lastDot = name.lastIndexOf(".");
+      let uriPath = isCsp ? name : name.slice(0, lastDot).replace(/\./g, "/") + "." + name.slice(lastDot + 1);
+      if (!isCsp && /.\.G?[1-9]\.int$/i.test(name)) {
         // This is a generated INT file
-        name =
-          fileName.slice(0, fileName.lastIndexOf("/")) +
-          "." +
-          fileName.slice(fileName.lastIndexOf("/") + 1) +
-          "." +
-          fileExt;
-      } else {
-        name = fileName + "." + fileExt;
+        const lastSlash = uriPath.lastIndexOf("/");
+        uriPath = uriPath.slice(0, lastSlash) + "." + uriPath.slice(lastSlash + 1);
       }
       uri = wFolderUri.with({
-        path: !name.startsWith("/") ? `/${name}` : name,
+        path: !uriPath.startsWith("/") ? `/${uriPath}` : uriPath,
       });
       vfs = true;
       scheme = wFolderUri.scheme;
-      // If this is a class or routine, remove the CSP query param if it's present
-      if (uri.query === "csp" && /cls|mac|int|inc/i.test(fileExt)) {
+      // If this is not a CSP file, remove the CSP query param if it's present
+      if (cspParam && !isCsp) {
+        params.delete(IsfsUriParam.CSP);
         uri = uri.with({
-          query: "",
+          query: params.toString(),
         });
       }
     } else {
@@ -221,27 +215,27 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     }
     const params = new URLSearchParams(uri.query);
     // Don't modify the query params if project is present
-    if (!params.has("project")) {
+    if (!params.has(IsfsUriParam.Project)) {
       if (namespace && namespace !== "") {
         if (isCsp) {
-          if (params.has("csp")) {
-            params.set("ns", namespace);
+          if (params.has(IsfsUriParam.CSP)) {
+            params.set(IsfsUriParam.NS, namespace);
             uri = uri.with({
               query: params.toString(),
             });
           } else {
             uri = uri.with({
-              query: `ns=${namespace}&csp=1`,
+              query: `${IsfsUriParam.NS}=${namespace}&${IsfsUriParam.CSP}=1`,
             });
           }
         } else {
           uri = uri.with({
-            query: `ns=${namespace}`,
+            query: `${IsfsUriParam.NS}=${namespace}`,
           });
         }
-      } else if (isCsp && !params.has("csp")) {
+      } else if (isCsp && !params.has(IsfsUriParam.CSP)) {
         uri = uri.with({
-          query: "csp=1",
+          query: `${IsfsUriParam.CSP}=1`,
         });
       }
     }
@@ -251,14 +245,10 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
 
   public async provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): Promise<string> {
     const api = new AtelierAPI(uri);
-    const params = new URLSearchParams(uri.query);
-    const fileName =
-      params.has("csp") && ["", "1"].includes(params.get("csp"))
-        ? uri.path.slice(1)
-        : uri.path.split("/").slice(1).join(".");
-    if (params.has("ns") && params.get("ns") != "") {
-      api.setNamespace(params.get("ns"));
-    }
+    // Even though this is technically a "objectscript" Uri, the query parameters are the same as "isfs"
+    const { csp, ns } = isfsConfig(uri);
+    const fileName = csp ? uri.path.slice(1) : uri.path.split("/").slice(1).join(".");
+    if (ns) api.setNamespace(ns);
     const data = await api.getDoc(fileName);
     if (Buffer.isBuffer(data.result.content)) {
       return "\nThis is a binary file.\n\nTo access its contents, export it to the local file system.";

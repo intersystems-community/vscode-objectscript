@@ -2,13 +2,47 @@ import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { ProjectItem } from "../commands/project";
 
-export async function projectContentsFromUri(uri: vscode.Uri, overrideFlat?: boolean): Promise<ProjectItem[]> {
+/** `isfs(-readonly)` query parameters that configure the documents shown */
+export enum IsfsUriParam {
+  Project = "project",
+  System = "system",
+  Generated = "generated",
+  Mapped = "mapped",
+  Filter = "filter",
+  CSP = "csp",
+  NS = "ns",
+}
+
+interface IsfsUriConfig {
+  system: boolean;
+  generated: boolean;
+  mapped: boolean;
+  filter: string;
+  project: string;
+  csp: boolean;
+  ns?: string;
+}
+
+/** Return the values of all configuration query parameters for `uri` */
+export function isfsConfig(uri: vscode.Uri): IsfsUriConfig {
+  const params = new URLSearchParams(uri.query);
+  return {
+    system: params.get(IsfsUriParam.System) == "1",
+    generated: params.get(IsfsUriParam.Generated) == "1",
+    mapped: params.get(IsfsUriParam.Mapped) != "0",
+    filter: params.get(IsfsUriParam.Filter) ?? "",
+    project: params.get(IsfsUriParam.Project) ?? "",
+    csp: ["", "1"].includes(params.get(IsfsUriParam.CSP)),
+    ns: params.get(IsfsUriParam.NS) || undefined,
+  };
+}
+
+export async function projectContentsFromUri(uri: vscode.Uri, flat = false): Promise<ProjectItem[]> {
   const api = new AtelierAPI(uri);
   if (!api.active) {
     return;
   }
-  const params = new URLSearchParams(uri.query);
-  const flat = overrideFlat ?? false;
+  const { project } = isfsConfig(uri);
   let folder = !uri.path.endsWith("/") ? uri.path + "/" : uri.path;
   folder = folder.startsWith("/") ? folder.slice(1) : folder;
   if (folder == "/") {
@@ -16,7 +50,6 @@ export async function projectContentsFromUri(uri: vscode.Uri, overrideFlat?: boo
     folder = "";
   }
   const folderDots = folder.replace(/\//g, ".");
-  const project = params.get("project");
   let query: string;
   let parameters: string[];
   if (flat) {
@@ -36,7 +69,7 @@ export async function projectContentsFromUri(uri: vscode.Uri, overrideFlat?: boo
       "pil.Type = 'DIR' AND SUBSTR(sod.Name,2) %STARTSWITH ? AND SUBSTR(sod.Name,2) %STARTSWITH pil.Name||'/'";
     parameters = [project, folderDots, folder, `Name %STARTSWITH '/${folder}'`, project, folder];
   } else {
-    if (folder.length) {
+    if (folder) {
       const l = String(folder.length + 1); // Need the + 1 because SUBSTR is 1 indexed
       query =
         "SELECT sod.Name, pil.Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,1,0,0,1) AS sod JOIN %Studio.Project_ProjectItemsList(?) AS pil ON " +
@@ -106,8 +139,7 @@ export async function projectContentsFromUri(uri: vscode.Uri, overrideFlat?: boo
 }
 
 export function fileSpecFromURI(uri: vscode.Uri): string {
-  const params = new URLSearchParams(uri.query);
-  const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
+  const { csp, filter } = isfsConfig(uri);
 
   const folder = !csp
     ? uri.path.replace(/\/$/, "").replace(/\//g, ".")
@@ -116,19 +148,13 @@ export function fileSpecFromURI(uri: vscode.Uri): string {
       : uri.path.endsWith("/")
         ? uri.path
         : uri.path + "/";
-  // The query filter represents the studio spec to be used,
-  // overrides.filter represents the SQL query that will be passed to the server
 
+  // The filter Uri parameter is the first argument to StudioOpenDialog (Spec)
   let specOpts = "";
-  // If filter is specified on the URI, use it
-  if (params.has("filter") && params.get("filter").length) {
-    specOpts = params.get("filter");
-    if (!csp) {
-      // always exclude Studio projects, since we can't do anything with them
-      specOpts += ",'*.prj";
-    }
-  } // otherwise, reference the type to get the desired files.
-  else if (csp) {
+  if (filter) {
+    // Always exclude Studio projects, BPL, and DTL since we can't do anything with them
+    specOpts = filter + ",'*.prj,'*.bpl,'*.dtl";
+  } else if (csp) {
     specOpts = folder.length > 1 ? "*" : "*.cspall";
   } else {
     specOpts = "*.cls,*.inc,*.mac,*.int";
@@ -141,19 +167,18 @@ export function studioOpenDialogFromURI(
   overrides: { flat?: boolean; filter?: string } = { flat: false, filter: "" }
 ): Promise<any> {
   const api = new AtelierAPI(uri);
-  if (!api.active) {
-    return;
-  }
-  const sql = `SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?,?,?)`;
-  const params = new URLSearchParams(uri.query);
-  const spec = fileSpecFromURI(uri);
-  const notStudio = "0";
-  const dir = "1";
-  const orderBy = "1";
-  const generated = params.has("generated") && params.get("generated").length ? params.get("generated") : "0";
-  const system =
-    params.has("system") && params.get("system").length ? params.get("system") : api.ns === "%SYS" ? "1" : "0";
-  const flat = overrides && overrides.flat ? "1" : "0";
-  const mapped = params.has("mapped") && params.get("mapped") == "0" ? "0" : "1";
-  return api.actionQuery(sql, [spec, dir, orderBy, system, flat, notStudio, generated, overrides.filter, "0", mapped]);
+  if (!api.active) return;
+  const { system, generated, mapped } = isfsConfig(uri);
+  return api.actionQuery("SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?,?,?)", [
+    fileSpecFromURI(uri),
+    "1", // Dir (1 means ascending order)
+    "1", // OrderBy (1 means name, case insensitive)
+    system || api.ns == "%SYS" ? "1" : "0",
+    overrides?.flat ? "1" : "0",
+    "0", // NotStudio (0 means hide globals and OBJ files)
+    generated ? "1" : "0",
+    overrides.filter,
+    "0", // RoundTime (0 means no rounding)
+    mapped ? "1" : "0",
+  ]);
 }

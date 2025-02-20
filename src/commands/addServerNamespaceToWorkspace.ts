@@ -11,6 +11,7 @@ import {
 } from "../extension";
 import { cspAppsForUri, handleError, notIsfs } from "../utils";
 import { pickProject } from "./project";
+import { isfsConfig, IsfsUriParam } from "../utils/FileProviderUtil";
 
 /**
  * @param message The prefix of the message to show when the server manager API can't be found.
@@ -143,9 +144,7 @@ export async function addServerNamespaceToWorkspace(resource?: vscode.Uri): Prom
     return;
   }
   // Generate the name
-  const params = new URLSearchParams(uri.query);
-  const project = params.get("project");
-  const csp = params.has("csp");
+  const { csp, project } = isfsConfig(uri);
   const name = `${project ? `${project} - ${serverName}:${namespace}` : !csp ? `${serverName}:${namespace}` : ["", "/"].includes(uri.path) ? `${serverName}:${namespace} web files` : `${serverName} (${uri.path})`}${
     scheme == FILESYSTEM_READONLY_SCHEMA && !project ? " (read-only)" : ""
   }`;
@@ -188,7 +187,7 @@ export async function getServerManagerApi(): Promise<any> {
 /** Prompt the user to fill in the `path` and `query` of `uri`. */
 async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefined> {
   if (notIsfs(uri)) return;
-  const params = new URLSearchParams(uri.query);
+  const { project, csp, system, generated, mapped, filter } = isfsConfig(uri);
   const api = new AtelierAPI(uri);
 
   // Prompt the user for the files to show
@@ -211,9 +210,7 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
         detail: "Choose an existing project, or create a new one.",
       },
     ];
-    quickPick.activeItems = [
-      params.has("project") ? quickPick.items[2] : params.has("csp") ? quickPick.items[1] : quickPick.items[0],
-    ];
+    quickPick.activeItems = [project ? quickPick.items[2] : csp ? quickPick.items[1] : quickPick.items[0]];
 
     quickPick.onDidChangeSelection((items) => {
       switch (items[0].label) {
@@ -258,7 +255,7 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
         // Catch handler reported the error already
         return;
       } else if (cspApps.length == 0) {
-        vscode.window.showWarningMessage(`No web applications are configured to use namespace ${api.ns}.`, "Dismiss");
+        vscode.window.showWarningMessage(`No web applications are configured in namespace ${api.ns}.`, "Dismiss");
         return;
       }
     }
@@ -292,34 +289,34 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
     if (!newPath) {
       return;
     }
-    newParams = "csp";
+    newParams = IsfsUriParam.CSP;
   } else if (filterType == "project") {
     // Prompt for project
     const project = await pickProject(new AtelierAPI(uri));
     if (!project) {
       return;
     }
-    newParams = `project=${project}`;
+    newParams = `${IsfsUriParam.Project}=${project}`;
   } else {
     // Prompt the user for other query parameters
     const items = [
       {
         label: "$(filter) Filter",
         detail: "Comma-delimited list of search options, e.g. '*.cls,*.inc,*.mac,*.int'",
-        picked: params.has("filter"),
-        value: "filter",
+        picked: filter != "",
+        value: IsfsUriParam.Filter,
       },
       {
         label: "$(server-process) Show Generated",
         detail: "Also show files tagged as generated, e.g. by compilation.",
-        picked: params.has("generated"),
-        value: "generated",
+        picked: generated,
+        value: IsfsUriParam.Generated,
       },
       {
         label: "$(references) Hide Mapped",
         detail: `Hide files that are mapped into ${api.ns} from another code database.`,
-        picked: params.has("mapped"),
-        value: "mapped",
+        picked: !mapped,
+        value: IsfsUriParam.Mapped,
       },
     ];
     if (api.ns != "%SYS") {
@@ -327,8 +324,8 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
       items.push({
         label: "$(library) Show System",
         detail: "Also show '%' items and INFORMATION.SCHEMA items.",
-        picked: params.has("system"),
-        value: "system",
+        picked: system,
+        value: IsfsUriParam.System,
       });
     }
     const otherParams = await vscode.window.showQuickPick(items, {
@@ -340,37 +337,29 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
       return;
     }
     // Build the new query parameter string
-    params.delete("csp");
-    params.delete("project");
-    params.delete("filter");
-    params.delete("flat");
-    params.delete("generated");
-    params.delete("mapped");
-    params.delete("system");
-    params.delete("type");
+    const params = new URLSearchParams();
     for (const otherParam of otherParams) {
       switch (otherParam.value) {
-        case "filter": {
+        case IsfsUriParam.Filter: {
           // Prompt for filter
-          const filter = await vscode.window.showInputBox({
+          const newFilter = await vscode.window.showInputBox({
             title: "Enter a filter string.",
             ignoreFocusOut: true,
-            value: params.get("filter"),
+            value: filter,
             placeHolder: "*.cls,*.inc,*.mac,*.int",
             prompt:
               "Patterns are comma-delimited and may contain both * (zero or more characters) and ? (a single character) as wildcards. To exclude items, prefix the pattern with a single quote.",
           });
-          if (filter && filter.length) {
-            params.set(otherParam.value, filter);
+          if (newFilter && newFilter.length) {
+            params.set(otherParam.value, newFilter);
           }
           break;
         }
-        case "generated":
-        case "system":
-          params.set(otherParam.value, "1");
-          break;
-        case "mapped":
+        case IsfsUriParam.Mapped:
           params.set(otherParam.value, "0");
+          break;
+        default: // system and generated
+          params.set(otherParam.value, "1");
       }
     }
     newParams = params.toString();
