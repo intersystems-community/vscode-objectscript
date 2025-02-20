@@ -581,22 +581,22 @@
         },
         {
           "command": "vscode-objectscript.addItemsToProject",
-          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && explorerResourceIsRoot && !listMultiSelection",
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && resourcePath =~ /^\\/?$/ && !listMultiSelection",
           "group": "objectscript_prj@1"
         },
         {
           "command": "vscode-objectscript.removeFromProject",
-          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && !explorerResourceIsRoot && !listMultiSelection",
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && !(resourcePath =~ /^\\/?$/) && !listMultiSelection",
           "group": "objectscript_prj@2"
         },
         {
           "command": "vscode-objectscript.removeItemsFromProject",
-          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && explorerResourceIsRoot && !listMultiSelection",
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && resourcePath =~ /^\\/?$/ && !listMultiSelection",
           "group": "objectscript_prj@2"
         },
         {
           "command": "vscode-objectscript.modifyProjectMetadata",
-          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && explorerResourceIsRoot && !listMultiSelection",
+          "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && resourcePath =~ /^\\/?$/ && !listMultiSelection",
           "group": "objectscript_prj@3"
         },
         {

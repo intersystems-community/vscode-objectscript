@@ -19,6 +19,7 @@ import {
 import { mainCommandMenu, mainSourceControlMenu } from "./studio";
 import { AtelierAPI } from "../api";
 import { getCSPToken } from "../utils/getCSPToken";
+import { isfsConfig } from "../utils/FileProviderUtil";
 
 type ServerAction = { detail: string; id: string; label: string; rawLink?: string };
 export async function serverActions(): Promise<void> {
@@ -137,7 +138,7 @@ export async function serverActions(): Promise<void> {
   const classRef = `/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${nsEncoded}${
     classname ? "&CLASSNAME=" + classnameEncoded : ""
   }`;
-  const project = new URLSearchParams(wsUri?.query).get("project") || "";
+  const project = wsUri ? isfsConfig(wsUri).project : "";
   let extraLinks = 0;
   for (const title in links) {
     const rawLink = String(links[title]);
@@ -190,7 +191,7 @@ export async function serverActions(): Promise<void> {
   actions.push({
     id: "openStudioAddin",
     label: "Open Studio Add-in...",
-    detail: "Select a Studio Add-in to open",
+    detail: "Pick a Studio Add-in to open",
   });
   if (
     (!vscode.window.activeTextEditor && wsUri && wsUri.scheme == FILESYSTEM_SCHEMA) ||
@@ -199,7 +200,7 @@ export async function serverActions(): Promise<void> {
     actions.push({
       id: "serverSourceControlMenu",
       label: "Server Source Control...",
-      detail: "Pick server-side source control action",
+      detail: "Pick a server-side source control action to execute",
     });
   }
   if (
@@ -209,12 +210,12 @@ export async function serverActions(): Promise<void> {
     actions.push({
       id: "serverCommandMenu",
       label: "Server Command Menu...",
-      detail: "Pick server-side command",
+      detail: "Pick a server-side command to execute",
     });
   }
   return vscode.window
     .showQuickPick(actions, {
-      placeHolder: `Select action for server: ${connInfo}`,
+      placeHolder: `Pick action to perform for server ${connInfo}`,
     })
     .then(connectionActionsHandler)
     .then(async (action) => {
@@ -243,7 +244,7 @@ export async function serverActions(): Promise<void> {
             });
           if (addins != undefined) {
             const addin = await vscode.window.showQuickPick(addins, {
-              placeHolder: `Select Studio Add-In for server: ${connInfo}`,
+              placeHolder: `Pick a Studio Add-In to open for server: ${connInfo}`,
             });
             if (addin) {
               const token = await getCSPToken(api, addin.id);

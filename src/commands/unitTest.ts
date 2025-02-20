@@ -9,7 +9,7 @@ import {
   stripClassMemberNameQuotes,
   uriIsParentOf,
 } from "../utils";
-import { fileSpecFromURI } from "../utils/FileProviderUtil";
+import { fileSpecFromURI, isfsConfig } from "../utils/FileProviderUtil";
 import { AtelierAPI } from "../api";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 
@@ -111,7 +111,7 @@ async function addTestItemsForClass(testController: vscode.TestController, paren
       const inheritedMethods: { Name: string; Origin: string }[] = await api
         .actionQuery(
           "SELECT Name, Origin FROM %Dictionary.CompiledMethod WHERE " +
-            "parent->ID = ? AND Origin != parent->ID AND Name %STARTSWITH 'Test' " +
+            "Parent = ? AND Origin != Parent AND Name %STARTSWITH 'Test' " +
             "AND ClassMethod = 0 AND ClientMethod = 0 ORDER BY Name",
           [parentSymbols[0].name]
         )
@@ -171,6 +171,7 @@ function createRootItemsForWorkspaceFolder(
 ): vscode.TestItem[] {
   let newItems: vscode.TestItem[] = [];
   const api = new AtelierAPI(folder.uri);
+  const { csp } = isfsConfig(folder.uri);
   // Must have an active server connection to a non-%SYS namespace and Atelier API version 8 or above
   const errorMsg =
     !api.active || api.ns == ""
@@ -179,8 +180,7 @@ function createRootItemsForWorkspaceFolder(
         ? "Connected to the %SYS namespace"
         : api.config.apiVersion < 8
           ? "Must be connected to InterSystems IRIS version 2023.3 or above"
-          : filesystemSchemas.includes(folder.uri.scheme) &&
-              ["", "1"].includes(new URLSearchParams(folder.uri.query).get("csp"))
+          : filesystemSchemas.includes(folder.uri.scheme) && csp
             ? "Web application folder"
             : undefined;
   let itemUris: vscode.Uri[];
@@ -257,6 +257,7 @@ function replaceRootTestItems(testController: vscode.TestController): void {
 async function childrenForServerSideFolderItem(
   item: vscode.TestItem
 ): Promise<Atelier.Response<Atelier.Content<{ Name: string }[]>>> {
+  const { project, system, generated, mapped } = isfsConfig(item.uri);
   let query: string;
   let parameters: string[];
   let folder = !item.uri.path.endsWith("/") ? item.uri.path + "/" : item.uri.path;
@@ -267,25 +268,26 @@ async function childrenForServerSideFolderItem(
   }
   folder = folder.replace(/\//g, ".");
   const folderLen = String(folder.length + 1); // Need the + 1 because SUBSTR is 1 indexed
-  const params = new URLSearchParams(item.uri.query);
   const api = new AtelierAPI(item.uri);
-  if (params.has("project")) {
+  if (project) {
     query =
       "SELECT DISTINCT CASE " +
-      "WHEN $LENGTH(SUBSTR(Name,?),'.') > 1 THEN $PIECE(SUBSTR(Name,?),'.') " +
-      "ELSE SUBSTR(Name,?)||'.cls' END Name " +
-      "FROM %Studio.Project_ProjectItemsList(?) " +
-      "WHERE Type = 'CLS' AND Name %STARTSWITH ? AND " +
-      "Name IN (SELECT Name FROM %Dictionary.ClassDefinition_SubclassOf('%UnitTest.TestCase','@'))";
-    parameters = [folderLen, folderLen, folderLen, params.get("project"), folder];
+      "WHEN $LENGTH(SUBSTR(pil.Name,?),'.') > 1 THEN $PIECE(SUBSTR(pil.Name,?),'.') " +
+      "ELSE SUBSTR(pil.Name,?)||'.cls' END Name " +
+      "FROM %Studio.Project_ProjectItemsList(?) AS pil " +
+      "JOIN %Dictionary.ClassDefinition_SubclassOf('%UnitTest.TestCase','@') AS sub " +
+      "ON pil.Name = sub.Name " +
+      "WHERE pil.Type = 'CLS' AND pil.Name %STARTSWITH ?";
+    parameters = [folderLen, folderLen, folderLen, project, folder];
   } else {
     query =
       "SELECT DISTINCT CASE " +
-      "WHEN $LENGTH(SUBSTR(Name,?),'.') > 2 THEN $PIECE(SUBSTR(Name,?),'.') " +
-      "ELSE SUBSTR(Name,?) END Name " +
-      "FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?,?,?) " +
-      "WHERE Name %STARTSWITH ? AND " +
-      "Name IN (SELECT Name||'.cls' FROM %Dictionary.ClassDefinition_SubclassOf('%UnitTest.TestCase','@'))";
+      "WHEN $LENGTH(SUBSTR(sod.Name,?),'.') > 2 THEN $PIECE(SUBSTR(sod.Name,?),'.') " +
+      "ELSE SUBSTR(sod.Name,?) END Name " +
+      "FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?,?,?) AS sod " +
+      "JOIN %Dictionary.ClassDefinition_SubclassOf('%UnitTest.TestCase','@') AS sub " +
+      "ON sod.Name = sub.Name||'.cls' " +
+      "WHERE sod.Name %STARTSWITH ?";
     parameters = [
       folderLen,
       folderLen,
@@ -293,13 +295,13 @@ async function childrenForServerSideFolderItem(
       fileSpecFromURI(item.uri),
       "1",
       "1",
-      params.has("system") && params.get("system").length ? params.get("system") : "0",
+      system ? "1" : "0",
       "1",
       "0",
-      params.has("generated") && params.get("generated").length ? params.get("generated") : "0",
+      generated ? "1" : "0",
       "",
       "0",
-      params.has("mapped") && params.get("mapped") == "0" ? "0" : "1",
+      mapped ? "1" : "0",
       folder,
     ];
   }
