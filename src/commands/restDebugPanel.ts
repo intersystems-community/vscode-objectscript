@@ -1,9 +1,8 @@
 import axios from "axios";
 import * as httpsModule from "https";
-
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { cspAppsForUri, handleError } from "../utils";
+import { handleError } from "../utils";
 import { iscIcon } from "../extension";
 
 interface WebviewMessage {
@@ -83,24 +82,6 @@ export class RESTDebugPanel {
       return;
     }
 
-    // Build the list of all non-CSP web apps
-    const cspWebApps: string[] = cspAppsForUri(openEditor.document.uri);
-    const allWebApps: string[] | null = await api
-      .actionQuery("CALL %CSP.Apps_CSPAppList()", [])
-      .then((data) => data.result.content.map((obj) => obj.AppUrl))
-      .catch((error) => {
-        handleError(error, "Failed to fetch the list of web applications from the server.");
-        return null;
-      });
-    if (allWebApps == null) {
-      return;
-    }
-    const restWebApps = allWebApps.filter((app) => !cspWebApps.includes(app));
-    if (restWebApps.length == 0) {
-      vscode.window.showErrorMessage("No REST web applications are configured in the server's namespace.", "Dismiss");
-      return;
-    }
-
     if (this.currentPanel !== undefined) {
       // Can only have one panel open at once
       if (!this.currentPanel._panel.visible) {
@@ -133,10 +114,10 @@ export class RESTDebugPanel {
     panel.iconPath = iscIcon;
 
     this._file = openEditor.document.uri;
-    this.currentPanel = new RESTDebugPanel(panel, webviewFolderUri, api, restWebApps);
+    this.currentPanel = new RESTDebugPanel(panel, webviewFolderUri, api);
   }
 
-  private constructor(panel: vscode.WebviewPanel, webviewFolderUri: vscode.Uri, api: AtelierAPI, webApps: string[]) {
+  private constructor(panel: vscode.WebviewPanel, webviewFolderUri: vscode.Uri, api: AtelierAPI) {
     this._panel = panel;
     const serverInfo = `${api.config.https ? "https" : "http"}://${api.config.host}:${api.config.port}${
       api.config.pathPrefix
@@ -153,12 +134,7 @@ export class RESTDebugPanel {
           vscode.Uri.joinPath(webviewFolderUri, "elements-1.6.3.js")
         )}"></script>
         <title>${RESTDebugPanel._viewTitle}</title>
-        <style>
-          .path-grid {
-            display: grid;
-            grid-template-columns: 1fr 20fr;
-            column-gap: 0.5rem;
-          }      
+        <style>     
           .component-container > * {
             margin: 0.5rem 0;
           }
@@ -167,15 +143,6 @@ export class RESTDebugPanel {
           }
           vscode-tabs {
             display: contents;
-          }
-          .path-grid-container {
-            display: flex;
-            flex-direction: row;
-            align-items: flex-start;
-            justify-content: flex-start;
-          }
-          #webApp {
-            max-width: 45vw;
           }
           #button {
             margin-top: 0.5rem;
@@ -198,15 +165,8 @@ export class RESTDebugPanel {
             <vscode-tab-header id="bodyTab">BODY</vscode-tab-header>
             <vscode-tab-panel id="methodPathView">
               <section class="component-container">
-                <p>
-                  Select a method for this request, then select the web application
-                  to use from the dropdown and enter the rest of the path in the input field
-                  next to the dropdown. 
-                </p>
-                <p>
-                  The connection information of the server definition
-                  is shown for clarity but it cannot be edited.
-                </p>
+                <p>Select a method for this request, then enter the path in the bottom input field.</p>
+                <p>The connection information of the server definition is shown, but it cannot be edited.</p>
                 <vscode-radio-group id="method" name="method">
                   <vscode-radio value="GET" name="method" checked>GET</vscode-radio>
                   <vscode-radio value="POST" name="method">POST</vscode-radio>
@@ -217,14 +177,7 @@ export class RESTDebugPanel {
                   <vscode-radio value="OPTIONS" name="method">OPTIONS</vscode-radio>
                 </vscode-radio-group>
                 <vscode-textfield readonly id="serverInfo"></vscode-textfield>
-                <section class="path-grid">
-                  <section class="path-grid-container">
-                    <vscode-single-select id="webApp" name="webApp" position="below"></vscode-single-select>
-                  </section>
-                  <section class="path-grid-container">
-                    <vscode-textfield id="path" name="path" placeholder="/path" pattern="^/.*$" required></vscode-textfield>
-                  </section>
-                </section>
+                <vscode-textfield id="path" name="path" placeholder="/path" pattern="^/.*$" required></vscode-textfield>
               </section>
             </vscode-tab-panel>
             <vscode-tab-panel id="headersView">
@@ -271,13 +224,12 @@ export class RESTDebugPanel {
           const bodyType = document.getElementById("bodyType");
           const bodyContent = document.getElementById("bodyContent");
           const button = document.getElementById("button");
-          const webApp = document.getElementById("webApp");
-          const formFields = [method, serverInfo, path, headersText, paramsText, bodyType, bodyContent, webApp];
+          const formFields = [method, serverInfo, path, headersText, paramsText, bodyType, bodyContent];
           const sendData = (submitted) => {
             const data = Object.fromEntries(new FormData(form));
             if (
               Object.keys(data).length == (formFields.length - 1) &&
-              data.webApp != "" && data.method != "" && data.bodyType != "" &&
+              data.method != "" && data.bodyType != "" &&
               (!submitted || (submitted && path.checkValidity()))
             ) {
               vscode.postMessage({
@@ -290,24 +242,7 @@ export class RESTDebugPanel {
           window.onmessage = (event) => {
             const data = event.data, currentVals = new FormData(form);
             formFields.forEach((field) => {
-              if (field.id == "webApp" && webApp.children.length == 0) {
-                // Create options and set the initial value
-                const initIdx = data.webApps.findIndex((e) => e == data.webApp) ?? 0;
-                data.webApps.forEach((webAppStr, idx) => {
-                  const option = document.createElement("vscode-option");
-                  option.innerText = webAppStr;
-                  option.setAttribute("value",webAppStr);
-                  if (idx == initIdx) {
-                    option.selected = true;
-                  }
-                  webApp.appendChild(option);
-                });
-                // Update width of dropdown
-                const longest = data.webApps.reduce((a,b) => a.length > b.length ? a : b);
-                const context = document.createElement("canvas").getContext("2d");
-                context.font = window.getComputedStyle(webApp,null).getPropertyValue("font");
-                webApp.style.width = Math.ceil(context.measureText(longest).width*(4/3)) + "px";
-              } else if (data[field.id] != undefined && currentVals.get(field.id) != data[field.id]) {
+              if (data[field.id] != undefined && currentVals.get(field.id) != data[field.id]) {
                 if (["method","bodyType"].includes(field.id)) {
                   // Check the correct radio
                   for (const c of field.children) {
@@ -341,7 +276,7 @@ export class RESTDebugPanel {
           // Bubble change events up to the form
           bodyContent.onchange = headersText.onchange = 
             paramsText.onchange = path.onchange = 
-            webApp.onchange = () => form.dispatchEvent(new Event("change"));
+            () => form.dispatchEvent(new Event("change"));
         </script>
 			</body>
 			</html>`;
@@ -460,7 +395,6 @@ export class RESTDebugPanel {
           // Restore the content
           this._panel.webview.postMessage({
             serverInfo,
-            webApps,
             ...RESTDebugPanel._cache,
           });
         }

@@ -3,7 +3,7 @@ import { makeRe } from "minimatch";
 import { AsyncSearchRequest, SearchResult, SearchMatch } from "../../api/atelier";
 import { AtelierAPI } from "../../api";
 import { DocumentContentProvider } from "../DocumentContentProvider";
-import { handleError, notNull, outputChannel, throttleRequests } from "../../utils";
+import { handleError, notNull, outputChannel, RateLimiter } from "../../utils";
 import { config } from "../../extension";
 import { fileSpecFromURI } from "../../utils/FileProviderUtil";
 
@@ -280,6 +280,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
     const api = new AtelierAPI(options.folder);
     const params = new URLSearchParams(options.folder.query);
     const decoder = new TextDecoder();
+    const rateLimiter = new RateLimiter(50);
     let counter = 0;
     if (!api.enabled) {
       return {
@@ -470,7 +471,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
               return api.verifiedCancel(id, false);
             }
             // Process matches
-            filePromises.push(...pollResp.result.map(throttleRequests(reportMatchesForFile)));
+            filePromises.push(...pollResp.result.map((file) => rateLimiter.call(() => reportMatchesForFile(file))));
             if (pollResp.retryafter) {
               await new Promise((resolve) => {
                 setTimeout(resolve, 50);
@@ -524,8 +525,8 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
           requestGroups.push(group);
         }
         searchPromise = Promise.allSettled(
-          requestGroups.map(
-            throttleRequests((group: string[]) =>
+          requestGroups.map((group) =>
+            rateLimiter.call(() =>
               api
                 .actionSearch({
                   query: pattern,
@@ -628,8 +629,8 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
             return;
           }
           const resultsPromise = Promise.allSettled(
-            files.map(
-              throttleRequests(async (file: SearchResult): Promise<void> => {
+            files.map((file) =>
+              rateLimiter.call(() => {
                 if (token.isCancellationRequested) {
                   return;
                 }
