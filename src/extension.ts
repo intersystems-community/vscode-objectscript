@@ -340,7 +340,7 @@ export async function checkConnection(
     _onDidChangeConnection.fire();
   }
   let api = new AtelierAPI(apiTarget, false);
-  const { active, host = "", port = 0, username, ns = "" } = api.config;
+  const { active, host = "", port = 0, superserverPort = 0, username, ns = "" } = api.config;
   vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
   if (!panel.text) {
     panel.text = `${PANEL_LABEL}`;
@@ -384,6 +384,8 @@ export async function checkConnection(
         if (dockerPort !== port) {
           workspaceState.update(wsKey + ":host", "localhost");
           workspaceState.update(wsKey + ":port", dockerPort);
+        }
+        if (dockerSuperserverPort !== superserverPort) {
           workspaceState.update(wsKey + ":superserverPort", dockerSuperserverPort);
         }
         connInfo = `localhost:${dockerPort}[${ns}]`;
