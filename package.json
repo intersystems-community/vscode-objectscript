@@ -1289,7 +1289,11 @@
                   "type": "string"
                 },
                 "internalPort": {
-                  "description": "Target port inside the service in docker-compose.",
+                  "description": "Target webserver port inside the service in docker-compose.",
+                  "type": "number"
+                },
+                "internalSuperserverPort": {
+                  "description": "Target superserver port inside the service in docker-compose.",
                   "type": "number"
                 },
                 "file": {
