@@ -3,9 +3,8 @@ import { makeRe } from "minimatch";
 import { AsyncSearchRequest, SearchResult, SearchMatch } from "../../api/atelier";
 import { AtelierAPI } from "../../api";
 import { DocumentContentProvider } from "../DocumentContentProvider";
-import { handleError, notNull, outputChannel, throttleRequests } from "../../utils";
-import { config } from "../../extension";
-import { fileSpecFromURI } from "../../utils/FileProviderUtil";
+import { handleError, notNull, outputChannel, RateLimiter } from "../../utils";
+import { fileSpecFromURI, isfsConfig, IsfsUriParam } from "../../utils/FileProviderUtil";
 
 /**
  * Convert an `attrline` in a description to a line number in document `content`.
@@ -30,7 +29,7 @@ function searchMatchToLine(
   content: string[],
   match: SearchMatch,
   fileName: string,
-  apiConfigName: string
+  multilineMethodArgs: boolean
 ): number | null {
   let line = match.line ? Number(match.line) : null;
   if (match.member !== undefined) {
@@ -55,6 +54,15 @@ function searchMatchToLine(
           }
         }
       }
+    } else if (match.attr == "Content" && /^T\d+$/.test(match.member)) {
+      // This is inside a non-description comment
+      for (let i = 0; i < content.length; i++) {
+        if (content[i].trimStart() == match.text) {
+          // match.text will never have leading whitespace, even if the source line does
+          line = i;
+          break;
+        }
+      }
     } else {
       const memberMatchPattern = new RegExp(
         `^((?:Class|Client)?Method|Property|XData|Query|Trigger|Parameter|Relationship|Index|ForeignKey|Storage|Projection) ${match.member}`
@@ -62,7 +70,7 @@ function searchMatchToLine(
       for (let i = 0; i < content.length; i++) {
         if (content[i].match(memberMatchPattern)) {
           let memend = i + 1;
-          if (config("multilineMethodArgs", apiConfigName) && content[i].match(/^(?:Class|Client)?Method|Query /)) {
+          if (multilineMethodArgs && content[i].match(/^(?:Class|Client)?Method|Query /)) {
             // The class member definition is on multiple lines so update the end
             for (let j = i + 1; j < content.length; j++) {
               if (content[j].trim() === "{") {
@@ -95,7 +103,12 @@ function searchMatchToLine(
               // This is in the class member definition
               // Need to loop due to the possibility of keywords with multiline values
               for (let j = i; j < content.length; j++) {
-                if (content[j].includes(match.attr)) {
+                if (
+                  content[j].includes(
+                    // If attr is Type or ReturnType, need to search for text
+                    ["Type", "ReturnType"].includes(match.attr) ? match.text : match.attr
+                  )
+                ) {
                   line = j;
                   break;
                 } else if (
@@ -139,9 +152,12 @@ function searchMatchToLine(
           break;
         }
       }
+    } else if (match.attr == "Copyright") {
+      // This is in the Copyright (multi-line comment at top of class)
+      line = (match.attrline ?? 1) - 1;
     } else {
       // This is in the class definition
-      const classMatchPattern = new RegExp(`^Class ${fileName.slice(0, fileName.lastIndexOf("."))}`);
+      const classMatchPattern = new RegExp(`^Class ${fileName.slice(0, -4)}`);
       let keywordSearch = false;
       for (let i = 0; i < content.length; i++) {
         if (content[i].match(classMatchPattern)) {
@@ -176,6 +192,9 @@ function searchMatchToLine(
         }
       }
     }
+  } else if (line == null && match.text == fileName) {
+    // This is a match in the routine header
+    line = 0;
   }
   return typeof line === "number" ? (fileName.includes("/") ? line - 1 : line) : null;
 }
@@ -264,13 +283,6 @@ function removeConfigExcludes(folder: vscode.Uri, excludes: string[]): string[] 
 }
 
 export class TextSearchProvider implements vscode.TextSearchProvider {
-  /**
-   * Provide results that match the given text pattern.
-   * @param query The parameters for this query.
-   * @param options A set of options to consider while searching.
-   * @param progress A progress callback that must be invoked for all results.
-   * @param token A cancellation token.
-   */
   public async provideTextSearchResults(
     query: vscode.TextSearchQuery,
     options: vscode.TextSearchOptions,
@@ -278,10 +290,8 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
     token: vscode.CancellationToken
   ): Promise<vscode.TextSearchComplete> {
     const api = new AtelierAPI(options.folder);
-    const params = new URLSearchParams(options.folder.query);
-    const decoder = new TextDecoder();
-    let counter = 0;
-    if (!api.enabled) {
+    const rateLimiter = new RateLimiter(50);
+    if (!api.active) {
       return {
         message: {
           text: "An active server connection is required for searching `isfs` folders.",
@@ -289,121 +299,163 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
         },
       };
     }
-    if (token.isCancellationRequested) {
-      return;
-    }
-
-    /** Report matches in `file` to the user */
-    const reportMatchesForFile = async (file: SearchResult): Promise<void> => {
-      // The last three checks are needed to protect against
-      // bad output from the server due to a bug.
-      if (
-        // The user cancelled the search
-        token.isCancellationRequested ||
-        // The server reported no matches in this file
-        !file.matches.length ||
-        // The file name is malformed
-        (file.doc.includes("/") && !/^\/(?:[^/]+\/)+[^/.]*(?:\.[^/.]+)+$/.test(file.doc)) ||
-        (!file.doc.includes("/") &&
-          !/^(%?[\p{L}\d\u{100}-\u{ffff}]+(?:\.[\p{L}\d\u{100}-\u{ffff}]+)+)$/u.test(file.doc))
-      ) {
-        return;
-      }
-
-      const uri = DocumentContentProvider.getUri(file.doc, "", "", true, options.folder);
-      const content = decoder.decode(await vscode.workspace.fs.readFile(uri)).split("\n");
-      const contentLength = content.length;
-      // Find all lines that we have matches on
-      const lines = file.matches
-        .map((match: SearchMatch) =>
-          token.isCancellationRequested ? null : searchMatchToLine(content, match, file.doc, api.configName)
-        )
-        .filter(notNull);
-      // Remove duplicates and make them quickly searchable
-      const matchedLines = new Set(lines);
-      // Compute all matches for each one
-      matchedLines.forEach((line) => {
-        if (token.isCancellationRequested) {
+    if (token.isCancellationRequested) return;
+    let counter = 0;
+    const { csp, project, filter, system, generated, mapped } = isfsConfig(options.folder);
+    const decoder = new TextDecoder(),
+      /** Returns a new array with unneeded duplicate glob patters from the given glob pattern array removed */
+      deduplicateGlobArray = (globs: string[]): string[] => {
+        return globs.filter((g) => {
+          // Need custom parsing so we don't split on forward slash within braces
+          const parts: string[] = [];
+          let part = "",
+            braceLevel = 0;
+          for (const c of g) {
+            if (c == "/" && braceLevel == 0) {
+              parts.push(part);
+              part = "";
+              continue;
+            } else if (c == "{") {
+              braceLevel++;
+            } else if (c == "}") {
+              braceLevel--;
+              if (braceLevel < 0) break; // Glob pattern is malformed
+            }
+            part += c;
+          }
+          if (braceLevel != 0) return true; // Glob pattern is malformed
+          if (part.length) parts.push(part);
+          return !(
+            // For folders that cannot contain web application files,
+            // globstar after a dot part will never match anything
+            // because dots are only for file extensions.
+            (
+              (!project &&
+                !csp &&
+                parts.length > 1 &&
+                parts[parts.length - 1] == "**" &&
+                parts[parts.length - 2].includes(".")) ||
+              // A non-dotted last path segment needs the trailing globstar to match properly
+              (parts.length && parts[parts.length - 1] != "**" && !parts[parts.length - 1].includes("."))
+            )
+          );
+        });
+      },
+      /** Report matches in `file` to the user */
+      reportMatchesForFile = async (file: SearchResult): Promise<void> => {
+        // The last three checks are needed to protect against
+        // bad output from the server due to a bug.
+        if (
+          // The user cancelled the search
+          token.isCancellationRequested ||
+          // The server reported no matches in this file
+          !file.matches.length ||
+          // The file name is malformed
+          (file.doc.includes("/") && !/^\/(?:[^/]+\/)+[^/.]*(?:\.[^/.]+)+$/.test(file.doc)) ||
+          (!file.doc.includes("/") &&
+            !/^(%?[\p{L}\d\u{100}-\u{ffff}]+(?:\.[\p{L}\d\u{100}-\u{ffff}]+)+)$/u.test(file.doc))
+        ) {
           return;
         }
-        const text = content[line];
-        const regex = new RegExp(
-          query.isRegExp ? query.pattern : query.pattern.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"),
-          query.isCaseSensitive ? "g" : "gi"
-        );
-        let regexMatch: RegExpExecArray;
-        const matchRanges: vscode.Range[] = [];
-        const previewRanges: vscode.Range[] = [];
-        while ((regexMatch = regex.exec(text)) !== null && counter < options.maxResults) {
-          const start = regexMatch.index;
-          const end = start + regexMatch[0].length;
-          matchRanges.push(new vscode.Range(line, start, line, end));
-          previewRanges.push(new vscode.Range(0, start, 0, end));
-          counter++;
-        }
-        if (matchRanges.length && previewRanges.length) {
-          if (options.beforeContext) {
-            // Add preceding context lines that aren't themselves result lines
-            const previewFrom = Math.max(line - options.beforeContext, 0);
-            for (let i = previewFrom; i < line; i++) {
-              if (!matchedLines.has(i)) {
-                progress.report({
-                  uri,
-                  text: content[i],
-                  lineNumber: i + 1,
-                });
-              }
-            }
-          }
-          progress.report({
-            uri,
-            ranges: matchRanges,
-            preview: {
-              text,
-              matches: previewRanges,
-            },
-          });
-          if (options.afterContext) {
-            // Add following context lines that aren't themselves result lines
-            const previewTo = Math.min(line + options.afterContext, contentLength - 1);
-            for (let i = line + 1; i <= previewTo; i++) {
-              if (!matchedLines.has(i)) {
-                progress.report({
-                  uri,
-                  text: content[i],
-                  lineNumber: i + 1,
-                });
-              }
-            }
-          }
-        }
-      });
-    };
 
-    // Generate the query pattern that gets sent to the server
-    // Needed because the server matches the full line against the regex and ignores the case parameter when in regex mode
+        const uri = DocumentContentProvider.getUri(file.doc, "", "", true, options.folder);
+        const content = decoder.decode(await vscode.workspace.fs.readFile(uri)).split(/\r?\n/);
+        const contentLength = content.length;
+        // Find all lines that we have matches on
+        const multilineMethodArgs: boolean = vscode.workspace
+          .getConfiguration("objectscript", options.folder)
+          .get("multilineMethodArgs");
+        const lines = file.matches
+          .map((match: SearchMatch) =>
+            token.isCancellationRequested ? null : searchMatchToLine(content, match, file.doc, multilineMethodArgs)
+          )
+          .filter(notNull);
+        // Remove duplicates and make them quickly searchable
+        const matchedLines = new Set(lines);
+        // Compute all matches for each one
+        matchedLines.forEach((line) => {
+          if (token.isCancellationRequested) {
+            return;
+          }
+          const text = content[line];
+          const regex = new RegExp(
+            query.isRegExp ? query.pattern : query.pattern.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"),
+            query.isCaseSensitive ? "g" : "gi"
+          );
+          let regexMatch: RegExpExecArray;
+          const matchRanges: vscode.Range[] = [];
+          const previewRanges: vscode.Range[] = [];
+          while ((regexMatch = regex.exec(text)) !== null && counter < options.maxResults) {
+            const start = regexMatch.index;
+            const end = start + regexMatch[0].length;
+            matchRanges.push(new vscode.Range(line, start, line, end));
+            previewRanges.push(new vscode.Range(0, start, 0, end));
+            counter++;
+          }
+          if (matchRanges.length && previewRanges.length) {
+            if (options.beforeContext) {
+              // Add preceding context lines that aren't themselves result lines
+              const previewFrom = Math.max(line - options.beforeContext, 0);
+              for (let i = previewFrom; i < line; i++) {
+                if (!matchedLines.has(i)) {
+                  progress.report({
+                    uri,
+                    text: content[i],
+                    lineNumber: i + 1,
+                  });
+                }
+              }
+            }
+            progress.report({
+              uri,
+              ranges: matchRanges,
+              preview: {
+                text,
+                matches: previewRanges,
+              },
+            });
+            if (options.afterContext) {
+              // Add following context lines that aren't themselves result lines
+              const previewTo = Math.min(line + options.afterContext, contentLength - 1);
+              for (let i = line + 1; i <= previewTo; i++) {
+                if (!matchedLines.has(i)) {
+                  progress.report({
+                    uri,
+                    text: content[i],
+                    lineNumber: i + 1,
+                  });
+                }
+              }
+            }
+          }
+        });
+      };
+
+    // Modify the query pattern if we're doing a regex search.
+    // Needed because the server matches the full line against the
+    // regex and ignores the case parameter when in regex mode.
     const pattern = query.isRegExp ? `${!query.isCaseSensitive ? "(?i)" : ""}.*${query.pattern}.*` : query.pattern;
+
+    // Remove unneeded duplicate glob patterns from both glob arrays.
+    // Also attempt to remove any exclude glob patterns that the
+    // user didn't manually enter because these will almost never
+    // match any files in our workspace folders.
+    options.includes = deduplicateGlobArray(options.includes);
+    options.excludes = deduplicateGlobArray(removeConfigExcludes(options.folder, options.excludes));
 
     if (api.config.apiVersion >= 6) {
       // Build the request object
-      const project = params.has("project") && params.get("project").length ? params.get("project") : undefined;
-      const system =
-        (params.has("system") && params.get("system").length ? params.get("system") == "1" : false) ||
-        api.ns === "%SYS";
-      const generated =
-        params.has("generated") && params.get("generated").length ? params.get("generated") == "1" : false;
-      const mapped = params.has("mapped") && params.get("mapped").length ? params.get("mapped") == "0" : true;
       const request: AsyncSearchRequest = {
         request: "search",
         console: false, // Passed so the server doesn't send us back console output
         query: pattern,
         regex: query.isRegExp,
-        project,
+        project: project ? project : undefined, // Needs to be undefined if project is an empty string
         word: query.isWordMatch, // Ignored if regex is true
         case: query.isCaseSensitive, // Ignored if regex is true
         wild: false, // Ignored if regex is true
         documents: project ? undefined : fileSpecFromURI(options.folder),
-        system, // Ignored if project is defined
+        system: system || api.ns == "%SYS", // Ignored if project is defined
         generated, // Ignored if project is defined
         mapped, // Ignored if project is defined
         // If options.maxResults is null the search is supposed to return an unlimited number of results
@@ -411,25 +463,23 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
         max: options.maxResults ?? 100000,
       };
 
-      // Generate the include and exclude filters.
+      // Generate the include and exclude filter regexes.
       // The matching is case sensitive and file names are normalized so that the first character
       // and path separator are '/' (for example, '/%Api/Atelier/v6.cls' and '/csp/user/menu.csp').
-      let includesArr = options.includes;
-      let excludesArr = removeConfigExcludes(options.folder, options.excludes);
       if (!["", "/"].includes(options.folder.path)) {
         // Prepend path with a trailing slash
         const prefix = !options.folder.path.endsWith("/") ? `${options.folder.path}/` : options.folder.path;
-        includesArr = includesArr.map((e) => `${prefix}${e}`);
-        excludesArr = excludesArr.map((e) => `${prefix}${e}`);
+        options.includes = options.includes.map((e) => `${prefix}${e}`);
+        options.excludes = options.excludes.map((e) => `${prefix}${e}`);
       }
 
       // Add leading slash if we don't start with **/
-      includesArr = includesArr.map((e) => (!e.startsWith("**/") ? `/${e}` : e));
-      excludesArr = excludesArr.map((e) => (!e.startsWith("**/") ? `/${e}` : e));
+      options.includes = options.includes.map((e) => (!e.startsWith("**/") ? `/${e}` : e));
+      options.excludes = options.excludes.map((e) => (!e.startsWith("**/") ? `/${e}` : e));
 
       // Convert the array of glob patterns into a single regular expression
-      if (includesArr.length) {
-        request.include = includesArr
+      if (options.includes.length) {
+        request.include = options.includes
           .map((e) => {
             const re = makeRe(e);
             if (re == false) return null;
@@ -438,8 +488,8 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
           .filter(notNull)
           .join("|");
       }
-      if (excludesArr.length) {
-        request.exclude = excludesArr
+      if (options.excludes.length) {
+        request.exclude = options.excludes
           .map((e) => {
             const re = makeRe(e);
             if (re == false) return null;
@@ -470,7 +520,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
               return api.verifiedCancel(id, false);
             }
             // Process matches
-            filePromises.push(...pollResp.result.map(throttleRequests(reportMatchesForFile)));
+            filePromises.push(...pollResp.result.map((file) => rateLimiter.call(() => reportMatchesForFile(file))));
             if (pollResp.retryafter) {
               await new Promise((resolve) => {
                 setTimeout(resolve, 50);
@@ -489,12 +539,9 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
         })
         .catch(handleSearchError);
     } else {
-      let project: string;
       let projectList: string[];
       let searchPromise: Promise<SearchResult[]>;
-      const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
-      if (params.has("project") && params.get("project").length) {
-        project = params.get("project");
+      if (project) {
         projectList = await api
           .actionQuery(
             "SELECT CASE WHEN Type = 'PKG' THEN Name||'.*.cls' WHEN Type = 'CLS' THEN Name||'.cls' ELSE Name END Name " +
@@ -524,8 +571,8 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
           requestGroups.push(group);
         }
         searchPromise = Promise.allSettled(
-          requestGroups.map(
-            throttleRequests((group: string[]) =>
+          requestGroups.map((group) =>
+            rateLimiter.call(() =>
               api
                 .actionSearch({
                   query: pattern,
@@ -543,13 +590,9 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
           )
         ).then((results) => results.map((result) => (result.status == "fulfilled" ? result.value : [])).flat());
       } else {
-        const sysStr = params.has("system") && params.get("system").length ? params.get("system") : "0";
-        const genStr = params.has("generated") && params.get("generated").length ? params.get("generated") : "0";
-
-        let uri = options.folder;
-
-        if (!params.get("filter")) {
-          // Unless isfs spec already includes a non-empty filter (which it rarely does), apply includes and excludes at the server side.
+        let uriForSpec = options.folder;
+        if (!filter) {
+          // Unless isfs spec already includes a non-empty filter, apply includes and excludes at the server side.
           // Convert **/ separators and /** suffix into multiple *-patterns that simulate these elements of glob syntax.
 
           // Function to convert glob-style filters into ones that the server understands
@@ -577,11 +620,9 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
             };
 
             // Invoke our recursive function
-            filters
-              .filter((value) => csp || !value.match(/\.([a-z]+|\*)\/\*\*$/)) // drop superfluous entries ending .xyz/** or .*/** when not handling CSP files
-              .forEach((value) => {
-                recurse(value);
-              });
+            filters.forEach((value) => {
+              recurse(value);
+            });
 
             // Convert map to array and return it
             const results: string[] = [];
@@ -591,18 +632,19 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
             return results;
           };
 
-          const filterExclude = convertFilters(removeConfigExcludes(options.folder, options.excludes)).join(",'");
+          const filterExclude = convertFilters(options.excludes).join(",'");
           const filterInclude =
             options.includes.length > 0
               ? convertFilters(options.includes).join(",")
               : filterExclude
-                ? fileSpecFromURI(uri) // Excludes were specified but no includes, so start with the default includes (this step makes type=cls|rtn effective)
+                ? fileSpecFromURI(uriForSpec) // Excludes were specified but no includes, so start with the default includes (this step makes type=cls|rtn effective)
                 : "";
-          const filter = filterInclude + (!filterExclude ? "" : ",'" + filterExclude);
-          if (filter) {
+          const newFilter = filterInclude + (!filterExclude ? "" : ",'" + filterExclude);
+          if (newFilter) {
             // Unless isfs is serving CSP files, slash separators in filters must be converted to dot ones before sending to server
-            params.append("filter", csp ? filter : filter.replace(/\//g, "."));
-            uri = options.folder.with({ query: params.toString() });
+            const params = new URLSearchParams(uriForSpec.query);
+            params.set(IsfsUriParam.Filter, csp ? newFilter : newFilter.replace(/\//g, "."));
+            uriForSpec = uriForSpec.with({ query: params.toString() });
           }
         }
 
@@ -612,9 +654,9 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
             regex: query.isRegExp,
             word: query.isWordMatch,
             case: query.isCaseSensitive,
-            files: fileSpecFromURI(uri),
-            sys: sysStr === "1" || (sysStr === "0" && api.ns === "%SYS"),
-            gen: genStr === "1",
+            files: fileSpecFromURI(uriForSpec),
+            sys: system || api.ns == "%SYS",
+            gen: generated,
             // If options.maxResults is null the search is supposed to return an unlimited number of results
             // Since there's no way for us to pass "unlimited" to the server, I chose a very large number
             max: options.maxResults ?? 100000,
@@ -628,8 +670,8 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
             return;
           }
           const resultsPromise = Promise.allSettled(
-            files.map(
-              throttleRequests(async (file: SearchResult): Promise<void> => {
+            files.map((file) =>
+              rateLimiter.call(() => {
                 if (token.isCancellationRequested) {
                   return;
                 }

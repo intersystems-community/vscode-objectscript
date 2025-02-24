@@ -2,12 +2,12 @@ import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { config, filesystemSchemas, projectsExplorerProvider, schemas } from "../extension";
 import { compareConns } from "../providers/DocumentContentProvider";
-import { isCSPFile } from "../providers/FileSystemProvider/FileSystemProvider";
-import { handleError, notIsfs, notNull } from "../utils";
-import { pickServerAndNamespace } from "./addServerNamespaceToWorkspace";
+import { isfsDocumentName } from "../providers/FileSystemProvider/FileSystemProvider";
+import { getWsServerConnection, handleError, notIsfs, notNull } from "../utils";
 import { exportList } from "./export";
 import { OtherStudioAction, StudioActions } from "./studio";
 import { NodeBase, ProjectNode, ProjectRootNode, RoutineNode, CSPFileNode, ClassNode } from "../explorer/nodes";
+import { isfsConfig } from "../utils/FileProviderUtil";
 
 export interface ProjectItem {
   Name: string;
@@ -92,18 +92,24 @@ export async function createProject(node: NodeBase | undefined, api?: AtelierAPI
       api = new AtelierAPI(node.workspaceFolderUri);
       api.setNamespace(node.namespace);
     } else {
-      // Have the user pick a server and namespace
-      const picks = await pickServerAndNamespace();
-      if (picks == undefined) {
+      // Have the user pick a server connection
+      const connUri = await getWsServerConnection();
+      if (connUri == null) return;
+      if (connUri == undefined) {
+        handleError("No active server connections in the current workspace.", "'Create Project' command failed.");
         return;
       }
-      const { serverName, namespace } = picks;
-      api = new AtelierAPI(vscode.Uri.parse(`isfs://${serverName}:${namespace}/`));
+      api = new AtelierAPI(connUri);
     }
   }
   const taken: string[] = await api
     .actionQuery("SELECT Name FROM %Studio.Project", [])
-    .then((data) => data.result.content.map((prj) => prj.Name.toLowerCase()));
+    .then((data) => data.result.content.map((prj) => prj.Name.toLowerCase()))
+    .catch((error) => {
+      handleError(error, `Failed to list projects on server '${api.serverId}'.`);
+      return;
+    });
+  if (!taken) return;
   const name = await vscode.window.showInputBox({
     prompt: "Enter a name for the new project",
     validateInput: (value: string) => {
@@ -155,13 +161,14 @@ export async function deleteProject(node: ProjectNode | undefined): Promise<any>
     api.setNamespace(node.namespace);
     project = node.label;
   } else {
-    // Have the user pick a server and namespace and a project
-    const picks = await pickServerAndNamespace();
-    if (picks == undefined) {
+    // Have the user pick a server connection
+    const connUri = await getWsServerConnection();
+    if (connUri == null) return;
+    if (connUri == undefined) {
+      handleError("No active server connections in the current workspace.", "'Delete Project' command failed.");
       return;
     }
-    const { serverName, namespace } = picks;
-    api = new AtelierAPI(vscode.Uri.parse(`isfs://${serverName}:${namespace}/`));
+    api = new AtelierAPI(connUri);
     project = await pickProject(api);
   }
   if (project == undefined) {
@@ -190,10 +197,10 @@ export async function deleteProject(node: ProjectNode | undefined): Promise<any>
   projectsExplorerProvider.refresh();
 
   // Ask the user if they want us to clean up an orphaned isfs folder
-  const prjFolderIdx = isfsFolderForProject(project, node ?? api.configName);
+  const prjFolderIdx = isfsFolderForProject(project, api);
   if (prjFolderIdx != -1) {
     const remove = await vscode.window.showInformationMessage(
-      `The current workspace contains a virtual folder linked to deleted project '${project}'. Remove this folder?`,
+      `The current workspace contains a server-side folder linked to deleted project '${project}'. Remove this folder?`,
       "Yes",
       "No"
     );
@@ -216,21 +223,19 @@ function addProjectItem(
   const add: ProjectItem[] = [];
   const remove: ProjectItem[] = [];
 
-  if (Type == "MAC" && items.findIndex((item) => item.Name.toLowerCase() == Name.toLowerCase()) == -1) {
+  if (Type == "MAC" && !items.some((item) => item.Name.toLowerCase() == Name.toLowerCase())) {
     add.push({ Name, Type });
   } else if (
     Type == "CLS" &&
     // Class isn't included by name
-    items.findIndex((item) => item.Type == "CLS" && item.Name.toLowerCase() == Name.toLowerCase()) == -1 &&
+    !items.some((item) => item.Type == "CLS" && item.Name.toLowerCase() == Name.toLowerCase()) &&
     // Class's package isn't included
-    items.findIndex((item) => item.Type == "PKG" && Name.toLowerCase().startsWith(`${item.Name}.`.toLowerCase())) == -1
+    !items.some((item) => item.Type == "PKG" && Name.toLowerCase().startsWith(`${item.Name}.`.toLowerCase()))
   ) {
     add.push({ Name, Type });
   } else if (
     Type == "PKG" && // Package or its superpackages aren't included
-    items.findIndex(
-      (item) => item.Type == "PKG" && `${Name.toLowerCase()}.`.startsWith(`${item.Name}.`.toLowerCase())
-    ) == -1
+    !items.some((item) => item.Type == "PKG" && `${Name.toLowerCase()}.`.startsWith(`${item.Name}.`.toLowerCase()))
   ) {
     add.push({ Name, Type });
     // Remove any subpackages or classes that are in this package
@@ -243,16 +248,14 @@ function addProjectItem(
   } else if (
     Type == "CSP" &&
     // File isn't included by name
-    items.findIndex((item) => item.Type == "CSP" && item.Name.toLowerCase() == Name.toLowerCase()) == -1 &&
+    !items.some((item) => item.Type == "CSP" && item.Name.toLowerCase() == Name.toLowerCase()) &&
     // File's directory isn't included
-    items.findIndex((item) => item.Type == "DIR" && Name.toLowerCase().startsWith(`${item.Name}/`.toLowerCase())) == -1
+    !items.some((item) => item.Type == "DIR" && Name.toLowerCase().startsWith(`${item.Name}/`.toLowerCase()))
   ) {
     add.push({ Name, Type });
   } else if (
     Type == "DIR" && // Folder or its parents aren't included
-    items.findIndex(
-      (item) => item.Type == "DIR" && `${Name.toLowerCase()}/`.startsWith(`${item.Name}/`.toLowerCase())
-    ) == -1
+    !items.some((item) => item.Type == "DIR" && `${Name.toLowerCase()}/`.startsWith(`${item.Name}/`.toLowerCase()))
   ) {
     add.push({ Name, Type });
     // Remove any subfolders or CSP items that are in this folder
@@ -262,7 +265,7 @@ function addProjectItem(
           (item.Type == "CSP" || item.Type == "DIR") && item.Name.toLowerCase().startsWith(`${Name.toLowerCase()}/`)
       )
     );
-  } else if (Type == "OTH" && items.findIndex((item) => item.Name.toLowerCase() == Name.toLowerCase()) == -1) {
+  } else if (Type == "OTH" && !items.some((item) => item.Name.toLowerCase() == Name.toLowerCase())) {
     add.push({ Name, Type });
   }
 
@@ -277,15 +280,15 @@ function addProjectItem(
 export function removeProjectItem(Name: string, Type: string, items: ProjectItem[]): ProjectItem[] {
   const remove: ProjectItem[] = [];
 
-  if (Type == "MAC" && items.findIndex((item) => item.Name.toLowerCase() == Name.toLowerCase()) != -1) {
+  if (Type == "MAC" && items.some((item) => item.Name.toLowerCase() == Name.toLowerCase())) {
     remove.push({ Name, Type });
   } else if (
     Type == "CLS" &&
-    items.findIndex((item) => item.Type == "CLS" && item.Name.toLowerCase() == Name.toLowerCase()) != -1
+    items.some((item) => item.Type == "CLS" && item.Name.toLowerCase() == Name.toLowerCase())
   ) {
     remove.push({ Name, Type });
   } else if (Type == "PKG") {
-    if (items.findIndex((item) => item.Type == "PKG" && item.Name.toLowerCase() == Name.toLowerCase()) != -1) {
+    if (items.some((item) => item.Type == "PKG" && item.Name.toLowerCase() == Name.toLowerCase())) {
       // Package is included by name
       remove.push({ Name, Type });
     } else {
@@ -299,11 +302,11 @@ export function removeProjectItem(Name: string, Type: string, items: ProjectItem
     }
   } else if (
     Type == "CSP" &&
-    items.findIndex((item) => item.Type == "CSP" && item.Name.toLowerCase() == Name.toLowerCase()) != -1
+    items.some((item) => item.Type == "CSP" && item.Name.toLowerCase() == Name.toLowerCase())
   ) {
     remove.push({ Name, Type });
   } else if (Type == "DIR") {
-    if (items.findIndex((item) => item.Type == "DIR" && item.Name.toLowerCase() == Name.toLowerCase()) != -1) {
+    if (items.some((item) => item.Type == "DIR" && item.Name.toLowerCase() == Name.toLowerCase())) {
       // Directory is included by name
       remove.push({ Name, Type });
     } else {
@@ -315,7 +318,7 @@ export function removeProjectItem(Name: string, Type: string, items: ProjectItem
         )
       );
     }
-  } else if (Type == "OTH" && items.findIndex((item) => item.Name.toLowerCase() == Name.toLowerCase()) != -1) {
+  } else if (Type == "OTH" && items.some((item) => item.Name.toLowerCase() == Name.toLowerCase())) {
     remove.push({ Name, Type: items.find((item) => item.Name.toLowerCase() == Name.toLowerCase())?.Type ?? Type });
   }
 
@@ -441,7 +444,7 @@ async function pickAdditions(
         data.result.content
           .map((i: string) => {
             const app = i.slice(1);
-            if (items.findIndex((pi) => pi.Type == "DIR" && pi.Name == app) == -1) {
+            if (!items.some((pi) => pi.Type == "DIR" && pi.Name == app)) {
               return {
                 label: "$(folder) " + app,
                 fullName: i,
@@ -672,7 +675,10 @@ export async function modifyProject(
   nodeOrUri: NodeBase | vscode.Uri | undefined,
   type: "add" | "remove"
 ): Promise<any> {
-  const args = await handleCommandArg(nodeOrUri);
+  const args = await handleCommandArg(nodeOrUri).catch((error) => {
+    handleError(error, `Failed to modify project.`);
+    return;
+  });
   if (!args) return;
   const { node, api, project } = args;
 
@@ -791,17 +797,22 @@ export async function modifyProject(
       }
     } else if (
       nodeOrUri instanceof vscode.Uri &&
-      vscode.workspace.workspaceFolders.findIndex((wf) => wf.uri.toString() == nodeOrUri.toString()) == -1
+      !(vscode.workspace.workspaceFolders ?? []).some((wf) => wf.uri.toString() == nodeOrUri.toString())
     ) {
       // Non-root item in files explorer
       if (nodeOrUri.path.includes(".")) {
         // This is a file, so remove it
-        const csp = isCSPFile(nodeOrUri);
-        const fileName = csp ? nodeOrUri.path : nodeOrUri.path.slice(1).replace(/\//g, ".");
+        const fileName = isfsDocumentName(nodeOrUri);
         let prjFileName = fileName.startsWith("/") ? fileName.slice(1) : fileName;
         const ext = prjFileName.split(".").pop().toLowerCase();
         prjFileName = ext == "cls" ? prjFileName.slice(0, -4) : prjFileName;
-        const prjType = csp ? "CSP" : ext == "cls" ? "CLS" : ["mac", "int", "inc"].includes(ext) ? "MAC" : "OTH";
+        const prjType = fileName.includes("/")
+          ? "CSP"
+          : ext == "cls"
+            ? "CLS"
+            : ["mac", "int", "inc"].includes(ext)
+              ? "MAC"
+              : "OTH";
         remove.push(...removeProjectItem(prjFileName, prjType, items));
       } else {
         // This is a directory, so remove everything in it
@@ -896,7 +907,7 @@ export async function modifyProject(
     projectsExplorerProvider.refresh();
 
     // Refresh the files explorer if there's an isfs folder for this project
-    if (node == undefined && isfsFolderForProject(project, node ?? api.configName) != -1) {
+    if (node == undefined && isfsFolderForProject(project, api) != -1) {
       vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
     }
   }
@@ -1007,50 +1018,38 @@ export async function compileProjectContents(node: ProjectNode): Promise<any> {
 /**
  * Returns the index of the first isfs folder in this workspace that is linked to `project`.
  */
-function isfsFolderForProject(project: string, nodeOrWorkspaceFolder: string | NodeBase): number {
-  let conn: any;
-  if (typeof nodeOrWorkspaceFolder == "string") {
-    conn = config("conn", nodeOrWorkspaceFolder);
-  } else {
-    if (nodeOrWorkspaceFolder.workspaceFolder != undefined) {
-      conn = config("conn", nodeOrWorkspaceFolder.workspaceFolder);
-    } else {
-      const connConfig = new AtelierAPI(nodeOrWorkspaceFolder.workspaceFolderUri).config;
-      conn = {
-        ns: connConfig.ns,
-        server: connConfig.serverName,
-        host: connConfig.host,
-        port: connConfig.port,
-      };
-    }
-  }
-  return vscode.workspace.workspaceFolders.findIndex((folder) => {
-    const params = new URLSearchParams(folder.uri.query);
-    if (
-      filesystemSchemas.includes(folder.uri.scheme) &&
-      compareConns(conn, config("conn", folder.name)) &&
-      params.has("project") &&
-      params.get("project") == project
-    ) {
-      return true;
-    }
-    return false;
+function isfsFolderForProject(project: string, api: AtelierAPI): number {
+  if (!vscode.workspace.workspaceFolders) return -1;
+  const { https, host, port, pathPrefix } = api.config;
+  return vscode.workspace.workspaceFolders.findIndex((f) => {
+    const fApi = new AtelierAPI(f.uri);
+    const { https: fHttps, host: fHost, port: fPort, pathPrefix: fPP } = api.config;
+    return (
+      filesystemSchemas.includes(f.uri.scheme) &&
+      isfsConfig(f.uri).project == project &&
+      fHost == host &&
+      fPort == port &&
+      fHttps == https &&
+      fPP == pathPrefix &&
+      api.ns == fApi.ns
+    );
   });
 }
 
 /**
  * Special version of `modifyProject()` that is only called when an `isfs` file in a project folder is created.
  */
-export async function addIsfsFileToProject(
-  project: string,
-  fileName: string,
-  csp: boolean,
-  api: AtelierAPI
-): Promise<void> {
+export async function addIsfsFileToProject(project: string, fileName: string, api: AtelierAPI): Promise<void> {
   let prjFileName = fileName.startsWith("/") ? fileName.slice(1) : fileName;
   const ext = prjFileName.split(".").pop().toLowerCase();
   prjFileName = ext == "cls" ? prjFileName.slice(0, -4) : prjFileName;
-  const prjType = csp ? "CSP" : ext == "cls" ? "CLS" : ["mac", "int", "inc"].includes(ext) ? "MAC" : "OTH";
+  const prjType = fileName.includes("/")
+    ? "CSP"
+    : ext == "cls"
+      ? "CLS"
+      : ["mac", "int", "inc"].includes(ext)
+        ? "MAC"
+        : "OTH";
   const items: ProjectItem[] = await api
     .actionQuery("SELECT Name, Type FROM %Studio.Project_ProjectItemsList(?,?) WHERE Type != 'GBL'", [project, "1"])
     .then((data) => data.result.content);
@@ -1095,7 +1094,7 @@ export async function addIsfsFileToProject(
 
 export function addWorkspaceFolderForProject(node: ProjectNode): void {
   // Check if an isfs folder already exists for this project
-  const idx = isfsFolderForProject(node.label, node);
+  const idx = isfsFolderForProject(node.label, new AtelierAPI(node.workspaceFolderUri));
   // If not, create one
   if (idx != -1) {
     vscode.window.showWarningMessage(`A workspace folder for this project already exists.`, "Dismiss");
@@ -1129,28 +1128,27 @@ async function handleCommandArg(
   } else if (nodeOrUri instanceof vscode.Uri) {
     // Called from files explorer
     api = new AtelierAPI(nodeOrUri);
-    project = new URLSearchParams(nodeOrUri.query).get("project");
+    project = isfsConfig(nodeOrUri).project;
   } else {
     // Function was called from the command palette so there's no first argument
-    // Have the user pick a server and namespace
-    const picks = await pickServerAndNamespace();
-    if (picks == undefined) {
-      return;
-    }
-    const { serverName, namespace } = picks;
-    api = new AtelierAPI(vscode.Uri.parse(`isfs://${serverName}:${namespace}/`));
+    // Have the user pick a server connection
+    const connUri = await getWsServerConnection();
+    if (connUri == null) return;
+    if (connUri == undefined) throw "No active server connections in the current workspace.";
+    api = new AtelierAPI(connUri);
   }
-  if (project === undefined) {
+  if (!project) {
     project = await pickProject(api);
-    if (project === undefined) {
-      return;
-    }
+    if (!project) return;
   }
   return { node, api, project };
 }
 
 export async function modifyProjectMetadata(nodeOrUri: NodeBase | vscode.Uri | undefined): Promise<void> {
-  const args = await handleCommandArg(nodeOrUri);
+  const args = await handleCommandArg(nodeOrUri).catch((error) => {
+    handleError(error, `Failed to modify project metadata.`);
+    return;
+  });
   if (!args) return;
   const { api, project } = args;
 

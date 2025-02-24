@@ -18,6 +18,7 @@ import { currentWorkspaceFolder, outputChannel, outputConsole } from "../utils";
 const DEFAULT_API_VERSION = 1;
 const DEFAULT_SERVER_VERSION = "2016.2.0";
 import * as Atelier from "./atelier";
+import { isfsConfig } from "../utils/FileProviderUtil";
 
 // Map of the authRequest promises for each username@host:port target to avoid concurrency issues
 const authRequestMap = new Map<string, Promise<any>>();
@@ -30,6 +31,7 @@ interface ConnectionSettings {
   https: boolean;
   host: string;
   port: number;
+  superserverPort?: number;
   pathPrefix: string;
   ns: string;
   username: string;
@@ -67,6 +69,9 @@ export class AtelierAPI {
     const wsKey = this.configName.toLowerCase();
     const host = this.externalServer ? this._config.host : workspaceState.get(wsKey + ":host", this._config.host);
     const port = this.externalServer ? this._config.port : workspaceState.get(wsKey + ":port", this._config.port);
+    const superserverPort = this.externalServer
+      ? this._config.superserverPort
+      : workspaceState.get(wsKey + ":superserverPort", this._config.superserverPort);
     const password = workspaceState.get(wsKey + ":password", this._config.password);
     const apiVersion = workspaceState.get(wsKey + ":apiVersion", DEFAULT_API_VERSION);
     const serverVersion = workspaceState.get(wsKey + ":serverVersion", DEFAULT_SERVER_VERSION);
@@ -80,6 +85,7 @@ export class AtelierAPI {
       https,
       host,
       port,
+      superserverPort,
       pathPrefix,
       ns,
       username,
@@ -120,9 +126,9 @@ export class AtelierAPI {
             workspaceFolderName = parts[0];
             namespace = parts[1];
           } else {
-            const params = new URLSearchParams(wsOrFile.query);
-            if (params.has("ns") && params.get("ns") != "") {
-              namespace = params.get("ns");
+            const { ns } = isfsConfig(wsOrFile);
+            if (ns) {
+              namespace = ns;
             }
           }
         } else {
@@ -136,10 +142,6 @@ export class AtelierAPI {
       }
     }
     this.setConnection(workspaceFolderName || currentWorkspaceFolder(), namespace);
-  }
-
-  public get enabled(): boolean {
-    return this._config.active;
   }
 
   public setNamespace(namespace: string): void {
@@ -211,6 +213,7 @@ export class AtelierAPI {
         webServer: { scheme, host, port, pathPrefix = "" },
         username,
         password,
+        superServer,
       } = getResolvedConnectionSpec(serverName, config("intersystems.servers", workspaceFolderName).get(serverName));
       this._config = {
         serverName,
@@ -221,6 +224,7 @@ export class AtelierAPI {
         ns,
         host,
         port,
+        superserverPort: superServer.port,
         username,
         password,
         pathPrefix,
@@ -241,6 +245,7 @@ export class AtelierAPI {
           webServer: { scheme, host, port, pathPrefix = "" },
           username,
           password,
+          superServer,
         } = resolvedSpec;
         this._config = {
           serverName: "",
@@ -251,6 +256,7 @@ export class AtelierAPI {
           ns,
           host,
           port,
+          superserverPort: superServer.port,
           username,
           password,
           pathPrefix,

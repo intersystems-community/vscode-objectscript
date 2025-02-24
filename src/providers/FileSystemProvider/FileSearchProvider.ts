@@ -1,85 +1,63 @@
 import * as vscode from "vscode";
-import { projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
-import { notNull } from "../../utils";
+import { isfsConfig, projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
+import { notNull, queryToFuzzyLike } from "../../utils";
 import { DocumentContentProvider } from "../DocumentContentProvider";
 import { ProjectItem } from "../../commands/project";
 
 export class FileSearchProvider implements vscode.FileSearchProvider {
-  /**
-   * Provide the set of files that match a certain file path pattern.
-   * @param query The parameters for this query.
-   * @param options A set of options to consider while searching files.
-   * @param token A cancellation token.
-   */
   public async provideFileSearchResults(
     query: vscode.FileSearchQuery,
     options: vscode.FileSearchOptions,
     token: vscode.CancellationToken
   ): Promise<vscode.Uri[]> {
     let counter = 0;
-    let pattern = query.pattern.charAt(0) == "/" ? query.pattern.slice(1) : query.pattern;
-
-    // Drop a leading **/ from the glob pattern if it exists. This gets added by Find widget of Explorer tree (non-fuzzy mode), which since 1.94 uses FileSearchProvider
-    if (pattern.startsWith("**/")) {
+    // Replace all back slashes with forward slashes
+    let pattern = query.pattern.replace(/\\/g, "/");
+    if (pattern.startsWith("/")) {
+      // Remove all leading slashes
+      pattern = pattern.replace(/^\/+/, "");
+    } else if (pattern.startsWith("**/")) {
+      // Remove a leading globstar from the pattern.
+      // The leading globstar gets added by Find widget of Explorer tree (non-fuzzy mode), which since 1.94 uses FileSearchProvider
       pattern = pattern.slice(3);
-    } else if (pattern.length) {
-      // Do a fuzzy search
-      pattern = "*" + pattern.split("").join("*") + "*";
     }
-    const params = new URLSearchParams(options.folder.query);
-    const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
-    if (params.has("project") && params.get("project").length) {
-      const patternRegex = new RegExp(`.*${pattern}.*`.replace(/\.|\//g, "[./]"), "i");
+    const { csp, project } = isfsConfig(options.folder);
+    if (project) {
+      // Create a fuzzy match regex to do the filtering here
+      let regexStr = ".*";
+      for (const c of pattern) regexStr += `${[".", "/"].includes(c) ? "[./]" : c}.*`;
+      const patternRegex = new RegExp(regexStr, "i");
+      if (token.isCancellationRequested) return;
       return projectContentsFromUri(options.folder, true).then((docs) =>
         docs
-          .map((doc: ProjectItem) => {
-            if (token.isCancellationRequested) {
-              return null;
-            }
-            if (pattern.length && !patternRegex.test(doc.Name)) {
-              // The document didn't pass the filter
-              return null;
-            }
-            if (!options.maxResults || ++counter <= options.maxResults) {
-              return DocumentContentProvider.getUri(doc.Name, "", "", true, options.folder);
-            } else {
-              return null;
-            }
-          })
+          .map((doc: ProjectItem) =>
+            !token.isCancellationRequested &&
+            // The document matches the query
+            (!pattern.length || patternRegex.test(doc.Name)) &&
+            // We haven't hit the max number of results
+            (!options.maxResults || ++counter <= options.maxResults)
+              ? DocumentContentProvider.getUri(doc.Name, "", "", true, options.folder)
+              : null
+          )
           .filter(notNull)
       );
     }
-    // When this is called without a query.pattern, every file is supposed to be returned, so do not provide a filter
-    let filter = "";
-    if (pattern.length) {
-      pattern = !csp ? pattern.replace(/\//g, ".") : pattern;
-      filter = `Name LIKE '%${pattern
-        // Escape % or _ characters
-        .replace(/(_|%|\\)/g, "\\$1")
-        // Change glob syntax to SQL LIKE syntax
-        .replace(/\*/g, "%")
-        .replace(/\?/g, "_")}%' ESCAPE '\\'`;
-    }
-    if (token.isCancellationRequested) {
-      return;
-    }
-    return studioOpenDialogFromURI(options.folder, { flat: true, filter: filter })
-      .then((data) => {
-        return data.result.content;
-      })
-      .then((data: { Name: string; Type: number }[]) => {
-        return data
-          .map((item) => {
-            if (token.isCancellationRequested) {
-              return null;
-            }
-            if (!options.maxResults || ++counter <= options.maxResults) {
-              return DocumentContentProvider.getUri(item.Name, "", "", true, options.folder);
-            } else {
-              return null;
-            }
-          })
-          .filter(notNull);
-      });
+    // When this is called without a query.pattern every file is supposed to be returned, so do not provide a filter
+    const likePattern = queryToFuzzyLike(pattern);
+    const filter = pattern.length
+      ? `Name LIKE '${!csp ? likePattern.replace(/\//g, ".") : likePattern}' ESCAPE '\\'`
+      : "";
+    if (token.isCancellationRequested) return;
+    return studioOpenDialogFromURI(options.folder, { flat: true, filter }).then((data) =>
+      data.result.content
+        .map((doc: { Name: string; Type: number }) =>
+          !token.isCancellationRequested &&
+          // We haven't hit the max number of results
+          (!options.maxResults || ++counter <= options.maxResults)
+            ? DocumentContentProvider.getUri(doc.Name, "", "", true, options.folder)
+            : null
+        )
+        .filter(notNull)
+    );
   }
 }

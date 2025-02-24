@@ -14,7 +14,7 @@ import {
   filesystemSchemas,
 } from "../extension";
 import { getCategory } from "../commands/export";
-import { isCSPFile } from "../providers/FileSystemProvider/FileSystemProvider";
+import { isCSP, isfsDocumentName } from "../providers/FileSystemProvider/FileSystemProvider";
 import { AtelierAPI } from "../api";
 
 export const outputChannel = vscode.window.createOutputChannel("ObjectScript", "vscode-objectscript-output");
@@ -222,7 +222,7 @@ export function currentFileFromContent(uri: vscode.Uri, content: string | Buffer
   const fileExt = fileName.split(".").pop().toLowerCase();
   if (
     notIsfs(uri) &&
-    !["cls", "mac", "int", "inc"].includes(fileExt) &&
+    !isClassOrRtn(uri) &&
     // This is a non-class or routine local file, so check if we can import it
     !isImportableLocalFile(uri)
   ) {
@@ -242,18 +242,7 @@ export function currentFileFromContent(uri: vscode.Uri, content: string | Buffer
       [, name, ext = "mac"] = match;
     }
   } else {
-    if (notIsfs(uri)) {
-      name = getServerDocName(uri);
-    } else {
-      name = uri.path;
-    }
-    // Need to strip leading / for custom Studio documents which should not be treated as files.
-    // e.g. For a custom Studio document Test.ZPM, the variable name would be /Test.ZPM which is
-    // not the document name. The document name is Test.ZPM so requests made to the Atelier APIs
-    // using the name with the leading / would fail to find the document.
-    if (name?.charAt(0) == "/") {
-      name = name.slice(1);
-    }
+    name = notIsfs(uri) ? getServerDocName(uri) : isfsDocumentName(uri);
   }
   if (!name) {
     return null;
@@ -296,7 +285,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentTextFile {
   const fileExt = fileName.split(".").pop().toLowerCase();
   if (
     notIsfs(document.uri) &&
-    !["cls", "mac", "int", "inc"].includes(fileExt) &&
+    !isClassOrRtn(document.uri) &&
     // This is a non-class or routine local file, so check if we can import it
     !isImportableLocalFile(document.uri)
   ) {
@@ -319,18 +308,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentTextFile {
       [, name, ext = "mac"] = match;
     }
   } else {
-    if (notIsfs(document.uri)) {
-      name = getServerDocName(document.uri);
-    } else {
-      name = uri.path;
-    }
-    // Need to strip leading / for custom Studio documents which should not be treated as files.
-    // e.g. For a custom Studio document Test.ZPM, the variable name would be /Test.ZPM which is
-    // not the document name. The document name is Test.ZPM so requests made to the Atelier APIs
-    // using the name with the leading / would fail to find the document.
-    if (name?.charAt(0) == "/") {
-      name = name.slice(1);
-    }
+    name = notIsfs(uri) ? getServerDocName(uri) : isfsDocumentName(uri);
   }
   if (!name) {
     return null;
@@ -390,29 +368,6 @@ export function connectionTarget(uri?: vscode.Uri): ConnectionTarget {
   }
 
   return result;
-}
-
-/**
- * Given a URI, returns a server name for it if it is under isfs[-readonly] or null if it is not an isfs file.
- * @param uri URI to evaluate
- */
-export function getServerName(uri: vscode.Uri): string {
-  if (!schemas.includes(uri.scheme)) {
-    return null;
-  }
-  if (isCSPFile(uri)) {
-    // The full file path is the server name of the file.
-    return uri.path;
-  } else {
-    // Complex case: replace folder slashes with dots.
-    const filePath = uri.path.slice(1);
-    let serverName = filePath.replace(/\//g, ".");
-    if (!filePath.split("/").pop().includes(".")) {
-      // This is a package so add the .PKG extension
-      serverName += ".PKG";
-    }
-    return serverName;
-  }
 }
 
 export function currentWorkspaceFolder(document?: vscode.TextDocument): string {
@@ -490,24 +445,30 @@ async function composeCommand(cwd?: string): Promise<string> {
 
 export async function portFromDockerCompose(
   workspaceFolderName?: string
-): Promise<{ port: number; docker: boolean; service?: string }> {
+): Promise<{ port: number; superserverPort: number; docker: boolean; service?: string }> {
   // When running remotely, behave as if there is no docker-compose object within objectscript.conn
   if (extensionContext.extension.extensionKind === vscode.ExtensionKind.Workspace) {
-    return { docker: false, port: null };
+    return { docker: false, port: null, superserverPort: null };
   }
 
   // Seek a valid docker-compose object within objectscript.conn
   const { "docker-compose": dockerCompose = {} } = config("conn", workspaceFolderName);
-  const { service, file = "docker-compose.yml", internalPort = 52773, envFile } = dockerCompose;
-  if (!internalPort || !file || !service || service === "") {
-    return { docker: false, port: null };
+  const {
+    service,
+    file = "docker-compose.yml",
+    internalPort = 52773,
+    internalSuperserverPort = 1972,
+    envFile,
+  } = dockerCompose;
+  if (!internalPort || !internalSuperserverPort || !file || !service || service === "") {
+    return { docker: false, port: null, superserverPort: null };
   }
 
-  const result = { port: null, docker: true, service };
+  const result = { port: null, superserverPort: null, docker: true, service };
   const workspaceFolder = uriOfWorkspaceFolder(workspaceFolderName);
   if (!workspaceFolder) {
     // No workspace folders are open
-    return { docker: false, port: null };
+    return { docker: false, port: null, superserverPort: null };
   }
   const workspaceFolderPath = workspaceFolder.fsPath;
   const workspaceRootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
@@ -548,9 +509,23 @@ export async function portFromDockerCompose(
         }
         const [, port] = stdout.match(/:(\d+)/) || [];
         if (!port) {
-          reject(`Port ${internalPort} not published for service '${service}' in '${path.join(cwd, file)}'.`);
+          reject(`Webserver port ${internalPort} not published for service '${service}' in '${path.join(cwd, file)}'.`);
         }
-        resolve({ port: parseInt(port, 10), docker: true, service });
+        result.port = parseInt(port, 10);
+
+        exec(`${cmd} port --protocol=tcp ${service} ${internalSuperserverPort}`, { cwd }, (error, stdout) => {
+          if (error) {
+            reject(error.message);
+          }
+          const [, superserverPort] = stdout.match(/:(\d+)/) || [];
+          if (!superserverPort) {
+            reject(
+              `Superserver port ${internalSuperserverPort} not published for service '${service}' in '${path.join(cwd, file)}'.`
+            );
+          }
+          result.superserverPort = parseInt(superserverPort, 10);
+          resolve(result);
+        });
       });
     });
   });
@@ -633,7 +608,7 @@ export async function addWsServerRootFolderData(uri: vscode.Uri): Promise<void> 
   const value: WSServerRootFolderData = {
     redirectDotvscode: true,
   };
-  if (isCSPFile(uri) && !["", "/"].includes(uri.path)) {
+  if (isCSP(uri) && !["", "/"].includes(uri.path)) {
     // A CSP-type root folder for a specific webapp that already has a .vscode/settings.json file must not redirect .vscode/* references
     const api = new AtelierAPI(uri);
     api
@@ -669,7 +644,7 @@ export function redirectDotvscodeRoot(uri: vscode.Uri): vscode.Uri {
       return uri;
     }
     let namespace: string;
-    const andCSP = !isCSPFile(uri) ? "&csp" : "";
+    const andCSP = !isCSP(uri) ? "&csp" : "";
     const nsMatch = `&${uri.query}&`.match(/&ns=([^&]+)&/);
     if (nsMatch) {
       namespace = nsMatch[1].toUpperCase();
@@ -805,6 +780,13 @@ export function base64EncodeContent(content: Buffer): string[] {
   return result;
 }
 
+/** Returns `true` if `uri` has a class or routine file extension */
+export function isClassOrRtn(uriOrName: vscode.Uri | string): boolean {
+  return ["cls", "mac", "int", "inc"].includes(
+    (uriOrName instanceof vscode.Uri ? uriOrName.path : uriOrName).split(".").pop().toLowerCase()
+  );
+}
+
 interface ConnQPItem extends vscode.QuickPickItem {
   uri: vscode.Uri;
   ns: string;
@@ -813,15 +795,13 @@ interface ConnQPItem extends vscode.QuickPickItem {
 /**
  * Prompt the user to pick an active server connection that's used in this workspace.
  * Returns the uri of the workspace folder corresponding to the chosen connection.
- * Returns `undefined` if there are no active server connections in this workspace,
- * or if the user dismisses the QuickPick. If there is only one active server
- * connection, that will be returned without prompting the user.
+ * If there is only one active server connection, it will be returned without prompting the user.
  *
  * @param minVersion Optional minimum server version to enforce, in semantic version form (20XX.Y.Z).
  * @returns `undefined` if there were no suitable server connections and `null` if the
  * user explicitly escaped from the QuickPick.
  */
-export async function getWsServerConnection(minVersion?: string): Promise<vscode.Uri> {
+export async function getWsServerConnection(minVersion?: string): Promise<vscode.Uri | null | undefined> {
   if (!vscode.workspace.workspaceFolders?.length) return;
   const conns: ConnQPItem[] = [];
   for (const wsFolder of vscode.workspace.workspaceFolders) {
@@ -852,52 +832,69 @@ export async function getWsServerConnection(minVersion?: string): Promise<vscode
     .then((c) => c?.uri ?? null);
 }
 
-// ---------------------------------------------------------------------
-// Source: https://github.com/amsterdamharu/lib/blob/master/src/index.js
+/** Convert `query` to a fuzzy LIKE compatible pattern */
+export function queryToFuzzyLike(query: string): string {
+  let p = "%";
+  for (const c of query.toLowerCase()) p += `${["_", "%", "\\"].includes(c) ? "\\" : ""}${c}%`;
+  return p;
+}
 
-const promiseLike = (x) => x !== undefined && typeof x.then === "function";
-const ifPromise = (fn) => (x) => (promiseLike(x) ? x.then(fn) : fn(x));
+class Semaphore {
+  /** Queue of tasks waiting to acquire the semaphore */
+  private _tasks: (() => void)[] = [];
+  /** Current available slots in the semaphore */
+  private _counter: number;
 
-/*
-  causes a promise returning function not to be called
-  until less than max are active
-  usage example:
-  max2 = throttle(2);
-  urls = [url1,url2,url3...url100]
-  Promise.all(//even though a 100 promises are created, only 2 are active
-    urls.map(max2(fetch))
-  )
-*/
-const throttle = (max: number): ((fn: any) => (arg: any) => Promise<any>) => {
-  let que = [];
-  let queIndex = -1;
-  let running = 0;
-  const wait = (resolve, fn, arg) => () => resolve(ifPromise(fn)(arg)) || true; //should always return true
-  const nextInQue = () => {
-    ++queIndex;
-    if (typeof que[queIndex] === "function") {
-      return que[queIndex]();
+  constructor(maxConcurrent: number) {
+    // Initialize the counter with the maximum number of concurrent tasks
+    this._counter = maxConcurrent;
+  }
+
+  /** Acquire a slot in the semaphore */
+  async acquire(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      if (this._counter > 0) {
+        // If a slot is available, decrease the counter and resolve immediately
+        this._counter--;
+        resolve();
+      } else {
+        // If no slots are available, add the task to the queue
+        this._tasks.push(resolve);
+      }
+    });
+  }
+
+  /** Release a slot in the semaphore */
+  release(): void {
+    if (this._tasks.length > 0) {
+      // If there are tasks waiting, take the next task from the queue and run it
+      const nextTask = this._tasks.shift();
+      if (nextTask) nextTask();
     } else {
-      que = [];
-      queIndex = -1;
-      running = 0;
-      return "Does not matter, not used";
+      // If no tasks are waiting, increase the counter
+      this._counter++;
     }
-  };
-  const queItem = (fn, arg) => new Promise((resolve, reject) => que.push(wait(resolve, fn, arg)));
-  return (fn) => (arg) => {
-    const p = queItem(fn, arg).then((x) => nextInQue() && x);
-    running++;
-    if (running <= max) {
-      nextInQue();
+  }
+}
+
+export class RateLimiter {
+  private _semaphore: Semaphore;
+
+  constructor(maxConcurrent: number) {
+    // Initialize the semaphore with the maximum number of concurrent tasks
+    this._semaphore = new Semaphore(maxConcurrent);
+  }
+
+  /** Execute a function with rate limiting */
+  async call<T>(fn: () => Promise<T>): Promise<T> {
+    // Acquire a slot in the semaphore. Will not reject.
+    await this._semaphore.acquire();
+    try {
+      // Execute the provided function
+      return await fn();
+    } finally {
+      // Always release the slot in the semaphore after the function completes
+      this._semaphore.release();
     }
-    return p;
-  };
-};
-
-// ---------------------------------------------------------------------
-
-/**
- * Wrap around each promise in array to avoid overloading the server.
- */
-export const throttleRequests = throttle(50);
+  }
+}

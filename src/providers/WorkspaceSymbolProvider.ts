@@ -2,24 +2,24 @@ import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { DocumentContentProvider } from "./DocumentContentProvider";
 import { filesystemSchemas } from "../extension";
-import { fileSpecFromURI } from "../utils/FileProviderUtil";
+import { fileSpecFromURI, isfsConfig } from "../utils/FileProviderUtil";
 import { allDocumentsInWorkspace } from "../utils/documentIndex";
-import { handleError } from "../utils";
+import { handleError, queryToFuzzyLike } from "../utils";
 
 export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
   private readonly _sqlPrefix: string =
     "SELECT mem.Name, mem.Parent, mem.Type FROM (" +
     " SELECT Name, Name AS Parent, 'Class' AS Type FROM %Dictionary.ClassDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'Method' AS Type FROM %Dictionary.MethodDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'Property' AS Type FROM %Dictionary.PropertyDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'Parameter' AS Type FROM %Dictionary.ParameterDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'Index' AS Type FROM %Dictionary.IndexDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'ForeignKey' AS Type FROM %Dictionary.ForeignKeyDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'XData' AS Type FROM %Dictionary.XDataDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'Query' AS Type FROM %Dictionary.QueryDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'Trigger' AS Type FROM %Dictionary.TriggerDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'Storage' AS Type FROM %Dictionary.StorageDefinition" +
-    " UNION SELECT Name, Parent->ID AS Parent, 'Projection' AS Type FROM %Dictionary.ProjectionDefinition" +
+    " UNION SELECT Name, Parent, 'Method' AS Type FROM %Dictionary.MethodDefinition" +
+    " UNION SELECT Name, Parent, 'Property' AS Type FROM %Dictionary.PropertyDefinition" +
+    " UNION SELECT Name, Parent, 'Parameter' AS Type FROM %Dictionary.ParameterDefinition" +
+    " UNION SELECT Name, Parent, 'Index' AS Type FROM %Dictionary.IndexDefinition" +
+    " UNION SELECT Name, Parent, 'ForeignKey' AS Type FROM %Dictionary.ForeignKeyDefinition" +
+    " UNION SELECT Name, Parent, 'XData' AS Type FROM %Dictionary.XDataDefinition" +
+    " UNION SELECT Name, Parent, 'Query' AS Type FROM %Dictionary.QueryDefinition" +
+    " UNION SELECT Name, Parent, 'Trigger' AS Type FROM %Dictionary.TriggerDefinition" +
+    " UNION SELECT Name, Parent, 'Storage' AS Type FROM %Dictionary.StorageDefinition" +
+    " UNION SELECT Name, Parent, 'Projection' AS Type FROM %Dictionary.ProjectionDefinition" +
     ") AS mem ";
 
   private readonly _sqlPrj: string =
@@ -100,37 +100,31 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
   ): Promise<vscode.SymbolInformation[]> {
     if (!vscode.workspace.workspaceFolders?.length) return;
     // Convert query to a LIKE compatible pattern
-    let pattern = "%";
-    for (const c of query.toLowerCase()) pattern += `${["_", "%", "\\"].includes(c) ? "\\" : ""}${c}%`;
+    const pattern = queryToFuzzyLike(query);
     if (token.isCancellationRequested) return;
     // Get results for all workspace folders
     return Promise.allSettled(
       vscode.workspace.workspaceFolders.map((wsFolder) => {
         if (filesystemSchemas.includes(wsFolder.uri.scheme)) {
-          const params = new URLSearchParams(wsFolder.uri.query);
-          if (params.has("csp") && ["", "1"].includes(params.get("csp"))) {
+          const { csp, system, generated, mapped, project } = isfsConfig(wsFolder.uri);
+          if (csp) {
             // No classes or class members in web application folders
             return Promise.resolve([]);
           } else {
             const api = new AtelierAPI(wsFolder.uri);
             if (!api.active || token.isCancellationRequested) return Promise.resolve([]);
-            const project = params.get("project") ?? "";
             return api
               .actionQuery(`${this._sqlPrefix}${project.length ? this._sqlPrj : this._sqlDocs}${this._sqlSuffix}`, [
                 project.length ? project : fileSpecFromURI(wsFolder.uri),
-                params.has("system") && params.get("system").length
-                  ? params.get("system")
-                  : api.ns == "%SYS"
-                    ? "1"
-                    : "0",
-                params.has("generated") && params.get("generated").length ? params.get("generated") : "0",
-                params.has("mapped") && params.get("mapped") == "0" ? "0" : "1",
+                system || api.ns == "%SYS" ? "1" : "0",
+                generated ? "1" : "0",
+                mapped ? "1" : "0",
                 pattern,
               ])
               .then((data) => (token.isCancellationRequested ? [] : this._queryResultToSymbols(data, wsFolder)));
           }
         } else {
-          // Use the document index to determien the classes to search
+          // Use the document index to determine the classes to search
           const api = new AtelierAPI(wsFolder.uri);
           if (!api.active) return Promise.resolve([]);
           const docs = allDocumentsInWorkspace(wsFolder).filter((d) => d.endsWith(".cls"));

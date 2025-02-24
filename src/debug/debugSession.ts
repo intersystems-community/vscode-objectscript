@@ -26,6 +26,7 @@ import * as xdebug from "./xdebugConnection";
 import { lsExtensionId, schemas } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { formatPropertyValue } from "./utils";
+import { isfsConfig } from "../utils/FileProviderUtil";
 
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
   /** An absolute path to the "program" to debug. */
@@ -46,12 +47,10 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
 /** converts a uri from VS Code to a server-side XDebug file URI with respect to source root settings */
 async function convertClientPathToDebugger(uri: vscode.Uri, namespace: string): Promise<string> {
   const { scheme, path } = uri;
-  const params = new URLSearchParams(uri.query);
   let fileName: string;
   if (scheme && schemas.includes(scheme)) {
-    if (params.has("ns") && params.get("ns") !== "") {
-      namespace = params.get("ns");
-    }
+    const { ns } = isfsConfig(uri);
+    if (ns) namespace = ns;
     fileName = path.slice(1).replace(/\//g, ".");
   } else {
     fileName = currentFileFromContent(uri, await getFileText(uri))?.name;

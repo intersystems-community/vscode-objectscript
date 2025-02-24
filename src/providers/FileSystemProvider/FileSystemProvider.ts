@@ -2,12 +2,11 @@ import * as path from "path";
 import * as vscode from "vscode";
 import { isText } from "istextorbinary";
 import { AtelierAPI } from "../../api";
-import { Directory } from "./Directory";
-import { File } from "./File";
 import { fireOtherStudioAction, OtherStudioAction, StudioActions } from "../../commands/studio";
-import { projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
+import { isfsConfig, projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
 import {
   classNameRegex,
+  cspAppsForUri,
   isClassDeployed,
   notIsfs,
   notNull,
@@ -19,17 +18,49 @@ import {
   base64EncodeContent,
   openCustomEditors,
 } from "../../utils";
-import {
-  config,
-  FILESYSTEM_READONLY_SCHEMA,
-  FILESYSTEM_SCHEMA,
-  intLangId,
-  macLangId,
-  workspaceState,
-} from "../../extension";
+import { FILESYSTEM_READONLY_SCHEMA, FILESYSTEM_SCHEMA, intLangId, macLangId, workspaceState } from "../../extension";
 import { addIsfsFileToProject, modifyProject } from "../../commands/project";
 import { DocumentContentProvider } from "../DocumentContentProvider";
 import { Document, UserAction } from "../../api/atelier";
+
+class File implements vscode.FileStat {
+  public type: vscode.FileType;
+  public ctime: number;
+  public mtime: number;
+  public size: number;
+  public permissions?: vscode.FilePermission;
+  public fileName: string;
+  public name: string;
+  public data?: Uint8Array;
+  public constructor(name: string, fileName: string, ts: string, size: number, data: string | Buffer) {
+    this.type = vscode.FileType.File;
+    this.ctime = Number(new Date(ts + "Z"));
+    this.mtime = this.ctime;
+    this.size = size;
+    this.fileName = fileName;
+    this.name = name;
+    this.data = typeof data === "string" ? Buffer.from(data) : data;
+  }
+}
+
+class Directory implements vscode.FileStat {
+  public name: string;
+  public fullName: string;
+  public type: vscode.FileType;
+  public ctime: number;
+  public mtime: number;
+  public size: number;
+  public entries: Map<string, File | Directory>;
+  public constructor(name: string, fullName: string) {
+    this.name = name;
+    this.fullName = fullName;
+    this.type = vscode.FileType.Directory;
+    this.ctime = Date.now();
+    this.mtime = Date.now();
+    this.size = 0;
+    this.entries = new Map();
+  }
+}
 
 type Entry = File | Directory;
 
@@ -125,13 +156,10 @@ export function generateFileContent(
  */
 const cspFilesInProjectFolder: Map<string, string[]> = new Map();
 
-/**
- * Check if this file is a web application file.
- */
-export function isCSPFile(uri: vscode.Uri): boolean {
-  const params = new URLSearchParams(uri.query);
-  let csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
-  if (params.has("project") && params.get("project").length) {
+/** Returns `true` if `uri` is a web application file */
+export function isCSP(uri: vscode.Uri): boolean {
+  const { csp, project } = isfsConfig(uri);
+  if (project) {
     // Projects can contain both CSP and non-CSP files
     // Read the cache of found CSP files to determine if this is one
     const parent = uri
@@ -139,36 +167,46 @@ export function isCSPFile(uri: vscode.Uri): boolean {
         path: path.dirname(uri.path),
       })
       .toString();
-    csp = cspFilesInProjectFolder.has(parent) && cspFilesInProjectFolder.get(parent).includes(path.basename(uri.path));
-    if (!csp) {
-      // Read the parent directory and file is not CSP OR haven't read the parent directory yet
-      // Use the file extension to guess if it's a web app file
-      const additionalExts: string[] = config("projects.webAppFileExtensions", workspaceFolderOfUri(uri));
-      csp = [
-        "csp",
-        "csr",
-        "ts",
-        "js",
-        "css",
-        "scss",
-        "sass",
-        "less",
-        "html",
-        "json",
-        "md",
-        "markdown",
-        "png",
-        "svg",
-        "jpeg",
-        "jpg",
-        "ico",
-        "xml",
-        "txt",
-        ...additionalExts,
-      ].includes(uri.path.split(".").pop().toLowerCase());
+    if (cspFilesInProjectFolder.has(parent) && cspFilesInProjectFolder.get(parent).includes(path.basename(uri.path))) {
+      return true;
     }
+    // Read the parent directory and file is not CSP OR haven't read the parent directory yet
+    // Use the file extension to guess if it's a web app file
+    const additionalExts: string[] = vscode.workspace
+      .getConfiguration("objectscript.projects", uri)
+      .get("webAppFileExtensions");
+    return [
+      "csp",
+      "csr",
+      "ts",
+      "js",
+      "css",
+      "scss",
+      "sass",
+      "less",
+      "html",
+      "json",
+      "md",
+      "markdown",
+      "png",
+      "svg",
+      "jpeg",
+      "jpg",
+      "ico",
+      "xml",
+      "txt",
+      ...additionalExts,
+    ].includes(uri.path.split(".").pop().toLowerCase());
   }
   return csp;
+}
+
+/** Get the document name of the file in `uri`. */
+export function isfsDocumentName(uri: vscode.Uri, csp?: boolean, pkg = false): string {
+  if (csp == undefined) csp = isCSP(uri);
+  const doc = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
+  // Add the .PKG extension to non-web folders if called from StudioActions
+  return pkg && !csp && !doc.split("/").pop().includes(".") ? `${doc}.PKG` : doc;
 }
 
 export class FileSystemProvider implements vscode.FileSystemProvider {
@@ -222,10 +260,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       return entryPromise;
     }
 
-    //
     if (result instanceof File) {
       const api = new AtelierAPI(uri);
-      const serverName = isCSPFile(uri) ? uri.path : uri.path.slice(1).replace(/\//g, ".");
+      const serverName = isfsDocumentName(uri);
       if (serverName.slice(-4).toLowerCase() == ".cls") {
         if (await isClassDeployed(serverName, api)) {
           result.permissions |= vscode.FilePermission.Readonly;
@@ -250,18 +287,14 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     uri = redirectDotvscodeRoot(uri);
     const parent = await this._lookupAsDirectory(uri);
     const api = new AtelierAPI(uri);
-    if (!api.active) {
-      throw vscode.FileSystemError.Unavailable(`${uri.toString()} is unavailable`);
-    }
-    const params = new URLSearchParams(uri.query);
-    if (params.has("project") && params.get("project").length) {
+    if (!api.active) throw vscode.FileSystemError.Unavailable(uri);
+    const { csp, project } = isfsConfig(uri);
+    if (project) {
       if (["", "/"].includes(uri.path)) {
         // Technically a project is a "document", so tell the server that we're opening it
-        await new StudioActions()
-          .fireProjectUserAction(api, params.get("project"), OtherStudioAction.OpenedDocument)
-          .catch(() => {
-            // Swallow error because showing it is more disruptive than using a potentially outdated project definition
-          });
+        await new StudioActions().fireProjectUserAction(api, project, OtherStudioAction.OpenedDocument).catch(() => {
+          // Swallow error because showing it is more disruptive than using a potentially outdated project definition
+        });
       }
 
       // Get all items in the project
@@ -298,7 +331,6 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         })
       );
     }
-    const csp = params.has("csp") && ["", "1"].includes(params.get("csp"));
     const folder = !csp
       ? uri.path.replace(/\/$/, "").replace(/\//g, ".")
       : uri.path === "/"
@@ -306,8 +338,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         : uri.path.endsWith("/")
           ? uri.path
           : uri.path + "/";
-    // get all web apps that have a filepath (Studio dialog used below returns REST ones too)
-    const cspApps = csp ? await api.getCSPApps().then((data) => data.result.content || []) : [];
+
+    // Get all web apps that have a path (StudioOpenDialog returns all web apps)
+    const cspApps = csp ? cspAppsForUri(uri) : [];
     const cspSubfolderMap = new Map<string, vscode.FileType>();
     const prefix = folder === "" ? "/" : folder;
     for (const app of cspApps) {
@@ -410,8 +443,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (uri.path.startsWith("/.")) {
       throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
     }
-    const csp = isCSPFile(uri);
-    const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
+    const csp = isCSP(uri);
+    const fileName = isfsDocumentName(uri, csp);
     if (fileName.startsWith(".")) {
       return;
     }
@@ -505,10 +538,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
                 fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, uri, data.result.ext[0]);
                 fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, uri, data.result.ext[1]);
               }
-              const params = new URLSearchParams(uri.query);
-              if (params.has("project") && params.get("project").length) {
+              const { project } = isfsConfig(uri);
+              if (project) {
                 // Add this document to the project if required
-                addIsfsFileToProject(params.get("project"), fileName, csp, api);
+                addIsfsFileToProject(project, fileName, api);
               }
               // Create an entry in our cache for the document
               this._lookupAsFile(uri);
@@ -574,14 +607,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
 
   public async delete(uri: vscode.Uri, options: { recursive: boolean }): Promise<void> {
     uri = redirectDotvscodeRoot(uri);
-    const csp = isCSPFile(uri);
-    const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
-    const params = new URLSearchParams(uri.query);
-    const project = params.has("project") && params.get("project").length > 0;
+    const { project } = isfsConfig(uri);
+    const csp = isCSP(uri);
     const api = new AtelierAPI(uri);
-    if (fileName.startsWith(".")) {
-      return;
-    }
     if (await this._lookup(uri, true).then((entry) => entry instanceof Directory)) {
       // Get the list of documents to delete
       let toDeletePromise: Promise<any>;
@@ -599,7 +627,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             if (options.recursive || project) {
               return entry.Name;
             } else if (entry.Name.includes(".")) {
-              return csp ? uri.path + entry.Name : uri.path.slice(1).replace(/\//g, ".") + entry.Name;
+              const uriPath = uri.path.endsWith("/") ? uri.path : uri.path + "/";
+              return (csp ? uriPath : uriPath.slice(1).replace(/\//g, ".")) + entry.Name;
             }
             return null;
           })
@@ -617,8 +646,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             this.processDeletedDoc(
               doc,
               DocumentContentProvider.getUri(doc.name, undefined, undefined, true, uri),
-              csp,
-              project
+              doc.name.includes("/"),
+              project.length > 0
             );
           } else {
             // The document was not deleted, so log the error
@@ -639,26 +668,29 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           );
         }
       });
-    }
-    return api.deleteDoc(fileName).then(
-      (response) => {
-        this.processDeletedDoc(response.result, uri, csp, project);
-        if (project) {
-          // Remove this document from the project if required
-          modifyProject(uri, "remove");
+    } else {
+      const fileName = isfsDocumentName(uri, csp);
+      if (fileName.startsWith(".")) return;
+      return api.deleteDoc(fileName).then(
+        (response) => {
+          this.processDeletedDoc(response.result, uri, csp, project.length > 0);
+          if (project) {
+            // Remove this document from the project if required
+            modifyProject(uri, "remove");
+          }
+        },
+        (error) => {
+          handleError(error);
+          throw new vscode.FileSystemError(
+            `Failed to delete file '${fileName}'. Check the 'ObjectScript' Output channel for details.`
+          );
         }
-      },
-      (error) => {
-        handleError(error);
-        throw new vscode.FileSystemError(
-          `Failed to delete file '${fileName}'. Check the 'ObjectScript' Output channel for details.`
-        );
-      }
-    );
+      );
+    }
   }
 
   public async rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): Promise<void> {
-    if (!oldUri.path.includes(".")) {
+    if (!oldUri.path.split("/").pop().includes(".")) {
       throw vscode.FileSystemError.NoPermissions("Cannot rename a package/folder");
     }
     if (oldUri.path.split(".").pop().toLowerCase() != newUri.path.split(".").pop().toLowerCase()) {
@@ -682,9 +714,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       }
     }
     // Get the name of the new file
-    const newParams = new URLSearchParams(newUri.query);
-    const newCsp = newParams.has("csp") && ["", "1"].includes(newParams.get("csp"));
-    const newFileName = newCsp ? newUri.path : newUri.path.slice(1).replace(/\//g, ".");
+    const newFileName = isfsDocumentName(newUri);
     // Generate content for the new file
     const newContent = generateFileContent(newUri, newFileName, await vscode.workspace.fs.readFile(oldUri));
     if (newFileStat) {
@@ -713,9 +743,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           // We created a file
           fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, newUri, response.result.ext[0]);
           fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, newUri, response.result.ext[1]);
-          if (newParams.has("project") && newParams.get("project").length) {
+          const { project } = isfsConfig(newUri);
+          if (project) {
             // Add the new document to the project if required
-            await modifyProject(newUri, "add");
+            await addIsfsFileToProject(project, newFileName, api);
           }
         }
         // Sanity check that we find it there, then make client side update things
@@ -741,7 +772,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       if (entry instanceof Directory) {
         // Get the list of files to compile
         let compileListPromise: Promise<any>;
-        if (new URLSearchParams(uri.query).get("project")?.length) {
+        if (isfsConfig(uri).project) {
           compileListPromise = projectContentsFromUri(uri, true);
         } else {
           compileListPromise = studioOpenDialogFromURI(uri, { flat: true }).then((data) => data.result.content);
@@ -749,7 +780,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         compileList.push(...(await compileListPromise.then((data) => data.map((e) => e.Name))));
       } else {
         // Compile this file
-        compileList.push(isCSPFile(uri) ? uri.path : uri.path.slice(1).replace(/\//g, "."));
+        compileList.push(isCSP(uri) ? uri.path : uri.path.slice(1).replace(/\//g, "."));
       }
     } catch (error) {
       handleError(error, "Error determining documents to compile.");
@@ -834,12 +865,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   private async _lookup(uri: vscode.Uri, fillInPath?: boolean): Promise<Entry> {
     const api = new AtelierAPI(uri);
     if (uri.path === "/") {
-      await api
-        .serverInfo()
-        .then()
-        .catch((error) => {
-          throw vscode.FileSystemError.Unavailable(stringifyError(error) || uri);
-        });
+      await api.serverInfo().catch((error) => {
+        throw vscode.FileSystemError.Unavailable(stringifyError(error) || uri);
+      });
     }
     const config = api.config;
     const rootName = `${config.username}@${config.host}:${config.port}${config.pathPrefix}/${config.ns.toUpperCase()}`;
@@ -906,28 +934,13 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (uri.path.startsWith("/.")) {
       throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
     }
-    const csp = isCSPFile(uri);
+    const csp = isCSP(uri);
     const name = path.basename(uri.path);
-    const fileName = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
+    const fileName = isfsDocumentName(uri, csp);
     const api = new AtelierAPI(uri);
     return api
       .getDoc(fileName, undefined, cachedFile?.mtime)
       .then((data) => data.result)
-      .then((result) => {
-        const fileSplit = fileName.split(".");
-        const fileType = fileSplit[fileSplit.length - 1];
-        if (!csp && ["bpl", "dtl"].includes(fileType)) {
-          const partialUri = Array.isArray(result.content) ? result.content[0] : String(result.content).split("\n")[0];
-          const strippedUri = partialUri.split("&STUDIO=")[0];
-          const { https, host, port, pathPrefix } = api.config;
-          result.content = [
-            `${https ? "https" : "http"}://${host}:${port}${pathPrefix}${strippedUri}`,
-            "Use the link above to launch the external editor in your web browser.",
-            "Do not edit this document here. It cannot be saved to the server.",
-          ];
-        }
-        return result;
-      })
       .then(
         ({ ts, content }) =>
           new File(
@@ -953,8 +966,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
 
   private async _lookupParentDirectory(uri: vscode.Uri): Promise<Directory> {
     uri = redirectDotvscodeRoot(uri);
-    const dirname = uri.with({ path: path.posix.dirname(uri.path) });
-    return await this._lookupAsDirectory(dirname);
+    return this._lookupAsDirectory(uri.with({ path: path.posix.dirname(uri.path) }));
   }
 
   private _fireSoon(...events: vscode.FileChangeEvent[]): void {

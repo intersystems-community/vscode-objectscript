@@ -101,6 +101,7 @@ import {
   cspApps,
   otherDocExts,
   getWsServerConnection,
+  isClassOrRtn,
   addWsServerRootFolderData,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
@@ -249,6 +250,9 @@ export async function resolveConnectionSpec(serverName: string, uri?: vscode.Uri
             port: serverForUri.port,
             pathPrefix: serverForUri.pathPrefix,
           },
+          superServer: {
+            port: serverForUri.superserverPort,
+          },
           username: serverForUri.username,
           password: serverForUri.password ? serverForUri.password : undefined,
           description: `Server for workspace folder '${serverName}'`,
@@ -329,6 +333,7 @@ export async function checkConnection(
     /// clean-up cached values
     await workspaceState.update(wsKey + ":host", undefined);
     await workspaceState.update(wsKey + ":port", undefined);
+    await workspaceState.update(wsKey + ":superserverPort", undefined);
     await workspaceState.update(wsKey + ":password", undefined);
     await workspaceState.update(wsKey + ":apiVersion", undefined);
     await workspaceState.update(wsKey + ":serverVersion", undefined);
@@ -336,7 +341,7 @@ export async function checkConnection(
     _onDidChangeConnection.fire();
   }
   let api = new AtelierAPI(apiTarget, false);
-  const { active, host = "", port = 0, username, ns = "" } = api.config;
+  const { active, host = "", port = 0, superserverPort = 0, username, ns = "" } = api.config;
   vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
   if (!panel.text) {
     panel.text = `${PANEL_LABEL}`;
@@ -359,11 +364,16 @@ export async function checkConnection(
 
   if (!workspaceState.get(wsKey + ":port") && !api.externalServer) {
     try {
-      const { port: dockerPort, docker: withDocker, service } = await portFromDockerCompose();
+      const {
+        port: dockerPort,
+        superserverPort: dockerSuperserverPort,
+        docker: withDocker,
+        service,
+      } = await portFromDockerCompose(configName);
       workspaceState.update(wsKey + ":docker", withDocker);
       workspaceState.update(wsKey + ":dockerService", service);
       if (withDocker) {
-        if (!dockerPort) {
+        if (!dockerPort || !dockerSuperserverPort) {
           const errorMessage = `Something is wrong with your docker-compose connection settings, or your service is not running.`;
           handleError(errorMessage);
           panel.text = `${PANEL_LABEL} $(error)`;
@@ -375,6 +385,9 @@ export async function checkConnection(
         if (dockerPort !== port) {
           workspaceState.update(wsKey + ":host", "localhost");
           workspaceState.update(wsKey + ":port", dockerPort);
+        }
+        if (dockerSuperserverPort !== superserverPort) {
+          workspaceState.update(wsKey + ":superserverPort", dockerSuperserverPort);
         }
         connInfo = `localhost:${dockerPort}[${ns}]`;
         _onDidChangeConnection.fire();
@@ -1220,7 +1233,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       return Promise.all(
         e.files
           .filter(notIsfs)
-          .filter((uri) => ["cls", "inc", "int", "mac"].includes(uri.path.split(".").pop().toLowerCase()))
+          .filter(isClassOrRtn)
           .map(async (uri) => {
             // Determine the file name
             const workspace = workspaceFolderOfUri(uri);
@@ -1626,6 +1639,7 @@ function serverForUri(uri: vscode.Uri): any {
     host = "",
     https,
     port,
+    superserverPort,
     pathPrefix,
     username,
     password,
@@ -1639,6 +1653,7 @@ function serverForUri(uri: vscode.Uri): any {
     scheme: https ? "https" : "http",
     host,
     port,
+    superserverPort,
     pathPrefix,
     username,
     password:
@@ -1660,9 +1675,14 @@ async function asyncServerForUri(uri: vscode.Uri): Promise<any> {
     if (apiTarget instanceof vscode.Uri) {
       apiTarget = vscode.workspace.getWorkspaceFolder(apiTarget)?.name;
     }
-    const { port: dockerPort, docker: withDocker } = await portFromDockerCompose(apiTarget);
-    if (withDocker && dockerPort) {
+    const {
+      port: dockerPort,
+      superserverPort: dockerSuperserverPort,
+      docker: withDocker,
+    } = await portFromDockerCompose(apiTarget);
+    if (withDocker && dockerPort && dockerSuperserverPort) {
       server.port = dockerPort;
+      server.superserverPort = dockerSuperserverPort;
       server.host = "localhost";
       server.pathPrefix = "";
       server.https = false;
