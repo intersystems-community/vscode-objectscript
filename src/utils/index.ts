@@ -14,7 +14,7 @@ import {
   filesystemSchemas,
 } from "../extension";
 import { getCategory } from "../commands/export";
-import { isCSPFile } from "../providers/FileSystemProvider/FileSystemProvider";
+import { isCSP, isfsDocumentName } from "../providers/FileSystemProvider/FileSystemProvider";
 import { AtelierAPI } from "../api";
 
 export const outputChannel = vscode.window.createOutputChannel("ObjectScript", "vscode-objectscript-output");
@@ -242,18 +242,7 @@ export function currentFileFromContent(uri: vscode.Uri, content: string | Buffer
       [, name, ext = "mac"] = match;
     }
   } else {
-    if (notIsfs(uri)) {
-      name = getServerDocName(uri);
-    } else {
-      name = uri.path;
-    }
-    // Need to strip leading / for custom Studio documents which should not be treated as files.
-    // e.g. For a custom Studio document Test.ZPM, the variable name would be /Test.ZPM which is
-    // not the document name. The document name is Test.ZPM so requests made to the Atelier APIs
-    // using the name with the leading / would fail to find the document.
-    if (name?.charAt(0) == "/") {
-      name = name.slice(1);
-    }
+    name = notIsfs(uri) ? getServerDocName(uri) : isfsDocumentName(uri);
   }
   if (!name) {
     return null;
@@ -319,18 +308,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentTextFile {
       [, name, ext = "mac"] = match;
     }
   } else {
-    if (notIsfs(document.uri)) {
-      name = getServerDocName(document.uri);
-    } else {
-      name = uri.path;
-    }
-    // Need to strip leading / for custom Studio documents which should not be treated as files.
-    // e.g. For a custom Studio document Test.ZPM, the variable name would be /Test.ZPM which is
-    // not the document name. The document name is Test.ZPM so requests made to the Atelier APIs
-    // using the name with the leading / would fail to find the document.
-    if (name?.charAt(0) == "/") {
-      name = name.slice(1);
-    }
+    name = notIsfs(uri) ? getServerDocName(uri) : isfsDocumentName(uri);
   }
   if (!name) {
     return null;
@@ -390,29 +368,6 @@ export function connectionTarget(uri?: vscode.Uri): ConnectionTarget {
   }
 
   return result;
-}
-
-/**
- * Given a URI, returns a server name for it if it is under isfs[-readonly] or null if it is not an isfs file.
- * @param uri URI to evaluate
- */
-export function getServerName(uri: vscode.Uri): string {
-  if (!schemas.includes(uri.scheme)) {
-    return null;
-  }
-  if (isCSPFile(uri)) {
-    // The full file path is the server name of the file.
-    return uri.path;
-  } else {
-    // Complex case: replace folder slashes with dots.
-    const filePath = uri.path.slice(1);
-    let serverName = filePath.replace(/\//g, ".");
-    if (!filePath.split("/").pop().includes(".")) {
-      // This is a package so add the .PKG extension
-      serverName += ".PKG";
-    }
-    return serverName;
-  }
 }
 
 export function currentWorkspaceFolder(document?: vscode.TextDocument): string {
@@ -653,7 +608,7 @@ export async function addWsServerRootFolderData(uri: vscode.Uri): Promise<void> 
   const value: WSServerRootFolderData = {
     redirectDotvscode: true,
   };
-  if (isCSPFile(uri) && !["", "/"].includes(uri.path)) {
+  if (isCSP(uri) && !["", "/"].includes(uri.path)) {
     // A CSP-type root folder for a specific webapp that already has a .vscode/settings.json file must not redirect .vscode/* references
     const api = new AtelierAPI(uri);
     api
@@ -689,7 +644,7 @@ export function redirectDotvscodeRoot(uri: vscode.Uri): vscode.Uri {
       return uri;
     }
     let namespace: string;
-    const andCSP = !isCSPFile(uri) ? "&csp" : "";
+    const andCSP = !isCSP(uri) ? "&csp" : "";
     const nsMatch = `&${uri.query}&`.match(/&ns=([^&]+)&/);
     if (nsMatch) {
       namespace = nsMatch[1].toUpperCase();
@@ -840,15 +795,13 @@ interface ConnQPItem extends vscode.QuickPickItem {
 /**
  * Prompt the user to pick an active server connection that's used in this workspace.
  * Returns the uri of the workspace folder corresponding to the chosen connection.
- * Returns `undefined` if there are no active server connections in this workspace,
- * or if the user dismisses the QuickPick. If there is only one active server
- * connection, that will be returned without prompting the user.
+ * If there is only one active server connection, it will be returned without prompting the user.
  *
  * @param minVersion Optional minimum server version to enforce, in semantic version form (20XX.Y.Z).
  * @returns `undefined` if there were no suitable server connections and `null` if the
  * user explicitly escaped from the QuickPick.
  */
-export async function getWsServerConnection(minVersion?: string): Promise<vscode.Uri> {
+export async function getWsServerConnection(minVersion?: string): Promise<vscode.Uri | null | undefined> {
   if (!vscode.workspace.workspaceFolders?.length) return;
   const conns: ConnQPItem[] = [];
   for (const wsFolder of vscode.workspace.workspaceFolders) {
@@ -877,6 +830,13 @@ export async function getWsServerConnection(minVersion?: string): Promise<vscode
       title: "Pick a server connection from the current workspace",
     })
     .then((c) => c?.uri ?? null);
+}
+
+/** Convert `query` to a fuzzy LIKE compatible pattern */
+export function queryToFuzzyLike(query: string): string {
+  let p = "%";
+  for (const c of query.toLowerCase()) p += `${["_", "%", "\\"].includes(c) ? "\\" : ""}${c}%`;
+  return p;
 }
 
 class Semaphore {

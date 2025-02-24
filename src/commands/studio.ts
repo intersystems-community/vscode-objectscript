@@ -1,9 +1,10 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { iscIcon } from "../extension";
-import { outputChannel, outputConsole, getServerName, notIsfs, handleError, openCustomEditors } from "../utils";
+import { outputChannel, outputConsole, notIsfs, handleError, openCustomEditors } from "../utils";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { UserAction } from "../api/atelier";
+import { isfsDocumentName } from "../providers/FileSystemProvider/FileSystemProvider";
 
 export enum OtherStudioAction {
   AttemptedEdit = 0,
@@ -66,7 +67,7 @@ export class StudioActions {
   public constructor(uri?: vscode.Uri) {
     if (uri instanceof vscode.Uri) {
       this.uri = uri;
-      this.name = getServerName(uri);
+      this.name = isfsDocumentName(uri, undefined, true);
       this.api = new AtelierAPI(uri);
     } else {
       this.api = new AtelierAPI();
@@ -429,9 +430,15 @@ export class StudioActions {
       .then((data) => data.result.content)
       .then((menus) => this.prepareMenuItems(menus, sourceControl))
       .then((menuItems) => {
+        const noun = sourceControl ? "source control action" : "command";
+        const suffix = this.name ? ` on ${this.name}` : "";
+        if (menuItems.length == 0) {
+          vscode.window.showInformationMessage(`There are no server-side ${noun}s to execute${suffix}.`, "Dismiss");
+          return;
+        }
         return vscode.window.showQuickPick<StudioAction>(menuItems, {
           canPickMany: false,
-          placeHolder: `Pick server-side command to perform${this.name ? " on " + this.name : ""}`,
+          placeHolder: `Pick a server-side ${noun} to execute${suffix}`,
         });
       })
       .then((action) => this.userAction(action));

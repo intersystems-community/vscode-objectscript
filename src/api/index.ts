@@ -18,6 +18,7 @@ import { currentWorkspaceFolder, outputChannel, outputConsole } from "../utils";
 const DEFAULT_API_VERSION = 1;
 const DEFAULT_SERVER_VERSION = "2016.2.0";
 import * as Atelier from "./atelier";
+import { isfsConfig } from "../utils/FileProviderUtil";
 
 // Map of the authRequest promises for each username@host:port target to avoid concurrency issues
 const authRequestMap = new Map<string, Promise<any>>();
@@ -125,9 +126,9 @@ export class AtelierAPI {
             workspaceFolderName = parts[0];
             namespace = parts[1];
           } else {
-            const params = new URLSearchParams(wsOrFile.query);
-            if (params.has("ns") && params.get("ns") != "") {
-              namespace = params.get("ns");
+            const { ns } = isfsConfig(wsOrFile);
+            if (ns) {
+              namespace = ns;
             }
           }
         } else {
@@ -141,10 +142,6 @@ export class AtelierAPI {
       }
     }
     this.setConnection(workspaceFolderName || currentWorkspaceFolder(), namespace);
-  }
-
-  public get enabled(): boolean {
-    return this._config.active;
   }
 
   public setNamespace(namespace: string): void {
