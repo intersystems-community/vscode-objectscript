@@ -379,7 +379,9 @@ export class AtelierAPI {
     let cookie;
     let reqTs: Date;
     const outputRequest = () => {
-      outputChannel.appendLine(`+- REQUEST - ${reqTs.toLocaleTimeString()} ----------------------------`);
+      outputChannel.appendLine(
+        `+- REQUEST - ${(reqTs ?? new Date()).toLocaleTimeString()} ----------------------------`
+      );
       outputChannel.appendLine(`${method} ${proto}://${host}:${port}${path}`);
       if (cookie) outputChannel.appendLine("COOKIE: <value>");
       for (const [h, v] of Object.entries(headers)) {
