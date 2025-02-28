@@ -21,6 +21,7 @@ import {
   currentFileFromContent,
   CurrentTextFile,
   exportedUris,
+  getWsFolder,
   handleError,
   isClassDeployed,
   isClassOrRtn,
@@ -746,162 +747,150 @@ interface XMLQuickPickItem extends vscode.QuickPickItem {
 export async function importXMLFiles(): Promise<any> {
   try {
     // Use the server connection from a workspace folder
-    let connectionUri: vscode.Uri;
-    const workspaceFolders = vscode.workspace.workspaceFolders || [];
-    if (workspaceFolders.length == 0) {
-      vscode.window.showErrorMessage("'Import XML Files...' command requires an open workspace.", "Dismiss");
-    } else if (workspaceFolders.length == 1) {
-      // Use the current connection
-      connectionUri = workspaceFolders[0].uri;
-    } else {
-      // Pick from the workspace folders
-      connectionUri = (
-        await vscode.window.showWorkspaceFolderPick({
-          ignoreFocusOut: true,
-          placeHolder: "Pick a workspace folder. Server-side folders import from the local file system.",
-        })
-      )?.uri;
+    const wsFolder = await getWsFolder(
+      "Pick a workspace folder. Server-side folders import from the local file system."
+    );
+    if (!wsFolder) {
+      if (wsFolder === undefined) {
+        // Strict equality needed because undefined == null
+        vscode.window.showErrorMessage("'Import XML Files...' command requires an open workspace.", "Dismiss");
+      }
+      return;
     }
-    if (connectionUri) {
-      const api = new AtelierAPI(connectionUri);
-      // Make sure the server connection is active
-      if (!api.active || api.ns == "") {
+    const api = new AtelierAPI(wsFolder.uri);
+    // Make sure the server connection is active
+    if (!api.active || api.ns == "") {
+      vscode.window.showErrorMessage("'Import XML Files...' command requires an active server connection.", "Dismiss");
+      return;
+    }
+    // Make sure the server has the xml endpoints
+    if (api.config.apiVersion < 7) {
+      vscode.window.showErrorMessage(
+        "'Import XML Files...' command requires InterSystems IRIS version 2023.2 or above.",
+        "Dismiss"
+      );
+      return;
+    }
+    let defaultUri = wsFolder.uri;
+    if (defaultUri.scheme == FILESYSTEM_SCHEMA) {
+      // Need a default URI without the isfs scheme or the open dialog
+      // will show the server-side files instead of local ones
+      defaultUri = vscode.workspace.workspaceFile;
+      if (defaultUri.scheme != "file") {
         vscode.window.showErrorMessage(
-          "'Import XML Files...' command requires an active server connection.",
+          "'Import XML Files...' command is not supported for unsaved workspaces.",
           "Dismiss"
         );
         return;
       }
-      // Make sure the server has the xml endpoints
-      if (api.config.apiVersion < 7) {
-        vscode.window.showErrorMessage(
-          "'Import XML Files...' command requires InterSystems IRIS version 2023.2 or above.",
-          "Dismiss"
+      // Remove the file name from the URI
+      defaultUri = defaultUri.with({ path: defaultUri.path.split("/").slice(0, -1).join("/") });
+    }
+    // Prompt the user the file to import
+    let uris = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: true,
+      openLabel: "Import",
+      filters: {
+        "XML Files": ["xml"],
+      },
+      defaultUri,
+    });
+    if (!Array.isArray(uris) || uris.length == 0) {
+      // No file to import
+      return;
+    }
+    // Filter out non-XML files
+    uris = uris.filter((uri) => uri.path.split(".").pop().toLowerCase() == "xml");
+    if (uris.length == 0) {
+      vscode.window.showErrorMessage("No XML files were selected.", "Dismiss");
+      return;
+    }
+    // Read the XML files
+    const fileTimestamps: Map<string, string> = new Map();
+    const filesToList = await Promise.allSettled(
+      uris.map(async (uri) => {
+        fileTimestamps.set(
+          uri.fsPath,
+          new Date((await vscode.workspace.fs.stat(uri)).mtime).toISOString().replace("T", " ").split(".")[0]
         );
-        return;
-      }
-      let defaultUri = vscode.workspace.getWorkspaceFolder(connectionUri)?.uri ?? connectionUri;
-      if (defaultUri.scheme == FILESYSTEM_SCHEMA) {
-        // Need a default URI without the isfs scheme or the open dialog
-        // will show the server-side files instead of local ones
-        defaultUri = vscode.workspace.workspaceFile;
-        if (defaultUri.scheme != "file") {
-          vscode.window.showErrorMessage(
-            "'Import XML Files...' command is not supported for unsaved workspaces.",
-            "Dismiss"
-          );
-          return;
-        }
-        // Remove the file name from the URI
-        defaultUri = defaultUri.with({ path: defaultUri.path.split("/").slice(0, -1).join("/") });
-      }
-      // Prompt the user the file to import
-      let uris = await vscode.window.showOpenDialog({
-        canSelectFiles: true,
-        canSelectFolders: false,
-        canSelectMany: true,
-        openLabel: "Import",
-        filters: {
-          "XML Files": ["xml"],
-        },
-        defaultUri,
-      });
-      if (!Array.isArray(uris) || uris.length == 0) {
-        // No file to import
-        return;
-      }
-      // Filter out non-XML files
-      uris = uris.filter((uri) => uri.path.split(".").pop().toLowerCase() == "xml");
-      if (uris.length == 0) {
-        vscode.window.showErrorMessage("No XML files were selected.", "Dismiss");
-        return;
-      }
-      // Read the XML files
-      const fileTimestamps: Map<string, string> = new Map();
-      const filesToList = await Promise.allSettled(
-        uris.map(async (uri) => {
-          fileTimestamps.set(
-            uri.fsPath,
-            new Date((await vscode.workspace.fs.stat(uri)).mtime).toISOString().replace("T", " ").split(".")[0]
-          );
-          return {
-            file: uri.fsPath,
-            content: new TextDecoder().decode(await vscode.workspace.fs.readFile(uri)).split(/\r?\n/),
-          };
-        })
-      ).then((results) =>
-        results.map((result) => (result.status == "fulfilled" ? result.value : null)).filter(notNull)
-      );
-      if (filesToList.length == 0) {
-        return;
-      }
-      // List the documents in the XML files
-      const documentsPerFile = await api.actionXMLList(filesToList).then((data) => data.result.content);
-      // Prompt the user to select documents to import
-      const quickPickItems = documentsPerFile
-        .filter((file) => {
-          if (file.status != "") {
-            outputChannel.appendLine(`Failed to list documents in file '${file.file}': ${file.status}`);
-            return false;
-          } else {
-            return true;
-          }
-        })
-        .flatMap((file) => {
-          const items: XMLQuickPickItem[] = [];
-          if (file.documents.length > 0) {
-            // Add a separator for this file
-            items.push({
-              label: file.file,
-              kind: vscode.QuickPickItemKind.Separator,
-              file: file.file,
-            });
-            file.documents.forEach((doc) =>
-              items.push({
-                label: doc.name,
-                picked: true,
-                detail: `${
-                  doc.ts.toString() != "-1" ? `Server timestamp: ${doc.ts.split(".")[0]}` : "Does not exist on server"
-                }, ${fileTimestamps.has(file.file) ? `File timestamp: ${fileTimestamps.get(file.file)}` : ""}`,
-                file: file.file,
-              })
-            );
-          }
-          return items;
-        });
-      // Prompt the user for documents to import
-      const docsToImport = await vscode.window.showQuickPick(quickPickItems, {
-        canPickMany: true,
-        ignoreFocusOut: true,
-        title: `Select the documents to import into namespace '${api.ns.toUpperCase()}' on server '${api.serverId}'`,
-      });
-      if (docsToImport == undefined || docsToImport.length == 0) {
-        return;
-      }
-      if (filesystemSchemas.includes(connectionUri.scheme)) {
-        // The user is importing into a server-side folder, so fire source control hook
-        await new StudioActions().fireImportUserAction(api, [...new Set(docsToImport.map((qpi) => qpi.label))]);
-      }
-      // Import the selected documents
-      const filesToLoad: { file: string; content: string[]; selected: string[] }[] = filesToList.map((f) => {
-        return { selected: [], ...f };
-      });
-      docsToImport.forEach((qpi) =>
-        // This is safe because every document came from a file
-        filesToLoad[filesToLoad.findIndex((f) => f.file == qpi.file)].selected.push(qpi.label)
-      );
-      const importedPerFile = await api
-        .actionXMLLoad(filesToLoad.filter((f) => f.selected.length > 0))
-        .then((data) => data.result.content);
-      const imported = importedPerFile.flatMap((file) => {
+        return {
+          file: uri.fsPath,
+          content: new TextDecoder().decode(await vscode.workspace.fs.readFile(uri)).split(/\r?\n/),
+        };
+      })
+    ).then((results) => results.map((result) => (result.status == "fulfilled" ? result.value : null)).filter(notNull));
+    if (filesToList.length == 0) {
+      return;
+    }
+    // List the documents in the XML files
+    const documentsPerFile = await api.actionXMLList(filesToList).then((data) => data.result.content);
+    // Prompt the user to select documents to import
+    const quickPickItems = documentsPerFile
+      .filter((file) => {
         if (file.status != "") {
-          outputChannel.appendLine(`Importing documents from file '${file.file}' produced error: ${file.status}`);
+          outputChannel.appendLine(`Failed to list documents in file '${file.file}': ${file.status}`);
+          return false;
+        } else {
+          return true;
         }
-        return file.imported;
+      })
+      .flatMap((file) => {
+        const items: XMLQuickPickItem[] = [];
+        if (file.documents.length > 0) {
+          // Add a separator for this file
+          items.push({
+            label: file.file,
+            kind: vscode.QuickPickItemKind.Separator,
+            file: file.file,
+          });
+          file.documents.forEach((doc) =>
+            items.push({
+              label: doc.name,
+              picked: true,
+              detail: `${
+                doc.ts.toString() != "-1" ? `Server timestamp: ${doc.ts.split(".")[0]}` : "Does not exist on server"
+              }, ${fileTimestamps.has(file.file) ? `File timestamp: ${fileTimestamps.get(file.file)}` : ""}`,
+              file: file.file,
+            })
+          );
+        }
+        return items;
       });
-      // Prompt the user for compilation
-      promptForCompile([...new Set(imported)], api, filesystemSchemas.includes(connectionUri.scheme));
+    // Prompt the user for documents to import
+    const docsToImport = await vscode.window.showQuickPick(quickPickItems, {
+      canPickMany: true,
+      ignoreFocusOut: true,
+      title: `Select the documents to import into namespace '${api.ns.toUpperCase()}' on server '${api.serverId}'`,
+    });
+    if (docsToImport == undefined || docsToImport.length == 0) {
+      return;
     }
+    const isIsfs = filesystemSchemas.includes(wsFolder.uri.scheme);
+    if (isIsfs) {
+      // The user is importing into a server-side folder, so fire source control hook
+      await new StudioActions().fireImportUserAction(api, [...new Set(docsToImport.map((qpi) => qpi.label))]);
+    }
+    // Import the selected documents
+    const filesToLoad: { file: string; content: string[]; selected: string[] }[] = filesToList.map((f) => {
+      return { selected: [], ...f };
+    });
+    docsToImport.forEach((qpi) =>
+      // This is safe because every document came from a file
+      filesToLoad[filesToLoad.findIndex((f) => f.file == qpi.file)].selected.push(qpi.label)
+    );
+    const importedPerFile = await api
+      .actionXMLLoad(filesToLoad.filter((f) => f.selected.length > 0))
+      .then((data) => data.result.content);
+    const imported = importedPerFile.flatMap((file) => {
+      if (file.status != "") {
+        outputChannel.appendLine(`Importing documents from file '${file.file}' produced error: ${file.status}`);
+      }
+      return file.imported;
+    });
+    // Prompt the user for compilation
+    promptForCompile([...new Set(imported)], api, isIsfs);
   } catch (error) {
     handleError(error, "Error executing 'Import XML Files...' command.");
   }

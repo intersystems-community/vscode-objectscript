@@ -3,7 +3,7 @@ import path = require("path");
 import { AtelierAPI } from "../api";
 import { FILESYSTEM_SCHEMA } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
-import { handleError } from "../utils";
+import { getWsFolder, handleError } from "../utils";
 import { getFileName } from "./export";
 import { getUrisForDocument } from "../utils/documentIndex";
 
@@ -239,22 +239,12 @@ interface RuleAssistClasses {
 export async function newFile(type: NewFileType): Promise<void> {
   try {
     // Select a workspace folder
-    let wsFolder: vscode.WorkspaceFolder;
-    if (vscode.workspace.workspaceFolders == undefined || vscode.workspace.workspaceFolders.length == 0) {
-      vscode.window.showErrorMessage("No workspace folders are open.", "Dismiss");
-      return;
-    } else if (vscode.workspace.workspaceFolders.length == 1) {
-      wsFolder = vscode.workspace.workspaceFolders[0];
-    } else {
-      wsFolder = await vscode.window.showWorkspaceFolderPick({
-        placeHolder: "Pick the workspace folder where you want to create the file",
-      });
-    }
+    const wsFolder = await getWsFolder("Pick the workspace folder where you want to create the file", true);
     if (!wsFolder) {
-      return;
-    }
-    if (!vscode.workspace.fs.isWritableFileSystem(wsFolder.uri.scheme)) {
-      vscode.window.showErrorMessage(`Workspace folder '${wsFolder.name}' is read-only.`, "Dismiss");
+      if (wsFolder === undefined) {
+        // Strict equality needed because undefined == null
+        vscode.window.showErrorMessage("No writable workspace folders are open.", "Dismiss");
+      }
       return;
     }
 

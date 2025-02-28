@@ -103,6 +103,7 @@ import {
   getWsServerConnection,
   isClassOrRtn,
   addWsServerRootFolderData,
+  getWsFolder,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentLinkProvider } from "./providers/DocumentLinkProvider";
@@ -1540,18 +1541,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     ),
     vscode.commands.registerCommand("vscode-objectscript.compileIsfs", (uri) => fileSystemProvider.compile(uri)),
     vscode.commands.registerCommand("vscode-objectscript.openISCDocument", async () => {
-      const workspaceFolders = vscode.workspace.workspaceFolders || [];
-      let wsFolder: vscode.WorkspaceFolder;
-      if (workspaceFolders.length == 1) {
-        // Use the current connection
-        wsFolder = workspaceFolders[0];
-      } else if (workspaceFolders.length > 1) {
-        // Pick from the workspace folders
-        wsFolder = await vscode.window.showWorkspaceFolderPick({
-          placeHolder: "Pick the workspace folder where you want to open a document",
-        });
+      const wsFolder = await getWsFolder("Pick the workspace folder where you want to open a document");
+      if (!wsFolder) {
+        if (wsFolder === undefined) {
+          // Strict equality needed because undefined == null
+          vscode.window.showErrorMessage("No workspace folders are open.", "Dismiss");
+        }
+        return;
       }
-      if (!wsFolder) return;
       const api = new AtelierAPI(wsFolder.uri);
       if (!api.active) {
         vscode.window.showErrorMessage(
