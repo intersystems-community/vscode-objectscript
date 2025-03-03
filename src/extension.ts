@@ -135,7 +135,7 @@ import {
   modifyProjectMetadata,
 } from "./commands/project";
 import { loadStudioColors, loadStudioSnippets } from "./commands/studioMigration";
-import { RuleEditorProvider } from "./providers/RuleEditorProvider";
+import { LowCodeEditorProvider } from "./providers/LowCodeEditorProvider";
 import { newFile, NewFileType } from "./commands/newFile";
 import { FileDecorationProvider } from "./providers/FileDecorationProvider";
 import { RESTDebugPanel } from "./commands/restDebugPanel";
@@ -1318,7 +1318,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.explorer.project.addWorkspaceFolderForProject", (node) =>
       addWorkspaceFolderForProject(node)
     ),
-    vscode.window.registerCustomEditorProvider("vscode-objectscript.rule", new RuleEditorProvider(), {
+    vscode.window.registerCustomEditorProvider("vscode-objectscript.lowCode", new LowCodeEditorProvider(), {
       webviewOptions: {
         retainContextWhenHidden: true,
       },

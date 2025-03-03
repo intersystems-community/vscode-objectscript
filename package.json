@@ -1739,8 +1739,8 @@
     ],
     "customEditors": [
       {
-        "viewType": "vscode-objectscript.rule",
-        "displayName": "Rule Editor",
+        "viewType": "vscode-objectscript.lowCode",
+        "displayName": "Low-Code Editor",
         "selector": [
           {
             "filenamePattern": "*.cls"
