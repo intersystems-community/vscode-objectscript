@@ -68,7 +68,7 @@
     "onLanguage:objectscript-class",
     "onLanguage:objectscript-macros",
     "onLanguage:xml",
-    "onView:intersystems-community_servermanager",
+    "onView:intersystems-community",
     "onFileSystem:isfs",
     "onFileSystem:isfs-readonly",
     "onFileSystem:objectscript",
@@ -1614,7 +1614,7 @@
       }
     },
     "views": {
-      "intersystems-community_servermanager": [
+      "intersystems-community": [
         {
           "id": "ObjectScriptExplorer",
           "name": "Explorer",
@@ -1822,6 +1822,6 @@
     "ws": "^8.18.0"
   },
   "extensionDependencies": [
-    "intersystems-community.servermanager"
+    "intersystems-community.viewcontainer"
   ]
 }

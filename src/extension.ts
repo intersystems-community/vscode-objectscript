@@ -752,10 +752,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   extensionContext = context;
   workspaceState.update("workspaceFolder", undefined);
 
-  // Get api for servermanager extension
+  // Get api for servermanager extension if it is installed
   const smExt = vscode.extensions.getExtension(smExtensionId);
-  if (!smExt.isActive) await smExt.activate();
-  serverManagerApi = smExt.exports;
+  if (smExt && !smExt.isActive) {
+    await smExt.activate();
+    serverManagerApi = smExt.exports;
+  }
 
   documentContentProvider = new DocumentContentProvider();
   fileSystemProvider = new FileSystemProvider();
