@@ -165,7 +165,7 @@ export async function exportAll(): Promise<any> {
     .map((el) => el.name);
   if (workspaceList.length > 1) {
     const selection = await vscode.window.showQuickPick(workspaceList, {
-      placeHolder: "Select the workspace folder to export files to.",
+      title: "Pick the workspace folder to export files to.",
     });
     if (selection === undefined) {
       return;

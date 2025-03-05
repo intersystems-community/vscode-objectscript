@@ -73,7 +73,7 @@ async function pickNamespaceOnServer(serverName: string): Promise<string> {
   }
   // Get user's choice of namespace
   const namespace = await vscode.window.showQuickPick(allNamespaces, {
-    placeHolder: `Namespace on server '${serverName}' (${connDisplayString})`,
+    title: `Pick a namespace on server '${serverName}' (${connDisplayString})`,
     ignoreFocusOut: true,
   });
   return namespace;
@@ -133,7 +133,7 @@ export async function addServerNamespaceToWorkspace(resource?: vscode.Uri): Prom
             detail: "Documents opened in this folder will be read-only.",
           },
         ],
-        { placeHolder: "Choose the type of access", ignoreFocusOut: true }
+        { title: "Pick the type of access", ignoreFocusOut: true }
       )
       .then((mode) => mode?.value);
   }
@@ -194,7 +194,7 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
   const filterType = await new Promise<string | undefined>((resolve) => {
     let result: string;
     const quickPick = vscode.window.createQuickPick();
-    quickPick.placeholder = "Choose what to show in the workspace folder";
+    quickPick.title = "Pick what to show in the workspace folder";
     quickPick.ignoreFocusOut = true;
     quickPick.items = [
       {
@@ -203,11 +203,11 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
       },
       {
         label: "$(file-code) Web Application Files",
-        detail: "Choose a specific web application, or show all.",
+        detail: "Pick a specific web application, or show all.",
       },
       {
         label: "$(files) Contents of a Server-side Project",
-        detail: "Choose an existing project, or create a new one.",
+        detail: "Pick an existing project, or create a new one.",
       },
     ];
     quickPick.activeItems = [project ? quickPick.items[2] : csp ? quickPick.items[1] : quickPick.items[0]];
@@ -263,7 +263,7 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
       let result: string;
       const allItem: vscode.QuickPickItem = { label: "All" };
       const quickPick = vscode.window.createQuickPick();
-      quickPick.placeholder = "Pick a specific web application to show, or show all";
+      quickPick.title = "Pick a specific web application to show, or show all";
       quickPick.ignoreFocusOut = true;
       quickPick.items = [
         allItem,
@@ -331,7 +331,7 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
     const otherParams = await vscode.window.showQuickPick(items, {
       ignoreFocusOut: true,
       canPickMany: true,
-      placeHolder: "Add optional filters",
+      title: "Pick optional filters",
     });
     if (!otherParams) {
       return;

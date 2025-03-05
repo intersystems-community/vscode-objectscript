@@ -115,7 +115,7 @@ export async function extractXMLFileContents(xmlUri?: vscode.Uri): Promise<void>
             }),
             {
               ignoreFocusOut: true,
-              placeHolder: "Pick the workspace folder to run the command in",
+              title: "Pick the workspace folder to run the command in",
             }
           )
         )?.wf;
@@ -170,7 +170,7 @@ export async function extractXMLFileContents(xmlUri?: vscode.Uri): Promise<void>
       {
         canPickMany: true,
         ignoreFocusOut: true,
-        title: "Select the documents to extract",
+        title: "Pick the documents to extract",
         placeHolder: "Files are created using your 'objectscript.export' settings",
       }
     );

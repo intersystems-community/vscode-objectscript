@@ -102,7 +102,7 @@ export async function serverActions(): Promise<void> {
         }
 
         const namespace = await vscode.window.showQuickPick(allNamespaces, {
-          placeHolder: `Choose the namespace to switch to`,
+          title: "Pick the namespace to switch to",
           ignoreFocusOut: true,
         });
 
@@ -215,7 +215,7 @@ export async function serverActions(): Promise<void> {
   }
   return vscode.window
     .showQuickPick(actions, {
-      placeHolder: `Pick action to perform for server ${connInfo}`,
+      title: `Pick action to perform for server ${connInfo}`,
     })
     .then(connectionActionsHandler)
     .then(async (action) => {
@@ -244,7 +244,7 @@ export async function serverActions(): Promise<void> {
             });
           if (addins != undefined) {
             const addin = await vscode.window.showQuickPick(addins, {
-              placeHolder: `Pick a Studio Add-In to open for server: ${connInfo}`,
+              title: `Pick a Studio Add-In to open for server: ${connInfo}`,
             });
             if (addin) {
               const token = await getCSPToken(api, addin.id);
