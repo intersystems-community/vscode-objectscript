@@ -832,6 +832,46 @@ export async function getWsServerConnection(minVersion?: string): Promise<vscode
     .then((c) => c?.uri ?? null);
 }
 
+/**
+ * Prompt the user to pick a workspace folder.
+ * Returns the chosen `vscode.WorkspaceFolder` object.
+ * If there is only one workspace folder, it will be returned without prompting the user.
+ *
+ * @param title An optional custom prompt title.
+ * @param writableOnly If `true`, only allow the user to pick from writeable folders.
+ * @param isfsOnly If `true`, only allow the user to pick from `isfs(-readonly)` folders.
+ * @returns `undefined` if there were no workspace folders and `null` if the
+ * user explicitly escaped from the QuickPick.
+ */
+export async function getWsFolder(
+  title = "",
+  writeableOnly = false,
+  isfsOnly = false
+): Promise<vscode.WorkspaceFolder | null | undefined> {
+  if (!vscode.workspace.workspaceFolders?.length) return;
+  // Apply the filters
+  const folders = vscode.workspace.workspaceFolders.filter(
+    (f) =>
+      (!writeableOnly || (writeableOnly && vscode.workspace.fs.isWritableFileSystem(f.uri.scheme))) &&
+      (!isfsOnly || (isfsOnly && filesystemSchemas.includes(f.uri.scheme)))
+  );
+  if (!folders.length) return;
+  if (folders.length == 1) return folders[0];
+  return vscode.window
+    .showQuickPick(
+      folders.map((f) => {
+        return { label: f.name, detail: f.uri.toString(true), f };
+      }),
+      {
+        canPickMany: false,
+        ignoreFocusOut: true,
+        matchOnDetail: true,
+        title: title || "Pick a workspace folder",
+      }
+    )
+    .then((i) => i?.f ?? null);
+}
+
 /** Convert `query` to a fuzzy LIKE compatible pattern */
 export function queryToFuzzyLike(query: string): string {
   let p = "%";

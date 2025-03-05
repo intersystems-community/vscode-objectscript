@@ -9,7 +9,7 @@ import {
   filesystemSchemas,
   smExtensionId,
 } from "../extension";
-import { cspAppsForUri, handleError, notIsfs } from "../utils";
+import { cspAppsForUri, getWsFolder, handleError, notIsfs } from "../utils";
 import { pickProject } from "./project";
 import { isfsConfig, IsfsUriParam } from "../utils/FileProviderUtil";
 
@@ -372,18 +372,12 @@ export async function modifyWsFolder(wsFolderUri?: vscode.Uri): Promise<void> {
   let wsFolder: vscode.WorkspaceFolder;
   if (!wsFolderUri) {
     // Select a workspace folder to modify
-    if (vscode.workspace.workspaceFolders == undefined || vscode.workspace.workspaceFolders.length == 0) {
-      vscode.window.showErrorMessage("No workspace folders are open.", "Dismiss");
-      return;
-    } else if (vscode.workspace.workspaceFolders.length == 1) {
-      wsFolder = vscode.workspace.workspaceFolders[0];
-    } else {
-      wsFolder = await vscode.window.showWorkspaceFolderPick({
-        placeHolder: "Pick the workspace folder to modify",
-        ignoreFocusOut: true,
-      });
-    }
+    wsFolder = await getWsFolder("Pick the workspace folder to modify", false, true);
     if (!wsFolder) {
+      if (wsFolder === undefined) {
+        // Strict equality needed because undefined == null
+        vscode.window.showErrorMessage("No server-side workspace folders are open.", "Dismiss");
+      }
       return;
     }
   } else {
@@ -392,13 +386,13 @@ export async function modifyWsFolder(wsFolderUri?: vscode.Uri): Promise<void> {
     if (!wsFolder) {
       return;
     }
-  }
-  if (notIsfs(wsFolder.uri)) {
-    vscode.window.showErrorMessage(
-      `Workspace folder '${wsFolder.name}' does not have scheme 'isfs' or 'isfs-readonly'.`,
-      "Dismiss"
-    );
-    return;
+    if (notIsfs(wsFolder.uri)) {
+      vscode.window.showErrorMessage(
+        `Workspace folder '${wsFolder.name}' does not have scheme 'isfs' or 'isfs-readonly'.`,
+        "Dismiss"
+      );
+      return;
+    }
   }
 
   // Prompt the user to modify the uri
