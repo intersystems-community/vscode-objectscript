@@ -1541,11 +1541,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     ),
     vscode.commands.registerCommand("vscode-objectscript.compileIsfs", (uri) => fileSystemProvider.compile(uri)),
     vscode.commands.registerCommand("vscode-objectscript.openISCDocument", async () => {
-      const wsFolder = await getWsFolder("Pick the workspace folder where you want to open a document");
+      const wsFolder = await getWsFolder(
+        "Pick the workspace folder where you want to open a document",
+        false,
+        false,
+        false,
+        true
+      );
       if (!wsFolder) {
         if (wsFolder === undefined) {
           // Strict equality needed because undefined == null
-          vscode.window.showErrorMessage("No workspace folders are open.", "Dismiss");
+          vscode.window.showErrorMessage("No workspace folders with an active server connection are open.", "Dismiss");
         }
         return;
       }

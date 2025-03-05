@@ -824,7 +824,6 @@ export async function getWsServerConnection(minVersion?: string): Promise<vscode
   return vscode.window
     .showQuickPick(conns, {
       canPickMany: false,
-      ignoreFocusOut: true,
       matchOnDescription: true,
       matchOnDetail: true,
       title: "Pick a server connection from the current workspace",
@@ -840,20 +839,26 @@ export async function getWsServerConnection(minVersion?: string): Promise<vscode
  * @param title An optional custom prompt title.
  * @param writableOnly If `true`, only allow the user to pick from writeable folders.
  * @param isfsOnly If `true`, only allow the user to pick from `isfs(-readonly)` folders.
+ * @param notIsfsOnly If `true`, only allow the user to pick from non-`isfs(-readonly)` folders.
+ * @param active If `true`, only allow the user to pick from folders with an active server connection.
  * @returns `undefined` if there were no workspace folders and `null` if the
  * user explicitly escaped from the QuickPick.
  */
 export async function getWsFolder(
   title = "",
   writeableOnly = false,
-  isfsOnly = false
+  isfsOnly = false,
+  notIsfsOnly = false,
+  active = false
 ): Promise<vscode.WorkspaceFolder | null | undefined> {
   if (!vscode.workspace.workspaceFolders?.length) return;
   // Apply the filters
   const folders = vscode.workspace.workspaceFolders.filter(
     (f) =>
       (!writeableOnly || (writeableOnly && vscode.workspace.fs.isWritableFileSystem(f.uri.scheme))) &&
-      (!isfsOnly || (isfsOnly && filesystemSchemas.includes(f.uri.scheme)))
+      (!isfsOnly || (isfsOnly && filesystemSchemas.includes(f.uri.scheme))) &&
+      (!notIsfsOnly || (notIsfsOnly && notIsfs(f.uri))) &&
+      (!active || (active && new AtelierAPI(f.uri).active))
   );
   if (!folders.length) return;
   if (folders.length == 1) return folders[0];
@@ -864,7 +869,6 @@ export async function getWsFolder(
       }),
       {
         canPickMany: false,
-        ignoreFocusOut: true,
         matchOnDetail: true,
         title: title || "Pick a workspace folder",
       }

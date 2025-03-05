@@ -292,26 +292,24 @@ export async function exportCurrentFile(): Promise<any> {
 export async function exportDocumentsToXMLFile(): Promise<void> {
   try {
     // Use the server connection from a workspace folder
-    const wsFolder = await getWsFolder("Pick a workspace folder. Server-side folders export to the local file system.");
+    const wsFolder = await getWsFolder(
+      "Pick a workspace folder. Server-side folders export to the local file system.",
+      false,
+      false,
+      false,
+      true
+    );
     if (!wsFolder) {
       if (wsFolder === undefined) {
         // Strict equality needed because undefined == null
         vscode.window.showErrorMessage(
-          "'Export Documents to XML File...' command requires an open workspace.",
+          "'Export Documents to XML File...' command requires a workspace folder with an active server connection.",
           "Dismiss"
         );
       }
       return;
     }
     const api = new AtelierAPI(wsFolder.uri);
-    // Make sure the server connection is active
-    if (!api.active || api.ns == "") {
-      vscode.window.showErrorMessage(
-        "'Export Documents to XML File...' command requires an active server connection.",
-        "Dismiss"
-      );
-      return;
-    }
     // Make sure the server has the xml endpoints
     if (api.config.apiVersion < 7) {
       vscode.window.showErrorMessage(

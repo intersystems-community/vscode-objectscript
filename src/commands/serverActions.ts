@@ -103,7 +103,6 @@ export async function serverActions(): Promise<void> {
 
         const namespace = await vscode.window.showQuickPick(allNamespaces, {
           title: "Pick the namespace to switch to",
-          ignoreFocusOut: true,
         });
 
         if (namespace) {

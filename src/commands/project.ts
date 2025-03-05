@@ -25,7 +25,6 @@ export async function pickProject(api: AtelierAPI): Promise<string | undefined> 
     );
   if (projects.length === 0) {
     const create = await vscode.window.showQuickPick(["Yes", "No"], {
-      ignoreFocusOut: true,
       title: `Namespace ${ns} on server '${api.serverId}' contains no projects. Create one?`,
     });
     if (create == "Yes") {
@@ -38,7 +37,6 @@ export async function pickProject(api: AtelierAPI): Promise<string | undefined> 
     let resolveOnHide = true;
     const quickPick = vscode.window.createQuickPick();
     quickPick.title = `Select a project in namespace ${ns} on server '${api.serverId}', or click '+' to add one.`;
-    quickPick.ignoreFocusOut = true;
     quickPick.items = projects;
     quickPick.buttons = [{ iconPath: new vscode.ThemeIcon("add"), tooltip: "Create new project" }];
 
@@ -837,7 +835,6 @@ export async function modifyProject(
             };
           }),
           {
-            ignoreFocusOut: true,
             canPickMany: true,
             title: `Pick the items to remove from project '${project}'.`,
           }

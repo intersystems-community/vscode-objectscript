@@ -402,7 +402,6 @@ async function runHandler(
         }),
         {
           matchOnDetail: true,
-          ignoreFocusOut: true,
           title: `Cannot ${action} tests from multiple roots at once`,
           placeHolder: `Pick a root to ${action} tests from`,
         }
