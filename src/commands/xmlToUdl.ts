@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import path = require("path");
 import { config, OBJECTSCRIPTXML_FILE_SCHEMA, xmlContentProvider } from "../extension";
 import { AtelierAPI } from "../api";
-import { fileExists, handleError, notIsfs, outputChannel } from "../utils";
+import { fileExists, getWsFolder, handleError, notIsfs, outputChannel } from "../utils";
 import { getFileName } from "./export";
 
 const exportHeader = /^\s*<Export generator="(Cache|IRIS)" version="\d+"/;
@@ -33,7 +33,6 @@ export async function previewXMLAsUDL(textEditor: vscode.TextEditor, auto = fals
           }),
           {
             canPickMany: true,
-            ignoreFocusOut: true,
             title: "Select the documents to preview",
           }
         );
@@ -96,29 +95,17 @@ export async function extractXMLFileContents(xmlUri?: vscode.Uri): Promise<void>
     if (xmlUri) {
       wsFolder = vscode.workspace.getWorkspaceFolder(xmlUri);
     } else {
-      // Can only run this command on non-isfs folders with an active server connection
-      const options = vscode.workspace.workspaceFolders.filter((f) => notIsfs(f.uri) && new AtelierAPI(f.uri).active);
-      if (options.length == 0) {
-        vscode.window.showErrorMessage(
-          "'Extract Documents from XML File...' command requires a non-isfs workspace folder with an active server connection.",
-          "Dismiss"
-        );
+      // Use the server connection from a workspace folder
+      wsFolder = await getWsFolder("Pick the workspace folder to run the command in", false, false, true, true);
+      if (!wsFolder) {
+        if (wsFolder === undefined) {
+          // Strict equality needed because undefined == null
+          vscode.window.showErrorMessage(
+            "'Extract Documents from XML File...' command requires a non-isfs workspace folder with an active server connection.",
+            "Dismiss"
+          );
+        }
         return;
-      } else if (options.length == 1) {
-        wsFolder = options[0];
-      } else {
-        // Prompt the user to select a workspace folder
-        wsFolder = (
-          await vscode.window.showQuickPick(
-            options.map((f) => {
-              return { label: f.name, wf: f };
-            }),
-            {
-              ignoreFocusOut: true,
-              placeHolder: "Pick the workspace folder to run the command in",
-            }
-          )
-        )?.wf;
       }
     }
     if (!wsFolder) return;
@@ -170,7 +157,7 @@ export async function extractXMLFileContents(xmlUri?: vscode.Uri): Promise<void>
       {
         canPickMany: true,
         ignoreFocusOut: true,
-        title: "Select the documents to extract",
+        title: "Pick the documents to extract",
         placeHolder: "Files are created using your 'objectscript.export' settings",
       }
     );

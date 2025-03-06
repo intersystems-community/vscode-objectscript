@@ -30,7 +30,7 @@ export async function subclass(): Promise<void> {
       vscode.window
         .showQuickPick(
           list.map((el) => el.Name),
-          { placeHolder: "Pick a subclass" }
+          { title: "Pick a subclass" }
         )
         .then((item) => {
           open(item);

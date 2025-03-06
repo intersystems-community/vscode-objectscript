@@ -438,7 +438,7 @@ export class StudioActions {
         }
         return vscode.window.showQuickPick<StudioAction>(menuItems, {
           canPickMany: false,
-          placeHolder: `Pick a server-side ${noun} to execute${suffix}`,
+          title: `Pick a server-side ${noun} to execute${suffix}`,
         });
       })
       .then((action) => this.userAction(action));

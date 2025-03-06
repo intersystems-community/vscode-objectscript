@@ -748,21 +748,23 @@ export async function importXMLFiles(): Promise<any> {
   try {
     // Use the server connection from a workspace folder
     const wsFolder = await getWsFolder(
-      "Pick a workspace folder. Server-side folders import from the local file system."
+      "Pick a workspace folder. Server-side folders import from the local file system.",
+      false,
+      false,
+      false,
+      true
     );
     if (!wsFolder) {
       if (wsFolder === undefined) {
         // Strict equality needed because undefined == null
-        vscode.window.showErrorMessage("'Import XML Files...' command requires an open workspace.", "Dismiss");
+        vscode.window.showErrorMessage(
+          "'Import XML Files...' command requires a workspace folder with an active server connection.",
+          "Dismiss"
+        );
       }
       return;
     }
     const api = new AtelierAPI(wsFolder.uri);
-    // Make sure the server connection is active
-    if (!api.active || api.ns == "") {
-      vscode.window.showErrorMessage("'Import XML Files...' command requires an active server connection.", "Dismiss");
-      return;
-    }
     // Make sure the server has the xml endpoints
     if (api.config.apiVersion < 7) {
       vscode.window.showErrorMessage(

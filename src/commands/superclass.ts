@@ -23,7 +23,7 @@ export async function superclass(): Promise<void> {
       if (!list.length) {
         return;
       }
-      vscode.window.showQuickPick(list, { placeHolder: "Pick a superclass" }).then((item) => {
+      vscode.window.showQuickPick(list, { title: "Pick a superclass" }).then((item) => {
         open(item);
       });
     })

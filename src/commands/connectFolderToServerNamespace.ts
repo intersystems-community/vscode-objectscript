@@ -37,7 +37,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
   const pick =
     items.length === 1 && !items[0].detail
       ? items[0]
-      : await vscode.window.showQuickPick(items, { placeHolder: "Choose folder" });
+      : await vscode.window.showQuickPick(items, { title: "Pick a folder" });
   const folder = allFolders.find((el) => el.name === pick.label);
   // Get user's choice of server
   const options: vscode.QuickPickOptions = {};
@@ -78,7 +78,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
   }
   // Get user's choice of namespace
   const namespace = await vscode.window.showQuickPick(allNamespaces, {
-    placeHolder: `Namespace on server '${serverName}' (${connDisplayString})`,
+    title: `Pick a namespace on server '${serverName}' (${connDisplayString})`,
   });
   if (!namespace) {
     return;

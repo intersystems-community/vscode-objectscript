@@ -521,7 +521,7 @@ export async function checkConnection(
             vscode.window
               .showInputBox({
                 password: true,
-                placeHolder: `Not Authorized. Enter password to connect as user '${username}' to ${connInfo}`,
+                title: `Not Authorized. Enter password to connect as user '${username}' to ${connInfo}`,
                 prompt: !api.externalServer ? "If no password is entered the connection will be disabled." : "",
                 ignoreFocusOut: true,
               })
@@ -1052,7 +1052,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
       return vscode.window
         .showInputBox({
-          placeHolder: "Please enter comma delimited arguments list",
+          title: "Enter comma delimited arguments list",
         })
         .then((args) => {
           if (args != undefined && args != null) {
@@ -1122,7 +1122,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
       return vscode.window
         .showQuickPick<vscode.QuickPickItem>(list, {
-          placeHolder: `Pick the process to attach to in ${api.ns} on '${api.serverId}'`,
+          title: `Pick the process to attach to in ${api.ns} on '${api.serverId}'`,
           matchOnDescription: true,
         })
         .then((value) => {
@@ -1541,11 +1541,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     ),
     vscode.commands.registerCommand("vscode-objectscript.compileIsfs", (uri) => fileSystemProvider.compile(uri)),
     vscode.commands.registerCommand("vscode-objectscript.openISCDocument", async () => {
-      const wsFolder = await getWsFolder("Pick the workspace folder where you want to open a document");
+      const wsFolder = await getWsFolder(
+        "Pick the workspace folder where you want to open a document",
+        false,
+        false,
+        false,
+        true
+      );
       if (!wsFolder) {
         if (wsFolder === undefined) {
           // Strict equality needed because undefined == null
-          vscode.window.showErrorMessage("No workspace folders are open.", "Dismiss");
+          vscode.window.showErrorMessage("No workspace folders with an active server connection are open.", "Dismiss");
         }
         return;
       }

@@ -25,8 +25,7 @@ export async function pickProject(api: AtelierAPI): Promise<string | undefined> 
     );
   if (projects.length === 0) {
     const create = await vscode.window.showQuickPick(["Yes", "No"], {
-      ignoreFocusOut: true,
-      placeHolder: `Namespace ${ns} on server '${api.serverId}' contains no projects. Create one?`,
+      title: `Namespace ${ns} on server '${api.serverId}' contains no projects. Create one?`,
     });
     if (create == "Yes") {
       return createProject(undefined, api);
@@ -38,7 +37,6 @@ export async function pickProject(api: AtelierAPI): Promise<string | undefined> 
     let resolveOnHide = true;
     const quickPick = vscode.window.createQuickPick();
     quickPick.title = `Select a project in namespace ${ns} on server '${api.serverId}', or click '+' to add one.`;
-    quickPick.ignoreFocusOut = true;
     quickPick.items = projects;
     quickPick.buttons = [{ iconPath: new vscode.ThemeIcon("add"), tooltip: "Create new project" }];
 
@@ -837,9 +835,8 @@ export async function modifyProject(
             };
           }),
           {
-            ignoreFocusOut: true,
             canPickMany: true,
-            placeHolder: `Select the items to remove from project '${project}'.`,
+            title: `Pick the items to remove from project '${project}'.`,
           }
         );
         if (removeQPIs !== undefined) {
@@ -942,7 +939,7 @@ export async function exportProjectContents(node: ProjectNode | undefined): Prom
       .map((el) => el.name);
     if (workspaceList.length > 1) {
       const selection = await vscode.window.showQuickPick(workspaceList, {
-        placeHolder: "Select the workspace folder to export files to.",
+        title: "Pick the workspace folder to export files to.",
       });
       if (selection === undefined) {
         return;
