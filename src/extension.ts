@@ -156,6 +156,7 @@ const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
 const aiKey = packageJson.aiKey;
 const PANEL_LABEL = "ObjectScript";
+const lowCodeEditorViewType = packageJson.contributes.customEditors[0].viewType;
 
 const _onDidChangeConnection = new vscode.EventEmitter<void>();
 
@@ -1319,7 +1320,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.explorer.project.addWorkspaceFolderForProject", (node) =>
       addWorkspaceFolderForProject(node)
     ),
-    vscode.window.registerCustomEditorProvider("vscode-objectscript.lowCode", new LowCodeEditorProvider(), {
+    vscode.window.registerCustomEditorProvider(lowCodeEditorViewType, new LowCodeEditorProvider(), {
       webviewOptions: {
         retainContextWhenHidden: true,
       },
@@ -1586,6 +1587,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     }),
     ...setUpTestController(),
+    vscode.commands.registerCommand("vscode-objectscript.reopenInLowCodeEditor", (uri: vscode.Uri) => {
+      if (vscode.window.activeTextEditor?.document.uri.toString() == uri.toString()) {
+        vscode.commands
+          .executeCommand("workbench.action.closeActiveEditor")
+          .then(() => vscode.commands.executeCommand("vscode.openWith", uri, lowCodeEditorViewType));
+      }
+    }),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed
