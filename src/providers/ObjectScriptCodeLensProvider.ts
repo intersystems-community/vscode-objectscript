@@ -79,7 +79,8 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
         ) {
           cmd = {
             title: "Reopen in Low-Code Editor",
-            command: "workbench.action.toggleEditorType",
+            command: "vscode-objectscript.reopenInLowCodeEditor",
+            arguments: [document.uri],
             tooltip: "Replace text editor with low-code editor",
           };
         } else if (xdataName == "KPI" && superclasses.includes("%DeepSee.KPI")) {
