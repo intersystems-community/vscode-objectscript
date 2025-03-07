@@ -302,7 +302,7 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
     const items = [
       {
         label: "$(filter) Filter",
-        detail: "Comma-delimited list of search options, e.g. '*.cls,*.inc,*.mac,*.int'",
+        detail: "Comma-delimited list of search patterns, e.g. '*.cls,*.inc,*.mac,*.int'",
         picked: filter != "",
         value: IsfsUriParam.Filter,
       },
@@ -331,7 +331,7 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
     const otherParams = await vscode.window.showQuickPick(items, {
       ignoreFocusOut: true,
       canPickMany: true,
-      title: "Pick optional filters",
+      title: "Pick optional modifiers",
     });
     if (!otherParams) {
       return;
