@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
-import { currentFile, handleError } from "../utils";
+import { currentFile, handleError, parseClassMemberDefinition } from "../utils";
 
 export async function viewOthers(forceEditable = false): Promise<void> {
   const file = currentFile();
@@ -87,15 +87,6 @@ export async function viewOthers(forceEditable = false): Promise<void> {
     return info.result.content[0].others;
   };
 
-  const methodLangIsCOS = (line: string): boolean => {
-    let result = true;
-    const keywordsmatch: RegExpMatchArray = line.slice(line.indexOf("[")).match(/language += +([a-z]+)/i);
-    if (keywordsmatch !== null && keywordsmatch[1] !== "objectscript") {
-      result = false;
-    }
-    return result;
-  };
-
   const api = new AtelierAPI(file.uri);
   if (!api.active) return;
   let indexarg: string = file.name;
@@ -137,33 +128,11 @@ export async function viewOthers(forceEditable = false): Promise<void> {
 
         let isObjectScript = true;
         if (fileExt === "cls") {
-          // Need to find the actual start of the method
-          const currentdoc: vscode.TextDocument = vscode.window.activeTextEditor.document;
-          for (
-            let methodlinenum = currentSymbol.selectionRange.start.line;
-            methodlinenum <= currentSymbol.range.end.line;
-            methodlinenum++
-          ) {
-            const methodlinetext: string = currentdoc.lineAt(methodlinenum).text.trim();
-            if (methodlinetext.endsWith("{")) {
-              // This is the last line of the method definition, so count from here
-              offset = cursorpos.line - methodlinenum;
-
-              // Look for the Language compiler keyword
-              if (methodlinetext.indexOf("[") !== -1) {
-                // Compiler keywords are on this line
-                isObjectScript = methodLangIsCOS(methodlinetext);
-              } else {
-                // Check the previous line for compiler keywords
-                const prevlinetext: string = currentdoc.lineAt(methodlinenum - 1).text.trim();
-                if (prevlinetext.indexOf("[") !== -1) {
-                  // Compiler keywords are on this line
-                  isObjectScript = methodLangIsCOS(prevlinetext);
-                }
-              }
-
-              break;
-            }
+          const memberInfo = parseClassMemberDefinition(vscode.window.activeTextEditor.document, currentSymbol);
+          if (memberInfo) {
+            const { defEndLine, language } = memberInfo;
+            offset = cursorpos.line - defEndLine;
+            isObjectScript = ["cache", "objectscript"].includes(language);
           }
         }
 

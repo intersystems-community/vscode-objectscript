@@ -3,10 +3,11 @@
 **
 !dist/*.js
 !dist/*.txt
-!snippets/
-!images/
-!syntaxes/
-!webview/
+!snippets/*.json
+!images/*.svg
+!images/*.png
+!syntaxes/*.json
+!webview/*.js
 !CHANGELOG.md
 !LICENSE
 !README.md
