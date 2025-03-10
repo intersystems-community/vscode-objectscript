@@ -27,12 +27,12 @@ function formatTextBlock(text: string): string {
     // for those sections to help users visually draw the link between them
     if (lineTrim.includes(" module ") || lineTrim.includes("subquery ") || lineTrim.includes("subqueries ")) {
       lineTrim = lineTrim
-        .replace(/(Call|in) (module [A-Z]|\d+)/g, '$1 <span class="module">$2</span>')
-        .replace(/subquery [A-Z]|\d+/g, '<span class="subquery">$&</span>')
-        .replace(/subqueries (?:[A-Z]|\d+)(?:, [A-Z]|\d+)*,? and [A-Z]|\d+/g, (match: string): string =>
+        .replace(/(Call|in) (module [A-Z]|\d{1,5})/g, '$1 <span class="module">$2</span>')
+        .replace(/subquery [A-Z]|\d{1,5}/g, '<span class="subquery">$&</span>')
+        .replace(/subqueries (?:[A-Z]|\d{1,5})(?:, [A-Z]|\d{1,5})*,? and [A-Z]|\d{1,5}/g, (match: string): string =>
           match
-            .replace(/subqueries [A-Z]|\d+/, '<span class="subquery">$&</span>')
-            .replace(/(,|and) ([A-Z]|\d+)/g, '$1 <span class="subquery">$2</span>')
+            .replace(/subqueries [A-Z]|\d{1,5}/, '<span class="subquery">$&</span>')
+            .replace(/(,|and) ([A-Z]|\d{1,5})/g, '$1 <span class="subquery">$2</span>')
         );
     }
     const indent = line.search(/\S/) - 1;
