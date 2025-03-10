@@ -346,7 +346,7 @@ export class RESTDebugPanel {
                   headers["content-type"] = "text/plain; charset=utf-8";
                   break;
                 case "HTML":
-                  headers["content-yype"] = "text/html; charset=utf-8";
+                  headers["content-type"] = "text/html; charset=utf-8";
                   break;
               }
             }

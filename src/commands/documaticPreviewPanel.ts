@@ -38,7 +38,7 @@ export class DocumaticPreviewPanel {
    */
   public static currentPanel: DocumaticPreviewPanel | undefined;
 
-  public static create(extensionUri: vscode.Uri): void {
+  public static create(): void {
     // Get the open document and check that it's an ObjectScript class
     const openEditor = vscode.window.activeTextEditor;
     if (openEditor === undefined) {
@@ -70,9 +70,6 @@ export class DocumaticPreviewPanel {
       return;
     }
 
-    // Get the full path to the folder containing our webview files
-    const webviewFolderUri: vscode.Uri = vscode.Uri.joinPath(extensionUri, "webview");
-
     // Create the documatic preview webview
     const panel = vscode.window.createWebviewPanel(
       this.viewType,
@@ -81,20 +78,20 @@ export class DocumaticPreviewPanel {
       {
         enableScripts: true,
         enableCommandUris: true,
-        localResourceRoots: [webviewFolderUri],
+        localResourceRoots: [],
       }
     );
     panel.iconPath = iscIcon;
 
-    this.currentPanel = new DocumaticPreviewPanel(panel, webviewFolderUri, openEditor);
+    this.currentPanel = new DocumaticPreviewPanel(panel, openEditor);
   }
 
-  private constructor(panel: vscode.WebviewPanel, webviewFolderUri: vscode.Uri, editor: vscode.TextEditor) {
+  private constructor(panel: vscode.WebviewPanel, editor: vscode.TextEditor) {
     this._panel = panel;
     this._editor = editor;
 
     // Set the webview's initial content
-    this.setWebviewHtml(webviewFolderUri);
+    this.setWebviewHtml();
 
     // Register handlers
     this.registerEventHandlers();
@@ -114,7 +111,7 @@ export class DocumaticPreviewPanel {
   /**
    * Set the static html for the webview.
    */
-  private setWebviewHtml(webviewFolderUri: vscode.Uri) {
+  private setWebviewHtml() {
     // Set the webview's html
     this._panel.webview.html = `
 			<!DOCTYPE html>
@@ -122,12 +119,20 @@ export class DocumaticPreviewPanel {
 			<head>
 				<meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script type="module" src="${this._panel.webview.asWebviewUri(
-          vscode.Uri.joinPath(webviewFolderUri, "elements-1.6.3.js")
-        )}"></script>
+        <style>
+          div.code-block {
+            background-color: var(--vscode-textCodeBlock-background);
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre;
+            padding: 10px;
+            padding-top: initial;
+            overflow-x: scroll;
+          }
+        </style>
 			</head>
 			<body>
-				<h1 id="header"></h1>
+				<h2 id="header"></h2>
 				<vscode-divider></vscode-divider>
 				<div id="showText"></div>
 				<script>
@@ -175,10 +180,8 @@ export class DocumaticPreviewPanel {
             showText.innerHTML = modifiedDesc
               .replace(/<class>|<parameter>/gi, "<b><i>")
               .replace(/<\\/class>|<\\/parameter>/gi, "</i></b>")
-              .replace(/<pre>/gi, "<code><pre>")
-              .replace(/<\\/pre>/gi, "</pre></code>")
-              .replace(/<example(?: +language *= *"?[a-z]+"?)? *>/gi, "<br/><code><pre>")
-              .replace(/<\\/example>/gi, "</pre></code>");
+              .replace(/<example(?: +language *= *"?[a-z]+"?)? *>/gi, "<br/><div class=\\"code-block\\">")
+              .replace(/<\\/example>/gi, "</div><br/>");
         
             // Then persist state information.
             // This state is returned in the call to vscode.getState below when a webview is reloaded.

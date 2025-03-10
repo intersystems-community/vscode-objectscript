@@ -46,6 +46,9 @@ export const openCustomEditors: string[] = [];
  */
 export const exportedUris: string[] = [];
 
+/** Validates routine labels and unquoted class member names */
+export const identifierRegex = /^(?:%|\p{L})[\p{L}\d]*$/u;
+
 /**
  * Return a string represenattion of `error`.
  * If `error` is `undefined`, returns the empty string.
@@ -693,6 +696,63 @@ export async function isClassDeployed(cls: string, api: AtelierAPI): Promise<boo
 /** Strip quotes from class member `name` if present */
 export function stripClassMemberNameQuotes(name: string): string {
   return name.charAt(0) == '"' && name.charAt(name.length - 1) == '"' ? name.slice(1, -1).replaceAll('""', '"') : name;
+}
+
+/** Add quotes to class member `name` if required */
+export function quoteClassMemberName(name: string): string {
+  return name[0] == '"' ? name : identifierRegex.test(name) ? name : `"${name.replace(/"/g, '""')}"`;
+}
+
+const classKeywordDelimitedValuesRegex = /"([^"]*)"|{([^}]*)}|\(([^)]*)\)/g;
+const languageRegex = /\[[^\]]*Language\s*=\s*([a-z]+)/i;
+const privateRegex = /\[[^\]]*Private/i;
+
+/**
+ * Return information about the class member at `symbol` in `document`.
+ * This only works for class members that include a curly-brace
+ * portion. For example, a Query, ClassMethod or Trigger.
+ * Returns `undefined` if the member definition was malformed.
+ */
+export function parseClassMemberDefinition(
+  document: vscode.TextDocument,
+  symbol: vscode.DocumentSymbol,
+  symbolLine?: number
+): { definition: string; defEndLine: number; language: string; isPrivate: boolean } {
+  const languageServer: boolean = vscode.extensions.getExtension(lsExtensionId)?.isActive ?? false;
+  if (symbolLine == undefined) {
+    if (languageServer) {
+      symbolLine = symbol.selectionRange.start.line;
+    } else {
+      // This extension's symbol provider doesn't have a range
+      // that always maps to the first line of the member definition
+      for (let l = symbol.range.start.line; l < document.lineCount; l++) {
+        symbolLine = l;
+        if (!document.lineAt(l).text.startsWith("///")) break;
+      }
+    }
+  }
+  let definition: string;
+  let defEndLine: number;
+  for (let defLine = symbolLine; defLine < document.lineCount; defLine++) {
+    const line = document.lineAt(defLine);
+    if (line.text.trimEnd().endsWith("{")) {
+      definition = document.getText(
+        new vscode.Range(languageServer ? symbol.selectionRange.start : symbol.range.start, line.range.end)
+      );
+      defEndLine = defLine;
+      break;
+    }
+  }
+  if (!definition) return;
+  const definitionNoDelimitedValues = definition.replace(classKeywordDelimitedValuesRegex, "");
+  const languageMatch = definitionNoDelimitedValues.match(languageRegex);
+  const privateMatch = definitionNoDelimitedValues.match(privateRegex);
+  return {
+    definition,
+    defEndLine,
+    language: languageMatch && languageMatch[1] ? languageMatch[1].toLowerCase() : "objectscript",
+    isPrivate: privateMatch != null,
+  };
 }
 
 /** Returns `true` if `uri1` is a parent of `uri2`. */

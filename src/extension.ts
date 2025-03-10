@@ -151,6 +151,7 @@ import {
   updateIndexForDocument,
 } from "./utils/documentIndex";
 import { WorkspaceNode, NodeBase } from "./explorer/nodes";
+import { showPlanWebview } from "./commands/showPlanPanel";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -1224,7 +1225,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     ),
     vscode.commands.registerCommand("vscode-objectscript.editOthers", () => viewOthers(true)),
     vscode.commands.registerCommand("vscode-objectscript.showClassDocumentationPreview", () =>
-      DocumaticPreviewPanel.create(context.extensionUri)
+      DocumaticPreviewPanel.create()
     ),
     vscode.commands.registerCommand("vscode-objectscript.showRESTDebugWebview", () =>
       RESTDebugPanel.create(context.extensionUri)
@@ -1593,6 +1594,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           .executeCommand("workbench.action.closeActiveEditor")
           .then(() => vscode.commands.executeCommand("vscode.openWith", uri, lowCodeEditorViewType));
       }
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.showPlanWebview", (args) => {
+      if (typeof args != "object") return;
+      showPlanWebview(args);
     }),
 
     /* Anything we use from the VS Code proposed API */
