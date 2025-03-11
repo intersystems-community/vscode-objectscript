@@ -220,6 +220,8 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
       this._closeEmitter.fire();
       return;
     }
+    // Set terminal properties
+    this._hideCursorWrite("\x1b]633;P;IsWindows=False\x07");
     // Print the opening message
     this._hideCursorWrite(
       `\x1b[32mConnected to \x1b[0m\x1b[4m${this._api.config.host}:${this._api.config.port}${this._api.config.pathPrefix}\x1b[0m\x1b[32m as \x1b[0m\x1b[3m${this._api.config.username}\x1b[0m\r\n\r\n`
@@ -364,7 +366,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         // Send the input to the server for processing
         this._socket.send(JSON.stringify({ type: this._state, input: this._input }));
         if (this._state == "prompt") {
-          this._hideCursorWrite(`\x1b]633;C\x07\x1b]633;E;${this._inputEscaped()}\x07\r\n`);
+          this._hideCursorWrite(`\x1b]633;E;${this._inputEscaped()}\x07\x1b]633;C\x07\r\n`);
           if (this._input == "") {
             this._promptExitCode = "";
           }
@@ -676,7 +678,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           // Send the input to the server for processing
           this._socket.send(JSON.stringify({ type: this._state, input: this._input }));
           if (this._state == "prompt") {
-            this._hideCursorWrite(`\x1b]633;C\x07\x1b]633;E;${this._inputEscaped()}\x07\r\n`);
+            this._hideCursorWrite(`\x1b]633;E;${this._inputEscaped()}\x07\x1b]633;C\x07\r\n`);
             if (this._input == "") {
               this._promptExitCode = "";
             }
