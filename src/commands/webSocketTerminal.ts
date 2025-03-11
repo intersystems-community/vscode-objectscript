@@ -221,7 +221,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
       return;
     }
     // Set terminal properties
-    this._hideCursorWrite("\x1b]633;P;IsWindows=False\x07");
+    this._hideCursorWrite("\x1b]633;P;HasRichCommandDetection=True\x07");
     // Print the opening message
     this._hideCursorWrite(
       `\x1b[32mConnected to \x1b[0m\x1b[4m${this._api.config.host}:${this._api.config.port}${this._api.config.pathPrefix}\x1b[0m\x1b[32m as \x1b[0m\x1b[3m${this._api.config.username}\x1b[0m\r\n\r\n`
