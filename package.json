@@ -1811,7 +1811,7 @@
     "@vscode/debugadapter": "^1.65.0",
     "@vscode/debugprotocol": "^1.65.0",
     "@xmldom/xmldom": "^0.8.8",
-    "axios": "^1.7.7",
+    "axios": "^1.8.2",
     "core-js": "^3.6.5",
     "iconv-lite": "^0.6.0",
     "istextorbinary": "^7.0.0",
