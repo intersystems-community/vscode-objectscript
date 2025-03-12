@@ -943,6 +943,14 @@ export function queryToFuzzyLike(query: string): string {
   return p;
 }
 
+let _lastUsedLocalUri: vscode.Uri;
+
+/** Get or set the uri of last used local file for XML import/export or local file import from an `isfs(-readonly)` workspace folder  */
+export function lastUsedLocalUri(newValue?: vscode.Uri): vscode.Uri {
+  if (newValue) _lastUsedLocalUri = newValue;
+  return _lastUsedLocalUri;
+}
+
 class Semaphore {
   /** Queue of tasks waiting to acquire the semaphore */
   private _tasks: (() => void)[] = [];

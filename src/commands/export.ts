@@ -8,6 +8,7 @@ import {
   getWsFolder,
   handleError,
   isClassOrRtn,
+  lastUsedLocalUri,
   notNull,
   outputChannel,
   RateLimiter,
@@ -322,7 +323,7 @@ export async function exportDocumentsToXMLFile(): Promise<void> {
     if (schemas.includes(defaultUri.scheme)) {
       // Need a default URI without the isfs scheme or the save dialog
       // will show the virtual files from the workspace folder
-      defaultUri = vscode.workspace.workspaceFile;
+      defaultUri = lastUsedLocalUri() ?? vscode.workspace.workspaceFile;
       if (defaultUri.scheme != "file") {
         vscode.window.showErrorMessage(
           "'Export Documents to XML File...' command is not supported for unsaved workspaces.",
@@ -351,6 +352,7 @@ export async function exportDocumentsToXMLFile(): Promise<void> {
       defaultUri,
     });
     if (uri) {
+      lastUsedLocalUri(uri);
       // Get the XML content
       const xmlContent = await api.actionXMLExport(documents).then((data) => data.result.content);
       // Save the file

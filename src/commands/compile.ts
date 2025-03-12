@@ -25,6 +25,7 @@ import {
   handleError,
   isClassDeployed,
   isClassOrRtn,
+  lastUsedLocalUri,
   notIsfs,
   notNull,
   outputChannel,
@@ -649,7 +650,7 @@ export async function importLocalFilesToServerSideFolder(wsFolderUri: vscode.Uri
   }
   const api = new AtelierAPI(wsFolderUri);
   // Get the default URI and remove the file anme
-  let defaultUri = vscode.workspace.workspaceFile;
+  let defaultUri = lastUsedLocalUri() ?? vscode.workspace.workspaceFile;
   defaultUri = defaultUri.with({ path: defaultUri.path.split("/").slice(0, -1).join("/") });
   // Prompt the user for files to import
   let uris = await vscode.window.showOpenDialog({
@@ -674,6 +675,7 @@ export async function importLocalFilesToServerSideFolder(wsFolderUri: vscode.Uri
     vscode.window.showErrorMessage("No classes or routines were selected.", "Dismiss");
     return;
   }
+  lastUsedLocalUri(uris[0]);
   // Get the name and content of the files to import
   const textDecoder = new TextDecoder();
   const docs = await Promise.allSettled<{ name: string; content: string; uri: vscode.Uri }>(
@@ -777,7 +779,7 @@ export async function importXMLFiles(): Promise<any> {
     if (defaultUri.scheme == FILESYSTEM_SCHEMA) {
       // Need a default URI without the isfs scheme or the open dialog
       // will show the server-side files instead of local ones
-      defaultUri = vscode.workspace.workspaceFile;
+      defaultUri = lastUsedLocalUri() ?? vscode.workspace.workspaceFile;
       if (defaultUri.scheme != "file") {
         vscode.window.showErrorMessage(
           "'Import XML Files...' command is not supported for unsaved workspaces.",
@@ -809,6 +811,7 @@ export async function importXMLFiles(): Promise<any> {
       vscode.window.showErrorMessage("No XML files were selected.", "Dismiss");
       return;
     }
+    lastUsedLocalUri(uris[0]);
     // Read the XML files
     const fileTimestamps: Map<string, string> = new Map();
     const filesToList = await Promise.allSettled(
