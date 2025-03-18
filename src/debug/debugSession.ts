@@ -214,6 +214,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
           this.sendEvent(new OutputEvent(warning + "\n"));
         })
         .on("close", disposeConnection)
+        .on("error", disposeConnection)
         .on("stdout", (data: string) => {
           this.sendEvent(new OutputEvent(data, "stdout"));
         });
