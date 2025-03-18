@@ -343,6 +343,27 @@ export async function exportDocumentsToXMLFile(): Promise<void> {
     if (documents.length == 0) {
       return;
     }
+    // Prompt the user to confirm their choices
+    const confirmed = await new Promise<boolean>((resolve) => {
+      const quickPick = vscode.window.createQuickPick();
+      quickPick.title = `Export the following ${documents.length > 1 ? `${documents.length} documents` : "document"}?`;
+      quickPick.placeholder = "Click any item to confirm, or 'Escape' to cancel";
+      quickPick.ignoreFocusOut = true;
+      quickPick.onDidChangeSelection((e) => outputChannel.appendLine(JSON.stringify(e)));
+      quickPick.onDidAccept(() => {
+        resolve(true);
+        quickPick.hide();
+      });
+      quickPick.onDidHide(() => {
+        resolve(false);
+        quickPick.dispose();
+      });
+      quickPick.items = documents.sort().map((d) => {
+        return { label: d };
+      });
+      quickPick.show();
+    });
+    if (!confirmed) return;
     // Prompt the user for the export destination
     const uri = await vscode.window.showSaveDialog({
       saveLabel: "Export",
