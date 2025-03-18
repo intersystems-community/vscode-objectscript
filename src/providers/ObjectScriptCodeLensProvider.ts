@@ -372,7 +372,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
             hasArgList = false;
           if (restOfSymbol[0] == "(") {
             const rtnDebuggableMatch = restOfSymbol
-            // Replace all whitespace and C-Style comments
+              // Replace all whitespace and C-Style comments
               .replace(whitespaceAndCCommentsRegex, "")
               .match(rtnIsDebuggableRegex);
             // Extract the argument list
