@@ -1476,7 +1476,7 @@
           "default": false
         },
         "objectscript.autoAdjustName": {
-          "markdownDescription": "Automatically modify the class name or ROUTINE header of a file in a client-side workspace folder to match the file's path when copying or creating a new file. Uses the `#objectscript.export#` settings to determine the new name.",
+          "markdownDescription": "Automatically modify the class name or ROUTINE header of a file in a client-side workspace folder to match the file's path when copying or moving a file. Uses the `#objectscript.export#` settings to determine the new name.",
           "type": "boolean",
           "default": false
         },

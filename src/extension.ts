@@ -1232,7 +1232,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     ),
     vscode.commands.registerCommand("vscode-objectscript.exportCurrentFile", exportCurrentFile),
     vscode.workspace.onDidCreateFiles((e: vscode.FileCreateEvent) => {
-      if (!config("autoAdjustName")) return;
       return Promise.all(
         e.files
           .filter(notIsfs)
@@ -1242,7 +1241,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
             const workspace = workspaceFolderOfUri(uri);
             if (!workspace) {
               // No workspace folders are open
-              return null;
+              return;
+            }
+            const sourceContent = await vscode.workspace.fs.readFile(uri);
+            if (
+              sourceContent.length &&
+              !vscode.workspace.getConfiguration("objectscript").get<boolean>("autoAdjustName")
+            ) {
+              // Don't modify a file with content unless the user opts in
+              return;
             }
             const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
             const filePathNoWorkspaceArr = uri.fsPath.replace(workspacePath + path.sep, "").split(path.sep);
@@ -1261,7 +1268,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
             }
             const fileName = filePathNoWorkspaceArr.join(".");
             // Generate the new content
-            const newContent = generateFileContent(uri, fileName, await vscode.workspace.fs.readFile(uri));
+            const newContent = generateFileContent(uri, fileName, sourceContent);
             // Write the new content to the file
             return vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(newContent.content.join("\n")));
           })
