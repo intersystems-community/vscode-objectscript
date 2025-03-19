@@ -12,7 +12,8 @@ const poundImportRegex = /^\s*#import\s+(.+)$/i;
 const poundIncludeRegex = /^\s*#include\s+(\S+)\s*$/i;
 const sqlSelectRegex = /^\s*#sqlcompile\s+select\s*=\s*(\S+)\s*$/i;
 const commentRegex = /(?:^|(?:[^"]*"[^"]*")*)(\/\/|;|\/\*)/;
-const rtnProcedureRegex = /^\(([^)]*)\)\s*(?:\[[^\]]*\])?\s*public/i;
+const rtnIsDebuggableRegex = /^\(([^)]*)\)(?:(?:(?:\[[^\]]*\])?public{)|(?!private|methodimpl|{|\[]))/i;
+const whitespaceAndCCommentsRegex = /\/\*[\s\S]*?\*\/|\s+/g;
 
 /**
  * Extract the text of the Embedded SQL query starting at `[startLine,StartChar]`.
@@ -337,13 +338,6 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
             const displayName = quoteClassMemberName(symbol.name);
             if (
               !isPrivate &&
-              copyToClipboard &&
-              (type == "classmethod" || (type == "query" && displayName[0] != '"'))
-            ) {
-              result.push(this.addCopyToClipboard(symbolLine, [`##class(${className}).${displayName}()`]));
-            }
-            if (
-              !isPrivate &&
               debugThisMethod &&
               ["cache", "objectscript"].includes(language) &&
               type == "classmethod"
@@ -356,6 +350,13 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
                 ])
               );
             }
+            if (
+              !isPrivate &&
+              copyToClipboard &&
+              (type == "classmethod" || (type == "query" && displayName[0] != '"'))
+            ) {
+              result.push(this.addCopyToClipboard(symbolLine, [`##class(${className}).${displayName}()`]));
+            }
           }
         }
       });
@@ -366,24 +367,27 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
       if (symbols && (debugThisMethod || copyToClipboard)) {
         symbols.forEach((symbol) => {
           const line = symbol.selectionRange.start.line;
-          const restOfLine = document.lineAt(line).text.slice(symbol.name.length);
+          const restOfSymbol = document.getText(symbol.range).slice(symbol.name.length);
           let hasArgs = false,
-            isProc = false;
-          if (restOfLine[0] == "(") {
-            // Make sure this is a public procedure, and extract the argument list
-            const procMatch = restOfLine.match(rtnProcedureRegex);
-            if (procMatch) {
-              isProc = true;
-              hasArgs = procMatch[1].length > 0;
+            hasArgList = false;
+          if (restOfSymbol[0] == "(") {
+            const rtnDebuggableMatch = restOfSymbol
+              // Replace all whitespace and C-Style comments
+              .replace(whitespaceAndCCommentsRegex, "")
+              .match(rtnIsDebuggableRegex);
+            // Extract the argument list
+            if (rtnDebuggableMatch) {
+              hasArgList = true;
+              hasArgs = rtnDebuggableMatch[1].length > 0;
             } else {
-              // This is not a syntactically valid public procedure
+              // This is not a syntactically valid public procedure or subroutine
               return;
             }
           }
           if (line == 1) labeledLine1 = true;
           if (debugThisMethod) result.push(this.addDebugThisMethod(line, [`${symbol.name}^${routineName}`, hasArgs]));
           if (copyToClipboard) {
-            result.push(this.addCopyToClipboard(line, [`${symbol.name}^${routineName}${isProc ? "()" : ""}`]));
+            result.push(this.addCopyToClipboard(line, [`${symbol.name}^${routineName}${hasArgList ? "()" : ""}`]));
           }
         });
       }
