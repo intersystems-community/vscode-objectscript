@@ -1602,9 +1602,19 @@
           "default": "command"
         },
         "objectscript.syncLocalChanges": {
-          "description": "Controls whether files in client-side workspace folders that are created, deleted, or changed are automatically synced to the server. Synching will occur whether changes are made due to user actions in VS Code (for example, saving a file that's being actively edited) or outside of VS Code (for example, deleting a file from the OS file explorer while VS Code has its folder open).",
-          "type": "boolean",
-          "default": true
+          "description": "Controls the sources of file events (changes, creation, deletion) in client-side workspace folders that trigger automatic synchronization with the server.",
+          "type": "string",
+          "enum": [
+            "all",
+            "vscodeOnly",
+            "none"
+          ],
+          "enumDescriptions": [
+            "All file events are automatically synced to the server, whether made due to user actions in VS Code (for example, saving a file that's being actively edited) or outside of VS Code (for example, deleting a file from the OS file explorer while VS Code has its folder open).",
+            "Only file events made due to user actions in VS Code are automatically synced to the server.",
+            "No file events are automatically synced to the server."
+          ],
+          "default": "all"
         },
         "objectscript.outputRESTTraffic": {
           "description": "If true, REST requests and responses to and from InterSystems servers will be logged to the ObjectScript Output channel. This should only be enabled when debugging a potential issue.",

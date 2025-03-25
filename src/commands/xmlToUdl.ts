@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import path = require("path");
 import { config, OBJECTSCRIPTXML_FILE_SCHEMA, xmlContentProvider } from "../extension";
 import { AtelierAPI } from "../api";
-import { fileExists, getWsFolder, handleError, notIsfs, outputChannel } from "../utils";
+import { replaceFile, fileExists, getWsFolder, handleError, notIsfs, outputChannel } from "../utils";
 import { getFileName } from "./export";
 
 const exportHeader = /^\s*<Export generator="(Cache|IRIS)" version="\d+"/;
@@ -169,7 +169,6 @@ export async function extractXMLFileContents(xmlUri?: vscode.Uri): Promise<void>
     const { atelier, folder, addCategory, map } = config("export", wsFolder.name);
     const rootFolder =
       wsFolder.uri.path + (typeof folder == "string" && folder.length ? `/${folder.replaceAll(path.sep, "/")}` : "");
-    const textEncoder = new TextEncoder();
     let errs = 0;
     for (const udlDoc of udlDocs) {
       if (!docWhitelist.includes(udlDoc.name)) continue; // This file wasn't selected
@@ -180,7 +179,7 @@ export async function extractXMLFileContents(xmlUri?: vscode.Uri): Promise<void>
         continue;
       }
       try {
-        await vscode.workspace.fs.writeFile(fileUri, textEncoder.encode(udlDoc.content.join("\n")));
+        await replaceFile(fileUri, udlDoc.content);
       } catch (error) {
         outputChannel.appendLine(
           typeof error == "string" ? error : error instanceof Error ? error.toString() : JSON.stringify(error)

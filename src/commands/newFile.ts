@@ -3,7 +3,7 @@ import path = require("path");
 import { AtelierAPI } from "../api";
 import { FILESYSTEM_SCHEMA } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
-import { getWsFolder, handleError } from "../utils";
+import { replaceFile, getWsFolder, handleError } from "../utils";
 import { getFileName } from "./export";
 import { getUrisForDocument } from "../utils/documentIndex";
 
@@ -847,8 +847,8 @@ ClassMethod %OnDashboardAction(pAction As %String, pContext As %ZEN.proxyObject)
     }
 
     if (clsUri && clsContent) {
-      // Write the file content
-      await vscode.workspace.fs.writeFile(clsUri, new TextEncoder().encode(clsContent.trimStart()));
+      // Create the file
+      await replaceFile(clsUri, clsContent.trimStart());
       // Show the file
       vscode.window.showTextDocument(clsUri, { preview: false });
     }

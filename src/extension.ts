@@ -104,6 +104,7 @@ import {
   isClassOrRtn,
   addWsServerRootFolderData,
   getWsFolder,
+  replaceFile,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentLinkProvider } from "./providers/DocumentLinkProvider";
@@ -148,6 +149,7 @@ import {
   disposeDocumentIndex,
   indexWorkspaceFolder,
   removeIndexOfWorkspaceFolder,
+  storeTouchedByVSCode,
   updateIndexForDocument,
 } from "./utils/documentIndex";
 import { WorkspaceNode, NodeBase } from "./explorer/nodes";
@@ -954,13 +956,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   const importOnSave = conf.inspect("importOnSave");
   if (typeof importOnSave.globalValue == "boolean") {
     if (!importOnSave.globalValue) {
-      conf.update("syncLocalChanges", false, vscode.ConfigurationTarget.Global);
+      conf.update("syncLocalChanges", "off", vscode.ConfigurationTarget.Global);
     }
     conf.update("importOnSave", undefined, vscode.ConfigurationTarget.Global);
   }
   if (typeof importOnSave.workspaceValue == "boolean") {
     if (!importOnSave.workspaceValue) {
-      conf.update("syncLocalChanges", false, vscode.ConfigurationTarget.Workspace);
+      conf.update("syncLocalChanges", "off", vscode.ConfigurationTarget.Workspace);
     }
     conf.update("importOnSave", undefined, vscode.ConfigurationTarget.Workspace);
   }
@@ -1270,7 +1272,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
             // Generate the new content
             const newContent = generateFileContent(uri, fileName, sourceContent);
             // Write the new content to the file
-            return vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(newContent.content.join("\n")));
+            return replaceFile(uri, newContent.content);
           })
       );
     }),
@@ -1606,6 +1608,38 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       if (typeof args != "object") return;
       showPlanWebview(args);
     }),
+    // These three listeners are needed to keep track of which file events were caused by VS Code
+    // to support the "vscodeOnly" option for the objectscript.syncLocalChanges setting.
+    // They store the URIs of files that are about to be changed by VS Code.
+    // The curresponding file system watcher listener in documentIndex.ts will pick up the
+    // event after these listeners are called, and it removes the affected URIs from the Set.
+    // The "waitUntil" Promises are needed to ensure that these listeners complete
+    // before the file system watcher listeners are called. This should not have any noticable
+    // effect on the user experience since the Promises will resolve very quickly.
+    vscode.workspace.onWillSaveTextDocument((e) =>
+      e.waitUntil(
+        new Promise<void>((resolve) => {
+          storeTouchedByVSCode(e.document.uri);
+          resolve();
+        })
+      )
+    ),
+    vscode.workspace.onWillCreateFiles((e) =>
+      e.waitUntil(
+        new Promise<void>((resolve) => {
+          e.files.forEach((f) => storeTouchedByVSCode(f));
+          resolve();
+        })
+      )
+    ),
+    vscode.workspace.onWillDeleteFiles((e) =>
+      e.waitUntil(
+        new Promise<void>((resolve) => {
+          e.files.forEach((f) => storeTouchedByVSCode(f));
+          resolve();
+        })
+      )
+    ),
 
     /* Anything we use from the VS Code proposed API */
     ...proposed

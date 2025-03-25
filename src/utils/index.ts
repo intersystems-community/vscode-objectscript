@@ -39,12 +39,12 @@ export const otherDocExts: Map<string, string[]> = new Map();
 export const openCustomEditors: string[] = [];
 
 /**
- * Array of stringified `Uri`s that have been exported.
+ * Set of stringified `Uri`s that have been exported.
  * Used by the documentIndex to determine if a created/changed
  * file needs to be synced with the server. If the documentIndex
- * finds a match in this array, the element is then removed.
+ * finds a match in this set, the element is then removed.
  */
-export const exportedUris: string[] = [];
+export const exportedUris: Set<string> = new Set();
 
 /** Validates routine labels and unquoted class member names */
 export const identifierRegex = /^(?:%|\p{L})[\p{L}\d]*$/u;
@@ -949,6 +949,23 @@ let _lastUsedLocalUri: vscode.Uri;
 export function lastUsedLocalUri(newValue?: vscode.Uri): vscode.Uri {
   if (newValue) _lastUsedLocalUri = newValue;
   return _lastUsedLocalUri;
+}
+
+/**
+ * Replace the contents `uri` with `content` using the `workspace.applyEdit()` API.
+ * That API is used so the change fires "onWill" and "onDid" events.
+ * Will overwrite the file if it exists and create the file if it doesn't.
+ */
+export async function replaceFile(uri: vscode.Uri, content: string | string[] | Buffer): Promise<void> {
+  const wsEdit = new vscode.WorkspaceEdit();
+  wsEdit.createFile(uri, {
+    overwrite: true,
+    contents: Buffer.isBuffer(content)
+      ? content
+      : new TextEncoder().encode(Array.isArray(content) ? content.join("\n") : content),
+  });
+  const success = await vscode.workspace.applyEdit(wsEdit);
+  if (!success) throw `Failed to create or replace contents of file '${uri.toString(true)}'`;
 }
 
 class Semaphore {
