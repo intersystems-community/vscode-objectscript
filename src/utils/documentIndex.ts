@@ -142,6 +142,17 @@ function generateDeleteFn(wsFolderUri: vscode.Uri): (doc: string) => void {
   };
 }
 
+/** The stringified URIs of all files that were touched by VS Code */
+const touchedByVSCode: Set<string> = new Set();
+
+/** Keep track that `uri` was touched by VS Code if it's in a client-side workspace folder */
+export function storeTouchedByVSCode(uri: vscode.Uri): void {
+  const wsFolder = vscode.workspace.getWorkspaceFolder(uri);
+  if (wsFolder && notIsfs(wsFolder.uri) && uri.scheme == wsFolder.uri.scheme) {
+    touchedByVSCode.add(uri.toString());
+  }
+}
+
 /** Create index of `wsFolder` and set up a `FileSystemWatcher` to keep the index up to date */
 export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Promise<void> {
   if (!notIsfs(wsFolder.uri)) return;
@@ -161,22 +172,30 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
   const debouncedCompile = generateCompileFn();
   const debouncedDelete = generateDeleteFn(wsFolder.uri);
   const updateIndexAndSyncChanges = async (uri: vscode.Uri): Promise<void> => {
+    if (uri.scheme != wsFolder.uri.scheme) {
+      // We don't care about virtual files that might be
+      // part of the workspace folder, like "git" files
+      return;
+    }
     const uriString = uri.toString();
     if (openCustomEditors.includes(uriString)) {
       // This class is open in a graphical editor, so its name will not change
       // and any updates to the class will be handled by that editor
       return;
     }
-    const exportedIdx = exportedUris.findIndex((e) => e == uriString);
-    if (exportedIdx != -1) {
+    if (exportedUris.has(uriString)) {
       // This creation/change event was fired due to a server
       // export, so don't re-sync the file with the server.
       // The index has already been updated.
-      exportedUris.splice(exportedIdx, 1);
+      exportedUris.delete(uriString);
       return;
     }
-    const conf = vscode.workspace.getConfiguration("objectscript", uri);
-    const sync: boolean = conf.get("syncLocalChanges");
+    const api = new AtelierAPI(uri);
+    const conf = vscode.workspace.getConfiguration("objectscript", wsFolder);
+    const syncLocalChanges: string = conf.get("syncLocalChanges");
+    const sync: boolean =
+      api.active && (syncLocalChanges == "all" || (syncLocalChanges == "vscodeOnly" && touchedByVSCode.has(uriString)));
+    touchedByVSCode.delete(uriString);
     let change: WSFolderIndexChange = {};
     if (isClassOrRtn(uri)) {
       change = await updateIndexForDocument(uri, documents, uris);
@@ -184,8 +203,6 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       change.addedOrChanged = await getCurrentFile(uri);
     }
     if (!sync || (!change.addedOrChanged && !change.removed)) return;
-    const api = new AtelierAPI(uri);
-    if (!api.active) return;
     if (change.addedOrChanged) {
       // Create or update the document on the server
       importFile(change.addedOrChanged)
@@ -203,16 +220,27 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
   watcher.onDidChange((uri) => restRateLimiter.call(() => updateIndexAndSyncChanges(uri)));
   watcher.onDidCreate((uri) => restRateLimiter.call(() => updateIndexAndSyncChanges(uri)));
   watcher.onDidDelete((uri) => {
-    const sync: boolean = vscode.workspace.getConfiguration("objectscript", uri).get("syncLocalChanges");
+    if (uri.scheme != wsFolder.uri.scheme) {
+      // We don't care about virtual files that might be
+      // part of the workspace folder, like "git" files
+      return;
+    }
+    const uriString = uri.toString();
     const api = new AtelierAPI(uri);
+    const syncLocalChanges: string = vscode.workspace
+      .getConfiguration("objectscript", wsFolder)
+      .get("syncLocalChanges");
+    const sync: boolean =
+      api.active && (syncLocalChanges == "all" || (syncLocalChanges == "vscodeOnly" && touchedByVSCode.has(uriString)));
+    touchedByVSCode.delete(uriString);
     if (isClassOrRtn(uri)) {
       // Remove the class/routine in the file from the index,
       // then delete it on the server if required
       const change = removeDocumentFromIndex(uri, documents, uris);
-      if (sync && api.active && change.removed) {
+      if (sync && change.removed) {
         debouncedDelete(change.removed);
       }
-    } else if (sync && api.active && isImportableLocalFile(uri)) {
+    } else if (sync && isImportableLocalFile(uri)) {
       // Delete this web application file or Studio abstract document on the server
       const docName = getServerDocName(uri);
       if (!docName) return;

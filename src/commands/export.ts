@@ -12,6 +12,7 @@ import {
   notNull,
   outputChannel,
   RateLimiter,
+  replaceFile,
   stringifyError,
   uriOfWorkspaceFolder,
   workspaceFolderOfUri,
@@ -103,15 +104,17 @@ async function exportFile(wsFolderUri: vscode.Uri, namespace: string, name: stri
       throw new Error("Received malformed JSON object from server fetching document");
     }
     const content = data.result.content;
-    await vscode.workspace.fs.writeFile(
-      fileUri,
-      Buffer.isBuffer(content) ? content : new TextEncoder().encode(content.join("\n"))
-    );
+    exportedUris.add(fileUri.toString()); // Set optimistically
+    await replaceFile(fileUri, content).catch((e) => {
+      // Save failed, so remove this URI from the set
+      exportedUris.delete(fileUri.toString());
+      // Re-throw the error
+      throw e;
+    });
     if (isClassOrRtn(fileUri)) {
       // Update the document index
       updateIndexForDocument(fileUri, undefined, undefined, content);
     }
-    exportedUris.push(fileUri.toString());
     const ws = workspaceFolderOfUri(fileUri);
     const mtime = Number(new Date(data.result.ts + "Z"));
     if (ws) await workspaceState.update(`${ws}:${name}:mtime`, mtime > 0 ? mtime : undefined);
@@ -377,7 +380,7 @@ export async function exportDocumentsToXMLFile(): Promise<void> {
       // Get the XML content
       const xmlContent = await api.actionXMLExport(documents).then((data) => data.result.content);
       // Save the file
-      await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(xmlContent.join("\n")));
+      await replaceFile(uri, xmlContent);
     }
   } catch (error) {
     handleError(error, "Error executing 'Export Documents to XML File...' command.");
