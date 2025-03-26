@@ -40,16 +40,12 @@ export class DbgpConnection extends EventEmitter {
     socket.on("error", (error: Error): boolean => this.emit("error", error));
     socket.on("close", (): boolean => this.emit("close"));
     this._parser = new DOMParser({
-      errorHandler: {
-        warning: (warning) => {
-          this.emit("warning", warning);
-        },
-        error: (error) => {
-          this.emit("error", error instanceof Error ? error : new Error(error));
-        },
-        fatalError: (error) => {
-          this.emit("error", error instanceof Error ? error : new Error(error));
-        },
+      onError: (level, msg) => {
+        if (level == "warning") {
+          this.emit("warning", msg);
+        } else {
+          this.emit("error", new Error(msg));
+        }
       },
     });
   }
