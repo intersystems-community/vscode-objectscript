@@ -129,7 +129,7 @@ export async function showPlanWebview(args: {
     // Loop through the child elements of the plan
     let capturePlan = false;
     let planText = "";
-    let planChild = <Element>planElem.firstChild;
+    let planChild = <Element>(<unknown>planElem.firstChild);
     while (planChild) {
       switch (planChild.nodeName) {
         case "sql":
