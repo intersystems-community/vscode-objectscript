@@ -1,5 +1,45 @@
 # Change Log
 
+## [3.0.0] 02-Apr-2025
+- Enhancements
+  - Client-side editing overhaul (#1401, #1470, #1515, #1520):
+    - Support the use of client-side editing in any non-isfs workspace folder, not just folders in your local file system. For example, with [VS Code Remote Development](https://code.visualstudio.com/docs/remote/remote-overview).
+    - Create an index of all Classes, MAC and INT routines, and Include files inside non-isfs workspace folders. This will be used to determine the URI of classes and routines (for example, for Go To Definition).
+    - Automatically sync all file changes, creations and deletions in client-side workspace folders with the connected server. This is controlled by the new `objectscript.syncLocalChanges` setting, which has three possible values: `"all"` (automatically sync all file events), `"vscodeOnly"` (only automatically sync file events triggered by user actions in VS Code), and `"off"` (don't automatically sync any changes). This new setting replaces the `objectscript.importOnSave` setting. If `objectscript.importOnSave` was set to `false`, the extension will set `objectscript.syncLocalChanges` to `"off"` upon activation so no user migration is required.
+    - Automatically show and hide the InterSystems Explorer and Projects Explorer views based on the folders in the workspace. InterSystems Explorer is only shown if there is at least one non-isfs workspace folder. Projects Explorer is only shown if there is at least one isfs folder. This replaces the `objectscript.showExplorer` setting.
+    - Change the default value of the `objectscript.explorer.alwaysShowServerCopy` setting to `true`. The InterSystems Explorer should always show the server copy since the local copy can be opened from the files explorer.
+    - Change the default value of the `objectscript.autoAdjustName` setting to `false`. Now that we have an index of the workspace, we no longer require that a document's name match the file path for the extensions to find it. This setting only affects files that are copied or moved. New files will still have the Class or ROUTINE header generated upon file creation.
+    - Cache the list of abstract document types that are supported for each server connection so we can properly import them from client-side folders. Importing abstract documents is now independent of the `objectscript.export` settings, except for DFIs which still check the export settings to preserve the path-splitting behavior added by #808. Any file within a workspace folder that has a supported abstract document extension will be imported with the last part of the path used as the server name (except for DFIs that match the export settings). For example, if the file path on disk is `/src/other/example.ext`, the server name will be `example.ext`.
+  - Add a setting for logging REST traffic (#1466)
+  - Change some pickers from "workspace folders" to "server connections" (#1467)
+  - Integrate new DTL Editor (#1469)
+  - Support Server Manager being able to handle `objectscript.conn.docker-compose` type connections (#1471)
+  - Make a web app server-side folder fall back to the folder-specific settings of its namespace (#1479)
+  - Suffix generated server-side folder names with web app path (#1484)
+  - Extend `objectscript.conn.docker-compose` settings object to handle super server port identification (#1485, #1490)
+  - Simplify REST debug webview (#1487)
+  - Server-side editing improvements (#1488):
+    - Report text search matches in class member types, the `ROUTINE` header, and non-description comments in the class definition
+    - Improve conversion of include and exclude glob arrays to regular expressions
+    - Use new workspace connection picker for project commands
+    - Improve source control action picker prompts
+    - Re-write queries for discovering unit tests to improve performance
+    - Always hide `.bpl` and `.dtl` files since users can’t edit them
+  - Implement custom workspace folder picker (#1493)
+  - Implement custom command for opening Low Code editors (#1501)
+  - Implement `Show Plan` CodeLens for Embedded SQL and `%SQLQuery` Class Queries (#1503)
+  - Remember last used local folder for server-side import/export (#1510)
+  - Add confirmation step for XML export (#1514)
+- Fixes
+  - Give priority to folder-specific docker-compose.yml setting (#1464)
+  - Better messaging (or not) when Lite Terminal launch is aborted (#1473)
+  - Permit `Modify Server-side Workspace Folder...` before connection becomes active (#1477)
+  - Input UI tweaks (#1496, #1500)
+  - Don't show CodeLenses for non-ObjectScript or Private methods and procedures (#1503, #1517)
+  - Improve Lite Terminal shell integration (#1505, #1506)
+  - Show error message when debugging fails to start (#1516)
+  - Upgrade dependencies
+
 ## [2.12.10] 13-Nov-2024
 - Fixes
   - Prevent overprompting for permission and account (#1456)

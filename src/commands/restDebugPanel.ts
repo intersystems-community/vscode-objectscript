@@ -131,7 +131,7 @@ export class RESTDebugPanel {
 				<meta charset="UTF-8">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script type="module" src="${this._panel.webview.asWebviewUri(
-          vscode.Uri.joinPath(webviewFolderUri, "elements-1.6.3.js")
+          vscode.Uri.joinPath(webviewFolderUri, "elements-1.14.0.js")
         )}"></script>
         <title>${RESTDebugPanel._viewTitle}</title>
         <style>     
