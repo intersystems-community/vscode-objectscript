@@ -16,7 +16,7 @@
   - Support Server Manager being able to handle `objectscript.conn.docker-compose` type connections (#1471)
   - Make a web app server-side folder fall back to the folder-specific settings of its namespace (#1479)
   - Suffix generated server-side folder names with web app path (#1484)
-  - Extend objectscript.conn.docker-compose settings object to handle super server port identification (#1485, #1490)
+  - Extend `objectscript.conn.docker-compose` settings object to handle super server port identification (#1485, #1490)
   - Simplify REST debug webview (#1487)
   - Server-side editing improvements (#1488):
     - Report text search matches in class member types, the `ROUTINE` header, and non-description comments in the class definition
