@@ -30,7 +30,6 @@ import {
   notNull,
   outputChannel,
   RateLimiter,
-  replaceFile,
   routineNameTypeRegex,
 } from "../utils";
 import { StudioActions } from "./studio";
@@ -228,12 +227,14 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
         if (notIsfs(file.uri)) {
           const content = await api.getDoc(file.name).then((data) => data.result.content);
           exportedUris.add(file.uri.toString()); // Set optimistically
-          await replaceFile(file.uri, content).catch((e) => {
-            // Save failed, so remove this URI from the set
-            exportedUris.delete(file.uri.toString());
-            // Re-throw the error
-            throw e;
-          });
+          await vscode.workspace.fs
+            .writeFile(file.uri, Buffer.isBuffer(content) ? content : new TextEncoder().encode(content.join("\n")))
+            .then(undefined, (e) => {
+              // Save failed, so remove this URI from the set
+              exportedUris.delete(file.uri.toString());
+              // Re-throw the error
+              throw e;
+            });
           if (isClassOrRtn(file.uri)) {
             // Update the document index
             updateIndexForDocument(file.uri, undefined, undefined, content);

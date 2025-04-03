@@ -104,7 +104,6 @@ import {
   isClassOrRtn,
   addWsServerRootFolderData,
   getWsFolder,
-  replaceFile,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentLinkProvider } from "./providers/DocumentLinkProvider";
@@ -1272,7 +1271,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
             // Generate the new content
             const newContent = generateFileContent(uri, fileName, sourceContent);
             // Write the new content to the file
-            return replaceFile(uri, newContent.content);
+            const wsEdit = new vscode.WorkspaceEdit();
+            wsEdit.replace(
+              uri,
+              new vscode.Range(0, 0, newContent.content.length + 1, 0),
+              newContent.content.join("\n"),
+              {
+                label: "ObjectScript autoAdjustName",
+                needsConfirmation: false,
+              }
+            );
+            await vscode.workspace.applyEdit(wsEdit);
           })
       );
     }),
