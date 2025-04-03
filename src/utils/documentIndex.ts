@@ -177,10 +177,20 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       // part of the workspace folder, like "git" files
       return;
     }
+    if (vscode.workspace.getWorkspaceFolder(uri)?.uri.toString() != wsFolder.uri.toString()) {
+      // This file is not in this workspace folder. This can occur if there
+      // are two workspace folders open where one is a subfolder of the other
+      // and the file being changed is in the subfolder. This event will fire
+      // for both watchers, but VS Code will correctly report that the file
+      // is in the subfolder workspace folder, so the parent watcher can
+      // safely ignore the event.
+      return;
+    }
     const uriString = uri.toString();
     if (openCustomEditors.includes(uriString)) {
       // This class is open in a graphical editor, so its name will not change
       // and any updates to the class will be handled by that editor
+      touchedByVSCode.delete(uriString);
       return;
     }
     if (exportedUris.has(uriString)) {
@@ -188,6 +198,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       // export, so don't re-sync the file with the server.
       // The index has already been updated.
       exportedUris.delete(uriString);
+      touchedByVSCode.delete(uriString);
       return;
     }
     const api = new AtelierAPI(uri);
@@ -223,6 +234,15 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     if (uri.scheme != wsFolder.uri.scheme) {
       // We don't care about virtual files that might be
       // part of the workspace folder, like "git" files
+      return;
+    }
+    if (vscode.workspace.getWorkspaceFolder(uri)?.uri.toString() != wsFolder.uri.toString()) {
+      // This file is not in this workspace folder. This can occur if there
+      // are two workspace folders open where one is a subfolder of the other
+      // and the file being changed is in the subfolder. This event will fire
+      // for both watchers, but VS Code will correctly report that the file
+      // is in the subfolder workspace folder, so the parent watcher can
+      // safely ignore the event.
       return;
     }
     const uriString = uri.toString();
