@@ -3,6 +3,7 @@
 ## [3.0.1] 04-Apr-2025
 - Fixes
   - Fix issue where `Undo` after a save deletes the file being edited (#1524)
+  - Fix endless save loop when one local workspace folder is a subfolder of another (#1525)
 
 ## [3.0.0] 02-Apr-2025
 - Enhancements
