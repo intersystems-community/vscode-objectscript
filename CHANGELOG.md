@@ -1,5 +1,9 @@
 # Change Log
 
+## [3.0.1] 04-Apr-2025
+- Fixes
+  - Fix issue where `Undo` after a save deletes the file being edited (#1524)
+
 ## [3.0.0] 02-Apr-2025
 - Enhancements
   - Client-side editing overhaul (#1401, #1470, #1515, #1520):
