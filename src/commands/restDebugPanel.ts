@@ -20,8 +20,6 @@ interface WebviewMessage {
   bodyType: string;
   /** Request body */
   bodyContent: string;
-  /** Selected web application */
-  webApp: string;
 }
 
 /**
@@ -358,7 +356,7 @@ export class RESTDebugPanel {
             axios
               .request({
                 method: message.method,
-                url: `${encodeURI(`${serverInfo}${message.webApp}${path}`)}?${urlParams.toString()}`,
+                url: `${encodeURI(`${serverInfo}${path}`)}?${urlParams.toString()}`,
                 headers,
                 data: hasBody ? message.bodyContent : undefined,
                 withCredentials: true,
