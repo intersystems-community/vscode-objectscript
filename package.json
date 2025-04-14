@@ -1488,6 +1488,7 @@
         "objectscript.multilineMethodArgs": {
           "markdownDescription": "List method arguments on multiple lines, if the server supports it. **NOTE:** Only supported on IRIS 2019.1.2, 2020.1.1+, 2021.1.0+ and subsequent versions! On all other versions, this setting will have no effect.",
           "type": "boolean",
+          "scope": "resource",
           "default": false
         },
         "objectscript.openClassContracted": {

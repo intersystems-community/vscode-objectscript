@@ -601,20 +601,25 @@ export class AtelierAPI {
   }
 
   // api v1+
-  public getDoc(name: string, format?: string, mtime?: number): Promise<Atelier.Response<Atelier.Document>> {
-    let params = {};
-    if (!format && config("multilineMethodArgs", this.configName) && this.config.apiVersion >= 4) {
-      format = "udl-multiline";
-    }
-    if (format) {
-      params = {
-        format,
-      };
-    }
+  public getDoc(name: string, scope: vscode.Uri | string, mtime?: number): Promise<Atelier.Response<Atelier.Document>> {
+    let params, headers;
     name = this.transformNameIfCsp(name);
-    const headers = {};
+    if (
+      this.config.apiVersion >= 4 &&
+      vscode.workspace
+        .getConfiguration(
+          "objectscript",
+          typeof scope == "string"
+            ? // If scope is a string, then it's a workspace folder name
+              vscode.workspace.workspaceFolders?.find((f) => f.name.toLowerCase() == scope.toLowerCase())
+            : scope
+        )
+        .get("multilineMethodArgs")
+    ) {
+      params = { format: "udl-multiline" };
+    }
     if (mtime && mtime > 0) {
-      headers["IF-NONE-MATCH"] = new Date(mtime).toISOString().replace(/T|Z/g, " ").trim();
+      headers = { "IF-NONE-MATCH": new Date(mtime).toISOString().replace(/T|Z/g, " ").trim() };
     }
     return this.request(1, "GET", `${this.ns}/doc/${name}`, null, params, headers);
   }
