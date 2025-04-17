@@ -58,6 +58,7 @@ import {
   OtherStudioAction,
   contextSourceControlMenu,
   mainSourceControlMenu,
+  StudioActions,
 } from "./commands/studio";
 import { addServerNamespaceToWorkspace, pickServerAndNamespace } from "./commands/addServerNamespaceToWorkspace";
 import { jumpToTagAndOffset, openErrorLocation } from "./commands/jumpToTagAndOffset";
@@ -153,6 +154,7 @@ import {
 } from "./utils/documentIndex";
 import { WorkspaceNode, NodeBase } from "./explorer/nodes";
 import { showPlanWebview } from "./commands/showPlanPanel";
+import { isfsConfig } from "./utils/FileProviderUtil";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -709,6 +711,25 @@ async function systemModeWarning(wsFolders: readonly vscode.WorkspaceFolder[]): 
 }
 
 /**
+ * Fire the `OpenedDocument` UserAction for any workspace folders
+ * that are showing the contents of a server-side project.
+ * This must be done because technically a project is a "document".
+ */
+async function fireOpenProjectUserAction(wsFolders: readonly vscode.WorkspaceFolder[]): Promise<void> {
+  if (!wsFolders || wsFolders.length == 0) return;
+  for (const wsFolder of wsFolders) {
+    if (notIsfs(wsFolder.uri)) return;
+    const { project } = isfsConfig(wsFolder.uri);
+    if (!project) return;
+    const api = new AtelierAPI(wsFolder.uri);
+    if (!api.active) return;
+    new StudioActions().fireProjectUserAction(api, project, OtherStudioAction.OpenedDocument).catch(() => {
+      // Swallow error because showing it is more disruptive than using a potentially outdated project definition
+    });
+  }
+}
+
+/**
  * Set when clause context keys so the ObjectScript Explorer and
  * Projects Explorer views are correctly shown or hidden depending
  * on the folders in this workspace
@@ -940,6 +961,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   // Warn about SystemMode
   systemModeWarning(vscode.workspace.workspaceFolders);
+
+  // Fire OpenedDocument UserAction for folders showing the contents of a server-side project
+  fireOpenProjectUserAction(vscode.workspace.workspaceFolders);
 
   iscIcon = vscode.Uri.joinPath(context.extensionUri, "images", "fileIcon.svg");
 
@@ -1531,6 +1555,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       for (const r of e.removed) removeIndexOfWorkspaceFolder(r);
       // Show or hide explorer views as needed
       setExplorerContextKeys();
+      // Fire OpenedDocument UserAction for added folders showing the contents of a server-side project
+      fireOpenProjectUserAction(e.added);
     }),
     vscode.commands.registerCommand("vscode-objectscript.importXMLFiles", importXMLFiles),
     vscode.commands.registerCommand("vscode-objectscript.exportToXMLFile", exportDocumentsToXMLFile),

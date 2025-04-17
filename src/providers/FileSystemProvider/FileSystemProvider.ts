@@ -2,7 +2,7 @@ import * as path from "path";
 import * as vscode from "vscode";
 import { isText } from "istextorbinary";
 import { AtelierAPI } from "../../api";
-import { fireOtherStudioAction, OtherStudioAction, StudioActions } from "../../commands/studio";
+import { fireOtherStudioAction, OtherStudioAction } from "../../commands/studio";
 import { isfsConfig, projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
 import {
   classNameRegex,
@@ -234,6 +234,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+    if (uri.path.includes(".vscode/") && !uri.path.endsWith("/settings.json")) {
+      throw vscode.FileSystemError.NoPermissions("Only settings.json is allowed within the /.vscode directory");
+    }
     let entryPromise: Promise<Entry>;
     let result: Entry;
     const redirectedUri = redirectDotvscodeRoot(uri);
@@ -284,19 +287,14 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
-    uri = redirectDotvscodeRoot(uri);
+    if (uri.path.includes(".vscode/")) {
+      throw vscode.FileSystemError.NoPermissions("Cannot read the /.vscode directory");
+    }
     const parent = await this._lookupAsDirectory(uri);
     const api = new AtelierAPI(uri);
     if (!api.active) throw vscode.FileSystemError.Unavailable(uri);
     const { csp, project } = isfsConfig(uri);
     if (project) {
-      if (["", "/"].includes(uri.path)) {
-        // Technically a project is a "document", so tell the server that we're opening it
-        await new StudioActions().fireProjectUserAction(api, project, OtherStudioAction.OpenedDocument).catch(() => {
-          // Swallow error because showing it is more disruptive than using a potentially outdated project definition
-        });
-      }
-
       // Get all items in the project
       return projectContentsFromUri(uri).then((entries) =>
         entries.map((entry) => {
@@ -405,7 +403,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public createDirectory(uri: vscode.Uri): void | Thenable<void> {
-    uri = redirectDotvscodeRoot(uri);
+    if (uri.path.includes(".vscode/")) {
+      throw vscode.FileSystemError.NoPermissions("Cannot create a subdirectory of the /.vscode directory");
+    }
     const basename = path.posix.basename(uri.path);
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
     return this._lookupAsDirectory(dirname).then((parent) => {
@@ -421,6 +421,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
+    if (uri.path.includes(".vscode/") && !uri.path.endsWith("/settings.json")) {
+      throw vscode.FileSystemError.NoPermissions("Only settings.json is allowed within the /.vscode directory");
+    }
     // Use _lookup() instead of _lookupAsFile() so we send
     // our cached mtime with the GET /doc request if we have it
     return this._lookup(uri, true).then((file: File) => {
@@ -439,6 +442,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       overwrite: boolean;
     }
   ): void | Thenable<void> {
+    if (uri.path.includes(".vscode/") && !uri.path.endsWith("/settings.json")) {
+      throw vscode.FileSystemError.NoPermissions("Only settings.json is allowed within the /.vscode directory");
+    }
     uri = redirectDotvscodeRoot(uri);
     if (uri.path.startsWith("/.")) {
       throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
@@ -606,6 +612,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async delete(uri: vscode.Uri, options: { recursive: boolean }): Promise<void> {
+    if (uri.path.includes(".vscode/") && !uri.path.endsWith("/settings.json")) {
+      throw vscode.FileSystemError.NoPermissions("Only settings.json is allowed within the /.vscode directory");
+    }
     uri = redirectDotvscodeRoot(uri);
     const { project } = isfsConfig(uri);
     const csp = isCSP(uri);
@@ -698,6 +707,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     }
     if (vscode.workspace.getWorkspaceFolder(oldUri) != vscode.workspace.getWorkspaceFolder(newUri)) {
       throw vscode.FileSystemError.NoPermissions("Cannot rename a file across workspace folders");
+    }
+    if (oldUri.path.includes(".vscode/") || newUri.path.includes(".vscode/")) {
+      throw vscode.FileSystemError.NoPermissions("Cannot rename a file in the /.vscode directory");
     }
     // Check if the destination exists
     let newFileStat: vscode.FileStat;
@@ -864,11 +876,6 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   // Fetch entry (a file or directory) from cache, else from server
   private async _lookup(uri: vscode.Uri, fillInPath?: boolean): Promise<Entry> {
     const api = new AtelierAPI(uri);
-    if (uri.path === "/") {
-      await api.serverInfo().catch((error) => {
-        throw vscode.FileSystemError.Unavailable(stringifyError(error) || uri);
-      });
-    }
     const config = api.config;
     const rootName = `${config.username}@${config.host}:${config.port}${config.pathPrefix}/${config.ns.toUpperCase()}`;
     let entry: Entry = this.superRoot.entries.get(rootName);

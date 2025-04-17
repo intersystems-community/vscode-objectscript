@@ -680,11 +680,6 @@ export async function modifyProject(
   if (!args) return;
   const { node, api, project } = args;
 
-  // Technically a project is a "document", so tell the server that we're opening it
-  await new StudioActions().fireProjectUserAction(api, project, OtherStudioAction.OpenedDocument).catch(() => {
-    // Swallow error because showing it is more disruptive than using a potentially outdated project definition
-  });
-
   let items: ProjectItem[] = await api
     .actionQuery("SELECT Name, Type FROM %Studio.Project_ProjectItemsList(?,?) WHERE Type != 'GBL'", [project, "1"])
     .then((data) => data.result.content);
@@ -1148,11 +1143,6 @@ export async function modifyProjectMetadata(nodeOrUri: NodeBase | vscode.Uri | u
   });
   if (!args) return;
   const { api, project } = args;
-
-  // Technically a project is a "document", so tell the server that we're opening it
-  await new StudioActions().fireProjectUserAction(api, project, OtherStudioAction.OpenedDocument).catch(() => {
-    // Swallow error because showing it is more disruptive than using a potentially outdated project definition
-  });
 
   try {
     const oldDesc: string = await api
