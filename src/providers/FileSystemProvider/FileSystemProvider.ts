@@ -939,7 +939,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const fileName = isfsDocumentName(uri, csp);
     const api = new AtelierAPI(uri);
     return api
-      .getDoc(fileName, undefined, cachedFile?.mtime)
+      .getDoc(fileName, uri, cachedFile?.mtime)
       .then((data) => data.result)
       .then(
         ({ ts, content }) =>

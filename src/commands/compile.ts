@@ -64,7 +64,7 @@ export async function checkChangedOnServer(file: CurrentTextFile | CurrentBinary
   const mtime =
     workspaceState.get(`${file.uniqueId}:mtime`, null) ||
     (await api
-      .getDoc(file.name)
+      .getDoc(file.name, file.uri)
       .then((data) => data.result)
       .then(async ({ ts, content }) => {
         const serverTime = Number(new Date(ts + "Z"));
@@ -225,7 +225,7 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
         const mtime = Number(new Date(doc.ts + "Z"));
         workspaceState.update(`${file.uniqueId}:mtime`, mtime > 0 ? mtime : undefined);
         if (notIsfs(file.uri)) {
-          const content = await api.getDoc(file.name).then((data) => data.result.content);
+          const content = await api.getDoc(file.name, file.uri).then((data) => data.result.content);
           exportedUris.add(file.uri.toString()); // Set optimistically
           await vscode.workspace.fs
             .writeFile(file.uri, Buffer.isBuffer(content) ? content : new TextEncoder().encode(content.join("\n")))

@@ -249,7 +249,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     const { csp, ns } = isfsConfig(uri);
     const fileName = csp ? uri.path.slice(1) : uri.path.split("/").slice(1).join(".");
     if (ns) api.setNamespace(ns);
-    const data = await api.getDoc(fileName);
+    const data = await api.getDoc(fileName, api.configName);
     if (Buffer.isBuffer(data.result.content)) {
       return "\nThis is a binary file.\n\nTo access its contents, export it to the local file system.";
     } else {
