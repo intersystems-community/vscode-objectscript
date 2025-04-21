@@ -960,7 +960,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       )
       .catch((error) => {
         if (error?.statusCode == 304 && cachedFile) return cachedFile;
-        throw vscode.FileSystemError.FileNotFound(stringifyError(error) || uri);
+        const errArg = stringifyError(error) || uri;
+        if (error?.statusCode == 404) throw vscode.FileSystemError.FileNotFound(errArg);
+        throw vscode.FileSystemError.Unavailable(errArg);
       });
   }
 
