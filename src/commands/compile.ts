@@ -34,7 +34,7 @@ import {
 } from "../utils";
 import { StudioActions } from "./studio";
 import { NodeBase, PackageNode, RootNode } from "../explorer/nodes";
-import { updateIndexForDocument } from "../utils/documentIndex";
+import { getUrisForDocument, updateIndexForDocument } from "../utils/documentIndex";
 
 async function compileFlags(): Promise<string> {
   const defaultFlags = config().compileFlags;
@@ -64,7 +64,7 @@ export async function checkChangedOnServer(file: CurrentTextFile | CurrentBinary
   const mtime =
     workspaceState.get(`${file.uniqueId}:mtime`, null) ||
     (await api
-      .getDoc(file.name)
+      .getDoc(file.name, file.uri)
       .then((data) => data.result)
       .then(async ({ ts, content }) => {
         const serverTime = Number(new Date(ts + "Z"));
@@ -225,7 +225,7 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
         const mtime = Number(new Date(doc.ts + "Z"));
         workspaceState.update(`${file.uniqueId}:mtime`, mtime > 0 ? mtime : undefined);
         if (notIsfs(file.uri)) {
-          const content = await api.getDoc(file.name).then((data) => data.result.content);
+          const content = await api.getDoc(file.name, file.uri).then((data) => data.result.content);
           exportedUris.add(file.uri.toString()); // Set optimistically
           await vscode.workspace.fs
             .writeFile(file.uri, Buffer.isBuffer(content) ? content : new TextEncoder().encode(content.join("\n")))
@@ -249,12 +249,11 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
 }
 
 export async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
-  const conf = vscode.workspace.getConfiguration(
-    "objectscript",
-    vscode.workspace.getWorkspaceFolder(docs[0].uri) || docs[0].uri
-  );
+  const wsFolder = vscode.workspace.getWorkspaceFolder(docs[0].uri);
+  const conf = vscode.workspace.getConfiguration("objectscript", wsFolder || docs[0].uri);
   flags = flags || conf.get("compileFlags");
   const api = new AtelierAPI(docs[0].uri);
+  const docNames = docs.map((d) => d.name);
   return vscode.window
     .withProgress(
       {
@@ -264,17 +263,30 @@ export async function compile(docs: CurrentFile[], flags?: string): Promise<any>
       },
       (progress, token: vscode.CancellationToken) =>
         api
-          .asyncCompile(
-            docs.map((el) => el.name),
-            token,
-            flags
-          )
+          .asyncCompile(docNames, token, flags)
           .then((data) => {
             const info = docs.length > 1 ? "" : `${docs[0].name}: `;
             if (data.status && data.status.errors && data.status.errors.length) {
               throw new Error(`${info}Compile error`);
             } else if (!conf.get("suppressCompileMessages")) {
               vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
+            }
+            if (wsFolder) {
+              // Make sure that we update the content for any
+              // other documents affected by this compilation
+              data.result.content.forEach((f) => {
+                if (docNames.includes(f.name)) return;
+                getUrisForDocument(f.name, wsFolder).forEach((u) => {
+                  docs.push({
+                    name: f.name,
+                    uri: u,
+                    uniqueId: `${wsFolder.name}:${f.name}`,
+                    // These two keys aren't used by loadChanges()
+                    workspaceFolder: wsFolder.name,
+                    fileName: u.fsPath,
+                  });
+                });
+              });
             }
             return docs;
           })
