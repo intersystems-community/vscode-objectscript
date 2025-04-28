@@ -163,6 +163,8 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
   // Limit FileSystemWatcher events that may produce a putDoc()
   // request to 50 concurrent calls to avoid hammering the server
   const restRateLimiter = new RateLimiter(50);
+  // A cache of the last time each file was last changed
+  const lastFileChangeTimes: Map<string, number> = new Map();
   // Index classes and routines that currently exist
   vscode.workspace
     .findFiles(new vscode.RelativePattern(wsFolder, "{**/*.cls,**/*.mac,**/*.int,**/*.inc}"))
@@ -187,8 +189,10 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       return;
     }
     const uriString = uri.toString();
+    const lastFileChangeTime = lastFileChangeTimes.get(uriString) ?? 0;
+    lastFileChangeTimes.set(uriString, Date.now());
     if (openCustomEditors.includes(uriString)) {
-      // This class is open in a graphical editor, so its name will not change
+      // This class is open in a low-code editor, so its name will not change
       // and any updates to the class will be handled by that editor
       touchedByVSCode.delete(uriString);
       return;
@@ -198,6 +202,12 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       // export, so don't re-sync the file with the server.
       // The index has already been updated.
       exportedUris.delete(uriString);
+      touchedByVSCode.delete(uriString);
+      return;
+    }
+    if (lastFileChangeTimes.get(uriString) - lastFileChangeTime < 300) {
+      // This file change event came too quickly after the last one to be a
+      // meaningful change triggered by the user, so consider it a duplicate
       touchedByVSCode.delete(uriString);
       return;
     }
