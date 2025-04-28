@@ -234,9 +234,6 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
-    if (uri.path.includes(".vscode/") && !uri.path.endsWith("/settings.json")) {
-      throw vscode.FileSystemError.NoPermissions("Only settings.json is allowed within the /.vscode directory");
-    }
     let entryPromise: Promise<Entry>;
     let result: Entry;
     const redirectedUri = redirectDotvscodeRoot(uri);
@@ -421,9 +418,6 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
-    if (uri.path.includes(".vscode/") && !uri.path.endsWith("/settings.json")) {
-      throw vscode.FileSystemError.NoPermissions("Only settings.json is allowed within the /.vscode directory");
-    }
     // Use _lookup() instead of _lookupAsFile() so we send
     // our cached mtime with the GET /doc request if we have it
     return this._lookup(uri, true).then((file: File) => {
@@ -442,9 +436,6 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       overwrite: boolean;
     }
   ): void | Thenable<void> {
-    if (uri.path.includes(".vscode/") && !uri.path.endsWith("/settings.json")) {
-      throw vscode.FileSystemError.NoPermissions("Only settings.json is allowed within the /.vscode directory");
-    }
     uri = redirectDotvscodeRoot(uri);
     if (uri.path.startsWith("/.")) {
       throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
@@ -612,9 +603,6 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async delete(uri: vscode.Uri, options: { recursive: boolean }): Promise<void> {
-    if (uri.path.includes(".vscode/") && !uri.path.endsWith("/settings.json")) {
-      throw vscode.FileSystemError.NoPermissions("Only settings.json is allowed within the /.vscode directory");
-    }
     uri = redirectDotvscodeRoot(uri);
     const { project } = isfsConfig(uri);
     const csp = isCSP(uri);
