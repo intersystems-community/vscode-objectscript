@@ -254,11 +254,12 @@ export async function exportAll(): Promise<any> {
 
 export async function exportExplorerItems(nodes: NodeBase[]): Promise<any> {
   const node = nodes[0];
-  const origNamespace = config("conn", node.workspaceFolder).ns;
-  if (origNamespace !== node.namespace) {
+  const nodeNs = node.namespace.toUpperCase();
+  const origNamespace = config("conn", node.workspaceFolder).ns?.toUpperCase();
+  if (origNamespace?.toUpperCase() != node.namespace.toUpperCase()) {
     const answer = await vscode.window.showWarningMessage(
       `
-You are about to export from namespace ${node.namespace}.
+You are about to export from namespace ${nodeNs}.
 
 Future edits to the file(s) in your local workspace will be saved and compiled in the primary namespace of your workspace root, ${origNamespace}, not the namespace from which you originally exported.
 
@@ -272,9 +273,8 @@ Would you like to continue?`,
       return;
     }
   }
-  const { workspaceFolder, namespace } = node;
   return Promise.all(nodes.map((node) => node.getItems4Export())).then((items) => {
-    return exportList(items.flat(), workspaceFolder, namespace).then(() => explorerProvider.refresh());
+    return exportList(items.flat(), node.workspaceFolder, nodeNs).then(() => explorerProvider.refresh());
   });
 }
 
