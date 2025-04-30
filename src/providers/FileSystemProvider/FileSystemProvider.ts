@@ -400,9 +400,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public createDirectory(uri: vscode.Uri): void | Thenable<void> {
-    if (uri.path.includes(".vscode/")) {
-      throw vscode.FileSystemError.NoPermissions("Cannot create a subdirectory of the /.vscode directory");
-    }
+    uri = redirectDotvscodeRoot(uri);
     const basename = path.posix.basename(uri.path);
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
     return this._lookupAsDirectory(dirname).then((parent) => {
@@ -695,9 +693,6 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     }
     if (vscode.workspace.getWorkspaceFolder(oldUri) != vscode.workspace.getWorkspaceFolder(newUri)) {
       throw vscode.FileSystemError.NoPermissions("Cannot rename a file across workspace folders");
-    }
-    if (oldUri.path.includes(".vscode/") || newUri.path.includes(".vscode/")) {
-      throw vscode.FileSystemError.NoPermissions("Cannot rename a file in the /.vscode directory");
     }
     // Check if the destination exists
     let newFileStat: vscode.FileStat;
