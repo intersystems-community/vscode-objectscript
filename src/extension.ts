@@ -1783,7 +1783,7 @@ async function asyncServerForUri(uri: vscode.Uri): Promise<any> {
   return server;
 }
 
-export function deactivate(): void {
+export async function deactivate(): Promise<void> {
   if (workspaceState) {
     workspaceState.update("openedClasses", openedClasses);
   }
@@ -1796,4 +1796,25 @@ export function deactivate(): void {
   incLangConf?.dispose();
   intLangConf?.dispose();
   disposeDocumentIndex();
+  // Log out of all CSP sessions
+  const loggedOut: Set<string> = new Set();
+  const promises: Promise<any>[] = [];
+  for (const f of vscode.workspace.workspaceFolders ?? []) {
+    const api = new AtelierAPI(f.uri);
+    if (!api.active || !api.cookies.length) continue;
+    const sessionCookie = api.cookies.find((c) => c.startsWith("CSPSESSIONID-"));
+    if (!sessionCookie || loggedOut.has(sessionCookie)) continue;
+    loggedOut.add(sessionCookie);
+    promises.push(
+      api.request(
+        0,
+        "HEAD",
+        undefined,
+        undefined,
+        // Prefer IRISLogout for servers that support it
+        semver.lt(api.config.serverVersion, "2018.2.0") ? { CacheLogout: "end" } : { IRISLogout: "end" }
+      )
+    );
+  }
+  await Promise.allSettled(promises);
 }
