@@ -2,7 +2,7 @@ import * as path from "path";
 import * as vscode from "vscode";
 import { isText } from "istextorbinary";
 import { AtelierAPI } from "../../api";
-import { fireOtherStudioAction, OtherStudioAction, StudioActions } from "../../commands/studio";
+import { fireOtherStudioAction, OtherStudioAction } from "../../commands/studio";
 import { isfsConfig, projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
 import {
   classNameRegex,
@@ -234,6 +234,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+    if (!new AtelierAPI(uri).active) throw vscode.FileSystemError.Unavailable("Server connection is inactive");
     let entryPromise: Promise<Entry>;
     let result: Entry;
     const redirectedUri = redirectDotvscodeRoot(uri);
@@ -284,19 +285,14 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
-    uri = redirectDotvscodeRoot(uri);
+    if (uri.path.includes(".vscode/")) {
+      throw vscode.FileSystemError.NoPermissions("Cannot read the /.vscode directory");
+    }
     const parent = await this._lookupAsDirectory(uri);
     const api = new AtelierAPI(uri);
     if (!api.active) throw vscode.FileSystemError.Unavailable(uri);
     const { csp, project } = isfsConfig(uri);
     if (project) {
-      if (["", "/"].includes(uri.path)) {
-        // Technically a project is a "document", so tell the server that we're opening it
-        await new StudioActions().fireProjectUserAction(api, project, OtherStudioAction.OpenedDocument).catch(() => {
-          // Swallow error because showing it is more disruptive than using a potentially outdated project definition
-        });
-      }
-
       // Get all items in the project
       return projectContentsFromUri(uri).then((entries) =>
         entries.map((entry) => {
@@ -864,11 +860,6 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   // Fetch entry (a file or directory) from cache, else from server
   private async _lookup(uri: vscode.Uri, fillInPath?: boolean): Promise<Entry> {
     const api = new AtelierAPI(uri);
-    if (uri.path === "/") {
-      await api.serverInfo().catch((error) => {
-        throw vscode.FileSystemError.Unavailable(stringifyError(error) || uri);
-      });
-    }
     const config = api.config;
     const rootName = `${config.username}@${config.host}:${config.port}${config.pathPrefix}/${config.ns.toUpperCase()}`;
     let entry: Entry = this.superRoot.entries.get(rootName);
