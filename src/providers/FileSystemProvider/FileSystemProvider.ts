@@ -234,6 +234,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+    if (!new AtelierAPI(uri).active) throw vscode.FileSystemError.Unavailable("Server connection is inactive");
     let entryPromise: Promise<Entry>;
     let result: Entry;
     const redirectedUri = redirectDotvscodeRoot(uri);
