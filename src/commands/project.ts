@@ -3,7 +3,7 @@ import { AtelierAPI } from "../api";
 import { config, filesystemSchemas, projectsExplorerProvider, schemas } from "../extension";
 import { compareConns } from "../providers/DocumentContentProvider";
 import { isfsDocumentName } from "../providers/FileSystemProvider/FileSystemProvider";
-import { getWsServerConnection, handleError, notIsfs, notNull } from "../utils";
+import { compileErrorMsg, getWsServerConnection, handleError, notIsfs, notNull } from "../utils";
 import { exportList } from "./export";
 import { OtherStudioAction, StudioActions } from "./studio";
 import { NodeBase, ProjectNode, ProjectRootNode, RoutineNode, CSPFileNode, ClassNode } from "../explorer/nodes";
@@ -996,14 +996,7 @@ export async function compileProjectContents(node: ProjectNode): Promise<any> {
             vscode.window.showInformationMessage("Compilation succeeded.", "Dismiss");
           }
         })
-        .catch(() => {
-          if (!conf.get("suppressCompileErrorMessages")) {
-            vscode.window.showErrorMessage(
-              "Compilation failed. Check the 'ObjectScript' Output channel for details.",
-              "Dismiss"
-            );
-          }
-        })
+        .catch(() => compileErrorMsg(conf))
   );
 }
 

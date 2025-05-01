@@ -14,6 +14,7 @@ import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import {
   base64EncodeContent,
   classNameRegex,
+  compileErrorMsg,
   cspAppsForUri,
   CurrentBinaryFile,
   currentFile,
@@ -291,12 +292,7 @@ export async function compile(docs: CurrentFile[], flags?: string): Promise<any>
             return docs;
           })
           .catch(() => {
-            if (!conf.get("suppressCompileErrorMessages")) {
-              vscode.window.showErrorMessage(
-                "Compilation failed. Check the 'ObjectScript' Output channel for details.",
-                "Dismiss"
-              );
-            }
+            compileErrorMsg(conf);
             // Always fetch server changes, even when compile failed or got cancelled
             return docs;
           })
@@ -483,9 +479,9 @@ export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<
 }
 
 export async function compileExplorerItems(nodes: NodeBase[]): Promise<any> {
-  const { workspaceFolder, namespace } = nodes[0];
-  const flags = config().compileFlags;
-  const api = new AtelierAPI(workspaceFolder);
+  const { workspaceFolderUri, namespace } = nodes[0];
+  const conf = vscode.workspace.getConfiguration("objectscript", workspaceFolderUri);
+  const api = new AtelierAPI(workspaceFolderUri);
   api.setNamespace(namespace);
   const docs = [];
   for (const node of nodes) {
@@ -512,23 +508,16 @@ export async function compileExplorerItems(nodes: NodeBase[]): Promise<any> {
     },
     (progress, token: vscode.CancellationToken) =>
       api
-        .asyncCompile(docs, token, flags)
+        .asyncCompile(docs, token, conf.get<string>("compileFlags"))
         .then((data) => {
           const info = nodes.length > 1 ? "" : `${nodes[0].fullName}: `;
           if (data.status && data.status.errors && data.status.errors.length) {
             throw new Error(`${info}Compile error`);
-          } else if (!config("suppressCompileMessages")) {
+          } else if (!conf.get("suppressCompileMessages")) {
             vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
           }
         })
-        .catch(() => {
-          if (!config("suppressCompileErrorMessages")) {
-            vscode.window.showErrorMessage(
-              "Compilation failed. Check the 'ObjectScript' Output channel for details.",
-              "Dismiss"
-            );
-          }
-        })
+        .catch(() => compileErrorMsg(conf))
   );
 }
 
@@ -585,6 +574,8 @@ async function importFileFromContent(
 
 /** Prompt the user to compile documents after importing them */
 async function promptForCompile(imported: string[], api: AtelierAPI, refresh: boolean): Promise<void> {
+  // This cast is safe because the only two callers intialize api with a workspace folder URI
+  const conf = vscode.workspace.getConfiguration("objectscript", <vscode.Uri>api.wsOrFile);
   // Prompt the user for compilation
   if (imported.length) {
     return vscode.window
@@ -606,23 +597,16 @@ async function promptForCompile(imported: string[], api: AtelierAPI, refresh: bo
             },
             (progress, token: vscode.CancellationToken) =>
               api
-                .asyncCompile(imported, token, config("compileFlags"))
+                .asyncCompile(imported, token, conf.get<string>("compileFlags"))
                 .then((data) => {
                   const info = imported.length > 1 ? "" : `${imported[0]}: `;
                   if (data.status && data.status.errors && data.status.errors.length) {
                     throw new Error(`${info}Compile error`);
-                  } else if (!config("suppressCompileMessages")) {
+                  } else if (!conf.get("suppressCompileMessages")) {
                     vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
                   }
                 })
-                .catch(() => {
-                  if (!config("suppressCompileErrorMessages")) {
-                    vscode.window.showErrorMessage(
-                      "Compilation failed. Check the 'ObjectScript' Output channel for details.",
-                      "Dismiss"
-                    );
-                  }
-                })
+                .catch(() => compileErrorMsg(conf))
                 .finally(() => {
                   if (refresh) {
                     // Refresh the files explorer to show the new files
