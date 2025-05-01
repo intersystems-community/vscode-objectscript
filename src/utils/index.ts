@@ -12,12 +12,13 @@ import {
   OBJECTSCRIPT_FILE_SCHEMA,
   documentContentProvider,
   filesystemSchemas,
+  outputLangId,
 } from "../extension";
 import { getCategory } from "../commands/export";
 import { isCSP, isfsDocumentName } from "../providers/FileSystemProvider/FileSystemProvider";
 import { AtelierAPI } from "../api";
 
-export const outputChannel = vscode.window.createOutputChannel("ObjectScript", "vscode-objectscript-output");
+export const outputChannel = vscode.window.createOutputChannel("ObjectScript", outputLangId);
 
 /**
  * A map of all CSP web apps in a server-namespace.
@@ -966,6 +967,22 @@ export async function replaceFile(uri: vscode.Uri, content: string | string[] | 
   });
   const success = await vscode.workspace.applyEdit(wsEdit);
   if (!success) throw `Failed to create or replace contents of file '${uri.toString(true)}'`;
+}
+
+/** Show the compilation failure error message if required. */
+export function compileErrorMsg(conf: vscode.WorkspaceConfiguration): void {
+  if (conf.get("suppressCompileErrorMessages")) return;
+  vscode.window
+    .showErrorMessage(
+      "Compilation failed. Check 'ObjectScript' Output channel for details.",
+      !vscode.window.visibleTextEditors.some((e) => e.document.languageId == outputLangId) ? "Show" : undefined,
+      "Dismiss"
+    )
+    .then((action) => {
+      if (action == "Show") {
+        outputChannel.show(true);
+      }
+    });
 }
 
 class Semaphore {

@@ -24,6 +24,7 @@ export const macLangId = "objectscript";
 export const intLangId = "objectscript-int";
 export const incLangId = "objectscript-macros";
 export const cspLangId = "objectscript-csp";
+export const outputLangId = "vscode-objectscript-output";
 
 import * as url from "url";
 import path = require("path");
@@ -1032,10 +1033,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         }
       }
     }),
-
-    vscode.commands.registerCommand("vscode-objectscript.output", () => {
-      outputChannel.show(true);
-    }),
     vscode.commands.registerCommand("vscode-objectscript.compile", () => importAndCompile(false)),
     vscode.commands.registerCommand("vscode-objectscript.touchBar.compile", () => importAndCompile(false)),
     vscode.commands.registerCommand("vscode-objectscript.compileWithFlags", () => importAndCompile(true)),
@@ -1244,10 +1241,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     ),
     vscode.commands.registerCommand("vscode-objectscript.compileOnly", () => compileOnly(false)),
     vscode.commands.registerCommand("vscode-objectscript.compileOnlyWithFlags", () => compileOnly(true)),
-    vscode.languages.registerDocumentLinkProvider(
-      { language: "vscode-objectscript-output" },
-      new DocumentLinkProvider()
-    ),
+    vscode.languages.registerDocumentLinkProvider({ language: outputLangId }, new DocumentLinkProvider()),
     vscode.commands.registerCommand("vscode-objectscript.editOthers", () => viewOthers(true)),
     vscode.commands.registerCommand("vscode-objectscript.showClassDocumentationPreview", () =>
       DocumaticPreviewPanel.create()

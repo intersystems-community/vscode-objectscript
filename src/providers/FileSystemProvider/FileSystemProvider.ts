@@ -17,6 +17,7 @@ import {
   stringifyError,
   base64EncodeContent,
   openCustomEditors,
+  compileErrorMsg,
 } from "../../utils";
 import { FILESYSTEM_READONLY_SCHEMA, FILESYSTEM_SCHEMA, intLangId, macLangId, workspaceState } from "../../extension";
 import { addIsfsFileToProject, modifyProject } from "../../commands/project";
@@ -803,21 +804,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
             }
           })
-          .catch(() => {
-            if (!conf.get("suppressCompileErrorMessages")) {
-              vscode.window
-                .showErrorMessage(
-                  "Compilation failed. Check 'ObjectScript' Output channel for details.",
-                  "Show",
-                  "Dismiss"
-                )
-                .then((action) => {
-                  if (action === "Show") {
-                    outputChannel.show(true);
-                  }
-                });
-            }
-          })
+          .catch(() => compileErrorMsg(conf))
     );
     // Tell the client to update all "other" files affected by compilation
     const workspaceFolder = workspaceFolderOfUri(uri);
