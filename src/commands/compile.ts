@@ -9,6 +9,7 @@ import {
   fileSystemProvider,
   workspaceState,
   filesystemSchemas,
+  schemas,
 } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import {
@@ -58,7 +59,7 @@ async function compileFlags(): Promise<string> {
  * @return mtime timestamp or -1.
  */
 export async function checkChangedOnServer(file: CurrentTextFile | CurrentBinaryFile, force = false): Promise<number> {
-  if (!file || !file.uri) {
+  if (!file || !file.uri || schemas.includes(file.uri.scheme)) {
     return -1;
   }
   const api = new AtelierAPI(file.uri);
@@ -93,6 +94,7 @@ export async function importFile(
   skipDeplCheck = false
 ): Promise<any> {
   const api = new AtelierAPI(file.uri);
+  if (!api.active) return;
   if (file.name.split(".").pop().toLowerCase() === "cls" && !skipDeplCheck) {
     if (await isClassDeployed(file.name, api)) {
       vscode.window.showErrorMessage(`Cannot import ${file.name} because it is deployed on the server.`, "Dismiss");
@@ -306,12 +308,8 @@ export async function importAndCompile(
   compileFile = true
 ): Promise<any> {
   const file = currentFile(document);
-  if (!file) {
-    return;
-  }
-
-  // Do nothing if it is a local file and objectscript.conn.active is false
-  if (notIsfs(file.uri) && !config("conn").active) {
+  if (!file || filesystemSchemas.includes(file.uri.scheme) || !new AtelierAPI(file.uri).active) {
+    // Not for server-side URIs or folders with inactive server connections
     return;
   }
 
@@ -319,25 +317,10 @@ export async function importAndCompile(
   const flags = askFlags ? await compileFlags() : defaultFlags;
   return importFile(file)
     .catch((error) => {
-      // console.error(error);
       throw error;
     })
     .then(() => {
-      if (!file.fileName.startsWith("\\.vscode\\")) {
-        if (compileFile) {
-          compile([file], flags);
-        } else {
-          if (filesystemSchemas.includes(file.uri.scheme)) {
-            // Fire the file changed event to avoid VSCode alerting the user on the next save that
-            // "The content of the file is newer."
-            fileSystemProvider.fireFileChanged(file.uri);
-          }
-        }
-      } else if (filesystemSchemas.includes(file.uri.scheme)) {
-        // Fire the file changed event to avoid VSCode alerting the user on the next folder-specific save (e.g. of settings.json) that
-        // "The content of the file is newer."
-        fileSystemProvider.fireFileChanged(file.unredirectedUri ?? file.uri);
-      }
+      if (compileFile) compile([file], flags);
     });
 }
 
@@ -463,6 +446,7 @@ async function importFiles(files: vscode.Uri[], noCompile = false) {
 }
 
 export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<any> {
+  if (filesystemSchemas.includes(uri.scheme)) return; // Not for server-side URIs
   if ((await vscode.workspace.fs.stat(uri)).type != vscode.FileType.Directory) {
     return importFiles([uri], noCompile);
   }
@@ -573,7 +557,7 @@ async function importFileFromContent(
 }
 
 /** Prompt the user to compile documents after importing them */
-async function promptForCompile(imported: string[], api: AtelierAPI, refresh: boolean): Promise<void> {
+async function promptForCompile(imported: string[], api: AtelierAPI, isIsfs: boolean): Promise<void> {
   // This cast is safe because the only two callers intialize api with a workspace folder URI
   const conf = vscode.workspace.getConfiguration("objectscript", <vscode.Uri>api.wsOrFile);
   // Prompt the user for compilation
@@ -608,14 +592,14 @@ async function promptForCompile(imported: string[], api: AtelierAPI, refresh: bo
                 })
                 .catch(() => compileErrorMsg(conf))
                 .finally(() => {
-                  if (refresh) {
+                  if (isIsfs) {
                     // Refresh the files explorer to show the new files
                     vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
                   }
                 })
           );
         } else {
-          if (refresh) {
+          if (isIsfs) {
             // Refresh the files explorer to show the new files
             vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
           }
@@ -867,7 +851,7 @@ export async function importXMLFiles(): Promise<any> {
     const docsToImport = await vscode.window.showQuickPick(quickPickItems, {
       canPickMany: true,
       ignoreFocusOut: true,
-      title: `Select the documents to import into namespace '${api.ns.toUpperCase()}' on server '${api.serverId}'`,
+      title: `Select the documents to import into namespace '${api.ns}' on server '${api.serverId}'`,
     });
     if (docsToImport == undefined || docsToImport.length == 0) {
       return;

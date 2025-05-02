@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { iscIcon } from "../extension";
-import { outputChannel, outputConsole, notIsfs, handleError, openCustomEditors } from "../utils";
+import { outputChannel, outputConsole, notIsfs, handleError, openLowCodeEditors } from "../utils";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { UserAction } from "../api/atelier";
 import { isfsDocumentName } from "../providers/FileSystemProvider/FileSystemProvider";
@@ -547,7 +547,7 @@ export async function fireOtherStudioAction(
   const studioActions = new StudioActions(uri);
   return (
     studioActions &&
-    !openCustomEditors.includes(uri.toString()) && // The custom editor will handle all server-side source control interactions
+    !openLowCodeEditors.has(uri.toString()) && // The low-code editor will handle all server-side source control interactions
     studioActions.fireOtherStudioAction(action, userAction)
   );
 }

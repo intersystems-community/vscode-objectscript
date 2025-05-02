@@ -105,15 +105,15 @@
         },
         {
           "command": "vscode-objectscript.compile",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "!(resourceScheme =~ /^isfs(-readonly)?$/) && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty"
         },
         {
           "command": "vscode-objectscript.refreshLocalFile",
-          "when": "!(resourceScheme =~ /^isfs(-readonly)?$/) && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "!(resourceScheme =~ /^isfs(-readonly)?$/) && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty"
         },
         {
           "command": "vscode-objectscript.compileWithFlags",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "!(resourceScheme =~ /^isfs(-readonly)?$/) && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty"
         },
         {
           "command": "vscode-objectscript.compileAll",
@@ -213,11 +213,11 @@
         },
         {
           "command": "vscode-objectscript.compileOnly",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty"
         },
         {
           "command": "vscode-objectscript.compileOnlyWithFlags",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty"
         },
         {
           "command": "vscode-objectscript.editOthers",
@@ -478,7 +478,7 @@
         },
         {
           "command": "vscode-objectscript.compile",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "when": "!(resourceScheme =~ /^isfs(-readonly)?$/) && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty",
           "group": "objectscript@3"
         },
         {
@@ -498,7 +498,7 @@
         },
         {
           "command": "vscode-objectscript.compileOnly",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty",
           "group": "objectscript@7"
         },
         {
@@ -545,7 +545,7 @@
         {
           "command": "vscode-objectscript.touchBar.compile",
           "group": "objectscript.compile",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+          "when": "!(resourceScheme =~ /^isfs(-readonly)?$/) && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty"
         },
         {
           "command": "vscode-objectscript.touchBar.viewOthers",
@@ -1183,7 +1183,7 @@
         "command": "vscode-objectscript.compile",
         "key": "Ctrl+F7",
         "mac": "Cmd+F7",
-        "when": "editorLangId =~ /^objectscript/"
+        "when": "!(resourceScheme =~ /^isfs(-readonly)?$/) && editorLangId =~ /^objectscript/"
       },
       {
         "command": "vscode-objectscript.compileAll",
