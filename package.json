@@ -571,12 +571,12 @@
         },
         {
           "command": "vscode-objectscript.serverCommands.contextSourceControl",
-          "when": "resourceScheme == isfs && vscode-objectscript.connectActive && resourcePath && !(resourcePath =~ /^\\/?$/) && !(explorerResourceIsFolder && resource =~ /\\?csp(%3D1|$)/) && !listMultiSelection",
+          "when": "resourceScheme == isfs && vscode-objectscript.connectActive && ((resourcePath && !(resourcePath =~ /^\\/?$/)) || resource =~ /project%3D/) && !(explorerResourceIsFolder && resource =~ /\\?csp(%3D1|$)/) && !listMultiSelection",
           "group": "objectscript_servercommand@1"
         },
         {
           "command": "vscode-objectscript.serverCommands.contextOther",
-          "when": "resourceScheme =~ /^isfs(-readonly)?$/ && vscode-objectscript.connectActive && resourcePath && !(resourcePath =~ /^\\/?$/) && !(explorerResourceIsFolder && resource =~ /\\?csp(%3D1|$)/) && !listMultiSelection",
+          "when": "resourceScheme =~ /^isfs(-readonly)?$/ && vscode-objectscript.connectActive && ((resourcePath && !(resourcePath =~ /^\\/?$/)) || resource =~ /project%3D/) && !(explorerResourceIsFolder && resource =~ /\\?csp(%3D1|$)/) && !listMultiSelection",
           "group": "objectscript_servercommand@2"
         },
         {
