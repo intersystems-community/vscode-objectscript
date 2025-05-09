@@ -204,6 +204,12 @@ export function isCSP(uri: vscode.Uri): boolean {
 
 /** Get the document name of the file in `uri`. */
 export function isfsDocumentName(uri: vscode.Uri, csp?: boolean, pkg = false): string {
+  const { project } = isfsConfig(uri);
+  if (pkg && project && ["", "/"].includes(uri.path)) {
+    // pkg is only true when opening a context server-side source control menu.
+    // When called on a project workspace root folder, show the menu for the project.
+    return `${project}.PRJ`;
+  }
   if (csp == undefined) csp = isCSP(uri);
   const doc = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
   // Add the .PKG extension to non-web folders if called from StudioActions
