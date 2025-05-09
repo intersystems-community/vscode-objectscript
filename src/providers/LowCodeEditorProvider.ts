@@ -4,7 +4,7 @@ import { AtelierAPI } from "../api";
 import { loadChanges } from "../commands/compile";
 import { StudioActions } from "../commands/studio";
 import { clsLangId } from "../extension";
-import { currentFile, openCustomEditors, outputChannel } from "../utils";
+import { currentFile, notIsfs, openLowCodeEditors, outputChannel } from "../utils";
 
 export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
   private readonly _rule: string = "/ui/interop/rule-editor";
@@ -80,9 +80,10 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
       return this._errorMessage(`${className} is neither a rule definition class nor a DTL transformation class.`);
     }
 
-    // Add this document to the array of open custom editors
+    // Add this document to the Set of open low-code editors
     const documentUriString = document.uri.toString();
-    openCustomEditors.push(documentUriString);
+    openLowCodeEditors.add(documentUriString);
+    const isClientSide = notIsfs(document.uri);
 
     // Initialize the webview
     const targetOrigin = `${api.config.https ? "https" : "http"}://${api.config.host}:${api.config.port}`;
@@ -230,7 +231,7 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
               direction: "editor",
               type: "compile",
             });
-          } else {
+          } else if (isClientSide) {
             // Load changes
             loadChanges([file]);
           }
@@ -242,7 +243,7 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
             vscode.commands.executeCommand("workbench.action.files.revert");
           }
           // Load changes
-          loadChanges([file]);
+          if (isClientSide) loadChanges([file]);
           return;
         case "userAction": {
           // Process the source control user action
@@ -302,11 +303,8 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
         // Revert so document is clean
         vscode.commands.executeCommand("workbench.action.files.revert");
       }
-      const idx = openCustomEditors.findIndex((elem) => elem == documentUriString);
-      if (idx >= 0) {
-        // Remove this document from the array of open custom editors
-        openCustomEditors.splice(idx, 1);
-      }
+      // Remove this document from the Set of open low-code editors
+      openLowCodeEditors.delete(documentUriString);
     });
   }
 }

@@ -13,13 +13,12 @@ import {
   outputChannel,
   handleError,
   redirectDotvscodeRoot,
-  workspaceFolderOfUri,
   stringifyError,
   base64EncodeContent,
-  openCustomEditors,
+  openLowCodeEditors,
   compileErrorMsg,
 } from "../../utils";
-import { FILESYSTEM_READONLY_SCHEMA, FILESYSTEM_SCHEMA, intLangId, macLangId, workspaceState } from "../../extension";
+import { FILESYSTEM_READONLY_SCHEMA, FILESYSTEM_SCHEMA, intLangId, macLangId } from "../../extension";
 import { addIsfsFileToProject, modifyProject } from "../../commands/project";
 import { DocumentContentProvider } from "../DocumentContentProvider";
 import { Document, UserAction } from "../../api/atelier";
@@ -231,17 +230,12 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
 
   // Used by import and compile to make sure we notice its changes
   public fireFileChanged(uri: vscode.Uri): void {
-    // Remove entry from our cache
-    this._lookupParentDirectory(uri).then((parent) => {
-      const name = path.basename(uri.path);
-      parent.entries.delete(name);
-    });
-    // Queue the event
     this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
   }
 
   public async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
-    if (!new AtelierAPI(uri).active) throw vscode.FileSystemError.Unavailable("Server connection is inactive");
+    const api = new AtelierAPI(uri);
+    if (!api.active) throw vscode.FileSystemError.Unavailable("Server connection is inactive");
     let entryPromise: Promise<Entry>;
     let result: Entry;
     const redirectedUri = redirectDotvscodeRoot(uri);
@@ -269,7 +263,6 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     }
 
     if (result instanceof File) {
-      const api = new AtelierAPI(uri);
       const serverName = isfsDocumentName(uri);
       if (serverName.slice(-4).toLowerCase() == ".cls") {
         if (await isClassDeployed(serverName, api)) {
@@ -426,12 +419,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
     // Use _lookup() instead of _lookupAsFile() so we send
     // our cached mtime with the GET /doc request if we have it
-    return this._lookup(uri, true).then((file: File) => {
-      // Update cache entry
-      const uniqueId = `${workspaceFolderOfUri(uri)}:${file.fileName}`;
-      workspaceState.update(`${uniqueId}:mtime`, file.mtime);
-      return file.data;
-    });
+    return this._lookup(uri, true).then((file: File) => file.data);
   }
 
   public writeFile(
@@ -452,17 +440,14 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       return;
     }
     const api = new AtelierAPI(uri);
+    let created = false;
     // Use _lookup() instead of _lookupAsFile() so we send
     // our cached mtime with the GET /doc request if we have it
     return this._lookup(uri)
       .then(
-        async () => {
+        async (entry: File) => {
           // Check cases for which we should fail the write and leave the document dirty if changed
           if (!csp && fileName.split(".").pop().toLowerCase() == "cls") {
-            // Check if the class is deployed
-            if (await isClassDeployed(fileName, api)) {
-              throw new Error("Cannot overwrite a deployed class");
-            }
             // Check if the class name and file name match
             let clsname = "";
             const match = new TextDecoder().decode(content).match(classNameRegex);
@@ -475,11 +460,15 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             if (fileName.slice(0, -4) != clsname) {
               throw new Error("Cannot save an isfs class where the class name and file name do not match");
             }
-          }
-          if (openCustomEditors.includes(uri.toString())) {
-            // This class is open in a graphical editor, so any
-            // updates to the class will be handled by that editor
-            return;
+            if (openLowCodeEditors.has(uri.toString())) {
+              // This class is open in a low-code editor, so any
+              // updates to the class will be handled by that editor
+              return;
+            }
+            // Check if the class is deployed
+            if (await isClassDeployed(fileName, api)) {
+              throw new Error("Cannot overwrite a deployed class");
+            }
           }
           const contentBuffer = Buffer.from(content);
           const putContent = isText(uri.path.split("/").pop(), contentBuffer)
@@ -502,12 +491,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               },
               true
             )
-            .then((data) => {
-              workspaceState.update(
-                `${workspaceFolderOfUri(uri)}:${fileName}:mtime`,
-                Number(new Date(data.result.ts + "Z"))
-              );
-            })
+            .then(() => entry)
             .catch((error) => {
               // Throw all failures
               throw vscode.FileSystemError.Unavailable(stringifyError(error) || uri);
@@ -547,15 +531,22 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
                 addIsfsFileToProject(project, fileName, api);
               }
               // Create an entry in our cache for the document
-              this._lookupAsFile(uri);
+              return this._lookupAsFile(uri).then((entry) => {
+                created = true;
+                this._fireSoon({ type: vscode.FileChangeType.Created, uri });
+                return entry;
+              });
             });
         }
       )
-      .then(() => {
+      .then((entry) => {
         // Compile the document if required
-        if (vscode.workspace.getConfiguration("objectscript", uri).get("compileOnSave")) {
-          this.compile(uri);
-        } else {
+        if (
+          !uri.path.includes("/_vscode/") &&
+          vscode.workspace.getConfiguration("objectscript", uri).get("compileOnSave")
+        ) {
+          this.compile(uri, entry);
+        } else if (!created) {
           this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
         }
       });
@@ -709,6 +700,11 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       if (!options.overwrite) {
         // If it does and we can't overwrite it, throw an error
         throw vscode.FileSystemError.FileExists(newUri);
+      } else if (newFileStat.permissions & vscode.FilePermission.Readonly) {
+        // If the file is read-only, throw an error
+        // This can happen if the target class is deployed,
+        // or the document is marked read-only by source control
+        throw vscode.FileSystemError.NoPermissions(newUri);
       }
     } catch (error) {
       if (error instanceof vscode.FileSystemError && error.code == "FileExists") {
@@ -742,7 +738,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       })
       .then(async (response) => {
         // New file has been written
-        if (newFileStat != undefined && response && response.result.ext && response.result.ext[0]) {
+        if (!newFileStat && response && response.result.ext && response.result.ext[0]) {
           // We created a file
           fireOtherStudioAction(OtherStudioAction.CreatedNewDocument, newUri, response.result.ext[0]);
           fireOtherStudioAction(OtherStudioAction.FirstTimeDocumentSave, newUri, response.result.ext[1]);
@@ -754,7 +750,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         }
         // Sanity check that we find it there, then make client side update things
         this._lookupAsFile(newUri).then(() => {
-          this._fireSoon({ type: vscode.FileChangeType.Changed, uri: newUri });
+          this._fireSoon({
+            type: newFileStat ? vscode.FileChangeType.Changed : vscode.FileChangeType.Created,
+            uri: newUri,
+          });
         });
       });
     // Delete the old file
@@ -764,13 +763,14 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   /**
    * If `uri` is a file, compile it.
    * If `uri` is a directory, compile its contents.
+   * `file` is passed if called from `writeFile()`.
    */
-  public async compile(uri: vscode.Uri): Promise<void> {
+  public async compile(uri: vscode.Uri, file?: File): Promise<void> {
     if (!uri || uri.scheme != FILESYSTEM_SCHEMA) return;
     uri = redirectDotvscodeRoot(uri);
     const compileList: string[] = [];
     try {
-      const entry = await this._lookup(uri, true);
+      const entry = file || (await this._lookup(uri, true));
       if (!entry) return;
       if (entry instanceof Directory) {
         // Get the list of files to compile
@@ -792,6 +792,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (!compileList.length) return;
     const api = new AtelierAPI(uri);
     const conf = vscode.workspace.getConfiguration("objectscript");
+    const filesToUpdate: Set<string> = new Set(compileList);
     // Compile the files
     await vscode.window.withProgress(
       {
@@ -809,38 +810,34 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             } else if (!conf.get("suppressCompileMessages")) {
               vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
             }
+            data.result.content.forEach((f) => filesToUpdate.add(f.name));
           })
           .catch(() => compileErrorMsg(conf))
     );
-    // Tell the client to update all "other" files affected by compilation
-    const workspaceFolder = workspaceFolderOfUri(uri);
-    const otherList: string[] = await api
-      .actionIndex(compileList)
-      .then((data) =>
-        data.result.content.flatMap((idx) => {
-          if (!idx.status.length) {
-            // Update the timestamp for this file
-            const mtime = Number(new Date(idx.ts + "Z"));
-            workspaceState.update(`${workspaceFolder}:${idx.name}:mtime`, mtime > 0 ? mtime : undefined);
-            // Tell the client that it changed
-            this.fireFileChanged(DocumentContentProvider.getUri(idx.name, undefined, undefined, undefined, uri));
-            // Return the list of "other" documents
-            return idx.others;
-          } else {
-            // The server failed to index the document. This should never happen.
-            return [];
-          }
+    // Fire file changed events for all files affected by compilation, including "other" files
+    this._fireSoon(
+      ...filesToUpdate.values().map((f) => {
+        return {
+          type: vscode.FileChangeType.Changed,
+          uri: DocumentContentProvider.getUri(f, undefined, undefined, undefined, uri),
+        };
+      })
+    );
+    (
+      await api
+        .actionIndex(Array.from(filesToUpdate))
+        .then((data) => data.result.content.flatMap((idx) => (!idx.status.length ? idx.others : [])))
+        .catch(() => {
+          // Index API returned an error. This should never happen.
+          return [];
         })
-      )
-      .catch(() => {
-        // Index API returned an error. This should never happen.
-        return [];
-      });
-    // Only fire the event for files that weren't in the compile list
-    otherList.forEach(
+    ).forEach(
       (f) =>
-        !compileList.includes(f) &&
-        this.fireFileChanged(DocumentContentProvider.getUri(f, undefined, undefined, undefined, uri))
+        !filesToUpdate.has(f) &&
+        this._fireSoon({
+          type: vscode.FileChangeType.Changed,
+          uri: DocumentContentProvider.getUri(f, undefined, undefined, undefined, uri),
+        })
     );
   }
 

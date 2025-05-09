@@ -9,7 +9,7 @@ import {
   isClassOrRtn,
   isImportableLocalFile,
   notIsfs,
-  openCustomEditors,
+  openLowCodeEditors,
   outputChannel,
 } from ".";
 import { isText } from "istextorbinary";
@@ -191,7 +191,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     const uriString = uri.toString();
     const lastFileChangeTime = lastFileChangeTimes.get(uriString) ?? 0;
     lastFileChangeTimes.set(uriString, Date.now());
-    if (openCustomEditors.includes(uriString)) {
+    if (openLowCodeEditors.has(uriString)) {
       // This class is open in a low-code editor, so its name will not change
       // and any updates to the class will be handled by that editor
       touchedByVSCode.delete(uriString);

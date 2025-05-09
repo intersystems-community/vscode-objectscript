@@ -35,9 +35,9 @@ export const cspApps: Map<string, string[]> = new Map();
 export const otherDocExts: Map<string, string[]> = new Map();
 
 /**
- * The URI strings for all documents that are open in a custom editor.
+ * The URI strings for all documents that are open in a low-code editor.
  */
-export const openCustomEditors: string[] = [];
+export const openLowCodeEditors: Set<string> = new Set();
 
 /**
  * Set of stringified `Uri`s that have been exported.
