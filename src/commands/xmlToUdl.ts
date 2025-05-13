@@ -13,7 +13,13 @@ export async function previewXMLAsUDL(textEditor: vscode.TextEditor, auto = fals
   if (notIsfs(uri) && uri.path.toLowerCase().endsWith("xml") && textEditor.document.lineCount > 2) {
     if (exportHeader.test(textEditor.document.lineAt(1).text)) {
       const api = new AtelierAPI(uri);
-      if (!api.active) return;
+      if (!api.active) {
+        vscode.window.showErrorMessage(
+          "Unsuccessful connection to the server. Please check your server connection settings.",
+          "Dismiss"
+        );
+        return;
+      }
       try {
         // Convert the file
         const udlDocs: { name: string; content: string[] }[] = await api
