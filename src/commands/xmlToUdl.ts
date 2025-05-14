@@ -14,10 +14,7 @@ export async function previewXMLAsUDL(textEditor: vscode.TextEditor, auto = fals
     if (exportHeader.test(textEditor.document.lineAt(1).text)) {
       const api = new AtelierAPI(uri);
       if (!api.active) {
-        vscode.window.showErrorMessage(
-          "'Preview XML as UDL' command requires an active server connection.",
-          "Dismiss"
-        );
+        vscode.window.showErrorMessage("'Preview XML as UDL' command requires an active server connection.", "Dismiss");
         return;
       }
       try {
