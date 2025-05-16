@@ -121,8 +121,13 @@ function generateDeleteFn(wsFolderUri: vscode.Uri): (doc: string) => void {
       api.deleteDocs([...docs]).then((data) => {
         let failed = 0;
         for (const doc of data.result) {
-          if (doc.status != "") {
-            // The document was not deleted, so log the error
+          if (doc.status != "" && !doc.status.includes("#16005:")) {
+            // The document was not deleted, so log the error.
+            // Error 16005 means we tried to delete a document
+            // that didn't exist. Since the purpose of this
+            // call was to delete the document, and at the
+            // end the document isn't there, we should ignore
+            // this error so the user doesn't get confused.
             failed++;
             outputChannel.appendLine(`${failed == 1 ? "\n" : ""}${doc.status}`);
           }
