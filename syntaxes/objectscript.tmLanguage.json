@@ -60,16 +60,31 @@
     "embeddedSQL": {
       "patterns": [
         {
-          "begin": "(?i)(&sql)(\\()",
+          "begin": "(?i)((?:&|##)sql)(\\()",
+          "end": "\\)",
           "beginCaptures": {
             "1": { "name": "keyword.special.sql.objectscript" },
             "2": { "name": "punctuation.objectscript" }
           },
-          "patterns": [{ "include": "source.sql" }],
+          "endCaptures": { "0": { "name": "punctuation.objectscript" } },
           "contentName": "meta.embedded.block.sql",
-          "end": "\\)"
+          "applyEndPatternLast": 1,
+          "patterns": [
+            { "include": "#embeddedSQL-brackets" },
+            { "include": "source.sql" }
+          ]
         }
-      ]
+      ],
+      "repository": {
+        "embeddedSQL-brackets": {
+          "begin": "(?<=\\()(?!\\G)",
+          "end": "\\)",
+          "patterns": [
+            { "include": "#embeddedSQL-brackets" },
+            { "include": "source.sql" }
+          ]
+        }
+      }
     },
     "embeddedJS": {
       "patterns": [
