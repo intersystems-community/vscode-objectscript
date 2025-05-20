@@ -1,5 +1,24 @@
 # Change Log
 
+## [3.0.2] 20-May-2025
+- Enhancements
+  - Allow `objectscript.multilineMethodArgs` to be set per workspace folder (#1534)
+  - Log out of web sessions when VS Code exits (#1540)
+  - Add button to show Output if it's not visible for compile errors (#1543)
+- Fixes
+  - Fix generating of URL when debugging REST services (#1528)
+  - Reduce REST traffic for server-side folders (#1532)
+  - Show error message when a server-side file fails to open (#1536)
+  - Update text of all local files changed by compilation (#1538)
+  - Ignore duplicate file change events in local workspace folders (#1539)
+  - Export namespace warning check should be case-insensitive (#1541)
+  - Fire file change events for related documents that were updated by compilation when server-side editing (#1544)
+  - Improve UI for selecting the URI of a new local class created via command (#1545)
+  - Show server-side source control menus when right-clicking on a project workspace folder root (#1548)
+  - Show error message when `Preview XML as UDL` is run without an active server connection (#1552) (contributed by @yannip1234)
+  - Improve bracket pair colorization of Embedded SQL (#1553)
+  - Don't report error when deleting a local file that doesn't exist on the server (#1555)
+
 ## [3.0.1] 04-Apr-2025
 - Fixes
   - Fix issue where `Undo` after a save deletes the file being edited (#1524)
