@@ -1263,10 +1263,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
               return;
             }
             const sourceContent = await vscode.workspace.fs.readFile(uri);
-            if (
-              sourceContent.length &&
-              !vscode.workspace.getConfiguration("objectscript").get<boolean>("autoAdjustName")
-            ) {
+            if (!vscode.workspace.getConfiguration("objectscript").get<boolean>("autoAdjustName")) {
               // Don't modify a file with content unless the user opts in
               return;
             }
