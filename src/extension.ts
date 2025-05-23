@@ -1262,12 +1262,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
               // No workspace folders are open
               return;
             }
+            if (vscode.workspace.getConfiguration("objectscript").get<string>("autoAdjustName") === "Never") {
+              // Don't modify a file with content unless the user opts in
+              return;
+            }
             const sourceContent = await vscode.workspace.fs.readFile(uri);
             if (
-              sourceContent.length &&
-              !vscode.workspace.getConfiguration("objectscript").get<boolean>("autoAdjustName")
+              sourceContent.length > 0 &&
+              vscode.workspace.getConfiguration("objectscript").get<string>("autoAdjustName") === "Create"
             ) {
-              // Don't modify a file with content unless the user opts in
+              // It has content, but user opted to not modify existing files
               return;
             }
             const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
