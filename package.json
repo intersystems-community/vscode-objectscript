@@ -1476,9 +1476,19 @@
           "default": false
         },
         "objectscript.autoAdjustName": {
-          "markdownDescription": "Automatically modify the class name or ROUTINE header of a file in a client-side workspace folder to match the file's path when copying or moving a file. Uses the `#objectscript.export#` settings to determine the new name.",
-          "type": "boolean",
-          "default": false
+          "markdownDescription": "Automatically modify the class name or ROUTINE header of a file in a client-side workspace folder to match the file's path when: (Uses the `#objectscript.export#` settings to determine the new name.)",
+          "type": "string",
+          "enum": [
+              "Never",
+              "Create",
+              "Create, Copy and Move"
+            ],
+            "enumDescriptions": [
+              "Do not automatically adjust the name.",
+              "Create a matching class name / ROUTINE header when the file is first created.",
+              "Create or update an existing class name / ROUTINE header when the file is created, copied or moved."
+            ],
+          "default": "Create"
         },
         "objectscript.compileOnSave": {
           "description": "Automatically compile an InterSystems file when saved in the editor.",
