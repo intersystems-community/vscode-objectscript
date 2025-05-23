@@ -1262,6 +1262,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
               // No workspace folders are open
               return;
             }
+            // Need to wait in case file was created using "Save As..."
+            // because in that case the file gets created without
+            // content, and then the content is written in after that
+            await new Promise((resolve) => setTimeout(resolve, 100));
             const sourceContent = await vscode.workspace.fs.readFile(uri);
             if (
               sourceContent.length &&
