@@ -169,7 +169,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
   // request to 50 concurrent calls to avoid hammering the server
   const restRateLimiter = new RateLimiter(50);
   // A cache of the last time each file was last changed
-  const lastFileChangeTimes: Map<string, number> = new Map();
+  const lastChangeMtimes: Map<string, number> = new Map();
   // Index classes and routines that currently exist
   vscode.workspace
     .findFiles(new vscode.RelativePattern(wsFolder, "{**/*.cls,**/*.mac,**/*.int,**/*.inc}"))
@@ -178,7 +178,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
   const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(wsFolder, "**/*"));
   const debouncedCompile = generateCompileFn();
   const debouncedDelete = generateDeleteFn(wsFolder.uri);
-  const updateIndexAndSyncChanges = async (uri: vscode.Uri): Promise<void> => {
+  const updateIndexAndSyncChanges = async (uri: vscode.Uri, created = false): Promise<void> => {
     if (uri.scheme != wsFolder.uri.scheme) {
       // We don't care about virtual files that might be
       // part of the workspace folder, like "git" files
@@ -194,8 +194,22 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       return;
     }
     const uriString = uri.toString();
-    const lastFileChangeTime = lastFileChangeTimes.get(uriString) ?? 0;
-    lastFileChangeTimes.set(uriString, Date.now());
+    if (!created) {
+      const stat = await vscode.workspace.fs.stat(uri).then(undefined, () => {});
+      if (!stat) {
+        // If we couldn't get the file's metadata then something is very wrong
+        touchedByVSCode.delete(uriString);
+        return;
+      }
+      const lastChangeMtime = lastChangeMtimes.get(uriString) ?? 0;
+      lastChangeMtimes.set(uriString, stat.mtime);
+      if (stat.mtime == lastChangeMtime) {
+        // This file change event was triggered on the same version
+        // of the file as the last event, so ignore this one
+        touchedByVSCode.delete(uriString);
+        return;
+      }
+    }
     if (openLowCodeEditors.has(uriString)) {
       // This class is open in a low-code editor, so its name will not change
       // and any updates to the class will be handled by that editor
@@ -207,12 +221,6 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       // export, so don't re-sync the file with the server.
       // The index has already been updated.
       exportedUris.delete(uriString);
-      touchedByVSCode.delete(uriString);
-      return;
-    }
-    if (lastFileChangeTimes.get(uriString) - lastFileChangeTime < 300) {
-      // This file change event came too quickly after the last one to be a
-      // meaningful change triggered by the user, so consider it a duplicate
       touchedByVSCode.delete(uriString);
       return;
     }
@@ -244,7 +252,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     }
   };
   watcher.onDidChange((uri) => restRateLimiter.call(() => updateIndexAndSyncChanges(uri)));
-  watcher.onDidCreate((uri) => restRateLimiter.call(() => updateIndexAndSyncChanges(uri)));
+  watcher.onDidCreate((uri) => restRateLimiter.call(() => updateIndexAndSyncChanges(uri, true)));
   watcher.onDidDelete((uri) => {
     if (uri.scheme != wsFolder.uri.scheme) {
       // We don't care about virtual files that might be
