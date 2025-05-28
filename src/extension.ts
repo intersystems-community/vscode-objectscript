@@ -1297,7 +1297,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
             wsEdit.replace(
               uri,
               new vscode.Range(0, 0, newContent.content.length + 1, 0),
-              newContent.content.join("\n"),
+              newContent.content.join(newContent.eol == vscode.EndOfLine.CRLF ? "\r\n" : "\n"),
               {
                 label: "ObjectScript autoAdjustName",
                 needsConfirmation: false,

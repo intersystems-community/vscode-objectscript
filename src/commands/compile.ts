@@ -19,7 +19,6 @@ import {
   cspAppsForUri,
   CurrentBinaryFile,
   currentFile,
-  CurrentFile,
   currentFileFromContent,
   CurrentTextFile,
   exportedUris,
@@ -231,7 +230,16 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
           const content = await api.getDoc(file.name, file.uri).then((data) => data.result.content);
           exportedUris.add(file.uri.toString()); // Set optimistically
           await vscode.workspace.fs
-            .writeFile(file.uri, Buffer.isBuffer(content) ? content : new TextEncoder().encode(content.join("\n")))
+            .writeFile(
+              file.uri,
+              Buffer.isBuffer(content)
+                ? content
+                : new TextEncoder().encode(
+                    content.join(
+                      ((<CurrentTextFile>file)?.eol ?? vscode.EndOfLine.LF) == vscode.EndOfLine.CRLF ? "\r\n" : "\n"
+                    )
+                  )
+            )
             .then(undefined, (e) => {
               // Save failed, so remove this URI from the set
               exportedUris.delete(file.uri.toString());
@@ -251,12 +259,15 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
   );
 }
 
-export async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
+export async function compile(docs: (CurrentTextFile | CurrentBinaryFile)[], flags?: string): Promise<any> {
   const wsFolder = vscode.workspace.getWorkspaceFolder(docs[0].uri);
   const conf = vscode.workspace.getConfiguration("objectscript", wsFolder || docs[0].uri);
   flags = flags || conf.get("compileFlags");
   const api = new AtelierAPI(docs[0].uri);
   const docNames = docs.map((d) => d.name);
+  // Determine the line ending to use for other documents affected
+  // by compilation so we don't need to read their contents
+  const eol = (<CurrentTextFile>docs.find((d) => (<CurrentTextFile>d)?.eol))?.eol ?? vscode.EndOfLine.LF;
   return vscode.window
     .withProgress(
       {
@@ -284,9 +295,11 @@ export async function compile(docs: CurrentFile[], flags?: string): Promise<any>
                     name: f.name,
                     uri: u,
                     uniqueId: `${wsFolder.name}:${f.name}`,
-                    // These two keys aren't used by loadChanges()
+                    eol,
+                    // These three keys aren't used by loadChanges()
                     workspaceFolder: wsFolder.name,
                     fileName: u.fsPath,
+                    content: "",
                   });
                 });
               });
@@ -416,7 +429,7 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
 }
 
 async function importFiles(files: vscode.Uri[], noCompile = false) {
-  const toCompile: CurrentFile[] = [];
+  const toCompile: (CurrentTextFile | CurrentBinaryFile)[] = [];
   const rateLimiter = new RateLimiter(50);
   await Promise.allSettled<void>(
     files.map((uri) =>

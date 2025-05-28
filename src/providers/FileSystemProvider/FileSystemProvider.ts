@@ -68,8 +68,9 @@ export function generateFileContent(
   uri: vscode.Uri,
   fileName: string,
   sourceContent: Uint8Array
-): { content: string[]; enc: boolean } {
+): { content: string[]; enc: boolean; eol: vscode.EndOfLine } {
   const sourceLines = sourceContent.length ? new TextDecoder().decode(sourceContent).split("\n") : [];
+  const eol = sourceLines.length && sourceLines[0].slice(-1) == "\r" ? vscode.EndOfLine.CRLF : vscode.EndOfLine.LF;
   const fileExt = fileName.split(".").pop().toLowerCase();
   const csp = fileName.startsWith("/");
   if (fileExt === "cls" && !csp) {
@@ -108,6 +109,7 @@ export function generateFileContent(
     return {
       content,
       enc: false,
+      eol,
     };
   } else if (["int", "inc", "mac"].includes(fileExt) && !csp) {
     if (sourceLines.length && notIsfs(uri) && (fileName.includes(path.sep) || fileName.includes(" "))) {
@@ -116,6 +118,7 @@ export function generateFileContent(
       return {
         content: sourceLines,
         enc: false,
+        eol,
       };
     } else {
       sourceLines.shift();
@@ -137,12 +140,14 @@ export function generateFileContent(
       return {
         content: [`ROUTINE ${routineName} ${routineType}`, ...sourceLines],
         enc: false,
+        eol,
       };
     }
   }
   return {
     content: base64EncodeContent(Buffer.from(sourceContent)),
     enc: true,
+    eol,
   };
 }
 
