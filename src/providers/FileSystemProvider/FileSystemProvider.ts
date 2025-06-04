@@ -441,13 +441,15 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     }
     const api = new AtelierAPI(uri);
     let created = false;
+    let update = false;
+    const isCls = !csp && fileName.split(".").pop().toLowerCase() == "cls";
     // Use _lookup() instead of _lookupAsFile() so we send
     // our cached mtime with the GET /doc request if we have it
     return this._lookup(uri)
       .then(
         async (entry: File) => {
           // Check cases for which we should fail the write and leave the document dirty if changed
-          if (!csp && fileName.split(".").pop().toLowerCase() == "cls") {
+          if (isCls) {
             // Check if the class name and file name match
             let clsname = "";
             const match = new TextDecoder().decode(content).match(classNameRegex);
@@ -491,7 +493,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               },
               true
             )
-            .then(() => entry)
+            .then((data) => {
+              update = isCls || data.result.content.length > 0;
+              return entry;
+            })
             .catch((error) => {
               // Throw all failures
               throw vscode.FileSystemError.Unavailable(stringifyError(error) || uri);
@@ -533,6 +538,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               // Create an entry in our cache for the document
               return this._lookupAsFile(uri).then((entry) => {
                 created = true;
+                update = isCls || data.result.content.length > 0;
                 this._fireSoon({ type: vscode.FileChangeType.Created, uri });
                 return entry;
               });
@@ -540,16 +546,42 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         }
       )
       .then((entry) => {
+        if (!entry) return; // entry is only empty when uri is open in a low-code editor
         // Compile the document if required
         if (
           !uri.path.includes("/_vscode/") &&
           vscode.workspace.getConfiguration("objectscript", uri).get("compileOnSave")
         ) {
-          this.compile(uri, entry);
+          this.compile(uri, entry, update);
+        } else if (update) {
+          // The file's contents may have changed as a result of the save,
+          // so make sure we notify VS Code and any watchers of the change
+          this._notifyOfFileChange(uri);
         } else if (!created) {
           this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
         }
       });
+  }
+
+  /**
+   * Notify VS Code and any watchers that the contents of `uri` changed.
+   * Use this function instead of firing the file change event directly
+   * when we need to force the VS Code UI to show the change. For example,
+   * if the server changed the document during a save.
+   */
+  private _notifyOfFileChange(uri: vscode.Uri): void {
+    // The file's contents may have changed as a result of the save,
+    // so make sure we notify VS Code and any watchers of the change
+    const uriString = uri.toString();
+    if (vscode.window.activeTextEditor?.document.uri.toString() == uriString) {
+      setTimeout(() => {
+        const activeDoc = vscode.window.activeTextEditor?.document;
+        if (activeDoc && !activeDoc.isDirty && !activeDoc.isClosed && activeDoc.uri.toString() == uriString) {
+          // Force VS Code to refresh the file's contents in the editor UI
+          vscode.commands.executeCommand("workbench.action.files.revert");
+        }
+      }, 25);
+    }
   }
 
   /** Process a Document object that was successfully deleted. */
@@ -763,9 +795,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   /**
    * If `uri` is a file, compile it.
    * If `uri` is a directory, compile its contents.
-   * `file` is passed if called from `writeFile()`.
+   * `file` and `update` are passed if called from `writeFile()`.
    */
-  public async compile(uri: vscode.Uri, file?: File): Promise<void> {
+  public async compile(uri: vscode.Uri, file?: File, update?: boolean): Promise<void> {
     if (!uri || uri.scheme != FILESYSTEM_SCHEMA) return;
     uri = redirectDotvscodeRoot(uri);
     const compileList: string[] = [];
@@ -792,7 +824,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (!compileList.length) return;
     const api = new AtelierAPI(uri);
     const conf = vscode.workspace.getConfiguration("objectscript");
-    const filesToUpdate: Set<string> = new Set(compileList);
+    const filesToUpdate: string[] = [];
     // Compile the files
     await vscode.window.withProgress(
       {
@@ -810,34 +842,41 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             } else if (!conf.get("suppressCompileMessages")) {
               vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
             }
-            data.result.content.forEach((f) => filesToUpdate.add(f.name));
+            data.result.content.forEach((f) => filesToUpdate.push(f.name));
           })
           .catch(() => compileErrorMsg(conf))
     );
-    // Fire file changed events for all files affected by compilation, including "other" files
+    if (update && !filesToUpdate.includes(compileList[0])) {
+      // This file was just written, the write may have changed its contents, and the compilation
+      // did not change the contents further. Therefore, we must force VS Code to update it.
+      this._notifyOfFileChange(uri);
+    }
+    // Fire file changed events for all files changed by compilation
     this._fireSoon(
-      ...filesToUpdate.values().map((f) => {
+      ...filesToUpdate.map((f) => {
         return {
           type: vscode.FileChangeType.Changed,
           uri: DocumentContentProvider.getUri(f, undefined, undefined, undefined, uri),
         };
       })
     );
-    (
-      await api
-        .actionIndex(Array.from(filesToUpdate))
-        .then((data) => data.result.content.flatMap((idx) => (!idx.status.length ? idx.others : [])))
-        .catch(() => {
-          // Index API returned an error. This should never happen.
-          return [];
-        })
-    ).forEach(
-      (f) =>
-        !filesToUpdate.has(f) &&
-        this._fireSoon({
+    // Fire file changed events for the "other" documents related to
+    // the files that were compiled, or the files changed by compilation
+    this._fireSoon(
+      ...(
+        await api
+          .actionIndex(Array.from(new Set(...compileList.concat(filesToUpdate))))
+          .then((data) => data.result.content.flatMap((idx) => (!idx.status.length ? idx.others : [])))
+          .catch(() => {
+            // Index API returned an error. This should never happen.
+            return [];
+          })
+      ).map((f: string) => {
+        return {
           type: vscode.FileChangeType.Changed,
           uri: DocumentContentProvider.getUri(f, undefined, undefined, undefined, uri),
-        })
+        };
+      })
     );
   }
 
