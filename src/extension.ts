@@ -106,6 +106,7 @@ import {
   isClassOrRtn,
   addWsServerRootFolderData,
   getWsFolder,
+  exportedUris,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentLinkProvider } from "./providers/DocumentLinkProvider";
@@ -1253,8 +1254,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.workspace.onDidCreateFiles((e: vscode.FileCreateEvent) => {
       return Promise.all(
         e.files
-          .filter(notIsfs)
-          .filter(isClassOrRtn)
+          // Only attempt to adjust the names of classes and routines that are
+          // not server-side files and were not created due to an export
+          .filter((f) => notIsfs(f) && isClassOrRtn(f) && !exportedUris.has(f.toString()))
           .map(async (uri) => {
             // Determine the file name
             const workspace = workspaceFolderOfUri(uri);

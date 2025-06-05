@@ -39,7 +39,7 @@ const wsFolderIndex: Map<string, WSFolderIndex> = new Map();
 const textDecoder = new TextDecoder("utf-8", { fatal: true });
 
 /** The number of milliseconds that we should wait before sending a compile or delete request */
-const debounceDelay = 500;
+const debounceDelay = 1000;
 
 /**
  * Create an object describing the file in `uri`.
@@ -86,20 +86,11 @@ function generateCompileFn(): (doc: CurrentTextFile | CurrentBinaryFile) => void
     // Clear the previous timeout to reset the debounce timer
     clearTimeout(timeout);
 
-    // Compile right away if this document is in the active text editor
-    // and there are no other documents in the queue. This is needed
-    // to avoid noticeable latency when a user is editing a client-side
-    // file, saves it, and the auto-compile kicks in.
-    if (docs.length == 1 && vscode.window.activeTextEditor?.document.uri.toString() == doc.uri.toString()) {
-      compile([...docs]);
-      docs.length = 0;
-      return;
-    }
-
     // Set a new timeout to call the function after the specified delay
     timeout = setTimeout(() => {
-      compile([...docs]);
+      const docsCopy = [...docs];
       docs.length = 0;
+      compile(docsCopy);
     }, debounceDelay);
   };
 }
@@ -118,7 +109,9 @@ function generateDeleteFn(wsFolderUri: vscode.Uri): (doc: string) => void {
 
     // Set a new timeout to call the function after the specified delay
     timeout = setTimeout(() => {
-      api.deleteDocs([...docs]).then((data) => {
+      const docsCopy = [...docs];
+      docs.length = 0;
+      api.deleteDocs(docsCopy).then((data) => {
         let failed = 0;
         for (const doc of data.result) {
           if (doc.status != "" && !doc.status.includes("#16005:")) {
@@ -142,7 +135,6 @@ function generateDeleteFn(wsFolderUri: vscode.Uri): (doc: string) => void {
           );
         }
       });
-      docs.length = 0;
     }, debounceDelay);
   };
 }
@@ -227,8 +219,8 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     const api = new AtelierAPI(uri);
     const conf = vscode.workspace.getConfiguration("objectscript", wsFolder);
     const syncLocalChanges: string = conf.get("syncLocalChanges");
-    const sync: boolean =
-      api.active && (syncLocalChanges == "all" || (syncLocalChanges == "vscodeOnly" && touchedByVSCode.has(uriString)));
+    const vscodeChange = touchedByVSCode.has(uriString);
+    const sync = api.active && (syncLocalChanges == "all" || (syncLocalChanges == "vscodeOnly" && vscodeChange));
     touchedByVSCode.delete(uriString);
     let change: WSFolderIndexChange = {};
     if (isClassOrRtn(uri)) {
@@ -241,7 +233,16 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       // Create or update the document on the server
       importFile(change.addedOrChanged)
         .then(() => {
-          if (conf.get("compileOnSave")) debouncedCompile(change.addedOrChanged);
+          if (conf.get("compileOnSave")) {
+            // Compile right away if this document is in the active text editor.
+            // This is needed to avoid noticeable latency when a user is editing
+            // a client-side file, saves it, and the auto-compile kicks in.
+            if (vscodeChange && vscode.window.activeTextEditor?.document.uri.toString() == uriString) {
+              compile([change.addedOrChanged]);
+            } else {
+              debouncedCompile(change.addedOrChanged);
+            }
+          }
         })
         // importFile handles any server errors
         .catch(() => {});
