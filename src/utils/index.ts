@@ -121,6 +121,8 @@ export interface CurrentBinaryFile extends CurrentFile {
   content: Buffer;
 }
 
+export type EitherCurrentFile = CurrentTextFile | CurrentBinaryFile;
+
 /**
  * For workspace roots in the local filesystem, configName is the root's name
  * which defaults to the folder name, and apiTarget is the same.
@@ -216,7 +218,7 @@ export const classNameRegex = /^[ \t]*Class[ \t]+(%?[\p{L}\d\u{100}-\u{ffff}]+(?
 /** A regex for extracting the name and type of a routine from its content */
 export const routineNameTypeRegex = /^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i;
 
-export function currentFileFromContent(uri: vscode.Uri, content: string | Buffer): CurrentTextFile | CurrentBinaryFile {
+export function currentFileFromContent(uri: vscode.Uri, content: string | Buffer): EitherCurrentFile {
   const fileName = uri.fsPath;
   const workspaceFolder = workspaceFolderOfUri(uri);
   if (!workspaceFolder) {

@@ -17,10 +17,10 @@ import {
   classNameRegex,
   compileErrorMsg,
   cspAppsForUri,
-  CurrentBinaryFile,
   currentFile,
   currentFileFromContent,
   CurrentTextFile,
+  EitherCurrentFile,
   exportedUris,
   getWsFolder,
   handleError,
@@ -57,7 +57,7 @@ async function compileFlags(): Promise<string> {
  * @param force If passed true, use server mtime.
  * @return mtime timestamp or -1.
  */
-export async function checkChangedOnServer(file: CurrentTextFile | CurrentBinaryFile, force = false): Promise<number> {
+export async function checkChangedOnServer(file: EitherCurrentFile, force = false): Promise<number> {
   if (!file || !file.uri || schemas.includes(file.uri.scheme)) {
     return -1;
   }
@@ -88,7 +88,7 @@ export async function checkChangedOnServer(file: CurrentTextFile | CurrentBinary
 }
 
 export async function importFile(
-  file: CurrentTextFile | CurrentBinaryFile,
+  file: EitherCurrentFile,
   ignoreConflict?: boolean,
   skipDeplCheck = false
 ): Promise<any> {
@@ -213,61 +213,79 @@ function updateOthers(others: string[], baseUri: vscode.Uri) {
   });
 }
 
-export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]): Promise<any> {
-  if (!files.length) {
-    return;
-  }
+/**
+ * Reload the contents of `files` from the server. This will also a trigger a
+ * refresh of in-memory copies of "other" documents related to `files`. Files
+ * in the `onlyUpdateOthersFiles` array will not have their contents reloaded.
+ * Only their "other" documents will be refreshed.
+ */
+export async function loadChanges(
+  files: EitherCurrentFile[],
+  onlyUpdateOthersFiles: EitherCurrentFile[] = []
+): Promise<void> {
+  if (!files?.length) return;
   const api = new AtelierAPI(files[0].uri);
   // Use allSettled so we attempt to load changes for all files, even if some fail
-  return api.actionIndex(files.map((f) => f.name)).then((data) =>
-    Promise.allSettled(
-      data.result.content.map(async (doc) => {
-        if (doc.status.length) return;
-        const file = files.find((f) => f.name == doc.name);
-        const mtime = Number(new Date(doc.ts + "Z"));
-        workspaceState.update(`${file.uniqueId}:mtime`, mtime > 0 ? mtime : undefined);
-        if (notIsfs(file.uri)) {
-          const content = await api.getDoc(file.name, file.uri).then((data) => data.result.content);
-          exportedUris.add(file.uri.toString()); // Set optimistically
-          await vscode.workspace.fs
-            .writeFile(
-              file.uri,
-              Buffer.isBuffer(content)
-                ? content
-                : new TextEncoder().encode(
-                    content.join(
-                      ((<CurrentTextFile>file)?.eol ?? vscode.EndOfLine.LF) == vscode.EndOfLine.CRLF ? "\r\n" : "\n"
-                    )
-                  )
-            )
-            .then(undefined, (e) => {
-              // Save failed, so remove this URI from the set
-              exportedUris.delete(file.uri.toString());
-              // Re-throw the error
-              throw e;
-            });
-          if (isClassOrRtn(file.uri)) {
-            // Update the document index
-            updateIndexForDocument(file.uri, undefined, undefined, content);
+  await api
+    .actionIndex(Array.from(new Set(files.map((f) => f.name).concat(onlyUpdateOthersFiles.map((f) => f.name)))))
+    .then((data) =>
+      Promise.allSettled(
+        data.result.content.map(async (doc) => {
+          if (doc.status.length) return;
+          let file = files.find((f) => f.name == doc.name);
+          if (file) {
+            // This is a file that requires a content reload
+            if (notIsfs(file.uri)) {
+              const mtime = Number(new Date(doc.ts + "Z"));
+              workspaceState.update(`${file.uniqueId}:mtime`, mtime > 0 ? mtime : undefined);
+              const content = await api.getDoc(file.name, file.uri).then((data) => data.result.content);
+              exportedUris.add(file.uri.toString()); // Set optimistically
+              await vscode.workspace.fs
+                .writeFile(
+                  file.uri,
+                  Buffer.isBuffer(content)
+                    ? content
+                    : new TextEncoder().encode(
+                        content.join(
+                          ((<CurrentTextFile>file)?.eol ?? vscode.EndOfLine.LF) == vscode.EndOfLine.CRLF ? "\r\n" : "\n"
+                        )
+                      )
+                )
+                .then(undefined, (e) => {
+                  // Save failed, so remove this URI from the set
+                  exportedUris.delete(file.uri.toString());
+                  // Re-throw the error
+                  throw e;
+                });
+              if (isClassOrRtn(file.uri)) {
+                // Update the document index
+                updateIndexForDocument(file.uri, undefined, undefined, content);
+              }
+            } else {
+              fileSystemProvider.fireFileChanged(file.uri);
+            }
+          } else {
+            // The contents of this file did not change, but its "other" documents still need to be updated
+            file = onlyUpdateOthersFiles.find((f) => f.name == doc.name);
+            if (!file) return;
           }
-        } else if (filesystemSchemas.includes(file.uri.scheme)) {
-          fileSystemProvider.fireFileChanged(file.uri);
-        }
-        updateOthers(doc.others, file.uri);
-      })
-    )
-  );
+          updateOthers(doc.others, file.uri);
+        })
+      )
+    );
 }
 
-export async function compile(docs: (CurrentTextFile | CurrentBinaryFile)[], flags?: string): Promise<any> {
+export async function compile(docs: EitherCurrentFile[], flags?: string): Promise<any> {
   const wsFolder = vscode.workspace.getWorkspaceFolder(docs[0].uri);
   const conf = vscode.workspace.getConfiguration("objectscript", wsFolder || docs[0].uri);
   flags = flags || conf.get("compileFlags");
   const api = new AtelierAPI(docs[0].uri);
   const docNames = docs.map((d) => d.name);
-  // Determine the line ending to use for other documents affected
+  // Determine the line ending to use for documents affected
   // by compilation so we don't need to read their contents
   const eol = (<CurrentTextFile>docs.find((d) => (<CurrentTextFile>d)?.eol))?.eol ?? vscode.EndOfLine.LF;
+  const docsToReload: EitherCurrentFile[] = [];
+  const docsToRefreshOthers: EitherCurrentFile[] = [...docs];
   return vscode.window
     .withProgress(
       {
@@ -285,13 +303,18 @@ export async function compile(docs: (CurrentTextFile | CurrentBinaryFile)[], fla
             } else if (!conf.get("suppressCompileMessages")) {
               vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
             }
-            if (wsFolder) {
-              // Make sure that we update the content for any
-              // other documents affected by this compilation
-              data.result.content.forEach((f) => {
-                if (docNames.includes(f.name)) return;
+            data.result.content.forEach((f) => {
+              // Reload the contents of files that were changed by compilation
+              if (docNames.includes(f.name)) {
+                docsToReload.push(
+                  ...docsToRefreshOthers.splice(
+                    docsToRefreshOthers.findIndex((d) => d.name == f.name),
+                    1
+                  )
+                );
+              } else if (wsFolder) {
                 getUrisForDocument(f.name, wsFolder).forEach((u) => {
-                  docs.push({
+                  docsToReload.push({
                     name: f.name,
                     uri: u,
                     uniqueId: `${wsFolder.name}:${f.name}`,
@@ -302,17 +325,14 @@ export async function compile(docs: (CurrentTextFile | CurrentBinaryFile)[], fla
                     content: "",
                   });
                 });
-              });
-            }
-            return docs;
+              }
+            });
           })
-          .catch(() => {
-            compileErrorMsg(conf);
-            // Always fetch server changes, even when compile failed or got cancelled
-            return docs;
-          })
+          .catch(() => compileErrorMsg(conf))
     )
-    .then(loadChanges);
+    .then(() => {
+      return loadChanges(docsToReload, docsToRefreshOthers);
+    });
 }
 
 export async function importAndCompile(
@@ -429,7 +449,7 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
 }
 
 async function importFiles(files: vscode.Uri[], noCompile = false) {
-  const toCompile: (CurrentTextFile | CurrentBinaryFile)[] = [];
+  const toCompile: EitherCurrentFile[] = [];
   const rateLimiter = new RateLimiter(50);
   await Promise.allSettled<void>(
     files.map((uri) =>
