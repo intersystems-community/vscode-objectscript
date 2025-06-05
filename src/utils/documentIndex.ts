@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import {
-  CurrentBinaryFile,
-  CurrentTextFile,
+  EitherCurrentFile,
   RateLimiter,
   currentFileFromContent,
   exportedUris,
@@ -27,7 +26,7 @@ interface WSFolderIndex {
 
 interface WSFolderIndexChange {
   /** InterSystems document added to the index or changed on disk, if any */
-  addedOrChanged?: CurrentTextFile | CurrentBinaryFile;
+  addedOrChanged?: EitherCurrentFile;
   /** InterSystems document removed from the index, if any */
   removed?: string;
 }
@@ -49,7 +48,7 @@ async function getCurrentFile(
   uri: vscode.Uri,
   forceText = false,
   content?: string[] | Buffer
-): Promise<CurrentTextFile | CurrentBinaryFile | undefined> {
+): Promise<EitherCurrentFile | undefined> {
   if (content) {
     // forceText is always true when content is passed
     return currentFileFromContent(uri, Buffer.isBuffer(content) ? textDecoder.decode(content) : content.join("\n"));
@@ -76,11 +75,11 @@ async function getCurrentFile(
 }
 
 /** Generate a debounced compile function */
-function generateCompileFn(): (doc: CurrentTextFile | CurrentBinaryFile) => void {
+function generateCompileFn(): (doc: EitherCurrentFile) => void {
   let timeout: NodeJS.Timeout;
-  const docs: (CurrentTextFile | CurrentBinaryFile)[] = [];
+  const docs: EitherCurrentFile[] = [];
 
-  return (doc: CurrentTextFile | CurrentBinaryFile): void => {
+  return (doc: EitherCurrentFile): void => {
     docs.push(doc);
 
     // Clear the previous timeout to reset the debounce timer
