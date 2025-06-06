@@ -401,3 +401,8 @@ export function allDocumentsInWorkspace(wsFolder: vscode.WorkspaceFolder): strin
   const index = wsFolderIndex.get(wsFolder.uri.toString());
   return index ? Array.from(index.documents.keys()) : [];
 }
+
+/** Get the class/routine name of the document in `uri` */
+export function getDocumentForUri(uri: vscode.Uri): string {
+  return wsFolderIndex.get(vscode.workspace.getWorkspaceFolder(uri)?.uri.toString())?.uris.get(uri.toString());
+}
