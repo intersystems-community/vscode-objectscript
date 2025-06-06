@@ -1,11 +1,5 @@
 import vscode = require("vscode");
-import {
-  currentFile,
-  currentFileFromContent,
-  getFileText,
-  methodOffsetToLine,
-  stripClassMemberNameQuotes,
-} from "../utils";
+import { currentFile, getFileText, methodOffsetToLine, stripClassMemberNameQuotes } from "../utils";
 import {
   InitializedEvent,
   LoggingDebugSession,
@@ -27,6 +21,7 @@ import { lsExtensionId, schemas } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { formatPropertyValue } from "./utils";
 import { isfsConfig } from "../utils/FileProviderUtil";
+import { getDocumentForUri } from "../utils/documentIndex";
 
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
   /** An absolute path to the "program" to debug. */
@@ -45,7 +40,7 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
 }
 
 /** converts a uri from VS Code to a server-side XDebug file URI with respect to source root settings */
-async function convertClientPathToDebugger(uri: vscode.Uri, namespace: string): Promise<string> {
+function convertClientPathToDebugger(uri: vscode.Uri, namespace: string): string {
   const { scheme, path } = uri;
   let fileName: string;
   if (scheme && schemas.includes(scheme)) {
@@ -53,7 +48,8 @@ async function convertClientPathToDebugger(uri: vscode.Uri, namespace: string): 
     if (ns) namespace = ns;
     fileName = path.slice(1).replace(/\//g, ".");
   } else {
-    fileName = currentFileFromContent(uri, await getFileText(uri))?.name;
+    fileName = getDocumentForUri(uri);
+    if (!fileName) return;
   }
 
   namespace = encodeURIComponent(namespace);
@@ -115,6 +111,20 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
   /** If this is a `launch` session */
   private _isLaunch = false;
 
+  /** A cache of documents we have fetched the text of in this session */
+  private _docCache: Map<string, string> = new Map();
+
+  /** Get the text of file `uri`, using our cache. */
+  private async _getFileText(uri: vscode.Uri): Promise<string> {
+    const uriString = uri.toString();
+    let content = this._docCache.get(uriString);
+    if (content == undefined) {
+      content = await getFileText(uri).catch(() => "");
+      this._docCache.set(uriString, content);
+    }
+    return content;
+  }
+
   public constructor() {
     super();
 
@@ -147,6 +157,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       const file = currentFile();
       this._workspace = file?.workspaceFolder;
       this._api = new AtelierAPI(file?.uri);
+      if (file?.uri) this._workspaceFolderUri = vscode.workspace.getWorkspaceFolder(file.uri)?.uri;
     }
     return;
   }
@@ -350,11 +361,37 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     try {
       await this._waitForDebugTarget();
 
-      const filePath = args.source.path;
-      const scheme = filePath.split(":")[0];
-      const uri = schemas.includes(scheme) ? vscode.Uri.parse(filePath) : vscode.Uri.file(filePath);
-      const fileUri = await convertClientPathToDebugger(uri, this._namespace);
-      const [, fileName] = fileUri.match(/\|([^|]+)$/);
+      const uri = vscode.Uri.parse(args.source.path);
+      const wsFolder = vscode.workspace.getWorkspaceFolder(uri);
+      if (!wsFolder || (this._workspaceFolderUri && wsFolder.uri.toString() != this._workspaceFolderUri.toString())) {
+        response.body = {
+          breakpoints: args.breakpoints.map(() => {
+            return {
+              verified: false,
+              message: "This file is not from the same workspace folder as the debug target",
+              reason: "failed",
+            };
+          }),
+        };
+        this.sendResponse(response);
+        return;
+      }
+      const xdebugUri = convertClientPathToDebugger(uri, this._namespace);
+      if (!xdebugUri) {
+        response.body = {
+          breakpoints: args.breakpoints.map(() => {
+            return {
+              verified: false,
+              message: "Failed to determine the class or routine name of this file",
+              reason: "failed",
+            };
+          }),
+        };
+        this.sendResponse(response);
+        return;
+      }
+      const [, fileName] = xdebugUri.match(/\|([^|]+)$/);
+      const fileExt = fileName.split(".").pop().toLowerCase();
       const languageServer: boolean = vscode.extensions.getExtension(lsExtensionId)?.isActive ?? false;
 
       const currentList = await this._connection.sendBreakpointListCommand();
@@ -371,7 +408,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
       let xdebugBreakpoints: (xdebug.ConditionalBreakpoint | xdebug.ClassLineBreakpoint | xdebug.LineBreakpoint)[] = [];
       let symbols: vscode.DocumentSymbol[];
-      if (fileName.endsWith("cls")) {
+      if (fileExt == "cls") {
         // Compute DocumentSymbols for this class
         symbols = (
           await vscode.commands.executeCommand<vscode.DocumentSymbol[]>("vscode.executeDocumentSymbolProvider", uri)
@@ -380,7 +417,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       xdebugBreakpoints = await Promise.all(
         args.breakpoints.map(async (breakpoint) => {
           const line = breakpoint.line;
-          if (fileName.endsWith("cls")) {
+          if (fileExt == "cls") {
             // Find the class member that this breakpoint is in
             let currentSymbol: vscode.DocumentSymbol;
             for (const symbol of symbols) {
@@ -395,7 +432,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
               currentSymbol.detail.toLowerCase() !== "query"
             ) {
               // This breakpoint is in a method
-              const currentdoc = (await getFileText(uri)).split(/\r?\n/);
+              const currentdoc = (await this._getFileText(uri)).split(/\r?\n/);
               const methodName = stripClassMemberNameQuotes(currentSymbol.name);
               if (languageServer) {
                 // selectionRange.start.line is the method definition line
@@ -411,7 +448,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
                     if (breakpoint.condition) {
                       return new xdebug.ClassConditionalBreakpoint(
                         breakpoint.condition,
-                        fileUri,
+                        xdebugUri,
                         line,
                         methodName,
                         line - methodlinenum - 1,
@@ -419,7 +456,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
                       );
                     } else {
                       return new xdebug.ClassLineBreakpoint(
-                        fileUri,
+                        xdebugUri,
                         line,
                         methodName,
                         line - methodlinenum - 1,
@@ -433,7 +470,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
                 if (breakpoint.condition) {
                   return new xdebug.ClassConditionalBreakpoint(
                     breakpoint.condition,
-                    fileUri,
+                    xdebugUri,
                     line,
                     methodName,
                     line - currentSymbol.selectionRange.start.line,
@@ -441,7 +478,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
                   );
                 } else {
                   return new xdebug.ClassLineBreakpoint(
-                    fileUri,
+                    xdebugUri,
                     line,
                     methodName,
                     line - currentSymbol.selectionRange.start.line,
@@ -450,24 +487,24 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
                 }
               }
             }
-          } else if (filePath.endsWith("mac") || filePath.endsWith("int")) {
+          } else if (["mac", "int"].includes(fileExt)) {
             if (breakpoint.condition) {
               return new xdebug.RoutineConditionalBreakpoint(
                 breakpoint.condition,
-                fileUri,
+                xdebugUri,
                 line,
                 "",
                 line - 1,
                 breakpoint.hitCondition
               );
             } else {
-              return new xdebug.RoutineLineBreakpoint(fileUri, line, "", line - 1, breakpoint.hitCondition);
+              return new xdebug.RoutineLineBreakpoint(xdebugUri, line, "", line - 1, breakpoint.hitCondition);
             }
           } else {
             if (breakpoint.condition) {
-              return new xdebug.ConditionalBreakpoint(breakpoint.condition, fileUri, line, breakpoint.hitCondition);
+              return new xdebug.ConditionalBreakpoint(breakpoint.condition, xdebugUri, line, breakpoint.hitCondition);
             } else {
-              return new xdebug.LineBreakpoint(fileUri, line, breakpoint.hitCondition);
+              return new xdebug.LineBreakpoint(xdebugUri, line, breakpoint.hitCondition);
             }
           }
         })
@@ -483,6 +520,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
                 verified: false,
                 line: breakpoint.line,
                 message: "Hit Count must be a positive integer",
+                reason: "failed",
               };
             } else {
               await this._connection.sendBreakpointSetCommand(breakpoint);
@@ -493,6 +531,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
               verified: false,
               line: breakpoint.line,
               message: error.message,
+              reason: "failed",
             };
           }
         })
@@ -573,6 +612,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
               verified: false,
               instructionReference: breakpoint.variable,
               message: error.message,
+              reason: "failed",
             };
           }
         })
@@ -604,38 +644,54 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
   ): Promise<void> {
     const stack = await this._connection.sendStackGetCommand();
 
-    // Is set to true if we're at the CSP or unit test ending watchpoint.
-    // We need to do this so VS Code doesn't try to open the source of
-    // a stack frame before the debug session terminates. That should
-    // only happen if the server has source code for %SYS.cspServer.mac/int
-    // or %Api.Atelier.v<X>.cls/.int where X >= 8.
+    /** Is set to true if we're at the CSP or unit test ending watchpoint.
+     * We need to do this so VS Code doesn't try to open the source of
+     * a stack frame before the debug session terminates. */
     let noStack = false;
     const stackFrames = await Promise.all(
       stack.stack.map(async (stackFrame: xdebug.StackFrame, index): Promise<StackFrame> => {
-        const [, namespace, name] = decodeURI(stackFrame.fileUri).match(/^dbgp:\/\/\|([^|]+)\|(.*)$/);
-        const routine = name;
+        if (noStack) return; // Stack frames won't be sent
+        const [, namespace, docName] = decodeURI(stackFrame.fileUri).match(/^dbgp:\/\/\|([^|]+)\|(.*)$/);
         const fileUri = DocumentContentProvider.getUri(
-          routine,
+          docName,
           this._workspace,
           namespace,
           undefined,
           this._workspaceFolderUri
         );
-        const source = new Source(routine, fileUri.toString());
+        const source = new Source(docName, fileUri.toString());
         let line = stackFrame.line + 1;
         const place = `${stackFrame.method}+${stackFrame.methodOffset}`;
         const stackFrameId = this._stackFrameIdCounter++;
-        const fileText: string | undefined = await getFileText(fileUri).catch(() => undefined);
+        if (index == 0 && this._break) {
+          const csp = this._isCsp && ["%SYS.cspServer.mac", "%SYS.cspServer.int"].includes(source.name);
+          const unitTest = this._isUnitTest && source.name.startsWith("%Api.Atelier.v");
+          if (csp || unitTest) {
+            // Check if we're at our special watchpoint
+            const { result } = await this._connection.sendEvalCommand(
+              csp ? this._cspWatchpointCondition : this._unitTestWatchpointCondition
+            );
+            if (result.type == "int" && result.value == "1") {
+              // Stop the debugging session
+              const xdebugResponse = await this._connection.sendDetachCommand();
+              await this._checkStatus(xdebugResponse);
+              noStack = true;
+              return;
+            }
+          }
+        }
+        const fileText = await this._getFileText(fileUri);
         const hasCmdLoc = typeof stackFrame.cmdBeginLine == "number";
-        if (fileText == undefined) {
+        if (!fileText.length) {
           // Can't get the source for the document
           this._stackFrames.set(stackFrameId, stackFrame);
           return {
             id: stackFrameId,
             name: place,
+            // Don't provide a source path so VS Code doesn't attempt
+            // to open this file or provide an option to "create" it
             source: {
-              name: routine,
-              path: fileUri.toString(),
+              name: docName,
               presentationHint: "deemphasize",
             },
             line,
@@ -655,33 +711,8 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
             const newLine = methodOffsetToLine(symbols, fileText, stackFrame.method, stackFrame.methodOffset);
             if (newLine != undefined) line = newLine;
           }
-          if (
-            this._isCsp &&
-            this._break &&
-            ["%SYS.cspServer.mac", "%SYS.cspServer.int"].includes(source.name) &&
-            index == 0
-          ) {
-            // Check if we're at our special watchpoint
-            const { result } = await this._connection.sendEvalCommand(this._cspWatchpointCondition);
-            if (result.type == "int" && result.value == "1") {
-              // Stop the debugging session
-              const xdebugResponse = await this._connection.sendDetachCommand();
-              await this._checkStatus(xdebugResponse);
-              noStack = true;
-            }
-          }
-          if (this._isUnitTest && this._break && source.name.startsWith("%Api.Atelier.v") && index == 0) {
-            // Check if we're at our special watchpoint
-            const { result } = await this._connection.sendEvalCommand(this._unitTestWatchpointCondition);
-            if (result.type == "int" && result.value == "1") {
-              // Stop the debugging session
-              const xdebugResponse = await this._connection.sendDetachCommand();
-              await this._checkStatus(xdebugResponse);
-              noStack = true;
-            }
-          }
           this._stackFrames.set(stackFrameId, stackFrame);
-        } catch (ex) {
+        } catch {
           noSource = true;
         }
         const lineDiff = line - stackFrame.line;
