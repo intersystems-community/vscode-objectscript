@@ -467,7 +467,7 @@ export async function checkConnection(
   };
 
   // Do the check
-  const serverInfoTimeout = 3000;
+  const serverInfoTimeout = 5000;
   return api
     .serverInfo(true, serverInfoTimeout)
     .then(gotServerInfo)
