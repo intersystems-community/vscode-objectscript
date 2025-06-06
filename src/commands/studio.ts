@@ -424,13 +424,13 @@ export class StudioActions {
 
     const query = "select * from %Atelier_v1_Utils.Extension_GetMenus(?,?,?)";
     const parameters = [menuType, this.name, selectedText];
+    const noun = sourceControl ? "source control action" : "command";
 
     return this.api
       .actionQuery(query, parameters)
       .then((data) => data.result.content)
       .then((menus) => this.prepareMenuItems(menus, sourceControl))
       .then((menuItems) => {
-        const noun = sourceControl ? "source control action" : "command";
         const suffix = this.name ? ` on ${this.name}` : "";
         if (menuItems.length == 0) {
           vscode.window.showInformationMessage(`There are no server-side ${noun}s to execute${suffix}.`, "Dismiss");
@@ -441,7 +441,10 @@ export class StudioActions {
           title: `Pick a server-side ${noun} to execute${suffix}`,
         });
       })
-      .then((action) => this.userAction(action));
+      .then((action) => this.userAction(action))
+      .catch((error) => {
+        handleError(error, `Failed to get the server-side ${noun} menu options.`);
+      });
   }
 
   public fireOtherStudioAction(action: OtherStudioAction, userAction?: UserAction): void {
