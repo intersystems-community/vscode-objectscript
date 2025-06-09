@@ -40,14 +40,6 @@ interface ConnectionSettings {
   dockerService?: string;
 }
 
-// Needed to fix a TS error
-declare let AbortSignal: {
-  prototype: AbortSignal;
-  new (): AbortSignal;
-  abort(reason?: any): AbortSignal;
-  timeout(milliseconds: number): AbortSignal;
-};
-
 export class AtelierAPI {
   private _config: ConnectionSettings;
   private namespace: string;
@@ -369,7 +361,7 @@ export class AtelierAPI {
     } else if (!cookies.length) {
       if (!authRequest) {
         // Recursion point
-        authRequest = this.request(0, "HEAD");
+        authRequest = this.request(0, "HEAD", undefined, undefined, undefined, undefined, options);
         authRequestMap.set(target, authRequest);
       }
       auth = authRequest;
@@ -408,7 +400,6 @@ export class AtelierAPI {
         data: body,
         withCredentials: true,
         httpsAgent,
-        timeout: options?.timeout ? options.timeout : 0,
         signal: options?.timeout ? AbortSignal.timeout(options.timeout) : undefined,
         validateStatus: (status) => status < 504,
       });
@@ -571,7 +562,6 @@ export class AtelierAPI {
         return Promise.all([
           workspaceState.update(this.configName.toLowerCase() + ":apiVersion", apiVersion),
           workspaceState.update(this.configName.toLowerCase() + ":serverVersion", serverVersion),
-          workspaceState.update(this.configName.toLowerCase() + ":iris", data.version.startsWith("IRIS")),
         ]).then(() => info);
       }
     });
