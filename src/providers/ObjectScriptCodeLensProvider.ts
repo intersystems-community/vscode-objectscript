@@ -7,7 +7,7 @@ import { AtelierAPI } from "../api";
 const includeRegex = /^Include\s+\(?([^(]+)\)?\s*$/i;
 const importRegex = /^Import\s+\(?([^(]+)\)?\s*$/i;
 const sqlQueryRegex = /\)\s+(?:As|as|AS|aS)\s+%(?:Library\.)?SQLQuery(?:\([^)]*SELECTMODE\s*=\s*"([^"]+)"[^)]*\))?/;
-const eSqlStartRegex = /(?:^|(?:[^"]*"[^"]*")*)(?:##sql|&sql([^(+-/\\|*\s)]*))\(/i;
+const eSqlStartRegex = /(?:##sql|&sql([^(+-/\\|*\s)]*))\(/i;
 const poundImportRegex = /^\s*#import\s+(.+)$/i;
 const poundIncludeRegex = /^\s*#include\s+(\S+)\s*$/i;
 const sqlSelectRegex = /^\s*#sqlcompile\s+select\s*=\s*(\S+)\s*$/i;
@@ -135,11 +135,13 @@ function scanCodeBlock(
     }
     const eSqlMatch = line.match(eSqlStartRegex);
     if (eSqlMatch) {
-      // Check if the match is commented out
+      // Check if the match is commented out or in a string literal
       if (
-        (commentStart == undefined && commentEnd == undefined) ||
-        (commentStart != undefined && eSqlMatch.index < commentStart) ||
-        (commentEnd != undefined && eSqlMatch.index > commentEnd)
+        ((commentStart == undefined && commentEnd == undefined) ||
+          (commentStart != undefined && eSqlMatch.index < commentStart) ||
+          (commentEnd != undefined && eSqlMatch.index > commentEnd)) &&
+        // There are an even number of, or zero, quotes preceding the match
+        line.slice(0, eSqlMatch.index).split('"').length % 2 == 1
       ) {
         const sqlQuery = getSqlQuery(
           document,
