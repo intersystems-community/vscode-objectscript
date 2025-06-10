@@ -1,5 +1,26 @@
 # Change Log
 
+## [3.0.3] 16-Jun-2025
+- Enhancements
+  - Cache the contents of files fetched during a debug session (#1579)
+- Fixes
+  - Fix `objectscript.autoAdjustName` behavior with `Save As...` (#1562)
+  - Fix detection of duplicate file change events (#1564)
+  - Attempt to use existing line endings when replacing a file's contents post-compile (#1567)
+  - Exempt files created due to server export from `objectscript.autoAdjustName` behavior (#1571)
+  - Prevent rare case where a file may be compiled twice due to concurrency issues (#1571)
+  - Improve code that exempts post-save compile from the batching behavior (#1571)
+  - Update the VS Code editor UI if a server-side document was changed during save (#1573)
+  - Don't show `Show Plan` CodeLenses inside string literals (#1574)
+  - Fix timeout of connection requests on activation (#1577)
+  - Fix the automatic termination of REST and unit test debug sessions (#1579)
+  - Prevent VS Code from showing a `Create File` button for files that are deployed when debugging (#1579)
+  - Don't attempt to set a breakpoint that's from a file in a different workspace folder (#1579)
+  - Fix debugging files in a client-side virtual workspace folder (#1579)
+  - Explicitly report failure to set a breakpoint (#1579)
+  - Use the document index to get determine the name of a document in a local file when debugging (#1579)
+  - Handle errors when fetching server-side source control menu options fails (#1580)
+
 ## [3.0.2] 20-May-2025
 - Enhancements
   - Allow `objectscript.multilineMethodArgs` to be set per workspace folder (#1534)
