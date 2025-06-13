@@ -515,6 +515,25 @@ export class AtelierAPI {
 
       return data;
     } catch (error) {
+      if (
+        error?.message?.includes("Connection: close") &&
+        path?.includes("/doc/") &&
+        headers &&
+        headers["IF-NONE-MATCH"]
+      ) {
+        // This "Parse Error: Data after `Connection: close`" error is caused by
+        // stricter behavior in the llhttp library introduced in Node 22/VS Code 1.101.0.
+        // This only affects servers that use IIS as a web server, and it only occurs
+        // when a 304 Not Modified response is sent from the server.
+        // See https://github.com/intersystems-community/vscode-objectscript/issues/1583
+        if (outputTraffic) {
+          outputRequest();
+          outputChannel.appendLine(`+- RESPONSE -----------------------------------------`);
+          outputChannel.appendLine("304 Not Modified");
+          outputChannel.appendLine(`+- END ----------------------------------------------`);
+        }
+        throw { statusCode: 304, message: "Not Modified" };
+      }
       if (outputTraffic && !error.statusCode) {
         // Only output errors here if they were "hard" errors, not HTTP response errors
         outputRequest();
