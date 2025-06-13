@@ -20,6 +20,7 @@
   - Explicitly report failure to set a breakpoint (#1579)
   - Use the document index to get determine the name of a document in a local file when debugging (#1579)
   - Handle errors when fetching server-side source control menu options fails (#1580)
+  - Fix saving and re-opening of server-side documents on VS Code 1.101.0 (#1584)
 
 ## [3.0.2] 20-May-2025
 - Enhancements
