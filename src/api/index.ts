@@ -40,14 +40,6 @@ interface ConnectionSettings {
   dockerService?: string;
 }
 
-// Needed to fix a TS error
-declare let AbortSignal: {
-  prototype: AbortSignal;
-  new (): AbortSignal;
-  abort(reason?: any): AbortSignal;
-  timeout(milliseconds: number): AbortSignal;
-};
-
 export class AtelierAPI {
   private _config: ConnectionSettings;
   private namespace: string;
@@ -369,7 +361,7 @@ export class AtelierAPI {
     } else if (!cookies.length) {
       if (!authRequest) {
         // Recursion point
-        authRequest = this.request(0, "HEAD");
+        authRequest = this.request(0, "HEAD", undefined, undefined, undefined, undefined, options);
         authRequestMap.set(target, authRequest);
       }
       auth = authRequest;
@@ -408,7 +400,6 @@ export class AtelierAPI {
         data: body,
         withCredentials: true,
         httpsAgent,
-        timeout: options?.timeout ? options.timeout : 0,
         signal: options?.timeout ? AbortSignal.timeout(options.timeout) : undefined,
         validateStatus: (status) => status < 504,
       });
@@ -524,6 +515,25 @@ export class AtelierAPI {
 
       return data;
     } catch (error) {
+      if (
+        error?.message?.includes("Connection: close") &&
+        path?.includes("/doc/") &&
+        headers &&
+        headers["IF-NONE-MATCH"]
+      ) {
+        // This "Parse Error: Data after `Connection: close`" error is caused by
+        // stricter behavior in the llhttp library introduced in Node 22/VS Code 1.101.0.
+        // This only affects servers that use IIS as a web server, and it only occurs
+        // when a 304 Not Modified response is sent from the server.
+        // See https://github.com/intersystems-community/vscode-objectscript/issues/1583
+        if (outputTraffic) {
+          outputRequest();
+          outputChannel.appendLine(`+- RESPONSE -----------------------------------------`);
+          outputChannel.appendLine("304 Not Modified");
+          outputChannel.appendLine(`+- END ----------------------------------------------`);
+        }
+        throw { statusCode: 304, message: "Not Modified" };
+      }
       if (outputTraffic && !error.statusCode) {
         // Only output errors here if they were "hard" errors, not HTTP response errors
         outputRequest();
@@ -571,7 +581,6 @@ export class AtelierAPI {
         return Promise.all([
           workspaceState.update(this.configName.toLowerCase() + ":apiVersion", apiVersion),
           workspaceState.update(this.configName.toLowerCase() + ":serverVersion", serverVersion),
-          workspaceState.update(this.configName.toLowerCase() + ":iris", data.version.startsWith("IRIS")),
         ]).then(() => info);
       }
     });
