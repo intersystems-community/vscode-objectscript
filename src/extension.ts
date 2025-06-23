@@ -562,6 +562,10 @@ export async function checkConnection(
         }
         if (success) return;
       }
+      if (["ECONNABORTED", "ERR_CANCELED"].includes(error?.code)) {
+        error = `Request timed out; server took longer than ${serverInfoTimeout} ms to respond.`;
+        message = `Request timed out after ${serverInfoTimeout} ms`;
+      }
       handleError(
         errorMessage ?? error,
         `Failed to connect to server '${api.serverId}'. Check your server configuration.`
@@ -843,9 +847,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       continue;
     }
   }
-  for await (const workspaceFolder of vscode.workspace.workspaceFolders ?? []) {
-    await addWsServerRootFolderData(workspaceFolder.uri);
-  }
+  await Promise.allSettled(
+    vscode.workspace.workspaceFolders?.map((wsFolder) => addWsServerRootFolderData(wsFolder.uri)) || []
+  );
 
   xmlContentProvider = new XmlContentProvider();
 
@@ -1383,9 +1387,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         const serverName = notIsfs(uri) ? config("conn", configName).server : configName;
         await resolveConnectionSpec(serverName);
       }
-      for await (const workspaceFolder of added) {
-        await addWsServerRootFolderData(workspaceFolder.uri);
-      }
+      await Promise.allSettled(added.map((wsFolder) => addWsServerRootFolderData(wsFolder.uri)));
     }),
     vscode.workspace.onDidChangeConfiguration(async ({ affectsConfiguration }) => {
       if (affectsConfiguration("objectscript.conn") || affectsConfiguration("intersystems.servers")) {
