@@ -1455,39 +1455,33 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.window.onDidChangeActiveTextEditor(async (textEditor: vscode.TextEditor) => {
       if (!textEditor) return;
-      posPanel.text = "";
       await checkConnection(false, textEditor.document.uri);
       if (textEditor.document.uri.path.toLowerCase().endsWith(".xml") && config("autoPreviewXML")) {
         return previewXMLAsUDL(textEditor, true);
       }
     }),
-    vscode.window.onDidChangeTextEditorSelection((event: vscode.TextEditorSelectionChangeEvent) => {
+    vscode.window.onDidChangeTextEditorSelection(async (event: vscode.TextEditorSelectionChangeEvent) => {
       const document = event.textEditor.document;
-
-      // Avoid losing position indicator if event came from output channel
-      if (document.uri.scheme == "output") {
-        return;
-      }
-      posPanel.text = "";
-      if (![macLangId, intLangId].includes(document.languageId)) {
-        return;
-      }
-      if (event.selections.length > 1 || !event.selections[0].isEmpty) {
-        return;
-      }
-
-      const file = currentFile(document);
-      const nameMatch = file.name.match(/(.*)\.(int|mac)$/i);
-      if (!nameMatch) {
-        return;
-      }
-      const [, routine] = nameMatch;
-      let label = "";
-      let pos = 0;
-      vscode.commands
-        .executeCommand<vscode.DocumentSymbol[]>("vscode.executeDocumentSymbolProvider", document.uri)
-        .then((symbols) => {
-          if (symbols != undefined) {
+      // Avoid losing position indicator if event came from output channel or a non-active editor
+      if (document.uri.scheme == "output" || vscode.window.activeTextEditor != event.textEditor) return;
+      try {
+        if (
+          ![macLangId, intLangId].includes(document.languageId) ||
+          event.selections.length > 1 ||
+          !event.selections[0].isEmpty
+        ) {
+          throw undefined;
+        }
+        const file = currentFile(document);
+        const nameMatch = file.name.match(/(.*)\.(int|mac)$/i);
+        if (!nameMatch) throw undefined;
+        const [, routine] = nameMatch;
+        let label = "";
+        let pos = 0;
+        await vscode.commands
+          .executeCommand<vscode.DocumentSymbol[]>("vscode.executeDocumentSymbolProvider", document.uri)
+          .then((symbols) => {
+            if (!symbols) throw undefined;
             const cursor = event.selections[0].active;
             if (symbols.length == 0 || cursor.isBefore(symbols[0].range.start)) {
               pos = cursor.line - 1;
@@ -1501,8 +1495,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
               }
             }
             posPanel.text = `${label}${pos > 0 ? "+" + pos : ""}^${routine}`;
-          }
-        });
+          });
+      } catch {
+        // If we couldn't resolve the cursor location to a label+offset^routine
+        // for any reason, hide the status bar item
+        posPanel.text = "";
+      }
     }),
     vscode.commands.registerCommand("vscode-objectscript.loadStudioSnippets", loadStudioSnippets),
     vscode.commands.registerCommand("vscode-objectscript.loadStudioColors", () => {
