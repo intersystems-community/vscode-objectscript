@@ -275,11 +275,6 @@ export async function resolveConnectionSpec(serverName: string, uri?: vscode.Uri
   }
 }
 
-interface ServerManagerAuthSession extends vscode.AuthenticationSession {
-  serverName: string;
-  userName: string;
-}
-
 async function resolvePassword(serverSpec, ignoreUnauthenticated = false): Promise<void> {
   if (
     // Connection isn't unauthenticated
@@ -292,27 +287,19 @@ async function resolvePassword(serverSpec, ignoreUnauthenticated = false): Promi
     // Handle Server Manager extension version < 3.8.0
     const account = serverManagerApi.getAccount ? serverManagerApi.getAccount(serverSpec) : undefined;
 
-    let session = <ServerManagerAuthSession>await vscode.authentication.getSession(
-      serverManager.AUTHENTICATION_PROVIDER,
-      scopes,
-      {
-        silent: true,
-        account,
-      }
-    );
+    let session = await vscode.authentication.getSession(serverManager.AUTHENTICATION_PROVIDER, scopes, {
+      silent: true,
+      account,
+    });
     if (!session) {
-      session = <ServerManagerAuthSession>await vscode.authentication.getSession(
-        serverManager.AUTHENTICATION_PROVIDER,
-        scopes,
-        {
-          createIfNone: true,
-          account,
-        }
-      );
+      session = await vscode.authentication.getSession(serverManager.AUTHENTICATION_PROVIDER, scopes, {
+        createIfNone: true,
+        account,
+      });
     }
     if (session) {
       // If original spec lacked username use the one obtained by the authprovider
-      serverSpec.username = serverSpec.username || session.userName;
+      serverSpec.username = serverSpec.username || session.scopes[1];
       serverSpec.password = session.accessToken;
     }
   }
