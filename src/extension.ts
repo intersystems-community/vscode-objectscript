@@ -299,7 +299,7 @@ async function resolvePassword(serverSpec, ignoreUnauthenticated = false): Promi
     }
     if (session) {
       // If original spec lacked username use the one obtained from the user by the authprovider (exact case)
-      serverSpec.username = serverSpec.username || session.account.id.split("/").slice(1).join("/");
+      serverSpec.username = serverSpec.username || session.scopes[1];
       serverSpec.password = session.accessToken;
     }
   }
