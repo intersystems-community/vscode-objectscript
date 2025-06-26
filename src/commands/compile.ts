@@ -168,6 +168,7 @@ What do you want to do?`,
                     vscode.Uri.file(file.name).with({
                       scheme: OBJECTSCRIPT_FILE_SCHEMA,
                       authority: file.workspaceFolder,
+                      query: file.name.includes("/") ? "csp" : "",
                     }),
                     file.uri,
                     `Server • ${file.name} ↔ Local • ${file.fileName}`
