@@ -1,5 +1,14 @@
 # Change Log
 
+## [3.0.4] 30-Jun-2025
+- Enhancements
+  - Shorten server-side error messages (#1587)
+  - Make it more clear when a server connection failed due to a timeout (#1592)
+- Fixes
+  - Fix mapping of breakpoints when debugging a local file on Windows (#1586)
+  - Fix routine location status bar item flickering while typing (#1590)
+  - Fix comparing of local and server versions of web app files (#1599)
+
 ## [3.0.3] 16-Jun-2025
 - Enhancements
   - Cache the contents of files fetched during a debug session (#1579)
