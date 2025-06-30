@@ -504,7 +504,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             })
             .catch((error) => {
               // Throw all failures
-              throw vscode.FileSystemError.Unavailable(stringifyError(error) || uri);
+              const errorStr = stringifyError(error);
+              throw errorStr ? errorStr : vscode.FileSystemError.Unavailable(uri);
             });
         },
         (error) => {
@@ -527,7 +528,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             )
             .catch((error) => {
               // Throw all failures
-              throw vscode.FileSystemError.Unavailable(stringifyError(error) || uri);
+              const errorStr = stringifyError(error);
+              throw errorStr ? errorStr : vscode.FileSystemError.Unavailable(uri);
             })
             .then((data) => {
               // New file has been written
@@ -771,7 +773,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       )
       .catch((error) => {
         // Throw all failures
-        throw vscode.FileSystemError.Unavailable(stringifyError(error) || newUri);
+        const errorStr = stringifyError(error);
+        throw errorStr ? errorStr : vscode.FileSystemError.Unavailable(newUri);
       })
       .then(async (response) => {
         // New file has been written
@@ -985,9 +988,12 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       )
       .catch((error) => {
         if (error?.statusCode == 304 && cachedFile) return cachedFile;
-        const errArg = stringifyError(error) || uri;
-        if (error?.statusCode == 404) throw vscode.FileSystemError.FileNotFound(errArg);
-        throw vscode.FileSystemError.Unavailable(errArg);
+        const errorStr = stringifyError(error);
+        throw error?.statusCode == 404
+          ? vscode.FileSystemError.FileNotFound(uri)
+          : errorStr
+            ? errorStr
+            : vscode.FileSystemError.Unavailable(uri);
       });
   }
 

@@ -361,7 +361,11 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     try {
       await this._waitForDebugTarget();
 
-      const uri = vscode.Uri.parse(args.source.path);
+      // args.source.path is a file path if the file is local and is a stringified Uri if the file is virtual
+      const uri =
+        (this._workspaceFolderUri ?? vscode.workspace.workspaceFolders[0]?.uri)?.scheme == "file"
+          ? vscode.Uri.file(args.source.path)
+          : vscode.Uri.parse(args.source.path);
       const wsFolder = vscode.workspace.getWorkspaceFolder(uri);
       if (!wsFolder || (this._workspaceFolderUri && wsFolder.uri.toString() != this._workspaceFolderUri.toString())) {
         response.body = {

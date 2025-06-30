@@ -298,7 +298,7 @@ async function resolvePassword(serverSpec, ignoreUnauthenticated = false): Promi
       });
     }
     if (session) {
-      // If original spec lacked username use the one obtained by the authprovider
+      // If original spec lacked username use the one obtained from the user by the authprovider (exact case)
       serverSpec.username = serverSpec.username || session.scopes[1];
       serverSpec.password = session.accessToken;
     }
@@ -561,6 +561,10 @@ export async function checkConnection(
           });
         }
         if (success) return;
+      }
+      if (["ECONNABORTED", "ERR_CANCELED"].includes(error?.code)) {
+        error = `Request timed out; server took longer than ${serverInfoTimeout} ms to respond.`;
+        message = `Request timed out after ${serverInfoTimeout} ms`;
       }
       handleError(
         errorMessage ?? error,
@@ -843,9 +847,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       continue;
     }
   }
-  for await (const workspaceFolder of vscode.workspace.workspaceFolders ?? []) {
-    await addWsServerRootFolderData(workspaceFolder.uri);
-  }
+  await Promise.allSettled(
+    vscode.workspace.workspaceFolders?.map((wsFolder) => addWsServerRootFolderData(wsFolder.uri)) || []
+  );
 
   xmlContentProvider = new XmlContentProvider();
 
@@ -1383,9 +1387,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         const serverName = notIsfs(uri) ? config("conn", configName).server : configName;
         await resolveConnectionSpec(serverName);
       }
-      for await (const workspaceFolder of added) {
-        await addWsServerRootFolderData(workspaceFolder.uri);
-      }
+      await Promise.allSettled(added.map((wsFolder) => addWsServerRootFolderData(wsFolder.uri)));
     }),
     vscode.workspace.onDidChangeConfiguration(async ({ affectsConfiguration }) => {
       if (affectsConfiguration("objectscript.conn") || affectsConfiguration("intersystems.servers")) {
@@ -1440,39 +1442,33 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.window.onDidChangeActiveTextEditor(async (textEditor: vscode.TextEditor) => {
       if (!textEditor) return;
-      posPanel.text = "";
       await checkConnection(false, textEditor.document.uri);
       if (textEditor.document.uri.path.toLowerCase().endsWith(".xml") && config("autoPreviewXML")) {
         return previewXMLAsUDL(textEditor, true);
       }
     }),
-    vscode.window.onDidChangeTextEditorSelection((event: vscode.TextEditorSelectionChangeEvent) => {
+    vscode.window.onDidChangeTextEditorSelection(async (event: vscode.TextEditorSelectionChangeEvent) => {
       const document = event.textEditor.document;
-
-      // Avoid losing position indicator if event came from output channel
-      if (document.uri.scheme == "output") {
-        return;
-      }
-      posPanel.text = "";
-      if (![macLangId, intLangId].includes(document.languageId)) {
-        return;
-      }
-      if (event.selections.length > 1 || !event.selections[0].isEmpty) {
-        return;
-      }
-
-      const file = currentFile(document);
-      const nameMatch = file.name.match(/(.*)\.(int|mac)$/i);
-      if (!nameMatch) {
-        return;
-      }
-      const [, routine] = nameMatch;
-      let label = "";
-      let pos = 0;
-      vscode.commands
-        .executeCommand<vscode.DocumentSymbol[]>("vscode.executeDocumentSymbolProvider", document.uri)
-        .then((symbols) => {
-          if (symbols != undefined) {
+      // Avoid losing position indicator if event came from output channel or a non-active editor
+      if (document.uri.scheme == "output" || vscode.window.activeTextEditor != event.textEditor) return;
+      try {
+        if (
+          ![macLangId, intLangId].includes(document.languageId) ||
+          event.selections.length > 1 ||
+          !event.selections[0].isEmpty
+        ) {
+          throw undefined;
+        }
+        const file = currentFile(document);
+        const nameMatch = file.name.match(/(.*)\.(int|mac)$/i);
+        if (!nameMatch) throw undefined;
+        const [, routine] = nameMatch;
+        let label = "";
+        let pos = 0;
+        await vscode.commands
+          .executeCommand<vscode.DocumentSymbol[]>("vscode.executeDocumentSymbolProvider", document.uri)
+          .then((symbols) => {
+            if (!symbols) throw undefined;
             const cursor = event.selections[0].active;
             if (symbols.length == 0 || cursor.isBefore(symbols[0].range.start)) {
               pos = cursor.line - 1;
@@ -1486,8 +1482,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
               }
             }
             posPanel.text = `${label}${pos > 0 ? "+" + pos : ""}^${routine}`;
-          }
-        });
+          });
+      } catch {
+        // If we couldn't resolve the cursor location to a label+offset^routine
+        // for any reason, hide the status bar item
+        posPanel.text = "";
+      }
     }),
     vscode.commands.registerCommand("vscode-objectscript.loadStudioSnippets", loadStudioSnippets),
     vscode.commands.registerCommand("vscode-objectscript.loadStudioColors", () => {
