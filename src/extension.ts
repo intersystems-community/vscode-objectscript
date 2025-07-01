@@ -446,21 +446,6 @@ export async function checkConnection(
         serverVersion: info.result.content.version,
         healthshare: hasHS ? "yes" : "no",
       });
-
-    // Update CSP web app cache if required
-    const key = `${api.serverId}:${api.config.ns}`.toLowerCase();
-    if (!cspApps.has(key)) {
-      cspApps.set(key, await api.getCSPApps().then((data) => data.result.content || []));
-    }
-    if (!otherDocExts.has(key)) {
-      otherDocExts.set(
-        key,
-        await api
-          .actionQuery("SELECT Extention FROM %Library.RoutineMgr_DocumentTypes()", [])
-          .then((data) => data.result?.content?.map((e) => e.Extention) ?? [])
-          .catch(() => [])
-      );
-    }
     if (!api.externalServer) {
       await setConnectionState(configName, true);
     }
@@ -756,6 +741,44 @@ function setExplorerContextKeys(): void {
   );
 }
 
+/** Cache the lists of web apps and abstract document types for all server-namespaces in `wsFolders` */
+async function updateWebAndAbstractDocsCaches(wsFolders: readonly vscode.WorkspaceFolder[]): Promise<any> {
+  if (!wsFolders?.length) return;
+  const keys: Set<string> = new Set();
+  const connections: { key: string; api: AtelierAPI }[] = [];
+  // Filter out any duplicate connections
+  for (const wsFolder of wsFolders) {
+    const api = new AtelierAPI(wsFolder.uri);
+    if (!api.active) continue;
+    const key = `${api.serverId}:${api.config.ns}`.toLowerCase();
+    if (keys.has(key)) continue;
+    keys.add(key);
+    connections.push({ key, api });
+  }
+  return Promise.allSettled(
+    connections.map(async (connection) => {
+      if (!cspApps.has(connection.key)) {
+        cspApps.set(
+          connection.key,
+          await connection.api
+            .getCSPApps()
+            .then((data) => data.result.content ?? [])
+            .catch(() => [])
+        );
+      }
+      if (!otherDocExts.has(connection.key)) {
+        otherDocExts.set(
+          connection.key,
+          await connection.api
+            .actionQuery("SELECT Extention FROM %Library.RoutineMgr_DocumentTypes()", [])
+            .then((data) => data.result?.content?.map((e) => e.Extention) ?? [])
+            .catch(() => [])
+        );
+      }
+    })
+  );
+}
+
 /** The URIs of all classes that have been opened. Used when `objectscript.openClassContracted` is true */
 let openedClasses: string[];
 
@@ -847,9 +870,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       continue;
     }
   }
-  await Promise.allSettled(
-    vscode.workspace.workspaceFolders?.map((wsFolder) => addWsServerRootFolderData(wsFolder.uri)) || []
-  );
+
+  await updateWebAndAbstractDocsCaches(vscode.workspace.workspaceFolders);
+  await addWsServerRootFolderData(vscode.workspace.workspaceFolders);
 
   xmlContentProvider = new XmlContentProvider();
 
@@ -1373,22 +1396,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       },
       supportsMultipleEditorsPerDocument: false,
     }),
-    vscode.workspace.onDidChangeWorkspaceFolders(async ({ added }) => {
-      // Make sure we have a resolved connection spec for the targets of all added folders
-      const toCheck = new Map<string, vscode.Uri>();
-      added.map((workspaceFolder) => {
-        const uri = workspaceFolder.uri;
-        const { configName } = connectionTarget(uri);
-        toCheck.set(configName, uri);
-      });
-      for await (const oneToCheck of toCheck) {
-        const configName = oneToCheck[0];
-        const uri = oneToCheck[1];
-        const serverName = notIsfs(uri) ? config("conn", configName).server : configName;
-        await resolveConnectionSpec(serverName);
-      }
-      await Promise.allSettled(added.map((wsFolder) => addWsServerRootFolderData(wsFolder.uri)));
-    }),
     vscode.workspace.onDidChangeConfiguration(async ({ affectsConfiguration }) => {
       if (affectsConfiguration("objectscript.conn") || affectsConfiguration("intersystems.servers")) {
         if (affectsConfiguration("intersystems.servers")) {
@@ -1545,7 +1552,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       "vscode-objectscript.webSocketTerminal",
       new WebSocketTerminalProfileProvider()
     ),
-    vscode.workspace.onDidChangeWorkspaceFolders((e) => {
+    vscode.workspace.onDidChangeWorkspaceFolders(async (e) => {
+      // Make sure we have a resolved connection spec for the targets of all added folders
+      const toCheck = new Map<string, vscode.Uri>();
+      e.added.map((workspaceFolder) => {
+        const uri = workspaceFolder.uri;
+        const { configName } = connectionTarget(uri);
+        toCheck.set(configName, uri);
+      });
+      for await (const oneToCheck of toCheck) {
+        const configName = oneToCheck[0];
+        const uri = oneToCheck[1];
+        const serverName = notIsfs(uri) ? config("conn", configName).server : configName;
+        await resolveConnectionSpec(serverName);
+      }
+      // await this so the next step can take advantage of the caching
+      await updateWebAndAbstractDocsCaches(e.added);
+      addWsServerRootFolderData(e.added);
       // Show the proposed API prompt if required
       proposedApiPrompt(proposed.length > 0, e.added);
       // Warn about SystemMode

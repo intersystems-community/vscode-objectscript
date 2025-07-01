@@ -243,7 +243,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (!api.active) throw vscode.FileSystemError.Unavailable("Server connection is inactive");
     let entryPromise: Promise<Entry>;
     let result: Entry;
-    const redirectedUri = redirectDotvscodeRoot(uri);
+    const redirectedUri = redirectDotvscodeRoot(uri, vscode.FileSystemError.FileNotFound(uri));
     if (redirectedUri.path !== uri.path) {
       // When redirecting the /.vscode subtree we must fill in as-yet-unvisited folders to fix https://github.com/intersystems-community/vscode-objectscript/issues/1143
       entryPromise = this._lookup(redirectedUri, true);
@@ -290,8 +290,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
-    if (uri.path.includes(".vscode/")) {
-      throw vscode.FileSystemError.NoPermissions("Cannot read the /.vscode directory");
+    if (uri.path.includes(".vscode/") || uri.path.endsWith(".vscode")) {
+      throw "Cannot read the /.vscode directory";
     }
     const parent = await this._lookupAsDirectory(uri);
     const api = new AtelierAPI(uri);
@@ -406,7 +406,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public createDirectory(uri: vscode.Uri): void | Thenable<void> {
-    uri = redirectDotvscodeRoot(uri);
+    uri = redirectDotvscodeRoot(uri, "Server does not have a /_vscode web application");
     const basename = path.posix.basename(uri.path);
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
     return this._lookupAsDirectory(dirname).then((parent) => {
@@ -435,9 +435,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       overwrite: boolean;
     }
   ): void | Thenable<void> {
-    uri = redirectDotvscodeRoot(uri);
+    uri = redirectDotvscodeRoot(uri, "Server does not have a /_vscode web application");
     if (uri.path.startsWith("/.")) {
-      throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
+      throw "dot-folders are not supported by server";
     }
     const csp = isCSP(uri);
     const fileName = isfsDocumentName(uri, csp);
@@ -639,7 +639,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async delete(uri: vscode.Uri, options: { recursive: boolean }): Promise<void> {
-    uri = redirectDotvscodeRoot(uri);
+    uri = redirectDotvscodeRoot(uri, vscode.FileSystemError.FileNotFound(uri));
     const { project } = isfsConfig(uri);
     const csp = isCSP(uri);
     const api = new AtelierAPI(uri);
@@ -724,13 +724,13 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
 
   public async rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): Promise<void> {
     if (!oldUri.path.split("/").pop().includes(".")) {
-      throw vscode.FileSystemError.NoPermissions("Cannot rename a package/folder");
+      throw "Cannot rename a package/folder";
     }
     if (oldUri.path.split(".").pop().toLowerCase() != newUri.path.split(".").pop().toLowerCase()) {
-      throw vscode.FileSystemError.NoPermissions("Cannot change a file's extension during rename");
+      throw "Cannot change a file's extension during rename";
     }
     if (vscode.workspace.getWorkspaceFolder(oldUri) != vscode.workspace.getWorkspaceFolder(newUri)) {
-      throw vscode.FileSystemError.NoPermissions("Cannot rename a file across workspace folders");
+      throw "Cannot rename a file across workspace folders";
     }
     // Check if the destination exists
     let newFileStat: vscode.FileStat;
@@ -807,7 +807,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
    */
   public async compile(uri: vscode.Uri, file?: File, update?: boolean): Promise<void> {
     if (!uri || uri.scheme != FILESYSTEM_SCHEMA) return;
-    uri = redirectDotvscodeRoot(uri);
+    uri = redirectDotvscodeRoot(uri, "Server does not have a /_vscode web application");
     const compileList: string[] = [];
     try {
       const entry = file || (await this._lookup(uri, true));
@@ -958,9 +958,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
 
   // Fetch from server and cache it, optionally the passed cached copy if unchanged on server
   private async _lookupAsFile(uri: vscode.Uri, cachedFile?: File): Promise<File> {
-    uri = redirectDotvscodeRoot(uri);
+    uri = redirectDotvscodeRoot(uri, vscode.FileSystemError.FileNotFound(uri));
     if (uri.path.startsWith("/.")) {
-      throw vscode.FileSystemError.NoPermissions("dot-folders not supported by server");
+      throw "dot-folders are not supported by server";
     }
     const csp = isCSP(uri);
     const name = path.basename(uri.path);
@@ -998,7 +998,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   private async _lookupParentDirectory(uri: vscode.Uri): Promise<Directory> {
-    uri = redirectDotvscodeRoot(uri);
+    uri = redirectDotvscodeRoot(uri, "Server does not have a /_vscode web application");
     return this._lookupAsDirectory(uri.with({ path: path.posix.dirname(uri.path) }));
   }
 

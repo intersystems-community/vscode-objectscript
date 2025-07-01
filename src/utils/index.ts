@@ -140,14 +140,7 @@ export function cspAppsForUri(uri: vscode.Uri): string[] {
 
 /** Get a list of all CSP web apps in the server-namespace that `api` is connected to. */
 export function cspAppsForApi(api: AtelierAPI): string[] {
-  return (
-    cspApps.get(
-      (api.config.serverName && api.config.serverName != ""
-        ? `${api.config.serverName}:${api.config.ns}`
-        : `${api.config.host}:${api.config.port}${api.config.pathPrefix}:${api.config.ns}`
-      ).toLowerCase()
-    ) ?? []
-  );
+  return cspApps.get(`${api.serverId}:${api.config.ns}`.toLowerCase()) ?? [];
 }
 
 /**
@@ -598,31 +591,50 @@ export async function shellWithDocker(): Promise<vscode.Terminal> {
 
 interface WSServerRootFolderData {
   redirectDotvscode: boolean;
+  canRedirectDotvscode: boolean;
 }
 
 const wsServerRootFolders = new Map<string, WSServerRootFolderData>();
 
-/**
- * Add uri to the wsServerRootFolders map if eligible
- */
-export async function addWsServerRootFolderData(uri: vscode.Uri): Promise<void> {
-  if (!schemas.includes(uri.scheme)) {
-    return;
-  }
-  const value: WSServerRootFolderData = {
-    redirectDotvscode: true,
-  };
-  if (isCSP(uri) && !["", "/"].includes(uri.path)) {
-    // A CSP-type root folder for a specific webapp that already has a .vscode/settings.json file must not redirect .vscode/* references
-    const api = new AtelierAPI(uri);
-    api
-      .headDoc(`${uri.path}${!uri.path.endsWith("/") ? "/" : ""}.vscode/settings.json`)
-      .then(() => {
-        value.redirectDotvscode = false;
-      })
-      .catch(() => {});
-  }
-  wsServerRootFolders.set(uri.toString(), value);
+/** Cache information about redirection of `.vscode` folder contents for server-side folders */
+export async function addWsServerRootFolderData(wsFolders: readonly vscode.WorkspaceFolder[]): Promise<any> {
+  if (!wsFolders?.length) return;
+  return Promise.allSettled(
+    wsFolders.map(async (wsFolder) => {
+      if (notIsfs(wsFolder.uri)) return;
+      const api = new AtelierAPI(wsFolder.uri);
+      if (!api.active) return;
+      const value: WSServerRootFolderData = {
+        redirectDotvscode: true,
+        canRedirectDotvscode: true,
+      };
+      if (isCSP(wsFolder.uri) && !["", "/"].includes(wsFolder.uri.path)) {
+        // A CSP-type root folder for a specific webapp that already has a
+        // .vscode/settings.json file must not redirect .vscode/* references
+        await api
+          .headDoc(`${wsFolder.uri.path}${!wsFolder.uri.path.endsWith("/") ? "/" : ""}.vscode/settings.json`)
+          .then(() => {
+            value.redirectDotvscode = false;
+          })
+          .catch(() => {});
+      }
+      if (value.redirectDotvscode) {
+        // We must redirect .vscode Uris for this folder, so see
+        // if the web app to do so is configured on the server
+        const key = `${api.serverId}:%SYS`.toLowerCase();
+        let webApps = cspApps.get(key);
+        if (!webApps) {
+          webApps = await api
+            .getCSPApps(false, "%SYS")
+            .then((data) => data.result.content ?? [])
+            .catch(() => []);
+          cspApps.set(key, webApps);
+        }
+        value.canRedirectDotvscode = webApps.includes("/_vscode");
+      }
+      wsServerRootFolders.set(wsFolder.uri.toString(), value);
+    })
+  );
 }
 
 /**
@@ -635,16 +647,23 @@ export async function addWsServerRootFolderData(uri: vscode.Uri): Promise<void> 
  * For both syntaxes the namespace folder name is uppercased
  *
  * @returns uri, altered if necessary.
- * @throws if `ns` queryparam is missing but required.
+ * @throws if `ns` queryparam is missing but required, or if redirection
+ * is required but not supported by the server and `err` was passed.
  */
-export function redirectDotvscodeRoot(uri: vscode.Uri): vscode.Uri {
-  if (!schemas.includes(uri.scheme)) {
-    return uri;
-  }
+export function redirectDotvscodeRoot(uri: vscode.Uri, err?: any): vscode.Uri {
+  if (notIsfs(uri)) return;
   const dotMatch = uri.path.match(/^(.*)\/\.vscode(\/.*)?$/);
   if (dotMatch) {
     const dotvscodeRoot = uri.with({ path: dotMatch[1] || "/" });
-    if (!wsServerRootFolders.get(dotvscodeRoot.toString())?.redirectDotvscode) {
+    const rootData = wsServerRootFolders.get(dotvscodeRoot.toString());
+    if (!rootData?.redirectDotvscode) {
+      // Don't redirect .vscode Uris
+      return uri;
+    }
+    if (!rootData?.canRedirectDotvscode) {
+      // Need to redirect .vscode Uris, but the server doesn't support it.
+      // Throw if the caller gave us something to throw.
+      if (err) throw err;
       return uri;
     }
     let namespace: string;
