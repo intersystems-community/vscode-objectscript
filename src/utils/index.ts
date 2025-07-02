@@ -650,7 +650,7 @@ export async function addWsServerRootFolderData(wsFolders: readonly vscode.Works
  * @throws if `ns` queryparam is missing but required, or if redirection
  * is required but not supported by the server and `err` was passed.
  */
-export function redirectDotvscodeRoot(uri: vscode.Uri, err?: any): vscode.Uri {
+export function redirectDotvscodeRoot(uri: vscode.Uri, err?: vscode.FileSystemError): vscode.Uri {
   if (notIsfs(uri)) return;
   const dotMatch = uri.path.match(/^(.*)\/\.vscode(\/.*)?$/);
   if (dotMatch) {

@@ -291,7 +291,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
 
   public async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
     if (uri.path.includes(".vscode/") || uri.path.endsWith(".vscode")) {
-      throw "Cannot read the /.vscode directory";
+      throw new vscode.FileSystemError("Cannot read the /.vscode directory");
     }
     const parent = await this._lookupAsDirectory(uri);
     const api = new AtelierAPI(uri);
@@ -406,7 +406,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public createDirectory(uri: vscode.Uri): void | Thenable<void> {
-    uri = redirectDotvscodeRoot(uri, "Server does not have a /_vscode web application");
+    uri = redirectDotvscodeRoot(uri, new vscode.FileSystemError("Server does not have a /_vscode web application"));
     const basename = path.posix.basename(uri.path);
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
     return this._lookupAsDirectory(dirname).then((parent) => {
@@ -435,9 +435,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       overwrite: boolean;
     }
   ): void | Thenable<void> {
-    uri = redirectDotvscodeRoot(uri, "Server does not have a /_vscode web application");
+    uri = redirectDotvscodeRoot(uri, new vscode.FileSystemError("Server does not have a /_vscode web application"));
     if (uri.path.startsWith("/.")) {
-      throw "dot-folders are not supported by server";
+      throw new vscode.FileSystemError("dot-folders are not supported by server");
     }
     const csp = isCSP(uri);
     const fileName = isfsDocumentName(uri, csp);
@@ -462,10 +462,12 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               [, clsname] = match;
             }
             if (clsname == "") {
-              throw new Error("Cannot save a malformed class");
+              throw new vscode.FileSystemError("Cannot save a malformed class");
             }
             if (fileName.slice(0, -4) != clsname) {
-              throw new Error("Cannot save an isfs class where the class name and file name do not match");
+              throw new vscode.FileSystemError(
+                "Cannot save an isfs class where the class name and file name do not match"
+              );
             }
             if (openLowCodeEditors.has(uri.toString())) {
               // This class is open in a low-code editor, so any
@@ -474,7 +476,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             }
             // Check if the class is deployed
             if (await isClassDeployed(fileName, api)) {
-              throw new Error("Cannot overwrite a deployed class");
+              throw new vscode.FileSystemError("Cannot overwrite a deployed class");
             }
           }
           const contentBuffer = Buffer.from(content);
@@ -505,7 +507,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             .catch((error) => {
               // Throw all failures
               const errorStr = stringifyError(error);
-              throw errorStr ? errorStr : vscode.FileSystemError.Unavailable(uri);
+              throw errorStr ? new vscode.FileSystemError(errorStr) : vscode.FileSystemError.Unavailable(uri);
             });
         },
         (error) => {
@@ -529,7 +531,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             .catch((error) => {
               // Throw all failures
               const errorStr = stringifyError(error);
-              throw errorStr ? errorStr : vscode.FileSystemError.Unavailable(uri);
+              throw errorStr ? new vscode.FileSystemError(errorStr) : vscode.FileSystemError.Unavailable(uri);
             })
             .then((data) => {
               // New file has been written
@@ -724,13 +726,13 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
 
   public async rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): Promise<void> {
     if (!oldUri.path.split("/").pop().includes(".")) {
-      throw "Cannot rename a package/folder";
+      throw new vscode.FileSystemError("Cannot rename a package/folder");
     }
     if (oldUri.path.split(".").pop().toLowerCase() != newUri.path.split(".").pop().toLowerCase()) {
-      throw "Cannot change a file's extension during rename";
+      throw new vscode.FileSystemError("Cannot change a file's extension during rename");
     }
     if (vscode.workspace.getWorkspaceFolder(oldUri) != vscode.workspace.getWorkspaceFolder(newUri)) {
-      throw "Cannot rename a file across workspace folders";
+      throw new vscode.FileSystemError("Cannot rename a file across workspace folders");
     }
     // Check if the destination exists
     let newFileStat: vscode.FileStat;
@@ -774,7 +776,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       .catch((error) => {
         // Throw all failures
         const errorStr = stringifyError(error);
-        throw errorStr ? errorStr : vscode.FileSystemError.Unavailable(newUri);
+        throw errorStr ? new vscode.FileSystemError(errorStr) : vscode.FileSystemError.Unavailable(newUri);
       })
       .then(async (response) => {
         // New file has been written
@@ -807,7 +809,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
    */
   public async compile(uri: vscode.Uri, file?: File, update?: boolean): Promise<void> {
     if (!uri || uri.scheme != FILESYSTEM_SCHEMA) return;
-    uri = redirectDotvscodeRoot(uri, "Server does not have a /_vscode web application");
+    uri = redirectDotvscodeRoot(uri, new vscode.FileSystemError("Server does not have a /_vscode web application"));
     const compileList: string[] = [];
     try {
       const entry = file || (await this._lookup(uri, true));
@@ -960,7 +962,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   private async _lookupAsFile(uri: vscode.Uri, cachedFile?: File): Promise<File> {
     uri = redirectDotvscodeRoot(uri, vscode.FileSystemError.FileNotFound(uri));
     if (uri.path.startsWith("/.")) {
-      throw "dot-folders are not supported by server";
+      throw new vscode.FileSystemError("dot-folders are not supported by server");
     }
     const csp = isCSP(uri);
     const name = path.basename(uri.path);
@@ -992,13 +994,13 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         throw error?.statusCode == 404
           ? vscode.FileSystemError.FileNotFound(uri)
           : errorStr
-            ? errorStr
+            ? new vscode.FileSystemError(errorStr)
             : vscode.FileSystemError.Unavailable(uri);
       });
   }
 
   private async _lookupParentDirectory(uri: vscode.Uri): Promise<Directory> {
-    uri = redirectDotvscodeRoot(uri, "Server does not have a /_vscode web application");
+    uri = redirectDotvscodeRoot(uri, new vscode.FileSystemError("Server does not have a /_vscode web application"));
     return this._lookupAsDirectory(uri.with({ path: path.posix.dirname(uri.path) }));
   }
 
