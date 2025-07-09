@@ -6,6 +6,7 @@ import {
   explorerProvider,
   filesystemSchemas,
   FILESYSTEM_SCHEMA,
+  sendStudioAddinTelemetryEvent,
 } from "../extension";
 import {
   connectionTarget,
@@ -246,6 +247,7 @@ export async function serverActions(): Promise<void> {
               title: `Pick a Studio Add-In to open for server: ${connInfo}`,
             });
             if (addin) {
+              sendStudioAddinTelemetryEvent(addin.label);
               const token = await getCSPToken(api, addin.id);
               let params = `Namespace=${nsEncoded}`;
               params += `&User=${encodeURIComponent(username)}`;

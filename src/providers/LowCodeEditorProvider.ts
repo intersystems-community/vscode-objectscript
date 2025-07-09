@@ -3,7 +3,7 @@ import { lt } from "semver";
 import { AtelierAPI } from "../api";
 import { loadChanges } from "../commands/compile";
 import { StudioActions } from "../commands/studio";
-import { clsLangId } from "../extension";
+import { clsLangId, sendLowCodeTelemetryEvent } from "../extension";
 import { currentFile, notIsfs, openLowCodeEditors, outputChannel } from "../utils";
 
 export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
@@ -79,6 +79,7 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
       // Class exists but is not a rule or DTL class
       return this._errorMessage(`${className} is neither a rule definition class nor a DTL transformation class.`);
     }
+    sendLowCodeTelemetryEvent(webApp == this._rule ? "rule" : "dtl", document.uri.scheme);
 
     // Add this document to the Set of open low-code editors
     const documentUriString = document.uri.toString();

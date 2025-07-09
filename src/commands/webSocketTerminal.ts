@@ -3,7 +3,7 @@ import WebSocket = require("ws");
 
 import { AtelierAPI } from "../api";
 import { connectionTarget, currentFile, getWsServerConnection, handleError, notIsfs, outputChannel } from "../utils";
-import { config, iscIcon, resolveConnectionSpec } from "../extension";
+import { config, iscIcon, resolveConnectionSpec, sendLiteTerminalTelemetryEvent } from "../extension";
 
 const NO_ELIGIBLE_CONNECTIONS =
   "Lite Terminal requires an active server connection to InterSystems IRIS version 2023.2 or above.";
@@ -745,6 +745,7 @@ function terminalConfigForUri(
     return;
   }
 
+  sendLiteTerminalTelemetryEvent(throwErrors ? "profile" : "command");
   return {
     name: api.config.serverName && api.config.serverName != "" ? api.config.serverName : "iris",
     location:
