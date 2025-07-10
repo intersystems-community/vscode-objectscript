@@ -5,6 +5,7 @@ export const smExtensionId = "intersystems-community.servermanager";
 import vscode = require("vscode");
 import * as semver from "semver";
 import * as serverManager from "@intersystems-community/intersystems-servermanager";
+import { TelemetryReporter } from "@vscode/extension-telemetry";
 
 import { AtelierJob, Content, Response, ServerInfo } from "./api/atelier";
 export const OBJECTSCRIPT_FILE_SCHEMA = "objectscript";
@@ -127,7 +128,6 @@ export const terminals: vscode.Terminal[] = [];
 export let xmlContentProvider: XmlContentProvider;
 export let iscIcon: vscode.Uri;
 
-import TelemetryReporter from "vscode-extension-telemetry";
 import { CodeActionProvider } from "./providers/CodeActionProvider";
 import {
   addWorkspaceFolderForProject,
@@ -212,7 +212,7 @@ export const config = (setting?: string, workspaceFolderName?: string): vscode.W
   return setting && setting.length ? result.get(setting) : result;
 };
 
-let reporter: TelemetryReporter = null;
+let reporter: TelemetryReporter;
 
 export let checkingConnection = false;
 
@@ -440,12 +440,6 @@ export async function checkConnection(
         `Connected${api.config.pathPrefix ? ` to \`${api.config.pathPrefix}\`` : ""} as \`${username}\``
       );
     }
-    const hasHS = info.result.content.features.find((el) => el.name === "HEALTHSHARE" && el.enabled) !== undefined;
-    reporter &&
-      reporter.sendTelemetryEvent("connected", {
-        serverVersion: info.result.content.version,
-        healthshare: hasHS ? "yes" : "no",
-      });
     if (!api.externalServer) {
       await setConnectionState(configName, true);
     }
@@ -779,6 +773,67 @@ async function updateWebAndAbstractDocsCaches(wsFolders: readonly vscode.Workspa
   );
 }
 
+/** Send a telemetry event that `commandId` was executed */
+function sendCommandTelemetryEvent(commandId: string): void {
+  reporter?.sendTelemetryEvent("commandExecuted", { commandId });
+}
+
+/** Send a telemetry event that Studio Add-In `addIn` was opened */
+export function sendStudioAddinTelemetryEvent(addInName: string): void {
+  reporter?.sendTelemetryEvent("studioAddInOpened", { addInName });
+}
+
+/** Send a telemetry event with details of each folder in `wsFolders` */
+function sendWsFolderTelemetryEvent(wsFolders: readonly vscode.WorkspaceFolder[], added = false): void {
+  if (!reporter || !wsFolders?.length) return;
+  wsFolders.forEach((wsFolder) => {
+    const api = new AtelierAPI(wsFolder.uri);
+    const { csp, project, ns } = isfsConfig(wsFolder.uri);
+    const serverSide = filesystemSchemas.includes(wsFolder.uri.scheme);
+    const conf = vscode.workspace.getConfiguration("objectscript", wsFolder);
+    reporter.sendTelemetryEvent("workspaceFolder", {
+      scheme: wsFolder.uri.scheme,
+      added: String(added),
+      isWeb: serverSide ? String(csp) : undefined,
+      isProject: serverSide ? String(project.length) : undefined,
+      hasNs: serverSide ? String(typeof ns == "string") : undefined,
+      serverVersion: api.active ? api.config.serverVersion : undefined,
+      "config.syncLocalChanges": !serverSide ? conf.get("syncLocalChanges") : undefined,
+      dockerCompose: !serverSide ? String(typeof conf.get("conn.docker-compose") == "object") : undefined,
+    });
+  });
+}
+
+/** Send a telemetry event that a unit test run was started */
+export function sendUnitTestTelemetryEvent(root: vscode.Uri, debug: boolean): void {
+  reporter?.sendTelemetryEvent("unitTestRun", { scheme: root.scheme, debug: String(debug) });
+}
+
+/** Send a telemetry event that a non-class or routine client-side file was saved */
+export function sendClientSideSyncTelemetryEvent(fileExt: string): void {
+  reporter?.sendTelemetryEvent("clientSideFileSynced", { fileExt });
+}
+
+/** Send a telemetry event that a low-code editor was opened */
+export function sendLowCodeTelemetryEvent(editorType: string, scheme: string): void {
+  reporter?.sendTelemetryEvent("lowCodeEditorOpened", { editorType, scheme });
+}
+
+/** Send a telemetry event that the debugger was started */
+export function sendDebuggerTelemetryEvent(debugType: string): void {
+  reporter?.sendTelemetryEvent("debuggerStarted", { debugType });
+}
+
+/** Send a telemetry event that a Lite Terminal was started */
+export function sendLiteTerminalTelemetryEvent(terminalOrigin: string): void {
+  reporter?.sendTelemetryEvent("liteTerminalStarted", {
+    terminalOrigin,
+    "config.webSocketTerminal.syntaxColoring": String(
+      vscode.workspace.getConfiguration("objectscript.webSocketTerminal").get("syntaxColoring")
+    ),
+  });
+}
+
 /** The URIs of all classes that have been opened. Used when `objectscript.openClassContracted` is true */
 let openedClasses: string[];
 
@@ -788,11 +843,13 @@ let incLangConf: vscode.Disposable;
 let intLangConf: vscode.Disposable;
 
 export async function activate(context: vscode.ExtensionContext): Promise<any> {
-  if (!packageJson.version.includes("SNAPSHOT")) {
+  if (!packageJson.version.includes("-") || packageJson.version.includes("-beta.")) {
+    // Don't send telemetry for development builds
     try {
-      reporter = new TelemetryReporter(extensionId, extensionVersion, aiKey);
-    } catch (_error) {
-      reporter = null;
+      reporter = new TelemetryReporter(aiKey);
+    } catch {
+      // Run without telemetry
+      reporter = undefined;
     }
   }
 
@@ -1020,7 +1077,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   }
 
   context.subscriptions.push(
-    reporter,
     panel,
     posPanel,
     vscode.extensions.onDidChange(async () => {
@@ -1061,12 +1117,28 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         }
       }
     }),
-    vscode.commands.registerCommand("vscode-objectscript.compile", () => importAndCompile(false)),
-    vscode.commands.registerCommand("vscode-objectscript.touchBar.compile", () => importAndCompile(false)),
-    vscode.commands.registerCommand("vscode-objectscript.compileWithFlags", () => importAndCompile(true)),
-    vscode.commands.registerCommand("vscode-objectscript.compileAll", () => namespaceCompile(false)),
-    vscode.commands.registerCommand("vscode-objectscript.compileAllWithFlags", () => namespaceCompile(true)),
+    vscode.commands.registerCommand("vscode-objectscript.compile", () => {
+      sendCommandTelemetryEvent("compile");
+      importAndCompile(false);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.touchBar.compile", () => {
+      sendCommandTelemetryEvent("touchBar.compile");
+      importAndCompile(false);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.compileWithFlags", () => {
+      sendCommandTelemetryEvent("compileWithFlags");
+      importAndCompile(true);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.compileAll", () => {
+      sendCommandTelemetryEvent("compileAll");
+      namespaceCompile(false);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.compileAllWithFlags", () => {
+      sendCommandTelemetryEvent("compileAllWithFlags");
+      namespaceCompile(true);
+    }),
     vscode.commands.registerCommand("vscode-objectscript.refreshLocalFile", async () => {
+      sendCommandTelemetryEvent("refreshLocalFile");
       const file = currentFile();
       if (!file) return;
       try {
@@ -1078,17 +1150,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         );
       }
     }),
-    vscode.commands.registerCommand("vscode-objectscript.compileFolder", (_file, files) =>
-      Promise.all(files.map((file) => importFileOrFolder(file, false)))
-    ),
-    vscode.commands.registerCommand("vscode-objectscript.importFolder", (_file, files) =>
-      Promise.all(files.map((file) => importFileOrFolder(file, true)))
-    ),
-    vscode.commands.registerCommand("vscode-objectscript.export", exportAll),
+    vscode.commands.registerCommand("vscode-objectscript.compileFolder", (_file, files) => {
+      sendCommandTelemetryEvent("compileFolder");
+      Promise.all(files.map((file) => importFileOrFolder(file, false)));
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.importFolder", (_file, files) => {
+      sendCommandTelemetryEvent("importFolder");
+      Promise.all(files.map((file) => importFileOrFolder(file, true)));
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.export", () => {
+      sendCommandTelemetryEvent("export");
+      exportAll();
+    }),
     vscode.commands.registerCommand("vscode-objectscript.copyToClipboard", (command: string) => {
+      sendCommandTelemetryEvent("copyToClipboard");
       vscode.env.clipboard.writeText(command);
     }),
     vscode.commands.registerCommand("vscode-objectscript.debug", (program: string, askArgs: boolean) => {
+      sendCommandTelemetryEvent("debug");
       const startDebugging = (args) => {
         const programWithArgs = program + (program.includes("##class") || args.length ? `(${args})` : "");
         vscode.debug.startDebugging(undefined, {
@@ -1113,6 +1192,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         });
     }),
     vscode.commands.registerCommand("vscode-objectscript.pickProcess", async (config) => {
+      sendCommandTelemetryEvent("pickProcess");
       const system = config.system;
       let connectionUri = vscode.window.activeTextEditor?.document.uri;
       if (connectionUri) {
@@ -1186,51 +1266,90 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           }
         });
     }),
-    vscode.commands.registerCommand("vscode-objectscript.jumpToTagAndOffset", jumpToTagAndOffset),
-    vscode.commands.registerCommand("vscode-objectscript.viewOthers", () => viewOthers(false)),
-    vscode.commands.registerCommand("vscode-objectscript.serverCommands.sourceControl", mainSourceControlMenu),
-    vscode.commands.registerCommand(
-      "vscode-objectscript.serverCommands.contextSourceControl",
-      contextSourceControlMenu
-    ),
-    vscode.commands.registerCommand("vscode-objectscript.serverCommands.other", mainCommandMenu),
-    vscode.commands.registerCommand("vscode-objectscript.serverCommands.contextOther", contextCommandMenu),
-    vscode.commands.registerCommand("vscode-objectscript.subclass", subclass),
-    vscode.commands.registerCommand("vscode-objectscript.superclass", superclass),
-    vscode.commands.registerCommand("vscode-objectscript.serverActions", serverActions),
-    vscode.commands.registerCommand("vscode-objectscript.touchBar.viewOthers", () => viewOthers(false)),
-    vscode.commands.registerCommand("vscode-objectscript.explorer.refresh", () => explorerProvider.refresh()),
-    vscode.commands.registerCommand("vscode-objectscript.explorer.project.refresh", () =>
-      projectsExplorerProvider.refresh()
-    ),
+    vscode.commands.registerCommand("vscode-objectscript.jumpToTagAndOffset", () => {
+      sendCommandTelemetryEvent("jumpToTagAndOffset");
+      jumpToTagAndOffset();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.viewOthers", () => {
+      sendCommandTelemetryEvent("viewOthers");
+      viewOthers(false);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.serverCommands.sourceControl", (uri?: vscode.Uri) => {
+      sendCommandTelemetryEvent("serverCommands.sourceControl");
+      mainSourceControlMenu(uri);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.serverCommands.contextSourceControl", (uri?: vscode.Uri) => {
+      sendCommandTelemetryEvent("serverCommands.contextSourceControl");
+      contextSourceControlMenu(uri);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.serverCommands.other", (uri?: vscode.Uri) => {
+      sendCommandTelemetryEvent("serverCommands.other");
+      mainCommandMenu(uri);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.serverCommands.contextOther", (uri?: vscode.Uri) => {
+      sendCommandTelemetryEvent("serverCommands.contextOther");
+      contextCommandMenu(uri);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.subclass", () => {
+      sendCommandTelemetryEvent("subclass");
+      subclass();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.superclass", () => {
+      sendCommandTelemetryEvent("superclass");
+      superclass();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.serverActions", () => {
+      sendCommandTelemetryEvent("serverActions"); // TODO remove?
+      serverActions();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.touchBar.viewOthers", () => {
+      sendCommandTelemetryEvent("touchBar.viewOthers");
+      viewOthers(false);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.refresh", () => {
+      sendCommandTelemetryEvent("explorer.refresh");
+      explorerProvider.refresh();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.project.refresh", () => {
+      sendCommandTelemetryEvent("explorer.project.refresh");
+      projectsExplorerProvider.refresh();
+    }),
     // Register the vscode-objectscript.explorer.open command elsewhere
     registerExplorerOpen(),
-    vscode.commands.registerCommand("vscode-objectscript.explorer.export", (item, items) =>
-      exportExplorerItems(items && items.length ? items : [item])
-    ),
-    vscode.commands.registerCommand("vscode-objectscript.explorer.delete", (item, items) =>
-      deleteExplorerItems(items && items.length ? items : [item])
-    ),
-    vscode.commands.registerCommand("vscode-objectscript.explorer.compile", (item, items) =>
-      compileExplorerItems(items && items.length ? items : [item])
-    ),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.export", (item, items) => {
+      sendCommandTelemetryEvent("explorer.export");
+      exportExplorerItems(items && items.length ? items : [item]);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.delete", (item, items) => {
+      sendCommandTelemetryEvent("explorer.delete");
+      deleteExplorerItems(items && items.length ? items : [item]);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.compile", (item, items) => {
+      sendCommandTelemetryEvent("explorer.compile");
+      compileExplorerItems(items && items.length ? items : [item]);
+    }),
     vscode.commands.registerCommand("vscode-objectscript.explorer.showGenerated", (workspaceNode: WorkspaceNode) => {
+      sendCommandTelemetryEvent("explorer.showGenerated");
       workspaceState.update(`ExplorerGenerated:${workspaceNode.uniqueId}`, true);
       return explorerProvider.refresh();
     }),
     vscode.commands.registerCommand("vscode-objectscript.explorer.showSystem", (workspaceNode: WorkspaceNode) => {
+      sendCommandTelemetryEvent("explorer.showSystem");
       workspaceState.update(`ExplorerSystem:${workspaceNode.uniqueId}`, true);
       return explorerProvider.refresh();
     }),
     vscode.commands.registerCommand("vscode-objectscript.explorer.hideGenerated", (workspaceNode: WorkspaceNode) => {
+      sendCommandTelemetryEvent("explorer.hideGenerated");
       workspaceState.update(`ExplorerGenerated:${workspaceNode.uniqueId}`, false);
       return explorerProvider.refresh();
     }),
     vscode.commands.registerCommand("vscode-objectscript.explorer.hideSystem", (workspaceNode: WorkspaceNode) => {
+      sendCommandTelemetryEvent("explorer.hideSystem");
       workspaceState.update(`ExplorerSystem:${workspaceNode.uniqueId}`, false);
       return explorerProvider.refresh();
     }),
     vscode.commands.registerCommand("vscode-objectscript.explorer.otherNamespace", (workspaceNode: WorkspaceNode) => {
+      sendCommandTelemetryEvent("explorer.otherNamespace");
       return explorerProvider.selectNamespace(workspaceNode.label);
     }),
     vscode.commands.registerCommand(
@@ -1239,13 +1358,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         return explorerProvider.closeExtra4Workspace(workspaceNode.label, workspaceNode.namespace);
       }
     ),
-    vscode.commands.registerCommand("vscode-objectscript.previewXml", () =>
-      previewXMLAsUDL(vscode.window.activeTextEditor)
-    ),
+    vscode.commands.registerCommand("vscode-objectscript.previewXml", () => {
+      sendCommandTelemetryEvent("previewXml");
+      previewXMLAsUDL(vscode.window.activeTextEditor);
+    }),
     vscode.commands.registerCommand("vscode-objectscript.addServerNamespaceToWorkspace", (resource?: vscode.Uri) => {
+      sendCommandTelemetryEvent("addServerNamespaceToWorkspace");
       addServerNamespaceToWorkspace(resource);
     }),
     vscode.commands.registerCommand("vscode-objectscript.connectFolderToServerNamespace", () => {
+      sendCommandTelemetryEvent("connectFolderToServerNamespace");
       connectFolderToServerNamespace();
     }),
     vscode.workspace.registerTextDocumentContentProvider(OBJECTSCRIPT_FILE_SCHEMA, documentContentProvider),
@@ -1267,17 +1389,31 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       documentSelector(clsLangId, macLangId, intLangId),
       new ObjectScriptCodeLensProvider()
     ),
-    vscode.commands.registerCommand("vscode-objectscript.compileOnly", () => compileOnly(false)),
-    vscode.commands.registerCommand("vscode-objectscript.compileOnlyWithFlags", () => compileOnly(true)),
+    vscode.commands.registerCommand("vscode-objectscript.compileOnly", () => {
+      sendCommandTelemetryEvent("compileOnly");
+      compileOnly(false);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.compileOnlyWithFlags", () => {
+      sendCommandTelemetryEvent("compileOnlyWithFlags");
+      compileOnly(true);
+    }),
     vscode.languages.registerDocumentLinkProvider({ language: outputLangId }, new DocumentLinkProvider()),
-    vscode.commands.registerCommand("vscode-objectscript.editOthers", () => viewOthers(true)),
-    vscode.commands.registerCommand("vscode-objectscript.showClassDocumentationPreview", () =>
-      DocumaticPreviewPanel.create()
-    ),
-    vscode.commands.registerCommand("vscode-objectscript.showRESTDebugWebview", () =>
-      RESTDebugPanel.create(context.extensionUri)
-    ),
-    vscode.commands.registerCommand("vscode-objectscript.exportCurrentFile", exportCurrentFile),
+    vscode.commands.registerCommand("vscode-objectscript.editOthers", () => {
+      sendCommandTelemetryEvent("editOthers");
+      viewOthers(true);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.showClassDocumentationPreview", () => {
+      sendCommandTelemetryEvent("showClassDocumentationPreview");
+      DocumaticPreviewPanel.create();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.showRESTDebugWebview", () => {
+      sendCommandTelemetryEvent("showRESTDebugWebview");
+      RESTDebugPanel.create(context.extensionUri);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.exportCurrentFile", () => {
+      sendCommandTelemetryEvent("exportCurrentFile");
+      exportCurrentFile();
+    }),
     vscode.workspace.onDidCreateFiles((e: vscode.FileCreateEvent) => {
       return Promise.all(
         e.files
@@ -1358,26 +1494,39 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     }),
     vscode.commands.registerCommand("vscode-objectscript.addItemsToProject", (item) => {
+      sendCommandTelemetryEvent("addItemsToProject");
       return modifyProject(item instanceof NodeBase || item instanceof vscode.Uri ? item : undefined, "add");
     }),
     vscode.commands.registerCommand("vscode-objectscript.removeFromProject", (item) => {
+      sendCommandTelemetryEvent("removeFromProject");
       return modifyProject(item instanceof NodeBase || item instanceof vscode.Uri ? item : undefined, "remove");
     }),
     vscode.commands.registerCommand("vscode-objectscript.removeItemsFromProject", (item) => {
+      sendCommandTelemetryEvent("removeItemsFromProject");
       return modifyProject(item instanceof NodeBase || item instanceof vscode.Uri ? item : undefined, "remove");
     }),
     vscode.commands.registerCommand("vscode-objectscript.modifyProjectMetadata", (item) => {
+      sendCommandTelemetryEvent("modifyProjectMetadata");
       return modifyProjectMetadata(item instanceof NodeBase || item instanceof vscode.Uri ? item : undefined);
     }),
-    vscode.commands.registerCommand("vscode-objectscript.createProject", (node) => createProject(node)),
-    vscode.commands.registerCommand("vscode-objectscript.deleteProject", (node) => deleteProject(node)),
-    vscode.commands.registerCommand("vscode-objectscript.explorer.project.exportProjectContents", (node) =>
-      exportProjectContents(node)
-    ),
-    vscode.commands.registerCommand("vscode-objectscript.explorer.project.compileProjectContents", (node) =>
-      compileProjectContents(node)
-    ),
+    vscode.commands.registerCommand("vscode-objectscript.createProject", (node) => {
+      sendCommandTelemetryEvent("createProject");
+      createProject(node);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.deleteProject", (node) => {
+      sendCommandTelemetryEvent("deleteProject");
+      deleteProject(node);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.project.exportProjectContents", (node) => {
+      sendCommandTelemetryEvent("explorer.project.exportProjectContents");
+      exportProjectContents(node);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.project.compileProjectContents", (node) => {
+      sendCommandTelemetryEvent("explorer.project.compileProjectContents");
+      compileProjectContents(node);
+    }),
     vscode.commands.registerCommand("vscode-objectscript.explorer.project.openOtherServerNs", () => {
+      sendCommandTelemetryEvent("explorer.project.openOtherServerNs");
       pickServerAndNamespace().then((pick) => {
         if (pick != undefined) {
           projectsExplorerProvider.openExtraServerNs(pick);
@@ -1387,9 +1536,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.explorer.project.closeOtherServerNs", (node) =>
       projectsExplorerProvider.closeExtraServerNs(node)
     ),
-    vscode.commands.registerCommand("vscode-objectscript.explorer.project.addWorkspaceFolderForProject", (node) =>
-      addWorkspaceFolderForProject(node)
-    ),
+    vscode.commands.registerCommand("vscode-objectscript.explorer.project.addWorkspaceFolderForProject", (node) => {
+      sendCommandTelemetryEvent("explorer.project.addWorkspaceFolderForProject");
+      addWorkspaceFolderForProject(node);
+    }),
     vscode.window.registerCustomEditorProvider(lowCodeEditorViewType, new LowCodeEditorProvider(), {
       webviewOptions: {
         retainContextWhenHidden: true,
@@ -1496,23 +1646,42 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         posPanel.text = "";
       }
     }),
-    vscode.commands.registerCommand("vscode-objectscript.loadStudioSnippets", loadStudioSnippets),
+    vscode.commands.registerCommand("vscode-objectscript.loadStudioSnippets", () => {
+      sendCommandTelemetryEvent("loadStudioSnippets");
+      loadStudioSnippets();
+    }),
     vscode.commands.registerCommand("vscode-objectscript.loadStudioColors", () => {
+      sendCommandTelemetryEvent("loadStudioColors");
       loadStudioColors(languageServerExt);
     }),
-    vscode.commands.registerCommand("vscode-objectscript.newFile.businessOperation", () =>
-      newFile(NewFileType.BusinessOperation)
-    ),
-    vscode.commands.registerCommand("vscode-objectscript.newFile.bpl", () => newFile(NewFileType.BPL)),
-    vscode.commands.registerCommand("vscode-objectscript.newFile.rule", () => newFile(NewFileType.Rule)),
-    vscode.commands.registerCommand("vscode-objectscript.newFile.businessService", () =>
-      newFile(NewFileType.BusinessService)
-    ),
-    vscode.commands.registerCommand("vscode-objectscript.newFile.dtl", () => newFile(NewFileType.DTL)),
-    vscode.commands.registerCommand("vscode-objectscript.newFile.kpi", () => newFile(NewFileType.KPI)),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.businessOperation", () => {
+      sendCommandTelemetryEvent("newFile.businessOperation");
+      newFile(NewFileType.BusinessOperation);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.bpl", () => {
+      sendCommandTelemetryEvent("newFile.bpl");
+      newFile(NewFileType.BPL);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.rule", () => {
+      sendCommandTelemetryEvent("newFile.rule");
+      newFile(NewFileType.Rule);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.businessService", () => {
+      sendCommandTelemetryEvent("newFile.businessService");
+      newFile(NewFileType.BusinessService);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.dtl", () => {
+      sendCommandTelemetryEvent("newFile.dtl");
+      newFile(NewFileType.DTL);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.kpi", () => {
+      sendCommandTelemetryEvent("newFile.kpi");
+      newFile(NewFileType.KPI);
+    }),
     vscode.window.registerFileDecorationProvider(fileDecorationProvider),
     vscode.workspace.onDidOpenTextDocument((doc) => !doc.isUntitled && fileDecorationProvider.emitter.fire(doc.uri)),
     vscode.commands.registerCommand("vscode-objectscript.importLocalFilesServerSide", (wsFolderUri) => {
+      sendCommandTelemetryEvent("importLocalFilesServerSide");
       if (
         wsFolderUri instanceof vscode.Uri &&
         wsFolderUri.scheme == FILESYSTEM_SCHEMA &&
@@ -1524,12 +1693,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         return importLocalFilesToServerSideFolder(wsFolderUri);
       }
     }),
-    vscode.commands.registerCommand("vscode-objectscript.modifyWsFolder", modifyWsFolder),
-    vscode.commands.registerCommand("vscode-objectscript.openErrorLocation", openErrorLocation),
-    vscode.commands.registerCommand("vscode-objectscript.launchWebSocketTerminal", () => launchWebSocketTerminal()),
+    vscode.commands.registerCommand("vscode-objectscript.modifyWsFolder", (wsFolderUri?: vscode.Uri) => {
+      sendCommandTelemetryEvent("modifyWsFolder");
+      modifyWsFolder(wsFolderUri);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.openErrorLocation", () => {
+      sendCommandTelemetryEvent("openErrorLocation");
+      openErrorLocation();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.launchWebSocketTerminal", () => {
+      launchWebSocketTerminal();
+    }),
     vscode.commands.registerCommand(
       "vscode-objectscript.intersystems-servermanager.webterminal",
       (namespaceTreeItem) => {
+        sendCommandTelemetryEvent("intersystems-servermanager.webterminal");
         const idArray = namespaceTreeItem.id.split(":");
         const serverId = idArray[1];
         const namespace = idArray[3];
@@ -1538,6 +1716,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     ),
     vscode.commands.registerCommand("vscode-objectscript.ObjectScriptExplorer.webterminal", (node: NodeBase) => {
+      sendCommandTelemetryEvent("ObjectScriptExplorer.webterminal");
       const targetUri = DocumentContentProvider.getUri(
         node.fullName,
         node.workspaceFolder,
@@ -1580,13 +1759,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       setExplorerContextKeys();
       // Fire OpenedDocument UserAction for added folders showing the contents of a server-side project
       fireOpenProjectUserAction(e.added);
+      // Send telemetry events for all added folders
+      sendWsFolderTelemetryEvent(e.added, true);
     }),
-    vscode.commands.registerCommand("vscode-objectscript.importXMLFiles", importXMLFiles),
-    vscode.commands.registerCommand("vscode-objectscript.exportToXMLFile", exportDocumentsToXMLFile),
-    vscode.commands.registerCommand("vscode-objectscript.extractXMLFileContents", extractXMLFileContents),
+    vscode.commands.registerCommand("vscode-objectscript.importXMLFiles", () => {
+      sendCommandTelemetryEvent("importXMLFiles");
+      importXMLFiles();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.exportToXMLFile", () => {
+      sendCommandTelemetryEvent("exportToXMLFile");
+      exportDocumentsToXMLFile();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.extractXMLFileContents", (xmlUri?: vscode.Uri) => {
+      sendCommandTelemetryEvent("extractXMLFileContents");
+      extractXMLFileContents(xmlUri);
+    }),
     vscode.commands.registerCommand(
       "vscode-objectscript.openPathInBrowser",
       async (path: string, docUri: vscode.Uri) => {
+        sendCommandTelemetryEvent("openPathInBrowser");
         if (typeof path == "string" && docUri instanceof vscode.Uri) {
           const api = new AtelierAPI(docUri);
           // Get the default web application for this namespace.
@@ -1608,8 +1799,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         }
       }
     ),
-    vscode.commands.registerCommand("vscode-objectscript.compileIsfs", (uri) => fileSystemProvider.compile(uri)),
+    vscode.commands.registerCommand("vscode-objectscript.compileIsfs", (uri) => {
+      sendCommandTelemetryEvent("compileIsfs");
+      fileSystemProvider.compile(uri);
+    }),
     vscode.commands.registerCommand("vscode-objectscript.openISCDocument", async () => {
+      sendCommandTelemetryEvent("openISCDocument");
       const wsFolder = await getWsFolder(
         "Pick the workspace folder where you want to open a document",
         false,
@@ -1663,6 +1858,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     }),
     vscode.commands.registerCommand("vscode-objectscript.showPlanWebview", (args) => {
+      sendCommandTelemetryEvent("showPlanWebview");
       if (typeof args != "object") return;
       showPlanWebview(args);
     }),
@@ -1702,7 +1898,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     /* Anything we use from the VS Code proposed API */
     ...proposed
   );
-  reporter && reporter.sendTelemetryEvent("extensionActivated");
+
+  // Send the activation and workspace folders telemetry events
+  reporter?.sendTelemetryEvent("extensionActivated", {
+    languageServerVersion: languageServerExt?.packageJSON.version,
+    serverManagerVersion: smExt?.packageJSON.version,
+    "config.explorer.alwaysShowServerCopy": String(conf.get("explorer.alwaysShowServerCopy")),
+    "config.autoAdjustName": String(conf.get("autoAdjustName")),
+    "config.autoShowTerminal": String(conf.get("autoShowTerminal")),
+    "config.suppressCompileMessages": String(conf.get("suppressCompileMessages")),
+    "config.suppressCompileErrorMessages": String(conf.get("suppressCompileErrorMessages")),
+    "config.autoPreviewXML": String(conf.get("autoPreviewXML")),
+    "config.showGeneratedFileDecorations": String(conf.get("showGeneratedFileDecorations")),
+    "config.showProposedApiPrompt": String(conf.get("showProposedApiPrompt")),
+  });
+  sendWsFolderTelemetryEvent(vscode.workspace.workspaceFolders);
 
   // The API we export
   const extensionApi = {
@@ -1810,8 +2020,7 @@ export async function deactivate(): Promise<void> {
   if (workspaceState) {
     workspaceState.update("openedClasses", openedClasses);
   }
-  // This will ensure all pending events get flushed
-  reporter && reporter.dispose();
+  reporter?.dispose();
   if (terminals) {
     terminals.forEach((t) => t.dispose());
   }

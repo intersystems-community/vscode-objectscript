@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as Atelier from "../api/atelier";
-import { clsLangId, extensionId, filesystemSchemas, lsExtensionId } from "../extension";
+import { clsLangId, extensionId, filesystemSchemas, lsExtensionId, sendUnitTestTelemetryEvent } from "../extension";
 import {
   getFileText,
   handleError,
@@ -416,6 +416,7 @@ async function runHandler(
       // Need a root to continue
       return;
     }
+    sendUnitTestTelemetryEvent(root.uri, debug);
 
     // Add the initial items to the queue to process
     const queue: vscode.TestItem[] = [];

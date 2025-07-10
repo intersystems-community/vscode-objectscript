@@ -15,6 +15,7 @@ import {
 import { isText } from "istextorbinary";
 import { AtelierAPI } from "../api";
 import { compile, importFile } from "../commands/compile";
+import { sendClientSideSyncTelemetryEvent } from "../extension";
 
 interface WSFolderIndex {
   /** The `FileSystemWatcher` for this workspace folder */
@@ -227,6 +228,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       change = await updateIndexForDocument(uri, documents, uris);
     } else if (sync && isImportableLocalFile(uri)) {
       change.addedOrChanged = await getCurrentFile(uri);
+      sendClientSideSyncTelemetryEvent(change.addedOrChanged.fileName.split(".").pop().toLowerCase());
     }
     if (!sync || (!change.addedOrChanged && !change.removed)) return;
     if (change.addedOrChanged) {
