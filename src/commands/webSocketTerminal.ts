@@ -96,7 +96,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   // eslint-disable-next-line no-control-regex
   private _colorsRegex = /\x1b[^m]*?m/g;
 
-  constructor(private readonly _api: AtelierAPI) {}
+  constructor(private readonly _targetUri: vscode.Uri) {}
 
   /** Hide the cursor, write `data` to the terminal, then show the cursor again. */
   private _hideCursorWrite(data: string): void {
@@ -140,12 +140,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
 
   /** Checks if syntax coloring is enabled */
   private _syntaxColoringEnabled(): boolean {
-    return vscode.workspace
-      .getConfiguration(
-        "objectscript.webSocketTerminal",
-        vscode.workspace.getWorkspaceFolder(this._api.wsOrFile instanceof vscode.Uri ? this._api.wsOrFile : undefined)
-      )
-      .get("syntaxColoring");
+    return vscode.workspace.getConfiguration("objectscript.webSocketTerminal").get("syntaxColoring");
   }
 
   /**
@@ -205,13 +200,14 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   }
 
   open(initialDimensions?: vscode.TerminalDimensions): void {
+    const api = new AtelierAPI(this._targetUri);
     this._cols = initialDimensions?.columns ?? 100000;
     try {
       // Open the WebSocket
-      this._socket = new WebSocket(this._api.terminalUrl(), {
+      this._socket = new WebSocket(api.terminalUrl(), {
         rejectUnauthorized: vscode.workspace.getConfiguration("http").get("proxyStrictSSL"),
         headers: {
-          cookie: this._api.cookies,
+          cookie: api.cookies,
         },
       });
     } catch (error) {
@@ -224,7 +220,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     this._hideCursorWrite("\x1b]633;P;HasRichCommandDetection=True\x07");
     // Print the opening message
     this._hideCursorWrite(
-      `\x1b[32mConnected to \x1b[0m\x1b[4m${this._api.config.host}:${this._api.config.port}${this._api.config.pathPrefix}\x1b[0m\x1b[32m as \x1b[0m\x1b[3m${this._api.config.username}\x1b[0m\r\n\r\n`
+      `\x1b[32mConnected to \x1b[0m\x1b[4m${api.config.host}:${api.config.port}${api.config.pathPrefix}\x1b[0m\x1b[32m as \x1b[0m\x1b[3m${api.config.username}\x1b[0m\r\n\r\n`
     );
     // Add event handlers to the socket
     this._socket
@@ -289,7 +285,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
               JSON.stringify({
                 type: "config",
                 // Start in the current namespace
-                namespace: this._api.ns,
+                namespace: api.ns,
                 // Have the server send ANSI escape codes since we can print them
                 rawMode: false,
               })
@@ -755,7 +751,7 @@ function terminalConfigForUri(
       vscode.window.terminals.length > 0
         ? vscode.TerminalLocation.Editor
         : vscode.TerminalLocation.Panel,
-    pty: new WebSocketTerminal(api),
+    pty: new WebSocketTerminal(targetUri),
     isTransient: true,
     iconPath: iscIcon,
   };
