@@ -381,7 +381,7 @@ export async function checkConnection(
       workspaceState.update(wsKey + ":docker", withDocker);
       workspaceState.update(wsKey + ":dockerService", service);
       if (withDocker) {
-        if (!dockerPort || !dockerSuperserverPort) {
+        if (!dockerPort) {
           const errorMessage = `Something is wrong with your docker-compose connection settings, or your service is not running.`;
           handleError(errorMessage);
           panel.text = `${PANEL_LABEL} $(error)`;
@@ -394,7 +394,7 @@ export async function checkConnection(
           workspaceState.update(wsKey + ":host", "localhost");
           workspaceState.update(wsKey + ":port", dockerPort);
         }
-        if (dockerSuperserverPort !== superserverPort) {
+        if (dockerSuperserverPort && dockerSuperserverPort !== superserverPort) {
           workspaceState.update(wsKey + ":superserverPort", dockerSuperserverPort);
         }
         connInfo = `localhost:${dockerPort}[${ns}]`;
