@@ -18,7 +18,7 @@ import {
   openLowCodeEditors,
   compileErrorMsg,
 } from "../../utils";
-import { FILESYSTEM_READONLY_SCHEMA, FILESYSTEM_SCHEMA, intLangId, macLangId } from "../../extension";
+import { FILESYSTEM_READONLY_SCHEMA, FILESYSTEM_SCHEMA } from "../../extension";
 import { addIsfsFileToProject, modifyProject } from "../../commands/project";
 import { DocumentContentProvider } from "../DocumentContentProvider";
 import { Document, UserAction } from "../../api/atelier";
@@ -124,18 +124,11 @@ export function generateFileContent(
       sourceLines.shift();
       const routineName = fileName.split(".").slice(0, -1).join(".");
       const routineType = fileExt != "mac" ? `[Type=${fileExt.toUpperCase()}]` : "";
-      if (sourceLines.length === 0 && fileExt !== "inc") {
-        const languageId = fileExt === "mac" ? macLangId : intLangId;
-
-        // Labels cannot contain dots
-        const firstLabel = routineName.replaceAll(".", "");
-
-        // Be smart about whether to use a Tab or a space between label and comment.
-        // Doing this will help autodetect to do the right thing.
-        const lineStart = vscode.workspace.getConfiguration("editor", { languageId, uri }).get("insertSpaces")
-          ? " "
-          : "\t";
-        sourceLines.push(`${firstLabel}${lineStart};`);
+      if (!sourceLines.length) {
+        // Add a macro comment line
+        if (fileExt != "int") sourceLines.push("#;");
+        // Add a trailing newline
+        sourceLines.push("");
       }
       return {
         content: [`ROUTINE ${routineName} ${routineType}`, ...sourceLines],
