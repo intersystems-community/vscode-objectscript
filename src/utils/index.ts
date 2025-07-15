@@ -442,7 +442,7 @@ async function composeCommand(cwd?: string): Promise<string> {
 
 export async function portFromDockerCompose(
   workspaceFolderName?: string
-): Promise<{ port: number; superserverPort: number; docker: boolean; service?: string }> {
+): Promise<{ port: number | null; superserverPort: number | null; docker: boolean; service?: string }> {
   // When running remotely, behave as if there is no docker-compose object within objectscript.conn
   if (extensionContext.extension.extensionKind === vscode.ExtensionKind.Workspace) {
     return { docker: false, port: null, superserverPort: null };
@@ -512,6 +512,10 @@ export async function portFromDockerCompose(
 
         exec(`${cmd} port --protocol=tcp ${service} ${internalSuperserverPort}`, { cwd }, (error, stdout) => {
           if (error) {
+            // Not an error if we were merely looking for the default port and the container doesn't publish it
+            if (!dockerCompose.internalSuperserverPort) {
+              resolve(result);
+            }
             reject(error.message);
           }
           const [, superserverPort] = stdout.match(/:(\d+)/) || [];
