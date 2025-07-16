@@ -1715,7 +1715,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           serverTreeItem?.label.includes("(") && typeof serverTreeItem?.params?.serverSummary?.scope?.uri == "object";
         launchWebSocketTerminal(
           // Support servers that are defined at the workspace-folder level
-          serverTreeItem?.label.includes("(") && serverTreeItem?.params?.serverSummary?.scope?.uri
+          isWsFolderServer
             ? serverTreeItem?.params?.serverSummary?.scope?.uri
             : vscode.Uri.from({ scheme: "isfs", authority: `${idArray[1]}:${namespace}` }),
           isWsFolderServer ? namespace : undefined
