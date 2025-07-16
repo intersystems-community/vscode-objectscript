@@ -96,7 +96,10 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   // eslint-disable-next-line no-control-regex
   private _colorsRegex = /\x1b[^m]*?m/g;
 
-  constructor(private readonly _targetUri: vscode.Uri) {}
+  constructor(
+    private readonly _targetUri: vscode.Uri,
+    private readonly _nsOverride?: string
+  ) {}
 
   /** Hide the cursor, write `data` to the terminal, then show the cursor again. */
   private _hideCursorWrite(data: string): void {
@@ -201,6 +204,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
 
   open(initialDimensions?: vscode.TerminalDimensions): void {
     const api = new AtelierAPI(this._targetUri);
+    if (this._nsOverride) api.setNamespace(this._nsOverride);
     this._cols = initialDimensions?.columns ?? 100000;
     try {
       // Open the WebSocket
@@ -728,7 +732,8 @@ function reportError(msg: string, throwErrors = false) {
 function terminalConfigForUri(
   api: AtelierAPI,
   targetUri: vscode.Uri,
-  throwErrors = false
+  throwErrors: boolean,
+  nsOverride?: string
 ): vscode.ExtensionTerminalOptions | undefined {
   // Make sure the server connection is active
   if (!api.active || api.ns == "") {
@@ -751,13 +756,13 @@ function terminalConfigForUri(
       vscode.window.terminals.length > 0
         ? vscode.TerminalLocation.Editor
         : vscode.TerminalLocation.Panel,
-    pty: new WebSocketTerminal(targetUri),
+    pty: new WebSocketTerminal(targetUri, nsOverride),
     isTransient: true,
     iconPath: iscIcon,
   };
 }
 
-export async function launchWebSocketTerminal(targetUri?: vscode.Uri): Promise<void> {
+export async function launchWebSocketTerminal(targetUri?: vscode.Uri, nsOverride?: string): Promise<void> {
   // Determine the server to connect to
   if (targetUri) {
     // Uri passed as command argument might be for a server we haven't yet resolved
@@ -779,7 +784,7 @@ export async function launchWebSocketTerminal(targetUri?: vscode.Uri): Promise<v
   await api.serverInfo();
 
   // Get the terminal configuration
-  const terminalOpts = terminalConfigForUri(api, targetUri);
+  const terminalOpts = terminalConfigForUri(api, targetUri, false, nsOverride);
   if (terminalOpts) {
     // Launch the terminal
     const terminal = vscode.window.createTerminal(terminalOpts);

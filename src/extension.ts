@@ -1709,10 +1709,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       (namespaceTreeItem) => {
         sendCommandTelemetryEvent("intersystems-servermanager.webterminal");
         const idArray = namespaceTreeItem.id.split(":");
-        const serverId = idArray[1];
         const namespace = idArray[3];
-        const targetUri = vscode.Uri.from({ scheme: "isfs", authority: `${serverId}:${namespace}` });
-        launchWebSocketTerminal(targetUri);
+        const serverTreeItem = namespaceTreeItem?.parent?.parent;
+        const isWsFolderServer =
+          serverTreeItem?.label.includes("(") && typeof serverTreeItem?.params?.serverSummary?.scope?.uri == "object";
+        launchWebSocketTerminal(
+          // Support servers that are defined at the workspace-folder level
+          serverTreeItem?.label.includes("(") && serverTreeItem?.params?.serverSummary?.scope?.uri
+            ? serverTreeItem?.params?.serverSummary?.scope?.uri
+            : vscode.Uri.from({ scheme: "isfs", authority: `${idArray[1]}:${namespace}` }),
+          isWsFolderServer ? namespace : undefined
+        );
       }
     ),
     vscode.commands.registerCommand("vscode-objectscript.ObjectScriptExplorer.webterminal", (node: NodeBase) => {
