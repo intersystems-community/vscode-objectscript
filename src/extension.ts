@@ -1959,7 +1959,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 // This function is exported as one of our API functions but is also used internally
 // for example to implement the async variant capable of resolving docker port number.
 function serverForUri(uri: vscode.Uri): any {
-  const { apiTarget } = connectionTarget(uri);
+  const { apiTarget, configName } = connectionTarget(uri);
+  const configNameLower = configName.toLowerCase();
   const api = new AtelierAPI(apiTarget);
 
   // This function intentionally no longer exposes the password for a named server UNLESS it is already exposed as plaintext in settings.
@@ -1991,7 +1992,18 @@ function serverForUri(uri: vscode.Uri): any {
     password:
       serverName === ""
         ? password
-        : vscode.workspace.getConfiguration(`intersystems.servers.${serverName.toLowerCase()}`, uri).get("password"),
+        : vscode.workspace
+            .getConfiguration(
+              `intersystems.servers.${serverName.toLowerCase()}`,
+              // objectscript(xml):// URIs are not in any workspace folder,
+              // so make sure we resolve the server definition with the proper
+              // granularity. This is needed to prevent other extensions like
+              // Language Server prompting for a passwoord when it's not needed.
+              [OBJECTSCRIPT_FILE_SCHEMA, OBJECTSCRIPTXML_FILE_SCHEMA].includes(uri.scheme)
+                ? vscode.workspace.workspaceFolders?.find((f) => f.name.toLowerCase() == configNameLower)?.uri
+                : uri
+            )
+            .get("password"),
     namespace: ns,
     apiVersion: active ? apiVersion : undefined,
     serverVersion: active ? serverVersion : undefined,
