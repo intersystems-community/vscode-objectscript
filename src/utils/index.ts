@@ -605,25 +605,39 @@ export async function addWsServerRootFolderData(wsFolders: readonly vscode.Works
   if (!wsFolders?.length) return;
   return Promise.allSettled(
     wsFolders.map(async (wsFolder) => {
-      if (notIsfs(wsFolder.uri)) return;
       const api = new AtelierAPI(wsFolder.uri);
       if (!api.active) return;
       const value: WSServerRootFolderData = {
         redirectDotvscode: true,
         canRedirectDotvscode: true,
       };
-      if (isCSP(wsFolder.uri) && !["", "/"].includes(wsFolder.uri.path)) {
-        // A CSP-type root folder for a specific webapp that already has a
-        // .vscode/settings.json file must not redirect .vscode/* references
-        await api
-          .headDoc(`${wsFolder.uri.path}${!wsFolder.uri.path.endsWith("/") ? "/" : ""}.vscode/settings.json`)
-          .then(() => {
-            value.redirectDotvscode = false;
-          })
-          .catch(() => {});
+      let folderKey: string;
+      if (wsFolder.uri.scheme === "file") {
+        // Special case where folder is local and has an active server connection.
+        // Allow extensions such as InterSystems Testing Manager (intersystems-community.testingmanager)
+        // to access the corresponding server-side .vscode subtree using an ISFS uri.
+        folderKey = vscode.Uri.from({
+          scheme: "isfs",
+          authority: wsFolder.name,
+          path: "/",
+          query: `ns=${api.ns}`,
+        }).toString();
+      } else {
+        if (notIsfs(wsFolder.uri)) return;
+        folderKey = wsFolder.uri.toString();
+        if (isCSP(wsFolder.uri) && !["", "/"].includes(wsFolder.uri.path)) {
+          // A CSP-type isfs root folder for a specific webapp that already has a
+          // .vscode/settings.json file must not redirect .vscode/* references
+          await api
+            .headDoc(`${wsFolder.uri.path}${!wsFolder.uri.path.endsWith("/") ? "/" : ""}.vscode/settings.json`)
+            .then(() => {
+              value.redirectDotvscode = false;
+            })
+            .catch(() => {});
+        }
       }
       if (value.redirectDotvscode) {
-        // We must redirect .vscode Uris for this folder, so see
+        // We must redirect .vscode isfs Uris for this folder, so see
         // if the web app to do so is configured on the server
         const key = `${api.serverId}:%SYS`.toLowerCase();
         let webApps = cspApps.get(key);
@@ -636,7 +650,7 @@ export async function addWsServerRootFolderData(wsFolders: readonly vscode.Works
         }
         value.canRedirectDotvscode = webApps.includes("/_vscode");
       }
-      wsServerRootFolders.set(wsFolder.uri.toString(), value);
+      wsServerRootFolders.set(folderKey, value);
     })
   );
 }
