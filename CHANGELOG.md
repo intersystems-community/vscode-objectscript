@@ -11,6 +11,7 @@
   - Correct `docker-compose` handling for containers that don't publish their superserver port (#1613)
   - Skip importing documents that are marked read-only by server-side source control when importing from XML files (#1616)
   - Support servers defined at the workspace-folder level for launching Lite Terminal from Servers tree view (#1617)
+  - Fix uncaught errors reported by telemetry (#1621)
 
 ## [3.0.4] 30-Jun-2025
 - Enhancements
