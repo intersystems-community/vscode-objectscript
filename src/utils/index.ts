@@ -412,7 +412,7 @@ export function uriOfWorkspaceFolder(workspaceFolder: string = currentWorkspaceF
   return (
     vscode.workspace.workspaceFolders.find((el): boolean => el.name.toLowerCase() === workspaceFolder.toLowerCase()) ||
     vscode.workspace.workspaceFolders.find((el): boolean => el.uri.authority == workspaceFolder)
-  ).uri;
+  )?.uri;
 }
 
 export function onlyUnique(value: { name: string }, index: number, self: { name: string }[]): boolean {
@@ -655,7 +655,7 @@ export async function addWsServerRootFolderData(wsFolders: readonly vscode.Works
  * is required but not supported by the server and `err` was passed.
  */
 export function redirectDotvscodeRoot(uri: vscode.Uri, err?: vscode.FileSystemError): vscode.Uri {
-  if (notIsfs(uri)) return;
+  if (notIsfs(uri)) return uri;
   const dotMatch = uri.path.match(/^(.*)\/\.vscode(\/.*)?$/);
   if (dotMatch) {
     const dotvscodeRoot = uri.with({ path: dotMatch[1] || "/" });

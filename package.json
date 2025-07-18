@@ -85,7 +85,7 @@
       {
         "view": "ObjectScriptExplorer",
         "contents": "Connect a local workspace folder to an [InterSystems server](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_clientflow) if you want to export or import ObjectScript code.\n[Choose Server and Namespace](command:vscode-objectscript.connectFolderToServerNamespace)",
-        "when": "vscode-objectscript.explorerRootCount == 0"
+        "when": "vscode-objectscript.explorerRootCount == 0 && workspaceFolderCount != 0"
       },
       {
         "view": "ObjectScriptProjectsExplorer",

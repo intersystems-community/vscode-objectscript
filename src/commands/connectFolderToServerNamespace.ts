@@ -10,16 +10,20 @@ interface ConnSettings {
 }
 
 export async function connectFolderToServerNamespace(): Promise<void> {
+  if (!vscode.workspace.workspaceFolders?.length) {
+    vscode.window.showErrorMessage("No folders in the workspace.", "Dismiss");
+    return;
+  }
   const serverManagerApi = await getServerManagerApi();
   if (!serverManagerApi) {
     vscode.window.showErrorMessage(
-      "Connecting a folder to a server namespace requires the [InterSystems Server Manager extension](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) to be installed and enabled."
+      "Connecting a folder to a server namespace requires the [InterSystems Server Manager extension](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) to be installed and enabled.",
+      "Dismiss"
     );
     return;
   }
   // Which folder?
-  const allFolders = vscode.workspace.workspaceFolders;
-  const items: vscode.QuickPickItem[] = allFolders
+  const items: vscode.QuickPickItem[] = vscode.workspace.workspaceFolders
     .filter((folder) => notIsfs(folder.uri))
     .map((folder) => {
       const config = vscode.workspace.getConfiguration("objectscript", folder);
@@ -31,14 +35,14 @@ export async function connectFolderToServerNamespace(): Promise<void> {
       };
     });
   if (!items.length) {
-    vscode.window.showErrorMessage("No local folders in the workspace.");
+    vscode.window.showErrorMessage("No local folders in the workspace.", "Dismiss");
     return;
   }
   const pick =
     items.length === 1 && !items[0].detail
       ? items[0]
       : await vscode.window.showQuickPick(items, { title: "Pick a folder" });
-  const folder = allFolders.find((el) => el.name === pick.label);
+  const folder = vscode.workspace.workspaceFolders.find((el) => el.name === pick.label);
   // Get user's choice of server
   const options: vscode.QuickPickOptions = {};
   const serverName: string = await serverManagerApi.pickServer(undefined, options);
@@ -60,7 +64,8 @@ export async function connectFolderToServerNamespace(): Promise<void> {
     .catch((reason) => {
       // Notify user about serverInfo failure
       vscode.window.showErrorMessage(
-        reason.message || `Failed to fetch namespace list from server at ${connDisplayString}`
+        reason.message || `Failed to fetch namespace list from server at ${connDisplayString}`,
+        "Dismiss"
       );
       return undefined;
     });
@@ -73,7 +78,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
   }
   // Handle serverInfo having returned no namespaces
   if (!allNamespaces.length) {
-    vscode.window.showErrorMessage(`No namespace list returned by server at ${connDisplayString}`);
+    vscode.window.showErrorMessage(`No namespace list returned by server at ${connDisplayString}`, "Dismiss");
     return;
   }
   // Get user's choice of namespace
