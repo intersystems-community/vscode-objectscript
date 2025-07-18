@@ -713,10 +713,25 @@ export async function importLocalFilesToServerSideFolder(wsFolderUri: vscode.Uri
         })
     )
   ).then((results) => results.map((result) => (result.status == "fulfilled" ? result.value : null)).filter(notNull));
-  // The user is importing into a server-side folder, so fire source control hook
-  await new StudioActions().fireImportUserAction(
-    api,
-    docs.map((e) => e.name)
+  // The user is importing into a server-side folder, so fire the import list User Action
+  const docNames = docs.map((e) => e.name).join(",");
+  await new StudioActions().fireImportUserAction(api, docNames);
+  // Check the status of the documents to be imported and skip any that are read-only
+  await api.actionQuery("select * from %Atelier_v1_Utils.Extension_GetStatus(?)", [docNames]).then((data) =>
+    data?.result?.content?.forEach((e) => {
+      if (!e.editable) {
+        const idx = docs.findIndex((d) => {
+          const nameSplit = d.name.split(".");
+          return e.name == `${nameSplit.slice(0, -1).join(".")}.${nameSplit.pop().toUpperCase()}`;
+        });
+        if (idx != -1) {
+          docs.splice(idx, 1);
+          outputChannel.appendLine(
+            `Skipping '${e.name}' because it has been marked read-only by server-side source control.`
+          );
+        }
+      }
+    })
   );
   // Import the files
   const rateLimiter = new RateLimiter(50);
@@ -862,7 +877,7 @@ export async function importXMLFiles(): Promise<any> {
         return items;
       });
     // Prompt the user for documents to import
-    const docsToImport = await vscode.window.showQuickPick(quickPickItems, {
+    let docsToImport = await vscode.window.showQuickPick(quickPickItems, {
       canPickMany: true,
       ignoreFocusOut: true,
       title: `Select the documents to import into namespace '${api.ns}' on server '${api.serverId}'`,
@@ -872,8 +887,28 @@ export async function importXMLFiles(): Promise<any> {
     }
     const isIsfs = filesystemSchemas.includes(wsFolder.uri.scheme);
     if (isIsfs) {
-      // The user is importing into a server-side folder, so fire source control hook
-      await new StudioActions().fireImportUserAction(api, [...new Set(docsToImport.map((qpi) => qpi.label))]);
+      // The user is importing into a server-side folder
+      const docNames = [...new Set(docsToImport.map((qpi) => qpi.label))].join(",");
+      // Fire the import list User Action
+      await new StudioActions().fireImportUserAction(api, docNames);
+      // Check the status of the documents to be imported and skip any that are read-only
+      await api.actionQuery("select * from %Atelier_v1_Utils.Extension_GetStatus(?)", [docNames]).then((data) => {
+        const readOnly: string[] = [];
+        data?.result?.content?.forEach((e) => {
+          if (!e.editable) {
+            readOnly.push(e.name);
+            outputChannel.appendLine(
+              `Skipping '${e.name}' because it has been marked read-only by server-side source control.`
+            );
+          }
+        });
+        if (readOnly.length) {
+          docsToImport = docsToImport.filter((qpi) => {
+            const nameSplit = qpi.label.split(".");
+            return !readOnly.includes(`${nameSplit.slice(0, -1).join(".")}.${nameSplit.pop().toUpperCase()}`);
+          });
+        }
+      });
     }
     // Import the selected documents
     const filesToLoad: { file: string; content: string[]; selected: string[] }[] = filesToList.map((f) => {

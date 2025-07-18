@@ -352,7 +352,6 @@ export async function exportDocumentsToXMLFile(): Promise<void> {
       quickPick.title = `Export the following ${documents.length > 1 ? `${documents.length} documents` : "document"}?`;
       quickPick.placeholder = "Click any item to confirm, or 'Escape' to cancel";
       quickPick.ignoreFocusOut = true;
-      quickPick.onDidChangeSelection((e) => outputChannel.appendLine(JSON.stringify(e)));
       quickPick.onDidAccept(() => {
         resolve(true);
         quickPick.hide();
@@ -381,6 +380,7 @@ export async function exportDocumentsToXMLFile(): Promise<void> {
       const xmlContent = await api.actionXMLExport(documents).then((data) => data.result.content);
       // Save the file
       await replaceFile(uri, xmlContent);
+      outputChannel.appendLine(`Exported to ${uri.scheme == "file" ? uri.fsPath : uri.toString(true)}`);
     }
   } catch (error) {
     handleError(error, "Error executing 'Export Documents to XML File...' command.");
