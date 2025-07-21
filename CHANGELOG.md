@@ -1,5 +1,19 @@
 # Change Log
 
+## [3.0.5] 21-Jul-2025
+- Enhancements
+  - Better telemetry (#1608)
+  - Output the path to the export file when exporting to an XML file (#1616)
+- Fixes
+  - Check if `/_vscode` web app exists before redirecting `.vscode` files (#1602)
+  - Fix creation of new file header when `objectscript.export.folder` is empty (#1604)
+  - Remove `_api` property from Lite Terminal implementation (#1610)
+  - Correct `docker-compose` handling for containers that don't publish their superserver port (#1613)
+  - Skip importing documents that are marked read-only by server-side source control when importing from XML files (#1616)
+  - Support servers defined at the workspace-folder level for launching Lite Terminal from Servers tree view (#1617)
+  - Fix uncaught errors reported by telemetry (#1621)
+  - Fix resolving of server connection for files opened from InterSystems Explorer or XML preview (#1622)
+
 ## [3.0.4] 30-Jun-2025
 - Enhancements
   - Shorten server-side error messages (#1587)
