@@ -12,6 +12,7 @@
   - Skip importing documents that are marked read-only by server-side source control when importing from XML files (#1616)
   - Support servers defined at the workspace-folder level for launching Lite Terminal from Servers tree view (#1617)
   - Fix uncaught errors reported by telemetry (#1621)
+  - Fix resolving of server connection for files opened from InterSystems Explorer or XML preview (#1622)
 
 ## [3.0.4] 30-Jun-2025
 - Enhancements
