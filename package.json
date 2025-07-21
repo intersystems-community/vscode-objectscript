@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "3.0.5-SNAPSHOT",
+  "version": "3.0.6-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "InstrumentationKey=9cd75d51-697c-406c-a929-2bcf46e97c64;IngestionEndpoint=https://eastus2-4.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus2.livediagnostics.monitor.azure.com/;ApplicationId=a431c56f-8ccc-4b99-b5e9-fce3763215b1",
   "categories": [
