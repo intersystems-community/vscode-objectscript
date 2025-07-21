@@ -13,6 +13,7 @@ import {
   documentContentProvider,
   filesystemSchemas,
   outputLangId,
+  OBJECTSCRIPTXML_FILE_SCHEMA,
 } from "../extension";
 import { getCategory } from "../commands/export";
 import { isCSP, isfsDocumentName } from "../providers/FileSystemProvider/FileSystemProvider";
@@ -334,14 +335,21 @@ export function connectionTarget(uri?: vscode.Uri): ConnectionTarget {
       ? vscode.window.activeTextEditor.document.uri
       : undefined;
   if (uri) {
-    if (notIsfs(uri)) {
-      const folder = vscode.workspace.getWorkspaceFolder(uri);
+    if (uri.scheme == OBJECTSCRIPT_FILE_SCHEMA) {
+      // For objectscript:// files the authority is the workspace folder name
+      result.apiTarget = uri;
+      result.configName = uri.authority;
+    } else if (notIsfs(uri)) {
+      const folder = vscode.workspace.getWorkspaceFolder(
+        // For XML preview files the fragment contains the URI for connection purposes
+        uri.scheme == OBJECTSCRIPTXML_FILE_SCHEMA ? vscode.Uri.parse(uri.fragment) : uri
+      );
       // Active document might not be from any folder in the workspace (e.g. user's settings.json)
       if (folder) {
         result.configName = folder.name;
         result.apiTarget = result.configName;
       }
-    } else if (schemas.includes(uri.scheme)) {
+    } else {
       result.apiTarget = uri;
       const parts = uri.authority.split(":");
       result.configName = parts.length === 2 ? parts[0] : uri.authority;
@@ -390,10 +398,14 @@ export function currentWorkspaceFolder(document?: vscode.TextDocument): string {
 }
 
 export function workspaceFolderOfUri(uri: vscode.Uri): string {
-  if (notIsfs(uri)) {
-    if (vscode.workspace.getWorkspaceFolder(uri)) {
-      return vscode.workspace.getWorkspaceFolder(uri).name;
-    }
+  if (uri.scheme == OBJECTSCRIPT_FILE_SCHEMA) {
+    // For objectscript:// files the authority is the workspace folder name
+    return uri.authority;
+  } else if (uri.scheme == OBJECTSCRIPTXML_FILE_SCHEMA) {
+    // For XML preview files the fragment contains the URI of the original XML file
+    return vscode.workspace.getWorkspaceFolder(vscode.Uri.parse(uri.fragment))?.name ?? "";
+  } else if (notIsfs(uri)) {
+    return vscode.workspace.getWorkspaceFolder(uri)?.name ?? "";
   } else {
     const rootUri = uri.with({ path: "/" }).toString();
     const foundFolder = vscode.workspace.workspaceFolders.find(
