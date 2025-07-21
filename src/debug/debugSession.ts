@@ -17,7 +17,7 @@ import { DebugProtocol } from "@vscode/debugprotocol";
 import WebSocket = require("ws");
 import { AtelierAPI } from "../api";
 import * as xdebug from "./xdebugConnection";
-import { lsExtensionId, schemas } from "../extension";
+import { lsExtensionId, schemas, sendDebuggerTelemetryEvent } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { formatPropertyValue } from "./utils";
 import { isfsConfig } from "../utils/FileProviderUtil";
@@ -263,6 +263,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       this._isLaunch = true;
       const debugTarget = `${this._namespace}:${args.program}`;
       await this._connection.sendFeatureSetCommand("debug_target", debugTarget, true);
+      sendDebuggerTelemetryEvent("launch");
     } catch (error) {
       this.sendErrorResponse(response, error);
       return;
@@ -300,6 +301,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
           stopped = await this._isStopped();
         }
       }
+      sendDebuggerTelemetryEvent(this._isCsp ? "rest" : this._isUnitTest ? "unittest" : "attach");
     } catch (error) {
       this.sendErrorResponse(response, error);
       return;

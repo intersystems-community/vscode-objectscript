@@ -75,9 +75,9 @@ export class StudioActions {
   }
 
   /** Fire UserAction 6 on server `api` for document list `documents` */
-  public async fireImportUserAction(api: AtelierAPI, documents: string[]): Promise<void> {
+  public async fireImportUserAction(api: AtelierAPI, documents: string): Promise<void> {
     this.api = api;
-    this.name = documents.join(",");
+    this.name = documents;
     return this.userAction(
       {
         id: OtherStudioAction.ImportListOfDocuments.toString(),
