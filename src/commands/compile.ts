@@ -465,6 +465,7 @@ async function importFiles(files: vscode.Uri[], noCompile = false) {
 }
 
 export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<any> {
+  if (!(uri instanceof vscode.Uri)) return;
   if (filesystemSchemas.includes(uri.scheme)) return; // Not for server-side URIs
   if ((await vscode.workspace.fs.stat(uri)).type != vscode.FileType.Directory) {
     return importFiles([uri], noCompile);

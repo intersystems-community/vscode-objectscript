@@ -660,104 +660,108 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     response: DebugProtocol.StackTraceResponse,
     args: DebugProtocol.StackTraceArguments
   ): Promise<void> {
-    const stack = await this._connection.sendStackGetCommand();
+    try {
+      const stack = await this._connection.sendStackGetCommand();
 
-    /** Is set to true if we're at the CSP or unit test ending watchpoint.
-     * We need to do this so VS Code doesn't try to open the source of
-     * a stack frame before the debug session terminates. */
-    let noStack = false;
-    const stackFrames = await Promise.all(
-      stack.stack.map(async (stackFrame: xdebug.StackFrame, index): Promise<StackFrame> => {
-        if (noStack) return; // Stack frames won't be sent
-        const [, namespace, docName] = decodeURI(stackFrame.fileUri).match(/^dbgp:\/\/\|([^|]+)\|(.*)$/);
-        const fileUri = DocumentContentProvider.getUri(
-          docName,
-          this._workspace,
-          namespace,
-          undefined,
-          this._workspaceFolderUri
-        );
-        const source = new Source(docName, fileUri.toString());
-        let line = stackFrame.line + 1;
-        const place = `${stackFrame.method}+${stackFrame.methodOffset}`;
-        const stackFrameId = this._stackFrameIdCounter++;
-        if (index == 0 && this._break) {
-          const csp = this._isCsp && ["%SYS.cspServer.mac", "%SYS.cspServer.int"].includes(source.name);
-          const unitTest = this._isUnitTest && source.name.startsWith("%Api.Atelier.v");
-          if (csp || unitTest) {
-            // Check if we're at our special watchpoint
-            const { result } = await this._connection.sendEvalCommand(
-              csp ? this._cspWatchpointCondition : this._unitTestWatchpointCondition
-            );
-            if (result.type == "int" && result.value == "1") {
-              // Stop the debugging session
-              const xdebugResponse = await this._connection.sendDetachCommand();
-              this._checkStatus(xdebugResponse);
-              noStack = true;
-              return;
+      /** Is set to true if we're at the CSP or unit test ending watchpoint.
+       * We need to do this so VS Code doesn't try to open the source of
+       * a stack frame before the debug session terminates. */
+      let noStack = false;
+      const stackFrames = await Promise.all(
+        stack.stack.map(async (stackFrame: xdebug.StackFrame, index): Promise<StackFrame> => {
+          if (noStack) return; // Stack frames won't be sent
+          const [, namespace, docName] = decodeURI(stackFrame.fileUri).match(/^dbgp:\/\/\|([^|]+)\|(.*)$/);
+          const fileUri = DocumentContentProvider.getUri(
+            docName,
+            this._workspace,
+            namespace,
+            undefined,
+            this._workspaceFolderUri
+          );
+          const source = new Source(docName, fileUri.toString());
+          let line = stackFrame.line + 1;
+          const place = `${stackFrame.method}+${stackFrame.methodOffset}`;
+          const stackFrameId = this._stackFrameIdCounter++;
+          if (index == 0 && this._break) {
+            const csp = this._isCsp && ["%SYS.cspServer.mac", "%SYS.cspServer.int"].includes(source.name);
+            const unitTest = this._isUnitTest && source.name.startsWith("%Api.Atelier.v");
+            if (csp || unitTest) {
+              // Check if we're at our special watchpoint
+              const { result } = await this._connection.sendEvalCommand(
+                csp ? this._cspWatchpointCondition : this._unitTestWatchpointCondition
+              );
+              if (result.type == "int" && result.value == "1") {
+                // Stop the debugging session
+                const xdebugResponse = await this._connection.sendDetachCommand();
+                this._checkStatus(xdebugResponse);
+                noStack = true;
+                return;
+              }
             }
           }
-        }
-        const fileText = await this._getFileText(fileUri);
-        const hasCmdLoc = typeof stackFrame.cmdBeginLine == "number";
-        if (!fileText.length) {
-          // Can't get the source for the document
-          this._stackFrames.set(stackFrameId, stackFrame);
+          const fileText = await this._getFileText(fileUri);
+          const hasCmdLoc = typeof stackFrame.cmdBeginLine == "number";
+          if (!fileText.length) {
+            // Can't get the source for the document
+            this._stackFrames.set(stackFrameId, stackFrame);
+            return {
+              id: stackFrameId,
+              name: place,
+              // Don't provide a source path so VS Code doesn't attempt
+              // to open this file or provide an option to "create" it
+              source: {
+                name: docName,
+                presentationHint: "deemphasize",
+              },
+              line,
+              column: 0,
+            };
+          }
+          let noSource = false;
+          try {
+            if (source.name.endsWith(".cls") && stackFrame.method !== "") {
+              // Compute DocumentSymbols for this class
+              const symbols: vscode.DocumentSymbol[] = (
+                await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
+                  "vscode.executeDocumentSymbolProvider",
+                  fileUri
+                )
+              )[0].children;
+              const newLine = methodOffsetToLine(symbols, fileText, stackFrame.method, stackFrame.methodOffset);
+              if (newLine != undefined) line = newLine;
+            }
+            this._stackFrames.set(stackFrameId, stackFrame);
+          } catch {
+            noSource = true;
+          }
+          const lineDiff = line - stackFrame.line;
           return {
             id: stackFrameId,
             name: place,
-            // Don't provide a source path so VS Code doesn't attempt
-            // to open this file or provide an option to "create" it
-            source: {
-              name: docName,
-              presentationHint: "deemphasize",
-            },
+            source: noSource ? null : source,
             line,
-            column: 0,
+            column: hasCmdLoc ? stackFrame.cmdBeginPos + 1 : 0,
+            endLine: hasCmdLoc ? stackFrame.cmdEndLine + lineDiff : undefined,
+            endColumn: hasCmdLoc
+              ? (stackFrame.cmdEndPos == 0
+                  ? // A command that ends at position zero means "rest of this line"
+                    fileText.split(/\r?\n/)[stackFrame.cmdEndLine + lineDiff - 1].length
+                  : stackFrame.cmdEndPos) + 1
+              : undefined,
           };
-        }
-        let noSource = false;
-        try {
-          if (source.name.endsWith(".cls") && stackFrame.method !== "") {
-            // Compute DocumentSymbols for this class
-            const symbols: vscode.DocumentSymbol[] = (
-              await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
-                "vscode.executeDocumentSymbolProvider",
-                fileUri
-              )
-            )[0].children;
-            const newLine = methodOffsetToLine(symbols, fileText, stackFrame.method, stackFrame.methodOffset);
-            if (newLine != undefined) line = newLine;
-          }
-          this._stackFrames.set(stackFrameId, stackFrame);
-        } catch {
-          noSource = true;
-        }
-        const lineDiff = line - stackFrame.line;
-        return {
-          id: stackFrameId,
-          name: place,
-          source: noSource ? null : source,
-          line,
-          column: hasCmdLoc ? stackFrame.cmdBeginPos + 1 : 0,
-          endLine: hasCmdLoc ? stackFrame.cmdEndLine + lineDiff : undefined,
-          endColumn: hasCmdLoc
-            ? (stackFrame.cmdEndPos == 0
-                ? // A command that ends at position zero means "rest of this line"
-                  fileText.split(/\r?\n/)[stackFrame.cmdEndLine + lineDiff - 1].length
-                : stackFrame.cmdEndPos) + 1
-            : undefined,
-        };
-      })
-    );
+        })
+      );
 
-    this._break = false;
-    if (!noStack) {
-      response.body = {
-        stackFrames,
-      };
+      this._break = false;
+      if (!noStack) {
+        response.body = {
+          stackFrames,
+        };
+      }
+      this.sendResponse(response);
+    } catch (error) {
+      this.sendErrorResponse(response, error);
     }
-    this.sendResponse(response);
   }
 
   protected async scopesRequest(

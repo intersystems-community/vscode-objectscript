@@ -1152,10 +1152,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.commands.registerCommand("vscode-objectscript.compileFolder", (_file, files) => {
       sendCommandTelemetryEvent("compileFolder");
+      if (!_file && !files?.length) return;
+      files = files ?? [_file];
       Promise.all(files.map((file) => importFileOrFolder(file, false)));
     }),
     vscode.commands.registerCommand("vscode-objectscript.importFolder", (_file, files) => {
       sendCommandTelemetryEvent("importFolder");
+      if (!_file && !files?.length) return;
+      files = files ?? [_file];
       Promise.all(files.map((file) => importFileOrFolder(file, true)));
     }),
     vscode.commands.registerCommand("vscode-objectscript.export", () => {
