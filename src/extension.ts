@@ -228,7 +228,7 @@ const resolvedConnSpecs = new Map<string, any>();
  * @param uri if passed, re-check the `objectscript.conn.docker-compose` case in case servermanager API couldn't do that because we're still running our own `activate` method.
  */
 export async function resolveConnectionSpec(serverName: string, uri?: vscode.Uri): Promise<void> {
-  if (!serverManagerApi || !serverManagerApi.getServerSpec || serverName === "") {
+  if (!serverManagerApi || !serverManagerApi.getServerSpec || !serverName) {
     return;
   }
   if (resolvedConnSpecs.has(serverName)) {
@@ -795,7 +795,7 @@ function sendWsFolderTelemetryEvent(wsFolders: readonly vscode.WorkspaceFolder[]
       scheme: wsFolder.uri.scheme,
       added: String(added),
       isWeb: serverSide ? String(csp) : undefined,
-      isProject: serverSide ? String(project.length) : undefined,
+      isProject: serverSide ? String(project.length > 0) : undefined,
       hasNs: serverSide ? String(typeof ns == "string") : undefined,
       serverVersion: api.active ? api.config.serverVersion : undefined,
       "config.syncLocalChanges": !serverSide ? conf.get("syncLocalChanges") : undefined,
@@ -1299,7 +1299,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       superclass();
     }),
     vscode.commands.registerCommand("vscode-objectscript.serverActions", () => {
-      sendCommandTelemetryEvent("serverActions"); // TODO remove?
+      sendCommandTelemetryEvent("serverActions");
       serverActions();
     }),
     vscode.commands.registerCommand("vscode-objectscript.touchBar.viewOthers", () => {
