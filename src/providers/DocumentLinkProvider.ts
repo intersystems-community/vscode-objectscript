@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { DocumentContentProvider } from "./DocumentContentProvider";
+import { handleError } from "../utils";
 
 interface StudioLink {
   uri: vscode.Uri;
@@ -35,12 +36,14 @@ export class DocumentLinkProvider implements vscode.DocumentLinkProvider {
             offset = parseInt(match[2]);
           }
 
+          const uri = DocumentContentProvider.getUri(filename);
+          if (!uri) return;
           documentLinks.push({
             range: new vscode.Range(
               new vscode.Position(i, match.index),
               new vscode.Position(i, match.index + match[0].length)
             ),
-            uri: DocumentContentProvider.getUri(filename),
+            uri,
             filename,
             methodname,
             offset,
@@ -52,7 +55,10 @@ export class DocumentLinkProvider implements vscode.DocumentLinkProvider {
   }
 
   public async resolveDocumentLink(link: StudioLink, token: vscode.CancellationToken): Promise<vscode.DocumentLink> {
-    const editor = await vscode.window.showTextDocument(link.uri);
+    const editor = await vscode.window
+      .showTextDocument(link.uri)
+      .then(undefined, (error) => handleError(error, "Failed to resolve DocumentLink to a specific location."));
+    if (!editor) return;
     let offset = link.offset;
 
     // add the offset of the method if it is a class
@@ -65,9 +71,8 @@ export class DocumentLinkProvider implements vscode.DocumentLinkProvider {
     }
 
     const line = editor.document.lineAt(offset);
-    const range = new vscode.Range(line.range.start, line.range.start);
-    editor.selection = new vscode.Selection(range.start, range.start);
-    editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+    editor.selection = new vscode.Selection(line.range.start, line.range.start);
+    editor.revealRange(line.range, vscode.TextEditorRevealType.InCenter);
 
     return new vscode.DocumentLink(link.range, link.uri);
   }

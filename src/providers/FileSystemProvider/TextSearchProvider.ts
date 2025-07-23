@@ -3,7 +3,7 @@ import { makeRe } from "minimatch";
 import { AsyncSearchRequest, SearchResult, SearchMatch } from "../../api/atelier";
 import { AtelierAPI } from "../../api";
 import { DocumentContentProvider } from "../DocumentContentProvider";
-import { handleError, notNull, outputChannel, RateLimiter } from "../../utils";
+import { handleError, notNull, outputChannel, RateLimiter, stringifyError } from "../../utils";
 import { fileSpecFromURI, isfsConfig, IsfsUriParam } from "../../utils/FileProviderUtil";
 
 /**
@@ -235,8 +235,9 @@ async function processSearchResults(
     fileResults
       .filter((r) => r.status == "rejected")
       .forEach((r: PromiseRejectedResult) => {
-        outputChannel.appendLine(typeof r.reason == "object" ? r.reason.toString() : String(r.reason));
+        outputChannel.appendLine(stringifyError(r));
       });
+    outputChannel.show(true);
     message = {
       text: `Failed to display results from ${rejected} file${
         rejected > 1 ? "s" : ""

@@ -111,7 +111,7 @@ export class AtelierAPI {
           if (
             parts.length === 2 &&
             (config("intersystems.servers").has(parts[0].toLowerCase()) ||
-              vscode.workspace.workspaceFolders.find(
+              vscode.workspace.workspaceFolders?.find(
                 (ws) => ws.uri.scheme === "file" && ws.name.toLowerCase() === parts[0].toLowerCase()
               ))
           ) {

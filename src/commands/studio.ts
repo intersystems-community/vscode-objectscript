@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { iscIcon } from "../extension";
-import { outputChannel, outputConsole, notIsfs, handleError, openLowCodeEditors } from "../utils";
+import { outputChannel, outputConsole, notIsfs, handleError, openLowCodeEditors, stringifyError } from "../utils";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { UserAction } from "../api/atelier";
 import { isfsDocumentName } from "../providers/FileSystemProvider/FileSystemProvider";
@@ -113,7 +113,7 @@ export class StudioActions {
     );
   }
 
-  public processUserAction(userAction: UserAction): Thenable<any> {
+  public async processUserAction(userAction: UserAction): Promise<any> {
     const serverAction = userAction.action;
     const { target, errorText } = userAction;
     if (errorText !== "") {
@@ -128,7 +128,22 @@ export class StudioActions {
         return vscode.window
           .showWarningMessage(target, { modal: true }, "Yes", "No")
           .then((answer) => (answer === "Yes" ? "1" : answer === "No" ? "0" : "2"));
-      case 2: // Run a CSP page/Template. The Target is the full path of CSP page/template on the connected server
+      case 2: {
+        // Run a CSP page/Template. The Target is the full path of CSP page/template on the connected server
+
+        // Do this ourself instead of using our new getCSPToken wrapper function, because that function reuses tokens which causes issues with
+        // webview when server is 2020.1.1 or greater, as session cookie scope is typically Strict, meaning that the webview
+        // cannot store the cookie. Consequence is web sessions may build up (they get a 900 second timeout)
+        const cspchd = await this.api
+          .actionQuery("select %Atelier_v1_Utils.General_GetCSPToken(?) token", [target])
+          .then((data) => data.result.content[0].token)
+          .catch((error) => {
+            outputChannel.appendLine(
+              `Failed to construct a CSP session for server-side source control User Action 2 (show a CSP page) on page '${target}': ${stringifyError(error)}\nReturning answer 2 (Cancel)`
+            );
+            outputChannel.show(true);
+          });
+        if (!cspchd) return "2";
         return new Promise((resolve) => {
           let answer = "2";
           const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
@@ -157,16 +172,10 @@ export class StudioActions {
           const url = new URL(
             `${config.https ? "https" : "http"}://${config.host}:${config.port}${config.pathPrefix}${target}`
           );
-
-          // Do this ourself instead of using our new getCSPToken wrapper function, because that function reuses tokens which causes issues with
-          // webview when server is 2020.1.1 or greater, as session cookie scope is typically Strict, meaning that the webview
-          // cannot store the cookie. Consequence is web sessions may build up (they get a 900 second timeout)
-          this.api.actionQuery("select %Atelier_v1_Utils.General_GetCSPToken(?) token", [target]).then((tokenObj) => {
-            const csptoken = tokenObj.result.content[0].token;
-            url.searchParams.set("CSPCHD", csptoken);
-            url.searchParams.set("CSPSHARE", "1");
-            url.searchParams.set("Namespace", this.api.config.ns);
-            panel.webview.html = `
+          url.searchParams.set("CSPCHD", cspchd);
+          url.searchParams.set("CSPSHARE", "1");
+          url.searchParams.set("Namespace", this.api.ns);
+          panel.webview.html = `
               <!DOCTYPE html>
               <html lang="en">
               <head>
@@ -194,18 +203,21 @@ export class StudioActions {
               </body>
               </html>
               `;
-          });
         });
+      }
       case 3: {
         // Run an EXE on the client.
-        const urlRegex = /^(ht|f)tp(s?):\/\//gim;
-        if (target.search(urlRegex) === 0) {
+        if (/^(ht|f)tps?:\/\//i.test(target)) {
           // Allow target that is a URL to be opened in an external browser
           vscode.env.openExternal(vscode.Uri.parse(target));
-          break;
         } else {
-          throw new Error("processUserAction: Run EXE (Action=3) not supported");
+          // Anything else is not supported
+          outputChannel.appendLine(
+            `Server-side source control User Action 3 (run an EXE on the client) is not supported for target '${target}'`
+          );
+          outputChannel.show(true);
         }
+        break;
       }
       case 4: {
         // Insert the text in Target in the current document at the current selection point
@@ -219,39 +231,45 @@ export class StudioActions {
       }
       case 5: // Studio will open the documents listed in Target
         target.split(",").forEach((element) => {
-          let classname: string = element;
+          let fileName: string = element;
           let method: string;
           let offset = 0;
           if (element.includes(":")) {
-            [classname, method] = element.split(":");
+            [fileName, method] = element.split(":");
             if (method.includes("+")) {
               offset = +method.split("+")[1];
               method = method.split("+")[0];
             }
           }
 
-          const splitClassname = classname.split(".");
-          const filetype = splitClassname[splitClassname.length - 1];
+          const fileExt = fileName.split(".").pop().toLowerCase();
           const isCorrectMethod = (text: string) =>
-            filetype === "cls" ? text.match("Method " + method) : text.startsWith(method);
+            fileExt === "cls" ? text.match("Method " + method) : text.startsWith(method);
 
-          const uri = DocumentContentProvider.getUri(classname);
-          vscode.window.showTextDocument(uri, { preview: false }).then((newEditor) => {
-            if (method) {
-              const document = newEditor.document;
-              for (let i = 0; i < document.lineCount; i++) {
-                const line = document.lineAt(i);
-                if (isCorrectMethod(line.text)) {
-                  if (!line.text.endsWith("{")) offset++;
-                  const targetLine = document.lineAt(i + offset);
-                  const range = new vscode.Range(targetLine.range.start, targetLine.range.start);
-                  newEditor.selection = new vscode.Selection(range.start, range.start);
-                  newEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
-                  break;
+          vscode.window.showTextDocument(DocumentContentProvider.getUri(fileName), { preview: false }).then(
+            (newEditor) => {
+              if (method) {
+                const document = newEditor.document;
+                for (let i = 0; i < document.lineCount; i++) {
+                  const line = document.lineAt(i);
+                  if (isCorrectMethod(line.text)) {
+                    if (!line.text.endsWith("{")) offset++;
+                    const targetLine = document.lineAt(i + offset);
+                    const range = new vscode.Range(targetLine.range.start, targetLine.range.start);
+                    newEditor.selection = new vscode.Selection(range.start, range.start);
+                    newEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+                    break;
+                  }
                 }
               }
+            },
+            (error) => {
+              outputChannel.appendLine(
+                `Server-side source control User Action 5 failed to show '${element}': ${stringifyError(error)}`
+              );
+              outputChannel.show(true);
             }
-          });
+          );
         });
         break;
       case 6: // Display an alert dialog in Studio with the text from the Target variable.
@@ -268,7 +286,8 @@ export class StudioActions {
             };
           });
       default:
-        throw new Error(`processUserAction: ${userAction} not supported`);
+        outputChannel.appendLine(`Unknown server-side source control User Action ${serverAction} is not supported`);
+        outputChannel.show(true);
     }
     return Promise.resolve();
   }

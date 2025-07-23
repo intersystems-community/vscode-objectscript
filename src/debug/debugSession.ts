@@ -313,29 +313,37 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     response: DebugProtocol.PauseResponse,
     args: DebugProtocol.PauseArguments
   ): Promise<void> {
-    const xdebugResponse = await this._connection.sendBreakCommand();
-    this.sendResponse(response);
-    await this._checkStatus(xdebugResponse);
+    try {
+      const xdebugResponse = await this._connection.sendBreakCommand();
+      this.sendResponse(response);
+      this._checkStatus(xdebugResponse);
+    } catch (error) {
+      this.sendErrorResponse(response, error);
+    }
   }
 
   protected async configurationDoneRequest(
     response: DebugProtocol.ConfigurationDoneResponse,
     args: DebugProtocol.ConfigurationDoneArguments
   ): Promise<void> {
-    if (!this._isLaunch && !this._isCsp) {
-      // The debug agent ignores the first run command
-      // for non-CSP attaches, so send one right away
-      await this._connection.sendRunCommand();
-      // Tell VS Code that we're stopped
-      this.sendResponse(response);
-      const event: DebugProtocol.StoppedEvent = new StoppedEvent("entry", this._connection.id);
-      event.body.allThreadsStopped = false;
-      this.sendEvent(event);
-    } else {
-      // Tell the debugger to run the target process
-      const xdebugResponse = await this._connection.sendRunCommand();
-      this.sendResponse(response);
-      await this._checkStatus(xdebugResponse);
+    try {
+      if (!this._isLaunch && !this._isCsp) {
+        // The debug agent ignores the first run command
+        // for non-CSP attaches, so send one right away
+        await this._connection.sendRunCommand();
+        // Tell VS Code that we're stopped
+        this.sendResponse(response);
+        const event: DebugProtocol.StoppedEvent = new StoppedEvent("entry", this._connection.id);
+        event.body.allThreadsStopped = false;
+        this.sendEvent(event);
+      } else {
+        // Tell the debugger to run the target process
+        const xdebugResponse = await this._connection.sendRunCommand();
+        this.sendResponse(response);
+        this._checkStatus(xdebugResponse);
+      }
+    } catch (error) {
+      this.sendErrorResponse(response, error);
     }
   }
 
@@ -348,9 +356,13 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       // Detach is always supported by the debug agent
       // If attach, it will detach from the target
       // If launch, it will terminate the target
-      const xdebugResponse = await this._connection.sendDetachCommand();
-      this.sendResponse(response);
-      await this._checkStatus(xdebugResponse);
+      try {
+        const xdebugResponse = await this._connection.sendDetachCommand();
+        this.sendResponse(response);
+        this._checkStatus(xdebugResponse);
+      } catch (error) {
+        this.sendErrorResponse(response, error);
+      }
     } else {
       this.sendResponse(response);
     }
@@ -648,207 +660,216 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     response: DebugProtocol.StackTraceResponse,
     args: DebugProtocol.StackTraceArguments
   ): Promise<void> {
-    const stack = await this._connection.sendStackGetCommand();
+    try {
+      const stack = await this._connection.sendStackGetCommand();
 
-    /** Is set to true if we're at the CSP or unit test ending watchpoint.
-     * We need to do this so VS Code doesn't try to open the source of
-     * a stack frame before the debug session terminates. */
-    let noStack = false;
-    const stackFrames = await Promise.all(
-      stack.stack.map(async (stackFrame: xdebug.StackFrame, index): Promise<StackFrame> => {
-        if (noStack) return; // Stack frames won't be sent
-        const [, namespace, docName] = decodeURI(stackFrame.fileUri).match(/^dbgp:\/\/\|([^|]+)\|(.*)$/);
-        const fileUri = DocumentContentProvider.getUri(
-          docName,
-          this._workspace,
-          namespace,
-          undefined,
-          this._workspaceFolderUri
-        );
-        const source = new Source(docName, fileUri.toString());
-        let line = stackFrame.line + 1;
-        const place = `${stackFrame.method}+${stackFrame.methodOffset}`;
-        const stackFrameId = this._stackFrameIdCounter++;
-        if (index == 0 && this._break) {
-          const csp = this._isCsp && ["%SYS.cspServer.mac", "%SYS.cspServer.int"].includes(source.name);
-          const unitTest = this._isUnitTest && source.name.startsWith("%Api.Atelier.v");
-          if (csp || unitTest) {
-            // Check if we're at our special watchpoint
-            const { result } = await this._connection.sendEvalCommand(
-              csp ? this._cspWatchpointCondition : this._unitTestWatchpointCondition
-            );
-            if (result.type == "int" && result.value == "1") {
-              // Stop the debugging session
-              const xdebugResponse = await this._connection.sendDetachCommand();
-              await this._checkStatus(xdebugResponse);
-              noStack = true;
-              return;
+      /** Is set to true if we're at the CSP or unit test ending watchpoint.
+       * We need to do this so VS Code doesn't try to open the source of
+       * a stack frame before the debug session terminates. */
+      let noStack = false;
+      const stackFrames = await Promise.all(
+        stack.stack.map(async (stackFrame: xdebug.StackFrame, index): Promise<StackFrame> => {
+          if (noStack) return; // Stack frames won't be sent
+          const [, namespace, docName] = decodeURI(stackFrame.fileUri).match(/^dbgp:\/\/\|([^|]+)\|(.*)$/);
+          const fileUri = DocumentContentProvider.getUri(
+            docName,
+            this._workspace,
+            namespace,
+            undefined,
+            this._workspaceFolderUri
+          );
+          const source = new Source(docName, fileUri.toString());
+          let line = stackFrame.line + 1;
+          const place = `${stackFrame.method}+${stackFrame.methodOffset}`;
+          const stackFrameId = this._stackFrameIdCounter++;
+          if (index == 0 && this._break) {
+            const csp = this._isCsp && ["%SYS.cspServer.mac", "%SYS.cspServer.int"].includes(source.name);
+            const unitTest = this._isUnitTest && source.name.startsWith("%Api.Atelier.v");
+            if (csp || unitTest) {
+              // Check if we're at our special watchpoint
+              const { result } = await this._connection.sendEvalCommand(
+                csp ? this._cspWatchpointCondition : this._unitTestWatchpointCondition
+              );
+              if (result.type == "int" && result.value == "1") {
+                // Stop the debugging session
+                const xdebugResponse = await this._connection.sendDetachCommand();
+                this._checkStatus(xdebugResponse);
+                noStack = true;
+                return;
+              }
             }
           }
-        }
-        const fileText = await this._getFileText(fileUri);
-        const hasCmdLoc = typeof stackFrame.cmdBeginLine == "number";
-        if (!fileText.length) {
-          // Can't get the source for the document
-          this._stackFrames.set(stackFrameId, stackFrame);
+          const fileText = await this._getFileText(fileUri);
+          const hasCmdLoc = typeof stackFrame.cmdBeginLine == "number";
+          if (!fileText.length) {
+            // Can't get the source for the document
+            this._stackFrames.set(stackFrameId, stackFrame);
+            return {
+              id: stackFrameId,
+              name: place,
+              // Don't provide a source path so VS Code doesn't attempt
+              // to open this file or provide an option to "create" it
+              source: {
+                name: docName,
+                presentationHint: "deemphasize",
+              },
+              line,
+              column: 0,
+            };
+          }
+          let noSource = false;
+          try {
+            if (source.name.endsWith(".cls") && stackFrame.method !== "") {
+              // Compute DocumentSymbols for this class
+              const symbols: vscode.DocumentSymbol[] = (
+                await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
+                  "vscode.executeDocumentSymbolProvider",
+                  fileUri
+                )
+              )[0].children;
+              const newLine = methodOffsetToLine(symbols, fileText, stackFrame.method, stackFrame.methodOffset);
+              if (newLine != undefined) line = newLine;
+            }
+            this._stackFrames.set(stackFrameId, stackFrame);
+          } catch {
+            noSource = true;
+          }
+          const lineDiff = line - stackFrame.line;
           return {
             id: stackFrameId,
             name: place,
-            // Don't provide a source path so VS Code doesn't attempt
-            // to open this file or provide an option to "create" it
-            source: {
-              name: docName,
-              presentationHint: "deemphasize",
-            },
+            source: noSource ? null : source,
             line,
-            column: 0,
+            column: hasCmdLoc ? stackFrame.cmdBeginPos + 1 : 0,
+            endLine: hasCmdLoc ? stackFrame.cmdEndLine + lineDiff : undefined,
+            endColumn: hasCmdLoc
+              ? (stackFrame.cmdEndPos == 0
+                  ? // A command that ends at position zero means "rest of this line"
+                    fileText.split(/\r?\n/)[stackFrame.cmdEndLine + lineDiff - 1].length
+                  : stackFrame.cmdEndPos) + 1
+              : undefined,
           };
-        }
-        let noSource = false;
-        try {
-          if (source.name.endsWith(".cls") && stackFrame.method !== "") {
-            // Compute DocumentSymbols for this class
-            const symbols: vscode.DocumentSymbol[] = (
-              await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
-                "vscode.executeDocumentSymbolProvider",
-                fileUri
-              )
-            )[0].children;
-            const newLine = methodOffsetToLine(symbols, fileText, stackFrame.method, stackFrame.methodOffset);
-            if (newLine != undefined) line = newLine;
-          }
-          this._stackFrames.set(stackFrameId, stackFrame);
-        } catch {
-          noSource = true;
-        }
-        const lineDiff = line - stackFrame.line;
-        return {
-          id: stackFrameId,
-          name: place,
-          source: noSource ? null : source,
-          line,
-          column: hasCmdLoc ? stackFrame.cmdBeginPos + 1 : 0,
-          endLine: hasCmdLoc ? stackFrame.cmdEndLine + lineDiff : undefined,
-          endColumn: hasCmdLoc
-            ? (stackFrame.cmdEndPos == 0
-                ? // A command that ends at position zero means "rest of this line"
-                  fileText.split(/\r?\n/)[stackFrame.cmdEndLine + lineDiff - 1].length
-                : stackFrame.cmdEndPos) + 1
-            : undefined,
-        };
-      })
-    );
+        })
+      );
 
-    this._break = false;
-    if (!noStack) {
-      response.body = {
-        stackFrames,
-      };
+      this._break = false;
+      if (!noStack) {
+        response.body = {
+          stackFrames,
+        };
+      }
+      this.sendResponse(response);
+    } catch (error) {
+      this.sendErrorResponse(response, error);
     }
-    this.sendResponse(response);
   }
 
   protected async scopesRequest(
     response: DebugProtocol.ScopesResponse,
     args: DebugProtocol.ScopesArguments
   ): Promise<void> {
-    let scopes = new Array<Scope>();
-    const stackFrame = this._stackFrames.get(args.frameId);
-    if (!stackFrame) {
-      throw new Error(`Unknown frameId ${args.frameId}`);
-    }
-    const contexts = await stackFrame.getContexts();
-    scopes = contexts.map((context) => {
-      const variableId = this._variableIdCounter++;
-      this._contexts.set(variableId, context);
-      if (context.id < this._contextNames.length) {
-        return new Scope(this._contextNames[context.id], variableId);
-      } else {
-        return new Scope(context.name, variableId);
+    try {
+      let scopes = new Array<Scope>();
+      const stackFrame = this._stackFrames.get(args.frameId);
+      if (!stackFrame) {
+        throw new Error(`Unknown frameId ${args.frameId}`);
       }
-    });
-    response.body = {
-      scopes,
-    };
-    this.sendResponse(response);
+      const contexts = await stackFrame.getContexts();
+      scopes = contexts.map((context) => {
+        const variableId = this._variableIdCounter++;
+        this._contexts.set(variableId, context);
+        if (context.id < this._contextNames.length) {
+          return new Scope(this._contextNames[context.id], variableId);
+        } else {
+          return new Scope(context.name, variableId);
+        }
+      });
+      response.body = {
+        scopes,
+      };
+      this.sendResponse(response);
+    } catch (error) {
+      this.sendErrorResponse(response, error);
+    }
   }
 
   protected async variablesRequest(
     response: DebugProtocol.VariablesResponse,
     args: DebugProtocol.VariablesArguments
   ): Promise<void> {
-    const variablesReference = args.variablesReference;
-    let variables = new Array<DebugProtocol.Variable>();
+    try {
+      const variablesReference = args.variablesReference;
+      let variables = new Array<DebugProtocol.Variable>();
 
-    let properties: xdebug.BaseProperty[];
-    if (this._contexts.has(variablesReference)) {
-      // VS Code is requesting the variables for a SCOPE, so we have to do a context_get
-      const context = this._contexts.get(variablesReference);
-      properties = await context.getProperties();
-    } else if (this._properties.has(variablesReference)) {
-      // VS Code is requesting the subelements for a variable, so we have to do a property_get
-      const property = this._properties.get(variablesReference);
-      if (property.hasChildren) {
-        if (property.children.length === property.numberOfChildren) {
-          properties = property.children;
+      let properties: xdebug.BaseProperty[];
+      if (this._contexts.has(variablesReference)) {
+        // VS Code is requesting the variables for a SCOPE, so we have to do a context_get
+        const context = this._contexts.get(variablesReference);
+        properties = await context.getProperties();
+      } else if (this._properties.has(variablesReference)) {
+        // VS Code is requesting the subelements for a variable, so we have to do a property_get
+        const property = this._properties.get(variablesReference);
+        if (property.hasChildren) {
+          if (property.children.length === property.numberOfChildren) {
+            properties = property.children;
+          } else {
+            properties = await property.getChildren();
+          }
         } else {
-          properties = await property.getChildren();
+          properties = [];
         }
+      } else if (this._evalResultProperties.has(variablesReference)) {
+        // the children of properties returned from an eval command are always inlined, so we simply resolve them
+        const property = this._evalResultProperties.get(variablesReference);
+        properties = property.hasChildren ? property.children : [];
       } else {
-        properties = [];
+        throw new Error("Unknown variable reference");
       }
-    } else if (this._evalResultProperties.has(variablesReference)) {
-      // the children of properties returned from an eval command are always inlined, so we simply resolve them
-      const property = this._evalResultProperties.get(variablesReference);
-      properties = property.hasChildren ? property.children : [];
-    } else {
-      throw new Error("Unknown variable reference");
-    }
-    variables = properties.map((property) => {
-      const displayValue = formatPropertyValue(property);
-      let variablesReference: number;
-      let evaluateName: string;
-      if (property.hasChildren || property.type === "array" || property.type === "object") {
-        variablesReference = this._variableIdCounter++;
+      variables = properties.map((property) => {
+        const displayValue = formatPropertyValue(property);
+        let variablesReference: number;
+        let evaluateName: string;
+        if (property.hasChildren || property.type === "array" || property.type === "object") {
+          variablesReference = this._variableIdCounter++;
+          if (property instanceof xdebug.Property) {
+            this._properties.set(variablesReference, property);
+          } else if (property instanceof xdebug.EvalResultProperty) {
+            this._evalResultProperties.set(variablesReference, property);
+          }
+        } else {
+          variablesReference = 0;
+        }
         if (property instanceof xdebug.Property) {
-          this._properties.set(variablesReference, property);
-        } else if (property instanceof xdebug.EvalResultProperty) {
-          this._evalResultProperties.set(variablesReference, property);
+          evaluateName = property.fullName;
+        } else {
+          evaluateName = property.name;
         }
-      } else {
-        variablesReference = 0;
-      }
-      if (property instanceof xdebug.Property) {
-        evaluateName = property.fullName;
-      } else {
-        evaluateName = property.name;
-      }
-      const variable: DebugProtocol.Variable = {
-        name: property.name,
-        value: displayValue,
-        type: property.type,
-        variablesReference,
-        evaluateName,
+        const variable: DebugProtocol.Variable = {
+          name: property.name,
+          value: displayValue,
+          type: property.type,
+          variablesReference,
+          evaluateName,
+        };
+        return variable;
+      });
+      response.body = {
+        variables,
       };
-      return variable;
-    });
-    response.body = {
-      variables,
-    };
-    this.sendResponse(response);
+      this.sendResponse(response);
+    } catch (error) {
+      this.sendErrorResponse(response, error);
+    }
   }
 
   /**
    * Checks the status of a StatusResponse and notifies VS Code accordingly
    * @param {xdebug.StatusResponse} response
    */
-  private async _checkStatus(response: xdebug.StatusResponse): Promise<void> {
+  private _checkStatus(response: xdebug.StatusResponse): void {
     const connection = response.connection;
     this._statuses.set(connection, response);
-    if (response.status === "stopping") {
-      const newResponse = await connection.sendStopCommand();
-      this._checkStatus(newResponse);
-    } else if (response.status === "stopped") {
+    if (response.status === "stopped") {
       this.sendEvent(new ThreadEvent("exited", connection.id));
       connection.close();
       delete this._connection;
@@ -878,79 +899,103 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     response: DebugProtocol.ContinueResponse,
     args: DebugProtocol.ContinueArguments
   ): Promise<void> {
-    this.sendResponse(response);
-    const xdebugResponse = await this._connection.sendRunCommand();
-    this._checkStatus(xdebugResponse);
+    try {
+      const xdebugResponse = await this._connection.sendRunCommand();
+      this.sendResponse(response);
+      this._checkStatus(xdebugResponse);
+    } catch (error) {
+      this.sendErrorResponse(response, error);
+    }
   }
 
   protected async nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): Promise<void> {
-    const xdebugResponse = await this._connection.sendStepOverCommand();
-    this.sendResponse(response);
-    this._checkStatus(xdebugResponse);
+    try {
+      const xdebugResponse = await this._connection.sendStepOverCommand();
+      this.sendResponse(response);
+      this._checkStatus(xdebugResponse);
+    } catch (error) {
+      this.sendErrorResponse(response, error);
+    }
   }
 
   protected async stepInRequest(
     response: DebugProtocol.StepInResponse,
     args: DebugProtocol.StepInArguments
   ): Promise<void> {
-    const xdebugResponse = await this._connection.sendStepIntoCommand();
-    this.sendResponse(response);
-    this._checkStatus(xdebugResponse);
+    try {
+      const xdebugResponse = await this._connection.sendStepIntoCommand();
+      this.sendResponse(response);
+      this._checkStatus(xdebugResponse);
+    } catch (error) {
+      this.sendErrorResponse(response, error);
+    }
   }
 
   protected async stepOutRequest(
     response: DebugProtocol.StepOutResponse,
     args: DebugProtocol.StepOutArguments
   ): Promise<void> {
-    const xdebugResponse = await this._connection.sendStepOutCommand();
-    this.sendResponse(response);
-    this._checkStatus(xdebugResponse);
+    try {
+      const xdebugResponse = await this._connection.sendStepOutCommand();
+      this.sendResponse(response);
+      this._checkStatus(xdebugResponse);
+    } catch (error) {
+      this.sendErrorResponse(response, error);
+    }
   }
 
   protected async evaluateRequest(
     response: DebugProtocol.EvaluateResponse,
     args: DebugProtocol.EvaluateArguments
   ): Promise<void> {
-    const { result } = await this._connection.sendEvalCommand(args.expression);
-    if (result) {
-      const displayValue = formatPropertyValue(result);
-      let variablesReference: number;
-      // if the property has children, generate a variable ID and save the property (including children) so VS Code can request them
-      if (result.hasChildren || result.type === "array" || result.type === "object") {
-        variablesReference = this._variableIdCounter++;
-        this._evalResultProperties.set(variablesReference, result);
+    try {
+      const { result } = await this._connection.sendEvalCommand(args.expression);
+      if (result) {
+        const displayValue = formatPropertyValue(result);
+        let variablesReference: number;
+        // if the property has children, generate a variable ID and save the property (including children) so VS Code can request them
+        if (result.hasChildren || result.type === "array" || result.type === "object") {
+          variablesReference = this._variableIdCounter++;
+          this._evalResultProperties.set(variablesReference, result);
+        } else {
+          variablesReference = 0;
+        }
+        response.body = { result: displayValue, variablesReference };
       } else {
-        variablesReference = 0;
+        response.body = { result: "no result", variablesReference: 0 };
       }
-      response.body = { result: displayValue, variablesReference };
-    } else {
-      response.body = { result: "no result", variablesReference: 0 };
+      this.sendResponse(response);
+    } catch (error) {
+      this.sendErrorResponse(response, error);
     }
-    this.sendResponse(response);
   }
 
   protected async setVariableRequest(
     response: DebugProtocol.SetVariableResponse,
     args: DebugProtocol.SetVariableArguments
   ): Promise<void> {
-    const { value, name, variablesReference } = args;
-    let property = null;
-    if (this._contexts.has(variablesReference)) {
-      // VS Code is requesting the variables for a SCOPE, so we have to do a context_get
-      const context = this._contexts.get(variablesReference);
-      const properties = await context.getProperties();
-      property = properties.find((el) => el.name === name);
-    } else if (this._properties.has(variablesReference)) {
-      // VS Code is requesting the subelements for a variable, so we have to do a property_get
-      property = this._properties.get(variablesReference);
-    }
-    property.value = value;
-    await this._connection.sendPropertySetCommand(property);
+    try {
+      const { value, name, variablesReference } = args;
+      let property = null;
+      if (this._contexts.has(variablesReference)) {
+        // VS Code is requesting the variables for a SCOPE, so we have to do a context_get
+        const context = this._contexts.get(variablesReference);
+        const properties = await context.getProperties();
+        property = properties.find((el) => el.name === name);
+      } else if (this._properties.has(variablesReference)) {
+        // VS Code is requesting the subelements for a variable, so we have to do a property_get
+        property = this._properties.get(variablesReference);
+      }
+      property.value = value;
+      await this._connection.sendPropertySetCommand(property);
 
-    response.body = {
-      value: args.value,
-    };
-    this.sendResponse(response);
+      response.body = {
+        value: args.value,
+      };
+      this.sendResponse(response);
+    } catch (error) {
+      this.sendErrorResponse(response, error);
+    }
   }
 
   protected sendErrorResponse(response: DebugProtocol.Response, error: Error, dest?: ErrorDestination): void;
