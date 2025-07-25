@@ -1856,7 +1856,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         }
       }
     }),
-    ...setUpTestController(),
+    ...setUpTestController(context),
     vscode.commands.registerCommand("vscode-objectscript.reopenInLowCodeEditor", (uri: vscode.Uri) => {
       if (vscode.window.activeTextEditor?.document.uri.toString() == uri.toString()) {
         vscode.commands
