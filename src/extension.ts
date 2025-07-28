@@ -216,7 +216,7 @@ let reporter: TelemetryReporter;
 
 export let checkingConnection = false;
 
-let serverManagerApi: serverManager.ServerManagerAPI;
+export let serverManagerApi: serverManager.ServerManagerAPI;
 
 /** Map of the intersystems.server connection specs we have resolved via the API to that extension */
 const resolvedConnSpecs = new Map<string, any>();
@@ -227,7 +227,11 @@ const resolvedConnSpecs = new Map<string, any>();
  * @param serverName authority element of an isfs uri, or `objectscript.conn.server` property, or the name of a root folder with an `objectscript.conn.docker-compose` property object
  * @param uri if passed, re-check the `objectscript.conn.docker-compose` case in case servermanager API couldn't do that because we're still running our own `activate` method.
  */
-export async function resolveConnectionSpec(serverName: string, uri?: vscode.Uri): Promise<void> {
+export async function resolveConnectionSpec(
+  serverName: string,
+  uri?: vscode.Uri,
+  scope?: vscode.ConfigurationScope
+): Promise<void> {
   if (!serverManagerApi || !serverManagerApi.getServerSpec || serverName === "") {
     return;
   }
@@ -235,14 +239,14 @@ export async function resolveConnectionSpec(serverName: string, uri?: vscode.Uri
     // Already resolved
     return;
   }
-  if (!vscode.workspace.getConfiguration("intersystems.servers", null).has(serverName)) {
+  if (!vscode.workspace.getConfiguration("intersystems.servers", scope).has(serverName)) {
     // When not a defined server see it already resolved as a foldername that matches case-insensitively
     if (getResolvedConnectionSpec(serverName, undefined)) {
       return;
     }
   }
 
-  let connSpec = await serverManagerApi.getServerSpec(serverName);
+  let connSpec = await serverManagerApi.getServerSpec(serverName, scope);
 
   if (!connSpec && uri) {
     // Caller passed uri as a signal to process any docker-compose settings
@@ -302,6 +306,24 @@ async function resolvePassword(serverSpec, ignoreUnauthenticated = false): Promi
       serverSpec.username = serverSpec.username || session.scopes[1];
       serverSpec.password = session.accessToken;
     }
+  }
+}
+
+/** Resolve credentials for `serverName` and returned the complete connection spec if successful */
+export async function resolveUsernameAndPassword(serverName: string, oldSpec: any): Promise<any> {
+  const newSpec: { name: string; username?: string; password?: string } = {
+    name: serverName,
+    username: oldSpec?.username,
+  };
+  await resolvePassword(newSpec, true);
+  if (newSpec.password) {
+    // Update the connection spec
+    resolvedConnSpecs.set(serverName, {
+      ...oldSpec,
+      username: newSpec.username,
+      password: newSpec.password,
+    });
+    return resolvedConnSpecs.get(serverName);
   }
 }
 
@@ -462,25 +484,20 @@ export async function checkConnection(
         if (isUnauthenticated(username)) {
           vscode.window.showErrorMessage(
             `Unauthenticated access rejected by '${api.serverId}'.${
-              !api.externalServer ? " Connection has been disabled." : ""
+              !api.config.serverName ? " Connection has been disabled." : ""
             }`,
             "Dismiss"
           );
-          if (api.externalServer) {
+          if (api.config.serverName) {
             // Attempt to resolve a username and password
-            const newSpec: { name: string; username?: string; password?: string } = {
-              name: api.config.serverName,
-              username,
-            };
-            await resolvePassword(newSpec, true);
-            if (newSpec.password) {
-              // Update the connection spec and try again
+            const oldSpec = getResolvedConnectionSpec(
+              api.config.serverName,
+              vscode.workspace.getConfiguration("intersystems.servers", uri).get(api.config.serverName)
+            );
+            const newSpec = await resolveUsernameAndPassword(api.config.serverName, oldSpec);
+            if (newSpec) {
+              // We were able to resolve credentials, so try again
               await workspaceState.update(wsKey + ":password", newSpec.password);
-              resolvedConnSpecs.set(api.config.serverName, {
-                ...resolvedConnSpecs.get(api.config.serverName),
-                username: newSpec.username,
-                password: newSpec.password,
-              });
               api = new AtelierAPI(apiTarget, false);
               await api
                 .serverInfo(true, serverInfoTimeout)

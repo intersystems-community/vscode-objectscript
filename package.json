@@ -334,6 +334,10 @@
         {
           "command": "vscode-objectscript.openISCDocument",
           "when": "vscode-objectscript.connectActive && workspaceFolderCount != 0"
+        },
+        {
+          "command": "vscode-objectscript.connectFolderToServerNamespace",
+          "when": "!vscode-objectscript.connectActive && vscode-objectscript.explorerRootCount == 0 && workspaceFolderCount != 0"
         }
       ],
       "view/title": [
