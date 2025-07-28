@@ -288,6 +288,10 @@
           "when": "false"
         },
         {
+          "command": "vscode-objectscript.newFile.message",
+          "when": "false"
+        },
+        {
           "command": "vscode-objectscript.importLocalFilesServerSide",
           "when": "false"
         },
@@ -648,6 +652,11 @@
         },
         {
           "command": "vscode-objectscript.newFile.dtl",
+          "when": "workspaceFolderCount != 0",
+          "group": "file"
+        },
+        {
+          "command": "vscode-objectscript.newFile.message",
           "when": "workspaceFolderCount != 0",
           "group": "file"
         }
@@ -1115,6 +1124,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.newFile.dtl",
         "title": "Data Transformation"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.newFile.message",
+        "title": "Interoperability Message"
       },
       {
         "category": "ObjectScript",
