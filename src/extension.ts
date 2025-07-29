@@ -1678,6 +1678,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("newFile.kpi");
       newFile(NewFileType.KPI);
     }),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.message", () => {
+      sendCommandTelemetryEvent("newFile.message");
+      newFile(NewFileType.Message);
+    }),
     vscode.window.registerFileDecorationProvider(fileDecorationProvider),
     vscode.workspace.onDidOpenTextDocument((doc) => !doc.isUntitled && fileDecorationProvider.emitter.fire(doc.uri)),
     vscode.commands.registerCommand("vscode-objectscript.importLocalFilesServerSide", (wsFolderUri) => {
