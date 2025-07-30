@@ -382,9 +382,7 @@ export async function compileOnly(askFlags = false, document?: vscode.TextDocume
 export async function namespaceCompile(askFlags = false): Promise<any> {
   const api = new AtelierAPI();
   const fileTypes = ["*.CLS", "*.MAC", "*.INC", "*.BAS"];
-  if (!config("conn").active) {
-    throw new Error(`No Active Connection`);
-  }
+  if (!api.active) return;
   const confirm = await vscode.window.showWarningMessage(
     `Compiling all files in namespace ${api.ns} might be expensive. Are you sure you want to proceed?`,
     "Cancel",
