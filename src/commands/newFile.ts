@@ -228,6 +228,7 @@ export enum NewFileType {
   DTL = "Data Transformation",
   Rule = "Business Rule",
   KPI = "Business Intelligence KPI",
+  Message = "Interoperability Message",
 }
 
 interface RuleAssistClasses {
@@ -716,7 +717,10 @@ ClassMethod Transform(source As ${sourceCls}, ByRef target As ${targetCls}) As %
       // Prompt for the production, if required
       let production: string;
       if (Object.keys(ruleAssists).length && assistCls in ruleAssists && ruleAssists[assistCls].hasProduction) {
-        const productions: string[] = await api.getEnsClassList(11).then((data) => data.result.content);
+        const productions: string[] = await api
+          .getEnsClassList(11)
+          .then((data) => data.result.content)
+          .catch(() => []);
         if (productions.length) {
           production = await vscode.window.showQuickPick(productions, {
             ignoreFocusOut: true,
@@ -826,6 +830,108 @@ ClassMethod %OnDashboardAction(pAction As %String, pContext As %ZEN.proxyObject)
   #; and can be used to return information.
   Return $$$OK
 }
+
+}
+`;
+    } else if (type == NewFileType.Message) {
+      // Create the prompt for message type
+      inputSteps.push({
+        type: "quickPick",
+        title: "Pick the message type",
+        items: [
+          {
+            label: "Request",
+            value: "Request",
+          },
+          {
+            label: "Response",
+            value: "Response",
+          },
+        ],
+      });
+
+      // Prompt the user
+      const results = await multiStepInput(inputSteps);
+      if (!results) {
+        return;
+      }
+      cls = results[0];
+      const [, desc, msgType] = results;
+
+      let respClass: string;
+      if (msgType == "Request") {
+        // Prompt the user for the response type
+        const respClasses: vscode.QuickPickItem[] = api
+          ? await api
+              .getEnsClassList(4)
+              .then((data) =>
+                data.result.content.map((label: string) => {
+                  return { label };
+                })
+              )
+              .catch(() => [])
+          : [];
+        if (respClasses.length) {
+          // Use a QuickPick
+          respClass = await new Promise((resolve) => {
+            const quickPick = vscode.window.createQuickPick();
+            quickPick.items = respClasses;
+            quickPick.title =
+              "Pick an optional response class for this request. You may also enter a class name that is not in the list and press 'Enter' to use it. Press 'Escape' to skip.";
+            quickPick.ignoreFocusOut = true;
+            quickPick.onDidAccept(() => {
+              const pickedClass = quickPick.selectedItems[0]?.label ?? quickPick.value.trim();
+              if (!quickPick.selectedItems.length) {
+                // The class name came from the value text, so validate it first
+                const validationMsg = validateClassName(pickedClass);
+                if (validationMsg) {
+                  // The class name is invalid
+                  vscode.window.showErrorMessage(
+                    `${validationMsg}. Please pick a class or enter a valid class name.`,
+                    "Dismiss"
+                  );
+                } else {
+                  // The class name is valid
+                  resolve(pickedClass);
+                  quickPick.hide();
+                }
+              } else {
+                // The class name came from an item so no validation is required
+                resolve(pickedClass);
+                quickPick.hide();
+              }
+            });
+            quickPick.onDidHide(() => {
+              resolve(undefined);
+              quickPick.dispose();
+            });
+            quickPick.show();
+          });
+        } else {
+          // Fall back to using an InputBox
+          respClass = await vscode.window.showInputBox({
+            title: "Enter an optional response class for this request. Press 'Escape' to skip.",
+            ignoreFocusOut: true,
+            validateInput: validateClassName,
+          });
+        }
+      }
+
+      // Generate the file's content
+      clsContent = `
+${typeof desc == "string" ? "/// " + desc.replace(/\n/g, "\n/// ") : ""}
+Class ${cls} Extends (%Persistent, Ens.${msgType})
+{
+${
+  respClass
+    ? `
+/// The corresponding response class for this request
+Parameter RESPONSECLASSNAME As CLASSNAME = "${respClass}";`
+    : ""
+}
+
+/// InterSystems IRIS purges message bodies based on the class when the option to purge message bodies is enabled
+Parameter ENSPURGE As BOOLEAN = 1;
 
 }
 `;
