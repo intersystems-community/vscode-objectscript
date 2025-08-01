@@ -1544,6 +1544,11 @@
           "type": "boolean",
           "default": true
         },
+        "objectscript.unitTest.enabled": {
+          "description": "Controls whether the unit testing features are available.",
+          "type": "boolean",
+          "default": true
+        },
         "objectscript.unitTest.relativeTestRoots": {
           "description": "Paths to where client-side test classes are stored. Relative to the workspace folder root.",
           "type": "array",

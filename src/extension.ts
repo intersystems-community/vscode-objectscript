@@ -1881,7 +1881,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         }
       }
     }),
-    ...setUpTestController(),
+    ...setUpTestController(context),
     vscode.commands.registerCommand("vscode-objectscript.reopenInLowCodeEditor", (uri: vscode.Uri) => {
       if (vscode.window.activeTextEditor?.document.uri.toString() == uri.toString()) {
         vscode.commands
@@ -1943,6 +1943,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     "config.autoPreviewXML": String(conf.get("autoPreviewXML")),
     "config.showGeneratedFileDecorations": String(conf.get("showGeneratedFileDecorations")),
     "config.showProposedApiPrompt": String(conf.get("showProposedApiPrompt")),
+    "config.unitTest.enabled": String(conf.get("unitTest.enabled")),
   });
   sendWsFolderTelemetryEvent(vscode.workspace.workspaceFolders);
 
