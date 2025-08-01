@@ -1918,6 +1918,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     "config.autoPreviewXML": String(conf.get("autoPreviewXML")),
     "config.showGeneratedFileDecorations": String(conf.get("showGeneratedFileDecorations")),
     "config.showProposedApiPrompt": String(conf.get("showProposedApiPrompt")),
+    "config.unitTest.enabled": String(conf.get("unitTest.enabled")),
   });
   sendWsFolderTelemetryEvent(vscode.workspace.workspaceFolders);
 
