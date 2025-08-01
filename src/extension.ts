@@ -232,7 +232,7 @@ export async function resolveConnectionSpec(
   uri?: vscode.Uri,
   scope?: vscode.ConfigurationScope
 ): Promise<void> {
-  if (!serverManagerApi || !serverManagerApi.getServerSpec || serverName === "") {
+  if (!serverManagerApi || !serverManagerApi.getServerSpec || !serverName) {
     return;
   }
   if (resolvedConnSpecs.has(serverName)) {
@@ -812,7 +812,7 @@ function sendWsFolderTelemetryEvent(wsFolders: readonly vscode.WorkspaceFolder[]
       scheme: wsFolder.uri.scheme,
       added: String(added),
       isWeb: serverSide ? String(csp) : undefined,
-      isProject: serverSide ? String(project.length) : undefined,
+      isProject: serverSide ? String(project.length > 0) : undefined,
       hasNs: serverSide ? String(typeof ns == "string") : undefined,
       serverVersion: api.active ? api.config.serverVersion : undefined,
       "config.syncLocalChanges": !serverSide ? conf.get("syncLocalChanges") : undefined,
@@ -1169,10 +1169,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.commands.registerCommand("vscode-objectscript.compileFolder", (_file, files) => {
       sendCommandTelemetryEvent("compileFolder");
+      if (!_file && !files?.length) return;
+      files = files ?? [_file];
       Promise.all(files.map((file) => importFileOrFolder(file, false)));
     }),
     vscode.commands.registerCommand("vscode-objectscript.importFolder", (_file, files) => {
       sendCommandTelemetryEvent("importFolder");
+      if (!_file && !files?.length) return;
+      files = files ?? [_file];
       Promise.all(files.map((file) => importFileOrFolder(file, true)));
     }),
     vscode.commands.registerCommand("vscode-objectscript.export", () => {
@@ -1316,7 +1320,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       superclass();
     }),
     vscode.commands.registerCommand("vscode-objectscript.serverActions", () => {
-      sendCommandTelemetryEvent("serverActions"); // TODO remove?
+      sendCommandTelemetryEvent("serverActions");
       serverActions();
     }),
     vscode.commands.registerCommand("vscode-objectscript.touchBar.viewOthers", () => {
@@ -1694,6 +1698,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.newFile.kpi", () => {
       sendCommandTelemetryEvent("newFile.kpi");
       newFile(NewFileType.KPI);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.message", () => {
+      sendCommandTelemetryEvent("newFile.message");
+      newFile(NewFileType.Message);
     }),
     vscode.window.registerFileDecorationProvider(fileDecorationProvider),
     vscode.workspace.onDidOpenTextDocument((doc) => !doc.isUntitled && fileDecorationProvider.emitter.fire(doc.uri)),
