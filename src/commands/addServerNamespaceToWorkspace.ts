@@ -7,7 +7,7 @@ import {
   FILESYSTEM_SCHEMA,
   FILESYSTEM_READONLY_SCHEMA,
   filesystemSchemas,
-  smExtensionId,
+  serverManagerApi,
 } from "../extension";
 import { cspAppsForUri, getWsFolder, handleError, notIsfs } from "../utils";
 import { pickProject } from "./project";
@@ -18,7 +18,6 @@ import { isfsConfig, IsfsUriParam } from "../utils/FileProviderUtil";
  * @returns An object containing `serverName` and `namespace`, or `undefined`.
  */
 export async function pickServerAndNamespace(message?: string): Promise<{ serverName: string; namespace: string }> {
-  const serverManagerApi = await getServerManagerApi();
   if (!serverManagerApi) {
     vscode.window.showErrorMessage(
       `${
@@ -166,22 +165,6 @@ export async function addServerNamespaceToWorkspace(resource?: vscode.Uri): Prom
         }
       });
   }
-}
-
-export async function getServerManagerApi(): Promise<any> {
-  const targetExtension = vscode.extensions.getExtension(smExtensionId);
-  if (!targetExtension) {
-    return undefined;
-  }
-  if (!targetExtension.isActive) {
-    await targetExtension.activate();
-  }
-  const api = targetExtension.exports;
-
-  if (!api) {
-    return undefined;
-  }
-  return api;
 }
 
 /** Prompt the user to fill in the `path` and `query` of `uri`. */

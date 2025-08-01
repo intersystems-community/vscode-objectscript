@@ -140,6 +140,29 @@ export class AtelierAPI {
     this.namespace = namespace;
   }
 
+  /**
+   * Manually set the connection spec for this object,
+   * where `connSpec` is the return value of `getResolvedConnectionSpec()`.
+   */
+  public setConnSpec(serverName: string, connSpec: any): void {
+    const {
+      webServer: { scheme, host, port, pathPrefix = "" },
+      username,
+      password,
+    } = connSpec;
+    this._config.username = username;
+    this._config.password = password;
+    this._config.https = scheme == "https";
+    this._config.host = host;
+    this._config.port = port;
+    this._config.pathPrefix = pathPrefix;
+    this._config.apiVersion = this._config.apiVersion || DEFAULT_API_VERSION;
+    this._config.serverVersion = this._config.serverVersion || DEFAULT_SERVER_VERSION;
+    this._config.docker = false;
+    this._config.active = true;
+    this._config.serverName = serverName;
+  }
+
   public get active(): boolean {
     const { host = "", port = 0 } = this.config;
     return !!this._config.active && host.length > 0 && port > 0;
@@ -185,7 +208,7 @@ export class AtelierAPI {
     this.configName = workspaceFolderName;
     const conn = config("conn", workspaceFolderName);
     let serverName = workspaceFolderName.toLowerCase();
-    if (config("intersystems.servers").has(serverName)) {
+    if (config("intersystems.servers", workspaceFolderName).has(serverName)) {
       this.externalServer = true;
     } else if (
       !(conn["docker-compose"] && extensionContext.extension.extensionKind !== vscode.ExtensionKind.Workspace) &&
