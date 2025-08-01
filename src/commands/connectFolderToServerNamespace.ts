@@ -42,6 +42,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
     items.length === 1 && !items[0].detail
       ? items[0]
       : await vscode.window.showQuickPick(items, { title: "Pick a folder" });
+  if (!pick) return;
   const folder = vscode.workspace.workspaceFolders.find((el) => el.name === pick.label);
   // Get user's choice of server
   const options: vscode.QuickPickOptions = {};
