@@ -676,7 +676,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
                 if (token.isCancellationRequested) {
                   return;
                 }
-                if (project != undefined && file.doc.includes("/")) {
+                if (project && file.doc.includes("/")) {
                   // Check if this web app file is in the project
                   if (!projectList.includes(file.doc.slice(1))) {
                     // This web app file isn't in the project, so ignore its matches
