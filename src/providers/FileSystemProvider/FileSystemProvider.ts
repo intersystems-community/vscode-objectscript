@@ -561,7 +561,11 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           !uri.path.includes("/_vscode/") &&
           vscode.workspace.getConfiguration("objectscript", uri).get("compileOnSave")
         ) {
-          this.compile(uri, entry, update);
+          // Need to return the compile promise because technically the post-save compilation
+          // is part of the "write" operation from VS Code's point of view. This is required
+          // to prevent concurreny issues when VS Code refreshs its internal representaton of
+          // the file system while documents are being compiled.
+          return this.compile(uri, entry, update);
         } else if (update) {
           // The file's contents may have changed as a result of the save,
           // so make sure we notify VS Code and any watchers of the change
@@ -589,7 +593,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           // Force VS Code to refresh the file's contents in the editor UI
           vscode.commands.executeCommand("workbench.action.files.revert");
         }
-      }, 25);
+      }, 75);
     }
   }
 
@@ -875,7 +879,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     this._fireSoon(
       ...(
         await api
-          .actionIndex(Array.from(new Set(...compileList.concat(filesToUpdate))))
+          .actionIndex(Array.from(new Set(compileList.concat(filesToUpdate))))
           .then((data) => data.result.content.flatMap((idx) => (!idx.status.length ? idx.others : [])))
           .catch(() => {
             // Index API returned an error. This should never happen.
