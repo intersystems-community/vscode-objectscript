@@ -57,6 +57,11 @@ export const identifierRegex = /^(?:%|\p{L})[\p{L}\d]*$/u;
  */
 export function stringifyError(error): string {
   try {
+    if (error instanceof AggregateError) {
+      // Need to stringify the inner errors
+      const errs = error.errors.map(stringifyError).filter((s) => s != "");
+      return errs.length ? `AggregateError:\n- ${errs.join("\n- ")}` : "";
+    }
     return (
       error == undefined
         ? ""
