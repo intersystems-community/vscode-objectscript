@@ -769,22 +769,18 @@ async function updateWebAndAbstractDocsCaches(wsFolders: readonly vscode.Workspa
   return Promise.allSettled(
     connections.map(async (connection) => {
       if (!cspApps.has(connection.key)) {
-        cspApps.set(
-          connection.key,
-          await connection.api
-            .getCSPApps()
-            .then((data) => data.result.content ?? [])
-            .catch(() => [])
-        );
+        const apps = await connection.api
+          .getCSPApps()
+          .then((data) => data?.result?.content)
+          .catch(() => undefined);
+        if (apps) cspApps.set(connection.key, apps);
       }
       if (!otherDocExts.has(connection.key)) {
-        otherDocExts.set(
-          connection.key,
-          await connection.api
-            .actionQuery("SELECT Extention FROM %Library.RoutineMgr_DocumentTypes()", [])
-            .then((data) => data.result?.content?.map((e) => e.Extention) ?? [])
-            .catch(() => [])
-        );
+        const exts = await connection.api
+          .actionQuery("SELECT Extention FROM %Library.RoutineMgr_DocumentTypes()", [])
+          .then((data) => data.result?.content?.map((e) => e.Extention))
+          .catch(() => undefined);
+        if (exts) otherDocExts.set(connection.key, exts);
       }
     })
   );
@@ -1598,6 +1594,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           // This unavoidably switches to the File Explorer view, so only do it if isfs folders were found
           vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
         }
+        updateWebAndAbstractDocsCaches(vscode.workspace.workspaceFolders);
       }
       if (affectsConfiguration("objectscript.commentToken")) {
         // Update the language configuration for "objectscript" and "objectscript-macros"
