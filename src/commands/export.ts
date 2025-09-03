@@ -11,6 +11,7 @@ import {
   lastUsedLocalUri,
   notNull,
   outputChannel,
+  displayableUri,
   RateLimiter,
   replaceFile,
   stringifyError,
@@ -96,7 +97,7 @@ async function exportFile(wsFolderUri: vscode.Uri, namespace: string, name: stri
   let fileUri = vscode.Uri.file(fileName);
   if (wsFolderUri.scheme != "file") fileUri = wsFolderUri.with({ path: fileUri.path });
   const log = (status: string) =>
-    outputChannel.appendLine(`Export '${name}' to '${fileUri.toString(true)}' - ${status}`);
+    outputChannel.appendLine(`Export '${name}' to '${displayableUri(fileUri)}' - ${status}`);
 
   try {
     const data = await api.getDoc(name, wsFolderUri);
@@ -380,7 +381,7 @@ export async function exportDocumentsToXMLFile(): Promise<void> {
       const xmlContent = await api.actionXMLExport(documents).then((data) => data.result.content);
       // Save the file
       await replaceFile(uri, xmlContent);
-      outputChannel.appendLine(`Exported to ${uri.scheme == "file" ? uri.fsPath : uri.toString(true)}`);
+      outputChannel.appendLine(`Exported to ${displayableUri(uri)}`);
     }
   } catch (error) {
     handleError(error, "Error executing 'Export Documents to XML File...' command.");

@@ -7,7 +7,7 @@ import {
   serverManagerApi,
   resolveUsernameAndPassword,
 } from "../extension";
-import { handleError, isUnauthenticated, notIsfs } from "../utils";
+import { handleError, isUnauthenticated, notIsfs, displayableUri } from "../utils";
 
 interface ConnSettings {
   server: string;
@@ -131,8 +131,8 @@ export async function connectFolderToServerNamespace(): Promise<void> {
     // the server may be configured at the workspace folder level.
     const answer = await vscode.window.showQuickPick(
       [
-        { label: `Workspace Folder ${folder.name}`, detail: folder.uri.toString(true) },
-        { label: "Workspace File", detail: vscode.workspace.workspaceFile.toString(true) },
+        { label: `Workspace Folder ${folder.name}`, detail: displayableUri(folder.uri) },
+        { label: "Workspace File", detail: displayableUri(vscode.workspace.workspaceFile) },
       ],
       { title: "Store the server connection at the workspace or folder level?" }
     );

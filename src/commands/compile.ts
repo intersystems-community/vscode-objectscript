@@ -181,13 +181,9 @@ What do you want to do?`,
                 // Overwrite
                 return importFile(file, true, true);
               case "Pull Server Changes":
-                outputChannel.appendLine(`${file.name}: Loading changes from server`);
-                outputChannel.show(true);
                 loadChanges([file]);
                 return Promise.reject();
               case "Cancel":
-                outputChannel.appendLine(`${file.name}: Import and Compile canceled by user`);
-                outputChannel.show(true);
                 return Promise.reject();
             }
             return Promise.reject();

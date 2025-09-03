@@ -6,6 +6,7 @@ import {
   handleError,
   methodOffsetToLine,
   notIsfs,
+  displayableUri,
   stripClassMemberNameQuotes,
   uriIsParentOf,
 } from "../utils";
@@ -396,7 +397,7 @@ async function runHandler(
         roots.map((i) => {
           return {
             label: i.label,
-            detail: i.uri.toString(true),
+            detail: displayableUri(i.uri),
             item: i,
           };
         }),
