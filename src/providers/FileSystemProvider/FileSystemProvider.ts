@@ -860,9 +860,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           })
           .catch(() => compileErrorMsg(conf))
     );
-    if (update && !filesToUpdate.includes(compileList[0])) {
-      // This file was just written, the write may have changed its contents, and the compilation
-      // did not change the contents further. Therefore, we must force VS Code to update it.
+    if (update || (file && filesToUpdate.includes(file.fileName))) {
+      // This file was just written and the write may have changed its contents or the
+      // compilation changed its contents. Therefore, we must force VS Code to update it.
       this._notifyOfFileChange(uri);
     }
     // Fire file changed events for all files changed by compilation
