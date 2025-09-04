@@ -3,7 +3,7 @@ import path = require("path");
 import { AtelierAPI } from "../api";
 import { FILESYSTEM_SCHEMA } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
-import { replaceFile, getWsFolder, handleError } from "../utils";
+import { replaceFile, getWsFolder, handleError, displayableUri } from "../utils";
 import { getFileName } from "./export";
 import { getUrisForDocument } from "../utils/documentIndex";
 
@@ -949,7 +949,7 @@ Parameter ENSPURGE As BOOLEAN = 1;
         const inputBox = vscode.window.createInputBox();
         inputBox.ignoreFocusOut = true;
         inputBox.buttons = [{ iconPath: new vscode.ThemeIcon("save-as"), tooltip: "Show 'Save As' dialog" }];
-        inputBox.prompt = `The path is relative to the workspace folder root (${wsFolder.uri.toString(true)}). Intermediate folders that do not exist will be created. Click the 'Save As' icon to open the standard save dialog instead.`;
+        inputBox.prompt = `The path is relative to the workspace folder root (${displayableUri(wsFolder.uri)}). Intermediate folders that do not exist will be created. Click the 'Save As' icon to open the standard save dialog instead.`;
         inputBox.title = "Enter a file path for the new class";
         inputBox.value = localUri.path.slice(wsFolder.uri.path.length);
         inputBox.valueSelection = [inputBox.value.length, inputBox.value.length];

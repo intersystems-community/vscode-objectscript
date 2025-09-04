@@ -108,6 +108,7 @@ import {
   addWsServerRootFolderData,
   getWsFolder,
   exportedUris,
+  displayableUri,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentLinkProvider } from "./providers/DocumentLinkProvider";
@@ -1163,7 +1164,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       } catch (error) {
         handleError(
           error,
-          `Failed to overwrite contents of file '${file.uri.toString(true)}' with server copy of '${file.fileName}'.`
+          `Failed to overwrite contents of file '${displayableUri(file.uri)}' with server copy of '${file.fileName}'.`
         );
       }
     }),

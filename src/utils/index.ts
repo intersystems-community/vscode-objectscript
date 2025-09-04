@@ -966,7 +966,7 @@ export async function getWsFolder(
   return vscode.window
     .showQuickPick(
       folders.map((f) => {
-        return { label: f.name, detail: f.uri.toString(true), f };
+        return { label: f.name, detail: displayableUri(f.uri), f };
       }),
       {
         canPickMany: false,
@@ -1006,7 +1006,7 @@ export async function replaceFile(uri: vscode.Uri, content: string | string[] | 
       : new TextEncoder().encode(Array.isArray(content) ? content.join("\n") : content),
   });
   const success = await vscode.workspace.applyEdit(wsEdit);
-  if (!success) throw `Failed to create or replace contents of file '${uri.toString(true)}'`;
+  if (!success) throw `Failed to create or replace contents of file '${displayableUri(uri)}'`;
 }
 
 /** Show the compilation failure error message if required. */
@@ -1023,6 +1023,11 @@ export function compileErrorMsg(conf: vscode.WorkspaceConfiguration): void {
         outputChannel.show(true);
       }
     });
+}
+
+/** Return a string containing the displayable form of `uri` */
+export function displayableUri(uri: vscode.Uri): string {
+  return uri.scheme == "file" ? uri.fsPath : uri.toString(true);
 }
 
 class Semaphore {
