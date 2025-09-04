@@ -23,14 +23,14 @@ export const outputChannel = vscode.window.createOutputChannel("ObjectScript", o
 
 /**
  * A map of all CSP web apps in a server-namespace.
- * The key is either `serverName:ns`, or `host:port/pathPrefix:ns`, lowercase.
+ * The key is `host:port/pathPrefix[ns]`, lowercase.
  * The value is an array of CSP apps as returned by GET %25SYS/cspapps.
  */
 export const cspApps: Map<string, string[]> = new Map();
 
 /**
  * A map of all Studio Abstract Document extensions in a server-namespace.
- * The key is either `serverName:ns`, or `host:port/pathPrefix:ns`, lowercase.
+ * The key is `host:port/pathPrefix[ns]`, lowercase.
  * The value is lowercase array of file extensions, without the dot.
  */
 export const otherDocExts: Map<string, string[]> = new Map();
@@ -146,7 +146,8 @@ export function cspAppsForUri(uri: vscode.Uri): string[] {
 
 /** Get a list of all CSP web apps in the server-namespace that `api` is connected to. */
 export function cspAppsForApi(api: AtelierAPI): string[] {
-  return cspApps.get(`${api.serverId}:${api.config.ns}`.toLowerCase()) ?? [];
+  const { host, port, pathPrefix, ns } = api.config;
+  return cspApps.get(`${host}:${port}${pathPrefix}[${ns}]`.toLowerCase()) ?? [];
 }
 
 /**
@@ -154,7 +155,8 @@ export function cspAppsForApi(api: AtelierAPI): string[] {
  */
 function otherDocExtsForUri(uri: vscode.Uri): string[] {
   const api = new AtelierAPI(uri);
-  return otherDocExts.get(`${api.serverId}:${api.config.ns}`.toLowerCase()) ?? [];
+  const { host, port, pathPrefix, ns } = api.config;
+  return otherDocExts.get(`${host}:${port}${pathPrefix}[${ns}]`.toLowerCase()) ?? [];
 }
 
 /** Determine the server name of a non-`isfs` non-ObjectScript file (any file that's not CLS,MAC,INT,INC). */
@@ -642,7 +644,8 @@ export async function addWsServerRootFolderData(wsFolders: readonly vscode.Works
       if (value.redirectDotvscode) {
         // We must redirect .vscode Uris for this folder, so see
         // if the web app to do so is configured on the server
-        const key = `${api.serverId}:%SYS`.toLowerCase();
+        const { host, port, pathPrefix, ns } = api.config;
+        const key = `${host}:${port}${pathPrefix}[${ns}]`.toLowerCase();
         let webApps = cspApps.get(key);
         if (!webApps) {
           webApps = await api

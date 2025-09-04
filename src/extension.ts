@@ -761,7 +761,8 @@ async function updateWebAndAbstractDocsCaches(wsFolders: readonly vscode.Workspa
   for (const wsFolder of wsFolders) {
     const api = new AtelierAPI(wsFolder.uri);
     if (!api.active) continue;
-    const key = `${api.serverId}:${api.config.ns}`.toLowerCase();
+    const { host, port, pathPrefix, ns } = api.config;
+    const key = `${host}:${port}${pathPrefix}[${ns}]`.toLowerCase();
     if (keys.has(key)) continue;
     keys.add(key);
     connections.push({ key, api });
