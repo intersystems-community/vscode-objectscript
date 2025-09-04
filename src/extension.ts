@@ -762,7 +762,8 @@ async function updateWebAndAbstractDocsCaches(wsFolders: readonly vscode.Workspa
   for (const wsFolder of wsFolders) {
     const api = new AtelierAPI(wsFolder.uri);
     if (!api.active) continue;
-    const key = `${api.serverId}:${api.config.ns}`.toLowerCase();
+    const { host, port, pathPrefix, ns } = api.config;
+    const key = `${host}:${port}${pathPrefix}[${ns}]`.toLowerCase();
     if (keys.has(key)) continue;
     keys.add(key);
     connections.push({ key, api });
@@ -770,22 +771,18 @@ async function updateWebAndAbstractDocsCaches(wsFolders: readonly vscode.Workspa
   return Promise.allSettled(
     connections.map(async (connection) => {
       if (!cspApps.has(connection.key)) {
-        cspApps.set(
-          connection.key,
-          await connection.api
-            .getCSPApps()
-            .then((data) => data.result.content ?? [])
-            .catch(() => [])
-        );
+        const apps = await connection.api
+          .getCSPApps()
+          .then((data) => data?.result?.content)
+          .catch(() => undefined);
+        if (apps) cspApps.set(connection.key, apps);
       }
       if (!otherDocExts.has(connection.key)) {
-        otherDocExts.set(
-          connection.key,
-          await connection.api
-            .actionQuery("SELECT Extention FROM %Library.RoutineMgr_DocumentTypes()", [])
-            .then((data) => data.result?.content?.map((e) => e.Extention) ?? [])
-            .catch(() => [])
-        );
+        const exts = await connection.api
+          .actionQuery("SELECT Extention FROM %Library.RoutineMgr_DocumentTypes()", [])
+          .then((data) => data.result?.content?.map((e) => e.Extention))
+          .catch(() => undefined);
+        if (exts) otherDocExts.set(connection.key, exts);
       }
     })
   );
@@ -1599,6 +1596,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           // This unavoidably switches to the File Explorer view, so only do it if isfs folders were found
           vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
         }
+        updateWebAndAbstractDocsCaches(vscode.workspace.workspaceFolders);
       }
       if (affectsConfiguration("objectscript.commentToken")) {
         // Update the language configuration for "objectscript" and "objectscript-macros"
