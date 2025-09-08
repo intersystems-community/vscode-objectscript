@@ -184,7 +184,7 @@ export class RootNode extends NodeBase {
     if (category == "CSP" && path == "") {
       // Use the results from the getCSPApps() API
       const cspAppsKey =
-        `${api.config.host}:${api.config.port}${api.config.pathPrefix}:[${api.config.ns}]`.toLowerCase();
+        `${api.config.host}:${api.config.port}${api.config.pathPrefix}[${api.config.ns}]`.toLowerCase();
       let nsCspApps: string[] | undefined = cspApps.get(cspAppsKey);
       if (nsCspApps == undefined) {
         nsCspApps = await api.getCSPApps().then((data) => data.result.content || []);
