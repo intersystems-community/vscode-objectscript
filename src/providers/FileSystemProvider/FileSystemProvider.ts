@@ -489,6 +489,15 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
                 content: base64EncodeContent(contentBuffer),
                 enc: true,
               };
+          if (
+            csp &&
+            !putContent.enc &&
+            putContent.content.length > 1 &&
+            putContent.content[putContent.content.length - 1] == ""
+          ) {
+            // Avoid appending a blank line on every save, which would cause a web app file to grow each time
+            putContent.content.pop();
+          }
           // By the time we get here VS Code's built-in conflict resolution mechanism will already have interacted with the user.
           // Therefore, it's safe to ignore any conflicts.
           return api
