@@ -1,5 +1,21 @@
 # Change Log
 
+## [3.0.6] 09-Sep-2025
+- Enhancements
+  - Add `objectscript.unitTest.enabled` setting (#1627)
+  - Add a `New File...` command for creating an Interoperability Message (#1629)
+  - Add logging for file change events synced to the server in client-side folders (#1643)
+- Fixes
+  - Fix more uncaught errors (#1625)
+  - Better support for server definitions defined at the workspace folder level (#1628)
+  - Fix web application files not being included in server side search results (#1634) (contributed by @psteiwer)
+  - Prevent concurrency-related errors when saving server-side files when source control is enabled (#1637)
+  - Fully stringify `AggregateError` when writing to the Output channel (#1639)
+  - Prevent errors being logged for folder creation or change events when client-side editing (#1643)
+  - Update web application and abstract document caches when connection changes (#1644)
+  - Fix logic that determines when to reload a server-side file's contents after save or compile (#1645)
+  - Don't append extra trailing newlines when saving server-side web app files (#1648)
+
 ## [3.0.5] 21-Jul-2025
 - Enhancements
   - Better telemetry (#1608)
