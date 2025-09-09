@@ -644,8 +644,8 @@ export async function addWsServerRootFolderData(wsFolders: readonly vscode.Works
       if (value.redirectDotvscode) {
         // We must redirect .vscode Uris for this folder, so see
         // if the web app to do so is configured on the server
-        const { host, port, pathPrefix, ns } = api.config;
-        const key = `${host}:${port}${pathPrefix}[${ns}]`.toLowerCase();
+        const { host, port, pathPrefix } = api.config;
+        const key = `${host}:${port}${pathPrefix}[%SYS]`.toLowerCase();
         let webApps = cspApps.get(key);
         if (!webApps) {
           webApps = await api
