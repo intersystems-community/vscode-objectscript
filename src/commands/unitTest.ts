@@ -6,6 +6,7 @@ import {
   handleError,
   methodOffsetToLine,
   notIsfs,
+  displayableUri,
   stripClassMemberNameQuotes,
   uriIsParentOf,
 } from "../utils";
@@ -396,7 +397,7 @@ async function runHandler(
         roots.map((i) => {
           return {
             label: i.label,
-            detail: i.uri.toString(true),
+            detail: displayableUri(i.uri),
             item: i,
           };
         }),
@@ -923,7 +924,27 @@ function configureHandler(): void {
 }
 
 /** Set up the `TestController` and all of its dependencies. */
-export function setUpTestController(): vscode.Disposable[] {
+export function setUpTestController(context: vscode.ExtensionContext): vscode.Disposable[] {
+  // If currently disabled, just create a mechanism to activate when the setting changes
+  if (vscode.workspace.getConfiguration("objectscript.unitTest").get("enabled") === false) {
+    const disposablesWhenDisabled = [
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration("objectscript.unitTest")) {
+          if (vscode.workspace.getConfiguration("objectscript.unitTest").get("enabled") === true) {
+            // Set myself up as active
+            const disposablesWhenEnabled = setUpTestController(context);
+            context.subscriptions.push(...disposablesWhenEnabled);
+            // Clean up after inactive state
+            disposablesWhenDisabled.forEach((disposable) => {
+              disposable.dispose();
+            });
+            return;
+          }
+        }
+      }),
+    ];
+    return disposablesWhenDisabled;
+  }
   // Create and set up the test controller
   const testController = vscode.tests.createTestController(extensionId, "ObjectScript");
   testController.resolveHandler = async (item?: vscode.TestItem) => {
@@ -1049,8 +1070,8 @@ export function setUpTestController(): vscode.Disposable[] {
     return result;
   };
 
-  // Register disposables
-  return [
+  // Gather disposables
+  const disposables = [
     testController,
     runProfile,
     debugProfile,
@@ -1129,5 +1150,25 @@ export function setUpTestController(): vscode.Disposable[] {
         if (await deleteItemForUri(file.oldUri)) addItemForClassUri(testController, file.newUri);
       })
     ),
+  ];
+
+  return [
+    ...disposables,
+    // Add a listener to disable myself if the setting changes
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("objectscript.unitTest")) {
+        if (vscode.workspace.getConfiguration("objectscript.unitTest").get("enabled") === false) {
+          // Remove my active self and clean up
+          testController.dispose();
+          disposables.forEach((disposable) => {
+            disposable.dispose();
+          });
+          // Create a stub self that will reactivate when enabled again
+          const disposablesWhenEnabled = setUpTestController(context);
+          context.subscriptions.push(...disposablesWhenEnabled);
+          return;
+        }
+      }
+    }),
   ];
 }

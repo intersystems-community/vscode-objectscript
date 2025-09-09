@@ -92,6 +92,7 @@ export async function importFile(
   ignoreConflict?: boolean,
   skipDeplCheck = false
 ): Promise<any> {
+  if (!file) return;
   const api = new AtelierAPI(file.uri);
   if (!api.active) return;
   if (file.name.split(".").pop().toLowerCase() === "cls" && !skipDeplCheck) {
@@ -180,13 +181,9 @@ What do you want to do?`,
                 // Overwrite
                 return importFile(file, true, true);
               case "Pull Server Changes":
-                outputChannel.appendLine(`${file.name}: Loading changes from server`);
-                outputChannel.show(true);
                 loadChanges([file]);
                 return Promise.reject();
               case "Cancel":
-                outputChannel.appendLine(`${file.name}: Import and Compile canceled by user`);
-                outputChannel.show(true);
                 return Promise.reject();
             }
             return Promise.reject();
@@ -277,6 +274,8 @@ export async function loadChanges(
 }
 
 export async function compile(docs: EitherCurrentFile[], flags?: string): Promise<any> {
+  docs = docs.filter(notNull);
+  if (!docs.length) return;
   const wsFolder = vscode.workspace.getWorkspaceFolder(docs[0].uri);
   const conf = vscode.workspace.getConfiguration("objectscript", wsFolder || docs[0].uri);
   flags = flags || conf.get("compileFlags");
@@ -399,9 +398,7 @@ export async function compileOnly(askFlags = false, document?: vscode.TextDocume
 export async function namespaceCompile(askFlags = false): Promise<any> {
   const api = new AtelierAPI();
   const fileTypes = ["*.CLS", "*.MAC", "*.INC", "*.BAS"];
-  if (!config("conn").active) {
-    throw new Error(`No Active Connection`);
-  }
+  if (!api.active) return;
   const confirm = await vscode.window.showWarningMessage(
     `Compiling all files in namespace ${api.ns} might be expensive. Are you sure you want to proceed?`,
     "Cancel",
@@ -457,18 +454,20 @@ async function importFiles(files: vscode.Uri[], noCompile = false) {
       rateLimiter.call(async () => {
         return vscode.workspace.fs
           .readFile(uri)
-          .then((contentBytes) => {
-            if (isText(uri.path.split("/").pop(), Buffer.from(contentBytes))) {
-              const textFile = currentFileFromContent(uri, new TextDecoder().decode(contentBytes));
-              toCompile.push(textFile);
-              return textFile;
-            } else {
-              return currentFileFromContent(uri, Buffer.from(contentBytes));
+          .then((contentBytes) =>
+            currentFileFromContent(
+              uri,
+              isText(uri.path.split("/").pop(), Buffer.from(contentBytes))
+                ? new TextDecoder().decode(contentBytes)
+                : Buffer.from(contentBytes)
+            )
+          )
+          .then((curFile) => {
+            if (curFile) {
+              if (typeof curFile.content == "string") toCompile.push(curFile); // Only compile text files
+              return importFile(curFile).then(() => outputChannel.appendLine("Imported file: " + curFile.fileName));
             }
-          })
-          .then((curFile) =>
-            importFile(curFile).then(() => outputChannel.appendLine("Imported file: " + curFile.fileName))
-          );
+          });
       })
     )
   );
@@ -480,6 +479,7 @@ async function importFiles(files: vscode.Uri[], noCompile = false) {
 }
 
 export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<any> {
+  if (!(uri instanceof vscode.Uri)) return;
   if (filesystemSchemas.includes(uri.scheme)) return; // Not for server-side URIs
   if ((await vscode.workspace.fs.stat(uri)).type != vscode.FileType.Directory) {
     return importFiles([uri], noCompile);

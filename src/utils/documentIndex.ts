@@ -10,6 +10,7 @@ import {
   notIsfs,
   openLowCodeEditors,
   outputChannel,
+  displayableUri,
 } from ".";
 import { isText } from "istextorbinary";
 import { AtelierAPI } from "../api";
@@ -66,11 +67,11 @@ async function getCurrentFile(
     // or a TypeError from decode(). Don't log TypeError
     // since the file may be a non-text file that has
     // an extension that we interpret as text (like cls or mac).
-    // Also don't log "FileNotFound" errors, which are probably
-    // caused by concurrency issues. We should ignore such files
-    // rather than alerting the user.
-    if (error instanceof vscode.FileSystemError && error.code != "FileNotFound") {
-      outputChannel.appendLine(`Failed to read contents of '${uri.toString(true)}': ${error.toString()}`);
+    // Don't log "FileNotFound" errors, which are probably
+    // caused by concurrency issues, or "FileIsADirectory"
+    // issues, since we don't care about directories.
+    if (error instanceof vscode.FileSystemError && !["FileNotFound", "FileIsADirectory"].includes(error.code)) {
+      outputChannel.appendLine(`Failed to read contents of '${displayableUri(uri)}': ${error.toString()}`);
     }
   }
 }
@@ -113,17 +114,9 @@ function generateDeleteFn(wsFolderUri: vscode.Uri): (doc: string) => void {
       docs.length = 0;
       api.deleteDocs(docsCopy).then((data) => {
         let failed = 0;
+        const ts = tsString();
         for (const doc of data.result) {
-          if (doc.status != "" && !doc.status.includes("#16005:")) {
-            // The document was not deleted, so log the error.
-            // Error 16005 means we tried to delete a document
-            // that didn't exist. Since the purpose of this
-            // call was to delete the document, and at the
-            // end the document isn't there, we should ignore
-            // this error so the user doesn't get confused.
-            failed++;
-            outputChannel.appendLine(`${failed == 1 ? "\n" : ""}${doc.status}`);
-          }
+          failed += outputDelete(doc.name, doc.status, ts);
         }
         if (failed > 0) {
           outputChannel.show(true);
@@ -148,6 +141,37 @@ export function storeTouchedByVSCode(uri: vscode.Uri): void {
   if (wsFolder && notIsfs(wsFolder.uri) && uri.scheme == wsFolder.uri.scheme) {
     touchedByVSCode.add(uri.toString());
   }
+}
+
+/** Create a timestamp string for use in a log entry */
+function tsString(): string {
+  const date = new Date();
+  return `${date.toISOString().split("T").shift()} ${date.toLocaleTimeString(undefined, { hour12: false })}`;
+}
+
+/** Output a log entry */
+function output(docName: string, msg: string, ts?: string): void {
+  outputChannel.appendLine(`${ts ?? tsString()} [${docName}] ${msg}`);
+}
+
+/** Output a log entry for a successful import */
+function outputImport(docName: string, uri: vscode.Uri): void {
+  output(docName, `Imported from '${displayableUri(uri)}'`);
+}
+
+/**
+ * Output a log entry for a successful or failed delete.
+ * Does not output a log entry if the file did not exist on the server.
+ * Returns `1` if the deleton failed, else `0`.
+ */
+function outputDelete(docName: string, status: string, ts: string): number {
+  if (status == "") {
+    output(docName, "Deleted", ts);
+  } else if (!status.includes("#16005:")) {
+    output(docName, `Deletion failed: ${status}`, ts);
+    return 1;
+  }
+  return 0;
 }
 
 /** Create index of `wsFolder` and set up a `FileSystemWatcher` to keep the index up to date */
@@ -183,6 +207,10 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       // for both watchers, but VS Code will correctly report that the file
       // is in the subfolder workspace folder, so the parent watcher can
       // safely ignore the event.
+      return;
+    }
+    if (!uri.path.split("/").pop().includes(".")) {
+      // Ignore creation and change events for folders
       return;
     }
     const uriString = uri.toString();
@@ -227,13 +255,16 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       change = await updateIndexForDocument(uri, documents, uris);
     } else if (sync && isImportableLocalFile(uri)) {
       change.addedOrChanged = await getCurrentFile(uri);
-      sendClientSideSyncTelemetryEvent(change.addedOrChanged.fileName.split(".").pop().toLowerCase());
+      if (change.addedOrChanged?.fileName) {
+        sendClientSideSyncTelemetryEvent(change.addedOrChanged.fileName.split(".").pop().toLowerCase());
+      }
     }
     if (!sync || (!change.addedOrChanged && !change.removed)) return;
     if (change.addedOrChanged) {
       // Create or update the document on the server
       importFile(change.addedOrChanged)
         .then(() => {
+          outputImport(change.addedOrChanged.name, uri);
           if (conf.get("compileOnSave")) {
             // Compile right away if this document is in the active text editor.
             // This is needed to avoid noticeable latency when a user is editing

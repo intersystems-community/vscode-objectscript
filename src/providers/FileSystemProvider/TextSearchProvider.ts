@@ -3,7 +3,7 @@ import { makeRe } from "minimatch";
 import { AsyncSearchRequest, SearchResult, SearchMatch } from "../../api/atelier";
 import { AtelierAPI } from "../../api";
 import { DocumentContentProvider } from "../DocumentContentProvider";
-import { handleError, notNull, outputChannel, RateLimiter } from "../../utils";
+import { handleError, notNull, outputChannel, RateLimiter, stringifyError } from "../../utils";
 import { fileSpecFromURI, isfsConfig, IsfsUriParam } from "../../utils/FileProviderUtil";
 
 /**
@@ -235,8 +235,9 @@ async function processSearchResults(
     fileResults
       .filter((r) => r.status == "rejected")
       .forEach((r: PromiseRejectedResult) => {
-        outputChannel.appendLine(typeof r.reason == "object" ? r.reason.toString() : String(r.reason));
+        outputChannel.appendLine(stringifyError(r));
       });
+    outputChannel.show(true);
     message = {
       text: `Failed to display results from ${rejected} file${
         rejected > 1 ? "s" : ""
@@ -675,7 +676,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
                 if (token.isCancellationRequested) {
                   return;
                 }
-                if (project != undefined && file.doc.includes("/")) {
+                if (project && file.doc.includes("/")) {
                   // Check if this web app file is in the project
                   if (!projectList.includes(file.doc.slice(1))) {
                     // This web app file isn't in the project, so ignore its matches

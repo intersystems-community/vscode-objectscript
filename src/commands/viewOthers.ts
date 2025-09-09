@@ -53,7 +53,7 @@ export async function viewOthers(forceEditable = false): Promise<void> {
                 const methodlinetext: string = doc.lineAt(methodlinenum).text.trim();
                 if (methodlinetext.endsWith("{")) {
                   // This is the last line of the method definition, so count from here
-                  const selectionline: number = methodlinenum + +loc.slice(loc.lastIndexOf("+") + 1);
+                  const selectionline: number = methodlinenum + (+loc.slice(loc.lastIndexOf("+") + 1) || 0);
                   options.selection = new vscode.Range(selectionline, 0, selectionline, 0);
                   break;
                 }
@@ -68,7 +68,7 @@ export async function viewOthers(forceEditable = false): Promise<void> {
           loc = loc.slice(0, loc.lastIndexOf("+"));
         }
         // Locations in INT routines are of the format +offset
-        const linenum: number = +loc.slice(1);
+        const linenum: number = +loc.slice(1) || 0;
         options.selection = new vscode.Range(linenum, 0, linenum, 0);
       }
       vscode.window.showTextDocument(uri, options);

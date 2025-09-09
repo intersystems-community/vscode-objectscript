@@ -183,11 +183,8 @@ export class RootNode extends NodeBase {
     api.setNamespace(this.namespace);
     if (category == "CSP" && path == "") {
       // Use the results from the getCSPApps() API
-      const cspAppsKey = (
-        api.config.serverName && api.config.serverName != ""
-          ? `${api.config.serverName}:${api.config.ns}`
-          : `${api.config.host}:${api.config.port}${api.config.pathPrefix}:${api.config.ns}`
-      ).toLowerCase();
+      const cspAppsKey =
+        `${api.config.host}:${api.config.port}${api.config.pathPrefix}[${api.config.ns}]`.toLowerCase();
       let nsCspApps: string[] | undefined = cspApps.get(cspAppsKey);
       if (nsCspApps == undefined) {
         nsCspApps = await api.getCSPApps().then((data) => data.result.content || []);

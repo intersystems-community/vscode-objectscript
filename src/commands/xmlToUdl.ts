@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import path = require("path");
 import { config, OBJECTSCRIPTXML_FILE_SCHEMA, xmlContentProvider } from "../extension";
 import { AtelierAPI } from "../api";
-import { replaceFile, fileExists, getWsFolder, handleError, notIsfs, outputChannel } from "../utils";
+import { replaceFile, fileExists, getWsFolder, handleError, notIsfs, outputChannel, displayableUri } from "../utils";
 import { getFileName } from "./export";
 
 const exportHeader = /^\s*<Export generator="(Cache|IRIS)" version="\d+"/;
@@ -10,6 +10,7 @@ const exportHeader = /^\s*<Export generator="(Cache|IRIS)" version="\d+"/;
 export async function previewXMLAsUDL(textEditor: vscode.TextEditor, auto = false): Promise<void> {
   const uri = textEditor.document.uri;
   const content = textEditor.document.getText();
+  const uriString = displayableUri(uri);
   if (notIsfs(uri) && uri.path.toLowerCase().endsWith("xml") && textEditor.document.lineCount > 2) {
     if (exportHeader.test(textEditor.document.lineAt(1).text)) {
       const api = new AtelierAPI(uri);
@@ -23,10 +24,7 @@ export async function previewXMLAsUDL(textEditor: vscode.TextEditor, auto = fals
           .cvtXmlUdl(content)
           .then((data) => data.result.content);
         if (udlDocs.length == 0) {
-          vscode.window.showErrorMessage(
-            `File '${uri.toString(true)}' contains no documents that can be previewed.`,
-            "Dismiss"
-          );
+          vscode.window.showErrorMessage(`File '${uriString}' contains no documents that can be previewed.`, "Dismiss");
           return;
         }
         // Prompt the user for documents to preview
@@ -77,7 +75,7 @@ export async function previewXMLAsUDL(textEditor: vscode.TextEditor, auto = fals
         handleError(error, "Error executing 'Preview XML as UDL' command.");
       }
     } else if (!auto) {
-      vscode.window.showErrorMessage(`XML file '${uri.toString(true)}' is not an InterSystems export.`, "Dismiss");
+      vscode.window.showErrorMessage(`XML file '${uriString}' is not an InterSystems export.`, "Dismiss");
     }
   }
 }
@@ -137,8 +135,9 @@ export async function extractXMLFileContents(xmlUri?: vscode.Uri): Promise<void>
     }
     // Read the XML file
     const xmlContent = new TextDecoder().decode(await vscode.workspace.fs.readFile(xmlUri)).split(/\r?\n/);
+    const xmlUriString = displayableUri(xmlUri);
     if (xmlContent.length < 3 || !exportHeader.test(xmlContent[1])) {
-      vscode.window.showErrorMessage(`XML file '${xmlUri.toString(true)}' is not an InterSystems export.`, "Dismiss");
+      vscode.window.showErrorMessage(`XML file '${xmlUriString}' is not an InterSystems export.`, "Dismiss");
       return;
     }
     // Convert the file
@@ -146,10 +145,7 @@ export async function extractXMLFileContents(xmlUri?: vscode.Uri): Promise<void>
       .cvtXmlUdl(xmlContent.join("\n"))
       .then((data) => data.result.content);
     if (udlDocs.length == 0) {
-      vscode.window.showErrorMessage(
-        `File '${xmlUri.toString(true)}' contains no documents that can be extracted.`,
-        "Dismiss"
-      );
+      vscode.window.showErrorMessage(`File '${xmlUriString}' contains no documents that can be extracted.`, "Dismiss");
       return;
     }
     // Prompt the user for documents to extract
@@ -177,7 +173,7 @@ export async function extractXMLFileContents(xmlUri?: vscode.Uri): Promise<void>
       if (!docWhitelist.includes(udlDoc.name)) continue; // This file wasn't selected
       const fileUri = wsFolder.uri.with({ path: getFileName(rootFolder, udlDoc.name, atelier, addCategory, map, "/") });
       if (await fileExists(fileUri)) {
-        outputChannel.appendLine(`File '${fileUri.toString(true)}' already exists.`);
+        outputChannel.appendLine(`File '${displayableUri(fileUri)}' already exists.`);
         errs++;
         continue;
       }
