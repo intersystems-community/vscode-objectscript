@@ -1,18 +1,9 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { cspApps, currentWorkspaceFolder, notIsfs, uriOfWorkspaceFolder } from "../utils";
+import { cspApps, currentWorkspaceFolder, notIsfs, stringifyError, uriOfWorkspaceFolder } from "../utils";
 import { StudioActions, OtherStudioAction } from "../commands/studio";
 import { config, workspaceState } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
-
-type IconPath =
-  | string
-  | vscode.Uri
-  | {
-      light: string | vscode.Uri;
-      dark: string | vscode.Uri;
-    }
-  | vscode.ThemeIcon;
 
 interface NodeOptions {
   extraNode?: boolean;
@@ -48,6 +39,8 @@ function getLeafNodeUri(node: NodeBase, forceServerCopy = false): vscode.Uri {
     );
   }
 }
+
+const inactiveMsg = "Server connection is inactive";
 
 export class NodeBase {
   public readonly options: NodeOptions;
@@ -104,7 +97,7 @@ export class RootNode extends NodeBase {
   public readonly contextValue: string;
   private readonly _category: string;
   private readonly isCsp: boolean;
-  private readonly iconPath: IconPath;
+  private readonly iconPath: vscode.ThemeIcon;
 
   public constructor(
     label: string,
@@ -113,7 +106,7 @@ export class RootNode extends NodeBase {
     category: string,
     options: NodeOptions,
     isCsp = false,
-    iconPath?: IconPath
+    iconPath?: vscode.ThemeIcon
   ) {
     super(label, fullName, options);
     this.contextValue = contextValue;
@@ -138,7 +131,51 @@ export class RootNode extends NodeBase {
 
   public async getChildren(element: NodeBase): Promise<NodeBase[]> {
     const path = this instanceof PackageNode || this.isCsp ? this.fullName + "/" : "";
-    return this.getItems(path, this._category);
+    return this.getList(path, this._category, false)
+      .then((data) =>
+        data
+          .filter((el) => {
+            if (this._category === "OTH") {
+              return el.Type === "100";
+            } else if (this._category === "CSP") {
+              return el.Type === "10" || el.Type === "5";
+            } else {
+              return true;
+            }
+          })
+          .map((el) => {
+            switch (el.Type) {
+              case "9":
+                return new PackageNode(el.Name, el.fullName, this._category, this.options);
+              case "4":
+              case "100":
+                return new ClassNode(el.Name, el.fullName, this.options);
+              case "5":
+                return new CSPFileNode(el.Name, el.fullName, this.options);
+              case "0":
+              case "1":
+              case "2":
+              case "3":
+              case "11":
+                return new RoutineNode(el.Name, el.fullName, this.options);
+              case "10":
+                return new RootNode(
+                  el.Name,
+                  el.fullName,
+                  "dataNode:cspApplication",
+                  this._category,
+                  this.options,
+                  true
+                );
+              default:
+                return null;
+            }
+          })
+          .filter((el) => el !== null)
+      )
+      .catch((error) => [
+        error == inactiveMsg ? new InactiveNode("", "", {}) : new ErrorNode(stringifyError(error), "", {}),
+      ]);
   }
 
   public async getList(
@@ -180,6 +217,7 @@ export class RootNode extends NodeBase {
     const systemFiles = this.options.system || this.namespace === "%SYS" ? "1" : "0";
 
     const api = new AtelierAPI(this.workspaceFolder);
+    if (!api.active) throw inactiveMsg;
     api.setNamespace(this.namespace);
     if (category == "CSP" && path == "") {
       // Use the results from the getCSPApps() API
@@ -217,43 +255,6 @@ export class RootNode extends NodeBase {
           })
         );
     }
-  }
-
-  public getItems(path: string, category: string): Promise<NodeBase[]> {
-    return this.getList(path, category, false).then((data) =>
-      data
-        .filter((el) => {
-          if (category === "OTH") {
-            return el.Type === "100";
-          } else if (category === "CSP") {
-            return el.Type === "10" || el.Type === "5";
-          } else {
-            return true;
-          }
-        })
-        .map((el) => {
-          switch (el.Type) {
-            case "9":
-              return new PackageNode(el.Name, el.fullName, category, this.options);
-            case "4":
-            case "100":
-              return new ClassNode(el.Name, el.fullName, this.options);
-            case "5":
-              return new CSPFileNode(el.Name, el.fullName, this.options);
-            case "0":
-            case "1":
-            case "2":
-            case "3":
-            case "11":
-              return new RoutineNode(el.Name, el.fullName, this.options);
-            case "10":
-              return new RootNode(el.Name, el.fullName, "dataNode:cspApplication", this._category, this.options, true);
-            default:
-              return null;
-          }
-        })
-        .filter((el) => el !== null)
-    );
   }
 
   public getItems4Export(): Promise<string[]> {
@@ -399,6 +400,7 @@ export class WorkspaceNode extends NodeBase {
   }
 
   public async getChildren(_element: NodeBase): Promise<NodeBase[]> {
+    if (!new AtelierAPI(this.workspaceFolder).active) return [new InactiveNode("", "", {})];
     const children = [];
     let node: RootNode;
 
@@ -553,8 +555,9 @@ export class ProjectNode extends NodeBase {
 }
 
 export class ProjectRootNode extends RootNode {
-  public getChildren(element: NodeBase): Promise<NodeBase[]> {
+  public async getChildren(element: NodeBase): Promise<NodeBase[]> {
     const api = new AtelierAPI(this.workspaceFolderUri);
+    if (!api.active) return [new InactiveNode("", "", {})];
     api.setNamespace(this.namespace);
     let query: string;
     let parameters: string[];
@@ -646,45 +649,11 @@ export class ProjectRootNode extends RootNode {
             }
           }
         })
-      );
+      )
+      .catch((error) => [new ErrorNode(stringifyError(error), "", {})]);
   }
   public getItems4Export(): Promise<string[]> {
     return Promise.resolve([]);
-  }
-}
-
-export class ProjectsServerNode extends NodeBase {
-  public eventEmitter: vscode.EventEmitter<NodeBase>;
-  public uniqueId: string;
-  public constructor(label: string, eventEmitter: vscode.EventEmitter<NodeBase>, wsUri: vscode.Uri) {
-    super(label, label, { workspaceFolderUri: wsUri });
-    this.uniqueId = `projectsServerNode:${this.workspaceFolder}`;
-    this.eventEmitter = eventEmitter;
-  }
-
-  public getTreeItem(): vscode.TreeItem {
-    const { host, port, pathPrefix, serverName } = this.conn;
-    return {
-      collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
-      contextValue: this.uniqueId,
-      label: `${
-        serverName && serverName.length ? serverName : `${host}:${port}${pathPrefix}`
-      }:${this.namespace.toUpperCase()}`,
-      iconPath: new vscode.ThemeIcon("server-environment"),
-      tooltip: "Explore projects in this server namespace",
-    };
-  }
-
-  public async getChildren(element: NodeBase): Promise<NodeBase[]> {
-    const api = new AtelierAPI(this.workspaceFolderUri);
-    api.setNamespace(this.namespace);
-    return api
-      .actionQuery("SELECT Name, Description FROM %Studio.Project", [])
-      .then((data) =>
-        data.result.content.map(
-          (project) => new ProjectNode(project.Name, { project: project.Name, ...this.options }, project.Description)
-        )
-      );
   }
 }
 
@@ -711,6 +680,7 @@ export class ProjectsServerNsNode extends NodeBase {
 
   public async getChildren(element: NodeBase): Promise<NodeBase[]> {
     const api = new AtelierAPI(this.workspaceFolderUri);
+    if (!api.active) return [new InactiveNode("", "", {})];
     api.setNamespace(this.namespace);
     return api
       .actionQuery("SELECT Name, Description FROM %Studio.Project", [])
@@ -718,6 +688,44 @@ export class ProjectsServerNsNode extends NodeBase {
         data.result.content.map(
           (project) => new ProjectNode(project.Name, { project: project.Name, ...this.options }, project.Description)
         )
-      );
+      )
+      .catch((error) => [new ErrorNode(stringifyError(error), "", {})]);
+  }
+}
+
+/** Used to show that a server connection is inactive */
+class InactiveNode extends NodeBase {
+  public constructor(label: string, fullName: string, options: NodeOptions) {
+    super(label, fullName, options);
+  }
+  public getTreeItem(): vscode.TreeItem {
+    return {
+      collapsibleState: vscode.TreeItemCollapsibleState.None,
+      contextValue: "inactiveNode",
+      label: inactiveMsg,
+      iconPath: new vscode.ThemeIcon("warning", new vscode.ThemeColor("problemsWarningIcon.foreground")),
+    };
+  }
+  public getItems4Export(): Promise<string[]> {
+    return Promise.resolve([]);
+  }
+}
+
+/** Used to bubble up an error to the user */
+class ErrorNode extends NodeBase {
+  public constructor(label: string, fullName: string, options: NodeOptions) {
+    super(label, fullName, options);
+  }
+  public getTreeItem(): vscode.TreeItem {
+    return {
+      collapsibleState: vscode.TreeItemCollapsibleState.None,
+      contextValue: "errorNode",
+      label: "Error fetching children",
+      tooltip: new vscode.MarkdownString(this.label),
+      iconPath: new vscode.ThemeIcon("error", new vscode.ThemeColor("problemsErrorIcon.foreground")),
+    };
+  }
+  public getItems4Export(): Promise<string[]> {
+    return Promise.resolve([]);
   }
 }
