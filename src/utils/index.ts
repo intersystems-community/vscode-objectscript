@@ -52,13 +52,13 @@ export const exportedUris: Set<string> = new Set();
 export const identifierRegex = /^(?:%|\p{L})[\p{L}\d]*$/u;
 
 /**
- * Return a string represenattion of `error`.
+ * Return a string representation of `error`.
  * If `error` is `undefined`, returns the empty string.
  */
 export function stringifyError(error): string {
   try {
-    if (error instanceof AggregateError) {
-      // Need to stringify the inner errors
+    if (Array.isArray(error?.errors)) {
+      // Need to stringify the inner errors of an AggregateError
       const errs = error.errors.map(stringifyError).filter((s) => s != "");
       return errs.length ? `AggregateError:\n- ${errs.join("\n- ")}` : "";
     }
