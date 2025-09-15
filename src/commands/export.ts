@@ -274,9 +274,13 @@ Would you like to continue?`,
       return;
     }
   }
-  return Promise.all(nodes.map((node) => node.getItems4Export())).then((items) => {
-    return exportList(items.flat(), node.workspaceFolder, nodeNs).then(() => explorerProvider.refresh());
-  });
+  return Promise.all(nodes.map((node) => node.getItems4Export()))
+    .then((items) => {
+      return exportList(items.flat(), node.workspaceFolder, nodeNs).then(() => explorerProvider.refresh());
+    })
+    .catch((error) => {
+      handleError(error, "Error exporting Explorer items.");
+    });
 }
 
 export async function exportCurrentFile(): Promise<any> {
