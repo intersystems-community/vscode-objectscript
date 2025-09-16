@@ -19,11 +19,7 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
       .then(() => vscode.commands.executeCommand<void>("workbench.action.reopenTextEditor"));
   }
 
-  async resolveCustomTextEditor(
-    document: vscode.TextDocument,
-    webviewPanel: vscode.WebviewPanel,
-    token: vscode.CancellationToken
-  ): Promise<void> {
+  async resolveCustomTextEditor(document: vscode.TextDocument, webviewPanel: vscode.WebviewPanel): Promise<void> {
     // Check that document is a clean, well-formed class
     if (document.languageId != clsLangId) {
       return this._errorMessage(`${document.fileName} is not a class.`);
@@ -38,12 +34,11 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
     if (!file) {
       return this._errorMessage(`${document.fileName} is a malformed class definition.`);
     }
-    if (!vscode.workspace.fs.isWritableFileSystem(document.uri.scheme)) {
+    const api = new AtelierAPI(document.uri);
+    if (!vscode.workspace.fs.isWritableFileSystem(document.uri.scheme) && lt(api.config.serverVersion, "2025.3.0")) {
       return this._errorMessage(`File system '${document.uri.scheme}' is read-only.`);
     }
-
     const className = file.name.slice(0, -4);
-    const api = new AtelierAPI(document.uri);
     if (!api.active) {
       return this._errorMessage("Server connection is not active.");
     }
@@ -108,7 +103,7 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
       </head>
       <body>
       <div id="content">
-        <iframe id="editor" title="Low-Code Editor" src="${targetOrigin}${api.config.pathPrefix}${webApp}/index.html?$NAMESPACE=${api.config.ns.toUpperCase()}&VSCODE=1&${
+        <iframe id="editor" title="Low-Code Editor" src="${targetOrigin}${api.config.pathPrefix}${webApp}/index.html?$NAMESPACE=${api.config.ns.toUpperCase()}&VSCODE=1${!vscode.workspace.fs.isWritableFileSystem(document.uri.scheme) ? "&READONLY=1" : ""}&${
           webApp == this._rule ? "rule" : "DTL"
         }=${className}" width="100%" height="100%" frameborder="0"></iframe>
       </div>
