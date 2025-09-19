@@ -110,7 +110,9 @@ export function outputConsole(data: string[]): void {
 }
 
 export interface CurrentFile {
+  /** The name of the document, like `User.Test.cls` */
   name: string;
+  /** `uri.fsPath` */
   fileName: string;
   uri: vscode.Uri;
   unredirectedUri?: vscode.Uri;

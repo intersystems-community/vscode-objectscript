@@ -225,7 +225,11 @@
         },
         {
           "command": "vscode-objectscript.showClassDocumentationPreview",
-          "when": "editorLangId == objectscript-class && activeCustomEditorId == ''"
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.showAllClassMembers",
+          "when": "false"
         },
         {
           "command": "vscode-objectscript.exportCurrentFile",
@@ -535,14 +539,14 @@
           "command": "vscode-objectscript.showClassDocumentationPreview",
           "group": "navigation@3",
           "when": "editorLangId == objectscript-class && activeCustomEditorId == ''"
+        },
+        {
+          "command": "vscode-objectscript.showAllClassMembers",
+          "group": "navigation@0.9",
+          "when": "vscode-objectscript.connectActive && editorLangId == objectscript-class && activeCustomEditorId == ''"
         }
       ],
       "editor/title/context": [
-        {
-          "command": "vscode-objectscript.showClassDocumentationPreview",
-          "group": "1_open",
-          "when": "resourceLangId == objectscript-class && activeCustomEditorId == ''"
-        },
         {
           "command": "vscode-objectscript.showRESTDebugWebview",
           "group": "1_open",
@@ -1194,6 +1198,12 @@
         "command": "vscode-objectscript.openISCDocument",
         "title": "Open InterSystems Document...",
         "icon": "$(go-to-file)"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.showAllClassMembers",
+        "title": "Show All Class Members",
+        "icon": "$(symbol-class)"
       }
     ],
     "keybindings": [

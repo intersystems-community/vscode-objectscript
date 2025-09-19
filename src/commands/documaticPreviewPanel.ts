@@ -38,9 +38,10 @@ export class DocumaticPreviewPanel {
    */
   public static currentPanel: DocumaticPreviewPanel | undefined;
 
-  public static create(): void {
+  public static create(uri: vscode.Uri): void {
     // Get the open document and check that it's an ObjectScript class
-    const openEditor = vscode.window.activeTextEditor;
+    const uriString = uri.toString();
+    const openEditor = vscode.window.visibleTextEditors.find((e) => e.document.uri.toString() == uriString);
     if (openEditor === undefined) {
       // Need an open document to preview
       return;

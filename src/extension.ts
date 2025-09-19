@@ -158,6 +158,7 @@ import {
 import { WorkspaceNode, NodeBase } from "./explorer/nodes";
 import { showPlanWebview } from "./commands/showPlanPanel";
 import { isfsConfig } from "./utils/FileProviderUtil";
+import { showAllClassMembers } from "./commands/showAllClassMembers";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -886,21 +887,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
   documentContentProvider = new DocumentContentProvider();
   fileSystemProvider = new FileSystemProvider();
-
   explorerProvider = new ObjectScriptExplorerProvider();
-  vscode.window.createTreeView("ObjectScriptExplorer", {
-    treeDataProvider: explorerProvider,
-    showCollapseAll: true,
-    canSelectMany: true,
-  });
-
   projectsExplorerProvider = new ProjectsExplorerProvider();
-  vscode.window.createTreeView("ObjectScriptProjectsExplorer", {
-    treeDataProvider: projectsExplorerProvider,
-    showCollapseAll: true,
-    canSelectMany: false,
-  });
-
   posPanel = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
   posPanel.command = "vscode-objectscript.jumpToTagAndOffset";
   posPanel.show();
@@ -1125,11 +1113,28 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     }),
     vscode.window.onDidChangeActiveTextEditor(async (editor) => {
-      if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 1) {
+      if (vscode.workspace.workspaceFolders?.length > 1) {
         const workspaceFolder = currentWorkspaceFolder();
-        if (workspaceFolder && workspaceFolder !== workspaceState.get<string>("workspaceFolder")) {
+        if (workspaceFolder && workspaceFolder != workspaceState.get<string>("workspaceFolder")) {
           await workspaceState.update("workspaceFolder", workspaceFolder);
-          await checkConnection(false, editor?.document.uri);
+          // Only need to check when editor is undefined because
+          // we will always check when editor is defined below
+          if (!editor) await checkConnection(false);
+        }
+      }
+      if (editor) {
+        const conf = vscode.workspace.getConfiguration("objectscript");
+        const uriString = editor.document.uri.toString();
+        await checkConnection(false, editor.document.uri);
+        if (conf.get("autoPreviewXML") && editor.document.uri.path.toLowerCase().endsWith("xml")) {
+          previewXMLAsUDL(editor, true);
+        } else if (
+          conf.get("openClassContracted") &&
+          editor.document.languageId == clsLangId &&
+          !openedClasses.includes(uriString)
+        ) {
+          vscode.commands.executeCommand("editor.foldLevel1");
+          openedClasses.push(uriString);
         }
       }
     }),
@@ -1422,9 +1427,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("editOthers");
       viewOthers(true);
     }),
-    vscode.commands.registerCommand("vscode-objectscript.showClassDocumentationPreview", () => {
+    vscode.commands.registerCommand("vscode-objectscript.showClassDocumentationPreview", (uri: vscode.Uri) => {
       sendCommandTelemetryEvent("showClassDocumentationPreview");
-      DocumaticPreviewPanel.create();
+      if (uri instanceof vscode.Uri) DocumaticPreviewPanel.create(uri);
     }),
     vscode.commands.registerCommand("vscode-objectscript.showRESTDebugWebview", () => {
       sendCommandTelemetryEvent("showRESTDebugWebview");
@@ -1491,15 +1496,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
             await vscode.workspace.applyEdit(wsEdit);
           })
       );
-    }),
-    vscode.window.onDidChangeActiveTextEditor((editor: vscode.TextEditor) => {
-      if (config("openClassContracted") && editor && editor.document.languageId === clsLangId) {
-        const uri: string = editor.document.uri.toString();
-        if (!openedClasses.includes(uri)) {
-          vscode.commands.executeCommand("editor.foldLevel1");
-          openedClasses.push(uri);
-        }
-      }
     }),
     vscode.workspace.onDidCloseTextDocument((doc: vscode.TextDocument) => {
       const uri: string = doc.uri.toString();
@@ -1616,13 +1612,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       const terminalIndex = terminals.findIndex((terminal) => terminal.name == t.name);
       if (terminalIndex > -1) {
         terminals.splice(terminalIndex, 1);
-      }
-    }),
-    vscode.window.onDidChangeActiveTextEditor(async (textEditor: vscode.TextEditor) => {
-      if (!textEditor) return;
-      await checkConnection(false, textEditor.document.uri);
-      if (textEditor.document.uri.path.toLowerCase().endsWith(".xml") && config("autoPreviewXML")) {
-        return previewXMLAsUDL(textEditor, true);
       }
     }),
     vscode.window.onDidChangeTextEditorSelection(async (event: vscode.TextEditorSelectionChangeEvent) => {
@@ -1893,6 +1882,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("showPlanWebview");
       if (typeof args != "object") return;
       showPlanWebview(args);
+    }),
+    vscode.window.createTreeView("ObjectScriptExplorer", {
+      treeDataProvider: explorerProvider,
+      showCollapseAll: true,
+      canSelectMany: true,
+    }),
+    vscode.window.createTreeView("ObjectScriptProjectsExplorer", {
+      treeDataProvider: projectsExplorerProvider,
+      showCollapseAll: true,
+      canSelectMany: false,
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.showAllClassMembers", (uri: vscode.Uri) => {
+      sendCommandTelemetryEvent("showAllClassMembers");
+      if (uri instanceof vscode.Uri) showAllClassMembers(uri);
     }),
     // These three listeners are needed to keep track of which file events were caused by VS Code
     // to support the "vscodeOnly" option for the objectscript.syncLocalChanges setting.
