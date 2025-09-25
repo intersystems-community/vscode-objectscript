@@ -17,6 +17,7 @@ import {
   base64EncodeContent,
   openLowCodeEditors,
   compileErrorMsg,
+  isCompilable,
 } from "../../utils";
 import { FILESYSTEM_READONLY_SCHEMA, FILESYSTEM_SCHEMA, intLangId, macLangId } from "../../extension";
 import { addIsfsFileToProject, modifyProject } from "../../commands/project";
@@ -578,7 +579,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         if (!entry) return; // entry is only empty when uri is open in a low-code editor
         // Compile the document if required
         if (
-          !uri.path.includes("/_vscode/") &&
+          isCompilable(entry.fileName) &&
           vscode.workspace.getConfiguration("objectscript", uri).get("compileOnSave")
         ) {
           // Need to return the compile promise because technically the post-save compilation
