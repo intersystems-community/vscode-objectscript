@@ -1035,6 +1035,12 @@ export function displayableUri(uri: vscode.Uri): string {
   return uri.scheme == "file" ? uri.fsPath : uri.toString(true);
 }
 
+/** Return `true` if document `name` can be compiled */
+export function isCompilable(name: string): boolean {
+  // Exlcude web app files that are not CSP or CSR files
+  return !(name.includes("/") && !["csp", "csr"].includes(name.split(".").pop().toLowerCase()));
+}
+
 class Semaphore {
   /** Queue of tasks waiting to acquire the semaphore */
   private _tasks: (() => void)[] = [];
