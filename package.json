@@ -48,7 +48,7 @@
     }
   ],
   "engines": {
-    "vscode": "^1.93.0"
+    "vscode": "^1.104.0"
   },
   "enabledApiProposals": [
     "fileSearchProvider",
@@ -1815,7 +1815,7 @@
     "test": "node ./out/test/runTest.js",
     "lint": "eslint src/**",
     "lint-fix": "eslint --fix src/**",
-    "download-api": "dts dev 1.93.0",
+    "download-api": "dts dev 1.104.0",
     "postinstall": "npm run download-api"
   },
   "devDependencies": {
@@ -1826,7 +1826,7 @@
     "@types/mocha": "^7.0.2",
     "@types/node": "20.17.6",
     "@types/semver": "7.5.4",
-    "@types/vscode": "1.93.0",
+    "@types/vscode": "1.104.0",
     "@types/ws": "8.18.0",
     "@types/xmldom": "^0.1.34",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
