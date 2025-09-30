@@ -45,6 +45,8 @@ interface WebSocketMessage {
   protocol?: number;
   /** The InterSystems IRIS `$ZVERSION`. Only present for "init". */
   version?: string;
+  /** The current namespace. Only present for "prompt" on IRIS 2025.3+. */
+  ns?: string;
 }
 
 class WebSocketTerminal implements vscode.Pseudoterminal {
@@ -84,7 +86,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   private _promptExitCode = ";0";
 
   /** The leading characters for multi-line editing mode */
-  private readonly _multiLinePrompt: string = "... ";
+  public readonly multiLinePrompt = "... ";
 
   /** The WebSocket used to talk to the server */
   private _socket: WebSocket;
@@ -96,8 +98,11 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   // eslint-disable-next-line no-control-regex
   private _colorsRegex = /\x1b[^m]*?m/g;
 
+  /** The terminal's current namespace */
+  public currentNs: string;
+
   constructor(
-    private readonly _targetUri: vscode.Uri,
+    public readonly targetUri: vscode.Uri,
     private readonly _nonce: string,
     private readonly _nsOverride?: string
   ) {}
@@ -204,7 +209,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   }
 
   open(initialDimensions?: vscode.TerminalDimensions): void {
-    const api = new AtelierAPI(this._targetUri);
+    const api = new AtelierAPI(this.targetUri);
     if (this._nsOverride) api.setNamespace(this._nsOverride);
     this._cols = initialDimensions?.columns ?? 100000;
     try {
@@ -279,6 +284,8 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
               this._margin = this._cursorCol = message.text.replace(this._colorsRegex, "").length;
               this._prompt = message.text;
               this._promptExitCode = ";0";
+              // Store the current namespace
+              this.currentNs = message.ns;
             }
             // Enable input
             this._state = message.type;
@@ -305,7 +312,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
             this._hideCursorWrite(
               `\x1b7${cursorLine > 0 ? `\x1b[${cursorLine}A` : ""}\r\x1b[0J${this._prompt}${message.text.replace(
                 /\r\n/g,
-                `\r\n${this._multiLinePrompt}`
+                `\r\n${this.multiLinePrompt}`
               )}\x1b8`
             );
             break;
@@ -347,8 +354,8 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           // Check if we should enter multi-line mode
           if (this._inputIsUnterminated()) {
             // Write the multi-line mode prompt to the terminal
-            this._hideCursorWrite(`\r\n${this._multiLinePrompt}`);
-            this._margin = this._cursorCol = this._multiLinePrompt.length;
+            this._hideCursorWrite(`\r\n${this.multiLinePrompt}`);
+            this._margin = this._cursorCol = this.multiLinePrompt.length;
             this._input += "\r\n";
             return;
           }
@@ -593,7 +600,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           char = char
             .slice(0, -1)
             .split("\r")
-            .map((l) => (l.startsWith(this._multiLinePrompt) ? l.slice(this._multiLinePrompt.length) : l))
+            .map((l) => (l.startsWith(this.multiLinePrompt) ? l.slice(this.multiLinePrompt.length) : l))
             .join("\r");
         }
         // Replace all single \r with \r\n
@@ -620,8 +627,8 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         let newRow: number;
         if (char.includes("\r\n")) {
           if (this._state == "prompt") {
-            char = char.replaceAll("\r\n", `\r\n${this._multiLinePrompt}`);
-            this._margin = this._multiLinePrompt.length;
+            char = char.replaceAll("\r\n", `\r\n${this.multiLinePrompt}`);
+            this._margin = this.multiLinePrompt.length;
           }
           const charLines = char.split("\r\n");
           newRow =
@@ -720,7 +727,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
       this._hideCursorWrite(
         `\x1b7${cursorLine > 0 ? `\x1b[${cursorLine}A` : ""}\r\x1b[${this._margin}C\x1b[0J${this._input.replace(
           /\r\n/g,
-          `\r\n${this._multiLinePrompt}`
+          `\r\n${this.multiLinePrompt}`
         )}\x1b8`
       );
       if (this._state == "prompt" && this._syntaxColoringEnabled()) {
