@@ -1,5 +1,21 @@
 # Change Log
 
+## [3.2.0] 06-Oct-2025
+Minimum VS Code version is now 1.104.0.
+- Enhancements
+  - Better error handling when expanding InterSystems and Projects Explorers (#1652)
+  - Allow opening low-code editors from read-only file systems (#1655)
+  - Add command for showing all class members, including inherited (#1656)
+  - Allow commands to be re-run in the Lite Terminal from VS Code shell integration without user confirmation (#1654)
+  - Allow pasting of multi-line content into Lite Terminal `READ` prompts (#1654)
+- Fixes
+  - Fix stringification of `AggregateError` (#1651)
+  - Work around VS Code bug to allow re-running of multi-line commands in Lite Terminal from VS Code shell integration (#1654)
+  - Correctly capture Lite Terminal command output in shell integration (#1654)
+  - Fix some edge cases where the Lite Terminal cursor and text could get out of sync (#1654)
+  - Copy Windows filesystem file correctly to `isfs` filesystem (#1658)
+  - Upgrade dependencies (#1650, #1653)
+
 ## [3.0.6] 09-Sep-2025
 - Enhancements
   - Add `objectscript.unitTest.enabled` setting (#1627)
