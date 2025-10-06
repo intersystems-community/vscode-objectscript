@@ -45,6 +45,8 @@ interface WebSocketMessage {
   protocol?: number;
   /** The InterSystems IRIS `$ZVERSION`. Only present for "init". */
   version?: string;
+  /** The current namespace. Only present for "prompt" on IRIS 2025.3+. */
+  ns?: string;
 }
 
 class WebSocketTerminal implements vscode.Pseudoterminal {
@@ -56,7 +58,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   /** The number of characters on the line that the user can't delete */
   private _margin = 0;
 
-  /** The text writted by the user since the last prompt/read */
+  /** The text written by the user since the last prompt/read */
   private _input = "";
 
   /** The position of the cursor within the line */
@@ -84,7 +86,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   private _promptExitCode = ";0";
 
   /** The leading characters for multi-line editing mode */
-  private readonly _multiLinePrompt: string = "... ";
+  public readonly multiLinePrompt = "... ";
 
   /** The WebSocket used to talk to the server */
   private _socket: WebSocket;
@@ -96,8 +98,12 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   // eslint-disable-next-line no-control-regex
   private _colorsRegex = /\x1b[^m]*?m/g;
 
+  /** The terminal's current namespace */
+  public currentNs: string;
+
   constructor(
-    private readonly _targetUri: vscode.Uri,
+    public readonly targetUri: vscode.Uri,
+    private readonly _nonce: string,
     private readonly _nsOverride?: string
   ) {}
 
@@ -203,7 +209,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   }
 
   open(initialDimensions?: vscode.TerminalDimensions): void {
-    const api = new AtelierAPI(this._targetUri);
+    const api = new AtelierAPI(this.targetUri);
     if (this._nsOverride) api.setNamespace(this._nsOverride);
     this._cols = initialDimensions?.columns ?? 100000;
     try {
@@ -224,7 +230,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     this._hideCursorWrite("\x1b]633;P;HasRichCommandDetection=True\x07");
     // Print the opening message
     this._hideCursorWrite(
-      `\x1b[32mConnected to \x1b[0m\x1b[4m${api.config.host}:${api.config.port}${api.config.pathPrefix}\x1b[0m\x1b[32m as \x1b[0m\x1b[3m${api.config.username}\x1b[0m\r\n\r\n`
+      `\x1b[32mConnected to \x1b[0m\x1b[4m${api.config.host}:${api.config.port}${api.config.pathPrefix}\x1b[0m\x1b[32m as \x1b[0m\x1b[3m${api.config.username}\x1b[0m\r\n`
     );
     // Add event handlers to the socket
     this._socket
@@ -273,13 +279,13 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
             if (message.type == "prompt") {
               // Write the prompt to the terminal
               this._hideCursorWrite(
-                `\x1b]633;D${this._promptExitCode}\x07${this._margin ? "\r\n" : ""}\x1b]633;A\x07${
-                  message.text
-                }\x1b]633;B\x07`
+                `\x1b]633;D${this._promptExitCode}\x07\r\n\x1b]633;A\x07${message.text}\x1b]633;B\x07`
               );
               this._margin = this._cursorCol = message.text.replace(this._colorsRegex, "").length;
               this._prompt = message.text;
               this._promptExitCode = ";0";
+              // Store the current namespace
+              this.currentNs = message.ns;
             }
             // Enable input
             this._state = message.type;
@@ -306,7 +312,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
             this._hideCursorWrite(
               `\x1b7${cursorLine > 0 ? `\x1b[${cursorLine}A` : ""}\r\x1b[0J${this._prompt}${message.text.replace(
                 /\r\n/g,
-                `\r\n${this._multiLinePrompt}`
+                `\r\n${this.multiLinePrompt}`
               )}\x1b8`
             );
             break;
@@ -348,8 +354,8 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           // Check if we should enter multi-line mode
           if (this._inputIsUnterminated()) {
             // Write the multi-line mode prompt to the terminal
-            this._hideCursorWrite(`\r\n${this._multiLinePrompt}`);
-            this._margin = this._cursorCol = this._multiLinePrompt.length;
+            this._hideCursorWrite(`\r\n${this.multiLinePrompt}`);
+            this._margin = this._cursorCol = this.multiLinePrompt.length;
             this._input += "\r\n";
             return;
           }
@@ -366,13 +372,14 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         // Send the input to the server for processing
         this._socket.send(JSON.stringify({ type: this._state, input: this._input }));
         if (this._state == "prompt") {
-          this._hideCursorWrite(`\x1b]633;E;${this._inputEscaped()}\x07\x1b]633;C\x07\r\n`);
+          this._hideCursorWrite(`\x1b]633;E;${this._inputEscaped()};${this._nonce}\x07\r\n\x1b]633;C\x07`);
           if (this._input == "") {
             this._promptExitCode = "";
           }
         }
         this._input = "";
         this._state = "eval";
+        this._margin = this._cursorCol = 0;
         return;
       }
       case keys.ctrlH:
@@ -561,7 +568,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           if (this._cursorCol == this._margin + inputArr[inputArr.length - 1].length) {
             // Move the cursor to the beginning of the input
             this._moveCursor(this._margin - this._cursorCol);
-            // Erase everyhting to the right of the cursor
+            // Erase everything to the right of the cursor
             this._hideCursorWrite("\x1b[0J");
             inputArr[inputArr.length - 1] = "";
             this._input = inputArr.join("\r\n");
@@ -588,10 +595,16 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           // Submit the input after processing
           // This should only happen due to VS Code's shell integration
           submit = true;
-          char = char.slice(0, -1);
+          // Need to remove any multi-line prompts that are in the command lines
+          // Workaround for https://github.com/microsoft/vscode/issues/258457
+          char = char
+            .slice(0, -1)
+            .split("\r")
+            .map((l) => (l.startsWith(this.multiLinePrompt) ? l.slice(this.multiLinePrompt.length) : l))
+            .join("\r");
         }
-        // Replace all single \r with \r\n (prompt) or space (read)
-        char = char.replace(/\r/g, this._state == "prompt" ? "\r\n" : " ");
+        // Replace all single \r with \r\n
+        char = char.replace(/\r(?!\n)/g, "\r\n");
         const inputArr = this._input.split("\r\n");
         let eraseAfterCursor = "",
           trailingText = "";
@@ -613,8 +626,10 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         const originalCol = this._cursorCol;
         let newRow: number;
         if (char.includes("\r\n")) {
-          char = char.replace(/\r\n/g, `\r\n${this._multiLinePrompt}`);
-          this._margin = this._multiLinePrompt.length;
+          if (this._state == "prompt") {
+            char = char.replaceAll("\r\n", `\r\n${this.multiLinePrompt}`);
+            this._margin = this.multiLinePrompt.length;
+          }
           const charLines = char.split("\r\n");
           newRow =
             charLines.reduce(
@@ -632,21 +647,24 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         const colStr = colDelta ? (colDelta > 0 ? `\x1b[${colDelta}C` : `\x1b[${Math.abs(colDelta)}D`) : "";
         char += trailingText;
         const spaceOnCurrentLine = this._cols - (originalCol % this._cols);
-        if (this._state == "read" && char.length >= spaceOnCurrentLine) {
+        if (this._state == "read" && (char.includes("\r\n") || char.length >= spaceOnCurrentLine)) {
           // There's no auto-line wrapping when in read mode, so we must move the cursor manually
+          const charLines = char.split("\r\n");
           // Extract all the characters that fit on the cursor's line
-          const firstLine = char.slice(0, spaceOnCurrentLine);
-          const otherLines = char.slice(spaceOnCurrentLine);
-          const lines: string[] = [];
-          if (otherLines.length) {
-            // Split the rest into an array of lines that fit in the viewport
-            for (let line = 0, i = 0; line < Math.ceil(otherLines.length / this._cols); line++, i += this._cols) {
-              lines[line] = otherLines.slice(i, i + this._cols);
+          const firstLine = charLines[0].slice(0, spaceOnCurrentLine);
+          charLines[0] = charLines[0].slice(spaceOnCurrentLine);
+          // Split the rest into an array of lines that fit in the viewport
+          const lines = charLines.flatMap((line, idx) => {
+            if (idx == charLines.length - 1 && line == "") {
+              // Add a blank "line" to move the cursor to the next viewport row
+              return [""];
             }
-          } else {
-            // Add a blank "line" to move the cursor to the next viewport row
-            lines.push("");
-          }
+            const chunks = [];
+            for (let i = 0; i < line.length; i += this._cols) {
+              chunks.push(line.slice(i, i + this._cols));
+            }
+            return chunks;
+          });
           // Join the lines with the cursor escape code
           lines.unshift(firstLine);
           char = lines.join("\r\n");
@@ -678,13 +696,14 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           // Send the input to the server for processing
           this._socket.send(JSON.stringify({ type: this._state, input: this._input }));
           if (this._state == "prompt") {
-            this._hideCursorWrite(`\x1b]633;E;${this._inputEscaped()}\x07\x1b]633;C\x07\r\n`);
+            this._hideCursorWrite(`\x1b]633;E;${this._inputEscaped()};${this._nonce}\x07\r\n\x1b]633;C\x07`);
             if (this._input == "") {
               this._promptExitCode = "";
             }
           }
           this._input = "";
           this._state = "eval";
+          this._margin = this._cursorCol = 0;
         } else if (this._input != "" && this._state == "prompt" && this._syntaxColoringEnabled()) {
           // Syntax color input
           this._socket.send(JSON.stringify({ type: "color", input: this._input }));
@@ -708,7 +727,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
       this._hideCursorWrite(
         `\x1b7${cursorLine > 0 ? `\x1b[${cursorLine}A` : ""}\r\x1b[${this._margin}C\x1b[0J${this._input.replace(
           /\r\n/g,
-          `\r\n${this._multiLinePrompt}`
+          `\r\n${this.multiLinePrompt}`
         )}\x1b8`
       );
       if (this._state == "prompt" && this._syntaxColoringEnabled()) {
@@ -747,6 +766,7 @@ function terminalConfigForUri(
   }
 
   sendLiteTerminalTelemetryEvent(throwErrors ? "profile" : "command");
+  const nonce = crypto.randomUUID();
   return {
     name: api.config.serverName && api.config.serverName != "" ? api.config.serverName : "iris",
     location:
@@ -756,9 +776,10 @@ function terminalConfigForUri(
       vscode.window.terminals.length > 0
         ? vscode.TerminalLocation.Editor
         : vscode.TerminalLocation.Panel,
-    pty: new WebSocketTerminal(targetUri, nsOverride),
+    pty: new WebSocketTerminal(targetUri, nonce, nsOverride),
     isTransient: true,
     iconPath: iscIcon,
+    shellIntegrationNonce: nonce,
   };
 }
 

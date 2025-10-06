@@ -11,6 +11,7 @@ import {
   openLowCodeEditors,
   outputChannel,
   displayableUri,
+  isCompilable,
 } from ".";
 import { isText } from "istextorbinary";
 import { AtelierAPI } from "../api";
@@ -265,7 +266,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       importFile(change.addedOrChanged)
         .then(() => {
           outputImport(change.addedOrChanged.name, uri);
-          if (conf.get("compileOnSave")) {
+          if (conf.get("compileOnSave") && isCompilable(change.addedOrChanged.name)) {
             // Compile right away if this document is in the active text editor.
             // This is needed to avoid noticeable latency when a user is editing
             // a client-side file, saves it, and the auto-compile kicks in.

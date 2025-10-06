@@ -52,13 +52,13 @@ export const exportedUris: Set<string> = new Set();
 export const identifierRegex = /^(?:%|\p{L})[\p{L}\d]*$/u;
 
 /**
- * Return a string represenattion of `error`.
+ * Return a string representation of `error`.
  * If `error` is `undefined`, returns the empty string.
  */
 export function stringifyError(error): string {
   try {
-    if (error instanceof AggregateError) {
-      // Need to stringify the inner errors
+    if (Array.isArray(error?.errors)) {
+      // Need to stringify the inner errors of an AggregateError
       const errs = error.errors.map(stringifyError).filter((s) => s != "");
       return errs.length ? `AggregateError:\n- ${errs.join("\n- ")}` : "";
     }
@@ -110,7 +110,9 @@ export function outputConsole(data: string[]): void {
 }
 
 export interface CurrentFile {
+  /** The name of the document, like `User.Test.cls` */
   name: string;
+  /** `uri.fsPath` */
   fileName: string;
   uri: vscode.Uri;
   unredirectedUri?: vscode.Uri;
@@ -1033,6 +1035,12 @@ export function compileErrorMsg(conf: vscode.WorkspaceConfiguration): void {
 /** Return a string containing the displayable form of `uri` */
 export function displayableUri(uri: vscode.Uri): string {
   return uri.scheme == "file" ? uri.fsPath : uri.toString(true);
+}
+
+/** Return `true` if document `name` can be compiled */
+export function isCompilable(name: string): boolean {
+  // Exlcude web app files that are not CSP or CSR files
+  return !(name.includes("/") && !["csp", "csr"].includes(name.split(".").pop().toLowerCase()));
 }
 
 class Semaphore {

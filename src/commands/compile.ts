@@ -26,6 +26,7 @@ import {
   handleError,
   isClassDeployed,
   isClassOrRtn,
+  isCompilable,
   lastUsedLocalUri,
   notIsfs,
   notNull,
@@ -353,7 +354,7 @@ export async function importAndCompile(
       throw error;
     })
     .then(() => {
-      if (compileFile) compile([file], flags);
+      if (compileFile && isCompilable(file.name)) compile([file], flags);
     });
 }
 
@@ -389,7 +390,7 @@ export async function compileOnly(askFlags = false, document?: vscode.TextDocume
 
   const defaultFlags = config().compileFlags;
   const flags = askFlags ? await compileFlags() : defaultFlags;
-  if (!file.fileName.startsWith("\\.vscode\\")) {
+  if (isCompilable(file.name)) {
     compile([file], flags);
   }
 }
@@ -464,7 +465,7 @@ async function importFiles(files: vscode.Uri[], noCompile = false) {
           )
           .then((curFile) => {
             if (curFile) {
-              if (typeof curFile.content == "string") toCompile.push(curFile); // Only compile text files
+              if (typeof curFile.content == "string" && isCompilable(curFile.name)) toCompile.push(curFile);
               return importFile(curFile).then(() => outputChannel.appendLine("Imported file: " + curFile.fileName));
             }
           });

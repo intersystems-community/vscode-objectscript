@@ -17,6 +17,7 @@ import {
   base64EncodeContent,
   openLowCodeEditors,
   compileErrorMsg,
+  isCompilable,
 } from "../../utils";
 import { FILESYSTEM_READONLY_SCHEMA, FILESYSTEM_SCHEMA, intLangId, macLangId } from "../../extension";
 import { addIsfsFileToProject, modifyProject } from "../../commands/project";
@@ -70,7 +71,18 @@ export function generateFileContent(
   sourceContent: Uint8Array
 ): { content: string[]; enc: boolean; eol: vscode.EndOfLine } {
   const sourceLines = sourceContent.length ? new TextDecoder().decode(sourceContent).split("\n") : [];
-  const eol = sourceLines.length && sourceLines[0].slice(-1) == "\r" ? vscode.EndOfLine.CRLF : vscode.EndOfLine.LF;
+
+  // Detect eol style (a return value), and if CRLF then strip the \r character from end of source lines
+  let eol = vscode.EndOfLine.LF;
+  if (sourceLines.length && sourceLines[0].slice(-1) == "\r") {
+    eol = vscode.EndOfLine.CRLF;
+    for (let i = 0; i < sourceLines.length; i++) {
+      if (sourceLines[i].slice(-1) == "\r") {
+        sourceLines[i] = sourceLines[i].slice(0, -1);
+      }
+    }
+  }
+
   const fileExt = fileName.split(".").pop().toLowerCase();
   const csp = fileName.startsWith("/");
   if (fileExt === "cls" && !csp) {
@@ -567,7 +579,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         if (!entry) return; // entry is only empty when uri is open in a low-code editor
         // Compile the document if required
         if (
-          !uri.path.includes("/_vscode/") &&
+          isCompilable(entry.fileName) &&
           vscode.workspace.getConfiguration("objectscript", uri).get("compileOnSave")
         ) {
           // Need to return the compile promise because technically the post-save compilation
