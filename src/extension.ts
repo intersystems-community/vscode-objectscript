@@ -27,6 +27,10 @@ export const incLangId = "objectscript-macros";
 export const cspLangId = "objectscript-csp";
 export const outputLangId = "vscode-objectscript-output";
 
+const dotPrefixRegex = /^(\s*(?:\.\s*)+)/;
+const dotIndentLanguages = new Set<string>([macLangId, intLangId]);
+const dotIndentSkipDocuments = new Set<string>();
+
 import * as url from "url";
 import path = require("path");
 import {
@@ -159,6 +163,14 @@ import { WorkspaceNode, NodeBase } from "./explorer/nodes";
 import { showPlanWebview } from "./commands/showPlanPanel";
 import { isfsConfig } from "./utils/FileProviderUtil";
 import { showAllClassMembers } from "./commands/showAllClassMembers";
+import {
+  PrioritizedDefinitionProvider,
+  DefinitionDocumentLinkProvider,
+  followDefinitionLinkCommand,
+  goToDefinitionLocalFirst,
+  resolveContextExpression,
+  showGlobalDocumentation,
+} from "./ccs";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -940,6 +952,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   const documentSelector = (...list) =>
     ["file", ...schemas].reduce((acc, scheme) => acc.concat(list.map((language) => ({ scheme, language }))), []);
 
+  const definitionDocumentLinkProvider = new DefinitionDocumentLinkProvider([
+    clsLangId,
+    macLangId,
+    intLangId,
+    incLangId,
+  ]);
+  context.subscriptions.push(
+    definitionDocumentLinkProvider,
+    vscode.languages.registerDocumentLinkProvider(
+      documentSelector(clsLangId, macLangId, intLangId, incLangId),
+      definitionDocumentLinkProvider
+    )
+  );
+
   const diagnosticProvider = new ObjectScriptDiagnosticProvider();
 
   // Gather the proposed APIs we will register to use when building with enabledApiProposals != []
@@ -1001,7 +1027,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       ),
       vscode.languages.registerDefinitionProvider(
         documentSelector(clsLangId, macLangId, intLangId, incLangId),
-        new ObjectScriptDefinitionProvider()
+        new PrioritizedDefinitionProvider(new ObjectScriptDefinitionProvider())
       ),
       vscode.languages.registerCompletionItemProvider(
         documentSelector(clsLangId, macLangId, intLangId, incLangId),
@@ -1037,6 +1063,75 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       );
     }
   }
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeTextDocument(async (event) => {
+      if (!dotIndentLanguages.has(event.document.languageId)) {
+        return;
+      }
+
+      const docUriString = event.document.uri.toString();
+      if (dotIndentSkipDocuments.has(docUriString)) {
+        return;
+      }
+
+      const editor = vscode.window.visibleTextEditors.find((e) => e.document === event.document);
+      if (!editor) {
+        return;
+      }
+
+      for (const change of event.contentChanges) {
+        if (!change.text.includes("\n")) {
+          continue;
+        }
+
+        const newLineNumber = change.range.start.line + 1;
+        if (newLineNumber >= event.document.lineCount || newLineNumber <= 0) {
+          continue;
+        }
+
+        const previousLine = event.document.lineAt(newLineNumber - 1).text;
+        const prefixMatch = previousLine.match(dotPrefixRegex);
+        if (!prefixMatch) {
+          continue;
+        }
+
+        let insertText = prefixMatch[1];
+        if (!insertText.endsWith(" ")) {
+          insertText += " ";
+        }
+
+        const remainder = previousLine.slice(prefixMatch[1].length);
+        if (remainder.startsWith(";")) {
+          insertText += ";";
+        }
+
+        const newLine = event.document.lineAt(newLineNumber);
+        if (newLine.text.trim().length > 0) {
+          continue;
+        }
+        if (newLine.text.startsWith(insertText)) {
+          continue;
+        }
+
+        const indentMatch = newLine.text.match(/^\s*/);
+        const indentLength = indentMatch ? indentMatch[0].length : 0;
+        const replaceRange = new vscode.Range(newLine.range.start, new vscode.Position(newLineNumber, indentLength));
+
+        dotIndentSkipDocuments.add(docUriString);
+        try {
+          await editor.edit(
+            (editBuilder) => {
+              editBuilder.replace(replaceRange, insertText);
+            },
+            { undoStopBefore: false, undoStopAfter: false }
+          );
+        } finally {
+          dotIndentSkipDocuments.delete(docUriString);
+        }
+      }
+    })
+  );
 
   openedClasses = workspaceState.get("openedClasses") ?? [];
 
@@ -1191,6 +1286,36 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("copyToClipboard");
       vscode.env.clipboard.writeText(command);
     }),
+    vscode.commands.registerCommand("vscode-objectscript.resolveContextExpression", () => {
+      sendCommandTelemetryEvent("resolveContextExpression");
+      void resolveContextExpression();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.ccs.goToDefinition", async () => {
+      sendCommandTelemetryEvent("ccs.goToDefinition");
+      await goToDefinitionLocalFirst();
+    }),
+    vscode.commands.registerCommand(
+      followDefinitionLinkCommand,
+      async (documentUri: string, line: number, character: number) => {
+        sendCommandTelemetryEvent("ccs.followDefinitionLink");
+        if (!documentUri || typeof line !== "number" || typeof character !== "number") {
+          return;
+        }
+
+        const uri = vscode.Uri.parse(documentUri);
+        const document =
+          vscode.workspace.textDocuments.find((doc) => doc.uri.toString() === documentUri) ??
+          (await vscode.workspace.openTextDocument(uri));
+
+        const position = new vscode.Position(line, character);
+        const selectionRange = new vscode.Range(position, position);
+        const editor = await vscode.window.showTextDocument(document, { selection: selectionRange });
+        editor.selection = new vscode.Selection(position, position);
+        editor.revealRange(selectionRange);
+
+        await goToDefinitionLocalFirst();
+      }
+    ),
     vscode.commands.registerCommand("vscode-objectscript.debug", (program: string, askArgs: boolean) => {
       sendCommandTelemetryEvent("debug");
       const startDebugging = (args) => {
@@ -1298,6 +1423,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.viewOthers", () => {
       sendCommandTelemetryEvent("viewOthers");
       viewOthers(false);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.getGlobalDocumentation", () => {
+      sendCommandTelemetryEvent("getGlobalDocumentation");
+      void showGlobalDocumentation();
     }),
     vscode.commands.registerCommand("vscode-objectscript.serverCommands.sourceControl", (uri?: vscode.Uri) => {
       sendCommandTelemetryEvent("serverCommands.sourceControl");
@@ -2098,3 +2227,4 @@ export async function deactivate(): Promise<void> {
   }
   await Promise.allSettled(promises);
 }
+export { outputChannel };

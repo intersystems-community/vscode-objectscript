@@ -128,6 +128,10 @@
           "when": "vscode-objectscript.connectActive"
         },
         {
+          "command": "vscode-objectscript.getGlobalDocumentation",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
           "command": "vscode-objectscript.subclass",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
@@ -479,6 +483,15 @@
       ],
       "editor/context": [
         {
+          "command": "vscode-objectscript.ccs.goToDefinition",
+          "group": "navigation@0",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/"
+        },
+        {
+          "command": "-editor.action.revealDefinition",
+          "when": "editorLangId =~ /^objectscript/"
+        },
+        {
           "command": "vscode-objectscript.viewOthers",
           "when": "vscode-objectscript.connectActive",
           "group": "objectscript@1"
@@ -525,6 +538,16 @@
         }
       ],
       "editor/title": [
+        {
+          "command": "vscode-objectscript.ccs.goToDefinition",
+          "group": "navigation@0",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/"
+        },
+        {
+          "command": "-editor.action.revealDefinition",
+          "group": "navigation@0",
+          "when": "editorLangId =~ /^objectscript/"
+        },
         {
           "command": "vscode-objectscript.serverCommands.sourceControl",
           "group": "navigation@1",
@@ -841,6 +864,27 @@
       },
       {
         "category": "ObjectScript",
+        "command": "vscode-objectscript.resolveContextExpression",
+        "title": "Resolve Context Expression"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.getGlobalDocumentation",
+        "title": "Show Global Documentation",
+        "enablement": "vscode-objectscript.connectActive"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.ccs.goToDefinition",
+        "title": "Go to Definition"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.ccs.followDefinitionLink",
+        "title": "Follow Definition Link"
+      },
+      {
+        "category": "ObjectScript",
         "command": "vscode-objectscript.compile",
         "title": "Import and Compile Current File"
       },
@@ -937,6 +981,12 @@
         "command": "vscode-objectscript.viewOthers",
         "enablement": "vscode-objectscript.connectActive",
         "title": "View Other"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.getGlobalDocumentation",
+        "enablement": "vscode-objectscript.connectActive",
+        "title": "Show Global Documentation"
       },
       {
         "category": "ObjectScript",
@@ -1208,6 +1258,11 @@
     ],
     "keybindings": [
       {
+        "command": "vscode-objectscript.ccs.goToDefinition",
+        "key": "F12",
+        "when": "editorTextFocus && editorLangId =~ /^objectscript/"
+      },
+      {
         "command": "vscode-objectscript.compile",
         "key": "Ctrl+F7",
         "mac": "Cmd+F7",
@@ -1218,6 +1273,18 @@
         "key": "Ctrl+Shift+F7",
         "mac": "Cmd+Shift+F7",
         "when": "editorLangId =~ /^objectscript/"
+      },
+      {
+        "command": "vscode-objectscript.resolveContextExpression",
+        "key": "Ctrl+Alt+Space",
+        "mac": "Cmd+Alt+Space",
+        "when": "editorTextFocus && editorLangId =~ /^objectscript/"
+      },
+      {
+        "command": "vscode-objectscript.getGlobalDocumentation",
+        "key": "Ctrl+Q",
+        "mac": "Cmd+Q",
+        "when": "editorTextFocus && editorLangId =~ /^objectscript/"
       },
       {
         "command": "vscode-objectscript.viewOthers",

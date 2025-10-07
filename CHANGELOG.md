@@ -1,7 +1,9 @@
 # Change Log
 
 ## [3.2.0] 06-Oct-2025
+
 Minimum VS Code version is now 1.104.0.
+
 - Enhancements
   - Better error handling when expanding InterSystems and Projects Explorers (#1652)
   - Allow opening low-code editors from read-only file systems (#1655)
@@ -17,6 +19,7 @@ Minimum VS Code version is now 1.104.0.
   - Upgrade dependencies (#1650, #1653)
 
 ## [3.0.6] 09-Sep-2025
+
 - Enhancements
   - Add `objectscript.unitTest.enabled` setting (#1627)
   - Add a `New File...` command for creating an Interoperability Message (#1629)
@@ -33,6 +36,7 @@ Minimum VS Code version is now 1.104.0.
   - Don't append extra trailing newlines when saving server-side web app files (#1648)
 
 ## [3.0.5] 21-Jul-2025
+
 - Enhancements
   - Better telemetry (#1608)
   - Output the path to the export file when exporting to an XML file (#1616)
@@ -47,6 +51,7 @@ Minimum VS Code version is now 1.104.0.
   - Fix resolving of server connection for files opened from InterSystems Explorer or XML preview (#1622)
 
 ## [3.0.4] 30-Jun-2025
+
 - Enhancements
   - Shorten server-side error messages (#1587)
   - Make it more clear when a server connection failed due to a timeout (#1592)
@@ -56,6 +61,7 @@ Minimum VS Code version is now 1.104.0.
   - Fix comparing of local and server versions of web app files (#1599)
 
 ## [3.0.3] 16-Jun-2025
+
 - Enhancements
   - Cache the contents of files fetched during a debug session (#1579)
 - Fixes
@@ -78,6 +84,7 @@ Minimum VS Code version is now 1.104.0.
   - Fix saving and re-opening of server-side documents on VS Code 1.101.0 (#1584)
 
 ## [3.0.2] 20-May-2025
+
 - Enhancements
   - Allow `objectscript.multilineMethodArgs` to be set per workspace folder (#1534)
   - Log out of web sessions when VS Code exits (#1540)
@@ -97,11 +104,13 @@ Minimum VS Code version is now 1.104.0.
   - Don't report error when deleting a local file that doesn't exist on the server (#1555)
 
 ## [3.0.1] 04-Apr-2025
+
 - Fixes
   - Fix issue where `Undo` after a save deletes the file being edited (#1524)
   - Fix endless save loop when one local workspace folder is a subfolder of another (#1525)
 
 ## [3.0.0] 02-Apr-2025
+
 - Enhancements
   - Client-side editing overhaul (#1401, #1470, #1515, #1520):
     - Support the use of client-side editing in any non-isfs workspace folder, not just folders in your local file system. For example, with [VS Code Remote Development](https://code.visualstudio.com/docs/remote/remote-overview).
@@ -142,10 +151,12 @@ Minimum VS Code version is now 1.104.0.
   - Upgrade dependencies
 
 ## [2.12.10] 13-Nov-2024
+
 - Fixes
   - Prevent overprompting for permission and account (#1456)
 
 ## [2.12.9] 29-Oct-2024
+
 - Enhancements
   - Add `Launch Lite Terminal` action to Explorer (#1438)
   - Add timeout to initial connection request (#1440)
@@ -157,10 +168,12 @@ Minimum VS Code version is now 1.104.0.
   - Support for line wrapping in Lite Terminal (#1452)
 
 ## [2.12.8] 23-Sep-2024
+
 - Fixes
   - Solve 1.93 performance issue (#1428)
 
 ## [2.12.7] 05-Aug-2024
+
 - Enhancements
   - Fire source control hooks for opened and closed documents (#1414)
   - Always stop the debug target process when attaching (#1415)
@@ -175,7 +188,9 @@ Minimum VS Code version is now 1.104.0.
   - Don't append CSPCHD for web applications that don't support it by default (#1420)
 
 ## [2.12.6] 23-Jul-2024
+
 Minimum VS Code version is now 1.91.0.
+
 - Enhancements
   - Support command stepping in debugger (requires InterSystems IRIS 2023.1.5, 2024.1.1+, or 2024.2+) (#1385)
   - Add `Compile` command to server-side file explorer (#1389)
@@ -195,6 +210,7 @@ Minimum VS Code version is now 1.91.0.
   - Provide Project and User parameters to Studio add-ins (#1402)
 
 ## [2.12.5] 29-May-2024
+
 - Enhancements
   - [Open symbol by name](https://code.visualstudio.com/docs/editor/editingevolved#_open-symbol-by-name) (`Ctrl/Cmd-T`) improvements (#1366):
     - Show classes as well as class members
@@ -205,6 +221,7 @@ Minimum VS Code version is now 1.91.0.
   - Show prompt for username if unauthenticated access fails when no username is specified in the server definition (#1372)
 
 ## [2.12.4] 14-May-2024
+
 - Enhancements
   - Remove `objectscript.ignoreInstallServerManager` setting (#1339)
   - Make ObjectScript comment tokens configurable (#1353)
@@ -216,6 +233,7 @@ Minimum VS Code version is now 1.91.0.
   - Support trailing slash in `isfs` directory URIs (#1357)
 
 ## [2.12.3] 26-Mar-2024
+
 - Enhancements
   - Improve `Jump to Tag + Offset` UI (#1325)
   - Add `Modify Project Metadata...` command (#1326)
@@ -229,6 +247,7 @@ Minimum VS Code version is now 1.91.0.
   - Fix manual refresh of Test Explorer (#1336) (suggested by @ollitanska)
 
 ## [2.12.2] 28-Feb-2024
+
 - Enhancements
   - Add auto-closing of C-style block comments (#1311)
   - Server-side source control improvements (#1314):
@@ -246,14 +265,17 @@ Minimum VS Code version is now 1.91.0.
   - Refresh ObjectScript Explorer files when they are re-opened (#1321)
 
 ## [2.12.1] 05-Feb-2024
+
 - Fixes
   - Don't create unit test items in workspace folders that don't support running tests (#1307)
   - Update `objectscript.unitTest.relativeTestRoots` validation regex (#1308)
   - Fix `undefined` errors when building array of unit tests to load (#1308)
 
 ## [2.12.0] 29-Jan-2024
+
 Minimum VS Code version is now 1.83.0.
 This extension now depends on the [InterSystems Server Manager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) extension.
+
 - Enhancements
   - Add support for running and debugging unit tests (#1269)
   - Use Server Manager's View Container (#1270)
@@ -263,7 +285,7 @@ This extension now depends on the [InterSystems Server Manager](https://marketpl
   - Add testing link to new KPIs (#1302)
   - Add CodeLenses for BPLs, DTLs, KPIs and Rules (#1303)
 - Fixes
-  - Harden `TextSearchProvider` (#1276, #1294) 
+  - Harden `TextSearchProvider` (#1276, #1294)
   - Fix WebSocket Terminal del key (#1285)
   - Make server-side search respect Context Lines feature of Search Editor (#1290)
   - Better message when WebSocket Terminal can't be started (#1293)
@@ -271,6 +293,7 @@ This extension now depends on the [InterSystems Server Manager](https://marketpl
   - Remove `glob` as a dependency (#1300)
 
 ## [2.10.5] 02-Nov-2023
+
 - Enhancements
   - Use new Modern themes when loading Studio syntax colors (#1264)
 - Fixes
@@ -278,6 +301,7 @@ This extension now depends on the [InterSystems Server Manager](https://marketpl
   - Keep file contents when copying class definition if "Class" line not found (#1267)
 
 ## [2.10.4] 01-Nov-2023
+
 - Fixes
   - Fix sorting of items in Projects Explorer (#1246)
   - Don't show REST APIs in Explorer CSP Files list (#1248)
@@ -290,6 +314,7 @@ This extension now depends on the [InterSystems Server Manager](https://marketpl
   - Allow users to select no resource in new KPI command (#1261)
 
 ## [2.10.3] 25-Sep-2023
+
 - Enhancements
   - Put link to editor in class comment when creating new BPL/DTL (#1231)
   - Make it easier to add namespace from same server to workspace (#1232)
@@ -299,6 +324,7 @@ This extension now depends on the [InterSystems Server Manager](https://marketpl
   - Remove unneeded snippets (#1235)
 
 ## [2.10.2] 07-Sep-2023
+
 - Enhancements
   - Improve message to help resolve scenario where isfs user lacks `%DB_IRISSYS:READ` (#1211)
   - Improve MAC and INT stubs created for new server-side routine (#1218)
@@ -309,6 +335,7 @@ This extension now depends on the [InterSystems Server Manager](https://marketpl
   - Display routine members of server-side project correctly (#1226)
 
 ## [2.10.1] 10-Aug-2023
+
 - Enhancements
   - Only add WebSocket Terminal button to Server Manager 3.4.2+ tree if server is compatible (#1204)
   - Add `Copy Invocation` CodeLens above query definition in class (#1198)
@@ -318,11 +345,13 @@ This extension now depends on the [InterSystems Server Manager](https://marketpl
   - Properly report search matches for super classes (#1200)
 
 ## [2.10.0] 20-Jul-2023
+
 Minimum VS Code version is now 1.75.0
+
 - Enhancements
   - Add WebSocket Terminal support (#1150)
   - Support a ${project} variable in Server Actions Menu custom entries (#1157)
-  - Support importing/exporting XML files (#1171) 
+  - Support importing/exporting XML files (#1171)
   - Support a ${username} variable in Server Actions Menu custom entries (#1173)
   - Migrate to [official ISC documentation](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO) (#1185)
 - Fixes
@@ -344,6 +373,7 @@ Minimum VS Code version is now 1.75.0
   - Upgrade vulnerable dependencies.
 
 ## [2.8.1] 15-May-2023
+
 - Enhancements
   - Prompt user to enable proposed APIs when server-side folder is opened (#1140)
   - Show config names of interoperability jobs in `Attach to Process` debug menu (#1089) (contributed by @ollitanska)
@@ -353,6 +383,7 @@ Minimum VS Code version is now 1.75.0
   - Make folder-specific settings for ISFS folder work again (#1144)
 
 ## [2.8.0] 04-Apr-2023
+
 - Enhancements
   - Integrate Angular Rule Editor (#1014)
   - Add command to refresh local file contents (#1066) (contributed by @ollitanska)
@@ -365,6 +396,7 @@ Minimum VS Code version is now 1.75.0
   - Upgrade vulnerable dependencies.
 
 ## [2.6.0] 27-Feb-2023
+
 - Enhancements
   - Implement async server-side search (#1045) (requires [proposed API enabled](https://github.com/intersystems-community/vscode-objectscript#enable-proposed-apis) and InterSystems IRIS 2023.1+)
   - Add `Switch Namespace` option to Server Actions menu for local workspace folders (#1065) (contributed by @ollitanska)
@@ -384,11 +416,13 @@ Minimum VS Code version is now 1.75.0
   - Upgrade vulnerable dependencies.
 
 ## [2.4.3] 02-Feb-2023
+
 - Fixes
   - Fix deployed check (#1071)
   - Fix opening of `isfs` files from ObjectScript Explorer (#1072)
 
 ## [2.4.2] 01-Feb-2023
+
 - Enhancements
   - Use query instead of index for class Deployed checks (#1054)
   - Use `docker compose` command if present (#1057)
@@ -401,10 +435,12 @@ Minimum VS Code version is now 1.75.0
   - Upgrade vulnerable dependencies.
 
 ## [2.4.1] 12-Jan-2023
+
 - Fixes
   - Fix 'No file system provider found' errors when debugging local file (#1047)
 
 ## [2.4.0] 10-Jan-2023
+
 - Enhancements
   - Show server name in Status Bar (#1017)
   - Server-side search: use include/exclude specs (#1021)
@@ -417,10 +453,11 @@ Minimum VS Code version is now 1.75.0
   - Hide `-injection` languages from selector (#1011)
   - Properly report matches in Storage definitions (#1025)
   - Fix debug breakpoint mapping when Language Server is absent (#1031)
-  - Don't call `openTextDocument` in debugger (#1042) 
+  - Don't call `openTextDocument` in debugger (#1042)
   - Upgrade vulnerable dependencies.
 
 ## [2.2.0] 31-Oct-2022
+
 - Enhancements
   - Add features to ease migration from Studio (see [Migrating from Studio documentation page](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_fromstudio) for details) (#1003)
   - Improve CodeLenses (#1007)
@@ -432,12 +469,14 @@ Minimum VS Code version is now 1.75.0
   - Upgrade vulnerable dependencies.
 
 ## [2.0.0] 04-Oct-2022
+
 - Enhancements
   - Use Server Manager version 3's enhanced security for stored passwords. Explicit permission must be given by the user before Server Manager will provide a connection's stored password to this extension. This feature previewed in the 1.x pre-releases, which 2.0.0 supersedes.
   - Add `Copy Invocation` CodeLens alongside `Debug this Method`. Hideable using the `objectscript.debug.copyToClipboard` setting (#974)
   - Add `objectscript.importOnSave` setting to control whether saving a client-side file updates code on the connected server. Default is `true` (#985)
 
 ## [1.8.2] 08-Aug-2022
+
 - Enhancements
   - Support `objectscript` and `objectscript-class` as the info string for [fenced code blocks](https://spec.commonmark.org/0.30/#fenced-code-blocks) when editing Markdown. However coloring does not render in preview (#964)
 - Fixes
@@ -445,6 +484,7 @@ Minimum VS Code version is now 1.75.0
   - Dispose of all event handlers when deactivating (#967)
 
 ## [1.8.1] 25-Jul-2022
+
 - Fixes
   - New class should ignore `objectscript.export.folder` setting (#938)
   - Get correct host port number for connection to docker-compose with multiple services (#941)
@@ -456,13 +496,16 @@ Minimum VS Code version is now 1.75.0
   - Upgrade vulnerable dependencies.
 
 ## [1.8.0] 20-Apr-2022
+
 - Enhancements
   - Add support for server-side projects (#851)
   - Implement isfs folder rename and deletion (#923, #922)
-  - Support "mapped" flag for isfs and export filters, to exclude packages mapped from other databases (#931) 
+  - Support "mapped" flag for isfs and export filters, to exclude packages mapped from other databases (#931)
 
 ## [1.6.0] 06-Apr-2022
+
 Minimum VS Code version is now 1.66.0
+
 - Enhancements
   - Colorize text in Output channel (API has finalized) (#910)
   - Add `objectscript.export.exactFilter` setting (#913)
@@ -476,6 +519,7 @@ Minimum VS Code version is now 1.66.0
   - Upgrade vulnerable dependencies.
 
 ## [1.4.4] 21-Mar-2022
+
 - Enhancements
   - Compile asynchronously to avoid timing out (#890)
   - Add `objectscript.explorer.alwaysShowServerCopy` setting to make ObjectScript Explorer always open server-side code, even when local copy exists (#494)
@@ -489,12 +533,14 @@ Minimum VS Code version is now 1.66.0
   - Upgrade vulnerable dependencies.
 
 ## [1.4.3] 28-Feb-2022
+
 - Enhancements
   - Add `objectscript.openClassContracted` setting (#876)
 - Fixes
   - Fix 1.4.2 regression that broke server-side editing from ObjectScript Explorer and reloading of open documents when reopening isfs workspaces (#879)
 
 ## [1.4.2] 23-Feb-2022
+
 - Enhancements
   - Generate content when a new local class or routine is created (#867)
   - Add file icons (#822)
@@ -510,10 +556,12 @@ Minimum VS Code version is now 1.66.0
   - Upgrade vulnerable dependencies.
 
 ## [1.4.1] 14-Jan-2022
+
 - Fixes
   - Version 1.4.0 is failing to activate (#827)
 
 ## [1.4.0] 14-Jan-2022
+
 - Enhancements
   - Make `Ctrl / Cmd+T` lookup (Open Symbol by Name) check all servers connected to a multi-root workspace (#815)
   - Improve exporting (#818)
@@ -528,10 +576,12 @@ Minimum VS Code version is now 1.66.0
   - Remove `vscode-objectscript-output` language from selector (#805)
 
 ## [1.2.2] 07-Dec-2021
+
 - Fixes
   - Exporting not working with new version 1.2.1 (#799)
 
 ## [1.2.0] 02-Dec-2021
+
 - Enhancements
   - Overhaul `WorkspaceSymbolProvider` (#772)
   - Add `Open Shell in Docker` option to Server Actions menu (#778)
@@ -545,28 +595,31 @@ Minimum VS Code version is now 1.66.0
   - Upgrade vulnerable dependencies (#787)
 
 ## [1.1.1] 09-Nov-2021
+
 - Fixes
-    - Debugger: Breakpoint with no hitCondition cannot be set (#766)
+  - Debugger: Breakpoint with no hitCondition cannot be set (#766)
 
 ## [1.1.0] 08-Nov-2021
+
 - Enhancements
-    - Add 'Show Class Documentation Preview' button and command.
-    - Improve how line comment markers carry over when newline is entered (#541)
-    - Allow server-side source control class UserAction method call with Action=3 to launch an http/s  or ftp/s URL in the external browser (contributed by @a-boertien).
-    - Add support for conditional breakpoints.
-    - Improve documentation.
+  - Add 'Show Class Documentation Preview' button and command.
+  - Improve how line comment markers carry over when newline is entered (#541)
+  - Allow server-side source control class UserAction method call with Action=3 to launch an http/s or ftp/s URL in the external browser (contributed by @a-boertien).
+  - Add support for conditional breakpoints.
+  - Improve documentation.
 - Fixes
-    - Prevent save of isfs class if filename doesn't match the class it defines (#410)
-    - Refresh ObjectScript Explorer after export (#502)
-    - Improve message when `/api/atelier` web application is disabled or missing (#752)
-    - Correctly handle dots in routine names, preventing two copies of the same routine from being opened concurrently (#748)
-    - Handle multiple selections when performing compile or delete from ObjectScript Explorer (#746)
-    - Revert document instead of attempting an undo when server-side source control signals this is necessary.
-    - Resolve issue causing unusable authentication page after CSP timeout.
-    - Fix XML to UDL conversion.
-    - Upgrade vulnerable dependencies.
+  - Prevent save of isfs class if filename doesn't match the class it defines (#410)
+  - Refresh ObjectScript Explorer after export (#502)
+  - Improve message when `/api/atelier` web application is disabled or missing (#752)
+  - Correctly handle dots in routine names, preventing two copies of the same routine from being opened concurrently (#748)
+  - Handle multiple selections when performing compile or delete from ObjectScript Explorer (#746)
+  - Revert document instead of attempting an undo when server-side source control signals this is necessary.
+  - Resolve issue causing unusable authentication page after CSP timeout.
+  - Fix XML to UDL conversion.
+  - Upgrade vulnerable dependencies.
 
 ## [1.0.14] 20-Sep-2021
+
 - Require confirmation before compiling all code in namespace (#677)
 - Respect `maxResults` parameter when running server-side search (#713)
 - Handle multiple spaces between `Class` keyword and classname (#717)
@@ -578,6 +631,7 @@ Minimum VS Code version is now 1.66.0
 - Upgrade vulnerable dependency.
 
 ## [1.0.13] 09-Jul-2021
+
 - Add Watchpoint support to debugging (#697)
 - Make QuickOpen respect any `filter=xxx` query parameter on the isfs folder definition (#593)
 - Fix unexpected alerts about server-side copy being newer when working with isfs (#683)
@@ -588,6 +642,7 @@ Minimum VS Code version is now 1.66.0
 - Allow opting out of 'Other Studio Action' server-side source control calls (#691)
 
 ## [1.0.12] 10-Jun-2021
+
 - Allow extension to work in untrusted workspaces.
 - Don't switch to File Explorer view when opening a file from ObjectScript Explorer (#651)
 - Scroll to correct line after an Output panel link is clicked (#657)
@@ -596,6 +651,7 @@ Minimum VS Code version is now 1.66.0
 - Upgrade vulnerable dependencies.
 
 ## [1.0.11] 12-May-2021
+
 - Support client-side web app (CSP) workflow as long as web app path is in the `/csp/*` space (#147, #449)
 - Add compile-only commands 'Compile Current File' and 'Compile Current File with Specified Flags...' (#595)
 - Add 'Edit Other' command plus menu option below 'View Other' (#309)
@@ -616,6 +672,7 @@ Minimum VS Code version is now 1.66.0
 - Upgrade vulnerable dependencies.
 
 ## [1.0.10] 26-Apr-2021
+
 - Avoid prompting for already-saved password (#61)
 - Constrain QuickOpen list contents when `isfs` folder path targets a specific package (#581)
 - Show `isfs` folder label in breadcrumb even without proposed APIs enabled (#599)
@@ -628,26 +685,29 @@ Minimum VS Code version is now 1.66.0
 - Upgrade vulnerable dependencies.
 
 ## [1.0.9] 22-Mar-2021
+
 - Allow system files (% classes) to be searched from non-%SYS namespace.
 - Handle `objectscript.conn.server` referencing non-existent `intersystems.servers` entry (#586)
 - Improve README.
 - Upgrade vulnerable dependencies.
 
 ## [1.0.8] 15-Jan-2021
+
 - Implement `isfs://server:namespace/` syntax as an alternative to the `ns=NAMESPACE` query parameter (#450)
 - Use new isfs notation in entries created by 'Add Server Namespace to Workspace' (#554)
 - Load server-side (isfs) folder-specific snippets (#552)
 - Improve snippets:
-    - Add a ///-comment tabstop at the start of all snippets used in class definitions.
-    - Add descriptive default text to more tabstops.
-    - Add third superclass to multi-superclass snippet.
-    - Uniformly use Capitalized command names and UPPERCASE function names in ObjectScript.
-    - Standardize body layout in definitions to reflect layout of result.
-    - Tidy how duplicate tabstops are used.
+  - Add a ///-comment tabstop at the start of all snippets used in class definitions.
+  - Add descriptive default text to more tabstops.
+  - Add third superclass to multi-superclass snippet.
+  - Uniformly use Capitalized command names and UPPERCASE function names in ObjectScript.
+  - Standardize body layout in definitions to reflect layout of result.
+  - Tidy how duplicate tabstops are used.
 - Support searching all Studio document types when using symbol search (Cmd/Ctrl + T).
 - Upgrade vulnerable dependency.
 
 ## [1.0.7] 4-Jan-2021
+
 - Fix issue affecting use with Docker on Windows (#516)
 - Resolve problem debugging in a multi-root workspace using isfs (#387)
 - Allow 'View Other' from custom Studio documents.
@@ -656,6 +716,7 @@ Minimum VS Code version is now 1.66.0
 - Upgrade vulnerable dependency.
 
 ## [1.0.6] 13-Nov-2020
+
 - Target current class when opening documentation from Server Actions quickpick, launched by click on ObjectScript panel in status bar (#490)
 - Improve code snippets (#493)
 - Update README to state need for manual download and install of beta VSIX in order to use proposed APIs (#478)
@@ -665,26 +726,28 @@ Minimum VS Code version is now 1.66.0
 - Exclude Studio project documents (.prj) from isfs tree (#501)
 - Fix variable tree cascade that occurred when value was edited during debugging (#505)
 - Show clickable url launching graphical editor for BPL and DTL documents opened from isfs folder (#508)
-    - To show .bpl and .dtl files, add `filter=*` to isfs folder's `uri` property in your `XXX.code-workspace` file.
-    - Alternatively, use `View Other` from context menu of the corresponding class.
+  - To show .bpl and .dtl files, add `filter=*` to isfs folder's `uri` property in your `XXX.code-workspace` file.
+  - Alternatively, use `View Other` from context menu of the corresponding class.
 - Display supported image files correctly when opened from isfs web application folder (#394)
 - Prevent import from overwriting class that is in [deployed mode](https://docs.intersystems.com/iris20181/csp/docbook/Doc.View.cls?KEY=GOBJ_classes#GOBJ_deploy_classes) (#382)
 - Respect `pathPrefix` property of an `intersystems.servers` connection definition in more places:
-    - debugger connections
-    - urls on Server Actions menu
+  - debugger connections
+  - urls on Server Actions menu
 
 ## [1.0.5] 5-Nov-2020
+
 - Defer to Language Server 1.0.5+ for folding range information (#473)
 - Add `objectscript.overwriteServerChanges` setting to permit unconditional import from local file (#464)
 - Fix authentication problem introduced in 1.0.2 (#458)
 - Handle Unicode characters in identifiers (#337)
 - Avoid inappropriate transfer of user-level `objectscript.conn` settings into workspace-level settings (#460)
 - Enhancements available only when proposed APIs are enabled:
-    - Improve format of results from Quick Open server-side file name search (#467)
-    - Add root folder label text to label of isfs file (#455)
-    - Add '(read-only)' suffix to label of non-editable file opened from ObjectScript Explorer (#471)
+  - Improve format of results from Quick Open server-side file name search (#467)
+  - Add root folder label text to label of isfs file (#455)
+  - Add '(read-only)' suffix to label of non-editable file opened from ObjectScript Explorer (#471)
 
 ## [1.0.4] 30-Oct-2020
+
 - Wait for connection checks to complete during activation.
 - Display debugging values correctly when they contain characters above ASCII 127.
 - Fix broken server-side .vscode storage mechanism when isfs query string includes other parameters after `ns`.
@@ -694,9 +757,11 @@ Minimum VS Code version is now 1.66.0
 - Differentiate "Edit" and "View" options better on isfs dialog.
 
 ## [1.0.3] 24-Oct-2020
+
 - Fix problem that prevented 1.0.2 from publishing to Marketplace.
 
 ## [1.0.2] 23-Oct-2020
+
 - Fix problem with excessive license use.
 - Install language server extension in the background.
 - Use less status bar space.
@@ -704,18 +769,22 @@ Minimum VS Code version is now 1.66.0
 - Add `objectscript.export.map` setting.
 
 ## [1.0.1] 20-Oct-2020
+
 - First production release.
 
 ## [0.9.5]
+
 - Fix regression in 0.9.4 that broke `Add Server Namespace to Workspace...`.
 
 ## [0.9.4]
+
 - Support folder-level settings, snippets and debug configurations for server-side (isfs) workspace folders. This feature requires a `/_vscode` webapp using the %SYS namespace.
 - Support webapp-type roots referencing a path that is an ancestor of one or more webapps that use the target namespace. For example `isfs://server/?ns=%SYS&csp` gives access to all %SYS webapps from a single root folder.
 - Enhance `Add Server Namespace to Workspace...` command and quickstart button to add webapp-type roots.
 - Remove requirement for namespaces to be uppercase in settings.
 
 ## [0.9.3]
+
 - Add quickstart button to ObjectScript Explorer view when local folder is open but no `objectscript.conn` settings are available to it.
 - Add `Jump to Tag + Offset` command for MACs and INTs, and make it available via click on statusbar field.
 - Support server-side editing of other filetypes such as HL7, LUT.
@@ -729,10 +798,12 @@ Minimum VS Code version is now 1.66.0
 - Prepare to coexist with upcoming language server extension.
 
 ## [0.9.2]
+
 - Implement `Add Server Namespace to Workspace...` command and surface it on folder context menus in VS Code Explorer.
 - Add `Choose Server and Namespace` button to VS Code Explorer view when no folder or workspace is open. This provides a quick way to get started with server-centric development, particularly when combined with the 'just-in-time' connection definition enhancement that arrived in version 0.0.7 of the Server Manager extension.
 
 ## [0.9.1]
+
 - Fix problem that caused isfs-type saves to report incorrectly that server version was newer.
 - Prevent silent overwrite on retry after an import was initially canceled because of server-side difference.
 - Serialize and deduplicate initial credential prompting when a multi-server workspace is opened.
@@ -744,6 +815,7 @@ Minimum VS Code version is now 1.66.0
 - Add missing 0.9.0 CHANGELOG.
 
 ## [0.9.0]
+
 - Change publisher id to be 'intersystems-community'.
 - Refresh correctly from server after isfs-type save and compile.
 - Swap the two sides displayed by a compare invoked after local file import conflict. Server copy is now on the left, to match convention elsewhere in VS Code.
@@ -754,25 +826,27 @@ Minimum VS Code version is now 1.66.0
 - Upgrade vulnerable dependencies.
 
 ## [0.8.9]
+
 - Fix saving of isfs-type server-side editing, broken in 0.8.8.
 - Implement double-click opening from ObjectScript Explorer.
 - Make ObjectScript Explorer handle non-isfs multi-server multi-root workspace correctly.
 - Reload VS Code Explorer tree after successful connection.
 - Fix some issues with `export.addCategory` setting:
-    - Resolve error when non-string was used as folder value.
-    - If setting contains multiple patterns, check all of them, in given order.
+  - Resolve error when non-string was used as folder value.
+  - If setting contains multiple patterns, check all of them, in given order.
 - Fix server-side searching of isfs-type root that uses `intersystems.servers` for its connection.
-    - Server-side searching uses a VS Code API that is still (1.48) at "proposed" stage. See [here](https://github.com/intersystems-community/vscode-objectscript/issues/126#issuecomment-674089387) for instructions on how to use this pre-release feature.
+  - Server-side searching uses a VS Code API that is still (1.48) at "proposed" stage. See [here](https://github.com/intersystems-community/vscode-objectscript/issues/126#issuecomment-674089387) for instructions on how to use this pre-release feature.
 - No longer use progress indicator when server-side source control displays a page.
 - Do not call server-side AfterUserAction if not necessary.
 - Upgrade vulnerable dependencies.
 
 ## [0.8.8]
+
 - Fix retrieval of password when `objectscript.conn.server` defers to Server Manager.
 - Fix command completions, broken in 0.8.7.
 - Improve ObjectScript Explorer:
-    - Files that will be loaded from local workspace now show their filetype icon and a full path tooltip.
-    - Fix rare case where code would load from wrong place.
+  - Files that will be loaded from local workspace now show their filetype icon and a full path tooltip.
+  - Fix rare case where code would load from wrong place.
 - Skip compilation of local CSP files for now.
 - Improve handling of server modification date comparisons.
 - Fix incorrect `Studio Action "Changed Namespace" not supported` message in output channel.
@@ -781,6 +855,7 @@ Minimum VS Code version is now 1.66.0
 - Improve README information about username and password in settings.
 
 ## [0.8.7]
+
 - Use `intersystems.servers` object for more flexible connection definitions.
 - Recommend [intersystems-community.servermanager](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) extension for management of `intersystems.servers` definitions.
 - Support server-side source control and other server-side commands.
@@ -802,23 +877,28 @@ Minimum VS Code version is now 1.66.0
 - Webpack extension to reduce size.
 
 ## [0.8.6] - 2020-04-23
+
 - Support $ETRAP system variable.
 - Fix opening Docker terminal.
 
 ## [0.8.5] - 2020-04-20
+
 - Fix errors in embedded JS code.
 - Fix diagnostic error for values in quotes.
 
 ## [0.8.3] - 2020-03-23
+
 - Support for custom address in isfs.
 - Multi select in explorer view for mass export.
 
 ## [0.8.2] - 2020-03-04
+
 - Show current place (label+pos^routine) in status bar for INT code.
 - Fix syntax highlighting.
 - Support for ${namespace} in links.
 
 ## [0.8.1] - 2020-02-06
+
 - Some small fixes in filtering for isfs.
 - Fixed connection info in Explorer.
 - Extra links for server.
@@ -830,6 +910,7 @@ Minimum VS Code version is now 1.66.0
 - Password prompt, live connection status.
 
 ## [0.8.0]
+
 - "Debug this ClassMethod" feature added, to quickly debug any classmethod in a class
 - Change variable value while debugging
 - When virtual filesystem `isfs://` used, now possible to execute some actions from Studio Source class menu

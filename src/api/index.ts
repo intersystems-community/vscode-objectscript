@@ -719,6 +719,10 @@ export class AtelierAPI {
     });
   }
 
+  public getGlobalDocumentation(body: { selectedText: string }): Promise<Atelier.Response> {
+    return this.request(1, "POST", `${this.ns}/action/getglobaldocumentation`, body);
+  }
+
   // v1+
   public actionCompile(docs: string[], flags?: string, source = false): Promise<Atelier.Response> {
     docs = docs.map((doc) => this.transformNameIfCsp(doc));
