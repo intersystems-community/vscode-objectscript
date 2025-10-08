@@ -14,6 +14,7 @@ export {
   type QueryKind,
 } from "./features/definitionLookup/extractQuery";
 export { goToDefinitionLocalFirst } from "./commands/goToDefinitionLocalFirst";
+export { followDefinitionLink } from "./commands/followDefinitionLink";
 export { PrioritizedDefinitionProvider } from "./providers/PrioritizedDefinitionProvider";
 export {
   DefinitionDocumentLinkProvider,

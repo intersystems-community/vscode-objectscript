@@ -167,6 +167,7 @@ import {
   PrioritizedDefinitionProvider,
   DefinitionDocumentLinkProvider,
   followDefinitionLinkCommand,
+  followDefinitionLink,
   goToDefinitionLocalFirst,
   resolveContextExpression,
   showGlobalDocumentation,
@@ -1298,22 +1299,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       followDefinitionLinkCommand,
       async (documentUri: string, line: number, character: number) => {
         sendCommandTelemetryEvent("ccs.followDefinitionLink");
-        if (!documentUri || typeof line !== "number" || typeof character !== "number") {
-          return;
-        }
-
-        const uri = vscode.Uri.parse(documentUri);
-        const document =
-          vscode.workspace.textDocuments.find((doc) => doc.uri.toString() === documentUri) ??
-          (await vscode.workspace.openTextDocument(uri));
-
-        const position = new vscode.Position(line, character);
-        const selectionRange = new vscode.Range(position, position);
-        const editor = await vscode.window.showTextDocument(document, { selection: selectionRange });
-        editor.selection = new vscode.Selection(position, position);
-        editor.revealRange(selectionRange);
-
-        await goToDefinitionLocalFirst();
+        await followDefinitionLink(documentUri, line, character);
       }
     ),
     vscode.commands.registerCommand("vscode-objectscript.debug", (program: string, askArgs: boolean) => {
