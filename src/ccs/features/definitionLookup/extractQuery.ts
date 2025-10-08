@@ -93,8 +93,9 @@ const MATCHERS: DefinitionMatcher[] = [
       return [
         createToken({
           line,
-          start: labelStart,
+          start,
           end: labelEnd,
+          activationStart: start,
           query: text,
           normalizedQuery: normalized,
           kind: "labelRoutine",
@@ -193,16 +194,12 @@ const MATCHERS: DefinitionMatcher[] = [
     regex: MACRO_REGEX,
     buildTokens: ({ line, start, text, match }) => {
       const [, macroName] = match;
-      const macroStart = start + (text.length - macroName.length);
-      if (macroStart < start) {
-        return [];
-      }
-      const macroEnd = macroStart + macroName.length;
+      const macroEnd = start + text.length;
 
       return [
         createToken({
           line,
-          start: macroStart,
+          start,
           end: macroEnd,
           activationStart: start,
           query: text,
