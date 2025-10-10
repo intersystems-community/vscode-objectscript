@@ -539,11 +539,6 @@
       ],
       "editor/title": [
         {
-          "command": "vscode-objectscript.ccs.goToDefinition",
-          "group": "navigation@0",
-          "when": "editorTextFocus && editorLangId =~ /^objectscript/"
-        },
-        {
           "command": "-editor.action.revealDefinition",
           "group": "navigation@0",
           "when": "editorLangId =~ /^objectscript/"

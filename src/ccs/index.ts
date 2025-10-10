@@ -13,8 +13,9 @@ export {
   type QueryMatch,
   type QueryKind,
 } from "./features/definitionLookup/extractQuery";
-export { goToDefinitionLocalFirst } from "./commands/goToDefinitionLocalFirst";
-export { followDefinitionLink } from "./commands/followDefinitionLink";
+export { goToDefinitionLocalFirst } from "./commands/navigation/goToDefinitionLocalFirst";
+export { followDefinitionLink } from "./commands/navigation/followDefinitionLink";
+export { navigateToDefinition, type NavigateOpts } from "./commands/navigation/navigateDefinition";
 export { PrioritizedDefinitionProvider } from "./providers/PrioritizedDefinitionProvider";
 export {
   DefinitionDocumentLinkProvider,
