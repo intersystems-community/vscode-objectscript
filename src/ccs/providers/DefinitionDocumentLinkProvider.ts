@@ -48,7 +48,8 @@ export class DefinitionDocumentLinkProvider implements vscode.DocumentLinkProvid
     );
 
     return queries.map((match) => {
-      const args = [document.uri.toString(), match.range.start.line, match.range.start.character];
+      const targetPosition = this.getDefinitionPosition(match.range);
+      const args = [document.uri.toString(), targetPosition.line, targetPosition.character];
       const commandUri = vscode.Uri.parse(
         `command:${followDefinitionLinkCommand}?${encodeURIComponent(JSON.stringify(args))}`
       );
@@ -56,6 +57,15 @@ export class DefinitionDocumentLinkProvider implements vscode.DocumentLinkProvid
       link.tooltip = vscode.l10n.t("Go to Definition");
       return link;
     });
+  }
+
+  private getDefinitionPosition(range: vscode.Range): vscode.Position {
+    const { start, end } = range;
+    if (end.isAfter(start)) {
+      const character = Math.max(start.character, end.character - 1);
+      return new vscode.Position(start.line, character);
+    }
+    return start;
   }
 
   public dispose(): void {
