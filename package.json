@@ -880,6 +880,11 @@
       },
       {
         "category": "ObjectScript",
+        "command": "vscode-objectscript.ccs.followSourceAnalysisLink",
+        "title": "Follow Source Analysis Link"
+      },
+      {
+        "category": "ObjectScript",
         "command": "vscode-objectscript.compile",
         "title": "Import and Compile Current File"
       },

@@ -115,7 +115,6 @@ import {
   displayableUri,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
-import { DocumentLinkProvider } from "./providers/DocumentLinkProvider";
 
 /* proposed */
 import { FileSearchProvider } from "./providers/FileSystemProvider/FileSearchProvider";
@@ -169,6 +168,10 @@ import {
   followDefinitionLinkCommand,
   followDefinitionLink,
   goToDefinitionLocalFirst,
+  SourceAnalysisLinkProvider,
+  followSourceAnalysisLink,
+  followSourceAnalysisLinkCommand,
+  type SourceAnalysisLinkArgs,
   resolveContextExpression,
   showGlobalDocumentation,
 } from "./ccs";
@@ -1302,6 +1305,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         await followDefinitionLink(documentUri, line, character);
       }
     ),
+    vscode.commands.registerCommand(followSourceAnalysisLinkCommand, async (args: SourceAnalysisLinkArgs) => {
+      sendCommandTelemetryEvent("ccs.followSourceAnalysisLink");
+      await followSourceAnalysisLink(args);
+    }),
     vscode.commands.registerCommand("vscode-objectscript.debug", (program: string, askArgs: boolean) => {
       sendCommandTelemetryEvent("debug");
       const startDebugging = (args) => {
@@ -1537,7 +1544,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("compileOnlyWithFlags");
       compileOnly(true);
     }),
-    vscode.languages.registerDocumentLinkProvider({ language: outputLangId }, new DocumentLinkProvider()),
+    vscode.languages.registerDocumentLinkProvider({ language: outputLangId }, new SourceAnalysisLinkProvider()),
     vscode.commands.registerCommand("vscode-objectscript.editOthers", () => {
       sendCommandTelemetryEvent("editOthers");
       viewOthers(true);

@@ -20,3 +20,9 @@ export {
   DefinitionDocumentLinkProvider,
   followDefinitionLinkCommand,
 } from "./providers/DefinitionDocumentLinkProvider";
+export {
+  SourceAnalysisLinkProvider,
+  type SourceAnalysisLinkArgs,
+  followSourceAnalysisLink,
+  followSourceAnalysisLinkCommand,
+} from "./providers/SourceAnalysisLinkProvider";

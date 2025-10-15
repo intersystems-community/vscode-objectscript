@@ -1,3 +1,6 @@
+// @deprecated Not registered. Kept only for upstream diffs.
+// Active implementation: src/ccs/providers/SourceAnalysisLinkProvider.ts
+
 import * as vscode from "vscode";
 import { DocumentContentProvider } from "./DocumentContentProvider";
 import { handleError } from "../utils";
