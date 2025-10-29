@@ -172,6 +172,7 @@ import {
   followSourceAnalysisLink,
   followSourceAnalysisLinkCommand,
   type SourceAnalysisLinkArgs,
+  createItem,
   resolveContextExpression,
   showGlobalDocumentation,
 } from "./ccs";
@@ -1293,6 +1294,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.resolveContextExpression", () => {
       sendCommandTelemetryEvent("resolveContextExpression");
       void resolveContextExpression();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.ccs.createItem", async () => {
+      sendCommandTelemetryEvent("ccs.createItem");
+      await createItem();
     }),
     vscode.commands.registerCommand("vscode-objectscript.ccs.goToDefinition", async () => {
       sendCommandTelemetryEvent("ccs.goToDefinition");

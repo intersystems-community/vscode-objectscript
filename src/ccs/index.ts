@@ -26,3 +26,4 @@ export {
   followSourceAnalysisLink,
   followSourceAnalysisLinkCommand,
 } from "./providers/SourceAnalysisLinkProvider";
+export { createItem } from "./commands/createItem";

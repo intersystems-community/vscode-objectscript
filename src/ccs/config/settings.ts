@@ -8,7 +8,7 @@ export interface CcsSettings {
 }
 
 const CCS_CONFIGURATION_SECTION = "objectscript.ccs";
-const DEFAULT_TIMEOUT = 500;
+const DEFAULT_TIMEOUT = 5000;
 
 export function getCcsSettings(): CcsSettings {
   const configuration = vscode.workspace.getConfiguration(CCS_CONFIGURATION_SECTION);

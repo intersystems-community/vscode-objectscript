@@ -652,6 +652,11 @@
       ],
       "file/newFile": [
         {
+          "command": "vscode-objectscript.ccs.createItem",
+          "when": "workspaceFolderCount != 0",
+          "group": "file"
+        },
+        {
           "command": "vscode-objectscript.newFile.kpi",
           "when": "workspaceFolderCount != 0",
           "group": "file"
@@ -882,6 +887,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.ccs.followSourceAnalysisLink",
         "title": "Follow Source Analysis Link"
+      },
+      {
+        "category": "Consistem",
+        "command": "vscode-objectscript.ccs.createItem",
+        "title": "Create Item"
       },
       {
         "category": "ObjectScript",

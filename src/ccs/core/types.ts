@@ -19,3 +19,14 @@ export interface GlobalDocumentationResponse {
   content?: string | string[] | Record<string, unknown> | null;
   message?: string;
 }
+
+export interface CreateItemResponse {
+  item?: Record<string, unknown>;
+  name?: string;
+  documentName?: string;
+  namespace?: string;
+  module?: string;
+  message?: string;
+  path?: string;
+  uri?: string;
+}
