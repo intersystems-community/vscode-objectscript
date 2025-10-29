@@ -128,7 +128,7 @@
           "when": "vscode-objectscript.connectActive"
         },
         {
-          "command": "vscode-objectscript.getGlobalDocumentation",
+          "command": "vscode-objectscript.ccs.getGlobalDocumentation",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
@@ -858,33 +858,28 @@
     ],
     "commands": [
       {
-        "category": "ObjectScript",
-        "command": "vscode-objectscript.export",
-        "title": "Export Code from Server"
-      },
-      {
-        "category": "ObjectScript",
-        "command": "vscode-objectscript.resolveContextExpression",
+        "category": "Consistem",
+        "command": "vscode-objectscript.ccs.resolveContextExpression",
         "title": "Resolve Context Expression"
       },
       {
-        "category": "ObjectScript",
-        "command": "vscode-objectscript.getGlobalDocumentation",
+        "category": "Consistem",
+        "command": "vscode-objectscript.ccs.getGlobalDocumentation",
         "title": "Show Global Documentation",
         "enablement": "vscode-objectscript.connectActive"
       },
       {
-        "category": "ObjectScript",
+        "category": "Consistem",
         "command": "vscode-objectscript.ccs.goToDefinition",
         "title": "Go to Definition"
       },
       {
-        "category": "ObjectScript",
+        "category": "Consistem",
         "command": "vscode-objectscript.ccs.followDefinitionLink",
         "title": "Follow Definition Link"
       },
       {
-        "category": "ObjectScript",
+        "category": "Consistem",
         "command": "vscode-objectscript.ccs.followSourceAnalysisLink",
         "title": "Follow Source Analysis Link"
       },
@@ -892,6 +887,11 @@
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.createItem",
         "title": "Create Item"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.export",
+        "title": "Export Code from Server"
       },
       {
         "category": "ObjectScript",
@@ -994,7 +994,7 @@
       },
       {
         "category": "ObjectScript",
-        "command": "vscode-objectscript.getGlobalDocumentation",
+        "command": "vscode-objectscript.ccs.getGlobalDocumentation",
         "enablement": "vscode-objectscript.connectActive",
         "title": "Show Global Documentation"
       },
@@ -1285,13 +1285,13 @@
         "when": "editorLangId =~ /^objectscript/"
       },
       {
-        "command": "vscode-objectscript.resolveContextExpression",
+        "command": "vscode-objectscript.ccs.resolveContextExpression",
         "key": "Ctrl+Alt+Space",
         "mac": "Cmd+Alt+Space",
         "when": "editorTextFocus && editorLangId =~ /^objectscript/"
       },
       {
-        "command": "vscode-objectscript.getGlobalDocumentation",
+        "command": "vscode-objectscript.ccs.getGlobalDocumentation",
         "key": "Ctrl+Q",
         "mac": "Cmd+Q",
         "when": "editorTextFocus && editorLangId =~ /^objectscript/"
