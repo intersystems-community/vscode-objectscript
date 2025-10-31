@@ -232,6 +232,34 @@ export function isfsDocumentName(uri: vscode.Uri, csp?: boolean, pkg = false): s
   return pkg && !csp && !doc.split("/").pop().includes(".") ? `${doc}.PKG` : doc;
 }
 
+/**
+ * Validate that `uri`'s path is in "canonical form" for classes and routines.
+ * For example, the "canonical" uri path representing `%Library.CHUIScreen.cls`
+ * is `/%Library/CHUIScreen.cls`. Paths that will not be rejected include
+ * `/%CHUIScreen.cls` (short alias), `/%Library.CHUIScreen.cls` (dotted packages),
+ * and `/%Library/CHUIScreen.CLS` (extension has wrong case). This is needed to
+ * prevent the user from opening multiple copies of the same document. This
+ * function does not return a value; it throws a `vscode.FileSystemError.FileNotFound`
+ * error when `uri`'s path is not in "canonical form".
+ */
+function validateUriIsCanonical(uri: vscode.Uri): void {
+  if (
+    !isfsConfig(uri).csp &&
+    [".cls", ".mac", ".int", ".inc"].includes(uri.path.slice(-4).toLowerCase()) &&
+    // dotted packages
+    (uri.path.split(".").length > 2 ||
+      // extension has wrong case
+      ![".cls", ".mac", ".int", ".inc"].includes(uri.path.slice(-4)) ||
+      // short alias for %Library class
+      (uri.path.startsWith("/%") &&
+        uri.path.slice(-4) == ".cls" &&
+        uri.path.split(".").length == 2 &&
+        uri.path.split("/").length == 2))
+  ) {
+    throw vscode.FileSystemError.FileNotFound(uri);
+  }
+}
+
 export class FileSystemProvider implements vscode.FileSystemProvider {
   private superRoot = new Directory("", "");
 
@@ -253,6 +281,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   public async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
     const api = new AtelierAPI(uri);
     if (!api.active) throw vscode.FileSystemError.Unavailable("Server connection is inactive");
+    validateUriIsCanonical(uri);
     let entryPromise: Promise<Entry>;
     let result: Entry;
     const redirectedUri = redirectDotvscodeRoot(uri, vscode.FileSystemError.FileNotFound(uri));
@@ -434,6 +463,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
+    validateUriIsCanonical(uri);
     // Use _lookup() instead of _lookupAsFile() so we send
     // our cached mtime with the GET /doc request if we have it
     return this._lookup(uri, true).then((file: File) => file.data);
@@ -451,6 +481,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (uri.path.startsWith("/.")) {
       throw new vscode.FileSystemError("dot-folders are not supported by server");
     }
+    validateUriIsCanonical(uri);
     const csp = isCSP(uri);
     const fileName = isfsDocumentName(uri, csp);
     if (fileName.startsWith(".")) {
@@ -667,6 +698,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
 
   public async delete(uri: vscode.Uri, options: { recursive: boolean }): Promise<void> {
     uri = redirectDotvscodeRoot(uri, vscode.FileSystemError.FileNotFound(uri));
+    validateUriIsCanonical(uri);
     const { project } = isfsConfig(uri);
     const csp = isCSP(uri);
     const api = new AtelierAPI(uri);
@@ -759,6 +791,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (vscode.workspace.getWorkspaceFolder(oldUri) != vscode.workspace.getWorkspaceFolder(newUri)) {
       throw new vscode.FileSystemError("Cannot rename a file across workspace folders");
     }
+    validateUriIsCanonical(oldUri);
+    validateUriIsCanonical(newUri);
     // Check if the destination exists
     let newFileStat: vscode.FileStat;
     try {
