@@ -15,12 +15,14 @@ const ERR_NAME_REQUIRED = "Informe o nome do item.";
 
 const IDENTIFIER_START = "[A-Za-z_%]";
 const IDENTIFIER_BODY = "[A-Za-z0-9_%]";
-const LOCAL_NAME_PATTERN = new RegExp(`^${IDENTIFIER_START}${IDENTIFIER_BODY}*$`);
 const CLASS_SEGMENT = `${IDENTIFIER_START}${IDENTIFIER_BODY}*`;
 const CLASS_NAME_PATTERN = new RegExp(`^(?:${CLASS_SEGMENT}\\.)*${CLASS_SEGMENT}$`);
 const CLASS_DECLARATION_PATTERN = new RegExp(`Class\\s+(${CLASS_SEGMENT}(?:\\.${CLASS_SEGMENT})*)`, "i");
 const READABLE_NAME_PATTERN = /^[A-Za-z_%]/;
+
 const ROUTINE_NAME_PATTERN = new RegExp(`^${IDENTIFIER_START}${IDENTIFIER_BODY}*$`);
+const CLASS_METHOD_NAME_PATTERN = new RegExp(`^${IDENTIFIER_START}${IDENTIFIER_BODY}*$`);
+const ROUTINE_LABEL_NAME_PATTERN = new RegExp(`^[A-Za-z0-9_%][A-Za-z0-9_%]*$`);
 
 type EntityKind = "class" | "routine" | "unknown";
 
@@ -75,7 +77,7 @@ export async function jumpToTagAndOffsetCrossEntity(): Promise<void> {
   let pendingValidationError: string | undefined;
 
   while (true) {
-    const parsed = await promptForExpression(previousValue, pendingValidationError, localNames, docCtx);
+    const parsed = await promptWithQuickPick(previousValue, pendingValidationError, localNames, docCtx);
     if (!parsed) return;
 
     previousValue = parsed.input;
@@ -84,167 +86,153 @@ export async function jumpToTagAndOffsetCrossEntity(): Promise<void> {
     const navigationResult = await navigateToDestination(parsed, document, editor, resolveClient, docCtx);
     if (navigationResult.ok) return;
 
+    vscode.window.showErrorMessage((navigationResult as NavigationFailure).error);
     pendingValidationError = (navigationResult as NavigationFailure).error;
   }
 }
 
-async function promptForExpression(
+async function promptWithQuickPick(
   previousValue: string | undefined,
   initialValidationError: string | undefined,
   localNames: LocalNamesMap,
   docCtx: DocContext
 ): Promise<ParseSuccess | undefined> {
-  const input = vscode.window.createInputBox();
-  input.title = "Consistem — Ir para Nome + Offset ^ Item opcional";
-  input.placeholder = docCtx.placeholder; // dynamic per file
-  input.value = previousValue ?? "";
-
-  if (previousValue) {
-    const length = previousValue.length;
-    input.valueSelection = [length, length];
-  }
-
-  if (initialValidationError) {
-    input.validationMessage = initialValidationError;
-  }
-
-  // Button: list local names (methods/tags)
-  const btnListNames: vscode.QuickInputButton = {
-    iconPath: new vscode.ThemeIcon("symbol-method"),
-    tooltip: `Listar nomes do ${docCtx.displayName}`,
-  };
-  input.buttons = [btnListNames];
+  const qp = vscode.window.createQuickPick<vscode.QuickPickItem>();
+  qp.title = "Consistem — Ir para Nome + Offset ^ Item";
+  qp.placeholder = docCtx.placeholder;
+  qp.ignoreFocusOut = true;
+  qp.matchOnDescription = true;
+  qp.matchOnDetail = true;
+  qp.canSelectMany = false;
 
   let lastParse: ParseSuccess | undefined;
   let lastValidatedValue: string | undefined;
   let currentValidationId = 0;
   let lastValidationPromise: Promise<void> | undefined;
-  let resolved = false;
 
-  // Guard to avoid resolving/closing when toggling to QuickPick
-  let isListing = false;
+  qp.value = previousValue ?? "";
 
-  const runValidation = (value: string): Promise<void> => {
+  const localItems: vscode.QuickPickItem[] = buildLocalItems(localNames);
+  const setItems = () => (qp.items = localItems);
+  setItems();
+
+  if (initialValidationError) {
+    vscode.window.showErrorMessage(initialValidationError);
+  } else if (qp.value.trim() !== "") {
+    void runValidation(qp.value, localNames, docCtx);
+  }
+
+  function runValidation(
+    value: string,
+    localNamesMap: LocalNamesMap,
+    dc: DocContext,
+    emitToast = false
+  ): Promise<void> {
     const validationId = ++currentValidationId;
-    input.busy = true;
+    qp.busy = true;
 
-    const validationPromise = validateExpression(value, localNames, docCtx.errLocalNameNotFound)
-      .then((validation) => {
+    const p = validateExpression(value, localNamesMap, dc)
+      .then((res) => {
         if (validationId !== currentValidationId) return;
 
-        if (validation.ok) {
-          lastParse = validation.value;
+        if (res.ok) {
+          lastParse = res.value;
           lastValidatedValue = value;
-          input.validationMessage = undefined;
         } else {
           lastParse = undefined;
           lastValidatedValue = undefined;
-          input.validationMessage = (validation as ValidationError).error;
+          if (emitToast) vscode.window.showErrorMessage((res as ValidationError).error);
         }
       })
       .finally(() => {
-        if (validationId === currentValidationId) input.busy = false;
+        if (validationId === currentValidationId) qp.busy = false;
       });
 
-    lastValidationPromise = validationPromise;
-    return validationPromise;
-  };
-
-  // Initial behavior: if we received a navigation error, show it; otherwise, validate only when there is content.
-  if (!initialValidationError && input.value.trim() !== "") {
-    void runValidation(input.value);
+    lastValidationPromise = p;
+    return p;
   }
 
-  input.onDidChangeValue((value) => {
-    // While empty, remain silent (no error shown).
+  qp.onDidChangeValue((value) => {
     if (value.trim() === "") {
       lastParse = undefined;
       lastValidatedValue = undefined;
-      input.validationMessage = undefined; // silent typing mode
       return;
     }
-    void runValidation(value);
+
+    void runValidation(value, localNames, docCtx, false);
   });
 
-  input.onDidTriggerButton(async (button) => {
-    if (button === btnListNames) {
-      isListing = true;
-      const previousExpr = input.value;
+  const accepted = new Promise<ParseSuccess | undefined>((resolve) => {
+    qp.onDidAccept(async () => {
+      const trimmed = qp.value.trim();
 
-      const picked = await quickPickLocalNames(localNames, docCtx);
-      isListing = false;
-      input.show();
+      if (qp.selectedItems.length) {
+        const picked = qp.selectedItems[0];
+        const normalized = replaceNameInExpression(trimmed, picked.label);
+        if (normalized !== trimmed) {
+          qp.value = normalized;
 
-      if (picked) {
-        input.value = replaceNameInExpression(previousExpr, picked);
-        const len = input.value.length;
-        input.valueSelection = [len, len];
-        if (input.value.trim() !== "") void runValidation(input.value);
-      } else {
-        // No selection: restore previous expression and continue.
-        input.value = previousExpr;
-        const len = input.value.length;
-        input.valueSelection = [len, len];
+          try {
+            (qp as any).selectedItems = [];
+          } catch {
+            // Ignore errors from manipulating QuickPick internals.
+          }
+
+          if (qp.value.trim() !== "") void runValidation(qp.value, localNames, docCtx, false);
+          return;
+        }
       }
-    }
+
+      if (trimmed === "") {
+        vscode.window.showErrorMessage(ERR_NAME_REQUIRED);
+        return;
+      }
+
+      if (!lastValidationPromise || lastValidatedValue !== qp.value) {
+        await runValidation(qp.value, localNames, docCtx, true);
+      } else {
+        await lastValidationPromise;
+        if (!lastParse) {
+          vscode.window.showErrorMessage(ERR_SYNTAX);
+        }
+      }
+
+      if (!lastParse) return;
+
+      resolve(lastParse);
+      qp.hide();
+      qp.dispose();
+    });
+
+    qp.onDidHide(() => {
+      resolve(undefined);
+      qp.dispose();
+    });
   });
 
-  let parsedResolve!: (value: ParseSuccess | undefined) => void;
-  const parsedPromise = new Promise<ParseSuccess | undefined>((resolve) => (parsedResolve = resolve));
-
-  input.onDidAccept(async () => {
-    // Pressing Enter with an empty value: show error and keep the input open.
-    if (input.value.trim() === "") {
-      input.validationMessage = ERR_NAME_REQUIRED;
-      return;
-    }
-
-    if (!lastValidationPromise || lastValidatedValue !== input.value) {
-      await runValidation(input.value);
-    } else {
-      await lastValidationPromise;
-    }
-
-    if (!lastParse) return;
-
-    resolved = true;
-    parsedResolve(lastParse);
-    input.hide();
-  });
-
-  input.onDidHide(() => {
-    if (isListing) return; // do not resolve when switching to QuickPick
-    if (!resolved) {
-      resolved = true;
-      parsedResolve(undefined);
-    }
-    input.dispose();
-  });
-
-  input.show();
-
-  return parsedPromise;
+  qp.show();
+  return accepted;
 }
 
-/** QuickPick for local names (contextual, per-file list). */
-async function quickPickLocalNames(localNames: LocalNamesMap, docCtx: DocContext): Promise<string | undefined> {
+function buildLocalItems(localNames: LocalNamesMap): vscode.QuickPickItem[] {
   if (!localNames.size) {
-    vscode.window.showInformationMessage(`Nenhum nome encontrado em ${docCtx.displayName}.`);
-    return undefined;
+    return [
+      {
+        label: "Nenhum nome local encontrado",
+        description: "—",
+        detail: "Defina métodos/labels no arquivo atual para listá-los aqui.",
+        alwaysShow: true,
+      },
+    ];
   }
 
-  const items: vscode.QuickPickItem[] = [...localNames.values()]
-    .sort((a, b) => a.originalName.localeCompare(b.originalName))
-    .map((info) => ({ label: info.originalName, description: "definição local" }));
-
-  const picked = await vscode.window.showQuickPick(items, {
-    placeHolder: `Selecione um nome do ${docCtx.displayName}`,
-    canPickMany: false,
-    matchOnDescription: true,
-    ignoreFocusOut: true,
-  });
-
-  return picked?.label;
+  return [...localNames.values()]
+    .sort((a, b) => a.line - b.line || a.originalName.localeCompare(b.originalName))
+    .map((info) => ({
+      label: info.originalName,
+      description: "definição local",
+      detail: `linha ${info.line + 1}`,
+    }));
 }
 
 /** Replaces only the "name" portion in the expression, preserving +offset and ^item. */
@@ -263,7 +251,7 @@ function replaceNameInExpression(expr: string, newName: string): string {
 async function validateExpression(
   rawValue: string,
   localNames: LocalNamesMap,
-  dynamicLocalNotFoundMsg: string
+  docCtx: DocContext
 ): Promise<ValidationOutcome> {
   const trimmed = rawValue.trim();
   if (!trimmed) return { ok: false, error: ERR_NAME_REQUIRED };
@@ -292,7 +280,21 @@ async function validateExpression(
   }
 
   if (!name) return { ok: false, error: ERR_NAME_REQUIRED };
-  if (!LOCAL_NAME_PATTERN.test(name)) return { ok: false, error: ERR_SYNTAX };
+
+  const isEntityClass = !!entity && entity.includes(".");
+  const isEntityRoutine = !!entity && !entity.includes(".");
+
+  if (isEntityClass) {
+    if (!CLASS_METHOD_NAME_PATTERN.test(name)) return { ok: false, error: ERR_SYNTAX };
+  } else if (isEntityRoutine) {
+    if (!ROUTINE_LABEL_NAME_PATTERN.test(name)) return { ok: false, error: ERR_SYNTAX };
+  } else {
+    if (docCtx.kind === "routine") {
+      if (!ROUTINE_LABEL_NAME_PATTERN.test(name)) return { ok: false, error: ERR_SYNTAX };
+    } else {
+      if (!CLASS_METHOD_NAME_PATTERN.test(name)) return { ok: false, error: ERR_SYNTAX };
+    }
+  }
 
   let offset = 0;
   if (offsetPart !== undefined) {
@@ -302,15 +304,9 @@ async function validateExpression(
 
   if (entity !== undefined) {
     if (entity.includes(".")) {
-      // Class: fully qualified name with dots
-      if (!CLASS_NAME_PATTERN.test(entity)) {
-        return { ok: false, error: ERR_ENTITY_FMT };
-      }
+      if (!CLASS_NAME_PATTERN.test(entity)) return { ok: false, error: ERR_ENTITY_FMT };
     } else {
-      // Routine: e.g., CCTRIBRG002
-      if (!ROUTINE_NAME_PATTERN.test(entity)) {
-        return { ok: false, error: ERR_ENTITY_FMT };
-      }
+      if (!ROUTINE_NAME_PATTERN.test(entity)) return { ok: false, error: ERR_ENTITY_FMT };
     }
   }
 
@@ -318,9 +314,7 @@ async function validateExpression(
 
   if (!entity) {
     const localInfo = localNames.get(name.toLowerCase());
-    if (!localInfo) {
-      return { ok: false, error: dynamicLocalNotFoundMsg }; // contextual message per file
-    }
+    if (!localInfo) return { ok: false, error: docCtx.errLocalNameNotFound };
     return { ok: true, value: { ...parseResult, localBaseLine: localInfo.line } };
   }
 
@@ -394,9 +388,10 @@ async function navigateToDestination(
   }
 
   // Build the correct query based on entity type (routine vs. class)
-  const query = parsed.entity.includes(".")
+  const isEntityClass = parsed.entity.includes(".");
+  const query = isEntityClass
     ? `##class(${parsed.entity}).${parsed.name}`
-    : `${parsed.name}^${parsed.entity}`;
+    : `${parsed.name}+${parsed.offset}^${parsed.entity}`;
 
   const lookupToken = new vscode.CancellationTokenSource();
 
@@ -414,12 +409,22 @@ async function navigateToDestination(
       return { ok: false, error: ERR_RESOLVE_FAILED };
     }
 
-    if (!(await confirmNameInDocument(targetDocument, parsed.name))) {
+    const definitionLine = await lookupNameDefinitionLine(targetDocument, parsed.name);
+    if (definitionLine === null) {
       return { ok: false, error: ERR_NAME_NOT_FOUND_IN_ENTITY };
     }
 
-    const baseLine = location.range.start.line;
-    const targetLine = clampLine(baseLine + parsed.offset, targetDocument.lineCount);
+    const symbolBaseLine = definitionLine;
+    const locationBaseLine = location.range.start.line;
+
+    const targetLine = clampLine(
+      isEntityClass
+        ? (symbolBaseLine ?? locationBaseLine) + parsed.offset
+        : symbolBaseLine !== undefined
+          ? symbolBaseLine + parsed.offset
+          : locationBaseLine,
+      targetDocument.lineCount
+    );
     const position = new vscode.Position(targetLine, 0);
     const selection = new vscode.Selection(position, position);
     const targetEditor = await vscode.window.showTextDocument(targetDocument, { preview: false });
@@ -463,25 +468,31 @@ async function resolveEntityMissingReason(
   }
 }
 
-async function confirmNameInDocument(document: vscode.TextDocument, name: string): Promise<boolean> {
+async function lookupNameDefinitionLine(
+  document: vscode.TextDocument,
+  name: string
+): Promise<number | null | undefined> {
   try {
     const symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
       "vscode.executeDocumentSymbolProvider",
       document.uri
     );
-    if (!Array.isArray(symbols)) return true;
+    if (!Array.isArray(symbols)) return undefined;
 
     const lower = name.toLowerCase();
     const stack: vscode.DocumentSymbol[] = [...symbols];
     while (stack.length) {
       const symbol = stack.pop();
       if (!symbol) continue;
-      if (symbol.kind === vscode.SymbolKind.Method && symbol.name.toLowerCase() === lower) return true;
+      if (symbol.kind === vscode.SymbolKind.Method && symbol.name.toLowerCase() === lower) {
+        const line = symbol.selectionRange?.start.line ?? symbol.range.start.line;
+        return line;
+      }
       if (symbol.children?.length) stack.push(...symbol.children);
     }
-    return false;
+    return null;
   } catch {
-    return true;
+    return undefined;
   }
 }
 
@@ -516,13 +527,11 @@ function buildDocContext(document: vscode.TextDocument, localNames: LocalNamesMa
         ? `rotina ${currentEntityName}`
         : "arquivo atual";
 
-  // Example name (first known) or a generic fallback
   const exampleName = pickExampleName(localNames);
-
-  // Example entity: prefer current entity, otherwise a readable generic
+  const lastLocalName = pickLastName(localNames) ?? exampleName;
   const exampleItem = currentEntityName ?? (kind === "class" ? "Pkg.Classe" : "Item");
+  const placeholder = kind === "routine" ? `${lastLocalName}+2` : `${exampleName}+2^${exampleItem}`;
 
-  const placeholder = `${exampleName}+2^${exampleItem}`;
   const errLocalNameNotFound = `Nome não encontrado em ${displayName}`;
 
   return { kind, displayName, currentEntityName, placeholder, errLocalNameNotFound };
@@ -557,4 +566,13 @@ function pickExampleName(localNames: LocalNamesMap): string {
   const infos = [...localNames.values()].sort((a, b) => a.originalName.localeCompare(b.originalName));
   const readable = infos.find((info) => READABLE_NAME_PATTERN.test(info.originalName));
   return (readable ?? infos[0])?.originalName ?? "nome";
+}
+
+function pickLastName(localNames: LocalNamesMap): string | undefined {
+  if (!localNames.size) return undefined;
+  let last: LocalNameInfo | undefined;
+  for (const info of localNames.values()) {
+    if (!last || info.line > last.line) last = info;
+  }
+  return last?.originalName;
 }

@@ -1277,15 +1277,6 @@
         "when": "workspaceFolderCount != 0 && (editorLangId =~ /^objectscript/ || !editorIsOpen)"
       },
       {
-        "command": "vscode-objectscript.ccs.jumpToTagOffsetCrossEntity",
-        "key": "Ctrl+G",
-        "when": "workspaceFolderCount != 0 && (editorLangId =~ /^objectscript/ || !editorIsOpen)"
-      },
-      {
-        "key": "Ctrl+G",
-        "command": "-vscode-objectscript.jumpToTagAndOffset"
-      },
-      {
         "command": "vscode-objectscript.compile",
         "key": "Ctrl+F7",
         "mac": "Cmd+F7",
