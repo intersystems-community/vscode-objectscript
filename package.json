@@ -883,6 +883,11 @@
         "title": "Create Item"
       },
       {
+        "category": "Consistem",
+        "command": "vscode-objectscript.ccs.jumpToTagOffsetCrossEntity",
+        "title": "Go to Name + Offset ^ Item"
+      },
+      {
         "category": "ObjectScript",
         "command": "vscode-objectscript.export",
         "title": "Export Code from Server"
@@ -1270,6 +1275,15 @@
         "command": "vscode-objectscript.ccs.createItem",
         "key": "Ctrl+N",
         "when": "workspaceFolderCount != 0 && (editorLangId =~ /^objectscript/ || !editorIsOpen)"
+      },
+      {
+        "command": "vscode-objectscript.ccs.jumpToTagOffsetCrossEntity",
+        "key": "Ctrl+G",
+        "when": "workspaceFolderCount != 0 && (editorLangId =~ /^objectscript/ || !editorIsOpen)"
+      },
+      {
+        "key": "Ctrl+G",
+        "command": "-vscode-objectscript.jumpToTagAndOffset"
       },
       {
         "command": "vscode-objectscript.compile",

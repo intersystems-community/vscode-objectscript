@@ -15,6 +15,7 @@ export {
 } from "./features/definitionLookup/extractQuery";
 export { goToDefinitionLocalFirst } from "./commands/goToDefinitionLocalFirst";
 export { followDefinitionLink } from "./commands/followDefinitionLink";
+export { jumpToTagAndOffsetCrossEntity } from "./commands/jumpToTagOffsetCrossEntity";
 export { PrioritizedDefinitionProvider } from "./providers/PrioritizedDefinitionProvider";
 export {
   DefinitionDocumentLinkProvider,
