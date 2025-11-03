@@ -1316,437 +1316,456 @@
         "when": "editorLangId =~ /^objectscript/"
       }
     ],
-    "configuration": {
-      "title": "InterSystems ObjectScript",
-      "type": "object",
-      "properties": {
-        "objectscript.conn": {
-          "type": "object",
-          "description": "Server Access",
-          "scope": "resource",
-          "additionalProperties": false,
-          "required": [
-            "active"
-          ],
-          "properties": {
-            "active": {
-              "type": "boolean",
-              "description": "Whether the connection is active.",
-              "default": false
-            },
-            "server": {
-              "type": "string",
-              "pattern": "^[a-z0-9-._~]+$",
-              "markdownDescription": "Server defined in `#intersystems.servers#`"
-            },
-            "host": {
-              "type": "string",
-              "description": "Hostname or IP address of the web server.",
-              "anyOf": [
-                {
-                  "format": "hostname"
-                },
-                {
-                  "format": "ipv4"
-                },
-                {
-                  "format": "ipv6"
-                }
-              ],
-              "default": "localhost"
-            },
-            "port": {
-              "type": "integer",
-              "description": "TCP port number the web server listens on.",
-              "minimum": 1,
-              "maximum": 65535
-            },
-            "ns": {
-              "description": "Server namespace.",
-              "type": "string",
-              "default": "USER"
-            },
-            "username": {
-              "type": "string",
-              "description": "Username to connect as. If not set here it must be provided when connecting."
-            },
-            "password": {
-              "type": "string",
-              "description": "Password of username. If not set here it must be provided when connecting."
-            },
-            "https": {
-              "description": "Use SSL/TLS to access the server.",
-              "type": "boolean",
-              "default": false
-            },
-            "links": {
-              "description": "Extra links for the server command menu.",
-              "type": "object",
-              "patternProperties": {
-                ".*": {
-                  "type": "string",
-                  "description": "Key is displayed on menu. Value is the uri to open. Several ${...} substitution symbols are supported in the value.",
-                  "anyOf": [
-                    {
-                      "format": "uri"
-                    },
-                    {
-                      "pattern": "^\\${serverUrl}/.*"
-                    }
-                  ]
-                }
-              }
-            },
-            "docker-compose": {
-              "type": "object",
-              "description": "Connect to server running in docker-compose.",
-              "additionalProperties": false,
-              "properties": {
-                "service": {
-                  "description": "Name of service in docker-compose.",
-                  "type": "string"
-                },
-                "internalPort": {
-                  "description": "Target webserver port inside the service in docker-compose.",
-                  "type": "number"
-                },
-                "internalSuperserverPort": {
-                  "description": "Target superserver port inside the service in docker-compose.",
-                  "type": "number"
-                },
-                "file": {
-                  "description": "Name of docker-compose file.",
-                  "type": "string"
-                },
-                "envFile": {
-                  "description": "Name of env-file for docker-compose configuration.",
-                  "type": "string"
-                }
-              }
-            }
-          }
-        },
-        "objectscript.serverSourceControl.disableOtherActionTriggers": {
-          "description": "Prevent server-side source control 'other action' triggers from firing.",
-          "type": "boolean",
-          "scope": "resource",
-          "default": false
-        },
-        "objectscript.serverSourceControl.respectEditableStatus": {
-          "markdownDescription": "Set `isfs` document readonly if GetStatus method of server-side source control class returns Editable = 0.",
-          "type": "boolean",
-          "scope": "resource",
-          "default": false
-        },
-        "objectscript.export": {
-          "type": "object",
-          "description": "Control what to export from the server into the local folder.",
-          "scope": "resource",
-          "default": {
-            "folder": "src",
-            "addCategory": false,
-            "map": {},
-            "atelier": true,
-            "generated": false,
-            "filter": "",
-            "exactFilter": "",
-            "category": "*",
-            "maxConcurrentConnections": 0,
-            "mapped": true
+    "configuration": [
+      {
+        "title": "Consistem",
+        "type": "object",
+        "properties": {
+         "consistem.globalDocumentation.openInFile": {
+            "description": "Open global documentation in a file instead of the Output view.",
+            "type": "boolean",
+            "default": true
           },
-          "properties": {
-            "folder": {
-              "description": "Folder for exported source code within workspace. This setting is relative to the workspace folder root.",
-              "type": "string"
-            },
-            "addCategory": {
-              "description": "Add a category folder to the beginning of the export path.",
-              "type": [
-                "boolean",
-                "object"
-              ]
-            },
-            "map": {
-              "markdownDescription": "Map file names before export, with regexp pattern as a key and replacement as a value (e.g. `{  \"%(.*)\": \"_$1\" }` to make % classes or routines use underscore prefix instead).",
-              "type": "object",
-              "examples": [
-                {
-                  "%(.*)": "_$1"
-                }
-              ],
-              "patternProperties": {
-                "\\(.*\\)": {
-                  "type": "string",
-                  "pattern": "\\$1"
+          "consistem.globalDocumentation.filePath": {
+            "markdownDescription": "Path to the file where global documentation is written. Relative paths are resolved against the system temporary directory (e.g. %TEMP% on Windows). If empty, defaults to `%TEMP%\\globalDocumentation.txt`.",
+            "type": "string",
+            "default": "",
+            "when": "config.consistem.globalDocumentation.openInFile"
+          }
+        }
+      },
+      {
+        "title": "InterSystems ObjectScript",
+        "type": "object",
+        "properties": {
+          "objectscript.conn": {
+            "type": "object",
+            "description": "Server Access",
+            "scope": "resource",
+            "additionalProperties": false,
+            "required": [
+              "active"
+            ],
+            "properties": {
+              "active": {
+                "type": "boolean",
+                "description": "Whether the connection is active.",
+                "default": false
+              },
+              "server": {
+                "type": "string",
+                "pattern": "^[a-z0-9-._~]+$",
+                "markdownDescription": "Server defined in `#intersystems.servers#`"
+              },
+              "host": {
+                "type": "string",
+                "description": "Hostname or IP address of the web server.",
+                "anyOf": [
+                  {
+                    "format": "hostname"
+                  },
+                  {
+                    "format": "ipv4"
+                  },
+                  {
+                    "format": "ipv6"
+                  }
+                ],
+                "default": "localhost"
+              },
+              "port": {
+                "type": "integer",
+                "description": "TCP port number the web server listens on.",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "ns": {
+                "description": "Server namespace.",
+                "type": "string",
+                "default": "USER"
+              },
+              "username": {
+                "type": "string",
+                "description": "Username to connect as. If not set here it must be provided when connecting."
+              },
+              "password": {
+                "type": "string",
+                "description": "Password of username. If not set here it must be provided when connecting."
+              },
+              "https": {
+                "description": "Use SSL/TLS to access the server.",
+                "type": "boolean",
+                "default": false
+              },
+              "links": {
+                "description": "Extra links for the server command menu.",
+                "type": "object",
+                "patternProperties": {
+                  ".*": {
+                    "type": "string",
+                    "description": "Key is displayed on menu. Value is the uri to open. Several ${...} substitution symbols are supported in the value.",
+                    "anyOf": [
+                      {
+                        "format": "uri"
+                      },
+                      {
+                        "pattern": "^\\${serverUrl}/.*"
+                      }
+                    ]
+                  }
                 }
               },
-              "properties": {
-                "%(.*)": {
-                  "description": "Catch any % items. Set value to `_$1` to replace `%` prefix with `_`",
-                  "type": "string",
-                  "pattern": "\\$1",
-                  "default": "_$1"
+              "docker-compose": {
+                "type": "object",
+                "description": "Connect to server running in docker-compose.",
+                "additionalProperties": false,
+                "properties": {
+                  "service": {
+                    "description": "Name of service in docker-compose.",
+                    "type": "string"
+                  },
+                  "internalPort": {
+                    "description": "Target webserver port inside the service in docker-compose.",
+                    "type": "number"
+                  },
+                  "internalSuperserverPort": {
+                    "description": "Target superserver port inside the service in docker-compose.",
+                    "type": "number"
+                  },
+                  "file": {
+                    "description": "Name of docker-compose file.",
+                    "type": "string"
+                  },
+                  "envFile": {
+                    "description": "Name of env-file for docker-compose configuration.",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "objectscript.serverSourceControl.disableOtherActionTriggers": {
+            "description": "Prevent server-side source control 'other action' triggers from firing.",
+            "type": "boolean",
+            "scope": "resource",
+            "default": false
+          },
+          "objectscript.serverSourceControl.respectEditableStatus": {
+            "markdownDescription": "Set `isfs` document readonly if GetStatus method of server-side source control class returns Editable = 0.",
+            "type": "boolean",
+            "scope": "resource",
+            "default": false
+          },
+          "objectscript.export": {
+            "type": "object",
+            "description": "Control what to export from the server into the local folder.",
+            "scope": "resource",
+            "default": {
+              "folder": "src",
+              "addCategory": false,
+              "map": {},
+              "atelier": true,
+              "generated": false,
+              "filter": "",
+              "exactFilter": "",
+              "category": "*",
+              "maxConcurrentConnections": 0,
+              "mapped": true
+            },
+            "properties": {
+              "folder": {
+                "description": "Folder for exported source code within workspace. This setting is relative to the workspace folder root.",
+                "type": "string"
+              },
+              "addCategory": {
+                "description": "Add a category folder to the beginning of the export path.",
+                "type": [
+                  "boolean",
+                  "object"
+                ]
+              },
+              "map": {
+                "markdownDescription": "Map file names before export, with regexp pattern as a key and replacement as a value (e.g. `{  \"%(.*)\": \"_$1\" }` to make % classes or routines use underscore prefix instead).",
+                "type": "object",
+                "examples": [
+                  {
+                    "%(.*)": "_$1"
+                  }
+                ],
+                "patternProperties": {
+                  "\\(.*\\)": {
+                    "type": "string",
+                    "pattern": "\\$1"
+                  }
                 },
-                "(.*)": {
-                  "description": "Match everything. Set value to `$1` to leave unchanged",
-                  "type": "string",
-                  "pattern": "\\$1",
-                  "default": "$1"
-                }
+                "properties": {
+                  "%(.*)": {
+                    "description": "Catch any % items. Set value to `_$1` to replace `%` prefix with `_`",
+                    "type": "string",
+                    "pattern": "\\$1",
+                    "default": "_$1"
+                  },
+                  "(.*)": {
+                    "description": "Match everything. Set value to `$1` to leave unchanged",
+                    "type": "string",
+                    "pattern": "\\$1",
+                    "default": "$1"
+                  }
+                },
+                "additionalProperties": false
               },
-              "additionalProperties": false
-            },
-            "atelier": {
-              "description": "Export source code as Atelier did it, with packages as subfolders. This setting only affects classes, routines, include files and DFI files.",
-              "type": "boolean"
-            },
-            "generated": {
-              "description": "Export generated source code files, such as INTs generated from classes.",
-              "type": "boolean"
-            },
-            "filter": {
-              "markdownDescription": "SQL filter to limit what to export. The filter is applied to document names using the [LIKE predicate](https://irisdocs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_like) (i.e. `Name LIKE '%filter%'`).",
-              "type": "string"
-            },
-            "exactFilter": {
-              "markdownDescription": "SQL filter to limit what to export. The filter is applied to document names using the [LIKE predicate](https://irisdocs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_like) (i.e. `Name LIKE 'exactFilter'`). If provided, `objectscript.export.filter` is ignored.",
-              "type": "string"
-            },
-            "category": {
-              "markdownDescription": "Category of source code to export: `CLS` = classes; `RTN` = routines; `CSP` = csp files; `OTH` = other. Default is `*` = all.",
-              "type": [
-                "string",
-                "object"
-              ]
-            },
-            "maxConcurrentConnections": {
-              "description": "Maximum number of concurrent export connections. (0 = unlimited)",
-              "type": "number"
-            },
-            "mapped": {
-              "description": "Export source code files mapped from a non-default database.",
-              "type": "boolean"
+              "atelier": {
+                "description": "Export source code as Atelier did it, with packages as subfolders. This setting only affects classes, routines, include files and DFI files.",
+                "type": "boolean"
+              },
+              "generated": {
+                "description": "Export generated source code files, such as INTs generated from classes.",
+                "type": "boolean"
+              },
+              "filter": {
+                "markdownDescription": "SQL filter to limit what to export. The filter is applied to document names using the [LIKE predicate](https://irisdocs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_like) (i.e. `Name LIKE '%filter%'`).",
+                "type": "string"
+              },
+              "exactFilter": {
+                "markdownDescription": "SQL filter to limit what to export. The filter is applied to document names using the [LIKE predicate](https://irisdocs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_like) (i.e. `Name LIKE 'exactFilter'`). If provided, `objectscript.export.filter` is ignored.",
+                "type": "string"
+              },
+              "category": {
+                "markdownDescription": "Category of source code to export: `CLS` = classes; `RTN` = routines; `CSP` = csp files; `OTH` = other. Default is `*` = all.",
+                "type": [
+                  "string",
+                  "object"
+                ]
+              },
+              "maxConcurrentConnections": {
+                "description": "Maximum number of concurrent export connections. (0 = unlimited)",
+                "type": "number"
+              },
+              "mapped": {
+                "description": "Export source code files mapped from a non-default database.",
+                "type": "boolean"
+              }
             }
-          }
-        },
-        "objectscript.compileFlags": {
-          "type": "string",
-          "default": "cuk",
-          "markdownDescription": "Compilation flags. Common compilation flags are ***b*** (compile dependent classes), ***k*** (keep generated source code) and ***u*** (skip related up-to-date documents). For descriptions of all available flags and qualifiers, click [here](https://docs.intersystems.com/irislatest/csp/docbook/Doc.View.cls?KEY=RCOS_vsystem_flags_qualifiers)."
-        },
-        "objectscript.overwriteServerChanges": {
-          "type": "boolean",
-          "default": false,
-          "description": "Controls whether synching a file to the server in a client-side workspace folder will always overwrite the server version, even if it changed since it was last accessed."
-        },
-        "objectscript.autoPreviewXML": {
-          "type": "boolean",
-          "default": false,
-          "description": "Automatically preview XML export files in UDL format."
-        },
-        "objectscript.format": {
-          "type": "object",
-          "description": "Formatting settings.",
-          "properties": {
-            "commandCase": {
-              "anyOf": [
-                "word",
-                "upper",
-                "lower"
-              ],
-              "default": "word",
-              "description": "Case for commands."
-            },
-            "functionCase": {
-              "anyOf": [
-                "word",
-                "upper",
-                "lower"
-              ],
-              "default": "word",
-              "description": "Case for system functions and system variables."
+          },
+          "objectscript.compileFlags": {
+            "type": "string",
+            "default": "cuk",
+            "markdownDescription": "Compilation flags. Common compilation flags are ***b*** (compile dependent classes), ***k*** (keep generated source code) and ***u*** (skip related up-to-date documents). For descriptions of all available flags and qualifiers, click [here](https://docs.intersystems.com/irislatest/csp/docbook/Doc.View.cls?KEY=RCOS_vsystem_flags_qualifiers)."
+          },
+          "objectscript.overwriteServerChanges": {
+            "type": "boolean",
+            "default": false,
+            "description": "Controls whether synching a file to the server in a client-side workspace folder will always overwrite the server version, even if it changed since it was last accessed."
+          },
+          "objectscript.autoPreviewXML": {
+            "type": "boolean",
+            "default": false,
+            "description": "Automatically preview XML export files in UDL format."
+          },
+          "objectscript.format": {
+            "type": "object",
+            "description": "Formatting settings.",
+            "properties": {
+              "commandCase": {
+                "anyOf": [
+                  "word",
+                  "upper",
+                  "lower"
+                ],
+                "default": "word",
+                "description": "Case for commands."
+              },
+              "functionCase": {
+                "anyOf": [
+                  "word",
+                  "upper",
+                  "lower"
+                ],
+                "default": "word",
+                "description": "Case for system functions and system variables."
+              }
             }
-          }
-        },
-        "objectscript.suppressCompileMessages": {
-          "default": true,
-          "type": "boolean",
-          "description": "Suppress popup messages about successful compile."
-        },
-        "objectscript.suppressCompileErrorMessages": {
-          "default": false,
-          "type": "boolean",
-          "description": "Suppress popup messages about errors during compile, but still focus on Output view."
-        },
-        "objectscript.debug.debugThisMethod": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "Show inline `Debug` CodeLens action for ClassMethods and Routine Labels."
-        },
-        "objectscript.debug.copyToClipboard": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "Show inline `Copy Invocation` CodeLens action for ClassMethods and Routine Labels."
-        },
-        "objectscript.autoShowTerminal": {
-          "description": "Automatically show terminal when connected to docker-compose.",
-          "type": "boolean",
-          "default": false
-        },
-        "objectscript.autoAdjustName": {
-          "markdownDescription": "Automatically modify the class name or ROUTINE header of a file in a client-side workspace folder to match the file's path when copying or moving a file. Uses the `#objectscript.export#` settings to determine the new name.",
-          "type": "boolean",
-          "default": false
-        },
-        "objectscript.compileOnSave": {
-          "description": "Automatically compile an InterSystems file when saved in the editor.",
-          "type": "boolean",
-          "default": true
-        },
-        "objectscript.multilineMethodArgs": {
-          "markdownDescription": "List method arguments on multiple lines, if the server supports it. **NOTE:** Only supported on IRIS 2019.1.2, 2020.1.1+, 2021.1.0+ and subsequent versions! On all other versions, this setting will have no effect.",
-          "type": "boolean",
-          "scope": "resource",
-          "default": false
-        },
-        "objectscript.openClassContracted": {
-          "description": "Automatically collapse all class member folding ranges when a class is opened for the first time.",
-          "type": "boolean",
-          "default": false
-        },
-        "objectscript.explorer.alwaysShowServerCopy": {
-          "description": "Always show the server copy of a document opened from the InterSystems Explorer.",
-          "type": "boolean",
-          "default": true
-        },
-        "objectscript.projects.webAppFileExtensions": {
-          "markdownDescription": "When browsing a virtual workspace folder that has a project query parameter, all files with these extensions will be automatically treated as web application files. Extensions added here will be appended to the default list and should **NOT** include a dot. See the [Settings Reference documentation page](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_settings#GVSCO_settings_objectscript) for a list of extensions included by default.",
-          "type": "array",
-          "default": [],
-          "uniqueItems": true,
-          "items": {
+          },
+          "objectscript.suppressCompileMessages": {
+            "default": true,
+            "type": "boolean",
+            "description": "Suppress popup messages about successful compile."
+          },
+          "objectscript.suppressCompileErrorMessages": {
+            "default": false,
+            "type": "boolean",
+            "description": "Suppress popup messages about errors during compile, but still focus on Output view."
+          },
+          "objectscript.debug.debugThisMethod": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Show inline `Debug` CodeLens action for ClassMethods and Routine Labels."
+          },
+          "objectscript.debug.copyToClipboard": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Show inline `Copy Invocation` CodeLens action for ClassMethods and Routine Labels."
+          },
+          "objectscript.autoShowTerminal": {
+            "description": "Automatically show terminal when connected to docker-compose.",
+            "type": "boolean",
+            "default": false
+          },
+          "objectscript.autoAdjustName": {
+            "markdownDescription": "Automatically modify the class name or ROUTINE header of a file in a client-side workspace folder to match the file's path when copying or moving a file. Uses the `#objectscript.export#` settings to determine the new name.",
+            "type": "boolean",
+            "default": false
+          },
+          "objectscript.compileOnSave": {
+            "description": "Automatically compile an InterSystems file when saved in the editor.",
+            "type": "boolean",
+            "default": true
+          },
+          "objectscript.multilineMethodArgs": {
+            "markdownDescription": "List method arguments on multiple lines, if the server supports it. **NOTE:** Only supported on IRIS 2019.1.2, 2020.1.1+, 2021.1.0+ and subsequent versions! On all other versions, this setting will have no effect.",
+            "type": "boolean",
+            "scope": "resource",
+            "default": false
+          },
+          "objectscript.openClassContracted": {
+            "description": "Automatically collapse all class member folding ranges when a class is opened for the first time.",
+            "type": "boolean",
+            "default": false
+          },
+          "objectscript.explorer.alwaysShowServerCopy": {
+            "description": "Always show the server copy of a document opened from the InterSystems Explorer.",
+            "type": "boolean",
+            "default": true
+          },
+          "objectscript.projects.webAppFileExtensions": {
+            "markdownDescription": "When browsing a virtual workspace folder that has a project query parameter, all files with these extensions will be automatically treated as web application files. Extensions added here will be appended to the default list and should **NOT** include a dot. See the [Settings Reference documentation page](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_settings#GVSCO_settings_objectscript) for a list of extensions included by default.",
+            "type": "array",
+            "default": [],
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[^.]+$"
+            }
+          },
+          "objectscript.showGeneratedFileDecorations": {
+            "description": "Controls whether a badge is shown in the file explorer and open editors view for generated files.",
+            "type": "boolean",
+            "default": true
+          },
+          "objectscript.webSocketTerminal.syntaxColoring": {
+            "description": "Enable syntax coloring for command input in the InterSystems Lite Terminal.",
+            "type": "boolean",
+            "default": true
+          },
+          "objectscript.showProposedApiPrompt": {
+            "description": "Controls whether a prompt to enable VS Code proposed APIs is shown when a server-side workspace folder is opened.",
+            "type": "boolean",
+            "default": true
+          },
+          "objectscript.unitTest.enabled": {
+            "description": "Controls whether the unit testing features are available.",
+            "type": "boolean",
+            "default": true
+          },
+          "objectscript.unitTest.relativeTestRoots": {
+            "description": "Paths to where client-side test classes are stored. Relative to the workspace folder root.",
+            "type": "array",
+            "default": [],
+            "scope": "resource",
+            "items": {
+              "type": "string",
+              "pattern": "^([\\p{L}\\d_. -]+([\\/\\\\][\\p{L}\\d_. -]+)*)?$",
+              "patternErrorMessage": "Each folder name can only contain letters, digits, space, hyphen ('-'), period ('.'), or underscore ('_'), and the full path must neither begin nor end with a slash."
+            }
+          },
+          "objectscript.unitTest.autoload.folder": {
+            "markdownDescription": "When running client-side test classes, automatically load the contents of sub-directories with this name. See the [%UnitTest /autoload qualifier documentation](https://docs.intersystems.com/irislatest/csp/documatic/%25CSP.Documatic.cls?LIBRARY=%25SYS&CLASSNAME=%25UnitTest.Manager#RunTest) for details.",
             "type": "string",
-            "pattern": "^[^.]+$"
-          }
-        },
-        "objectscript.showGeneratedFileDecorations": {
-          "description": "Controls whether a badge is shown in the file explorer and open editors view for generated files.",
-          "type": "boolean",
-          "default": true
-        },
-        "objectscript.webSocketTerminal.syntaxColoring": {
-          "description": "Enable syntax coloring for command input in the InterSystems Lite Terminal.",
-          "type": "boolean",
-          "default": true
-        },
-        "objectscript.showProposedApiPrompt": {
-          "description": "Controls whether a prompt to enable VS Code proposed APIs is shown when a server-side workspace folder is opened.",
-          "type": "boolean",
-          "default": true
-        },
-        "objectscript.unitTest.enabled": {
-          "description": "Controls whether the unit testing features are available.",
-          "type": "boolean",
-          "default": true
-        },
-        "objectscript.unitTest.relativeTestRoots": {
-          "description": "Paths to where client-side test classes are stored. Relative to the workspace folder root.",
-          "type": "array",
-          "default": [],
-          "scope": "resource",
-          "items": {
+            "default": "_autoload",
+            "scope": "resource",
+            "pattern": "^[\\p{L}\\d_. -]*$",
+            "patternErrorMessage": "Folder name can only contain letters, digits, space, hyphen ('-'), period ('.'), or underscore ('_')."
+          },
+          "objectscript.unitTest.autoload.xml": {
+            "description": "Controls whether the autoload feature loads XML files.",
+            "type": "boolean",
+            "default": true,
+            "scope": "resource"
+          },
+          "objectscript.unitTest.autoload.udl": {
+            "description": "Controls whether the autoload feature loads UDL files (cls, mac, int, inc).",
+            "type": "boolean",
+            "default": true,
+            "scope": "resource"
+          },
+          "objectscript.unitTest.showOutput": {
+            "description": "Controls whether unit test console output is shown.",
+            "type": "boolean",
+            "default": true,
+            "scope": "resource"
+          },
+          "objectscript.commentToken": {
+            "description": "The line comment characters for ObjectScript in classes and MAC and INC routines.",
             "type": "string",
-            "pattern": "^([\\p{L}\\d_. -]+([\\/\\\\][\\p{L}\\d_. -]+)*)?$",
-            "patternErrorMessage": "Each folder name can only contain letters, digits, space, hyphen ('-'), period ('.'), or underscore ('_'), and the full path must neither begin nor end with a slash."
+            "enum": [
+              "#;",
+              "//",
+              ";"
+            ],
+            "enumDescriptions": [
+              "Comments do not appear in generated INT code.",
+              "Comments appear in generated INT code.",
+              "Comments appear in generated INT code."
+            ],
+            "default": "#;",
+            "scope": "machine"
+          },
+          "objectscript.intCommentToken": {
+            "description": "The line comment characters for INT routines.",
+            "type": "string",
+            "enum": [
+              "//",
+              ";"
+            ],
+            "default": "//",
+            "scope": "machine"
+          },
+          "objectscript.debug.stepGranularity": {
+            "markdownDescription": "Controls the granularity of the debugger's [step action buttons](https://code.visualstudio.com/docs/editor/debugging#_debug-actions). Changing this setting while a debugging session is active will not change the behavior of the active session. **NOTE:** Only supported on IRIS 2023.1.5, 2024.1.1+, 2024.2 and subsequent versions! On all other versions, line stepping will be used.",
+            "type": "string",
+            "enum": [
+              "command",
+              "line"
+            ],
+            "enumDescriptions": [
+              "The step buttons execute a single command.",
+              "The step buttons execute an entire line."
+            ],
+            "default": "command"
+          },
+          "objectscript.syncLocalChanges": {
+            "description": "Controls the sources of file events (changes, creation, deletion) in client-side workspace folders that trigger automatic synchronization with the server.",
+            "type": "string",
+            "enum": [
+              "all",
+              "vscodeOnly",
+              "none"
+            ],
+            "enumDescriptions": [
+              "All file events are automatically synced to the server, whether made due to user actions in VS Code (for example, saving a file that's being actively edited) or outside of VS Code (for example, deleting a file from the OS file explorer while VS Code has its folder open).",
+              "Only file events made due to user actions in VS Code are automatically synced to the server.",
+              "No file events are automatically synced to the server."
+            ],
+            "default": "all"
+          },
+          "objectscript.outputRESTTraffic": {
+            "description": "If true, REST requests and responses to and from InterSystems servers will be logged to the ObjectScript Output channel. This should only be enabled when debugging a potential issue.",
+            "type": "boolean",
+            "default": false
           }
-        },
-        "objectscript.unitTest.autoload.folder": {
-          "markdownDescription": "When running client-side test classes, automatically load the contents of sub-directories with this name. See the [%UnitTest /autoload qualifier documentation](https://docs.intersystems.com/irislatest/csp/documatic/%25CSP.Documatic.cls?LIBRARY=%25SYS&CLASSNAME=%25UnitTest.Manager#RunTest) for details.",
-          "type": "string",
-          "default": "_autoload",
-          "scope": "resource",
-          "pattern": "^[\\p{L}\\d_. -]*$",
-          "patternErrorMessage": "Folder name can only contain letters, digits, space, hyphen ('-'), period ('.'), or underscore ('_')."
-        },
-        "objectscript.unitTest.autoload.xml": {
-          "description": "Controls whether the autoload feature loads XML files.",
-          "type": "boolean",
-          "default": true,
-          "scope": "resource"
-        },
-        "objectscript.unitTest.autoload.udl": {
-          "description": "Controls whether the autoload feature loads UDL files (cls, mac, int, inc).",
-          "type": "boolean",
-          "default": true,
-          "scope": "resource"
-        },
-        "objectscript.unitTest.showOutput": {
-          "description": "Controls whether unit test console output is shown.",
-          "type": "boolean",
-          "default": true,
-          "scope": "resource"
-        },
-        "objectscript.commentToken": {
-          "description": "The line comment characters for ObjectScript in classes and MAC and INC routines.",
-          "type": "string",
-          "enum": [
-            "#;",
-            "//",
-            ";"
-          ],
-          "enumDescriptions": [
-            "Comments do not appear in generated INT code.",
-            "Comments appear in generated INT code.",
-            "Comments appear in generated INT code."
-          ],
-          "default": "#;",
-          "scope": "machine"
-        },
-        "objectscript.intCommentToken": {
-          "description": "The line comment characters for INT routines.",
-          "type": "string",
-          "enum": [
-            "//",
-            ";"
-          ],
-          "default": "//",
-          "scope": "machine"
-        },
-        "objectscript.debug.stepGranularity": {
-          "markdownDescription": "Controls the granularity of the debugger's [step action buttons](https://code.visualstudio.com/docs/editor/debugging#_debug-actions). Changing this setting while a debugging session is active will not change the behavior of the active session. **NOTE:** Only supported on IRIS 2023.1.5, 2024.1.1+, 2024.2 and subsequent versions! On all other versions, line stepping will be used.",
-          "type": "string",
-          "enum": [
-            "command",
-            "line"
-          ],
-          "enumDescriptions": [
-            "The step buttons execute a single command.",
-            "The step buttons execute an entire line."
-          ],
-          "default": "command"
-        },
-        "objectscript.syncLocalChanges": {
-          "description": "Controls the sources of file events (changes, creation, deletion) in client-side workspace folders that trigger automatic synchronization with the server.",
-          "type": "string",
-          "enum": [
-            "all",
-            "vscodeOnly",
-            "none"
-          ],
-          "enumDescriptions": [
-            "All file events are automatically synced to the server, whether made due to user actions in VS Code (for example, saving a file that's being actively edited) or outside of VS Code (for example, deleting a file from the OS file explorer while VS Code has its folder open).",
-            "Only file events made due to user actions in VS Code are automatically synced to the server.",
-            "No file events are automatically synced to the server."
-          ],
-          "default": "all"
-        },
-        "objectscript.outputRESTTraffic": {
-          "description": "If true, REST requests and responses to and from InterSystems servers will be logged to the ObjectScript Output channel. This should only be enabled when debugging a potential issue.",
-          "type": "boolean",
-          "default": false
         }
       }
-    },
+    ],
     "views": {
       "intersystems-community_servermanager": [
         {
