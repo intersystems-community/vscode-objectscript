@@ -18,7 +18,7 @@ async function promptForItemName(options: PromptForItemNameOptions = {}): Promis
   const hasBadChars = (s: string) => /[\\/]/.test(s) || /\s/.test(s);
 
   const ib = vscode.window.createInputBox();
-  ib.title = "Consistem — Criar Item";
+  ib.title = "Criar Item";
   ib.prompt = "Informe o nome da classe ou rotina a ser criada (.cls ou .mac)";
   ib.placeholder = "MeuPacote.MinhaClasse.cls ou MINHAROTINA.mac";
   ib.ignoreFocusOut = true;
