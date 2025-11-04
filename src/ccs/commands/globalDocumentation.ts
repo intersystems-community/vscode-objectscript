@@ -77,26 +77,13 @@ async function tryWriteGlobalDocumentationFile(
     // Ensure directory exists
     await vscode.workspace.fs.createDirectory(vscode.Uri.file(path.dirname(targetUri.fsPath)));
 
-    // Read existing content (if any)
-    let existingContent = "";
-    try {
-      const buffer = await vscode.workspace.fs.readFile(targetUri);
-      existingContent = Buffer.from(buffer).toString("utf8");
-    } catch (readError: unknown) {
-      // If the file doesn't exist, proceed without error
-      if (!(readError instanceof vscode.FileSystemError) || readError.code !== "FileNotFound") {
-        throw readError;
-      }
-    }
-
-    // Normalize line breaks for the current OS
+    // Normalize line breaks for the current OS and build content.
+    // Overwrite file content instead of appending.
     const normalizedContent = content.split(/\r?\n/).join(EOL);
-    const newSection = `${GLOBAL_DOC_HEADER}${EOL}${normalizedContent}${EOL}`;
-    const needsSeparator = existingContent.length > 0 && !existingContent.endsWith(EOL.repeat(2));
-    const separator = needsSeparator ? EOL.repeat(2) : "";
-    const combinedContent = existingContent ? `${existingContent}${separator}${newSection}` : newSection;
+    const newContent = `${GLOBAL_DOC_HEADER}${EOL}${normalizedContent}${EOL}`;
 
-    await vscode.workspace.fs.writeFile(targetUri, Buffer.from(combinedContent, "utf8"));
+    // This write overwrites any previous content
+    await vscode.workspace.fs.writeFile(targetUri, Buffer.from(newContent, "utf8"));
 
     // Open the file beside for editing
     const document = await vscode.workspace.openTextDocument(targetUri);
