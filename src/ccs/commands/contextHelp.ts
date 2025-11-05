@@ -14,11 +14,10 @@ export async function resolveContextExpression(): Promise<void> {
   }
 
   const { document, selection } = editor;
-  const contextExpression = selection.isEmpty
-    ? document.lineAt(selection.active.line).text.trim()
-    : document.getText(selection).trim();
+  const contextInfo = getContextExpressionInfo(document, selection);
+  const contextExpression = contextInfo.text;
 
-  if (!contextExpression) {
+  if (!contextExpression.trim()) {
     void vscode.window.showErrorMessage("Context expression is empty.");
     return;
   }
@@ -41,35 +40,16 @@ export async function resolveContextExpression(): Promise<void> {
       }
 
       const textExpression = normalizedTextExpression.replace(/\r?\n/g, eol);
-      let formattedTextExpression = textExpression;
+      const formattedTextExpression = textExpression;
 
       let rangeToReplace: vscode.Range;
       if (selection.isEmpty) {
         const fallbackLine = document.lineAt(selection.active.line);
-        const fallbackRange = fallbackLine.range;
-
-        rangeToReplace = getRangeToReplaceForLine(document, selection.active.line, contextExpression) ?? fallbackRange;
-
-        const preservedPrefix = document.getText(new vscode.Range(fallbackLine.range.start, rangeToReplace.start));
-
-        formattedTextExpression = normalizeInsertionWithPrefix(formattedTextExpression, preservedPrefix, eol);
+        rangeToReplace = fallbackLine.range;
       } else {
-        // Multi-line or partial selection
-        const firstSelLine = document.lineAt(selection.start.line);
-        const preservedPrefix = document.getText(new vscode.Range(firstSelLine.range.start, selection.start));
-        const leadingWS = firstSelLine.text.match(/^[\t ]*/)?.[0] ?? "";
-
-        // 1) Normalize snippet to avoid duplicating "."/";" according to the prefix that will remain in the file
-        formattedTextExpression = normalizeInsertionWithPrefix(formattedTextExpression, preservedPrefix, eol);
-
-        // 2) Only prefix indentation if the selection started at column 0 (i.e., NO preserved prefix)
-        formattedTextExpression = maybePrefixFirstLineIndent(
-          formattedTextExpression,
-          preservedPrefix.length === 0 ? leadingWS : "",
-          eol
-        );
-
-        rangeToReplace = new vscode.Range(selection.start, selection.end);
+        const start = document.lineAt(selection.start.line).range.start;
+        const replacementEnd = contextInfo.replacementEnd ?? document.lineAt(selection.end.line).range.end;
+        rangeToReplace = new vscode.Range(start, replacementEnd);
       }
 
       await editor.edit((editBuilder) => {
@@ -92,112 +72,32 @@ export async function resolveContextExpression(): Promise<void> {
   }
 }
 
-function getRangeToReplaceForLine(
-  document: vscode.TextDocument,
-  lineNumber: number,
-  contextExpression: string
-): vscode.Range | undefined {
-  if (!contextExpression) {
-    return undefined;
+type ContextExpressionInfo = {
+  text: string;
+  replacementEnd?: vscode.Position;
+};
+
+function getContextExpressionInfo(document: vscode.TextDocument, selection: vscode.Selection): ContextExpressionInfo {
+  if (selection.isEmpty) {
+    return {
+      text: document.lineAt(selection.active.line).text,
+    };
   }
 
-  const line = document.lineAt(lineNumber);
-  const expressionIndex = line.text.indexOf(contextExpression);
-  if (expressionIndex === -1) {
-    return undefined;
+  const startLine = selection.start.line;
+  const start = document.lineAt(startLine).range.start;
+
+  let lastLine = selection.end.line;
+  if (selection.end.character === 0 && selection.end.line > selection.start.line) {
+    lastLine = selection.end.line - 1;
   }
 
-  const prefixLength = getPrefixLengthToPreserve(contextExpression);
-  const startCharacter = expressionIndex + prefixLength;
-  const endCharacter = expressionIndex + contextExpression.length;
+  const end = document.lineAt(lastLine).range.end;
 
-  const start = line.range.start.translate(0, startCharacter);
-  const end = line.range.start.translate(0, endCharacter);
-  return new vscode.Range(start, end);
-}
-
-/**
- * Based on the preserved line prefix, remove from the BEGINNING of the snippet's first line:
- *  - if the prefix ends with ";": remove ^[\t ]*(?:\.\s*)*;\s*
- *  - otherwise, if it ends with dots: remove ^[\t ]*(?:\.\s*)+
- *  - neutral case: try to remove comment; otherwise remove dots
- */
-function normalizeInsertionWithPrefix(text: string, preservedPrefix: string, eol: string): string {
-  const lines = text.split(/\r?\n/);
-  if (lines.length === 0) return text;
-
-  const preservedEnd = preservedPrefix.replace(/\s+$/g, "");
-
-  const endsWithSemicolon = /(?:\.\s*)*;\s*$/.test(preservedEnd);
-  const endsWithDotsOnly = !endsWithSemicolon && /(?:\.\s*)+$/.test(preservedEnd);
-
-  if (endsWithSemicolon) {
-    lines[0] = lines[0].replace(/^[\t ]*(?:\.\s*)*;\s*/, "");
-  } else if (endsWithDotsOnly) {
-    lines[0] = lines[0].replace(/^[\t ]*(?:\.\s*)+/, "");
-  } else {
-    const removedComment = lines[0].replace(/^[\t ]*(?:\.\s*)?;\s*/, "");
-    if (removedComment !== lines[0]) {
-      lines[0] = removedComment;
-    } else {
-      lines[0] = lines[0].replace(/^[\t ]*(?:\.\s*)+/, "");
-    }
-  }
-
-  return lines.join(eol);
-}
-
-/**
- * Prefix indentation (tabs/spaces) ONLY if provided.
- * Useful when the selection started at column 0 (no preserved prefix).
- */
-function maybePrefixFirstLineIndent(text: string, leadingWS: string, eol: string): string {
-  if (!text || !leadingWS) return text;
-  const lines = text.split(/\r?\n/);
-  if (lines.length === 0) return text;
-
-  // Do not force replacement if there is already some whitespace; just prefix it.
-  lines[0] = leadingWS + lines[0];
-  return lines.join(eol);
-}
-
-/**
- * Keep: preserve level dots / indentation and, if present, '; ' before the typed content.
- * Returns how many characters of the contextExpression belong to that prefix.
- */
-function getPrefixLengthToPreserve(contextExpression: string): number {
-  let index = 0;
-
-  while (index < contextExpression.length) {
-    const char = contextExpression[index];
-
-    if (char === ".") {
-      index++;
-      while (index < contextExpression.length && contextExpression[index] === " ") {
-        index++;
-      }
-      continue;
-    }
-
-    if (char === " " || char === "\t") {
-      index++;
-      continue;
-    }
-
-    break;
-  }
-
-  if (index < contextExpression.length && contextExpression[index] === ";") {
-    index++;
-    while (
-      index < contextExpression.length &&
-      (contextExpression[index] === " " || contextExpression[index] === "\t")
-    ) {
-      index++;
-    }
-  }
-
-  return index;
+  return {
+    text: document.getText(new vscode.Range(start, end)),
+    replacementEnd: end,
+  };
 }
 
 function extractGifUri(text: string): {
