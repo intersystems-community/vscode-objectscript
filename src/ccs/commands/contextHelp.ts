@@ -3,9 +3,12 @@ import { URL } from "url";
 import * as vscode from "vscode";
 
 import { ContextExpressionClient } from "../sourcecontrol/clients/contextExpressionClient";
+import { GlobalDocumentationResponse, ResolveContextExpressionResponse } from "../core/types";
 import { handleError } from "../../utils";
 
 const sharedClient = new ContextExpressionClient();
+const CONTEXT_HELP_PANEL_VIEW_TYPE = "contextHelpPreview";
+const CONTEXT_HELP_TITLE = "Ajuda de Contexto";
 
 export async function resolveContextExpression(): Promise<void> {
   const editor = vscode.window.activeTextEditor;
@@ -28,33 +31,53 @@ export async function resolveContextExpression(): Promise<void> {
     const response = await sharedClient.resolve(document, { routine, contextExpression });
     const data = response ?? {};
 
-    if (typeof data.status === "string" && data.status.toLowerCase() === "success" && data.textExpression) {
-      const eol = document.eol === vscode.EndOfLine.CRLF ? "\r\n" : "\n";
+    if (typeof data === "string") {
+      await handleContextHelpDocumentationContent(data);
+      return;
+    }
+
+    if (hasGlobalDocumentationContent(data)) {
+      const normalizedContent = normalizeGlobalDocumentationContent(data.content);
+
+      if (normalizedContent.trim()) {
+        await handleContextHelpDocumentationContent(normalizedContent);
+      } else {
+        const message = data.message || "A ajuda de contexto não retornou nenhum conteúdo.";
+        void vscode.window.showInformationMessage(message);
+      }
+      return;
+    }
+
+    if (isSuccessfulTextExpression(data)) {
+      const hasGifCommand = /--gif\b/i.test(contextExpression);
       let normalizedTextExpression = data.textExpression.replace(/\r?\n/g, "\n");
       let gifUri: vscode.Uri | undefined;
 
-      if (/--gif\b/i.test(contextExpression)) {
+      if (hasGifCommand) {
         const extracted = extractGifUri(normalizedTextExpression);
         normalizedTextExpression = extracted.textWithoutGifUri;
         gifUri = extracted.gifUri;
       }
 
-      const textExpression = normalizedTextExpression.replace(/\r?\n/g, eol);
-      const formattedTextExpression = textExpression;
+      if (!hasGifCommand) {
+        const eol = document.eol === vscode.EndOfLine.CRLF ? "\r\n" : "\n";
+        const textExpression = normalizedTextExpression.replace(/\r?\n/g, eol);
+        const formattedTextExpression = textExpression;
 
-      let rangeToReplace: vscode.Range;
-      if (selection.isEmpty) {
-        const fallbackLine = document.lineAt(selection.active.line);
-        rangeToReplace = fallbackLine.range;
-      } else {
-        const start = document.lineAt(selection.start.line).range.start;
-        const replacementEnd = contextInfo.replacementEnd ?? document.lineAt(selection.end.line).range.end;
-        rangeToReplace = new vscode.Range(start, replacementEnd);
+        let rangeToReplace: vscode.Range;
+        if (selection.isEmpty) {
+          const fallbackLine = document.lineAt(selection.active.line);
+          rangeToReplace = fallbackLine.range;
+        } else {
+          const start = document.lineAt(selection.start.line).range.start;
+          const replacementEnd = contextInfo.replacementEnd ?? document.lineAt(selection.end.line).range.end;
+          rangeToReplace = new vscode.Range(start, replacementEnd);
+        }
+
+        await editor.edit((editBuilder) => {
+          editBuilder.replace(rangeToReplace, formattedTextExpression);
+        });
       }
-
-      await editor.edit((editBuilder) => {
-        editBuilder.replace(rangeToReplace, formattedTextExpression);
-      });
 
       if (gifUri) {
         try {
@@ -63,10 +86,14 @@ export async function resolveContextExpression(): Promise<void> {
           handleError(error, "Failed to open GIF from context expression.");
         }
       }
-    } else {
-      const errorMessage = data.message || "Failed to resolve context expression.";
-      void vscode.window.showErrorMessage(errorMessage);
+      return;
     }
+
+    const errorMessage =
+      typeof data === "object" && data && "message" in data && typeof data.message === "string"
+        ? data.message
+        : "Failed to resolve context expression.";
+    void vscode.window.showErrorMessage(errorMessage);
   } catch (error) {
     handleError(error, "Failed to resolve context expression.");
   }
@@ -130,6 +157,156 @@ function extractGifUri(text: string): {
   }
 
   return { textWithoutGifUri: processedLines.join("\n"), gifUri };
+}
+
+async function handleContextHelpDocumentationContent(rawContent: string): Promise<void> {
+  const sanitizedContent = sanitizeContextHelpContent(rawContent);
+
+  if (!sanitizedContent.trim()) {
+    void vscode.window.showInformationMessage("A ajuda de contexto não retornou nenhum conteúdo.");
+    return;
+  }
+
+  const errorMessage = extractContextHelpError(sanitizedContent);
+  if (errorMessage) {
+    void vscode.window.showErrorMessage(errorMessage);
+    return;
+  }
+
+  await showContextHelpPreview(sanitizedContent);
+}
+
+function sanitizeContextHelpContent(content: string): string {
+  let sanitized = content.replace(/\{"status":"success","textExpression":""\}\s*$/i, "");
+
+  sanitized = sanitized.replace(/^\s*=+\s*Global Documentation\s*=+\s*(?:\r?\n)?/i, "");
+
+  return sanitized.replace(/\r?\n/g, "\n");
+}
+
+function extractContextHelpError(content: string): string | undefined {
+  const commandNotImplemented = content.match(/Comando\s+"([^"]+)"\s+n[ãa]o implementado!/i);
+  if (commandNotImplemented) {
+    return commandNotImplemented[0].replace(/\s+/g, " ");
+  }
+
+  return undefined;
+}
+
+async function showContextHelpPreview(content: string): Promise<void> {
+  const panel = vscode.window.createWebviewPanel(
+    CONTEXT_HELP_PANEL_VIEW_TYPE,
+    CONTEXT_HELP_TITLE,
+    { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
+    {
+      enableFindWidget: true,
+      enableScripts: false,
+      retainContextWhenHidden: false,
+    }
+  );
+
+  panel.webview.html = getContextHelpWebviewHtml(panel.webview, content);
+}
+
+function getContextHelpWebviewHtml(webview: vscode.Webview, content: string): string {
+  const escapedContent = escapeHtml(content);
+  const cspSource = escapeHtml(webview.cspSource);
+  const escapedTitle = escapeHtml(CONTEXT_HELP_TITLE);
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline';" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${escapedTitle}</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 16px;
+        background-color: var(--vscode-editor-background, #1e1e1e);
+        color: var(--vscode-editor-foreground, #d4d4d4);
+        font-family: var(--vscode-editor-font-family, Consolas, 'Courier New', monospace);
+        font-size: var(--vscode-editor-font-size, 14px);
+        line-height: 1.5;
+      }   
+
+     pre {
+        white-space: pre;       /* em vez de pre-wrap */
+        word-break: normal;     /* em vez de break-word */
+        overflow-x: auto;       /* barra horizontal quando precisar */
+        overflow-y: auto;       /* mantém a vertical também */
+        max-width: 100%;
+      }
+    </style>
+
+  </head>
+  <body>
+    <pre>${escapedContent}</pre>
+  </body>
+</html>`;
+}
+
+function hasGlobalDocumentationContent(
+  value: unknown
+): value is Pick<GlobalDocumentationResponse, "content" | "message"> {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  if (!("content" in value)) {
+    return false;
+  }
+
+  const content = (value as GlobalDocumentationResponse).content;
+
+  return (
+    typeof content === "string" ||
+    Array.isArray(content) ||
+    (content !== null && typeof content === "object") ||
+    content === null
+  );
+}
+
+function normalizeGlobalDocumentationContent(content: GlobalDocumentationResponse["content"]): string {
+  if (typeof content === "string") {
+    return content;
+  }
+
+  if (Array.isArray(content)) {
+    return content.join("\n");
+  }
+
+  if (content && typeof content === "object") {
+    try {
+      return JSON.stringify(content, null, 2);
+    } catch (error) {
+      handleError(error, "Failed to parse global documentation content.");
+    }
+  }
+
+  return "";
+}
+
+function isSuccessfulTextExpression(
+  value: unknown
+): value is Required<Pick<ResolveContextExpressionResponse, "textExpression">> & ResolveContextExpressionResponse {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const { status, textExpression } = value as ResolveContextExpressionResponse;
+
+  return (
+    typeof status === "string" &&
+    status.toLowerCase() === "success" &&
+    typeof textExpression === "string" &&
+    textExpression.length > 0
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 function getFileUriFromText(text: string): vscode.Uri | undefined {

@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 import { AtelierAPI } from "../../../api";
 import { getCcsSettings } from "../../config/settings";
 import { logDebug } from "../../core/logging";
-import { ResolveContextExpressionResponse } from "../../core/types";
+import { ResolveContextExpressionResult } from "../../core/types";
 import { SourceControlApi } from "../client";
 import { ROUTES } from "../routes";
 
@@ -22,7 +22,7 @@ export class ContextExpressionClient {
   public async resolve(
     document: vscode.TextDocument,
     payload: ResolveContextExpressionPayload
-  ): Promise<ResolveContextExpressionResponse> {
+  ): Promise<ResolveContextExpressionResult> {
     const api = new AtelierAPI(document.uri);
 
     let sourceControlApi: SourceControlApi;
@@ -36,7 +36,7 @@ export class ContextExpressionClient {
     const { requestTimeout } = getCcsSettings();
 
     try {
-      const response = await sourceControlApi.post<ResolveContextExpressionResponse>(
+      const response = await sourceControlApi.post<ResolveContextExpressionResult>(
         ROUTES.resolveContextExpression(),
         payload,
         {
@@ -45,7 +45,11 @@ export class ContextExpressionClient {
         }
       );
 
-      return response.data ?? {};
+      if (typeof response.data === "undefined" || response.data === null) {
+        return {};
+      }
+
+      return response.data;
     } catch (error) {
       logDebug("Context expression resolution failed", error);
       throw error;
