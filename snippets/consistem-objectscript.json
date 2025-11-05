@@ -1,0 +1,719 @@
+{
+    "if": {
+        "prefix": "if",
+        "body": [
+            "if (${1:logicalCondition}) {",
+            "\t$0",
+            "}"
+        ],
+        "description": "Code snippet for an 'if' statement"
+    },
+    "for": {
+        "prefix": "for",
+        "body": [
+            "for {",
+            "\t$0",
+            "}"
+        ],
+        "description": "Code snippet for an 'for' statement"
+    },
+    "for_index": {
+        "prefix": "fori",
+        "body": [
+            "for ${1:index=1}:${2:increment}:${toThis} {",
+            "\t$0",
+            "}"
+        ],
+        "description": "Code snippet for an 'for' statement with index"
+    },
+    "if_do": {
+        "prefix": "ifd",
+        "body": [
+            "if (${1:logicalCondition}) do",
+            "${TM_CURRENT_LINE/^([\\w\\d]+)?(\\s)(\\W+)?(\\w+)/$3/g}. $0"
+        ],
+        "description": "Code snippet for an if statement with 'do'"
+    },
+    "for_do": {
+        "prefix": "ford",
+        "body": [
+            "for  set ${1:var}=\\$order(${2:^table}(${3:params})) quit:${1:var}=\"\"  do",
+            "${TM_CURRENT_LINE/([\\w\\d]+)?(\\s)(\\W+)?(\\w+)/$3/g}. $0"
+        ],
+        "description": "Code snippet for an 'for' statement with 'do'"
+    },
+    "new_function": {
+        "prefix": "nreg",
+        "body": [
+            "\t;",
+            "\t; ${1/([a-z]*)(([A-Z])+([a-z]+))?/${1:/capitalize}${2:+ }$3$4/g}",
+            "\t;",
+            "${1:NewFunction}(${2:params})\t;",
+            "\t\\$\\$\\$VAR",
+            "\tnew ",
+            "\t;",
+            "\t$0",
+            "\t;",
+            "\tquit \\$\\$\\$OK"
+        ],
+        "description": "Code snippet for new rules"
+    },
+    "new_routine_interface": {
+        "prefix": "nroti",
+        "body": [
+            "${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi}\t; ${CURRENT_MONTH}/${CURRENT_YEAR} - ${1/(\\w+)/${1:/upcase}/gi}",
+            "\t;",
+            "0000\tdo New^%CSW1UTI(\"%PRG,CT,sc\")",
+            "\tnew %PRG,CT,sc",
+            "\t;",
+            "\tset %PRG=\"${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi}\",CT=%index",
+            "\t;",
+            "\t; csw:aj:${2:col},${3:row},${1:Title}",
+            "\tdo AJ^%CSUTIUD(${2:col},${3:row},\"${1:Title}\")",
+            "\t;",
+            "0500\tdo 9000",
+            "\t$0",
+            "\t;",
+            "\t; Monta Tela",
+            "\t;",
+            "9000\tdo Clear^%CSW1UTI()",
+            "\t;",
+            "\tquit",
+            "\t;",
+            "\t; Fim",
+            "\t;",
+            "9999\tdo FJ^%CSUTIUD",
+            "\tdo FJ^%CSW1UTI",
+            "\t;",
+            "\tquit",
+            "\t;",
+            "\t; Metodo Validate()",
+            "\t;",
+            "Validate()\t;",
+            "\tquit:'\\$\\$CSP^%CSW1UTI() 1",
+            "\tquit 1",
+            "\t;",
+            "\t; Metodo Show",
+            "\t;",
+            "Show(%cswP1,%cswP2,%cswP3,%cswP4)\t;",
+            "\tdo Show^%CSW1UTI(\"${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi}\",\\$get(%cswP1),\\$get(%cswP2),\\$get(%cswP3),\\$get(%cswP4))",
+            "\tquit",
+            "\t;",
+            "\t; csw:labelcreate:${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi}",
+            "\t; csw:labeldestroy:9999",
+            "\t; csw:csp:gerar"
+        ]
+    },
+    "new_routine_rules": {
+        "prefix": "nrotr",
+        "body": [
+            "${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi}\t; ${CURRENT_MONTH}/${CURRENT_YEAR} - ${1:Titulo}",
+            "\t;",
+            "\t#include %CSUTICSP",
+            "\t;",
+            "\t; ${2/([a-z]*)(([A-Z])+([a-z]+))?/${1:/capitalize}${2:+ }$3$4/g}",
+            "\t;",
+            "${2:newFunction}(${3:params})\t;",
+            "\t\\$\\$\\$VAR",
+            "\tnew ",
+            "\t;",
+            "\t$0",
+            "\t;",
+            "\tquit \\$\\$\\$OK",
+            "\t;",
+            "\t; csw:csp:naogerar"
+        ]
+    },
+    "tag_buttons_crud": {
+        "prefix": "tgbc, tagButtonsCrud",
+        "body": [
+            "\t; csw:btnManter:${1:Coluna},${2:Linha},${3:LabelSalvar}^${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi},0500^${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi},Excluir^${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi}"
+        ],
+        "description": "Tag - Botões de Salvar, Cancelar e Exluir"
+    },
+    "tag_buttons_maintenance": {
+        "prefix": "tgbm, tagButtonsMaintenance",
+        "body": [
+            "\t; csw:btnManut:${1:Coluna},${2:Linha},${3:LabelManutencao}^${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi},${5:LabelIncluir}^${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi},${6:LabelRemover}^${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi},${7:CodGrid}"
+        ],
+        "description": "Tag - Botões de Manutenção, Incluir e Remover"
+    },
+    "tag_buttons_navigate": {
+        "prefix": "tgbn, tagButtonsNavigate",
+        "body": [
+            "\t; csw:btnNavega:${1:Coluna},${2:Linha},${3:LabelConsulta}^${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi}"
+        ],
+        "description": "Tag - Botão de Navegação"
+    },
+    "tag_button": {
+        "prefix": "tgb, tagButton",
+        "body": [
+            "\t; csw:botao:${1:Coluna},${2:Linha},${3:NomeBtn},${4:<u>T</u>itulo},${5:LetraAtalho},${6:LabelBtn}^${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi},${8:Imagem},,${9:TamanhoBtn}"
+        ],
+        "description": "Tag - Botão"
+    },
+    "tag_display": {
+        "prefix": "tgd, tagDisplay",
+        "body": [
+            "\t; csw:display:${1:Coluna},${2:Linha},${3:TamanhoDisplay},${4:NomeDisplay}"
+        ],
+        "description": "Tag - Display"
+    },
+    "tag_label": {
+        "prefix": "tgl, tagLabel",
+        "body": [
+            "\t; csw:label:${1:Coluna},${2:Linha},${3:Tamanho},${4:TextoLabel}"
+        ],
+        "description": "Tag - Label"
+    },
+    "tag_button_consult": {
+        "prefix": "tgbcst, tagButtonsConsult",
+        "body": [
+            "\t; csw:btnConsultar:${1:ColunaBotao},${2:LinhaBotao},${3:LabelConsulta}^${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi},${4:LabelLimpar}^${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi}"
+        ],
+        "description": "Tag - Label do Botao de Consultar"
+    },
+    "grid_dropdown": {
+        "prefix": [
+            "gdidd, gridDropdown"
+        ],
+        "body": [
+            "\t;",
+            "\t; Combo",
+            "${1:LbCombo}\t;",
+            "${1:LbCombo}ON\tdo ^%CSLE(${2:Linha},${3:Coluna},${4:Tamanho},\"${5:VarCombo}\",${5:VarCombo},,1,,\",,,cp${1:LbCombo},,,,,,0,3,3,${6:codGrid}\",,,,,1,.${7:TabCombo})",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "${1:LbCombo}EX\tgoto ${8:LbSaida}:%=27,${9:LbAnterior}:%=140",
+            "\tif '\\$\\$Valcp${1:LbCombo}() goto ${1:LbCombo}",
+            "\t;"
+        ],
+        "description": "Grid - Manutenção em Linha - Combo Box"
+    },
+    "grid_input_decimal": {
+        "prefix": [
+            "gdid, gridInputDecimal"
+        ],
+        "body": [
+            "\t;",
+            "\t; Decimal",
+            "${1:LbDecimal}\t;",
+            "${1:LbDecimal}ON\tdo ^%CSLE(${2:Linha},${3:Coluna},${4:Tamanho},\"${5:VarDecimal}\",${5:VarDecimal},,\"1,,16,,,,,${6:Decimais}\",,\",,,cp${1:LbDecimal},,,,,,0,3,3,${7:codGrid}\")",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "${1:LbDecimal}EX\tgoto ${8:LbSaida}:%=27,${9:LbAnterior}:%=140",
+            "\tif '\\$\\$Valcp${1:LbDecimal}() goto ${1:LbDecimal}",
+            "\t;"
+        ],
+        "description": "Grid - Manutenção em Linha - Input Decimal"
+    },
+    "grid_input_integer": {
+        "prefix": [
+            "gdii, gridInputInteger"
+        ],
+        "body": [
+            "\t;",
+            "\t; Inteiro",
+            "${1:LbInteiro}\t;",
+            "${1:LbInteiro}ON\tdo ^%CSLE(${2:Linha},${3:Coluna},${4:Tamanho},\"${5:VarInteiro}\",${5:VarInteiro},\"@'?.N\",1,,\",,,cp${1:LbInteiro},,,,,,0,3,3,${6:codGrid}\")",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "${1:LbInteiro}EX\tgoto ${7:LbSaida}:%=27,${8:LbAnterior}:%=140",
+            "\tif '\\$\\$Valcp${1:LbInteiro}() goto ${1:LbInteiro}",
+            "\t;"
+        ],
+        "description": "Grid - Manutenção em Linha - Input Inteiro"
+    },
+    "grid_input_date": {
+        "prefix": [
+            "gdidt, gridInputDate"
+        ],
+        "body": [
+            "\t;",
+            "\t; Data",
+            "${1:LBDataManut}\t;",
+            "${1:LBDataManut}ON\tdo ^%CSLE(LINHA,${2:Coluna},8,\"${3:Variavel}\",${3:Variavel},\"1,1,3\",,\",,,cp${1:LBDataManut}\",,,,,,0,3,3,${4:CodGrid})",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "${1:LBDataManut}EX\tgoto ${5:LbSaida}:%=27,${6:LabelAnterior}:%=140",
+            "\tif '\\$\\$Valcp${1:LBDataManut}() goto ${1:LBDataManut}",
+            "\t;"
+        ],
+        "description": "Grid - Manutenção em Linha - Input Data"
+    },
+    "grid_input_string": {
+        "prefix": [
+            "gdis, gridInputString"
+        ],
+        "body": [
+            "\t;",
+            "\t; String",
+            "${1:LbInteiro}\t;",
+            "${1:LbInteiro}ON\tdo ^%CSLE(${2:Linha},${3:Coluna},${4:Tamanho},\"${5:VarInteiro}\",${5:VarInteiro},,1,,\",^${6:rotinaF8},${7:LabelF7}^${8:rotinaF7},cp${1:LbInteiro},,,,,,0,3,3,${9:codGrid}\")",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "${1:LbInteiro}EX\tgoto ${10:LbSaida}:%=27,${11:LbAnterior}:%=140",
+            "\tif '\\$\\$Valcp${1:LbInteiro}() goto ${1:LbInteiro}",
+            "\t;"
+        ],
+        "description": "Grid - Manutenção em Linha - Input String"
+    },
+    "input_date_period": {
+        "prefix": [
+            "inpfdtp, inputFieldDatePeriod"
+        ],
+        "body": [
+            "\t;",
+            "\t; Data Início",
+            "${1:LBDatIni}\t;",
+            "${1:LBDatIni}ON\tdo ^%CSLE(${2:Linha},${3:Coluna},8,\"DATINI\",DATINI,,\"1,1,3\",,\",,,cp${1:LBDatIni}\")",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "${1:LBDatIni}EX\tgoto 9999:%=27,${4:LblAnterior}:%=140",
+            "\tif '\\$\\$Valcp${1:LBDatIni}() goto ${1:LBDatIni}",
+            "\t;",
+            "\t; Data Fim",
+            "${5:LBDatFim}\t;",
+            "${5:LBDatFim}ON\tdo ^%CSLE(${6:Linha},${7:Coluna},8,\"DATFIM\",DATFIM,,\"1,1,3\",,\",,,cp${5:LBDatFim}\")",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "${5:LBDatFim}EX\tgoto 9999:%=27,${1:LBDatFim}:%=140",
+            "\tif '\\$\\$Valcp${5:LBDatFim}() goto ${5:LBDatFim}",
+            "\t;"
+        ],
+        "description": "Input - Data Início e Data Fim"
+    },
+    "input_dropdown": {
+        "prefix": [
+            "inpfdd, inputFieldDropdown"
+        ],
+        "body": [
+            "\t;",
+            "\t; Combo",
+            "${1:LbCombo}\t;",
+            "${1:LbCombo}ON\tdo ^%CSLE(${2:Linha},${3:Coluna},${4:Tamanho},\"${5:VarCombo}\",${5:VarCombo},,1,,\",,,cp${1:LbCombo}\",,,,,1,.${7:TabCombo})",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "${1:LbCombo}EX\tgoto 9999:%=27,${8:LbAnterior}:%=140",
+            "\tif '\\$\\$Valcp${1:LbCombo}() goto ${1:LbCombo}",
+            "\t;"
+        ],
+        "description": "Input - Combo Box"
+    },
+    "input_date": {
+        "prefix": [
+            "inpfdt, inputFieldDate"
+        ],
+        "body": [
+            "\t;",
+            "\t; Data",
+            "${1:LbData}\t;",
+            "${1:LbData}ON\tdo ^%CSLE(${2:Linha},${3:Coluna},${4:Tamanho},\"${5:VarData}\",${5:VarData},,\"1,1,3\",,\",,,cp${1:LbData}\")",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "${1:LbData}EX\tgoto 9999:%=27,${6:LbAnterior}:%=140",
+            "\tif '\\$\\$Valcp${1:LbData}() goto ${1:LbData}",
+            "\t;"
+        ],
+        "description": "Input - Data"
+    },
+    "input_decimal": {
+        "prefix": [
+            "inpfdc, inputFieldDecimal"
+        ],
+        "body": [
+            "\t;",
+            "\t; Decimal",
+            "${1:LbDecimal}\t;",
+            "${1:LbDecimal}ON\tdo ^%CSLE(${2:Linha},${3:Coluna},${4:Tamanho},\"${5:Decimal}\",${5:Decimal},,\"1,,16,,,,,${6:Decimais}\",,\",,,cp${1:LbDecimal}\")",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "${1:LbDecimal}EX\tgoto 9999:%=27,${7:LbAnterior}:%=140",
+            "\tif '\\$\\$Valcp${1:LbDecimal}() goto ${1:LbDecimal}",
+            "\t;"
+        ],
+        "description": "Input - Decimal"
+    },
+    "input_integer": {
+        "prefix": [
+            "inpfi, inputFieldInteger"
+        ],
+        "body": [
+            "\t;",
+            "\t; Inteiro",
+            "${1:LbInteiro}\t;",
+            "${1:LbInteiro}ON\tdo ^%CSLE(${2:Linha},${3:Coluna},${4:Tamanho},\"${5:VarInteiro}\",${5:VarInteiro},\"@'?.N\",1,,\",,,cp${1:LbInteiro}\")",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "${1:LbInteiro}EX\tgoto 9999:%=27,${6:LbAnterior}:%=140",
+            "\tif '\\$\\$Valcp${1:LbInteiro}() goto ${1:LbInteiro}",
+            "\t;"
+        ],
+        "description": "Input - Inteiro"
+    },
+    "input_string": {
+        "prefix": [
+            "inpfs, inputFieldString"
+        ],
+        "body": [
+            "\t;",
+            "\t; String",
+            "${1:LbString}\t;",
+            "${1:LbString}ON\tdo ^%CSLE(${2:Linha},${3:Coluna},${4:Tamanho},\"${5:VarString}\",${5:VarString},,1,,\"^${6:rotinaF8},${7:LabelF7}^${8:rotinaF7},,cp${1:LbString}\")",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "${1:LbString}EX\tgoto 9999:%=27,${9:LbAnterior}:%=140",
+            "\tif '\\$\\$Valcp${1:LbString}() goto ${1:LbString}",
+            "\t;"
+        ],
+        "description": "Input - String"
+    },
+    "input_multi_selection": {
+        "prefix": [
+            "inpfms, inputFieldMultiSelection"
+        ],
+        "body": [
+            "\t;",
+            "\t; Multi-Seleção",
+            "${1:LbMultSelect}\t;",
+            "${1:LbMultSelect}ON\tdo ClearCp^%CSW1UTI(\"ds${1:LbMultSelect}\")",
+            "\tdo ^%CSLE(${2:Linha},${3:Coluna},${4:Tamanho},\"${5:VarMultSelect}\",,,,,\"^${6:rotinaF8},${7:LabelF7}^${8:rotinaF7},,cp${1:LbMultSelect}\")",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "${1:LbMultSelect}EX\tgoto 9999:%=27,${9:LbAnterior}:%=140",
+            "\tif '\\$\\$Valcp${1:LbMultSelect}() goto ${1:LbMultSelect}",
+            "\t;",
+            "\tif ${5:VarMultSelect}=\"\" goto ${10:ProxLabel}",
+            "\tif '$data(${11:TabSel}(${1:LbMultSelect})) goto ${12:labelSel}",
+            "\t;",
+            "\t; Exclusão",
+            "\t;",
+            "${13:labelExc}\tdo SN^%CSUTIUD(,,,\"Opção já selecionada! Deseja excluir?\",,\"${13:labelExc}SN1^${14:rotina}\")",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "${13:labelExc}SN1\tkill:SN=\"S\" ${11:TabSel}(${5:VarMultSelect})",
+            "\tgoto ${1:LbMultSelect}",
+            "\t;",
+            "\t; Seleção",
+            "\t;",
+            "${12:labelSel}\tdo SN^%CSUTIUD(,,,,,\"${12:labelSel}SN1^${14:rotina}\")",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "${12:labelSel}SN1\tset:SN=\"S\" ${11:TabSel}(${5:VarMultSelect})=\"\"",
+            "\tgoto ${1:LbMultSelect}",
+            "\t;"
+        ],
+        "description": "Input - Multi-Seleção"
+    },
+    "input_grid": {
+        "prefix": [
+            "inptg, inputGrid"
+        ],
+        "body": [
+            "\t;",
+            "\tkill TABGRID(${1:codGrid})",
+            "\t;",
+            "\tset TABGRID(${1:codGrid})=\"; csw:gridConf:cod=${1:codGrid}; LinPos=${2:LinhaPosicao}; Altura=${3:Altura}; LinIni=${4:LinhaIni}; LinFim=${5:LinhaFim}; ColFim=${6:ColFim}; LabelEdit=TbCellClick^${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi}; HabilitaNavegacao=1;\"",
+            "\tset TABGRID(${1:codGrid},1)=\"; csw:gridCols:cod=${1:codGrid}; Tipo=${8:tipoColuna};\tCsw=${9:Tamanho}^${10:NomeColuna}^;\t\tList=^^;\tCsv=${10:NomeColuna};\"",
+            "\tset TABGRID(${1:codGrid},2)=\"; csw:gridCols:cod=${1:codGrid}; Tipo=${11:tipoColuna};\tCsw=${12:Tamanho}^${13:NomeColuna}^;\t\tList=^^;\tCsv=${13:NomeColuna};\"",
+            "\tset TABGRID(${1:codGrid},3)=\"; csw:gridCols:cod=${1:codGrid}; Tipo=${14:tipoColuna};\tCsw=${15:Tamanho}^${16:NomeColuna}^;\t\tList=^^;\tCsv=${16:NomeColuna};\"",
+            "\tset TABGRID(${1:codGrid},4)=\"; csw:gridCols:cod=${1:codGrid}; Tipo=${17:tipoColuna};\tCsw=${18:Tamanho}^${19:NomeColuna}^;\t\tList=^^;\tCsv=${19:NomeColuna};\"",
+            "\tset TABGRID(${1:codGrid},5)=\"; csw:gridCols:cod=${1:codGrid}; Tipo=${20:tipoColuna};\tCsw=${21:Tamanho}^${22:NomeColuna}^;\t\tList=^^;\tCsv=${22:NomeColuna};\"",
+            "\tset TABGRID(${1:codGrid},6)=\"; csw:gridCols:cod=${1:codGrid}; Tipo=${23:tipoColuna};\tCsw=${24:Tamanho}^${25:NomeColuna}^;\t\tList=^^;\tCsv=${25:NomeColuna};\"",
+            "\tset TABGRID(${1:codGrid},7)=\"; csw:gridCols:cod=${1:codGrid}; Tipo=${26:tipoColuna};\tCsw=${27:Tamanho}^${28:NomeColuna}^;\t\tList=^^;\tCsv=${28:NomeColuna};\"",
+            "\t;",
+            "\tset sc=\\$\\$Inicializar^%CSW1GRID(CT,%PRG,${1:codGrid},.TABGRID)",
+            "\tset sc=\\$\\$Limpar^%CSW1GRID(CT,%PRG,${1:codGrid})",
+            "\t;"
+        ],
+        "description": "Input - Grid"
+    },
+    "input_grid_line": {
+        "prefix": [
+            "inptgl, inputGridline"
+        ],
+        "body": [
+            "\tset TABGRID(${1:codGrid},${2:numColuna})=\"; csw:gridCols:cod=${1:codGrid}; Tipo=${3:tipoColuna};\tCsw=${4:Tamanho}^${5:NomeColuna}^${6:Ordenacao}^${7:Visualizar}^${8:Totalizar}^${9:Estatica}^${10:Agrupa}^${11:Link}^${12:CheckHeader}^${13:TextoHelp};\t\tList=${4:Tamanho}^${14:DescricaoList}^${15:OrdenacaoList};\tCsv=${16:NomeColunaCSV};\""
+        ],
+        "description": "Input - Linha para o Grid"
+    },
+    "input_consult": {
+        "prefix": [
+            "inptcst, inputConsult"
+        ],
+        "body": [
+            "\t;",
+            "\t; Consultar",
+            "\t;",
+            "${1:LABEL}\tif '\\$\\$Validate() quit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "\tset sc=\\$\\$Inicializar^%CSW1GRID(CT,%PRG,${2:codGrid},.TABGRID)",
+            "\tset sc=\\$\\$Limpar^%CSW1GRID(CT,%PRG,${2:codGrid})",
+            "\t;",
+            "\tdo AG^%CSUTIUD(,\"${1:LABEL}AG1^${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi}\")",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "${1:LABEL}AG1\tset sc=\\$\\$${3:RegraGeracaoGlobalTrabalho}^${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi}RG(${4:Parametros})",
+            "\tset sc=\\$\\$GerarGrid^${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi}RG(${5:Parametros})",
+            "\t;",
+            "\tdo FJ^%CSUTIUD",
+            "\tdo FJAG^%CSW1UTI",
+            "\t;",
+            "\tset sc=\\$\\$ValidarDisplay^%CSW1GRID(CT,%PRG,${2:codGrid})",
+            "\tif (sc'=1) do ME^%CSUTICSP(sc) goto ${6:LabelRetorno}",
+            "\t;",
+            "\tset sc=\\$\\$Movimentar^%CSW1GRID(CT,%PRG,${2:codGrid},,1)",
+            "\t;"
+        ],
+        "description": "Input - Linha para o Grid"
+    },
+    "input_focus_grid": {
+        "prefix": [
+            "inptfcg, inputFocusGrid"
+        ],
+        "body": [
+            "\t;",
+            "\t; Focus no Grid",
+            "\t;",
+            "${1:LABEL}\tdo Focus^%CSW1GRID3(CT,%PRG,${2:codGrid},1)",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;"
+        ],
+        "description": "Input - Foco no Grid"
+    },
+    "input_focus_button": {
+        "prefix": [
+            "inptfcbt, inputFocusButton"
+        ],
+        "body": [
+            "\t;",
+            "\t; Focus Botão",
+            "\t;",
+            "${1:LABEL}\tdo Focus^%CSW1UTI(%PRG,${2:nomeBotao},,1)",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;"
+        ],
+        "description": "Input - Foco no Botão"
+    },
+    "input_save": {
+        "prefix": [
+            "inpts, inputSave"
+        ],
+        "body": [
+            "\t;",
+            "\t; Salvar",
+            "\t;",
+            "${1:LABEL}\tif '\\$\\$Validate() quit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "\tset sc=\\$\\$${2:regraDeSalvar}^${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi}RG(${3:parametros})",
+            "\tif sc'=1 do ME^%CSUTICSP(sc) goto ${4:labelErro}",
+            "\t;",
+            "\tdo MECABECALHO^%CSW1UTI(\"${5:MensagemDeSucesso}\")",
+            "\t;",
+            "\tgoto ${6:labelSucesso}",
+            "\t;"
+        ],
+        "description": "Input - Salvar"
+    },
+    "input_exclude": {
+        "prefix": [
+            "inptexc, inputExclude"
+        ],
+        "body": [
+            "\t;",
+            "\t; Excluir",
+            "\t;",
+            "Excluir\tdo SN^%CSUTIUD(,,,\"${1:MensagemDeConfirmacaoDaExclusao}\",,\"ExcluirSN^${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi}\")",
+            "\tquit:\\$\\$CSP^%CSW1UTI()",
+            "\t;",
+            "ExcluirSN\t;",
+            "\tif (SN'=\"S\") goto ${2:labelRetornoNaoExcluir}",
+            "\t;",
+            "\tset sc=\\$\\$${3:regraDeExclusao}^${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi}RG(${4:parametrosExclusao})",
+            "\tif sc'=1 do ME^%CSUTICSP(sc) goto ${5:labelRetornoErroExcluir}",
+            "\t;",
+            "\tdo MECABECALHO^%CSW1UTI(\"${6:MensagemExclusao}\")",
+            "\t;",
+            "\tgoto ${7:labelRetornoExclusaoSucesso}",
+            "\t;"
+        ],
+        "description": "Input - Excluir"
+    },
+    "input_valcp": {
+        "prefix": [
+            "inptvcp, inputValcp"
+        ],
+        "body": [
+            "\t;",
+            "\t; Metodo Valcp${1:labelValcp}()",
+            "\t;",
+            "Valcp${1:labelValcp}()\t;",
+            "\t;",
+            "\tquit 1",
+            "\t;"
+        ],
+        "description": "Input - Metodo Valcp"
+    },
+    "message_error": {
+        "prefix": [
+            "msgerr, messageError"
+        ],
+        "body": [
+            "if sc'=1 do ME^${1|%CSUTIUD(\"\"),%CSUTICSP(sc)|} ${2|quit,goto|} $0"
+        ],
+        "description": "Message - Mensagem de Erro"
+    },
+    "error": {
+        "prefix": [
+            "err"
+        ],
+        "body": [
+            "\\$$\\$ERROR(10000,\"${1:MensagemDeErro}\")"
+        ],
+        "description": "$$$ERROR - Retorno de erro em regras"
+    },
+    "new_function_tab": {
+        "prefix": "nregtab",
+        "body": [
+            "\t;",
+            "\t; Obter Tabela${1/([a-z]*)(([A-Z])+([a-z]+))?/${1:/capitalize}${2:+ }$3$4/g}",
+            "\t;",
+            "ObterTab${1:Dados}(${2:tabRetorno})\t;",
+            "\t\\$\\$\\$VAR",
+            "\t;",
+            "\tkill ${2:tabRetorno}",
+            "\t;",
+            "\tset ${2:tabRetorno}(${3:1})=\"\"",
+            "\t;",
+            "\tquit \\$\\$\\$OK"
+        ],
+        "description": "Code snippet for new rule to get a table"
+    },
+    "new_function_gerar_mtemp": {
+        "prefix": "inpGerarGlobalTrabalho, inpggt",
+        "body": [
+            "\t;",
+            "\t; Gerar Global${1/([a-z]*)(([A-Z])+([a-z]+))?/${1:/capitalize}${2:+ }$3$4/g}",
+            "\t;",
+            "GerarGlobal${1:Trabalho}(codEmpresa,term)\t;",
+            "\t\\$\\$\\$VAR",
+            "\tnew sc",
+            "\t;",
+            "\tset sc=\\$\\$ExcluirGlobalTrabalho(term)",
+            "\t;",
+            "\t; TODO: Lógica",
+            "\t;",
+            "\tquit \\$\\$\\$OK",
+            "\t;",
+            "\t; Excluir Global de Trabalho ",
+            "\t;",
+            "ExcluirGlobalTrabalho(term)\t;",
+            "\t\\$\\$\\$VAR",
+            "\t;",
+            "\tkill ^mtemp${2:${TM_FILENAME/(\\w+)(\\.)(\\w+)$/$1/gi}}(term)",
+            "\t;",
+            "\tquit \\$\\$\\$OK"
+        ]
+    },
+    "decompor": {
+        "prefix": "decompor",
+        "body": [
+            "\\$\\$Decompor^%CSUTIUD(${1:sc})"
+        ],
+        "description": "$$Decompor^%CSUTIUD"
+    },
+    "macro_killmerge": {
+        "prefix": "killmergeg, inpkmg",
+        "body": [
+            "do \\$\\$\\$KillMergeG(^${1:GLOBALDESTINO}(${2:chavesDestino}),${3:GLOBALORIGEM}(${4:chavesOrigem}))"
+        ],
+        "description": "$$$KillMergeG"
+    },
+    "macro_set": {
+        "prefix": "setg, inpsg",
+        "body": [
+            "do \\$\\$\\$SetG(^${1:GLOBAL}(${2:chaves}),${4:dados})"
+        ],
+        "description": "$$$SetG"
+    },
+    "macro_kill": {
+        "prefix": "killg, inpkg",
+        "body": [
+            "do \\$\\$\\$KillG(^${1:GLOBAL}(${2:chaves}))"
+        ],
+        "description": "$$$KillG"
+    },
+    "val_exec_csw": {
+        "prefix": "valexecsw, inpvalcsw",
+        "body": [
+            "\tset sc=\\$\\$ValidarExecucaoCSW^CCUTIRG001()",
+            "\tif sc'=1 do ME^%CSUTICSP(sc) quit"
+        ],
+        "description": "Validar Execução de CSW"
+    },
+    "habilitar_bot": {
+        "prefix": "habbotgeral, inphbg",
+        "body": [
+            "do HabBotGeral^%CSW1(\"${1:btBotao}\",${2:flgHabilitar})"
+        ],
+        "description": "HabBotGeral^%CSW1"
+    },
+    "ger_grid": {
+        "prefix": "inpGerarGrid, inpgerg",
+        "body": [
+            "\t;",
+            "\t; Gerar Grid",
+            "\t;",
+            "GerarGrid(codEmpresa,term,prg)\t;",
+            "\t\\$\\$\\$VAR",
+            "\t;",
+            "\t; TODO: Lógica",
+            "\t;",
+            "\tquit \\$\\$\\$OK",
+            "\t;",
+            "\t; Gravar Grid",
+            "\t;",
+            "GravarGrid(codEmpresa,term,prg,${1:codChave},codRegistro)\t;",
+            "\t\\$\\$\\$VAR",
+            "\tnew sc,dados,display,detalha",
+            "\t;",
+            "\tset (dados,display,detalha)=\"\"",
+            "\t;",
+            "\tset \\$piece(dados,z,1)=\"\"",
+            "\t;",
+            "\tset \\$piece(display,z,1)=\"\"",
+            "\t;",
+            "\tset \\$piece(detalha,z,1)=\"\"",
+            "\t;",
+            "\tset sc=\\$\\$GravarLinhas^%CSW1GRID(term,prg,${2:codGrid},dados,display,detalha,\\$get(codRegistro),,,,,,1)",
+            "\t;",
+            "\tquit \\$\\$\\$OK"
+        ],
+        "description": "Gerar Grid"
+    },
+    "obter_global": {
+        "prefix": "obterglobal, inpobtg",
+        "body": [
+            "\t;",
+            "\t; Obter${1/([a-z]*)(([A-Z])+([a-z]+))?/${1:/capitalize}${2:+ }$3$4/g}",
+            "\t;",
+            "Obter${1:Global}(${2:parametros},${3:varRetorno})\t;",
+            "\t\\$\\$\\$VAR",
+            "\t;",
+            "\tset ${3:varRetorno}=\"\"",
+            "\tif '\\$data(^${4:GLOBAL}(${5:codChaves})) quit \\$\\$\\$ERROR(10000,\"${1/([a-z]*)(([A-Z])+([a-z]+))?/${1:/capitalize}${2:+ }$3$4/g} não cadastrados!\")",
+            "\tset ${3:varRetorno}=\\$get(^${4:GLOBAL}(${5:codChaves}))",
+            "\t;",
+            "\tquit \\$\\$\\$OK"
+        ]
+    },
+    "for_each": {
+        "prefix": "foreach",
+        "body": [
+            "$\\$\\$ForEach(${1:chave},${2:TABELA})  do",
+            ". ;",
+            ". "
+        ],
+        "description": "$$$ForEach"
+    }
+}

@@ -852,6 +852,10 @@
         "path": "./snippets/objectscript.json"
       },
       {
+        "language": "objectscript",
+        "path": "./snippets/consistem-objectscript.json"
+      },
+      {
         "language": "objectscript-int",
         "path": "./snippets/objectscript-int.json"
       }

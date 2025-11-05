@@ -30,6 +30,7 @@ Code snippets are defined in files in the /snippets/ folder:
 
 * objectscript-class.json - snippets for class definition context
 * objectscript.json - snippets for objectscript context 
+* objectscript.json - snippets for consistem objectscript context 
 
 Snippets syntax is described [here](https://code.visualstudio.com/docs/editor/userdefinedsnippets). 
 
