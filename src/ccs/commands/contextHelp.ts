@@ -32,7 +32,13 @@ export async function resolveContextExpression(): Promise<void> {
     const data = response ?? {};
 
     if (typeof data === "string") {
-      await handleContextHelpDocumentationContent(data);
+      const { previewContent, textExpression } = extractEmbeddedContextExpression(data);
+
+      if (textExpression && textExpression.trim()) {
+        await applyResolvedTextExpression(editor, document, selection, contextInfo, contextExpression, textExpression);
+      }
+
+      await handleContextHelpDocumentationContent(previewContent);
       return;
     }
 
@@ -49,43 +55,14 @@ export async function resolveContextExpression(): Promise<void> {
     }
 
     if (isSuccessfulTextExpression(data)) {
-      const hasGifCommand = /--gif\b/i.test(contextExpression);
-      let normalizedTextExpression = data.textExpression.replace(/\r?\n/g, "\n");
-      let gifUri: vscode.Uri | undefined;
-
-      if (hasGifCommand) {
-        const extracted = extractGifUri(normalizedTextExpression);
-        normalizedTextExpression = extracted.textWithoutGifUri;
-        gifUri = extracted.gifUri;
-      }
-
-      if (!hasGifCommand) {
-        const eol = document.eol === vscode.EndOfLine.CRLF ? "\r\n" : "\n";
-        const textExpression = normalizedTextExpression.replace(/\r?\n/g, eol);
-        const formattedTextExpression = textExpression;
-
-        let rangeToReplace: vscode.Range;
-        if (selection.isEmpty) {
-          const fallbackLine = document.lineAt(selection.active.line);
-          rangeToReplace = fallbackLine.range;
-        } else {
-          const start = document.lineAt(selection.start.line).range.start;
-          const replacementEnd = contextInfo.replacementEnd ?? document.lineAt(selection.end.line).range.end;
-          rangeToReplace = new vscode.Range(start, replacementEnd);
-        }
-
-        await editor.edit((editBuilder) => {
-          editBuilder.replace(rangeToReplace, formattedTextExpression);
-        });
-      }
-
-      if (gifUri) {
-        try {
-          await showGifInWebview(gifUri);
-        } catch (error) {
-          handleError(error, "Failed to open GIF from context expression.");
-        }
-      }
+      await applyResolvedTextExpression(
+        editor,
+        document,
+        selection,
+        contextInfo,
+        contextExpression,
+        data.textExpression
+      );
       return;
     }
 
@@ -159,8 +136,56 @@ function extractGifUri(text: string): {
   return { textWithoutGifUri: processedLines.join("\n"), gifUri };
 }
 
+async function applyResolvedTextExpression(
+  editor: vscode.TextEditor,
+  document: vscode.TextDocument,
+  selection: vscode.Selection,
+  contextInfo: ContextExpressionInfo,
+  contextExpression: string,
+  rawTextExpression: string
+): Promise<void> {
+  const hasGifCommand = /--gif\b/i.test(contextExpression);
+  let normalizedTextExpression = rawTextExpression.replace(/\r?\n/g, "\n");
+  let gifUri: vscode.Uri | undefined;
+
+  if (hasGifCommand) {
+    const extracted = extractGifUri(normalizedTextExpression);
+    normalizedTextExpression = extracted.textWithoutGifUri;
+    gifUri = extracted.gifUri;
+  }
+
+  if (!hasGifCommand) {
+    const eol = document.eol === vscode.EndOfLine.CRLF ? "\r\n" : "\n";
+    const textExpression = normalizedTextExpression.replace(/\r?\n/g, eol);
+    const formattedTextExpression = textExpression;
+
+    let rangeToReplace: vscode.Range;
+    if (selection.isEmpty) {
+      const fallbackLine = document.lineAt(selection.active.line);
+      rangeToReplace = fallbackLine.range;
+    } else {
+      const start = document.lineAt(selection.start.line).range.start;
+      const replacementEnd = contextInfo.replacementEnd ?? document.lineAt(selection.end.line).range.end;
+      rangeToReplace = new vscode.Range(start, replacementEnd);
+    }
+
+    await editor.edit((editBuilder) => {
+      editBuilder.replace(rangeToReplace, formattedTextExpression);
+    });
+  }
+
+  if (gifUri) {
+    try {
+      await showGifInWebview(gifUri);
+    } catch (error) {
+      handleError(error, "Failed to open GIF from context expression.");
+    }
+  }
+}
+
 async function handleContextHelpDocumentationContent(rawContent: string): Promise<void> {
-  const sanitizedContent = sanitizeContextHelpContent(rawContent);
+  const { previewContent } = extractEmbeddedContextExpression(rawContent);
+  const sanitizedContent = sanitizeContextHelpContent(previewContent);
 
   if (!sanitizedContent.trim()) {
     void vscode.window.showInformationMessage("A ajuda de contexto não retornou nenhum conteúdo.");
@@ -174,6 +199,44 @@ async function handleContextHelpDocumentationContent(rawContent: string): Promis
   }
 
   await showContextHelpPreview(sanitizedContent);
+}
+
+function extractEmbeddedContextExpression(content: string): {
+  previewContent: string;
+  textExpression?: string;
+} {
+  const jsonPattern = /\{[\s\S]*\}\s*$/;
+  const match = jsonPattern.exec(content);
+  if (!match || match.index === undefined) {
+    return { previewContent: content };
+  }
+
+  const previewWithoutJson = content.slice(0, match.index).replace(/\s+$/, "");
+  const jsonText = content.slice(match.index).trim();
+
+  try {
+    const parsed = JSON.parse(jsonText);
+    if (!isRecord(parsed)) {
+      return { previewContent: previewWithoutJson };
+    }
+
+    const { status, textExpression } = parsed as ResolveContextExpressionResponse;
+    if (typeof status !== "string" || status.toLowerCase() !== "success") {
+      return { previewContent: previewWithoutJson };
+    }
+
+    if (typeof textExpression !== "string") {
+      return { previewContent: previewWithoutJson };
+    }
+
+    if (!textExpression.trim()) {
+      return { previewContent: previewWithoutJson };
+    }
+
+    return { previewContent: previewWithoutJson, textExpression };
+  } catch (_error) {
+    return { previewContent: content };
+  }
 }
 
 function sanitizeContextHelpContent(content: string): string {
