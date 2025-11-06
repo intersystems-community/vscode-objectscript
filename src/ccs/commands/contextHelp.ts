@@ -78,7 +78,7 @@ export async function resolveContextExpression(): Promise<void> {
 
 type ContextExpressionInfo = {
   text: string;
-  replacementEnd?: vscode.Position;
+  replacementRange?: vscode.Range;
 };
 
 function getContextExpressionInfo(document: vscode.TextDocument, selection: vscode.Selection): ContextExpressionInfo {
@@ -88,19 +88,16 @@ function getContextExpressionInfo(document: vscode.TextDocument, selection: vsco
     };
   }
 
-  const startLine = selection.start.line;
-  const start = document.lineAt(startLine).range.start;
+  let replacementRange = new vscode.Range(selection.start, selection.end);
 
-  let lastLine = selection.end.line;
   if (selection.end.character === 0 && selection.end.line > selection.start.line) {
-    lastLine = selection.end.line - 1;
+    const adjustedEnd = document.lineAt(selection.end.line - 1).range.end;
+    replacementRange = new vscode.Range(selection.start, adjustedEnd);
   }
 
-  const end = document.lineAt(lastLine).range.end;
-
   return {
-    text: document.getText(new vscode.Range(start, end)),
-    replacementEnd: end,
+    text: document.getText(replacementRange),
+    replacementRange,
   };
 }
 
@@ -164,9 +161,7 @@ async function applyResolvedTextExpression(
       const fallbackLine = document.lineAt(selection.active.line);
       rangeToReplace = fallbackLine.range;
     } else {
-      const start = document.lineAt(selection.start.line).range.start;
-      const replacementEnd = contextInfo.replacementEnd ?? document.lineAt(selection.end.line).range.end;
-      rangeToReplace = new vscode.Range(start, replacementEnd);
+      rangeToReplace = contextInfo.replacementRange ?? new vscode.Range(selection.start, selection.end);
     }
 
     await editor.edit((editBuilder) => {
