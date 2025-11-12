@@ -243,18 +243,17 @@ export function isfsDocumentName(uri: vscode.Uri, csp?: boolean, pkg = false): s
  * error when `uri`'s path is not in "canonical form".
  */
 function validateUriIsCanonical(uri: vscode.Uri): void {
+  const numDots = uri.path.split(".").length - 1;
+  const lastFour = uri.path.slice(-4);
   if (
     !isfsConfig(uri).csp &&
-    [".cls", ".mac", ".int", ".inc"].includes(uri.path.slice(-4).toLowerCase()) &&
-    // dotted packages
-    (uri.path.split(".").length > 2 ||
-      // extension has wrong case
-      ![".cls", ".mac", ".int", ".inc"].includes(uri.path.slice(-4)) ||
+    [".cls", ".mac", ".int", ".inc"].includes(lastFour.toLowerCase()) &&
+    // extension has wrong case
+    (![".cls", ".mac", ".int", ".inc"].includes(lastFour) ||
       // short alias for %Library class
-      (uri.path.startsWith("/%") &&
-        uri.path.slice(-4) == ".cls" &&
-        uri.path.split(".").length == 2 &&
-        uri.path.split("/").length == 2))
+      (uri.path.startsWith("/%") && lastFour == ".cls" && numDots == 1 && uri.path.split("/").length == 2) ||
+      // dotted packages
+      (numDots > 1 && !(numDots == 2 && /\.G?\d\.int$/.test(uri.path))))
   ) {
     throw vscode.FileSystemError.FileNotFound(uri);
   }
