@@ -62,8 +62,9 @@ const textDecoder = new TextDecoder();
 /** Find the root `TestItem` for `uri` */
 function rootItemForItem(testController: vscode.TestController, uri: vscode.Uri): vscode.TestItem | undefined {
   let rootItem: vscode.TestItem;
+  const uriString = uri.toString();
   for (const [, i] of testController.items) {
-    if (uriIsParentOf(i.uri, uri)) {
+    if (uriIsParentOf(i.uri, uri) || uriString == i.uri.toString()) {
       rootItem = i;
       break;
     }
@@ -421,9 +422,10 @@ async function runHandler(
 
     // Add the initial items to the queue to process
     const queue: vscode.TestItem[] = [];
+    const rootUriString = root.uri.toString();
     if (request.include?.length) {
       request.include.forEach((i) => {
-        if (uriIsParentOf(root.uri, i.uri)) {
+        if (uriIsParentOf(root.uri, i.uri) || i.uri.toString() == rootUriString) {
           queue.push(i);
         }
       });
