@@ -16,6 +16,7 @@ export {
 export { goToDefinitionLocalFirst } from "./commands/goToDefinitionLocalFirst";
 export { followDefinitionLink } from "./commands/followDefinitionLink";
 export { jumpToTagAndOffsetCrossEntity } from "./commands/jumpToTagOffsetCrossEntity";
+export { locateTriggers, openLocatedTriggerLocation } from "./commands/locateTriggers";
 export { PrioritizedDefinitionProvider } from "./providers/PrioritizedDefinitionProvider";
 export {
   DefinitionDocumentLinkProvider,

@@ -132,6 +132,10 @@
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
+          "command": "vscode-objectscript.ccs.locateTriggers",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
           "command": "vscode-objectscript.subclass",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
@@ -880,6 +884,16 @@
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.followSourceAnalysisLink",
         "title": "Follow Source Analysis Link"
+      },
+      {
+        "category": "Consistem",
+        "command": "vscode-objectscript.ccs.locateTriggers",
+        "title": "Locate Triggers"
+      },
+      {
+        "category": "Consistem",
+        "command": "vscode-objectscript.ccs.locateTriggers.openLocation",
+        "title": "Open Located Trigger"
       },
       {
         "category": "Consistem",

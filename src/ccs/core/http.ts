@@ -70,8 +70,13 @@ function resolveFullUrl(client: AxiosInstance, config: AxiosRequestConfig | Inte
   return `${base}${url}`;
 }
 
-export function createAbortSignal(token: vscode.CancellationToken): { signal: AbortSignal; dispose: () => void } {
+export function createAbortSignal(token?: vscode.CancellationToken): { signal: AbortSignal; dispose: () => void } {
   const controller = new AbortController();
+
+  if (!token) {
+    return { signal: controller.signal, dispose: () => undefined };
+  }
+
   const subscription = token.onCancellationRequested(() => controller.abort());
 
   return {

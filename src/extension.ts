@@ -176,6 +176,8 @@ import {
   jumpToTagAndOffsetCrossEntity,
   resolveContextExpression,
   showGlobalDocumentation,
+  locateTriggers,
+  openLocatedTriggerLocation,
 } from "./ccs";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
@@ -1430,6 +1432,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.ccs.getGlobalDocumentation", () => {
       sendCommandTelemetryEvent("getGlobalDocumentation");
       void showGlobalDocumentation();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.ccs.locateTriggers", () => {
+      sendCommandTelemetryEvent("locateTriggers");
+      void locateTriggers();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.ccs.locateTriggers.openLocation", (location) => {
+      sendCommandTelemetryEvent("locateTriggers.openLocation");
+      void openLocatedTriggerLocation(location);
     }),
     vscode.commands.registerCommand("vscode-objectscript.serverCommands.sourceControl", (uri?: vscode.Uri) => {
       sendCommandTelemetryEvent("serverCommands.sourceControl");
