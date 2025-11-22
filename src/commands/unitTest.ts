@@ -1,3 +1,5 @@
+import * as fs from "fs";
+import * as path from "path";
 import * as vscode from "vscode";
 import * as Atelier from "../api/atelier";
 import { clsLangId, extensionId, filesystemSchemas, lsExtensionId, sendUnitTestTelemetryEvent } from "../extension";
@@ -13,6 +15,9 @@ import {
 import { fileSpecFromURI, isfsConfig } from "../utils/FileProviderUtil";
 import { AtelierAPI } from "../api";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
+import { SourceControlApi } from "../ccs";
+import { ROUTES } from "../ccs/sourcecontrol/routes";
+import { createAbortSignal } from "../ccs/core/http";
 
 enum TestStatus {
   Failed = 0,
@@ -25,6 +30,14 @@ interface TestAssertLocation {
   document: string;
   label?: string;
   namespace?: string;
+}
+
+interface LegacyAssertion {
+  status: TestStatus;
+  type?: string;
+  message: string;
+  location?: TestAssertLocation;
+  locationText?: string;
 }
 
 /** The result of a finished test */
@@ -49,15 +62,335 @@ interface TestResult {
    * Will be `undefined` if `status` is not `0` (failed).
    */
   error?: string;
+  /**
+   * Optional collection of assertion results reported by the
+   * legacy runner.
+   */
+  assertions?: LegacyAssertion[];
+}
+
+interface LegacyUnitTestResponse {
+  results: TestResult[];
+  console?: string[];
+}
+
+interface DerivedMethodSummary {
+  status?: TestStatus;
+  failures: { message: string; location?: TestAssertLocation }[];
+  error?: string;
 }
 
 /** A cache of all test classes in a test root */
 const classesForRoot: WeakMap<vscode.TestItem, Map<string, vscode.TestItem>> = new WeakMap();
 
+/** Roots reais (paths filtrados) associados a cada root visual do workspace */
+const rootsForWorkspaceRoot: WeakMap<vscode.TestItem, vscode.Uri[]> = new WeakMap();
+
 /** The separator between the class URI string and method name in the method's `TestItem` id */
 const methodIdSeparator = "\\\\\\";
 
 const textDecoder = new TextDecoder();
+
+const ANSI_RESET = "\u001b[0m";
+const ANSI_RED = "\u001b[31m";
+const ANSI_GREEN = "\u001b[32m";
+
+const LEGACY_FAIL_MARKER = "<<====== FAILED ======>>";
+const LEGACY_PASS_REGEX = /\bpassed\b/i;
+
+const GLOB_PATTERN = /[*?]/;
+
+const DEFAULT_LEGACY_REQUEST_TIMEOUT = 10 * 60 * 1000; // 10 minutes
+
+const testResultDecorationType = vscode.window.createTextEditorDecorationType({
+  after: {
+    margin: "0 0 0 3ch",
+    color: new vscode.ThemeColor("editorCodeLens.foreground"),
+  },
+});
+
+function findMethodItemByLegacyName(clsItem: vscode.TestItem, methodName: string): vscode.TestItem | undefined {
+  if (!methodName) {
+    return undefined;
+  }
+  const normalized = normalizeLegacyMethodName(methodName) ?? methodName;
+  let methodItem = clsItem.children.get(`${clsItem.id}${methodIdSeparator}${normalized}`);
+  if (!methodItem && methodName.startsWith("Test")) {
+    methodItem = clsItem.children.get(`${clsItem.id}${methodIdSeparator}${methodName.slice(4)}`);
+  }
+  if (!methodItem) {
+    for (const [, child] of clsItem.children) {
+      const childNormalized = normalizeLegacyMethodName(child.label) ?? child.label;
+      if (
+        child.label === normalized ||
+        child.label === methodName ||
+        childNormalized === normalized ||
+        normalizeLegacyMethodName(methodName) === normalizeLegacyMethodName(child.label)
+      ) {
+        methodItem = child;
+        break;
+      }
+    }
+  }
+  return methodItem;
+}
+
+function deriveMethodResultsFromClassSummary(
+  classResult: TestResult,
+  requestedMethods: Set<string> | undefined,
+  availableMethods: string[]
+): Map<string, DerivedMethodSummary> {
+  const summaries: Map<string, DerivedMethodSummary> = new Map();
+
+  const ensureSummary = (methodName: string): DerivedMethodSummary => {
+    const existing = summaries.get(methodName);
+    if (existing) {
+      return existing;
+    }
+    const created: DerivedMethodSummary = { failures: [] };
+    summaries.set(methodName, created);
+    return created;
+  };
+
+  for (const failure of classResult.failures ?? []) {
+    const label = labelFromFailure(failure);
+    const normalized = normalizeLegacyMethodName(label ?? "");
+    if (!normalized) {
+      continue;
+    }
+    const summary = ensureSummary(normalized);
+    summary.status = TestStatus.Failed;
+    summary.failures.push(failure);
+    if (classResult.error && !summary.error) {
+      summary.error = classResult.error;
+    }
+  }
+
+  if (Array.isArray(classResult.assertions)) {
+    const assertionGroups: Map<string, LegacyAssertion[]> = new Map();
+    for (const assertion of classResult.assertions) {
+      const label = labelFromAssertion(assertion);
+      const normalized = normalizeLegacyMethodName(label ?? "");
+      if (!normalized) {
+        continue;
+      }
+      const group = assertionGroups.get(normalized) ?? [];
+      group.push(assertion);
+      assertionGroups.set(normalized, group);
+    }
+
+    for (const [methodName, assertions] of assertionGroups) {
+      const summary = ensureSummary(methodName);
+      const failedAssertion = assertions.find((assertion) => assertion.status === TestStatus.Failed);
+      if (failedAssertion) {
+        summary.status = TestStatus.Failed;
+        if (!summary.failures.length) {
+          summary.failures.push({
+            message: `${failedAssertion.type ? `${failedAssertion.type} - ` : ""}${failedAssertion.message}`,
+            location: failedAssertion.location,
+          });
+        }
+        if (classResult.error && !summary.error) {
+          summary.error = classResult.error;
+        }
+      } else if (summary.status == undefined) {
+        summary.status = TestStatus.Passed;
+      }
+    }
+  }
+
+  const hasSpecificFailures = Array.from(summaries.values()).some((summary) => summary.status === TestStatus.Failed);
+  const fallbackMethods = requestedMethods && requestedMethods.size ? Array.from(requestedMethods) : availableMethods;
+  const fallbackStatus =
+    classResult.status === TestStatus.Failed && !hasSpecificFailures && !classResult.assertions?.length
+      ? TestStatus.Failed
+      : (classResult.status ?? TestStatus.Passed);
+
+  for (const methodName of fallbackMethods) {
+    const normalized = normalizeLegacyMethodName(methodName) ?? methodName;
+    if (!normalized) {
+      continue;
+    }
+    const summary = ensureSummary(normalized);
+    if (summary.status == undefined) {
+      summary.status = fallbackStatus === TestStatus.Failed ? TestStatus.Failed : TestStatus.Passed;
+      if (summary.status === TestStatus.Failed && classResult.error && !summary.error) {
+        summary.error = classResult.error;
+      }
+    }
+  }
+
+  summaries.forEach((summary) => {
+    if (summary.status == undefined) {
+      summary.status = fallbackStatus === TestStatus.Failed ? TestStatus.Failed : TestStatus.Passed;
+      if (summary.status === TestStatus.Failed && classResult.error && !summary.error) {
+        summary.error = classResult.error;
+      }
+    }
+  });
+
+  return summaries;
+}
+
+/**
+ * Lê as assertions do runner legado e descobre, por método,
+ * qual é a mensagem de duração (LogMessage: Duration of execution: ...)
+ */
+function extractMethodDurations(classResult: TestResult): Map<string, string> {
+  const map = new Map<string, string>();
+
+  if (!Array.isArray(classResult.assertions)) {
+    return map;
+  }
+
+  let lastMethodLabel: string | undefined;
+
+  for (const assertion of classResult.assertions) {
+    const label = labelFromAssertion(assertion);
+    if (label) {
+      lastMethodLabel = normalizeLegacyMethodName(label) ?? label;
+    }
+    if (assertion.type === "LogMessage" && lastMethodLabel && assertion.message) {
+      const durationText = assertion.message.trim(); // ex.: "LogMessage:Duration of execution: .000122 sec."
+      map.set(lastMethodLabel, durationText);
+    }
+  }
+
+  return map;
+}
+
+function applyTestResultDecorations(
+  methodResults: { item: vscode.TestItem; result: TestResult; durationText?: string }[]
+): void {
+  if (!methodResults.length) {
+    return;
+  }
+
+  const decorationsByEditor = new Map<vscode.TextEditor, vscode.DecorationOptions[]>();
+
+  for (const editor of vscode.window.visibleTextEditors) {
+    decorationsByEditor.set(editor, []);
+  }
+
+  for (const { item, result, durationText } of methodResults) {
+    const editor = vscode.window.visibleTextEditors.find((e) => e.document.uri.toString() === item.uri.toString());
+    if (!editor || !item.range) {
+      continue;
+    }
+
+    const line = item.range.start.line;
+    const lineRange = editor.document.lineAt(line).range;
+
+    const statusText =
+      result.status === TestStatus.Passed ? "passed" : result.status === TestStatus.Failed ? "failed" : "skipped";
+
+    const parts: string[] = [`${item.label} ${statusText}`];
+    if (durationText) {
+      parts.push(durationText);
+    }
+
+    const contentText = "   " + parts.join("   ");
+
+    const opts: vscode.DecorationOptions = {
+      range: lineRange,
+      renderOptions: {
+        after: {
+          contentText,
+        },
+      },
+    };
+
+    const list = decorationsByEditor.get(editor);
+    if (list) {
+      list.push(opts);
+    }
+  }
+
+  for (const [editor, decorations] of decorationsByEditor) {
+    editor.setDecorations(testResultDecorationType, decorations);
+  }
+}
+
+function stripAnsiSequences(value: string): string {
+  // eslint-disable-next-line no-control-regex
+  return value.replace(/\u001B\[[0-9;]*m/g, "");
+}
+
+function extractLegacyPayload(raw: string): { response?: LegacyUnitTestResponse } {
+  const normalized = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const resultsIdx = normalized.indexOf('"results"');
+  if (resultsIdx < 0) {
+    return {};
+  }
+  const jsonStart = normalized.lastIndexOf("{", resultsIdx);
+  if (jsonStart < 0) {
+    return {};
+  }
+
+  const jsonText = normalized.slice(jsonStart).trim();
+
+  try {
+    const response = JSON.parse(jsonText) as LegacyUnitTestResponse;
+    return { response };
+  } catch (e) {
+    console.error("[extractLegacyPayload] Invalid JSON from legacy runner", e);
+    return {};
+  }
+}
+
+function colorizeLegacyConsoleLine(line: string): string {
+  if (!line) {
+    return line;
+  }
+  if (line.includes(LEGACY_FAIL_MARKER)) {
+    return `  ${ANSI_RED}${line}${ANSI_RESET}`;
+  }
+  if (LEGACY_PASS_REGEX.test(line)) {
+    return `  ${ANSI_GREEN}${line}${ANSI_RESET}`;
+  }
+  return line;
+}
+
+function normalizeLegacyMethodName(method?: string): string | undefined {
+  if (!method) {
+    return undefined;
+  }
+  const trimmed = method.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  return trimmed.startsWith("Test") ? trimmed.slice(4) : trimmed;
+}
+
+function parseLegacyLabelFromText(text?: string): string | undefined {
+  if (!text) {
+    return undefined;
+  }
+  let working = text.trim();
+  const openParen = working.indexOf("(");
+  if (openParen >= 0) {
+    working = working.slice(openParen + 1);
+  }
+  const plusIdx = working.indexOf("+");
+  const caretIdx = working.indexOf("^");
+  let end = working.length;
+  if (plusIdx >= 0) {
+    end = Math.min(end, plusIdx);
+  }
+  if (caretIdx >= 0) {
+    end = Math.min(end, caretIdx);
+  }
+  const candidate = working.slice(0, end).trim();
+  return candidate ? candidate : undefined;
+}
+
+function labelFromFailure(failure: TestResult["failures"][number]): string | undefined {
+  return failure.location?.label ?? parseLegacyLabelFromText(failure.message);
+}
+
+function labelFromAssertion(assertion: LegacyAssertion): string | undefined {
+  return assertion.location?.label ?? parseLegacyLabelFromText(assertion.locationText);
+}
 
 /** Find the root `TestItem` for `uri` */
 function rootItemForItem(testController: vscode.TestController, uri: vscode.Uri): vscode.TestItem | undefined {
@@ -156,13 +489,124 @@ async function addTestItemsForClass(testController: vscode.TestController, paren
 
 /** Get the array of `objectscript.unitTest.relativeTestRoots` for workspace folder `uri`. */
 function relativeTestRootsForUri(uri: vscode.Uri): string[] {
-  let roots: string[] = vscode.workspace.getConfiguration("objectscript.unitTest", uri).get("relativeTestRoots");
-  roots = roots.map((r) => r.replaceAll("\\", "/")); // VS Code URIs always use / as a separator
-  if (roots.length > 1) {
-    // Filter out any duplicate roots, or roots that are a subdirectory of another root
-    roots = roots.filter((root, idx) => !roots.some((r, i) => i != idx && (root.startsWith(`${r}/`) || root == r)));
-  }
+  const configuredRoots = vscode.workspace
+    .getConfiguration("objectscript.unitTest", uri)
+    .get<string[]>("relativeTestRoots");
+  let roots = Array.isArray(configuredRoots) && configuredRoots.length ? configuredRoots : [""];
+  roots = roots
+    .map((r) => normalizeRelativeRootPath(r))
+    .filter((root, idx, arr) => !arr.some((r, i) => i != idx && (root.startsWith(`${r}/`) || root == r)));
   return roots;
+}
+
+function normalizeRelativeRootPath(root: string): string {
+  if (!root) {
+    return "";
+  }
+  let normalized = root.replace(/\\/g, "/");
+  normalized = normalized.replace(/^\/+/, "").replace(/\/+$/, "");
+  return normalized;
+}
+
+function hasGlobPattern(value: string): boolean {
+  return GLOB_PATTERN.test(value);
+}
+
+function globSegmentToRegExp(segment: string): RegExp {
+  const escaped = segment.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+  // Agora converte * e ? em regex:
+  //   * => .*  (qualquer sequência)
+  //   ? => .   (qualquer caractere único)
+  const pattern = escaped.replace(/\*/g, ".*").replace(/\?/g, ".");
+  return new RegExp(`^${pattern}$`, "i");
+}
+
+function expandSegmentsFromFs(basePath: string, segments: string[], index = 0): string[] {
+  if (!basePath) {
+    return [];
+  }
+  if (index >= segments.length) {
+    return [basePath];
+  }
+  const segment = segments[index];
+  if (!hasGlobPattern(segment)) {
+    const nextPath = path.join(basePath, segment);
+    try {
+      const stats = fs.statSync(nextPath);
+      if (stats.isDirectory()) {
+        return expandSegmentsFromFs(nextPath, segments, index + 1);
+      }
+    } catch {
+      return [];
+    }
+    return [];
+  }
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(basePath, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const matcher = globSegmentToRegExp(segment);
+  let matches: string[] = [];
+  for (const entry of entries) {
+    if (entry.isDirectory() && matcher.test(entry.name)) {
+      matches = matches.concat(expandSegmentsFromFs(path.join(basePath, entry.name), segments, index + 1));
+    }
+  }
+  return matches;
+}
+
+function fallbackRelativePathForSegments(segments: string[]): string {
+  if (!segments.length) {
+    return "";
+  }
+  const fallbackSegments: string[] = [];
+  for (const segment of segments) {
+    if (hasGlobPattern(segment)) {
+      break;
+    }
+    fallbackSegments.push(segment);
+  }
+  return fallbackSegments.join("/");
+}
+
+function resolveRelativeRootUris(folder: vscode.WorkspaceFolder, roots: string[], baseUri: vscode.Uri): vscode.Uri[] {
+  const seen = new Set<string>();
+  const baseFsPath = folder.uri.fsPath;
+  const resolved: vscode.Uri[] = [];
+  const isDefaultRoots = roots.length === 1 && !roots[0];
+  roots.forEach((root) => {
+    const normalized = normalizeRelativeRootPath(root);
+    const segments = normalized ? normalized.split("/").filter(Boolean) : [];
+    const segmentsContainGlob = segments.some(hasGlobPattern);
+    let expanded: string[] = [];
+    try {
+      expanded = expandSegmentsFromFs(baseFsPath, segments);
+    } catch {
+      expanded = [];
+    }
+    if (expanded.length) {
+      expanded.forEach((fullPath) => {
+        const relative = path.relative(baseFsPath, fullPath).split(path.sep).join("/");
+        const uri = baseUri.with({ path: `${baseUri.path}${relative}` });
+        const key = uri.toString();
+        if (!seen.has(key)) {
+          seen.add(key);
+          resolved.push(uri);
+        }
+      });
+    } else if (!segmentsContainGlob) {
+      const fallbackRelative = fallbackRelativePathForSegments(segments);
+      const uri = baseUri.with({ path: `${baseUri.path}${fallbackRelative}` });
+      const key = uri.toString();
+      if (!seen.has(key)) {
+        seen.add(key);
+        resolved.push(uri);
+      }
+    }
+  });
+  return resolved.length ? resolved : isDefaultRoots ? [baseUri] : [];
 }
 
 /** Compute root `TestItem`s for `folder`. Returns `[]` if `folder` can't contain tests. */
@@ -170,10 +614,9 @@ function createRootItemsForWorkspaceFolder(
   testController: vscode.TestController,
   folder: vscode.WorkspaceFolder
 ): vscode.TestItem[] {
-  let newItems: vscode.TestItem[] = [];
   const api = new AtelierAPI(folder.uri);
   const { csp } = isfsConfig(folder.uri);
-  // Must have an active server connection to a non-%SYS namespace and Atelier API version 8 or above
+
   const errorMsg =
     !api.active || api.ns == ""
       ? "Server connection is inactive"
@@ -184,31 +627,61 @@ function createRootItemsForWorkspaceFolder(
           : filesystemSchemas.includes(folder.uri.scheme) && csp
             ? "Web application folder"
             : undefined;
-  let itemUris: vscode.Uri[];
+
+  const rootUri = folder.uri;
+  const rootItem = testController.createTestItem(rootUri.toString(), folder.name, rootUri);
+
   if (notIsfs(folder.uri)) {
     const roots = relativeTestRootsForUri(folder.uri);
-    const baseUri = folder.uri.with({ path: `${folder.uri.path}${!folder.uri.path.endsWith("/") ? "/" : ""}` });
-    itemUris = roots.map((root) => baseUri.with({ path: `${baseUri.path}${root}` }));
+    const baseUri = folder.uri.with({
+      path: `${folder.uri.path}${!folder.uri.path.endsWith("/") ? "/" : ""}`,
+    });
+    const itemUris = resolveRelativeRootUris(folder, roots, baseUri);
+
+    // guarda os roots reais deste workspace
+    rootsForWorkspaceRoot.set(rootItem, itemUris);
+
+    // descrição opcional, só para debug
+    if (itemUris.length) {
+      rootItem.description = itemUris
+        .map((u) => u.path.slice(folder.uri.path.length + (!folder.uri.path.endsWith("/") ? 1 : 0)))
+        .join(", ");
+    }
   } else {
-    itemUris = [folder.uri];
+    // conexão isfs: mantém comportamento antigo
+    rootsForWorkspaceRoot.set(rootItem, [folder.uri]);
   }
-  newItems = itemUris.map((uri) => {
-    const newItem = testController.createTestItem(uri.toString(), folder.name, uri);
-    if (notIsfs(uri)) {
-      // Add the root as the description
-      newItem.description = uri.path.slice(folder.uri.path.length + (!folder.uri.path.endsWith("/") ? 1 : 0));
-      newItem.sortText = newItem.label + newItem.description;
+
+  if (errorMsg != undefined) {
+    rootItem.canResolveChildren = false;
+    rootItem.error = errorMsg;
+  } else {
+    rootItem.canResolveChildren = true;
+  }
+
+  return [rootItem];
+}
+
+/** Verifica se `candidate` está dentro de algum dos roots configurados para o workspace */
+function pathMatchesAnyWorkspaceRoot(workspaceRootItem: vscode.TestItem, candidate: vscode.Uri): boolean {
+  const roots = rootsForWorkspaceRoot.get(workspaceRootItem);
+  if (!roots || !roots.length) {
+    // Sem filtro definido → tudo entra
+    return true;
+  }
+
+  return roots.some((rootUri) => {
+    if (candidate.toString() === rootUri.toString()) {
+      return true;
     }
-    if (errorMsg != undefined) {
-      // Show the user why we can't run tests from this folder
-      newItem.canResolveChildren = false;
-      newItem.error = errorMsg;
-    } else {
-      newItem.canResolveChildren = true;
+    if (uriIsParentOf(candidate, rootUri)) {
+      return true;
     }
-    return newItem;
+    if (uriIsParentOf(rootUri, candidate)) {
+      return true;
+    }
+    return false;
   });
-  return newItems;
 }
 
 /** Get the `TestItem` for class `uri`. If `create` is true, create intermediate `TestItem`s. */
@@ -362,6 +835,397 @@ async function addItemForClassUri(testController: vscode.TestController, uri: vs
       testController.resolveHandler(item);
     }
   }
+}
+
+function groupConsoleByMethod(lines: string[]): Map<string, string[]> {
+  const map = new Map<string, string[]>();
+  const headerRegex = /Método:\s*(\S+)/i;
+
+  let currentMethodName: string | undefined;
+
+  for (const raw of lines) {
+    const line = stripAnsiSequences(raw).trimEnd();
+    if (!line) continue;
+
+    const headerMatch = line.match(headerRegex);
+    if (headerMatch) {
+      currentMethodName = headerMatch[1];
+      if (!map.has(currentMethodName)) {
+        map.set(currentMethodName, []);
+      }
+      map.get(currentMethodName)!.push(line);
+      continue;
+    }
+    if (/Fim da execução/i.test(line)) {
+      currentMethodName = undefined;
+      continue;
+    }
+
+    if (currentMethodName) {
+      map.get(currentMethodName)!.push(line);
+    }
+  }
+
+  return map;
+}
+
+async function promptGenerateLegacyBase(rootUri: vscode.Uri): Promise<boolean | undefined> {
+  const options: (vscode.QuickPickItem & { value: boolean })[] = [
+    {
+      label: "Gerar base de teste",
+      description: "Executar com preparação da base de dados",
+      value: true,
+    },
+    {
+      label: "Não gerar base de teste",
+      description: "Executar utilizando os dados existentes",
+      value: false,
+    },
+  ];
+
+  const choice = await vscode.window.showQuickPick(options, {
+    placeHolder: "Gerar base de dados para os testes unitários?",
+    title: "Execução de testes unitários",
+    ignoreFocusOut: true,
+  });
+
+  return choice?.value;
+}
+
+async function executeLegacyRunner(
+  api: AtelierAPI,
+  request: vscode.TestRunRequest,
+  testController: vscode.TestController,
+  root: vscode.TestItem,
+  clsItemsRun: vscode.TestItem[],
+  asyncRequest: Atelier.AsyncUnitTestRequest,
+  token: vscode.CancellationToken,
+  action: string,
+  showOutput: boolean
+): Promise<boolean> {
+  const generateBase = await promptGenerateLegacyBase(root.uri);
+  if (generateBase === undefined) {
+    return true;
+  }
+
+  const unitTestConfiguration = vscode.workspace.getConfiguration("objectscript.unitTest", root.uri);
+  const configuredLegacyTimeout = unitTestConfiguration.get<number>("legacyRequestTimeout");
+  const legacyRequestTimeout = Number.isFinite(configuredLegacyTimeout)
+    ? Math.max(0, Math.floor(configuredLegacyTimeout))
+    : DEFAULT_LEGACY_REQUEST_TIMEOUT;
+
+  const testRun = testController.createTestRun(request, undefined, true);
+  for (const editor of vscode.window.visibleTextEditors) {
+    editor.setDecorations(testResultDecorationType, []);
+  }
+
+  try {
+    const uniqueClassItems = new Set(clsItemsRun);
+    uniqueClassItems.forEach((classItem) => {
+      testRun.started(classItem);
+      classItem.children.forEach((methodItem) => testRun.started(methodItem));
+    });
+
+    let sourceControlApi: SourceControlApi;
+    try {
+      sourceControlApi = SourceControlApi.fromAtelierApi(api);
+    } catch (error) {
+      handleError(error, `Error preparing to ${action} tests.`);
+      return true;
+    }
+
+    const { signal, dispose } = createAbortSignal(token);
+    let response: LegacyUnitTestResponse | undefined;
+
+    try {
+      const axiosResponse = await sourceControlApi.post<string>(
+        ROUTES.runUnitTests(api.ns),
+        {
+          tests: asyncRequest.tests,
+          load: asyncRequest.load ?? [],
+          generateBaseUT: generateBase,
+          console: asyncRequest.console,
+          namespace: api.ns,
+          username: api.config.username ?? "",
+        },
+        {
+          signal,
+          timeout: legacyRequestTimeout,
+          responseType: "text",
+          transformResponse: (data) => data,
+          validateStatus: () => true,
+        }
+      );
+      const { response: parsedResponse } = extractLegacyPayload(axiosResponse.data ?? "");
+      response = parsedResponse;
+
+      if (!response) {
+        const statusMessage =
+          axiosResponse.status && axiosResponse.statusText
+            ? `Executor de testes retornou HTTP ${axiosResponse.status} ${axiosResponse.statusText}`
+            : "Executor de testes retornou um payload inválido.";
+        handleError(new Error(statusMessage), `Erro ao executar testes ${action} tests.`);
+        return true;
+      }
+      if (axiosResponse.status >= 400 && axiosResponse.statusText) {
+        response.console = [
+          `Executor de testes retornou HTTP ${axiosResponse.status} ${axiosResponse.statusText}.`,
+          ...(Array.isArray(response.console) ? response.console : []),
+        ];
+      }
+    } catch (error) {
+      if (!token.isCancellationRequested) {
+        handleError(error, `Erro ao executar testes ${action} tests.`);
+      }
+      return true;
+    } finally {
+      dispose();
+    }
+
+    if (token.isCancellationRequested) {
+      return true;
+    }
+
+    if (!response || !Array.isArray(response.results)) {
+      vscode.window.showErrorMessage("Nenhum resultado foi retornado pelo executor de testes.");
+      return true;
+    }
+    const consoleByMethod = groupConsoleByMethod(Array.isArray(response.console) ? response.console : []);
+
+    const knownStatuses: WeakMap<vscode.TestItem, TestStatus> = new WeakMap();
+    const classes = classesForRoot.get(root) ?? new Map<string, vscode.TestItem>();
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(root.uri);
+    const documentSymbols: Map<string, vscode.DocumentSymbol[]> = new Map();
+    const filesText: Map<string, string> = new Map();
+    const requestedMethodsByClass: Map<string, Set<string> | undefined> = new Map();
+    for (const test of asyncRequest.tests ?? []) {
+      if (Array.isArray(test.methods) && test.methods.length) {
+        requestedMethodsByClass.set(test.class, new Set(test.methods));
+      } else if (!requestedMethodsByClass.has(test.class)) {
+        requestedMethodsByClass.set(test.class, undefined);
+      }
+    }
+    const allMethodResultsForDecorations: {
+      item: vscode.TestItem;
+      result: TestResult;
+      durationText?: string;
+    }[] = [];
+    for (const testResult of response.results) {
+      const clsItem = classes.get(testResult.class);
+      if (!clsItem) {
+        continue;
+      }
+      const durationsByMethod = extractMethodDurations(testResult);
+      const methodResultsToApply: {
+        item: vscode.TestItem;
+        result: TestResult;
+        durationText?: string;
+      }[] = [];
+      if (testResult.method) {
+        const methodItem = findMethodItemByLegacyName(clsItem, testResult.method);
+        if (methodItem) {
+          const normalized = normalizeLegacyMethodName(methodItem.label) ?? methodItem.label;
+          methodResultsToApply.push({
+            item: methodItem,
+            result: {
+              ...testResult,
+              method: methodItem.label,
+              failures: testResult.failures ?? [],
+            },
+            durationText: durationsByMethod.get(normalized),
+          });
+        }
+      } else {
+        const requestedMethods = requestedMethodsByClass.get(testResult.class);
+        const availableMethods: string[] = [];
+        clsItem.children.forEach((child) => availableMethods.push(child.label));
+        const derivedSummaries = deriveMethodResultsFromClassSummary(testResult, requestedMethods, availableMethods);
+        for (const [methodName, summary] of derivedSummaries) {
+          const methodItem = findMethodItemByLegacyName(clsItem, methodName);
+          if (!methodItem || knownStatuses.has(methodItem)) {
+            continue;
+          }
+          const normalized = normalizeLegacyMethodName(methodItem.label) ?? methodItem.label;
+          methodResultsToApply.push({
+            item: methodItem,
+            result: {
+              class: testResult.class,
+              method: methodItem.label,
+              status: summary.status ?? testResult.status,
+              duration: testResult.duration ?? 0,
+              failures: summary.failures ?? [],
+              error: summary.error ?? testResult.error,
+            },
+            durationText: durationsByMethod.get(normalized),
+          });
+        }
+      }
+      for (const { item: methodItem, result: methodResult, durationText } of methodResultsToApply) {
+        knownStatuses.set(methodItem, methodResult.status);
+        const legacyMethodName = `Test${methodItem.label}`;
+        const methodConsoleLines = consoleByMethod.get(legacyMethodName) ?? [];
+
+        for (const line of methodConsoleLines) {
+          const colored = colorizeLegacyConsoleLine(line);
+          testRun.appendOutput(colored + "\r\n", undefined, methodItem);
+        }
+        const statusText =
+          methodResult.status === TestStatus.Passed
+            ? "passed"
+            : methodResult.status === TestStatus.Failed
+              ? "failed"
+              : "skipped";
+
+        const durationInfo =
+          durationText ??
+          (methodResult.duration != null
+            ? `Duration of execution: ${methodResult.duration} ms`
+            : "Duration not available");
+
+        const summaryLine = `  Método: ${methodItem.label} | Status: ${statusText} | ${durationInfo}`;
+        testRun.appendOutput(summaryLine + "\r\n", undefined, methodItem);
+        switch (methodResult.status) {
+          case TestStatus.Failed: {
+            const messages: vscode.TestMessage[] = [];
+
+            if (methodResult.failures?.length) {
+              for (const failure of methodResult.failures) {
+                if (!failure.location) {
+                  continue;
+                }
+
+                const message = new vscode.TestMessage(new vscode.MarkdownString(markdownifyLine(failure.message)));
+
+                if (failure.location) {
+                  if (failure.location.document.toLowerCase().endsWith(".cls") && workspaceFolder) {
+                    let locationUri: vscode.Uri;
+                    if (classes.has(failure.location.document.slice(0, -4))) {
+                      locationUri = classes.get(failure.location.document.slice(0, -4)).uri;
+                    } else {
+                      locationUri = DocumentContentProvider.getUri(
+                        failure.location.document,
+                        workspaceFolder.name,
+                        failure.location.namespace
+                      );
+                    }
+                    if (locationUri) {
+                      if (!documentSymbols.has(locationUri.toString())) {
+                        const newSymbols = await vscode.commands
+                          .executeCommand<vscode.DocumentSymbol[]>("vscode.executeDocumentSymbolProvider", locationUri)
+                          .then(
+                            (r) => r[0]?.children,
+                            () => undefined
+                          );
+                        if (newSymbols != undefined) {
+                          documentSymbols.set(locationUri.toString(), newSymbols);
+                        }
+                      }
+                      const locationSymbols = documentSymbols.get(locationUri.toString());
+                      if (locationSymbols != undefined) {
+                        if (!filesText.has(locationUri.toString())) {
+                          const newFileText = await getFileText(locationUri).catch(() => undefined);
+                          if (newFileText != undefined) {
+                            filesText.set(locationUri.toString(), newFileText);
+                          }
+                        }
+                        const fileText = filesText.get(locationUri.toString());
+                        if (fileText != undefined) {
+                          const locationLine = methodOffsetToLine(
+                            locationSymbols,
+                            fileText,
+                            failure.location.label,
+                            failure.location.offset
+                          );
+                          if (locationLine != undefined) {
+                            message.location = new vscode.Location(
+                              locationUri,
+                              new vscode.Range(locationLine - 1, 0, locationLine, 0)
+                            );
+                          }
+                        }
+                      }
+                    }
+                  } else if (failure.location.label == undefined && workspaceFolder) {
+                    const locationUri = DocumentContentProvider.getUri(
+                      failure.location.document,
+                      workspaceFolder.name,
+                      failure.location.namespace
+                    );
+                    if (locationUri) {
+                      message.location = new vscode.Location(
+                        locationUri,
+                        new vscode.Range(failure.location.offset ?? 0, 0, (failure.location.offset ?? 0) + 1, 0)
+                      );
+                    }
+                  }
+                }
+
+                messages.push(message);
+              }
+            }
+            if (!messages.length) {
+              testRun.failed(methodItem, [], methodResult.duration ?? 0);
+            } else {
+              testRun.failed(methodItem, messages, methodResult.duration ?? 0);
+            }
+
+            break;
+          }
+
+          case TestStatus.Passed:
+            testRun.passed(methodItem, methodResult.duration ?? 0);
+            break;
+
+          default:
+            testRun.skipped(methodItem);
+        }
+      }
+      allMethodResultsForDecorations.push(...methodResultsToApply);
+      if (!testResult.method) {
+        knownStatuses.set(clsItem, testResult.status);
+        switch (testResult.status) {
+          case TestStatus.Failed: {
+            const failedNames = (testResult.failures ?? [])
+              .map((failure) => labelFromFailure(failure))
+              .filter((name): name is string => !!name);
+
+            const uniqueFailedNames = Array.from(new Set(failedNames));
+
+            let text = "Existem métodos de teste com falha.";
+            if (uniqueFailedNames.length) {
+              text += "\n\nMétodos com falha:\n" + uniqueFailedNames.map((n) => `- ${n}`).join("\n");
+            }
+            const message = new vscode.TestMessage(new vscode.MarkdownString(text));
+            testRun.failed(clsItem, [message], testResult.duration ?? 0);
+            break;
+          }
+
+          case TestStatus.Passed:
+            testRun.passed(clsItem, testResult.duration ?? 0);
+            break;
+          default:
+            testRun.skipped(clsItem);
+        }
+      }
+    }
+    applyTestResultDecorations(allMethodResultsForDecorations);
+    uniqueClassItems.forEach((classItem) => {
+      if (!knownStatuses.has(classItem)) {
+        knownStatuses.set(classItem, TestStatus.Skipped);
+        testRun.skipped(classItem);
+      }
+      classItem.children.forEach((methodItem) => {
+        if (!knownStatuses.has(methodItem)) {
+          knownStatuses.set(methodItem, TestStatus.Skipped);
+          testRun.skipped(methodItem);
+        }
+      });
+    });
+  } finally {
+    testRun.end();
+  }
+
+  return true;
 }
 
 /** The `runHandler` function for the `TestRunProfile`s. */
@@ -582,11 +1446,33 @@ async function runHandler(
     return;
   }
 
+  const unitTestConfig = vscode.workspace.getConfiguration("objectscript.unitTest", root.uri);
+  const showOutputSetting = unitTestConfig.get<boolean>("showOutput");
+
   // Ignore console output at the user's request
-  asyncRequest.console = vscode.workspace.getConfiguration("objectscript.unitTest", root.uri).get("showOutput");
+  asyncRequest.console = showOutputSetting;
+
+  const api = new AtelierAPI(root.uri);
+  if (!debug) {
+    await executeLegacyRunner(
+      api,
+      request,
+      testController,
+      root,
+      clsItemsRun,
+      asyncRequest,
+      token,
+      action,
+      showOutputSetting !== false
+    );
+    return;
+  }
+
+  vscode.window.showWarningMessage(
+    "O executor de testes atual não suporta depuração. Alternando para o executor padrão."
+  );
 
   // Send the queue request
-  const api = new AtelierAPI(root.uri);
   const queueResp: Atelier.Response<any> = await api.queueAsync(asyncRequest, true).catch((error) => {
     handleError(error, `Error creating job to ${action} tests.`);
     return undefined;
@@ -960,7 +1846,28 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
           const autoload = vscode.workspace.getConfiguration("objectscript.unitTest.autoload", item.uri);
           const autoloadFolder: string = autoload.get("folder");
           const autoloadEnabled: boolean = autoloadFolder != "" && (autoload.get("xml") || autoload.get("udl"));
-          (await vscode.workspace.fs.readDirectory(item.uri)).forEach((element) => {
+          const workspaceFolder = vscode.workspace.getWorkspaceFolder(item.uri);
+          let workspaceRootItem: vscode.TestItem | undefined;
+          if (workspaceFolder) {
+            for (const [, root] of testController.items) {
+              if (root.uri.toString() === workspaceFolder.uri.toString()) {
+                workspaceRootItem = root;
+                break;
+              }
+            }
+          }
+
+          const entries = await vscode.workspace.fs.readDirectory(item.uri);
+          for (const element of entries) {
+            const childUri = item.uri.with({
+              path: `${item.uri.path}${!item.uri.path.endsWith("/") ? "/" : ""}${element[0]}`,
+            });
+
+            // Aplica o filtro dos roots configurados
+            if (workspaceRootItem && !pathMatchesAnyWorkspaceRoot(workspaceRootItem, childUri)) {
+              continue;
+            }
+
             if (
               (element[1] == vscode.FileType.Directory &&
                 !element[0].startsWith("_") && // %UnitTest.Manager skips subfolders that start with _
@@ -970,7 +1877,7 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
               // This element is a non-autoload directory or a .cls file
               addChildItem(testController, item, element[0]);
             }
-          });
+          }
         } else {
           // Query the server for subpackages and classes
           (await childrenForServerSideFolderItem(item).then((data) => data.result.content)).forEach((child) =>

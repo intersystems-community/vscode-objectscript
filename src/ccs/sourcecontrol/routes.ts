@@ -5,6 +5,7 @@ export const ROUTES = {
   getGlobalDocumentation: () => `/getGlobalDocumentation`,
   resolveDefinition: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/resolveDefinition`,
   createItem: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/createItem`,
+  runUnitTests: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/unitTests/runUnitTests`,
 } as const;
 
 export type RouteKey = keyof typeof ROUTES;

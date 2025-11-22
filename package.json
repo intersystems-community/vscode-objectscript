@@ -1674,14 +1674,14 @@
             "default": true
           },
           "objectscript.unitTest.relativeTestRoots": {
-            "description": "Paths to where client-side test classes are stored. Relative to the workspace folder root.",
+            "description": "Paths to where client-side test classes are stored. Relative to the workspace folder root. Use '*' as a wildcard within a segment to match multiple folders.",
             "type": "array",
             "default": [],
             "scope": "resource",
             "items": {
               "type": "string",
-              "pattern": "^([\\p{L}\\d_. -]+([\\/\\\\][\\p{L}\\d_. -]+)*)?$",
-              "patternErrorMessage": "Each folder name can only contain letters, digits, space, hyphen ('-'), period ('.'), or underscore ('_'), and the full path must neither begin nor end with a slash."
+              "pattern": "^([-\\p{L}\\d_. *]+([\\/\\\\][-\\p{L}\\d_. *]+)*)?$",
+              "patternErrorMessage": "Each folder name can only contain letters, digits, space, hyphen ('-'), period ('.'), underscore ('_'), or an asterisk ('*') wildcard, and the full path must neither begin nor end with a slash."
             }
           },
           "objectscript.unitTest.autoload.folder": {
@@ -1708,6 +1708,13 @@
             "description": "Controls whether unit test console output is shown.",
             "type": "boolean",
             "default": true,
+            "scope": "resource"
+          },
+          "objectscript.unitTest.legacyRequestTimeout": {
+            "description": "Timeout in milliseconds applied to legacy unit test API calls. Set to 0 for no timeout.",
+            "type": "integer",
+            "default": 6000000,
+            "minimum": 0,
             "scope": "resource"
           },
           "objectscript.commentToken": {
