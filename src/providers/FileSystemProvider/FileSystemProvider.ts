@@ -495,6 +495,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       overwrite: boolean;
     }
   ): void | Thenable<void> {
+    const originalUriString = uri.toString();
+    const originalUri = vscode.Uri.parse(originalUriString);
+    this._needsUpdate.delete(originalUriString);
     uri = redirectDotvscodeRoot(uri, new vscode.FileSystemError("Server does not have a /_vscode web application"));
     if (uri.path.startsWith("/.")) {
       throw new vscode.FileSystemError("dot-folders are not supported by server");
@@ -635,13 +638,13 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           // is part of the "write" operation from VS Code's point of view. This is required
           // to prevent concurreny issues when VS Code refreshs its internal representaton of
           // the file system while documents are being compiled.
-          return this.compile(uri, entry, update);
+          return this.compile(originalUri, entry, update);
         } else if (update) {
           // The file's contents may have changed as a result of the save,
           // so make sure VS Code updates the editor tab contents if needed
-          this._needsUpdate.add(uri.toString());
+          this._needsUpdate.add(originalUriString);
         } else if (!created) {
-          this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
+          this._fireSoon({ type: vscode.FileChangeType.Changed, uri: originalUri });
         }
       });
   }
@@ -865,6 +868,9 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
    */
   public async compile(uri: vscode.Uri, file?: File, update?: boolean): Promise<void> {
     if (!uri || uri.scheme != FILESYSTEM_SCHEMA) return;
+    const originalUriString = uri.toString();
+    const originalUri = vscode.Uri.parse(originalUriString);
+    this._needsUpdate.delete(originalUriString);
     uri = redirectDotvscodeRoot(uri, new vscode.FileSystemError("Server does not have a /_vscode web application"));
     const compileList: string[] = [];
     try {
@@ -912,17 +918,36 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           })
           .catch(() => compileErrorMsg(conf))
     );
-    if (update || (file && filesToUpdate.includes(file.fileName))) {
+    if (file && (update || filesToUpdate.includes(file.fileName))) {
       // This file was just written and the write may have changed its contents or the
       // compilation changed its contents. Therefore, we must force VS Code to update it.
-      this._needsUpdate.add(uri.toString());
+      this._needsUpdate.add(originalUriString);
+    }
+    if (filesToUpdate.length) {
+      // Force VS Code to refresh the active editor tab's contents if the file was changed
+      // by compilation and is NOT the file that was saved if this is a post-save compilation
+      const activeDoc = vscode.window.activeTextEditor?.document;
+      if (activeDoc && !activeDoc.isDirty && !activeDoc.isClosed) {
+        const activeDocUriString = activeDoc.uri.toString();
+        if (
+          !(file && activeDocUriString == originalUriString) &&
+          filesToUpdate.some(
+            (f) =>
+              DocumentContentProvider.getUri(f, undefined, undefined, undefined, originalUri)?.toString() ==
+              activeDocUriString
+          )
+        ) {
+          // Force VS Code to refresh the contents in the active editor tab
+          vscode.commands.executeCommand("workbench.action.files.revert");
+        }
+      }
     }
     // Fire file changed events for all files changed by compilation
     this._fireSoon(
       ...filesToUpdate.map((f) => {
         return {
           type: vscode.FileChangeType.Changed,
-          uri: DocumentContentProvider.getUri(f, undefined, undefined, undefined, uri),
+          uri: DocumentContentProvider.getUri(f, undefined, undefined, undefined, originalUri),
         };
       })
     );
@@ -940,7 +965,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       ).map((f: string) => {
         return {
           type: vscode.FileChangeType.Changed,
-          uri: DocumentContentProvider.getUri(f, undefined, undefined, undefined, uri),
+          uri: DocumentContentProvider.getUri(f, undefined, undefined, undefined, originalUri),
         };
       })
     );
