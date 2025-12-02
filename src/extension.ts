@@ -1897,6 +1897,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("showAllClassMembers");
       if (uri instanceof vscode.Uri) showAllClassMembers(uri);
     }),
+    vscode.workspace.onDidSaveTextDocument((d) => {
+      // If the document just saved is a server-side document that needs to be updated in the UI,
+      // then force VS Code to update the document's contents. This is needed if the document has
+      // been changed during a save, for example by adding or changing the Storage definition.
+      if (notIsfs(d.uri)) return;
+      const uriString = d.uri.toString();
+      if (fileSystemProvider.needsUpdate(uriString)) {
+        const activeDoc = vscode.window.activeTextEditor?.document;
+        if (activeDoc && !activeDoc.isDirty && !activeDoc.isClosed && activeDoc.uri.toString() == uriString) {
+          // Force VS Code to refresh the file's contents in the editor tab
+          vscode.commands.executeCommand("workbench.action.files.revert");
+        }
+      }
+    }),
     // These three listeners are needed to keep track of which file events were caused by VS Code
     // to support the "vscodeOnly" option for the objectscript.syncLocalChanges setting.
     // They store the URIs of files that are about to be changed by VS Code.

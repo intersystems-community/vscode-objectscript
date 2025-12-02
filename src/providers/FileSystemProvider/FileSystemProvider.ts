@@ -268,8 +268,27 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   private _bufferedEvents: vscode.FileChangeEvent[] = [];
   private _fireSoonHandle?: NodeJS.Timeout;
 
+  /**
+   * The stringified URIs of all `isfs` documents that may have had
+   * their contents changed during the last time they were saved
+   */
+  private readonly _needsUpdate: Set<string> = new Set();
+
   public constructor() {
     this.onDidChangeFile = this._emitter.event;
+  }
+
+  /**
+   * Check if this `isfs` document stringified URI was changed during
+   * the last time it was saved. This is used to force VS Code to update
+   * the editor tab containing the file.
+   */
+  public needsUpdate(uriString: string): boolean {
+    if (this._needsUpdate.has(uriString)) {
+      this._needsUpdate.delete(uriString);
+      return true;
+    }
+    return false;
   }
 
   // Used by import and compile to make sure we notice its changes
@@ -619,33 +638,12 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           return this.compile(uri, entry, update);
         } else if (update) {
           // The file's contents may have changed as a result of the save,
-          // so make sure we notify VS Code and any watchers of the change
-          this._notifyOfFileChange(uri);
+          // so make sure VS Code updates the editor tab contents if needed
+          this._needsUpdate.add(uri.toString());
         } else if (!created) {
           this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
         }
       });
-  }
-
-  /**
-   * Notify VS Code and any watchers that the contents of `uri` changed.
-   * Use this function instead of firing the file change event directly
-   * when we need to force the VS Code UI to show the change. For example,
-   * if the server changed the document during a save.
-   */
-  private _notifyOfFileChange(uri: vscode.Uri): void {
-    // The file's contents may have changed as a result of the save,
-    // so make sure we notify VS Code and any watchers of the change
-    const uriString = uri.toString();
-    if (vscode.window.activeTextEditor?.document.uri.toString() == uriString) {
-      setTimeout(() => {
-        const activeDoc = vscode.window.activeTextEditor?.document;
-        if (activeDoc && !activeDoc.isDirty && !activeDoc.isClosed && activeDoc.uri.toString() == uriString) {
-          // Force VS Code to refresh the file's contents in the editor UI
-          vscode.commands.executeCommand("workbench.action.files.revert");
-        }
-      }, 75);
-    }
   }
 
   /** Process a Document object that was successfully deleted. */
@@ -917,7 +915,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (update || (file && filesToUpdate.includes(file.fileName))) {
       // This file was just written and the write may have changed its contents or the
       // compilation changed its contents. Therefore, we must force VS Code to update it.
-      this._notifyOfFileChange(uri);
+      this._needsUpdate.add(uri.toString());
     }
     // Fire file changed events for all files changed by compilation
     this._fireSoon(
