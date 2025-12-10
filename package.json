@@ -1503,11 +1503,6 @@
           "type": "boolean",
           "default": false
         },
-        "objectscript.autoAdjustName": {
-          "markdownDescription": "Automatically modify the class name or ROUTINE header of a file in a client-side workspace folder to match the file's path when copying or moving a file. Uses the `#objectscript.export#` settings to determine the new name.",
-          "type": "boolean",
-          "default": false
-        },
         "objectscript.compileOnSave": {
           "description": "Automatically compile an InterSystems file when saved in the editor.",
           "type": "boolean",
