@@ -18,14 +18,7 @@ export class FileDecorationProvider implements vscode.FileDecorationProvider {
 
     // Only provide decorations for files that are open and not untitled
     const doc = vscode.workspace.textDocuments.find((d) => d.uri.toString() == uri.toString());
-    if (
-      doc != undefined &&
-      !doc.isUntitled &&
-      [clsLangId, macLangId, intLangId, cspLangId].includes(doc.languageId) &&
-      vscode.workspace
-        .getConfiguration("objectscript", vscode.workspace.getWorkspaceFolder(uri))
-        .get<boolean>("showGeneratedFileDecorations")
-    ) {
+    if (doc != undefined && !doc.isUntitled && [clsLangId, macLangId, intLangId, cspLangId].includes(doc.languageId)) {
       // Use the file's contents to check if it's generated
       if (doc.languageId == clsLangId) {
         for (let line = 0; line < doc.lineCount; line++) {

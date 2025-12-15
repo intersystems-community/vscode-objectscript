@@ -967,7 +967,6 @@ export async function exportProjectContents(node: ProjectNode | undefined): Prom
 
 export async function compileProjectContents(node: ProjectNode): Promise<any> {
   const { workspaceFolderUri, namespace, label } = node;
-  const conf = vscode.workspace.getConfiguration("objectscript", workspaceFolderUri);
   const api = new AtelierAPI(workspaceFolderUri);
   api.setNamespace(namespace);
   const compileList: string[] = await api
@@ -992,11 +991,9 @@ export async function compileProjectContents(node: ProjectNode): Promise<any> {
         .then((data) => {
           if (data.status && data.status.errors && data.status.errors.length) {
             throw new Error("Compile error");
-          } else if (!conf.get("suppressCompileMessages")) {
-            vscode.window.showInformationMessage("Compilation succeeded.", "Dismiss");
           }
         })
-        .catch(() => compileErrorMsg(conf))
+        .catch(() => compileErrorMsg())
   );
 }
 
