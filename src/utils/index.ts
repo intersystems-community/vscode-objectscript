@@ -1015,8 +1015,7 @@ export async function replaceFile(uri: vscode.Uri, content: string | string[] | 
 }
 
 /** Show the compilation failure error message if required. */
-export function compileErrorMsg(conf: vscode.WorkspaceConfiguration): void {
-  if (conf.get("suppressCompileErrorMessages")) return;
+export function compileErrorMsg(): void {
   vscode.window
     .showErrorMessage(
       "Compilation failed. Check 'ObjectScript' Output channel for details.",

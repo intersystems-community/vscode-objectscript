@@ -911,12 +911,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             const info = compileList.length > 1 ? "" : `${compileList}: `;
             if (data.status && data.status.errors && data.status.errors.length) {
               throw new Error(`${info}Compile error`);
-            } else if (!conf.get("suppressCompileMessages")) {
-              vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
             }
             data.result.content.forEach((f) => filesToUpdate.push(f.name));
           })
-          .catch(() => compileErrorMsg(conf))
+          .catch(() => compileErrorMsg())
     );
     if (file && (update || filesToUpdate.includes(file.fileName))) {
       // This file was just written and the write may have changed its contents or the

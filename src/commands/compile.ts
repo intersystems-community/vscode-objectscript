@@ -283,8 +283,6 @@ export async function compile(docs: (CurrentTextFile | CurrentBinaryFile)[], fla
             const info = docs.length > 1 ? "" : `${docs[0].name}: `;
             if (data.status && data.status.errors && data.status.errors.length) {
               throw new Error(`${info}Compile error`);
-            } else if (!conf.get("suppressCompileMessages")) {
-              vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
             }
             if (wsFolder) {
               // Make sure that we update the content for any
@@ -308,7 +306,7 @@ export async function compile(docs: (CurrentTextFile | CurrentBinaryFile)[], fla
             return docs;
           })
           .catch(() => {
-            compileErrorMsg(conf);
+            compileErrorMsg();
             // Always fetch server changes, even when compile failed or got cancelled
             return docs;
           })
@@ -407,17 +405,13 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
         .then((data) => {
           if (data.status && data.status.errors && data.status.errors.length) {
             throw new Error(`Compiling Namespace: ${api.ns} Error`);
-          } else if (!config("suppressCompileMessages")) {
-            vscode.window.showInformationMessage(`Compiling namespace ${api.ns} succeeded.`, "Dismiss");
           }
         })
         .catch(() => {
-          if (!config("suppressCompileErrorMessages")) {
-            vscode.window.showErrorMessage(
-              `Compiling namespace '${api.ns}' failed. Check the 'ObjectScript' Output channel for details.`,
-              "Dismiss"
-            );
-          }
+          vscode.window.showErrorMessage(
+            `Compiling namespace '${api.ns}' failed. Check the 'ObjectScript' Output channel for details.`,
+            "Dismiss"
+          );
         })
         .then(() => {
           // Always fetch server changes, even when compile failed or got cancelled
@@ -512,11 +506,9 @@ export async function compileExplorerItems(nodes: NodeBase[]): Promise<any> {
           const info = nodes.length > 1 ? "" : `${nodes[0].fullName}: `;
           if (data.status && data.status.errors && data.status.errors.length) {
             throw new Error(`${info}Compile error`);
-          } else if (!conf.get("suppressCompileMessages")) {
-            vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
           }
         })
-        .catch(() => compileErrorMsg(conf))
+        .catch(() => compileErrorMsg())
   );
 }
 
@@ -601,11 +593,9 @@ async function promptForCompile(imported: string[], api: AtelierAPI, isIsfs: boo
                   const info = imported.length > 1 ? "" : `${imported[0]}: `;
                   if (data.status && data.status.errors && data.status.errors.length) {
                     throw new Error(`${info}Compile error`);
-                  } else if (!conf.get("suppressCompileMessages")) {
-                    vscode.window.showInformationMessage(`${info}Compilation succeeded.`, "Dismiss");
                   }
                 })
-                .catch(() => compileErrorMsg(conf))
+                .catch(() => compileErrorMsg())
                 .finally(() => {
                   if (isIsfs) {
                     // Refresh the files explorer to show the new files

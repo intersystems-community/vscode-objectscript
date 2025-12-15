@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { cspApps, currentWorkspaceFolder, notIsfs, stringifyError, uriOfWorkspaceFolder } from "../utils";
+import { cspApps, currentWorkspaceFolder, stringifyError, uriOfWorkspaceFolder } from "../utils";
 import { StudioActions, OtherStudioAction } from "../commands/studio";
-import { config, workspaceState } from "../extension";
+import { workspaceState } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 
 interface NodeOptions {
@@ -272,22 +272,18 @@ export class ClassNode extends NodeBase {
 
   public getTreeItem(): vscode.TreeItem {
     const displayName: string = this.label;
-    const itemUri = getLeafNodeUri(this);
-    const isLocalFile = notIsfs(itemUri);
-    const showServerCopy: boolean = config("explorer.alwaysShowServerCopy", this.workspaceFolder);
     const serverCopyUri = getLeafNodeUri(this, true);
 
     return {
       collapsibleState: vscode.TreeItemCollapsibleState.None,
       command: {
-        arguments: [isLocalFile && !showServerCopy ? itemUri : serverCopyUri, this.options.project, this.fullName],
+        arguments: [serverCopyUri, this.options.project, this.fullName],
         command: "vscode-objectscript.explorer.open",
         title: "Open Class",
       },
-      resourceUri: isLocalFile && !showServerCopy ? itemUri : undefined,
       contextValue: "dataNode:classNode",
       label: `${displayName}`,
-      tooltip: isLocalFile && !showServerCopy ? undefined : this.fullName,
+      tooltip: this.fullName,
     };
   }
 }
@@ -300,22 +296,18 @@ export class CSPFileNode extends NodeBase {
 
   public getTreeItem(): vscode.TreeItem {
     const displayName: string = this.label;
-    const itemUri = getLeafNodeUri(this);
-    const isLocalFile = notIsfs(itemUri);
-    const showServerCopy: boolean = config("explorer.alwaysShowServerCopy", this.workspaceFolder);
     const serverCopyUri = getLeafNodeUri(this, true);
 
     return {
       collapsibleState: vscode.TreeItemCollapsibleState.None,
       command: {
-        arguments: [isLocalFile && !showServerCopy ? itemUri : serverCopyUri, this.options.project, this.fullName],
+        arguments: [serverCopyUri, this.options.project, this.fullName],
         command: "vscode-objectscript.explorer.open",
         title: "Open File",
       },
-      resourceUri: isLocalFile && !showServerCopy ? itemUri : undefined,
       contextValue: CSPFileNode.contextValue,
       label: `${displayName}`,
-      tooltip: isLocalFile && !showServerCopy ? undefined : this.fullName,
+      tooltip: this.fullName,
     };
   }
 }
@@ -349,22 +341,18 @@ export class RoutineNode extends NodeBase {
 
   public getTreeItem(): vscode.TreeItem {
     const displayName: string = this.label;
-    const itemUri = getLeafNodeUri(this);
-    const isLocalFile = notIsfs(itemUri);
-    const showServerCopy: boolean = config("explorer.alwaysShowServerCopy", this.workspaceFolder);
     const serverCopyUri = getLeafNodeUri(this, true);
 
     return {
       collapsibleState: vscode.TreeItemCollapsibleState.None,
       command: {
-        arguments: [isLocalFile && !showServerCopy ? itemUri : serverCopyUri, this.options.project, this.fullName],
+        arguments: [serverCopyUri, this.options.project, this.fullName],
         command: "vscode-objectscript.explorer.open",
         title: "Open Routine",
       },
-      resourceUri: isLocalFile && !showServerCopy ? itemUri : undefined,
       contextValue: "dataNode:routineNode",
       label: `${displayName}`,
-      tooltip: isLocalFile && !showServerCopy ? undefined : this.fullName,
+      tooltip: this.fullName,
     };
   }
 }

@@ -86,7 +86,6 @@ import {
   currentWorkspaceFolder,
   outputChannel,
   portFromDockerCompose,
-  terminalWithDocker,
   notNull,
   currentFile,
   isUnauthenticated,
@@ -403,8 +402,6 @@ export async function checkConnection(
           panel.tooltip = `ERROR - ${errorMessage}`;
           return;
         }
-        const { autoShowTerminal } = config();
-        autoShowTerminal && terminalWithDocker();
         if (dockerPort !== port) {
           workspaceState.update(wsKey + ":host", "localhost");
           workspaceState.update(wsKey + ":port", dockerPort);
@@ -836,9 +833,6 @@ export function sendDebuggerTelemetryEvent(debugType: string): void {
 export function sendLiteTerminalTelemetryEvent(terminalOrigin: string): void {
   reporter?.sendTelemetryEvent("liteTerminalStarted", {
     terminalOrigin,
-    "config.webSocketTerminal.syntaxColoring": String(
-      vscode.workspace.getConfiguration("objectscript.webSocketTerminal").get("syntaxColoring")
-    ),
   });
 }
 
@@ -1117,9 +1111,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         const conf = vscode.workspace.getConfiguration("objectscript");
         const uriString = editor.document.uri.toString();
         await checkConnection(false, editor.document.uri);
-        if (conf.get("autoPreviewXML") && editor.document.uri.path.toLowerCase().endsWith("xml")) {
-          previewXMLAsUDL(editor, true);
-        } else if (
+        if (
           conf.get("openClassContracted") &&
           editor.document.languageId == clsLangId &&
           !openedClasses.includes(uriString)
@@ -1931,12 +1923,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   reporter?.sendTelemetryEvent("extensionActivated", {
     languageServerVersion: languageServerExt?.packageJSON.version,
     serverManagerVersion: smExt?.packageJSON.version,
-    "config.explorer.alwaysShowServerCopy": String(conf.get("explorer.alwaysShowServerCopy")),
-    "config.autoShowTerminal": String(conf.get("autoShowTerminal")),
-    "config.suppressCompileMessages": String(conf.get("suppressCompileMessages")),
-    "config.suppressCompileErrorMessages": String(conf.get("suppressCompileErrorMessages")),
-    "config.autoPreviewXML": String(conf.get("autoPreviewXML")),
-    "config.showGeneratedFileDecorations": String(conf.get("showGeneratedFileDecorations")),
     "config.showProposedApiPrompt": String(conf.get("showProposedApiPrompt")),
     "config.unitTest.enabled": String(conf.get("unitTest.enabled")),
   });
