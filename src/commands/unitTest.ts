@@ -94,9 +94,12 @@ const textDecoder = new TextDecoder();
 const ANSI_RESET = "\u001b[0m";
 const ANSI_RED = "\u001b[31m";
 const ANSI_GREEN = "\u001b[32m";
+const ANSI_YELLOW = "\u001b[33m";
+const ANSI_BOLD = "\u001b[1m";
 
 const LEGACY_FAIL_MARKER = "<<====== FAILED ======>>";
 const LEGACY_PASS_REGEX = /\bpassed\b/i;
+const LEGACY_STATUS_REGEX = /Status:\s*(\w+)/i;
 
 const GLOB_PATTERN = /[*?]/;
 
@@ -200,11 +203,12 @@ function deriveMethodResultsFromClassSummary(
   }
 
   const hasSpecificFailures = Array.from(summaries.values()).some((summary) => summary.status === TestStatus.Failed);
+  const hasAssertionData = Array.isArray(classResult.assertions) && classResult.assertions.length > 0;
   const fallbackMethods = requestedMethods && requestedMethods.size ? Array.from(requestedMethods) : availableMethods;
   const fallbackStatus =
-    classResult.status === TestStatus.Failed && !hasSpecificFailures && !classResult.assertions?.length
+    classResult.status === TestStatus.Failed && !hasSpecificFailures && !hasAssertionData
       ? TestStatus.Failed
-      : (classResult.status ?? TestStatus.Passed);
+      : TestStatus.Passed;
 
   for (const methodName of fallbackMethods) {
     const normalized = normalizeLegacyMethodName(methodName) ?? methodName;
@@ -342,11 +346,20 @@ function colorizeLegacyConsoleLine(line: string): string {
   if (!line) {
     return line;
   }
+  if (line.includes(ANSI_RESET)) {
+    return line;
+  }
   if (line.includes(LEGACY_FAIL_MARKER)) {
-    return `  ${ANSI_RED}${line}${ANSI_RESET}`;
+    return line.replace(LEGACY_FAIL_MARKER, `${ANSI_RED}${LEGACY_FAIL_MARKER}${ANSI_RESET}`);
+  }
+  const statusMatch = line.match(LEGACY_STATUS_REGEX);
+  if (statusMatch?.[1]) {
+    const statusText = statusMatch[1];
+    const coloredStatus = `${LEGACY_PASS_REGEX.test(statusText) ? ANSI_GREEN : ANSI_RED}${statusText}${ANSI_RESET}`;
+    return line.replace(statusText, coloredStatus);
   }
   if (LEGACY_PASS_REGEX.test(line)) {
-    return `  ${ANSI_GREEN}${line}${ANSI_RESET}`;
+    return line.replace(LEGACY_PASS_REGEX, (match) => `${ANSI_GREEN}${match}${ANSI_RESET}`);
   }
   return line;
 }
@@ -359,7 +372,15 @@ function normalizeLegacyMethodName(method?: string): string | undefined {
   if (!trimmed) {
     return undefined;
   }
-  return trimmed.startsWith("Test") ? trimmed.slice(4) : trimmed;
+  let working = trimmed;
+  if (/^ztest/i.test(working)) {
+    working = working.slice(1);
+  }
+  if (/^test/i.test(working)) {
+    working = working.slice(4);
+  }
+  const normalized = working.trim();
+  return normalized ? normalized : undefined;
 }
 
 function parseLegacyLabelFromText(text?: string): string | undefined {
@@ -839,7 +860,7 @@ async function addItemForClassUri(testController: vscode.TestController, uri: vs
 
 function groupConsoleByMethod(lines: string[]): Map<string, string[]> {
   const map = new Map<string, string[]>();
-  const headerRegex = /Método:\s*(\S+)/i;
+  const headerRegex = /Met[óo]do:\s*([^\r\n-]+)/i;
 
   let currentMethodName: string | undefined;
 
@@ -849,7 +870,7 @@ function groupConsoleByMethod(lines: string[]): Map<string, string[]> {
 
     const headerMatch = line.match(headerRegex);
     if (headerMatch) {
-      currentMethodName = headerMatch[1];
+      currentMethodName = headerMatch[1].trim();
       if (!map.has(currentMethodName)) {
         map.set(currentMethodName, []);
       }
@@ -867,6 +888,46 @@ function groupConsoleByMethod(lines: string[]): Map<string, string[]> {
   }
 
   return map;
+}
+
+function groupAssertionsByMethod(classResult: TestResult): Map<string, LegacyAssertion[]> {
+  const map = new Map<string, LegacyAssertion[]>();
+  if (!Array.isArray(classResult.assertions)) {
+    return map;
+  }
+
+  for (const assertion of classResult.assertions) {
+    const label = labelFromAssertion(assertion);
+    const normalized = normalizeLegacyMethodName(label ?? "");
+    if (!normalized) {
+      continue;
+    }
+    const group = map.get(normalized) ?? [];
+    group.push(assertion);
+    map.set(normalized, group);
+  }
+
+  return map;
+}
+
+function formatLegacyAssertions(summaryLine: string, assertions: LegacyAssertion[]): string[] {
+  const lines: string[] = [summaryLine];
+
+  for (const assertion of assertions) {
+    const statusText =
+      assertion.status === TestStatus.Passed
+        ? `${ANSI_GREEN}Passed${ANSI_RESET}`
+        : assertion.status === TestStatus.Skipped
+          ? `${ANSI_YELLOW}Skipped${ANSI_RESET}`
+          : `${ANSI_RED}${LEGACY_FAIL_MARKER}${ANSI_RESET}`;
+
+    const typePrefix = assertion.type ? `${assertion.type}  -  ` : "";
+    lines.push(`    ${typePrefix}${assertion.message}  >> ${statusText}`);
+  }
+
+  lines.push("");
+
+  return lines;
 }
 
 async function promptGenerateLegacyBase(rootUri: vscode.Uri): Promise<boolean | undefined> {
@@ -1016,6 +1077,7 @@ async function executeLegacyRunner(
         continue;
       }
       const durationsByMethod = extractMethodDurations(testResult);
+      const assertionsByMethod = groupAssertionsByMethod(testResult);
       const methodResultsToApply: {
         item: vscode.TestItem;
         result: TestResult;
@@ -1064,11 +1126,8 @@ async function executeLegacyRunner(
         knownStatuses.set(methodItem, methodResult.status);
         const legacyMethodName = `Test${methodItem.label}`;
         const methodConsoleLines = consoleByMethod.get(legacyMethodName) ?? [];
-
-        for (const line of methodConsoleLines) {
-          const colored = colorizeLegacyConsoleLine(line);
-          testRun.appendOutput(colored + "\r\n", undefined, methodItem);
-        }
+        const normalizedMethodName = normalizeLegacyMethodName(methodItem.label) ?? methodItem.label;
+        const methodAssertions = assertionsByMethod.get(normalizedMethodName) ?? [];
         const statusText =
           methodResult.status === TestStatus.Passed
             ? "passed"
@@ -1082,8 +1141,39 @@ async function executeLegacyRunner(
             ? `Duration of execution: ${methodResult.duration} ms`
             : "Duration not available");
 
-        const summaryLine = `  Método: ${methodItem.label} | Status: ${statusText} | ${durationInfo}`;
-        testRun.appendOutput(summaryLine + "\r\n", undefined, methodItem);
+        const statusColor =
+          methodResult.status === TestStatus.Passed
+            ? ANSI_GREEN
+            : methodResult.status === TestStatus.Failed
+              ? ANSI_RED
+              : ANSI_YELLOW;
+
+        const summaryLine = `Método: ${ANSI_BOLD}${methodItem.label}${ANSI_RESET} | Status: ${statusColor}${statusText}${ANSI_RESET} | ${durationInfo}`;
+        const fallbackAssertionLines = formatLegacyAssertions(summaryLine, methodAssertions);
+
+        let linesToOutput: string[];
+        if (methodAssertions.length > 0) {
+          linesToOutput = fallbackAssertionLines;
+        } else if (methodConsoleLines.length > 0) {
+          const consoleAssertions = methodConsoleLines
+            .filter((line) => {
+              const clean = stripAnsiSequences(line);
+              return !/Met[óo]do:/i.test(clean) && !/Fim da execu[cç][aã]o/i.test(clean);
+            })
+            .map((line) => {
+              const clean = line.trimStart();
+              return clean ? `    ${clean}` : clean;
+            });
+
+          linesToOutput = [summaryLine, ...consoleAssertions, ""];
+        } else {
+          linesToOutput = fallbackAssertionLines;
+        }
+
+        for (const line of linesToOutput) {
+          const colored = colorizeLegacyConsoleLine(line);
+          testRun.appendOutput(colored + "\r\n", undefined, methodItem);
+        }
         switch (methodResult.status) {
           case TestStatus.Failed: {
             const messages: vscode.TestMessage[] = [];
