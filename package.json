@@ -1449,11 +1449,6 @@
           "default": false,
           "description": "Controls whether synching a file to the server in a client-side workspace folder will always overwrite the server version, even if it changed since it was last accessed."
         },
-        "objectscript.autoPreviewXML": {
-          "type": "boolean",
-          "default": false,
-          "description": "Automatically preview XML export files in UDL format."
-        },
         "objectscript.format": {
           "type": "object",
           "description": "Formatting settings.",
@@ -1478,16 +1473,6 @@
             }
           }
         },
-        "objectscript.suppressCompileMessages": {
-          "default": true,
-          "type": "boolean",
-          "description": "Suppress popup messages about successful compile."
-        },
-        "objectscript.suppressCompileErrorMessages": {
-          "default": false,
-          "type": "boolean",
-          "description": "Suppress popup messages about errors during compile, but still focus on Output view."
-        },
         "objectscript.debug.debugThisMethod": {
           "type": "boolean",
           "default": true,
@@ -1497,11 +1482,6 @@
           "type": "boolean",
           "default": true,
           "markdownDescription": "Show inline `Copy Invocation` CodeLens action for ClassMethods and Routine Labels."
-        },
-        "objectscript.autoShowTerminal": {
-          "description": "Automatically show terminal when connected to docker-compose.",
-          "type": "boolean",
-          "default": false
         },
         "objectscript.compileOnSave": {
           "description": "Automatically compile an InterSystems file when saved in the editor.",
@@ -1519,11 +1499,6 @@
           "type": "boolean",
           "default": false
         },
-        "objectscript.explorer.alwaysShowServerCopy": {
-          "description": "Always show the server copy of a document opened from the InterSystems Explorer.",
-          "type": "boolean",
-          "default": true
-        },
         "objectscript.projects.webAppFileExtensions": {
           "markdownDescription": "When browsing a virtual workspace folder that has a project query parameter, all files with these extensions will be automatically treated as web application files. Extensions added here will be appended to the default list and should **NOT** include a dot. See the [Settings Reference documentation page](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_settings#GVSCO_settings_objectscript) for a list of extensions included by default.",
           "type": "array",
@@ -1533,16 +1508,6 @@
             "type": "string",
             "pattern": "^[^.]+$"
           }
-        },
-        "objectscript.showGeneratedFileDecorations": {
-          "description": "Controls whether a badge is shown in the file explorer and open editors view for generated files.",
-          "type": "boolean",
-          "default": true
-        },
-        "objectscript.webSocketTerminal.syntaxColoring": {
-          "description": "Enable syntax coloring for command input in the InterSystems Lite Terminal.",
-          "type": "boolean",
-          "default": true
         },
         "objectscript.showProposedApiPrompt": {
           "description": "Controls whether a prompt to enable VS Code proposed APIs is shown when a server-side workspace folder is opened.",
