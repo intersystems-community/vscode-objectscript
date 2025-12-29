@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "3.2.1-SNAPSHOT",
+  "version": "3.4.0-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "InstrumentationKey=9cd75d51-697c-406c-a929-2bcf46e97c64;IngestionEndpoint=https://eastus2-4.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus2.livediagnostics.monitor.azure.com/;ApplicationId=a431c56f-8ccc-4b99-b5e9-fce3763215b1",
   "categories": [
@@ -1815,7 +1815,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
-    "@intersystems-community/intersystems-servermanager": "^3.8.0",
+    "@intersystems-community/intersystems-servermanager": "^3.10.2",
     "@types/istextorbinary": "2.3.1",
     "@types/minimatch": "5.1.2",
     "@types/mocha": "^7.0.2",
@@ -1849,16 +1849,16 @@
   "dependencies": {
     "@vscode/debugadapter": "^1.68.0",
     "@vscode/debugprotocol": "^1.68.0",
-    "@vscode/extension-telemetry": "^1.0.0",
+    "@vscode/extension-telemetry": "^1.2.0",
     "@xmldom/xmldom": "^0.9.8",
-    "axios": "^1.12.0",
+    "axios": "^1.13.2",
     "core-js": "^3.41.0",
-    "iconv-lite": "^0.6.3",
+    "iconv-lite": "^0.7.1",
     "istextorbinary": "^7.0.0",
-    "minimatch": "^10.0.1",
+    "minimatch": "^10.1.1",
     "node-cmd": "^5.0.0",
     "vscode-cache": "^0.3.0",
-    "ws": "^8.18.1"
+    "ws": "^8.18.3"
   },
   "extensionDependencies": [
     "intersystems-community.servermanager"
