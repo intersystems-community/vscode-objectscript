@@ -58,6 +58,14 @@ export function getFileName(
 ): string {
   if (name.includes("/")) {
     // This is a file from a web application
+    if (map) {
+      for (const pattern of Object.keys(map)) {
+        if (new RegExp(`^${pattern}$`).test(name)) {
+          name = name.replace(new RegExp(`^${pattern}$`), map[pattern]);
+          break;
+        }
+      }
+    }
     const nameArr: string[] = name.split("/");
     const cat = addCategory ? getCategory(name, addCategory) : null;
     return [folder, cat, ...nameArr].filter(notNull).join(sep);
