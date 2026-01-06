@@ -732,13 +732,13 @@ function setExplorerContextKeys(): void {
   // this workspace so the "viewsWelcome" messages are shown
   vscode.commands.executeCommand(
     "setContext",
-    "vscode-objectscript.showExplorer",
-    wsFolders.length == 0 || wsFolders.some((wf) => notIsfs(wf.uri))
+    "vscode-objectscript.hideExplorer",
+    !(wsFolders.length == 0 || wsFolders.some((wf) => notIsfs(wf.uri)))
   );
   vscode.commands.executeCommand(
     "setContext",
-    "vscode-objectscript.showProjectsExplorer",
-    wsFolders.length == 0 || wsFolders.some((wf) => filesystemSchemas.includes(wf.uri.scheme))
+    "vscode-objectscript.hideProjectsExplorer",
+    !(wsFolders.length == 0 || wsFolders.some((wf) => filesystemSchemas.includes(wf.uri.scheme)))
   );
 }
 

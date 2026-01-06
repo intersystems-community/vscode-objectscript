@@ -1623,13 +1623,13 @@
           "id": "ObjectScriptExplorer",
           "name": "Explorer",
           "contextualTitle": "InterSystems",
-          "when": "vscode-objectscript.showExplorer"
+          "when": "!vscode-objectscript.hideExplorer"
         },
         {
           "id": "ObjectScriptProjectsExplorer",
           "name": "Projects",
           "contextualTitle": "InterSystems",
-          "when": "vscode-objectscript.showProjectsExplorer"
+          "when": "!vscode-objectscript.hideProjectsExplorer"
         }
       ]
     },
