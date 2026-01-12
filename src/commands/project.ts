@@ -888,6 +888,11 @@ export async function modifyProject(
       await api.actionQuery("UPDATE %Studio.Project SET LastModified = NOW() WHERE Name = ?", [project]).catch(() => {
         // Swallow error because VS Code doesn't care about the timestamp
       });
+      // "Re-open" the project to signal to the source control class that it should reconcile the server version
+      // with the version stored in the source control system. This effectively acts like OnAfterSave().
+      await new StudioActions().fireProjectUserAction(api, project, OtherStudioAction.OpenedDocument).catch(() => {
+        // The modification has already been completed so there's no point in showing this error
+      });
     }
   } catch (error) {
     handleError(error, `Failed to modify project '${project}'.`);
@@ -967,7 +972,6 @@ export async function exportProjectContents(node: ProjectNode | undefined): Prom
 
 export async function compileProjectContents(node: ProjectNode): Promise<any> {
   const { workspaceFolderUri, namespace, label } = node;
-  const conf = vscode.workspace.getConfiguration("objectscript", workspaceFolderUri);
   const api = new AtelierAPI(workspaceFolderUri);
   api.setNamespace(namespace);
   const compileList: string[] = await api
@@ -992,11 +996,9 @@ export async function compileProjectContents(node: ProjectNode): Promise<any> {
         .then((data) => {
           if (data.status && data.status.errors && data.status.errors.length) {
             throw new Error("Compile error");
-          } else if (!conf.get("suppressCompileMessages")) {
-            vscode.window.showInformationMessage("Compilation succeeded.", "Dismiss");
           }
         })
-        .catch(() => compileErrorMsg(conf))
+        .catch(() => compileErrorMsg())
   );
 }
 
@@ -1167,6 +1169,12 @@ export async function modifyProjectMetadata(nodeOrUri: NodeBase | vscode.Uri | u
       newDesc,
       project,
     ]);
+
+    // "Re-open" the project to signal to the source control class that it should reconcile the server version
+    // with the version stored in the source control system. This effectively acts like OnAfterSave().
+    await new StudioActions().fireProjectUserAction(api, project, OtherStudioAction.OpenedDocument).catch(() => {
+      // The modification has already been completed so there's no point in showing this error
+    });
 
     // Refesh the explorer
     projectsExplorerProvider.refresh();

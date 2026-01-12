@@ -32,7 +32,6 @@ const dotIndentLanguages = new Set<string>([macLangId, intLangId]);
 const dotIndentSkipDocuments = new Set<string>();
 
 import * as url from "url";
-import path = require("path");
 import {
   importAndCompile,
   importFolder as importFileOrFolder,
@@ -45,13 +44,7 @@ import {
   importXMLFiles,
 } from "./commands/compile";
 import { deleteExplorerItems } from "./commands/delete";
-import {
-  exportAll,
-  exportCurrentFile,
-  exportDocumentsToXMLFile,
-  exportExplorerItems,
-  getCategory,
-} from "./commands/export";
+import { exportAll, exportCurrentFile, exportDocumentsToXMLFile, exportExplorerItems } from "./commands/export";
 import { serverActions } from "./commands/serverActions";
 import { subclass } from "./commands/subclass";
 import { superclass } from "./commands/superclass";
@@ -90,18 +83,15 @@ import { ObjectScriptDebugAdapterDescriptorFactory } from "./debug/debugAdapterF
 import { ObjectScriptConfigurationProvider } from "./debug/debugConfProvider";
 import { ProjectsExplorerProvider } from "./explorer/projectsExplorer";
 import { ObjectScriptExplorerProvider, registerExplorerOpen } from "./explorer/explorer";
-import { FileSystemProvider, generateFileContent } from "./providers/FileSystemProvider/FileSystemProvider";
+import { FileSystemProvider } from "./providers/FileSystemProvider/FileSystemProvider";
 import { WorkspaceSymbolProvider } from "./providers/WorkspaceSymbolProvider";
 import {
   connectionTarget,
   currentWorkspaceFolder,
   outputChannel,
   portFromDockerCompose,
-  terminalWithDocker,
   notNull,
   currentFile,
-  workspaceFolderOfUri,
-  uriOfWorkspaceFolder,
   isUnauthenticated,
   notIsfs,
   handleError,
@@ -432,8 +422,6 @@ export async function checkConnection(
           panel.tooltip = `ERROR - ${errorMessage}`;
           return;
         }
-        const { autoShowTerminal } = config();
-        autoShowTerminal && terminalWithDocker();
         if (dockerPort !== port) {
           workspaceState.update(wsKey + ":host", "localhost");
           workspaceState.update(wsKey + ":port", dockerPort);
@@ -764,13 +752,13 @@ function setExplorerContextKeys(): void {
   // this workspace so the "viewsWelcome" messages are shown
   vscode.commands.executeCommand(
     "setContext",
-    "vscode-objectscript.showExplorer",
-    wsFolders.length == 0 || wsFolders.some((wf) => notIsfs(wf.uri))
+    "vscode-objectscript.hideExplorer",
+    !(wsFolders.length == 0 || wsFolders.some((wf) => notIsfs(wf.uri)))
   );
   vscode.commands.executeCommand(
     "setContext",
-    "vscode-objectscript.showProjectsExplorer",
-    wsFolders.length == 0 || wsFolders.some((wf) => filesystemSchemas.includes(wf.uri.scheme))
+    "vscode-objectscript.hideProjectsExplorer",
+    !(wsFolders.length == 0 || wsFolders.some((wf) => filesystemSchemas.includes(wf.uri.scheme)))
   );
 }
 
@@ -865,9 +853,6 @@ export function sendDebuggerTelemetryEvent(debugType: string): void {
 export function sendLiteTerminalTelemetryEvent(terminalOrigin: string): void {
   reporter?.sendTelemetryEvent("liteTerminalStarted", {
     terminalOrigin,
-    "config.webSocketTerminal.syntaxColoring": String(
-      vscode.workspace.getConfiguration("objectscript.webSocketTerminal").get("syntaxColoring")
-    ),
   });
 }
 
@@ -1229,9 +1214,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         const conf = vscode.workspace.getConfiguration("objectscript");
         const uriString = editor.document.uri.toString();
         await checkConnection(false, editor.document.uri);
-        if (conf.get("autoPreviewXML") && editor.document.uri.path.toLowerCase().endsWith("xml")) {
-          previewXMLAsUDL(editor, true);
-        } else if (
+        if (
           conf.get("openClassContracted") &&
           editor.document.languageId == clsLangId &&
           !openedClasses.includes(uriString)
@@ -1581,64 +1564,52 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("exportCurrentFile");
       exportCurrentFile();
     }),
-    vscode.workspace.onDidCreateFiles((e: vscode.FileCreateEvent) => {
-      return Promise.all(
-        e.files
-          // Only attempt to adjust the names of classes and routines that are
-          // not server-side files and were not created due to an export
-          .filter((f) => notIsfs(f) && isClassOrRtn(f) && !exportedUris.has(f.toString()))
-          .map(async (uri) => {
-            // Determine the file name
-            const workspace = workspaceFolderOfUri(uri);
-            if (!workspace) {
-              // No workspace folders are open
-              return;
-            }
-            // Need to wait in case file was created using "Save As..."
-            // because in that case the file gets created without
-            // content, and then the content is written in after that
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            const sourceContent = await vscode.workspace.fs.readFile(uri);
-            if (
-              sourceContent.length &&
-              !vscode.workspace.getConfiguration("objectscript").get<boolean>("autoAdjustName")
-            ) {
-              // Don't modify a file with content unless the user opts in
-              return;
-            }
-            const workspacePath = uriOfWorkspaceFolder(workspace).fsPath;
-            const filePathNoWorkspaceArr = uri.fsPath.replace(workspacePath + path.sep, "").split(path.sep);
-            const { folder, addCategory } = config("export", workspace);
-            const expectedFolder = typeof folder === "string" && folder.length ? folder : null;
-            const expectedFolderArr = expectedFolder ? expectedFolder.split(path.sep) : [];
-            if (
-              expectedFolder !== null &&
-              filePathNoWorkspaceArr.slice(0, expectedFolderArr.length).join(path.sep) === expectedFolder
-            ) {
-              filePathNoWorkspaceArr.splice(0, expectedFolderArr.length);
-            }
-            const expectedCat = addCategory ? getCategory(uri.fsPath, addCategory) : null;
-            if (expectedCat !== null && filePathNoWorkspaceArr[0] === expectedCat) {
-              filePathNoWorkspaceArr.shift();
-            }
-            const fileName = filePathNoWorkspaceArr.join(".");
-            // Generate the new content
-            const newContent = generateFileContent(uri, fileName, sourceContent);
-            // Write the new content to the file
-            const wsEdit = new vscode.WorkspaceEdit();
-            wsEdit.replace(
-              uri,
-              new vscode.Range(0, 0, newContent.content.length + 1, 0),
-              newContent.content.join(newContent.eol == vscode.EndOfLine.CRLF ? "\r\n" : "\n"),
+    vscode.workspace.onDidCreateFiles((e: vscode.FileCreateEvent) =>
+      e.files
+        // Attempt to fill in stub content for classes and routines that
+        // are not server-side files and were not created due to an export
+        .filter((f) => notIsfs(f) && isClassOrRtn(f) && !exportedUris.has(f.toString()))
+        .forEach(async (uri) => {
+          // Need to wait in case file was created using "Save As..."
+          // because in that case the file gets created without
+          // content, and then the content is written in after that
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          const sourceContent = await vscode.workspace.fs.readFile(uri);
+          if (sourceContent.length) {
+            // Don't modify a file with content
+            return;
+          }
+          // Generate the new content
+          const fileExt = uri.path.split(".").pop().toLowerCase();
+          const newContent =
+            fileExt == "cls"
+              ? ["Class $1 Extends %RegisteredObject", "{", "// $0", "}", ""]
+              : [
+                  `ROUTINE $1${fileExt == "int" ? " [Type=INT]" : fileExt == "inc" ? " [Type=INC]" : ""}`,
+                  `${fileExt == "int" ? ";" : "#;"} $0`,
+                  "",
+                ];
+          // Make the edit
+          const wsEdit = new vscode.WorkspaceEdit();
+          wsEdit.set(uri, [
+            [
+              vscode.SnippetTextEdit.insert(
+                new vscode.Position(0, 0),
+                // Only use CRLF as the line termination string if we are certain the file is on a Windows file system
+                new vscode.SnippetString(
+                  newContent.join(uri.scheme == "file" && process.platform == "win32" ? "\r\n" : "\n")
+                )
+              ),
               {
-                label: "ObjectScript autoAdjustName",
+                label: `New ObjectScript ${fileExt == "cls" ? "class" : fileExt == "inc" ? "include file" : "routine"}`,
+                iconPath: iscIcon,
                 needsConfirmation: false,
-              }
-            );
-            await vscode.workspace.applyEdit(wsEdit);
-          })
-      );
-    }),
+              },
+            ],
+          ]);
+          vscode.workspace.applyEdit(wsEdit);
+        })
+    ),
     vscode.workspace.onDidCloseTextDocument((doc: vscode.TextDocument) => {
       const uri: string = doc.uri.toString();
       const idx: number = openedClasses.indexOf(uri);
@@ -2039,6 +2010,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("showAllClassMembers");
       if (uri instanceof vscode.Uri) showAllClassMembers(uri);
     }),
+    vscode.workspace.onDidSaveTextDocument((d) => {
+      // If the document just saved is a server-side document that needs to be updated in the UI,
+      // then force VS Code to update the document's contents. This is needed if the document has
+      // been changed during a save, for example by adding or changing the Storage definition.
+      if (notIsfs(d.uri)) return;
+      const uriString = d.uri.toString();
+      if (fileSystemProvider.needsUpdate(uriString)) {
+        const activeDoc = vscode.window.activeTextEditor?.document;
+        if (activeDoc && !activeDoc.isDirty && !activeDoc.isClosed && activeDoc.uri.toString() == uriString) {
+          // Force VS Code to refresh the file's contents in the editor tab
+          vscode.commands.executeCommand("workbench.action.files.revert");
+        }
+      }
+    }),
     // These three listeners are needed to keep track of which file events were caused by VS Code
     // to support the "vscodeOnly" option for the objectscript.syncLocalChanges setting.
     // They store the URIs of files that are about to be changed by VS Code.
@@ -2080,13 +2065,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   reporter?.sendTelemetryEvent("extensionActivated", {
     languageServerVersion: languageServerExt?.packageJSON.version,
     serverManagerVersion: smExt?.packageJSON.version,
-    "config.explorer.alwaysShowServerCopy": String(conf.get("explorer.alwaysShowServerCopy")),
-    "config.autoAdjustName": String(conf.get("autoAdjustName")),
-    "config.autoShowTerminal": String(conf.get("autoShowTerminal")),
-    "config.suppressCompileMessages": String(conf.get("suppressCompileMessages")),
-    "config.suppressCompileErrorMessages": String(conf.get("suppressCompileErrorMessages")),
-    "config.autoPreviewXML": String(conf.get("autoPreviewXML")),
-    "config.showGeneratedFileDecorations": String(conf.get("showGeneratedFileDecorations")),
     "config.showProposedApiPrompt": String(conf.get("showProposedApiPrompt")),
     "config.unitTest.enabled": String(conf.get("unitTest.enabled")),
   });

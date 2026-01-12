@@ -111,7 +111,7 @@ export async function showPlanWebview(args: {
   const planXML: string = await api
     .actionQuery("SELECT %SYSTEM.QUERY_PLAN(?,,,,,?) XML", [
       args.sqlQuery.trimEnd(),
-      `{"selectmode":"${args.selectMode}"${args.imports.length ? `,"packages":"$LFS(\\"${[...new Set(args.imports)].join(",")}\\")"` : ""}${args.includes.length ? `,"includeFiles":"$LFS(\\"${[...new Set(args.includes)].join(",")}\\")"` : ""}}`,
+      `{${!lt(api.config.serverVersion, "2026.1.0") ? '"format":"LINEAR-XML",' : ""}"selectmode":"${args.selectMode}"${args.imports.length ? `,"packages":"$LFS(\\"${[...new Set(args.imports)].join(",")}\\")"` : ""}${args.includes.length ? `,"includeFiles":"$LFS(\\"${[...new Set(args.includes)].join(",")}\\")"` : ""}}`,
     ])
     .then((data) => data?.result?.content[0]?.XML)
     .catch((error) => {
@@ -134,8 +134,8 @@ export async function showPlanWebview(args: {
       switch (planChild.nodeName) {
         case "sql":
           planHTML += '<h3>Statement Text</h3>\n<div class="code-block">\n';
-          for (const line of planChild.textContent.trim().split(/\r?\n/)) {
-            planHTML += `${htmlEncode(line.trim())}\n`;
+          for (const line of args.sqlQuery.trimEnd().split(/\r?\n/)) {
+            planHTML += `${htmlEncode(line.trimEnd())}\n`;
           }
           planHTML += `</div>\n<hr class="vscode-divider">\n`;
           break;
@@ -145,18 +145,15 @@ export async function showPlanWebview(args: {
         case "info":
           planHTML += `<h3 class="info-h">Information</h3>\n${formatTextBlock(planChild.textContent)}<hr class="vscode-divider">\n`;
           break;
-        case "cost":
+        case "cost": {
           planHTML += `<h4>Relative Cost `;
           // The plan might not have a cost
-          planHTML +=
-            planChild.attributes.length &&
-            planChild.attributes.item(0).nodeName == "value" &&
-            +planChild.attributes.item(0).value
-              ? `= ${planChild.attributes.item(0).value}`
-              : "Unavailable";
+          const cost = planChild.attributes.getNamedItem("value")?.value;
+          planHTML += +cost ? `= ${cost}` : "Unavailable";
           planHTML += "</h4>\n";
           capturePlan = true;
           break;
+        }
         case "#text":
           if (capturePlan) {
             planText += planChild.textContent;

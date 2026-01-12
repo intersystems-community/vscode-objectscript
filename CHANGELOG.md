@@ -1,5 +1,17 @@
 # Change Log
 
+## [3.4.0] 29-Dec-2025
+- Enhancements
+  - Insert file stub snippet when creating a new class or routine using client-side editing (#1681)
+  - Remove barely used configuration settings (#1683)
+- Fixes
+  - Prevent users from accidentally opening multiple copies of the same class or routine (#1666)
+  - Fix running unit tests from a root test item (#1669)
+  - Fix automatic refresh of server-side documents after save and compile (#1678)
+  - Fix `Show Plan` for IRIS 2026.1+ (#1679)
+  - Trigger server-side source control `OpenedDocument` UserAction after a project is modified (#1685)
+  - Upgrade dependencies (#1670, #1673, #1682)
+
 ## [3.2.0] 06-Oct-2025
 
 Minimum VS Code version is now 1.104.0.

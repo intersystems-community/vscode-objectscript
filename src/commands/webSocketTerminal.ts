@@ -147,11 +147,6 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     return openParen > 0 || openBrace > 0;
   }
 
-  /** Checks if syntax coloring is enabled */
-  private _syntaxColoringEnabled(): boolean {
-    return vscode.workspace.getConfiguration("objectscript.webSocketTerminal").get("syntaxColoring");
-  }
-
   /**
    * Converts `_input` for use as `<commandline>` by VS Code shell integration sequence `OSC 633 ; E ; <commandline> ST`.
    * See https://code.visualstudio.com/docs/terminal/shell-integration#_vs-code-custom-sequences-osc-633-st
@@ -400,7 +395,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         this._input = inputArr.join("\r\n");
         this._moveCursor(-1);
         this._hideCursorWrite(`\x1b7\x1b[0J${trailingText}\x1b8`);
-        if (this._input != "" && this._state == "prompt" && this._syntaxColoringEnabled()) {
+        if (this._input != "" && this._state == "prompt") {
           // Syntax color input
           this._socket.send(JSON.stringify({ type: "color", input: this._input }));
         }
@@ -419,7 +414,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
             inputArr[inputArr.length - 1].slice(0, this._cursorCol - this._margin) + trailingText;
           this._input = inputArr.join("\r\n");
           this._hideCursorWrite(`\x1b7\x1b[0J${trailingText}\x1b8`);
-          if (this._input != "" && this._state == "prompt" && this._syntaxColoringEnabled()) {
+          if (this._input != "" && this._state == "prompt") {
             // Syntax color input
             this._socket.send(JSON.stringify({ type: "color", input: this._input }));
           }
@@ -457,7 +452,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         this._moveCursor(this._margin - this._cursorCol);
         this._hideCursorWrite(`\x1b[0J${this._input}`);
         this._cursorCol = this._margin + this._input.length;
-        if (this._input != "" && this._syntaxColoringEnabled()) {
+        if (this._input != "") {
           // Syntax color input
           this._socket.send(JSON.stringify({ type: "color", input: this._input }));
         }
@@ -490,7 +485,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         this._moveCursor(this._margin - this._cursorCol);
         this._hideCursorWrite(`\x1b[0J${this._input}`);
         this._cursorCol = this._margin + this._input.length;
-        if (this._input != "" && this._syntaxColoringEnabled()) {
+        if (this._input != "") {
           // Syntax color input
           this._socket.send(JSON.stringify({ type: "color", input: this._input }));
         }
@@ -572,7 +567,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
             this._hideCursorWrite("\x1b[0J");
             inputArr[inputArr.length - 1] = "";
             this._input = inputArr.join("\r\n");
-            if (this._input != "" && this._syntaxColoringEnabled()) {
+            if (this._input != "") {
               // Syntax color input
               this._socket.send(JSON.stringify({ type: "color", input: this._input }));
             }
@@ -704,7 +699,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           this._input = "";
           this._state = "eval";
           this._margin = this._cursorCol = 0;
-        } else if (this._input != "" && this._state == "prompt" && this._syntaxColoringEnabled()) {
+        } else if (this._input != "" && this._state == "prompt") {
           // Syntax color input
           this._socket.send(JSON.stringify({ type: "color", input: this._input }));
         }
@@ -730,7 +725,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           `\r\n${this.multiLinePrompt}`
         )}\x1b8`
       );
-      if (this._state == "prompt" && this._syntaxColoringEnabled()) {
+      if (this._state == "prompt") {
         // Syntax color input
         this._socket.send(JSON.stringify({ type: "color", input: this._input }));
       }

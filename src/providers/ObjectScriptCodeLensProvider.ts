@@ -357,7 +357,11 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
               copyToClipboard &&
               (type == "classmethod" || (type == "query" && displayName[0] != '"'))
             ) {
-              result.push(this.addCopyToClipboard(symbolLine, [`##class(${className}).${displayName}()`]));
+              result.push(
+                this.addCopyToClipboard(symbolLine, [
+                  `##class(${className}).${displayName}${type == "query" ? "Func" : ""}()`,
+                ])
+              );
             }
           }
         }

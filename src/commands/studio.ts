@@ -320,7 +320,8 @@ export class StudioActions {
           this.api
             .actionQuery(query, parameters)
             .then(async (data) => {
-              if (action.save && action.id != "6" && !this.name.endsWith(".PRJ") && this.uri) {
+              const isPrj = this.name.toUpperCase().endsWith(".PRJ");
+              if (action.save && action.id != "6" && !isPrj && this.uri) {
                 // Save the requested documents.
                 // Ignore the save flag if this is a project or bulk import action.
                 const bitString: string = action.save.toString().padStart(3, "0");
@@ -354,14 +355,14 @@ export class StudioActions {
               }
               const actionToProcess: UserAction = data.result.content.pop();
 
-              if (actionToProcess.reload) {
+              if (actionToProcess.reload && !isPrj) {
                 await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
               }
 
               const attemptedEditLabel = getOtherStudioActionLabel(OtherStudioAction.AttemptedEdit);
               if (afterUserAction && actionToProcess.errorText !== "") {
                 if (action.label === attemptedEditLabel) {
-                  if (this.name.toUpperCase().endsWith(".PRJ")) {
+                  if (isPrj) {
                     // Store the "answer" so the caller knows there was an error
                     this.projectEditAnswer = "-1";
                   } else if (this.uri) {
@@ -380,7 +381,7 @@ export class StudioActions {
                     // Only revert if we have a URI
                     await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
                   }
-                  if (this.name.toUpperCase().endsWith(".PRJ")) {
+                  if (isPrj) {
                     // Store the answer. No answer means "allow the edit".
                     this.projectEditAnswer = answer ?? "1";
                   }

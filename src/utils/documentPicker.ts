@@ -427,9 +427,18 @@ export async function pickDocument(api: AtelierAPI, prompt?: string): Promise<st
       quickPick.enabled = false;
       const item = quickPick.selectedItems[0];
       if (!item || item.label.startsWith("$(")) {
-        const doc = item?.fullName ?? quickPick.value.trim();
+        let doc = item?.fullName ?? quickPick.value.trim();
         if (!item) {
           // The document name came from the value text, so validate it first
+          // Normalize the file extension case for classes and routines
+          doc = [".cls", ".mac", ".int", ".inc"].includes(doc.slice(-4).toLowerCase())
+            ? doc.slice(0, -3) + doc.slice(-3).toLowerCase()
+            : doc;
+          // Expand the short form of %Library classes to the long form
+          doc =
+            doc.startsWith("%") && doc.split(".").length == 2 && doc.slice(-4) == ".cls"
+              ? `%Library.${doc.slice(1)}`
+              : doc;
           api
             .headDoc(doc)
             .then(() => resolve(doc))
