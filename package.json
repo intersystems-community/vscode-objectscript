@@ -1439,6 +1439,40 @@
             }
           }
         },
+        "objectscript.import": {
+          "type": "object",
+          "description": "Control what to import from the local folder into the server.",
+          "scope": "resource",
+          "default": {
+            "map": {}
+          },
+          "properties": {
+            "map": {
+              "markdownDescription": "Map file names for importing, with regexp pattern as a key and replacement as a value (e.g. `{  \"\\\/csp\\\/(.*)\": \"\/cspabc\/$1\" }` to map web files root path from /csp/ to /cspabc/ instead).",
+              "type": "object",
+              "examples": [
+                {
+                  "\\/(csp)\\/(.*)": "/cspabc/$1"
+                }
+              ],
+              "patternProperties": {
+                "(.*)": {
+                  "type": "string",
+                  "pattern": "\\$1"
+                }
+              },
+              "properties": {
+                "(.*)": {
+                  "description": "Match everything. Set value to `$1` to leave unchanged",
+                  "type": "string",
+                  "pattern": "\\$1",
+                  "default": "$1"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
         "objectscript.compileFlags": {
           "type": "string",
           "default": "cuk",

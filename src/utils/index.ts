@@ -165,9 +165,11 @@ function otherDocExtsForUri(uri: vscode.Uri): string[] {
 export function getServerDocName(uri: vscode.Uri): string {
   const wsFolder = vscode.workspace.getWorkspaceFolder(uri);
   if (!wsFolder) return;
-  const cspIdx = uri.path.lastIndexOf(cspAppsForUri(uri).find((cspApp) => uri.path.includes(cspApp + "/")));
+  // Convert the URI path according to import mapping
+  const localPath = mapPathForImport(vscode.workspace.asRelativePath(uri));
+  const cspIdx = localPath.lastIndexOf(cspAppsForUri(uri).find((cspApp) => localPath.includes(cspApp + "/")));
   if (cspIdx != -1) {
-    return uri.path.slice(cspIdx);
+    return localPath.slice(cspIdx);
   } else if (uri.path.toLowerCase().endsWith(".dfi")) {
     // Determine the file path relative to the workspace folder path
     const wsPath = wsFolder.uri.path + wsFolder.uri.path.endsWith("/") ? "" : "/";
@@ -199,6 +201,33 @@ export function getServerDocName(uri: vscode.Uri): string {
 }
 
 /**
+ * Map path according to import.map
+ * @param relativePath Relative path to map
+ */
+export function mapPathForImport(relativePath: string): string {
+  const config = vscode.workspace.getConfiguration("objectscript");
+  const map: { [key: string]: string } = config.get("import.map");
+  const exportFolder: string = config.get("export.folder");
+  const exportPath: string = `/${exportFolder}/`;
+
+  const absolutePath = relativePath.charAt(0) === "/" ? relativePath : "/" + relativePath;
+  const exportFolderIndex = absolutePath.indexOf(exportPath);
+
+  let logicalPath: string =
+    exportFolderIndex >= 0 ? "/" + absolutePath.slice(exportFolderIndex + exportPath.length) : absolutePath;
+  if (map) {
+    for (const pattern of Object.keys(map)) {
+      if (new RegExp(`^${pattern}$`).test(logicalPath)) {
+        logicalPath = logicalPath.replace(new RegExp(`^${pattern}$`), map[pattern]);
+        break;
+      }
+    }
+  }
+
+  return logicalPath;
+}
+
+/**
  * Determine if this non-ObjectScript local file is importable.
  * @param uri The file to check.
  */
@@ -207,8 +236,11 @@ export function isImportableLocalFile(uri: vscode.Uri): boolean {
   // if it's in a web application folder or it's a
   // known Studio abstract document type within a workspace folder
   if (!vscode.workspace.getWorkspaceFolder(uri)) return false;
+
+  const localPath = mapPathForImport(vscode.workspace.asRelativePath(uri));
+
   return (
-    cspAppsForUri(uri).some((cspApp) => uri.path.includes(cspApp + "/")) ||
+    cspAppsForUri(uri).some((cspApp) => localPath.includes(cspApp + "/")) ||
     otherDocExtsForUri(uri).includes(uri.path.split(".").pop().toLowerCase())
   );
 }
