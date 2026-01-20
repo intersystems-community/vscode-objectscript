@@ -9,6 +9,7 @@ import { currentFile, notIsfs, openLowCodeEditors, outputChannel } from "../util
 export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
   private readonly _rule: string = "/ui/interop/rule-editor";
   private readonly _dtl: string = "/ui/interop/dtl-editor";
+  private readonly _bpl: string = "/ui/interop/bpl-editor";
 
   private _errorMessage(detail: string) {
     return vscode.window
@@ -51,10 +52,11 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
     // Check that the class exists on the server and is a rule or DTL class
     let webApp: string;
     const queryData = await api.actionQuery(
-      "SELECT $LENGTH(rule.Name) AS Rule, $LENGTH(dtl.Name) AS DTL " +
+      "SELECT $LENGTH(rule.Name) AS Rule, $LENGTH(dtl.Name) AS DTL, $LENGTH(bpl.Name) AS BPL " +
         "FROM %Dictionary.ClassDefinition AS dcd " +
         "LEFT OUTER JOIN %Dictionary.ClassDefinition_SubclassOf('Ens.Rule.Definition') AS rule ON dcd.Name = rule.Name " +
         "LEFT OUTER JOIN %Dictionary.ClassDefinition_SubclassOf('Ens.DataTransformDTL') AS dtl ON dcd.Name = dtl.Name " +
+        "LEFT OUTER JOIN %Dictionary.ClassDefinition_SubclassOf('Ens.BusinessProcessBPL') AS bpl ON dcd.Name = bpl.Name " +
         "WHERE dcd.Name = ?",
       [className]
     );
@@ -70,11 +72,20 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
         );
       }
       webApp = this._dtl;
+    } else if (queryData.result.content[0].BPL) {
+      if (lt(api.config.serverVersion, "2026.1.0")) {
+        return this._errorMessage(
+          "Opening the BPL editor in VS Code requires InterSystems IRIS version 2026.1 or above."
+        );
+      }
+      webApp = this._bpl;
     } else {
-      // Class exists but is not a rule or DTL class
-      return this._errorMessage(`${className} is neither a rule definition class nor a DTL transformation class.`);
+      // Class exists but is not a rule, BPL, or DTL class
+      return this._errorMessage(
+        `${className} is not a rule definition, DTL transformation, or BPL business process class.`
+      );
     }
-    sendLowCodeTelemetryEvent(webApp == this._rule ? "rule" : "dtl", document.uri.scheme);
+    sendLowCodeTelemetryEvent(webApp == this._rule ? "rule" : webApp == this._bpl ? "bpl" : "dtl", document.uri.scheme);
 
     // Add this document to the Set of open low-code editors
     const documentUriString = document.uri.toString();
@@ -104,7 +115,7 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
       <body>
       <div id="content">
         <iframe id="editor" title="Low-Code Editor" src="${targetOrigin}${api.config.pathPrefix}${webApp}/index.html?$NAMESPACE=${api.config.ns.toUpperCase()}&VSCODE=1${!vscode.workspace.fs.isWritableFileSystem(document.uri.scheme) ? "&READONLY=1" : ""}&${
-          webApp == this._rule ? "rule" : "DTL"
+          webApp == this._rule ? "rule" : webApp == this._bpl ? "BP" : "DTL"
         }=${className}" width="100%" height="100%" frameborder="0"></iframe>
       </div>
       <script>
