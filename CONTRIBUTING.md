@@ -1,16 +1,20 @@
 # Contributing to the ObjectScript extension for Visual Studio Code
 
+## Before you start
+
+The extensions in the [official extension pack](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_install) are maintained by the Developer Tools team within InterSystems. We welcome community contributions, but at times may have limited bandwidth for thorough reviews alongside our other work. Before starting work on your pull request, please be aware of the following guidelines:
+
+1. Make sure at least one GitHub issue exists that your pull request will "fix". If no issue exists yet, please create it before starting your work.
+1. If an issue already exists but is assigned to someone else, please message them before starting your work. The other user may have work in preogress.
+1. Feature requests require a detailed spec laid out in the issue before a linked pull request will be reviewed. The spec should be approved by at least one maintainer before starting work on it. This is needed to ensure that the feature is in line with the broader roadmap for the extensions and to avoid contributors wasting their time on somethign that will not be accepted.
+
 ## Contributing a pull request
 
 ### Prerequisites
 
-1. [Node.js](https://nodejs.org/) 18.x
+1. [Node.js](https://nodejs.org/) 22
 1. Windows, macOS, or Linux
 1. [Visual Studio Code](https://code.visualstudio.com/)
-1. The following VS Code extensions:
-    - [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
-    - [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
-    - [EditorConfig for VS Code](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig)
 
 ### Setup
 
@@ -44,9 +48,11 @@ If you want to disable all other extensions when testing in the Extension Develo
 
 ### Pull requests
 
-Work should be done on a unique branch -- not the master branch. Pull requests require the approval of two PMC members, as described in the [Governance document](GOVERNANCE.md). PMC review is often high level, so in addition to that, you should request a review by someone familiar with the technical details of your particular pull request. 
+Work should be done on a unique branch -- not the master branch. Pull requests require the approval of two PMC members, as described in the [Governance document](GOVERNANCE.md). PMC review is often high level, so in addition to that, you should request a review by someone familiar with the technical details of your particular pull request.
 
-We do expect CI to be passing for a pull request before we will consider merging it. CI executed by pull requests will produce a `vsix` file, which can be downloaded and installed manually to test proposed functionality.
+Please run the command `npm run lint-fix` before committing your changes. This will apply consistent styling and ensur that your pull request passes our code quality CI workflow.
+
+We expect CI to be passing for a pull request before we will consider merging it. CI executed by pull requests will produce a `vsix` file, which can be downloaded and installed manually to test proposed functionality.
 
 ## Beta versions
 
