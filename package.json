@@ -1784,7 +1784,7 @@
     "@types/istextorbinary": "2.3.1",
     "@types/minimatch": "5.1.2",
     "@types/mocha": "^7.0.2",
-    "@types/node": "20.17.6",
+    "@types/node": "22.13.14",
     "@types/semver": "7.5.4",
     "@types/vscode": "1.104.0",
     "@types/ws": "8.18.0",
