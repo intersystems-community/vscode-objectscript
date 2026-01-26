@@ -1,3 +1,13 @@
+<p align="center">
+  <img alt="Consistem" src="images/logo-consistem-horizontal.png" width="280" />
+</p>
+
+> **Fork Consistem:** esta extensão é um fork do projeto oficial [`intersystems-community/vscode-objectscript`](https://github.com/intersystems-community/vscode-objectscript).
+>
+> Ele preserva todas as funcionalidades do projeto original e adiciona integrações, ajustes e padrões internos adotados pela Consistem, com foco em atender necessidades específicas do nosso ecossistema de desenvolvimento.
+
+---
+
 [![Known Vulnerabilities](https://snyk.io/test/github/intersystems-community/vscode-objectscript/badge.svg)](https://snyk.io/test/github/intersystems-community/vscode-objectscript)
 ![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/intersystems-community.vscode-objectscript.svg)
 [![](https://img.shields.io/visual-studio-marketplace/i/intersystems-community.vscode-objectscript.svg)](https://marketplace.visualstudio.com/items?itemName=intersystems-community.vscode-objectscript)
