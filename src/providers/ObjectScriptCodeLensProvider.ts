@@ -260,20 +260,16 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
           case "xdata": {
             if (api.active) {
               let cmd: vscode.Command;
-              if (symbol.name == "BPL" && superclasses.includes("Ens.BusinessProcessBPL")) {
-                cmd = {
-                  title: "Open Low-Code Editor in Browser",
-                  command: "vscode-objectscript.openPathInBrowser",
-                  tooltip: "Open low-code editor in an external browser",
-                  arguments: [`/EnsPortal.BPLEditor.zen?BP=${className}.BPL`, document.uri],
-                };
-              } else if (
+              if (
                 (symbol.name == "RuleDefinition" &&
                   superclasses.includes("Ens.Rule.Definition") &&
                   gte(api.config.serverVersion, "2023.1.0")) ||
                 (symbol.name == "DTL" &&
                   superclasses.includes("Ens.DataTransformDTL") &&
-                  gte(api.config.serverVersion, "2025.1.0"))
+                  gte(api.config.serverVersion, "2025.1.0")) ||
+                (symbol.name == "BPL" &&
+                  superclasses.includes("Ens.BusinessProcessBPL") &&
+                  gte(api.config.serverVersion, "2026.1.0"))
               ) {
                 cmd = {
                   title: "Reopen in Low-Code Editor",
