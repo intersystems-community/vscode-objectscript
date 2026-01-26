@@ -1416,7 +1416,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.commands.registerCommand("vscode-objectscript.showRESTDebugWebview", () => {
       sendCommandTelemetryEvent("showRESTDebugWebview");
-      RESTDebugPanel.create(context.extensionUri);
+      RESTDebugPanel.create();
     }),
     vscode.commands.registerCommand("vscode-objectscript.exportCurrentFile", () => {
       sendCommandTelemetryEvent("exportCurrentFile");

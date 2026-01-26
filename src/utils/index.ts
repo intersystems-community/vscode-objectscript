@@ -1040,6 +1040,27 @@ export function isCompilable(name: string): boolean {
   return !(name.includes("/") && !["csp", "csr"].includes(name.split(".").pop().toLowerCase()));
 }
 
+/** CSS that is shared between multiple webviews. Most webview CSS was borrowed from https://github.com/vscode-elements/elements-lite. */
+export const webviewCSS = `
+.vscode-divider {
+  background-color: var(--vscode-widget-border);
+  border: 0;
+  display: block;
+  height: 1px;
+  margin-bottom: 10px;
+  margin-top: 10px;
+}
+div.code-block {
+  background-color: var(--vscode-textCodeBlock-background);
+  border-radius: 5px;
+  font-family: monospace;
+  white-space: pre;
+  padding: 10px;
+  padding-top: initial;
+  overflow-x: scroll;
+}
+`;
+
 class Semaphore {
   /** Queue of tasks waiting to acquire the semaphore */
   private _tasks: (() => void)[] = [];
