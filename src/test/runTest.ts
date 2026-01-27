@@ -27,9 +27,9 @@ async function main() {
 
     // Install dependent extensions
     installExtension("intersystems-community.servermanager");
-    installExtension("intersystems.language-server");
+    installExtension("consistem-sistemas.language-server");
 
-    const launchArgs = ["-n", workspace, "--enable-proposed-api", "intersystems-community.vscode-objectscript"];
+    const launchArgs = ["-n", workspace, "--enable-proposed-api", "consistem-sistemas.vscode-objectscript"];
 
     // Download VS Code, unzip it and run the integration test
     await runTests({ extensionDevelopmentPath, extensionTestsPath, launchArgs });

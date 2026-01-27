@@ -1,5 +1,5 @@
-export const extensionId = "intersystems-community.vscode-objectscript";
-export const lsExtensionId = "intersystems.language-server";
+export const extensionId = "consistem-sistemas.vscode-objectscript";
+export const lsExtensionId = "consistem-sistemas.language-server";
 export const smExtensionId = "intersystems-community.servermanager";
 
 import vscode = require("vscode");

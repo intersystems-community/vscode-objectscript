@@ -1897,7 +1897,7 @@ function configureHandler(): void {
   // Open the settings UI and focus on the "objectscript.unitTest" settings
   vscode.commands.executeCommand(
     "workbench.action.openSettings",
-    "@ext:intersystems-community.vscode-objectscript unitTest"
+    "@ext:consistem-sistemas.vscode-objectscript unitTest"
   );
 }
 

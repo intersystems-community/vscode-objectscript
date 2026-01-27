@@ -1,29 +1,37 @@
 <p align="center">
-  <img alt="Consistem" src="images/logo-consistem-horizontal.png" width="280" />
+  <img alt="Consistem" src="https://raw.githubusercontent.com/consistem/vscode-objectscript/master/images/logo-consistem-horizontal.png" width="280" />
 </p>
 
-> **Fork Consistem:** esta extensão é um fork do projeto oficial [`intersystems-community/vscode-objectscript`](https://github.com/intersystems-community/vscode-objectscript).
->
-> Ele preserva todas as funcionalidades do projeto original e adiciona integrações, ajustes e padrões internos adotados pela Consistem, com foco em atender necessidades específicas do nosso ecossistema de desenvolvimento.
+# Consistem ObjectScript extension for VS Code
 
----
-
+[![](https://img.shields.io/visual-studio-marketplace/v/consistem-sistemas.vscode-objectscript.svg)](https://marketplace.visualstudio.com/items?itemName=consistem-sistemas.vscode-objectscript)
+[![](https://img.shields.io/visual-studio-marketplace/i/consistem-sistemas.vscode-objectscript.svg)](https://marketplace.visualstudio.com/items?itemName=consistem-sistemas.vscode-objectscript)
 [![Known Vulnerabilities](https://snyk.io/test/github/intersystems-community/vscode-objectscript/badge.svg)](https://snyk.io/test/github/intersystems-community/vscode-objectscript)
-![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/intersystems-community.vscode-objectscript.svg)
-[![](https://img.shields.io/visual-studio-marketplace/i/intersystems-community.vscode-objectscript.svg)](https://marketplace.visualstudio.com/items?itemName=intersystems-community.vscode-objectscript)
+[![Consistem](https://img.shields.io/badge/Consistem-Website-brightgreen)](https://consistem.com.br/)
 
 [![](https://img.shields.io/badge/InterSystems-IRIS-blue.svg)](https://www.intersystems.com/products/intersystems-iris/)
-[![](https://img.shields.io/badge/InterSystems-Caché-blue.svg)](https://www.intersystems.com/products/cache/)
+[![](https://img.shields.io/badge/InterSystems-Cach%C3%A9-blue.svg)](https://www.intersystems.com/products/cache/)
 [![](https://img.shields.io/badge/InterSystems-Ensemble-blue.svg)](https://www.intersystems.com/products/ensemble/)
 
-# InterSystems ObjectScript extension for VS Code
+> **Note:** The best way to install and use this extension is by installing the [InterSystems ObjectScript Extension Pack](https://marketplace.visualstudio.com/items?itemName=intersystems-community.objectscript-pack)
+> and following the [documentation here](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO).
 
-> **Note:** The best way to install and use this extension is by installing the [InterSystems ObjectScript Extension Pack](https://marketplace.visualstudio.com/items?itemName=intersystems-community.objectscript-pack) and following the [documentation here](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO).
+## About
 
-[InterSystems&reg;](http://www.intersystems.com) ObjectScript language support for Visual Studio Code, from the [InterSystems Developer Community](https://community.intersystems.com/).
+[InterSystems&reg;](http://www.intersystems.com) ObjectScript language support for Visual Studio Code, based on the [InterSystems Developer Community](https://community.intersystems.com/) extension.
+
+### Consistem fork
+
+This extension is a fork of the official [`intersystems-community/vscode-objectscript`](https://github.com/intersystems-community/vscode-objectscript) project.
+
+Originally maintained by [InterSystems&reg;](http://www.intersystems.com), this fork is maintained by [Consistem&reg;](https://consistem.com.br/).
+
+It preserves all the features of the original project and adds integrations, adjustments, and internal standards adopted by Consistem,
+with a focus on meeting the specific needs of our development ecosystem.
+
+## References
 
 - Documentation on the [InterSystems Documentation site](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO).
-
 - Guidance on [reporting issues](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_reporting).
 
 ## Features
@@ -74,14 +82,14 @@ To unlock these features (optional):
 3. In the argv.json file that opens, add this line (required for both Stable and Insiders versions of VS Code):
 
 ```json
-"enable-proposed-api": ["intersystems-community.vscode-objectscript"]
+"enable-proposed-api": ["consistem-sistemas.vscode-objectscript"]
 ```
 
 4. Exit VS Code and relaunch it.
 5. Verify that the ObjectScript channel of the Output panel reports this:
 
 ```
-intersystems-community.vscode-objectscript version X.Y.Z-beta.1 activating with proposed APIs available.
+consistem-sistemas.vscode-objectscript version X.Y.Z-beta.1 activating with proposed APIs available.
 ```
 
 After a subsequent update of the extension from Marketplace you will only have to download and install the new `vscode-objectscript-X.Y.Z-beta.1` VSIX. None of the other steps above are needed again.

@@ -1,7 +1,7 @@
 {
   "name": "vscode-objectscript",
-  "displayName": "InterSystems ObjectScript",
-  "description": "InterSystems ObjectScript language support for Visual Studio Code",
+  "displayName": "Consistem ObjectScript",
+  "description": "InterSystems ObjectScript language support for Visual Studio Code, with integrations and internal standards adopted by Consistem.",
   "version": "3.4.1-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "InstrumentationKey=9cd75d51-697c-406c-a929-2bcf46e97c64;IngestionEndpoint=https://eastus2-4.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus2.livediagnostics.monitor.azure.com/;ApplicationId=a431c56f-8ccc-4b99-b5e9-fce3763215b1",
@@ -19,11 +19,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/intersystems-community/vscode-objectscript"
+    "url": "https://github.com/consistem/vscode-objectscript"
   },
   "homepage": "https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO",
   "license": "MIT",
-  "publisher": "intersystems-community",
+  "publisher": "consistem-sistemas",
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": true
@@ -1341,7 +1341,7 @@
         "title": "Consistem",
         "type": "object",
         "properties": {
-         "consistem.globalDocumentation.openInFile": {
+          "consistem.globalDocumentation.openInFile": {
             "description": "Open global documentation in a file instead of the Output view.",
             "type": "boolean",
             "default": true
