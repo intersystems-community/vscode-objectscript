@@ -310,19 +310,25 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       .get("syncLocalChanges");
     const sync: boolean =
       api.active && (syncLocalChanges == "all" || (syncLocalChanges == "vscodeOnly" && touchedByVSCode.has(uriString)));
-    touchedByVSCode.delete(uriString);
-    if (isClassOrRtn(uri)) {
-      // Remove the class/routine in the file from the index,
-      // then delete it on the server if required
-      const change = removeDocumentFromIndex(uri, documents, uris);
-      if (sync && change.removed) {
-        debouncedDelete(change.removed);
+    for (const [subUri, _] of uris.entries()) {
+      if (!subUri.startsWith(uriString)) {
+        continue;
       }
-    } else if (sync && isImportableLocalFile(uri)) {
-      // Delete this web application file or Studio abstract document on the server
-      const docName = getServerDocName(uri);
-      if (!docName) return;
-      debouncedDelete(docName);
+      const uri = vscode.Uri.parse(subUri);
+      touchedByVSCode.delete(uri.toString());
+      if (isClassOrRtn(uri)) {
+        // Remove the class/routine in the file from the index,
+        // then delete it on the server if required
+        const change = removeDocumentFromIndex(uri, documents, uris);
+        if (sync && change.removed) {
+          debouncedDelete(change.removed);
+        }
+      } else if (sync && isImportableLocalFile(uri)) {
+        // Delete this web application file or Studio abstract document on the server
+        const docName = getServerDocName(uri);
+        if (!docName) return;
+        debouncedDelete(docName);
+      }
     }
   });
   wsFolderIndex.set(wsFolder.uri.toString(), { watcher, documents, uris });
