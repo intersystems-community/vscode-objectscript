@@ -3,22 +3,6 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch Extension Alone",
-      "type": "extensionHost",
-      "request": "launch",
-      "runtimeExecutable": "${execPath}",
-      "args": [
-        "--disable-extensions",
-        "--extensionDevelopmentPath=${workspaceRoot}"
-      ],
-      "stopOnEntry": false,
-      "sourceMaps": true,
-      "outFiles": [
-        "${workspaceRoot}/dist/**/*.js"
-      ],
-      "preLaunchTask": "npm: webpack"
-    },
-    {
       "name": "Launch Extension",
       "type": "extensionHost",
       "request": "launch",

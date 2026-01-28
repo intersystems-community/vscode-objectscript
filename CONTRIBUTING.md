@@ -44,8 +44,6 @@ Then, open the debug panel by clicking the `Run and Debug` icon on the Activity 
 option from the top menu, and click start. A new window will launch with the title
 `[Extension Development Host]`. Do your testing here.
 
-If you want to disable all other extensions when testing in the Extension Development Host, choose the `Launch Extension Alone` option instead.
-
 ### Pull requests
 
 Work should be done on a unique branch -- not the master branch. Pull requests require the approval of two PMC members, as described in the [Governance document](GOVERNANCE.md). PMC review is often high level, so in addition to that, you should request a review by someone familiar with the technical details of your particular pull request.
