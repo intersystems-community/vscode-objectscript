@@ -314,8 +314,8 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       if (!subUri.startsWith(uriString)) {
         continue;
       }
+      touchedByVSCode.delete(subUri);
       const uri = vscode.Uri.parse(subUri);
-      touchedByVSCode.delete(uri.toString());
       if (isClassOrRtn(uri)) {
         // Remove the class/routine in the file from the index,
         // then delete it on the server if required
