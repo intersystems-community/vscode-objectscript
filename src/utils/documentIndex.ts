@@ -14,6 +14,9 @@ import {
   displayableUri,
   isCompilable,
 } from ".";
+import {
+  uriIsParentOf
+} from "../utils";
 import { isText } from "istextorbinary";
 import { AtelierAPI } from "../api";
 import { compile, importFile } from "../commands/compile";
@@ -310,22 +313,22 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       .get("syncLocalChanges");
     const sync: boolean =
       api.active && (syncLocalChanges == "all" || (syncLocalChanges == "vscodeOnly" && touchedByVSCode.has(uriString)));
-    for (const [subUri, _] of uris.entries()) {
-      if (!subUri.startsWith(uriString)) {
+    for (const subUriString of uris.keys()) {
+      touchedByVSCode.delete(subUriString);
+      const subUri = vscode.Uri.parse(subUriString);
+      if (!uriIsParentOf(uri, subUri)) {
         continue;
       }
-      touchedByVSCode.delete(subUri);
-      const uri = vscode.Uri.parse(subUri);
-      if (isClassOrRtn(uri)) {
+      if (isClassOrRtn(subUri)) {
         // Remove the class/routine in the file from the index,
         // then delete it on the server if required
-        const change = removeDocumentFromIndex(uri, documents, uris);
+        const change = removeDocumentFromIndex(subUri, documents, uris);
         if (sync && change.removed) {
           debouncedDelete(change.removed);
         }
-      } else if (sync && isImportableLocalFile(uri)) {
+      } else if (sync && isImportableLocalFile(subUri)) {
         // Delete this web application file or Studio abstract document on the server
-        const docName = getServerDocName(uri);
+        const docName = getServerDocName(subUri);
         if (!docName) return;
         debouncedDelete(docName);
       }
