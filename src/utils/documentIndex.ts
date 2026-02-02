@@ -14,9 +14,7 @@ import {
   displayableUri,
   isCompilable,
 } from ".";
-import {
-  uriIsParentOf
-} from "../utils";
+import { uriIsParentOf } from "../utils";
 import { isText } from "istextorbinary";
 import { AtelierAPI } from "../api";
 import { compile, importFile } from "../commands/compile";

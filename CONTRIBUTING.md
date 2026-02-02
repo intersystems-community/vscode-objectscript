@@ -15,6 +15,7 @@ The extensions in the [official extension pack](https://docs.intersystems.com/co
 1. [Node.js](https://nodejs.org/) 22
 1. Windows, macOS, or Linux
 1. [Visual Studio Code](https://code.visualstudio.com/)
+1. [Prettier - Code formatter](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) (Optional)
 
 ### Setup
 
