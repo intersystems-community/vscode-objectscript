@@ -178,44 +178,36 @@ export async function exportAll(): Promise<any> {
     }
     const api = new AtelierAPI(wsFolder.uri);
     const { category, generated, filter, exactFilter, mapped } = config("export", wsFolder.name);
-    let filterStr = "";
+    const filters: string[] = [];
     switch (category) {
       case "CLS":
-        filterStr = "Type = 4";
+        filters.push("Type = 4");
         break;
       case "CSP":
-        filterStr = "Type %INLIST $LISTFROMSTRING('5,6')";
+        filters.push("Type %INLIST $LISTFROMSTRING('5,6')");
         break;
       case "OTH":
-        filterStr = "Type NOT %INLIST $LISTFROMSTRING('0,1,2,3,4,5,6,11,12')";
+        filters.push("Type NOT %INLIST $LISTFROMSTRING('0,1,2,3,4,5,6,11,12')");
         break;
       case "RTN":
-        filterStr = "Type %INLIST $LISTFROMSTRING('0,1,2,3,11,12')";
+        filters.push("Type %INLIST $LISTFROMSTRING('0,1,2,3,11,12')");
         break;
     }
-    if (filter !== "" || exactFilter !== "") {
-      if (exactFilter !== "") {
-        if (filterStr !== "") {
-          filterStr += " AND ";
-        }
-        filterStr += `Name LIKE '${exactFilter}'`;
-      } else {
-        if (filterStr !== "") {
-          filterStr += " AND ";
-        }
-        filterStr += `Name LIKE '%${filter}%'`;
-      }
+    if (exactFilter !== "") {
+      filters.push(`Name LIKE '${exactFilter}'`);
+    } else if (filter !== "") {
+      filters.push(`Name LIKE '%${filter}%'`);
     }
     await api
       .actionQuery("SELECT Name FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?,?,?)", [
         "*",
         "1",
         "1",
-        api.config.ns.toLowerCase() === "%sys" ? "1" : "0",
+        api.ns == "%SYS" ? "1" : "0",
         "1",
         "0",
         generated ? "1" : "0",
-        filterStr,
+        filters.join(" AND "),
         "0",
         mapped ? "1" : "0",
       ])
