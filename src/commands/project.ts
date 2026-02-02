@@ -41,7 +41,7 @@ export async function pickProject(api: AtelierAPI, allowCreate = true): Promise<
     let result: string;
     let resolveOnHide = true;
     const quickPick = vscode.window.createQuickPick();
-    quickPick.title = `Select a project in namespace ${api.ns} on server '${api.serverId}', or click '+' to add one.`;
+    quickPick.title = `Select a project in namespace ${api.ns} on server '${api.serverId}'${allowCreate ? ", or click '+' to add one" : ""}.`;
     quickPick.items = projects;
     quickPick.buttons = allowCreate ? [{ iconPath: new vscode.ThemeIcon("add"), tooltip: "Create new project" }] : [];
 
