@@ -114,7 +114,7 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
       </head>
       <body>
       <div id="content">
-        <iframe id="editor" title="Low-Code Editor" src="${targetOrigin}${api.config.pathPrefix}${webApp}/index.html?$NAMESPACE=${api.config.ns.toUpperCase()}&VSCODE=1${!vscode.workspace.fs.isWritableFileSystem(document.uri.scheme) ? "&READONLY=1" : ""}&${
+        <iframe id="editor" title="Low-Code Editor" src="${targetOrigin}${api.config.pathPrefix}${webApp}/index.html?$NAMESPACE=${api.ns}&VSCODE=1${!vscode.workspace.fs.isWritableFileSystem(document.uri.scheme) ? "&READONLY=1" : ""}&${
           webApp == this._rule ? "rule" : webApp == this._bpl ? "BP" : "DTL"
         }=${className}" width="100%" height="100%" frameborder="0"></iframe>
       </div>
