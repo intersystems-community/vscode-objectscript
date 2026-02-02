@@ -193,9 +193,11 @@ export async function exportAll(): Promise<any> {
         filters.push("Type %INLIST $LISTFROMSTRING('0,1,2,3,11,12')");
         break;
     }
-    if (exactFilter !== "") {
+    /** Verify that a filter is non-empty and won't allow SQL injection */
+    const filterIsValid = (f) => typeof f == "string" && /^(?:[^']|'')+$/.test(f);
+    if (filterIsValid(exactFilter)) {
       filters.push(`Name LIKE '${exactFilter}'`);
-    } else if (filter !== "") {
+    } else if (filterIsValid(filter)) {
       filters.push(`Name LIKE '%${filter}%'`);
     }
     await api
