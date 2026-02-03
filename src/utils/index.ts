@@ -229,7 +229,7 @@ export function currentFileFromContent(uri: vscode.Uri, content: string | Buffer
   const fileExt = fileName.split(".").pop().toLowerCase();
   if (
     notIsfs(uri) &&
-    !isClassOrRtn(uri) &&
+    !isClassOrRtn(uri.path) &&
     // This is a non-class or routine local file, so check if we can import it
     !isImportableLocalFile(uri)
   ) {
@@ -292,7 +292,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentTextFile {
   const fileExt = fileName.split(".").pop().toLowerCase();
   if (
     notIsfs(document.uri) &&
-    !isClassOrRtn(document.uri) &&
+    !isClassOrRtn(document.uri.path) &&
     // This is a non-class or routine local file, so check if we can import it
     !isImportableLocalFile(document.uri)
   ) {
@@ -887,10 +887,8 @@ export function base64EncodeContent(content: Buffer): string[] {
 }
 
 /** Returns `true` if `uri` has a class or routine file extension */
-export function isClassOrRtn(uriOrName: vscode.Uri | string): boolean {
-  return ["cls", "mac", "int", "inc"].includes(
-    (uriOrName instanceof vscode.Uri ? uriOrName.path : uriOrName).split(".").pop().toLowerCase()
-  );
+export function isClassOrRtn(uriOrName: string): boolean {
+  return ["cls", "mac", "int", "inc"].includes(uriOrName.split(".").pop().toLowerCase());
 }
 
 interface ConnQPItem extends vscode.QuickPickItem {
