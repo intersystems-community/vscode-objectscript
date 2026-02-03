@@ -360,20 +360,20 @@ async function updateIndexInternal(
   }
   documentUris.push(uri);
   documents.set(file.name, documentUris);
-  const oldDocumentName = uris.get(uriString);
+  const documentName = uris.get(uriString);
   uris.set(uriString, file.name);
-  if (oldDocumentName) {
+  if (documentName) {
     // Remove the outdated reference
-    const oldDocumentUris = documents.get(oldDocumentName);
+    const oldDocumentUris = documents.get(documentName);
     if (!oldDocumentUris) return result;
     const idx = oldDocumentUris.findIndex((f) => f.toString() == uriString);
     if (idx == -1) return result;
     if (documentUris.length > 1) {
       documentUris.splice(idx, 1);
-      documents.set(oldDocumentName, documentUris);
+      documents.set(documentName, documentUris);
     } else {
-      documents.delete(oldDocumentName);
-      result.removed = oldDocumentName;
+      documents.delete(documentName);
+      result.removed = documentName;
     }
   }
   return result;
