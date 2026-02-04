@@ -12,7 +12,7 @@ import {
   outputChannel,
   displayableUri,
   isCompilable,
-  uriStartsWith,
+  uriIsAncestorOf,
 } from ".";
 import { isText } from "istextorbinary";
 import { AtelierAPI } from "../api";
@@ -298,7 +298,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     for (const subUriString of uris.keys()) {
       touchedByVSCode.delete(subUriString);
       const subUri = vscode.Uri.parse(subUriString);
-      if (!uriStartsWith(uri, subUri)) {
+      if (!uriIsAncestorOf(uri, subUri)) {
         continue;
       }
       if (sync) {
