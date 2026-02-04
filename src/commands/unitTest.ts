@@ -8,7 +8,8 @@ import {
   notIsfs,
   displayableUri,
   stripClassMemberNameQuotes,
-  uriIsParentOf,
+  uriIsAncestorOf,
+  uriContains,
 } from "../utils";
 import { fileSpecFromURI, isfsConfig } from "../utils/FileProviderUtil";
 import { AtelierAPI } from "../api";
@@ -62,9 +63,8 @@ const textDecoder = new TextDecoder();
 /** Find the root `TestItem` for `uri` */
 function rootItemForItem(testController: vscode.TestController, uri: vscode.Uri): vscode.TestItem | undefined {
   let rootItem: vscode.TestItem;
-  const uriString = uri.toString();
   for (const [, i] of testController.items) {
-    if (uriIsParentOf(i.uri, uri) || uriString == i.uri.toString()) {
+    if (uriContains(i.uri, uri)) {
       rootItem = i;
       break;
     }
@@ -422,10 +422,9 @@ async function runHandler(
 
     // Add the initial items to the queue to process
     const queue: vscode.TestItem[] = [];
-    const rootUriString = root.uri.toString();
     if (request.include?.length) {
       request.include.forEach((i) => {
-        if (uriIsParentOf(root.uri, i.uri) || i.uri.toString() == rootUriString) {
+        if (uriContains(root.uri, i.uri)) {
           queue.push(i);
         }
       });
@@ -1082,7 +1081,7 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
       // Update root items if needed
       e.removed.forEach((wf) => {
         testController.items.forEach((i) => {
-          if (uriIsParentOf(wf.uri, i.uri)) {
+          if (uriIsAncestorOf(wf.uri, i.uri)) {
             // Remove this TestItem
             classesForRoot.delete(i);
             testController.items.delete(i.id);

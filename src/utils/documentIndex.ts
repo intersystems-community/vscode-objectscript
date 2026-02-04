@@ -12,8 +12,8 @@ import {
   outputChannel,
   displayableUri,
   isCompilable,
+  uriContains,
 } from ".";
-import { uriIsParentOf } from "../utils";
 import { isText } from "istextorbinary";
 import { AtelierAPI } from "../api";
 import { compile, importFile } from "../commands/compile";
@@ -298,7 +298,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     for (const subUriString of uris.keys()) {
       touchedByVSCode.delete(subUriString);
       const subUri = vscode.Uri.parse(subUriString);
-      if (!uriIsParentOf(uri, subUri)) {
+      if (!uriContains(uri, subUri)) {
         continue;
       }
       if (sync) {

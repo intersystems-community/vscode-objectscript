@@ -801,8 +801,8 @@ export function parseClassMemberDefinition(
   };
 }
 
-/** Returns `true` if `uri1` is a parent of `uri2`. */
-export function uriIsParentOf(uri1: vscode.Uri, uri2: vscode.Uri): boolean {
+/** Returns `true` if `uri1` is an ancestor of `uri2`. */
+export function uriIsAncestorOf(uri1: vscode.Uri, uri2: vscode.Uri): boolean {
   uri1 = uri1.with({ path: !uri1.path.endsWith("/") ? `${uri1.path}/` : uri1.path });
   return (
     uri2
@@ -812,6 +812,11 @@ export function uriIsParentOf(uri1: vscode.Uri, uri2: vscode.Uri): boolean {
     uri1.query == uri2.query &&
     uri1.fragment == uri2.fragment
   );
+}
+
+/** Returns `true` if `uri1` is exactly `uri2` or an ancestor of it:  */
+export function uriContains(uri1: vscode.Uri, uri2: vscode.Uri): boolean {
+  return uri1.toString() == uri2.toString() || uriIsAncestorOf(uri1, uri2);
 }
 
 /** Get the text of file `uri`. Works for all file systems and the `objectscript` `DocumentContentProvider`. */
