@@ -809,7 +809,7 @@ export function uriStartsWith(uri1: vscode.Uri, uri2: vscode.Uri): boolean {
     uri1.with({ path: "" }).toString == uri2.with({ path: "" }).toString &&
     // uri2.path "properly" starts with uri1.path.
     uri2.path.startsWith(uri1.path) &&
-    (uri1.path.endsWith("/") || ["", "/"].includes(uri2.path.slice(uri1.path.length, uri1.path.length + 1)))
+    (uri1.path.endsWith("/") || [undefined, "/"].includes(uri2.path.at(uri1.path.length)))
   );
 }
 
