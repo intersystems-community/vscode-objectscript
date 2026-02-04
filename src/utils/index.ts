@@ -804,7 +804,7 @@ export function parseClassMemberDefinition(
 /** Returns `true` if `uri1` is equal to or an ancestor of `uri2`.
  *  Non-path components (e.g., scheme, fragment, and query) must be identical.
  */
-export function uriContains(uri1: vscode.Uri, uri2: vscode.Uri): boolean {
+export function uriStartsWith(uri1: vscode.Uri, uri2: vscode.Uri): boolean {
   return (
     uri1.with({ path: "" }).toString == uri2.with({ path: "" }).toString &&
     // uri2.path "properly" starts with uri1.path.
