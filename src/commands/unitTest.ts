@@ -8,7 +8,6 @@ import {
   notIsfs,
   displayableUri,
   stripClassMemberNameQuotes,
-  uriIsAncestorOf,
   uriContains,
 } from "../utils";
 import { fileSpecFromURI, isfsConfig } from "../utils/FileProviderUtil";
@@ -1081,7 +1080,7 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
       // Update root items if needed
       e.removed.forEach((wf) => {
         testController.items.forEach((i) => {
-          if (uriIsAncestorOf(wf.uri, i.uri)) {
+          if (uriContains(wf.uri, i.uri)) {
             // Remove this TestItem
             classesForRoot.delete(i);
             testController.items.delete(i.id);

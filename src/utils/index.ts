@@ -801,22 +801,15 @@ export function parseClassMemberDefinition(
   };
 }
 
-/** Returns `true` if `uri1` is an ancestor of `uri2`. */
-export function uriIsAncestorOf(uri1: vscode.Uri, uri2: vscode.Uri): boolean {
-  uri1 = uri1.with({ path: !uri1.path.endsWith("/") ? `${uri1.path}/` : uri1.path });
-  return (
-    uri2
-      .with({ query: "", fragment: "" })
-      .toString()
-      .startsWith(uri1.with({ query: "", fragment: "" }).toString()) &&
-    uri1.query == uri2.query &&
-    uri1.fragment == uri2.fragment
-  );
-}
-
-/** Returns `true` if `uri1` is exactly `uri2` or an ancestor of it:  */
+/** Returns `true` if `uri1` is equal to or an ancestor of `uri2`. */
 export function uriContains(uri1: vscode.Uri, uri2: vscode.Uri): boolean {
-  return uri1.toString() == uri2.toString() || uriIsAncestorOf(uri1, uri2);
+  return (
+    // All non-path components are identical.
+    uri1.with({ path: "" }).toString == uri2.with({ path: "" }).toString &&
+    // uri2.path "properly" starts with uri1.path.
+    uri2.path.startsWith(uri1.path) &&
+    (uri1.path.endsWith("/") || ["", "/"].includes(uri2.path.slice(uri1.path.length, uri1.path.length + 1)))
+  );
 }
 
 /** Get the text of file `uri`. Works for all file systems and the `objectscript` `DocumentContentProvider`. */
