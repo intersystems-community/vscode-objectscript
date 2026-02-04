@@ -246,7 +246,7 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
               // Re-throw the error
               throw e;
             });
-          if (isClassOrRtn(file.uri.path) || isImportableLocalFile(file.uri)) {
+          if (isClassOrRtn(file.uri.path)) {
             // Update the document index
             updateIndex(file.uri, content);
           }

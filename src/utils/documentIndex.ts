@@ -213,7 +213,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     // is in the subfolder workspace folder, so the parent watcher can
     // safely ignore the event.
     vscode.workspace.getWorkspaceFolder(uri)?.uri.toString() != wsFolder.uri.toString();
-  async function syncChange(uri: vscode.Uri, created = false): Promise<void> {
+  async function updateIndexAndSyncChange(uri: vscode.Uri, created = false): Promise<void> {
     if (notToSync(uri)) {
       return;
     }
@@ -284,7 +284,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       debouncedDelete(change.removed);
     }
   }
-  function syncDelete(uri: vscode.Uri): void {
+  function updateIndexAndSyncDelete(uri: vscode.Uri): void {
     if (notToSync(uri)) {
       return;
     }
@@ -301,7 +301,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       if (!uriIsParentOf(uri, subUri)) {
         continue;
       }
-      if (sync && (isClassOrRtn(subUri.path) || isImportableLocalFile(subUri))) {
+      if (sync) {
         // Remove the class/routine, web application file, or Studio abstract document from the index,
         // then delete it on the server if required
         const change = removeDocumentFromIndex(subUri, documents, uris);
@@ -311,9 +311,9 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       }
     }
   }
-  watcher.onDidChange((uri) => restRateLimiter.call(() => syncChange(uri)));
-  watcher.onDidCreate((uri) => restRateLimiter.call(() => syncChange(uri, true)));
-  watcher.onDidDelete(syncDelete);
+  watcher.onDidChange((uri) => restRateLimiter.call(() => updateIndexAndSyncChange(uri)));
+  watcher.onDidCreate((uri) => restRateLimiter.call(() => updateIndexAndSyncChange(uri, true)));
+  watcher.onDidDelete(updateIndexAndSyncDelete);
   wsFolderIndex.set(wsFolder.uri.toString(), { watcher, documents, uris });
 }
 
