@@ -200,7 +200,7 @@ export async function exportAll(): Promise<any> {
     } else if (filterIsValid(filter)) {
       filters.push(`Name LIKE '%${filter}%'`);
     }
-    await api
+    const files: { Name: string }[] = await api
       .actionQuery("SELECT Name FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?,?,?)", [
         "*",
         "1",
@@ -213,25 +213,23 @@ export async function exportAll(): Promise<any> {
         "0",
         mapped ? "1" : "0",
       ])
-      .then(async (data) => {
-        let files: vscode.QuickPickItem[] = data.result.content.map((file) => {
-          return { label: file.Name, picked: true };
-        });
-        files = await vscode.window.showQuickPick(files, {
-          canPickMany: true,
-          ignoreFocusOut: true,
-          placeHolder: "Uncheck a file to exclude it. Press 'Escape' to cancel export.",
-          title: "Files to Export",
-        });
-        if (files === undefined) {
-          return;
-        }
-        await exportList(
-          files.map((file) => file.label),
-          wsFolder.name,
-          api.ns
-        );
-      });
+      .then((data) => data.result.content);
+    if (!files?.length) return;
+    let fileItems: vscode.QuickPickItem[] = files.map((file) => {
+      return { label: file.Name, picked: true };
+    });
+    fileItems = await vscode.window.showQuickPick(fileItems, {
+      canPickMany: true,
+      ignoreFocusOut: true,
+      placeHolder: "Uncheck a file to exclude it. Press 'Escape' to cancel export.",
+      title: "Files to Export",
+    });
+    if (!fileItems?.length) return;
+    await exportList(
+      fileItems.map((file) => file.label),
+      wsFolder.name,
+      api.ns
+    );
   } catch (error) {
     handleError(error, "Error executing 'Export Code from Server...' command.");
   }
