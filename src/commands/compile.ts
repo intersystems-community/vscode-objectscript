@@ -26,7 +26,6 @@ import {
   handleError,
   isClassDeployed,
   isClassOrRtn,
-  isImportableLocalFile,
   isCompilable,
   lastUsedLocalUri,
   notIsfs,
