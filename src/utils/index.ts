@@ -170,9 +170,9 @@ export function getServerDocName(uri: vscode.Uri): string {
     return uri.path.slice(cspIdx);
   } else if (uri.path.toLowerCase().endsWith(".dfi")) {
     // Determine the file path relative to the workspace folder path
-    const wsPath = wsFolder.uri.path + wsFolder.uri.path.endsWith("/") ? "" : "/";
+    const wsPath = `${wsFolder.uri.path}${!wsFolder.uri.path.endsWith("/") ? "/" : ""}`;
     const relativeFilePath = uri.path.startsWith(wsPath) ? uri.path.slice(wsPath.length) : "";
-    if (relativeFilePath == "") return;
+    if (relativeFilePath == "") return; // uri isn't in the workspace folder. Should never happen.
     // Check for matching export settings first. If no match, use base name.
     const config = vscode.workspace.getConfiguration("objectscript.export", uri);
     const folder: string = config.get("folder");
