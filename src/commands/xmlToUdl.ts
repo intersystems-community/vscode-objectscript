@@ -157,7 +157,7 @@ export async function extractXMLFileContents(xmlUri?: vscode.Uri): Promise<void>
         canPickMany: true,
         ignoreFocusOut: true,
         title: "Pick the documents to extract",
-        placeHolder: "Files are created using your 'objectscript.export' settings",
+        prompt: "Files are created using your 'objectscript.export' settings",
       }
     );
     if (docsToExtract == undefined || docsToExtract.length == 0) {

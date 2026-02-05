@@ -5,7 +5,6 @@ import {
   RateLimiter,
   currentFileFromContent,
   exportedUris,
-  getServerDocName,
   isClassOrRtn,
   isImportableLocalFile,
   notIsfs,
@@ -13,6 +12,7 @@ import {
   outputChannel,
   displayableUri,
   isCompilable,
+  uriIsAncestorOf,
 } from ".";
 import { isText } from "istextorbinary";
 import { AtelierAPI } from "../api";
@@ -22,9 +22,9 @@ import { sendClientSideSyncTelemetryEvent } from "../extension";
 interface WSFolderIndex {
   /** The `FileSystemWatcher` for this workspace folder */
   watcher: vscode.FileSystemWatcher;
-  /** Map of InterSystems classes and routines in this workspace to their `Uri`s */
+  /** Map of document names (i.e., server-side names) to VSCode URIs */
   documents: Map<string, vscode.Uri[]>;
-  /** Map of stringified `Uri`s to their InterSystems class/routine name */
+  /** Map of VSCode URIs to document names */
   uris: Map<string, string>;
 }
 
@@ -179,8 +179,8 @@ function outputDelete(docName: string, status: string, ts: string): number {
 /** Create index of `wsFolder` and set up a `FileSystemWatcher` to keep the index up to date */
 export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Promise<void> {
   if (!notIsfs(wsFolder.uri)) return;
-  const documents: Map<string, vscode.Uri[]> = new Map();
-  const uris: Map<string, string> = new Map();
+  const documents: WSFolderIndex["documents"] = new Map();
+  const uris: WSFolderIndex["uris"] = new Map();
   // Limit the initial indexing to 250 files at once to avoid EMFILE errors
   const fsRateLimiter = new RateLimiter(250);
   // Limit FileSystemWatcher events that may produce a putDoc()
@@ -189,26 +189,32 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
   // A cache of the last time each file was last changed
   const lastChangeMtimes: Map<string, number> = new Map();
   // Index classes and routines that currently exist
-  vscode.workspace
-    .findFiles(new vscode.RelativePattern(wsFolder, "{**/*.cls,**/*.mac,**/*.int,**/*.inc}"))
-    .then((files) => files.forEach((file) => fsRateLimiter.call(() => updateIndexForDocument(file, documents, uris))));
+  vscode.workspace.findFiles(new vscode.RelativePattern(wsFolder, "{**/*}")).then((files) =>
+    files.forEach((file) =>
+      fsRateLimiter.call(() => {
+        if (isClassOrRtn(file.path) || isImportableLocalFile(file)) {
+          return updateIndexInternal(file, documents, uris, true);
+        }
+      })
+    )
+  );
   // Watch for all file changes
   const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(wsFolder, "**/*"));
   const debouncedCompile = generateCompileFn();
   const debouncedDelete = generateDeleteFn(wsFolder.uri);
-  const updateIndexAndSyncChanges = async (uri: vscode.Uri, created = false): Promise<void> => {
-    if (uri.scheme != wsFolder.uri.scheme) {
-      // We don't care about virtual files that might be
-      // part of the workspace folder, like "git" files
-      return;
-    }
-    if (vscode.workspace.getWorkspaceFolder(uri)?.uri.toString() != wsFolder.uri.toString()) {
-      // This file is not in this workspace folder. This can occur if there
-      // are two workspace folders open where one is a subfolder of the other
-      // and the file being changed is in the subfolder. This event will fire
-      // for both watchers, but VS Code will correctly report that the file
-      // is in the subfolder workspace folder, so the parent watcher can
-      // safely ignore the event.
+  const notToSync = (uri: vscode.Uri) =>
+    // We don't care about virtual files that might be
+    // part of the workspace folder, like "git" files
+    uri.scheme != wsFolder.uri.scheme ||
+    // This file is not in this workspace folder. This can occur if there
+    // are two workspace folders open where one is a subfolder of the other
+    // and the file being changed is in the subfolder. This event will fire
+    // for both watchers, but VS Code will correctly report that the file
+    // is in the subfolder workspace folder, so the parent watcher can
+    // safely ignore the event.
+    vscode.workspace.getWorkspaceFolder(uri)?.uri.toString() != wsFolder.uri.toString();
+  async function updateIndexAndSyncChange(uri: vscode.Uri, created = false): Promise<void> {
+    if (notToSync(uri)) {
       return;
     }
     if (!uri.path.split("/").pop().includes(".")) {
@@ -252,15 +258,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     const vscodeChange = touchedByVSCode.has(uriString);
     const sync = api.active && (syncLocalChanges == "all" || (syncLocalChanges == "vscodeOnly" && vscodeChange));
     touchedByVSCode.delete(uriString);
-    let change: WSFolderIndexChange = {};
-    if (isClassOrRtn(uri)) {
-      change = await updateIndexForDocument(uri, documents, uris);
-    } else if (sync && isImportableLocalFile(uri)) {
-      change.addedOrChanged = await getCurrentFile(uri);
-      if (change.addedOrChanged?.fileName) {
-        sendClientSideSyncTelemetryEvent(change.addedOrChanged.fileName.split(".").pop().toLowerCase());
-      }
-    }
+    const change = await updateIndexInternal(uri, documents, uris, sync);
     if (!sync || (!change.addedOrChanged && !change.removed)) return;
     if (change.addedOrChanged) {
       // Create or update the document on the server
@@ -285,22 +283,9 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       // Delete document on the server
       debouncedDelete(change.removed);
     }
-  };
-  watcher.onDidChange((uri) => restRateLimiter.call(() => updateIndexAndSyncChanges(uri)));
-  watcher.onDidCreate((uri) => restRateLimiter.call(() => updateIndexAndSyncChanges(uri, true)));
-  watcher.onDidDelete((uri) => {
-    if (uri.scheme != wsFolder.uri.scheme) {
-      // We don't care about virtual files that might be
-      // part of the workspace folder, like "git" files
-      return;
-    }
-    if (vscode.workspace.getWorkspaceFolder(uri)?.uri.toString() != wsFolder.uri.toString()) {
-      // This file is not in this workspace folder. This can occur if there
-      // are two workspace folders open where one is a subfolder of the other
-      // and the file being changed is in the subfolder. This event will fire
-      // for both watchers, but VS Code will correctly report that the file
-      // is in the subfolder workspace folder, so the parent watcher can
-      // safely ignore the event.
+  }
+  function updateIndexAndSyncDelete(uri: vscode.Uri): void {
+    if (notToSync(uri)) {
       return;
     }
     const uriString = uri.toString();
@@ -310,21 +295,25 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
       .get("syncLocalChanges");
     const sync: boolean =
       api.active && (syncLocalChanges == "all" || (syncLocalChanges == "vscodeOnly" && touchedByVSCode.has(uriString)));
-    touchedByVSCode.delete(uriString);
-    if (isClassOrRtn(uri)) {
-      // Remove the class/routine in the file from the index,
-      // then delete it on the server if required
-      const change = removeDocumentFromIndex(uri, documents, uris);
-      if (sync && change.removed) {
-        debouncedDelete(change.removed);
+    for (const subUriString of uris.keys()) {
+      touchedByVSCode.delete(subUriString);
+      const subUri = vscode.Uri.parse(subUriString);
+      if (!uriIsAncestorOf(uri, subUri)) {
+        continue;
       }
-    } else if (sync && isImportableLocalFile(uri)) {
-      // Delete this web application file or Studio abstract document on the server
-      const docName = getServerDocName(uri);
-      if (!docName) return;
-      debouncedDelete(docName);
+      if (sync) {
+        // Remove the class/routine, web application file, or Studio abstract document from the index,
+        // then delete it on the server if required
+        const change = removeDocumentFromIndex(subUri, documents, uris);
+        if (change.removed) {
+          debouncedDelete(change.removed);
+        }
+      }
     }
-  });
+  }
+  watcher.onDidChange((uri) => restRateLimiter.call(() => updateIndexAndSyncChange(uri)));
+  watcher.onDidCreate((uri) => restRateLimiter.call(() => updateIndexAndSyncChange(uri, true)));
+  watcher.onDidDelete(updateIndexAndSyncDelete);
   wsFolderIndex.set(wsFolder.uri.toString(), { watcher, documents, uris });
 }
 
@@ -341,46 +330,50 @@ export function removeIndexOfWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): 
  * Update the entries in the index for `uri`. `content` will only be passed if this
  * function is called for a document that was just exported from the server.
  */
-export async function updateIndexForDocument(
+export async function updateIndex(uri: vscode.Uri, content?: string[] | Buffer): Promise<WSFolderIndexChange> {
+  const wsFolder = vscode.workspace.getWorkspaceFolder(uri);
+  if (!wsFolder) return {};
+  const index = wsFolderIndex.get(wsFolder.uri.toString());
+  if (!index) return {};
+  return updateIndexInternal(uri, index.documents, index.uris, true, content);
+}
+
+async function updateIndexInternal(
   uri: vscode.Uri,
-  documents?: Map<string, vscode.Uri[]>,
-  uris?: Map<string, string>,
+  documents: WSFolderIndex["documents"],
+  uris: WSFolderIndex["uris"],
+  sync: boolean,
   content?: string[] | Buffer
 ): Promise<WSFolderIndexChange> {
   const result: WSFolderIndexChange = {};
   const uriString = uri.toString();
-  if (!documents) {
-    const wsFolder = vscode.workspace.getWorkspaceFolder(uri);
-    if (!wsFolder) return result;
-    const index = wsFolderIndex.get(wsFolder.uri.toString());
-    if (!index) return result;
-    documents = index.documents;
-    uris = index.uris;
-  }
-  const documentName = uris.get(uriString);
   const file = await getCurrentFile(uri, true, content);
   if (!file) return result;
   result.addedOrChanged = file;
-  // This file contains an InterSystems document, so add it to the index
-  if (!documentName || (documentName && documentName != file.name)) {
-    const documentUris = documents.get(file.name) ?? [];
-    if (documentUris.some((u) => u.toString() == uriString)) return result;
-    documentUris.push(uri);
-    documents.set(file.name, documentUris);
-    uris.set(uriString, file.name);
-    if (documentName) {
-      // Remove the outdated reference
-      const oldDocumentUris = documents.get(documentName);
-      if (!oldDocumentUris) return result;
-      const idx = oldDocumentUris.findIndex((f) => f.toString() == uriString);
-      if (idx == -1) return result;
-      if (documentUris.length > 1) {
-        documentUris.splice(idx, 1);
-        documents.set(documentName, documentUris);
-      } else {
-        documents.delete(documentName);
-        result.removed = documentName;
-      }
+  if (isImportableLocalFile(uri) && sync) {
+    sendClientSideSyncTelemetryEvent(file.fileName.split(".").pop().toLowerCase());
+  }
+  const documentUris = documents.get(file.name) ?? [];
+  if (documentUris.some((u) => u.toString() == uriString)) {
+    // No need to update the index since this document is already present
+    return result;
+  }
+  documentUris.push(uri);
+  documents.set(file.name, documentUris);
+  const documentName = uris.get(uriString);
+  uris.set(uriString, file.name);
+  if (documentName) {
+    // Remove the outdated reference
+    const oldDocumentUris = documents.get(documentName);
+    if (!oldDocumentUris) return result;
+    const idx = oldDocumentUris.findIndex((f) => f.toString() == uriString);
+    if (idx == -1) return result;
+    if (documentUris.length > 1) {
+      documentUris.splice(idx, 1);
+      documents.set(documentName, documentUris);
+    } else {
+      documents.delete(documentName);
+      result.removed = documentName;
     }
   }
   return result;
@@ -389,19 +382,11 @@ export async function updateIndexForDocument(
 /** Remove the entries in the index for `uri` */
 function removeDocumentFromIndex(
   uri: vscode.Uri,
-  documents?: Map<string, vscode.Uri[]>,
-  uris?: Map<string, string>
+  documents: Map<string, vscode.Uri[]>,
+  uris: Map<string, string>
 ): WSFolderIndexChange {
   const result: WSFolderIndexChange = {};
   const uriString = uri.toString();
-  if (!documents) {
-    const wsFolder = vscode.workspace.getWorkspaceFolder(uri);
-    if (!wsFolder) return result;
-    const index = wsFolderIndex.get(wsFolder.uri.toString());
-    if (!index) return result;
-    documents = index.documents;
-    uris = index.uris;
-  }
   const documentName = uris.get(uriString);
   if (!documentName) return result;
   // Remove it from the index

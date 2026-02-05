@@ -8,6 +8,7 @@ import {
   getWsFolder,
   handleError,
   isClassOrRtn,
+  isImportableLocalFile,
   lastUsedLocalUri,
   notNull,
   outputChannel,
@@ -20,7 +21,7 @@ import {
 } from "../utils";
 import { pickDocuments } from "../utils/documentPicker";
 import { NodeBase } from "../explorer/nodes";
-import { updateIndexForDocument } from "../utils/documentIndex";
+import { updateIndex } from "../utils/documentIndex";
 
 export function getCategory(fileName: string, addCategory: any | boolean): string {
   const fileExt = fileName.split(".").pop().toLowerCase();
@@ -112,9 +113,9 @@ async function exportFile(wsFolderUri: vscode.Uri, namespace: string, name: stri
       // Re-throw the error
       throw e;
     });
-    if (isClassOrRtn(fileUri)) {
+    if (isClassOrRtn(fileUri.path) || isImportableLocalFile(fileUri)) {
       // Update the document index
-      updateIndexForDocument(fileUri, undefined, undefined, content);
+      updateIndex(fileUri, content);
     }
     const ws = workspaceFolderOfUri(fileUri);
     const mtime = Number(new Date(data.result.ts + "Z"));
@@ -221,7 +222,7 @@ export async function exportAll(): Promise<any> {
     fileItems = await vscode.window.showQuickPick(fileItems, {
       canPickMany: true,
       ignoreFocusOut: true,
-      placeHolder: "Uncheck a file to exclude it. Press 'Escape' to cancel export.",
+      prompt: "Uncheck a file to exclude it. Press 'Escape' to cancel export.",
       title: "Files to Export",
     });
     if (!fileItems?.length) return;
@@ -337,7 +338,7 @@ export async function exportDocumentsToXMLFile(): Promise<void> {
     const confirmed = await new Promise<boolean>((resolve) => {
       const quickPick = vscode.window.createQuickPick();
       quickPick.title = `Export the following ${documents.length > 1 ? `${documents.length} documents` : "document"}?`;
-      quickPick.placeholder = "Click any item to confirm, or 'Escape' to cancel";
+      quickPick.prompt = "Click any item to confirm, or 'Escape' to cancel";
       quickPick.ignoreFocusOut = true;
       quickPick.onDidAccept(() => {
         resolve(true);

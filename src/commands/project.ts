@@ -432,14 +432,24 @@ async function pickAdditions(
   return new Promise<string[]>((resolve) => {
     let result: string[] = [];
     const quickPick = vscode.window.createQuickPick<PickAdditionsItem>();
-    quickPick.title = `Select items in namespace '${api.ns.toUpperCase()}' to add to project '${project}'.`;
+    quickPick.title = `Select items in namespace '${api.ns}' to add to project '${project}'.`;
     quickPick.ignoreFocusOut = true;
     quickPick.canSelectMany = true;
     quickPick.keepScrollPosition = true;
     quickPick.matchOnDescription = true;
     quickPick.buttons = [
-      { iconPath: new vscode.ThemeIcon("library"), tooltip: "Show system items" },
-      { iconPath: new vscode.ThemeIcon("server-process"), tooltip: "Show generated items" },
+      {
+        iconPath: new vscode.ThemeIcon("library"),
+        tooltip: "System",
+        location: vscode.QuickInputButtonLocation.Input,
+        toggle: { checked: false },
+      },
+      {
+        iconPath: new vscode.ThemeIcon("server-process"),
+        tooltip: "Generated",
+        location: vscode.QuickInputButtonLocation.Input,
+        toggle: { checked: false },
+      },
     ];
 
     const getCSPRootItems = (): Promise<PickAdditionsItem[]> => {
@@ -553,67 +563,26 @@ async function pickAdditions(
     });
     quickPick.onDidTriggerButton((button) => {
       quickPick.busy = true;
-      if (button.tooltip.charAt(0) == "S") {
-        if (button.tooltip.includes("system")) {
-          // Update the button
-          quickPick.buttons = [
-            { iconPath: new vscode.ThemeIcon("library"), tooltip: "Hide system items" },
-            quickPick.buttons[1],
-          ];
-          // Change value of correct parameter in array
-          sys = "1";
-          if (["RTN", "INC", "OTH"].includes(category)) {
-            parameters[0] = sys;
-          } else if (category != undefined) {
-            parameters[1] = sys;
-          } else {
-            parameters[0] = sys;
-            parameters[4] = sys;
-          }
+      // Change value of correct parameter in array
+      if (button.tooltip == "System") {
+        sys = button.toggle.checked ? "1" : "0";
+        if (["RTN", "INC", "OTH"].includes(category)) {
+          parameters[0] = sys;
+        } else if (category != undefined) {
+          parameters[1] = sys;
         } else {
-          quickPick.buttons = [
-            quickPick.buttons[0],
-            { iconPath: new vscode.ThemeIcon("server-process"), tooltip: "Hide generated items" },
-          ];
-          gen = "1";
-          if (["RTN", "INC", "OTH"].includes(category)) {
-            parameters[1] = gen;
-          } else if (category != undefined) {
-            parameters[2] = gen;
-          } else {
-            parameters[1] = gen;
-            parameters[5] = gen;
-          }
+          parameters[0] = sys;
+          parameters[4] = sys;
         }
       } else {
-        if (button.tooltip.includes("system")) {
-          quickPick.buttons = [
-            { iconPath: new vscode.ThemeIcon("library"), tooltip: "Show system items" },
-            quickPick.buttons[1],
-          ];
-          sys = "0";
-          if (["RTN", "INC", "OTH"].includes(category)) {
-            parameters[0] = sys;
-          } else if (category != undefined) {
-            parameters[1] = sys;
-          } else {
-            parameters[0] = sys;
-            parameters[4] = sys;
-          }
+        gen = button.toggle.checked ? "1" : "0";
+        if (["RTN", "INC", "OTH"].includes(category)) {
+          parameters[1] = gen;
+        } else if (category != undefined) {
+          parameters[2] = gen;
         } else {
-          quickPick.buttons = [
-            quickPick.buttons[0],
-            { iconPath: new vscode.ThemeIcon("server-process"), tooltip: "Show generated items" },
-          ];
-          gen = "0";
-          if (["RTN", "INC", "OTH"].includes(category)) {
-            parameters[1] = gen;
-          } else if (category != undefined) {
-            parameters[2] = gen;
-          } else {
-            parameters[1] = gen;
-            parameters[5] = gen;
-          }
+          parameters[1] = gen;
+          parameters[5] = gen;
         }
       }
       // Refresh the items list
