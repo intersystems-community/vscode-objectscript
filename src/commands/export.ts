@@ -239,7 +239,7 @@ export async function exportAll(): Promise<any> {
       files = await vscode.window.showQuickPick(files, {
         canPickMany: true,
         ignoreFocusOut: true,
-        placeHolder: "Uncheck a file to exclude it. Press 'Escape' to cancel export.",
+        prompt: "Uncheck a file to exclude it. Press 'Escape' to cancel export.",
         title: "Files to Export",
       });
       if (files === undefined) {
@@ -355,7 +355,7 @@ export async function exportDocumentsToXMLFile(): Promise<void> {
     const confirmed = await new Promise<boolean>((resolve) => {
       const quickPick = vscode.window.createQuickPick();
       quickPick.title = `Export the following ${documents.length > 1 ? `${documents.length} documents` : "document"}?`;
-      quickPick.placeholder = "Click any item to confirm, or 'Escape' to cancel";
+      quickPick.prompt = "Click any item to confirm, or 'Escape' to cancel";
       quickPick.ignoreFocusOut = true;
       quickPick.onDidAccept(() => {
         resolve(true);
