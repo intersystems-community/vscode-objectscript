@@ -405,7 +405,7 @@ async function runHandler(
         {
           matchOnDetail: true,
           title: `Cannot ${action} tests from multiple roots at once`,
-          placeHolder: `Pick a root to ${action} tests from`,
+          prompt: `Pick a root to ${action} tests from`,
         }
       );
       if (picked) {
