@@ -38,14 +38,6 @@ import { StudioActions } from "./studio";
 import { NodeBase, PackageNode, RootNode } from "../explorer/nodes";
 import { getUrisForDocument, updateIndexForDocument } from "../utils/documentIndex";
 
-async function compileFlags(): Promise<string> {
-  const defaultFlags = config().compileFlags;
-  return vscode.window.showInputBox({
-    prompt: "Compilation flags",
-    value: defaultFlags,
-  });
-}
-
 /**
  * For files being locally edited, get and return its mtime timestamp from workspace-state cache if present there,
  * else get from server. May update cache.
@@ -95,7 +87,7 @@ export async function importFile(
 ): Promise<any> {
   if (!file) return;
   const api = new AtelierAPI(file.uri);
-  if (!api.active) return;
+  if (!api.active) return Promise.reject();
   if (file.name.split(".").pop().toLowerCase() === "cls" && !skipDeplCheck) {
     if (await isClassDeployed(file.name, api)) {
       vscode.window.showErrorMessage(`Cannot import ${file.name} because it is deployed on the server.`, "Dismiss");
@@ -258,12 +250,11 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
   );
 }
 
-export async function compile(docs: (CurrentTextFile | CurrentBinaryFile)[], flags?: string): Promise<any> {
+export async function compile(docs: (CurrentTextFile | CurrentBinaryFile)[]): Promise<any> {
   docs = docs.filter(notNull);
   if (!docs.length) return;
   const wsFolder = vscode.workspace.getWorkspaceFolder(docs[0].uri);
-  const conf = vscode.workspace.getConfiguration("objectscript", wsFolder || docs[0].uri);
-  flags = flags || conf.get("compileFlags");
+  const flags = vscode.workspace.getConfiguration("objectscript", wsFolder || docs[0].uri).get<string>("compileFlags");
   const api = new AtelierAPI(docs[0].uri);
   const docNames = docs.map((d) => d.name);
   // Determine the line ending to use for other documents affected
@@ -314,67 +305,44 @@ export async function compile(docs: (CurrentTextFile | CurrentBinaryFile)[], fla
     .then(loadChanges);
 }
 
-export async function importAndCompile(
-  askFlags = false,
-  document?: vscode.TextDocument,
-  compileFile = true
-): Promise<any> {
+export async function importAndCompile(document?: vscode.TextDocument): Promise<any> {
   const file = currentFile(document);
   if (!file || filesystemSchemas.includes(file.uri.scheme) || !new AtelierAPI(file.uri).active) {
     // Not for server-side URIs or folders with inactive server connections
     return;
   }
 
-  const defaultFlags = config().compileFlags;
-  const flags = askFlags ? await compileFlags() : defaultFlags;
-  return importFile(file)
-    .catch((error) => {
-      throw error;
-    })
-    .then(() => {
-      if (compileFile && isCompilable(file.name)) compile([file], flags);
-    });
+  return (
+    importFile(file)
+      .then(() => {
+        if (isCompilable(file.name)) compile([file]);
+      })
+      // importFile handles any server errors
+      .catch(() => {})
+  );
 }
 
-export async function compileOnly(askFlags = false, document?: vscode.TextDocument): Promise<any> {
+export async function compileOnly(document?: vscode.TextDocument): Promise<any> {
   document =
     document ||
     (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document
       ? vscode.window.activeTextEditor.document
       : null);
-
-  if (!document) {
-    return;
-  }
-
+  if (!document) return;
   const file = currentFile(document);
-  if (!file) {
-    return;
-  }
-
-  // Do nothing if it is a local file and objectscript.conn.active is false
-  if (notIsfs(file.uri) && !config("conn").active) {
-    return;
-  }
+  if (!file || !new AtelierAPI(file.uri).active) return;
 
   if (document.isDirty) {
     // Don't compile if document is dirty
-    vscode.window.showWarningMessage(
-      "Cannot compile '" + file.name + "' because it has unpersisted changes.",
-      "Dismiss"
-    );
+    vscode.window.showWarningMessage(`Cannot compile '${file.name}' because it has unpersisted changes.`, "Dismiss");
     return;
   }
 
-  const defaultFlags = config().compileFlags;
-  const flags = askFlags ? await compileFlags() : defaultFlags;
-  if (isCompilable(file.name)) {
-    compile([file], flags);
-  }
+  if (isCompilable(file.name)) compile([file]);
 }
 
 // Compiles all files types in the namespace
-export async function namespaceCompile(askFlags = false): Promise<any> {
+export async function namespaceCompile(): Promise<any> {
   const api = new AtelierAPI();
   const fileTypes = ["*.CLS", "*.MAC", "*.INC", "*.BAS"];
   if (!api.active) return;
@@ -387,12 +355,6 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
     // Don't compile without confirmation
     return;
   }
-  const defaultFlags = config().compileFlags;
-  const flags = askFlags ? await compileFlags() : defaultFlags;
-  if (flags === undefined) {
-    // User cancelled
-    return;
-  }
   vscode.window.withProgress(
     {
       cancellable: true,
@@ -401,7 +363,7 @@ export async function namespaceCompile(askFlags = false): Promise<any> {
     },
     (progress, token: vscode.CancellationToken) =>
       api
-        .asyncCompile(fileTypes, token, flags)
+        .asyncCompile(fileTypes, token, vscode.workspace.getConfiguration("objectscript").get<string>("compileFlags"))
         .then((data) => {
           if (data.status && data.status.errors && data.status.errors.length) {
             throw new Error(`Compiling Namespace: ${api.ns} Error`);
