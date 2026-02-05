@@ -165,93 +165,70 @@ export async function exportList(files: string[], workspaceFolder: string, names
 }
 
 export async function exportAll(): Promise<any> {
-  let workspaceFolder: string;
-  const workspaceList = vscode.workspace.workspaceFolders
-    .filter((folder) => !schemas.includes(folder.uri.scheme) && config("conn", folder.name).active)
-    .map((el) => el.name);
-  if (workspaceList.length > 1) {
-    const selection = await vscode.window.showQuickPick(workspaceList, {
-      title: "Pick the workspace folder to export files to.",
-    });
-    if (selection === undefined) {
+  try {
+    const wsFolder = await getWsFolder("Pick a workspace folder to export files to.", true, false, true, true);
+    if (!wsFolder) {
+      if (wsFolder === undefined) {
+        // Strict equality needed because undefined == null
+        vscode.window.showErrorMessage(
+          "'Export Code from Server...' command requires a workspace folder with an active server connection.",
+          "Dismiss"
+        );
+      }
       return;
     }
-    workspaceFolder = selection;
-  } else if (workspaceList.length === 1) {
-    workspaceFolder = workspaceList.pop();
-  } else {
-    vscode.window.showInformationMessage(
-      "There are no folders in the current workspace that code can be exported to.",
-      "Dismiss"
-    );
-    return;
-  }
-  if (!config("conn", workspaceFolder).active) {
-    return;
-  }
-  const api = new AtelierAPI(workspaceFolder);
-  const { category, generated, filter, exactFilter, mapped } = config("export", workspaceFolder);
-  // Replicate the behavior of getDocNames() but use StudioOpenDialog for better performance
-  let filterStr = "";
-  switch (category) {
-    case "CLS":
-      filterStr = "Type = 4";
-      break;
-    case "CSP":
-      filterStr = "Type %INLIST $LISTFROMSTRING('5,6')";
-      break;
-    case "OTH":
-      filterStr = "Type NOT %INLIST $LISTFROMSTRING('0,1,2,3,4,5,6,11,12')";
-      break;
-    case "RTN":
-      filterStr = "Type %INLIST $LISTFROMSTRING('0,1,2,3,11,12')";
-      break;
-  }
-  if (filter !== "" || exactFilter !== "") {
-    if (exactFilter !== "") {
-      if (filterStr !== "") {
-        filterStr += " AND ";
-      }
-      filterStr += `Name LIKE '${exactFilter}'`;
-    } else {
-      if (filterStr !== "") {
-        filterStr += " AND ";
-      }
-      filterStr += `Name LIKE '%${filter}%'`;
+    const api = new AtelierAPI(wsFolder.uri);
+    const { category, generated, filter, exactFilter, mapped } = config("export", wsFolder.name);
+    const filters: string[] = [];
+    switch (category) {
+      case "CLS":
+        filters.push("Type = 4");
+        break;
+      case "CSP":
+        filters.push("Type %INLIST $LISTFROMSTRING('5,6')");
+        break;
+      case "OTH":
+        filters.push("Type NOT %INLIST $LISTFROMSTRING('0,1,2,3,4,5,6,11,12')");
+        break;
+      case "RTN":
+        filters.push("Type %INLIST $LISTFROMSTRING('0,1,2,3,11,12')");
+        break;
     }
-  }
-  return api
-    .actionQuery("SELECT Name FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?,?,?,?)", [
-      "*",
-      "1",
-      "1",
-      api.config.ns.toLowerCase() === "%sys" ? "1" : "0",
-      "1",
-      "0",
-      generated ? "1" : "0",
-      filterStr,
-      "0",
-      mapped ? "1" : "0",
-    ])
-    .then(async (data) => {
-      let files: vscode.QuickPickItem[] = data.result.content.map((file) => {
-        return { label: file.Name, picked: true };
-      });
-      files = await vscode.window.showQuickPick(files, {
-        canPickMany: true,
-        ignoreFocusOut: true,
-        prompt: "Uncheck a file to exclude it. Press 'Escape' to cancel export.",
-        title: "Files to Export",
-      });
-      if (files === undefined) {
-        return;
-      }
-      return exportList(
-        files.map((file) => file.label),
-        workspaceFolder,
-        api.config.ns
+    /** Verify that a filter is non-empty and won't allow SQL injection */
+    const filterIsValid = (f) => typeof f == "string" && /^(?:[^']|'')+$/.test(f);
+    if (filterIsValid(exactFilter)) {
+      filters.push(`Name LIKE '${exactFilter}'`);
+    } else if (filterIsValid(filter)) {
+      filters.push(`Name LIKE '%${filter}%'`);
+    }
+    let files: vscode.QuickPickItem[] = await api
+      .actionQuery("SELECT Name FROM %Library.RoutineMgr_StudioOpenDialog('*',1,1,?,1,0,?,?,0,?)", [
+        api.ns == "%SYS" ? "1" : "0",
+        generated ? "1" : "0",
+        filters.join(" AND "),
+        mapped ? "1" : "0",
+      ])
+      .then((data) =>
+        data.result.content.map((file) => {
+          return { label: file.Name, picked: true };
+        })
       );
+    if (!files?.length) return;
+    files = await vscode.window.showQuickPick(files, {
+      canPickMany: true,
+      ignoreFocusOut: true,
+      prompt: "Uncheck a file to exclude it. Press 'Escape' to cancel export.",
+      title: "Files to Export",
     });
+    if (!files?.length) return;
+    await exportList(
+      files.map((file) => file.label),
+      wsFolder.name,
+      api.ns
+    );
+  } catch (error) {
+    handleError(error, "Error executing 'Export Code from Server...' command.");
+  }
 }
 
 export async function exportExplorerItems(nodes: NodeBase[]): Promise<any> {

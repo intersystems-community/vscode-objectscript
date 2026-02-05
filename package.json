@@ -236,8 +236,12 @@
           "when": "resourceScheme == objectscript && vscode-objectscript.connectActive"
         },
         {
-          "command": "vscode-objectscript.explorer.project.exportProjectContents",
-          "when": "false"
+          "command": "vscode-objectscript.export",
+          "when": "workspaceFolderCount != 0"
+        },
+        {
+          "command": "vscode-objectscript.exportProjectContents",
+          "when": "workspaceFolderCount != 0"
         },
         {
           "command": "vscode-objectscript.explorer.project.compileProjectContents",
@@ -445,11 +449,6 @@
           "command": "vscode-objectscript.deleteProject",
           "when": "view == ObjectScriptProjectsExplorer && viewItem == dataNode:projectNode",
           "group": "5_objectscript_prj@4"
-        },
-        {
-          "command": "vscode-objectscript.explorer.project.exportProjectContents",
-          "when": "view == ObjectScriptProjectsExplorer && viewItem == dataNode:projectNode",
-          "group": "5_objectscript_prj@5"
         },
         {
           "command": "vscode-objectscript.explorer.project.compileProjectContents",
@@ -837,7 +836,7 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.export",
-        "title": "Export Code from Server"
+        "title": "Export Code from Server..."
       },
       {
         "category": "ObjectScript",
@@ -1068,8 +1067,8 @@
       },
       {
         "category": "ObjectScript",
-        "command": "vscode-objectscript.explorer.project.exportProjectContents",
-        "title": "Export Project Contents"
+        "command": "vscode-objectscript.exportProjectContents",
+        "title": "Export Project Contents from Server..."
       },
       {
         "category": "ObjectScript",

@@ -1507,9 +1507,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("deleteProject");
       deleteProject(node);
     }),
-    vscode.commands.registerCommand("vscode-objectscript.explorer.project.exportProjectContents", (node) => {
-      sendCommandTelemetryEvent("explorer.project.exportProjectContents");
-      exportProjectContents(node);
+    vscode.commands.registerCommand("vscode-objectscript.exportProjectContents", () => {
+      sendCommandTelemetryEvent("exportProjectContents");
+      exportProjectContents();
     }),
     vscode.commands.registerCommand("vscode-objectscript.explorer.project.compileProjectContents", (node) => {
       sendCommandTelemetryEvent("explorer.project.compileProjectContents");

@@ -1,9 +1,8 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { config, filesystemSchemas, projectsExplorerProvider, schemas } from "../extension";
-import { compareConns } from "../providers/DocumentContentProvider";
+import { config, filesystemSchemas, projectsExplorerProvider } from "../extension";
 import { isfsDocumentName } from "../providers/FileSystemProvider/FileSystemProvider";
-import { compileErrorMsg, getWsServerConnection, handleError, notIsfs, notNull } from "../utils";
+import { compileErrorMsg, getWsFolder, getWsServerConnection, handleError, notNull } from "../utils";
 import { exportList } from "./export";
 import { OtherStudioAction, StudioActions } from "./studio";
 import { NodeBase, ProjectNode, ProjectRootNode, RoutineNode, CSPFileNode, ClassNode } from "../explorer/nodes";
@@ -14,8 +13,7 @@ export interface ProjectItem {
   Type: string;
 }
 
-export async function pickProject(api: AtelierAPI): Promise<string | undefined> {
-  const ns = api.config.ns.toUpperCase();
+export async function pickProject(api: AtelierAPI, allowCreate = true): Promise<string | undefined> {
   const projects: vscode.QuickPickItem[] = await api
     .actionQuery("SELECT Name, Description FROM %Studio.Project", [])
     .then((data) =>
@@ -23,12 +21,19 @@ export async function pickProject(api: AtelierAPI): Promise<string | undefined> 
         return { label: prj.Name, detail: prj.Description };
       })
     );
-  if (projects.length === 0) {
-    const create = await vscode.window.showQuickPick(["Yes", "No"], {
-      title: `Namespace ${ns} on server '${api.serverId}' contains no projects. Create one?`,
-    });
-    if (create == "Yes") {
-      return createProject(undefined, api);
+  if (projects.length == 0) {
+    if (allowCreate) {
+      const create = await vscode.window.showQuickPick(["Yes", "No"], {
+        title: `Namespace ${api.ns} on server '${api.serverId}' contains no projects. Create one?`,
+      });
+      if (create == "Yes") {
+        return createProject(undefined, api);
+      }
+    } else {
+      vscode.window.showInformationMessage(
+        `Namespace ${api.ns} on server '${api.serverId}' contains no projects.`,
+        "Dismiss"
+      );
     }
     return;
   }
@@ -36,9 +41,9 @@ export async function pickProject(api: AtelierAPI): Promise<string | undefined> 
     let result: string;
     let resolveOnHide = true;
     const quickPick = vscode.window.createQuickPick();
-    quickPick.title = `Select a project in namespace ${ns} on server '${api.serverId}', or click '+' to add one.`;
+    quickPick.title = `Select a project in namespace ${api.ns} on server '${api.serverId}'${allowCreate ? ", or click '+' to add one" : ""}.`;
     quickPick.items = projects;
-    quickPick.buttons = [{ iconPath: new vscode.ThemeIcon("add"), tooltip: "Create new project" }];
+    quickPick.buttons = allowCreate ? [{ iconPath: new vscode.ThemeIcon("add"), tooltip: "Create new project" }] : [];
 
     async function addAndResolve() {
       resolveOnHide = false;
@@ -879,64 +884,38 @@ export async function modifyProject(
   }
 }
 
-export async function exportProjectContents(node: ProjectNode | undefined): Promise<any> {
-  let workspaceFolder: string;
-  const api = new AtelierAPI(node.workspaceFolderUri);
-  api.setNamespace(node.namespace);
-  const project = node.label;
-  if (notIsfs(node.workspaceFolderUri)) {
-    workspaceFolder = node.workspaceFolder;
-  } else {
-    const conn = config("conn", node.workspaceFolder);
-    const workspaceList = vscode.workspace.workspaceFolders
-      .filter((folder) => {
-        if (schemas.includes(folder.uri.scheme)) {
-          return false;
-        }
-        const wFolderConn = config("conn", folder.name);
-        if (!compareConns(conn, wFolderConn)) {
-          return false;
-        }
-        if (!wFolderConn.active) {
-          return false;
-        }
-        if (wFolderConn.ns.toLowerCase() != node.namespace.toLowerCase()) {
-          return false;
-        }
-        return true;
-      })
-      .map((el) => el.name);
-    if (workspaceList.length > 1) {
-      const selection = await vscode.window.showQuickPick(workspaceList, {
-        title: "Pick the workspace folder to export files to.",
-      });
-      if (selection === undefined) {
-        return;
+export async function exportProjectContents(): Promise<any> {
+  try {
+    const wsFolder = await getWsFolder("Pick a workspace folder to export files to.", true, false, true, true);
+    if (!wsFolder) {
+      if (wsFolder === undefined) {
+        // Strict equality needed because undefined == null
+        vscode.window.showErrorMessage(
+          "'Export Project Contents from Server...' command requires a workspace folder with an active server connection.",
+          "Dismiss"
+        );
       }
-      workspaceFolder = selection;
-    } else if (workspaceList.length === 1) {
-      workspaceFolder = workspaceList.pop();
-    } else {
-      vscode.window.showInformationMessage(
-        "There are no folders in the current workspace that code can be exported to.",
-        "Dismiss"
-      );
       return;
     }
+    const api = new AtelierAPI(wsFolder.uri);
+    const project = await pickProject(api, false);
+    if (!project) return;
+    await exportList(
+      await api
+        .actionQuery(
+          "SELECT CASE WHEN sod.Name %STARTSWITH '/' THEN SUBSTR(sod.Name,2) ELSE sod.Name END Name " +
+            "FROM %Library.RoutineMgr_StudioOpenDialog('*',1,1,1,1,0,1) AS sod JOIN %Studio.Project_ProjectItemsList(?) AS pil " +
+            "ON sod.Name = pil.Name OR (pil.Type = 'CLS' AND pil.Name||'.cls' = sod.Name) " +
+            "OR (pil.Type = 'CSP' AND pil.Name = SUBSTR(sod.Name,2)) OR (pil.Type = 'DIR' AND sod.Name %STARTSWITH '/'||pil.Name||'/')",
+          [project]
+        )
+        .then((data) => data.result.content.map((e) => e.Name)),
+      wsFolder.name,
+      api.ns
+    );
+  } catch (error) {
+    handleError(error, "Error executing 'Export Project Contents from Server...' command.");
   }
-  if (workspaceFolder === undefined) {
-    return;
-  }
-  const exportFiles: string[] = await api
-    .actionQuery(
-      "SELECT CASE WHEN sod.Name %STARTSWITH '/' THEN SUBSTR(sod.Name,2) ELSE sod.Name END Name " +
-        "FROM %Library.RoutineMgr_StudioOpenDialog('*',1,1,1,1,0,1) AS sod JOIN %Studio.Project_ProjectItemsList(?) AS pil " +
-        "ON sod.Name = pil.Name OR (pil.Type = 'CLS' AND pil.Name||'.cls' = sod.Name) " +
-        "OR (pil.Type = 'CSP' AND pil.Name = SUBSTR(sod.Name,2)) OR (pil.Type = 'DIR' AND sod.Name %STARTSWITH '/'||pil.Name||'/')",
-      [project]
-    )
-    .then((data) => data.result.content.map((e) => e.Name));
-  return exportList(exportFiles, workspaceFolder, node.namespace);
 }
 
 export async function compileProjectContents(node: ProjectNode): Promise<any> {
