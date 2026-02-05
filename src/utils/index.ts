@@ -229,7 +229,7 @@ export function currentFileFromContent(uri: vscode.Uri, content: string | Buffer
   const fileExt = fileName.split(".").pop().toLowerCase();
   if (
     notIsfs(uri) &&
-    !isClassOrRtn(uri) &&
+    !isClassOrRtn(uri.path) &&
     // This is a non-class or routine local file, so check if we can import it
     !isImportableLocalFile(uri)
   ) {
@@ -292,7 +292,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentTextFile {
   const fileExt = fileName.split(".").pop().toLowerCase();
   if (
     notIsfs(document.uri) &&
-    !isClassOrRtn(document.uri) &&
+    !isClassOrRtn(document.uri.path) &&
     // This is a non-class or routine local file, so check if we can import it
     !isImportableLocalFile(document.uri)
   ) {
@@ -801,16 +801,15 @@ export function parseClassMemberDefinition(
   };
 }
 
-/** Returns `true` if `uri1` is a parent of `uri2`. */
-export function uriIsParentOf(uri1: vscode.Uri, uri2: vscode.Uri): boolean {
-  uri1 = uri1.with({ path: !uri1.path.endsWith("/") ? `${uri1.path}/` : uri1.path });
+/** Returns `true` if `uri1` is equal to or an ancestor of `uri2`.
+ *  Non-path components (e.g., scheme, fragment, and query) must be identical.
+ */
+export function uriIsAncestorOf(uri1: vscode.Uri, uri2: vscode.Uri): boolean {
   return (
-    uri2
-      .with({ query: "", fragment: "" })
-      .toString()
-      .startsWith(uri1.with({ query: "", fragment: "" }).toString()) &&
-    uri1.query == uri2.query &&
-    uri1.fragment == uri2.fragment
+    uri1.with({ path: "" }).toString == uri2.with({ path: "" }).toString &&
+    // uri2.path "properly" starts with uri1.path.
+    uri2.path.startsWith(uri1.path) &&
+    (uri1.path.endsWith("/") || [undefined, "/"].includes(uri2.path.at(uri1.path.length)))
   );
 }
 
@@ -887,10 +886,8 @@ export function base64EncodeContent(content: Buffer): string[] {
 }
 
 /** Returns `true` if `uri` has a class or routine file extension */
-export function isClassOrRtn(uriOrName: vscode.Uri | string): boolean {
-  return ["cls", "mac", "int", "inc"].includes(
-    (uriOrName instanceof vscode.Uri ? uriOrName.path : uriOrName).split(".").pop().toLowerCase()
-  );
+export function isClassOrRtn(uriOrName: string): boolean {
+  return ["cls", "mac", "int", "inc"].includes(uriOrName.split(".").pop().toLowerCase());
 }
 
 interface ConnQPItem extends vscode.QuickPickItem {
