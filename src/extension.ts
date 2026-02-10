@@ -644,8 +644,9 @@ function proposedApiPrompt(active: boolean, added?: readonly vscode.WorkspaceFol
       .then(async (action) => {
         switch (action) {
           case "Yes":
-            vscode.env.openExternal(
-              vscode.Uri.parse("https://github.com/intersystems-community/vscode-objectscript#enable-proposed-apis")
+            vscode.commands.executeCommand(
+              "workbench.action.browser.open",
+              "https://github.com/intersystems-community/vscode-objectscript#enable-proposed-apis"
             );
             break;
           case "Never":
@@ -1784,12 +1785,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
               .catch(() => {
                 // Swallow errors
               })) ?? `/csp/${api.ns}`;
-          vscode.env.openExternal(
-            vscode.Uri.parse(
-              `${api.config.https ? "https" : "http"}://${api.config.host}:${api.config.port}${
-                api.config.pathPrefix
-              }${app}${path}`
-            )
+          vscode.commands.executeCommand(
+            "workbench.action.browser.open",
+            `${api.config.https ? "https" : "http"}://${api.config.host}:${api.config.port}${
+              api.config.pathPrefix
+            }${app}${path}`
           );
         }
       }
