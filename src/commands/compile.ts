@@ -36,7 +36,7 @@ import {
 } from "../utils";
 import { StudioActions } from "./studio";
 import { NodeBase, PackageNode, RootNode } from "../explorer/nodes";
-import { getUrisForDocument, updateIndexForDocument } from "../utils/documentIndex";
+import { getUrisForDocument, updateIndex } from "../utils/documentIndex";
 
 /**
  * For files being locally edited, get and return its mtime timestamp from workspace-state cache if present there,
@@ -237,9 +237,9 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
               // Re-throw the error
               throw e;
             });
-          if (isClassOrRtn(file.uri)) {
+          if (isClassOrRtn(file.uri.path)) {
             // Update the document index
-            updateIndexForDocument(file.uri, undefined, undefined, content);
+            updateIndex(file.uri, content);
           }
         } else if (filesystemSchemas.includes(file.uri.scheme)) {
           fileSystemProvider.fireFileChanged(file.uri);
@@ -621,7 +621,7 @@ export async function importLocalFilesToServerSideFolder(wsFolderUri: vscode.Uri
     return;
   }
   // Filter out non-ISC files
-  uris = uris.filter(isClassOrRtn);
+  uris = uris.filter((uri) => isClassOrRtn(uri.path));
   if (uris.length == 0) {
     vscode.window.showErrorMessage("No classes or routines were selected.", "Dismiss");
     return;

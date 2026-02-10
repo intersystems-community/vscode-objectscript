@@ -93,6 +93,7 @@ import {
   otherDocExts,
   getWsServerConnection,
   isClassOrRtn,
+  isImportableLocalFile,
   addWsServerRootFolderData,
   getWsFolder,
   exportedUris,
@@ -140,7 +141,7 @@ import {
   indexWorkspaceFolder,
   removeIndexOfWorkspaceFolder,
   storeTouchedByVSCode,
-  updateIndexForDocument,
+  updateIndex,
 } from "./utils/documentIndex";
 import { WorkspaceNode, NodeBase } from "./explorer/nodes";
 import { showPlanWebview } from "./commands/showPlanPanel";
@@ -1087,11 +1088,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         checkChangedOnServer(currentFile(event.document));
       }
       if (
-        [clsLangId, macLangId, intLangId, incLangId].includes(event.document.languageId) &&
-        notIsfs(event.document.uri)
+        notIsfs(event.document.uri) &&
+        ([clsLangId, macLangId, intLangId, incLangId].includes(event.document.languageId) ||
+          isClassOrRtn(event.document.uri.path) ||
+          isImportableLocalFile(event.document.uri))
       ) {
         // Update the local workspace folder index to incorporate this change
-        updateIndexForDocument(event.document.uri);
+        updateIndex(event.document.uri);
       }
     }),
     vscode.window.onDidChangeActiveTextEditor(async (editor) => {
@@ -1395,7 +1398,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       e.files
         // Attempt to fill in stub content for classes and routines that
         // are not server-side files and were not created due to an export
-        .filter((f) => notIsfs(f) && isClassOrRtn(f) && !exportedUris.has(f.toString()))
+        .filter((f) => notIsfs(f) && isClassOrRtn(f.path) && !exportedUris.has(f.toString()))
         .forEach(async (uri) => {
           // Need to wait in case file was created using "Save As..."
           // because in that case the file gets created without
@@ -1473,9 +1476,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("deleteProject");
       deleteProject(node);
     }),
-    vscode.commands.registerCommand("vscode-objectscript.explorer.project.exportProjectContents", (node) => {
-      sendCommandTelemetryEvent("explorer.project.exportProjectContents");
-      exportProjectContents(node);
+    vscode.commands.registerCommand("vscode-objectscript.exportProjectContents", () => {
+      sendCommandTelemetryEvent("exportProjectContents");
+      exportProjectContents();
     }),
     vscode.commands.registerCommand("vscode-objectscript.explorer.project.openOtherServerNs", () => {
       sendCommandTelemetryEvent("explorer.project.openOtherServerNs");

@@ -15,6 +15,7 @@ The extensions in the [official extension pack](https://docs.intersystems.com/co
 1. [Node.js](https://nodejs.org/) 22
 1. Windows, macOS, or Linux
 1. [Visual Studio Code](https://code.visualstudio.com/)
+1. [Prettier - Code formatter](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) (Optional)
 
 ### Setup
 
@@ -43,8 +44,6 @@ To test changes, open the `vscode-objectscript` folder in VSCode.
 Then, open the debug panel by clicking the `Run and Debug` icon on the Activity Bar, select the `Launch Extension`
 option from the top menu, and click start. A new window will launch with the title
 `[Extension Development Host]`. Do your testing here.
-
-If you want to disable all other extensions when testing in the Extension Development Host, choose the `Launch Extension Alone` option instead.
 
 ### Pull requests
 
