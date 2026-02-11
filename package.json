@@ -96,14 +96,6 @@
     "menus": {
       "commandPalette": [
         {
-          "command": "vscode-objectscript.touchBar.compile",
-          "when": "false"
-        },
-        {
-          "command": "vscode-objectscript.touchBar.viewOthers",
-          "when": "false"
-        },
-        {
           "command": "vscode-objectscript.compile",
           "when": "!(resourceScheme =~ /^isfs(-readonly)?$/) && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty"
         },
@@ -112,28 +104,12 @@
           "when": "!(resourceScheme =~ /^isfs(-readonly)?$/) && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty"
         },
         {
-          "command": "vscode-objectscript.compileWithFlags",
-          "when": "!(resourceScheme =~ /^isfs(-readonly)?$/) && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty"
-        },
-        {
           "command": "vscode-objectscript.compileAll",
-          "when": "vscode-objectscript.connectActive"
-        },
-        {
-          "command": "vscode-objectscript.compileAllWithFlags",
           "when": "vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.viewOthers",
           "when": "vscode-objectscript.connectActive"
-        },
-        {
-          "command": "vscode-objectscript.subclass",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
-        },
-        {
-          "command": "vscode-objectscript.superclass",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.previewXml",
@@ -216,10 +192,6 @@
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty"
         },
         {
-          "command": "vscode-objectscript.compileOnlyWithFlags",
-          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty"
-        },
-        {
           "command": "vscode-objectscript.editOthers",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
@@ -242,10 +214,6 @@
         {
           "command": "vscode-objectscript.exportProjectContents",
           "when": "workspaceFolderCount != 0"
-        },
-        {
-          "command": "vscode-objectscript.explorer.project.compileProjectContents",
-          "when": "false"
         },
         {
           "command": "vscode-objectscript.explorer.project.openOtherServerNs",
@@ -451,11 +419,6 @@
           "group": "5_objectscript_prj@4"
         },
         {
-          "command": "vscode-objectscript.explorer.project.compileProjectContents",
-          "when": "view == ObjectScriptProjectsExplorer && viewItem == dataNode:projectNode",
-          "group": "5_objectscript_prj@6"
-        },
-        {
           "command": "vscode-objectscript.explorer.project.addWorkspaceFolderForProject",
           "when": "view == ObjectScriptProjectsExplorer && viewItem == dataNode:projectNode",
           "group": "5_objectscript_prj@7"
@@ -550,18 +513,6 @@
           "command": "vscode-objectscript.showRESTDebugWebview",
           "group": "1_open",
           "when": "resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive && activeCustomEditorId == ''"
-        }
-      ],
-      "touchBar": [
-        {
-          "command": "vscode-objectscript.touchBar.compile",
-          "group": "objectscript.compile",
-          "when": "!(resourceScheme =~ /^isfs(-readonly)?$/) && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty"
-        },
-        {
-          "command": "vscode-objectscript.touchBar.viewOthers",
-          "group": "objectscript.viewOthers",
-          "when": "vscode-objectscript.connectActive"
         }
       ],
       "explorer/context": [
@@ -850,18 +801,8 @@
       },
       {
         "category": "ObjectScript",
-        "command": "vscode-objectscript.compileWithFlags",
-        "title": "Import and Compile Current File with Specified Flags..."
-      },
-      {
-        "category": "ObjectScript",
         "command": "vscode-objectscript.compileAll",
         "title": "Compile All Namespace Files"
-      },
-      {
-        "category": "ObjectScript",
-        "command": "vscode-objectscript.compileAllWithFlags",
-        "title": "Compile All Namespace Files with Specified Flags..."
       },
       {
         "command": "vscode-objectscript.explorer.export",
@@ -939,26 +880,6 @@
       },
       {
         "category": "ObjectScript",
-        "command": "vscode-objectscript.subclass",
-        "enablement": "vscode-objectscript.connectActive",
-        "title": "Go to Subclass..."
-      },
-      {
-        "category": "ObjectScript",
-        "command": "vscode-objectscript.superclass",
-        "enablement": "vscode-objectscript.connectActive",
-        "title": "Go to Superclass..."
-      },
-      {
-        "command": "vscode-objectscript.touchBar.compile",
-        "title": "➾¹₀⁰₁¹₀"
-      },
-      {
-        "command": "vscode-objectscript.touchBar.viewOthers",
-        "title": "↹"
-      },
-      {
-        "category": "ObjectScript",
         "command": "vscode-objectscript.serverActions",
         "title": "Server Actions..."
       },
@@ -1016,11 +937,6 @@
       },
       {
         "category": "ObjectScript",
-        "command": "vscode-objectscript.compileOnlyWithFlags",
-        "title": "Compile Current File with Specified Flags..."
-      },
-      {
-        "category": "ObjectScript",
         "command": "vscode-objectscript.editOthers",
         "title": "Edit Other"
       },
@@ -1069,11 +985,6 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.exportProjectContents",
         "title": "Export Project Contents from Server..."
-      },
-      {
-        "category": "ObjectScript",
-        "command": "vscode-objectscript.explorer.project.compileProjectContents",
-        "title": "Compile Project Contents"
       },
       {
         "category": "ObjectScript",

@@ -42,8 +42,6 @@ import {
 import { deleteExplorerItems } from "./commands/delete";
 import { exportAll, exportCurrentFile, exportDocumentsToXMLFile, exportExplorerItems } from "./commands/export";
 import { serverActions } from "./commands/serverActions";
-import { subclass } from "./commands/subclass";
-import { superclass } from "./commands/superclass";
 import { viewOthers } from "./commands/viewOthers";
 import { extractXMLFileContents, previewXMLAsUDL } from "./commands/xmlToUdl";
 import {
@@ -123,7 +121,6 @@ export let iscIcon: vscode.Uri;
 import { CodeActionProvider } from "./providers/CodeActionProvider";
 import {
   addWorkspaceFolderForProject,
-  compileProjectContents,
   createProject,
   deleteProject,
   exportProjectContents,
@@ -1126,23 +1123,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.commands.registerCommand("vscode-objectscript.compile", () => {
       sendCommandTelemetryEvent("compile");
-      importAndCompile(false);
-    }),
-    vscode.commands.registerCommand("vscode-objectscript.touchBar.compile", () => {
-      sendCommandTelemetryEvent("touchBar.compile");
-      importAndCompile(false);
-    }),
-    vscode.commands.registerCommand("vscode-objectscript.compileWithFlags", () => {
-      sendCommandTelemetryEvent("compileWithFlags");
-      importAndCompile(true);
+      importAndCompile();
     }),
     vscode.commands.registerCommand("vscode-objectscript.compileAll", () => {
       sendCommandTelemetryEvent("compileAll");
-      namespaceCompile(false);
-    }),
-    vscode.commands.registerCommand("vscode-objectscript.compileAllWithFlags", () => {
-      sendCommandTelemetryEvent("compileAllWithFlags");
-      namespaceCompile(true);
+      namespaceCompile();
     }),
     vscode.commands.registerCommand("vscode-objectscript.refreshLocalFile", async () => {
       sendCommandTelemetryEvent("refreshLocalFile");
@@ -1301,21 +1286,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("serverCommands.contextOther");
       contextCommandMenu(uri);
     }),
-    vscode.commands.registerCommand("vscode-objectscript.subclass", () => {
-      sendCommandTelemetryEvent("subclass");
-      subclass();
-    }),
-    vscode.commands.registerCommand("vscode-objectscript.superclass", () => {
-      sendCommandTelemetryEvent("superclass");
-      superclass();
-    }),
     vscode.commands.registerCommand("vscode-objectscript.serverActions", () => {
       sendCommandTelemetryEvent("serverActions");
       serverActions();
-    }),
-    vscode.commands.registerCommand("vscode-objectscript.touchBar.viewOthers", () => {
-      sendCommandTelemetryEvent("touchBar.viewOthers");
-      viewOthers(false);
     }),
     vscode.commands.registerCommand("vscode-objectscript.explorer.refresh", () => {
       sendCommandTelemetryEvent("explorer.refresh");
@@ -1402,11 +1375,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     ),
     vscode.commands.registerCommand("vscode-objectscript.compileOnly", () => {
       sendCommandTelemetryEvent("compileOnly");
-      compileOnly(false);
-    }),
-    vscode.commands.registerCommand("vscode-objectscript.compileOnlyWithFlags", () => {
-      sendCommandTelemetryEvent("compileOnlyWithFlags");
-      compileOnly(true);
+      compileOnly();
     }),
     vscode.languages.registerDocumentLinkProvider({ language: outputLangId }, new DocumentLinkProvider()),
     vscode.commands.registerCommand("vscode-objectscript.editOthers", () => {
@@ -1510,10 +1479,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.exportProjectContents", () => {
       sendCommandTelemetryEvent("exportProjectContents");
       exportProjectContents();
-    }),
-    vscode.commands.registerCommand("vscode-objectscript.explorer.project.compileProjectContents", (node) => {
-      sendCommandTelemetryEvent("explorer.project.compileProjectContents");
-      compileProjectContents(node);
     }),
     vscode.commands.registerCommand("vscode-objectscript.explorer.project.openOtherServerNs", () => {
       sendCommandTelemetryEvent("explorer.project.openOtherServerNs");
