@@ -130,10 +130,6 @@ export class StudioActions {
           .then((answer) => (answer === "Yes" ? "1" : answer === "No" ? "0" : "2"));
       case 2: {
         // Run a CSP page/Template. The Target is the full path of CSP page/template on the connected server
-
-        // Do this ourself instead of using our new getCSPToken wrapper function, because that function reuses tokens which causes issues with
-        // webview when server is 2020.1.1 or greater, as session cookie scope is typically Strict, meaning that the webview
-        // cannot store the cookie. Consequence is web sessions may build up (they get a 900 second timeout)
         const cspchd = await this.api
           .actionQuery("select %Atelier_v1_Utils.General_GetCSPToken(?) token", [target])
           .then((data) => data.result.content[0].token)
@@ -160,10 +156,8 @@ export class StudioActions {
             if (message.result && message.result === "done") {
               answer = "1";
               panel.dispose();
-            } else if (typeof message.href == "string") {
-              const linkUri = vscode.Uri.parse(message.href);
-              // Only open http(s) links
-              if (/^https?$/.test(linkUri.scheme)) vscode.env.openExternal(linkUri);
+            } else if (typeof message.href == "string" && /^https?:\/\//.test(message.href)) {
+              vscode.commands.executeCommand("workbench.action.browser.open", message.href);
             }
           });
           panel.onDidDispose(() => resolve(answer));
@@ -207,8 +201,11 @@ export class StudioActions {
       }
       case 3: {
         // Run an EXE on the client.
-        if (/^(ht|f)tps?:\/\//i.test(target)) {
-          // Allow target that is a URL to be opened in an external browser
+        if (/^https?:\/\//.test(target)) {
+          // Allow https URLs to be opened in the Integrated Browser
+          vscode.commands.executeCommand("workbench.action.browser.open", target);
+        } else if (/^ftps?:\/\//.test(target)) {
+          // ftp links aren't supported by the Integrated Browser
           vscode.env.openExternal(vscode.Uri.parse(target));
         } else {
           // Anything else is not supported
