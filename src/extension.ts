@@ -169,6 +169,9 @@ import {
   locateTriggers,
   locateTriggersByCompany,
   openLocatedTriggerLocation,
+  convertCurrentItem,
+  convertCurrentItemCustom,
+  convertCurrentItemOnSave,
 } from "./ccs";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
@@ -1429,6 +1432,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("locateTriggers.openLocation");
       void openLocatedTriggerLocation(location);
     }),
+    vscode.commands.registerCommand("vscode-objectscript.ccs.convertCurrentItem", () => {
+      sendCommandTelemetryEvent("convertCurrentItem");
+      void convertCurrentItem();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.ccs.convertCurrentItemCustom", () => {
+      sendCommandTelemetryEvent("convertCurrentItemCustom");
+      void convertCurrentItemCustom();
+    }),
     vscode.commands.registerCommand("vscode-objectscript.serverCommands.sourceControl", (uri?: vscode.Uri) => {
       sendCommandTelemetryEvent("serverCommands.sourceControl");
       mainSourceControlMenu(uri);
@@ -2016,6 +2027,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       if (uri instanceof vscode.Uri) showAllClassMembers(uri);
     }),
     vscode.workspace.onDidSaveTextDocument((d) => {
+      void convertCurrentItemOnSave(d);
+
       // If the document just saved is a server-side document that needs to be updated in the UI,
       // then force VS Code to update the document's contents. This is needed if the document has
       // been changed during a save, for example by adding or changing the Storage definition.

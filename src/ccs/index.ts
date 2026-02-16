@@ -29,3 +29,5 @@ export {
   followSourceAnalysisLinkCommand,
 } from "./providers/SourceAnalysisLinkProvider";
 export { createItem } from "./commands/createItem";
+
+export { convertCurrentItem, convertCurrentItemCustom, convertCurrentItemOnSave } from "./commands/converterItem";

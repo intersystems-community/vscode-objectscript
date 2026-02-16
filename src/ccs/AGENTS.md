@@ -57,6 +57,12 @@ Base path: `GET/POST {baseURL}/api/sourcecontrol/vscode` (see `BASE_PATH` in `sr
 - `POST /namespaces/{NAMESPACE}/obterGatilhosPorEmpresa`
   - Used by: `vscode-objectscript.ccs.locateTriggersByCompany` (`src/ccs/commands/locateTriggers.ts`)
   - Behavior: returns available company accounts and trigger counts for a routine.
+- `POST /namespaces/{NAMESPACE}/converterArquivo`
+  - Used by: `vscode-objectscript.ccs.convertCurrentItem` (`src/ccs/commands/converterItem.ts`)
+  - Behavior: runs default conversion for the active routine/file and returns plain text output.
+- `POST /namespaces/{NAMESPACE}/converterArquivoCustomizado`
+  - Used by: `vscode-objectscript.ccs.convertCurrentItemCustom` (`src/ccs/commands/converterItem.ts`)
+  - Behavior: runs conversion with user-selected options and returns plain text output.
 
 ## Reliability & UX
 
