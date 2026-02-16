@@ -5,7 +5,12 @@ import { DocumentContentProvider } from "../../providers/DocumentContentProvider
 import { AtelierAPI } from "../../api";
 import { FILESYSTEM_SCHEMA } from "../../extension";
 import { handleError, outputChannel } from "../../utils";
-import { LocateTriggersClient, LocateTriggersPayload } from "../sourcecontrol/clients/locateTriggersClient";
+import {
+  LocateTriggersClient,
+  LocateTriggerCompaniesPayload,
+  LocateTriggersPayload,
+  TriggerCompany,
+} from "../sourcecontrol/clients/locateTriggersClient";
 import { getUrisForDocument } from "../../utils/documentIndex";
 import { notIsfs } from "../../utils";
 import { getCcsSettings } from "../config/settings";
@@ -26,6 +31,10 @@ interface RoutineLocation {
 }
 
 export async function locateTriggers(): Promise<void> {
+  await locateTriggersInternal();
+}
+
+export async function locateTriggersByCompany(): Promise<void> {
   const editor = vscode.window.activeTextEditor;
 
   if (!editor) {
@@ -38,12 +47,73 @@ export async function locateTriggers(): Promise<void> {
     return;
   }
 
+  try {
+    const companiesPayload = buildLocateCompaniesPayload(editor, routineName);
+    const companies = await sharedClient.getCompanies(editor.document, companiesPayload);
+
+    if (!companies.length) {
+      void vscode.window.showWarningMessage(
+        "Nenhuma empresa foi retornada para esta rotina. A busca será executada sem filtro de empresa."
+      );
+      await locateTriggersInternal(undefined, companiesPayload.selectedText);
+      return;
+    }
+
+    const conta = await promptForCompany(companies);
+
+    if (conta === null) {
+      return;
+    }
+
+    await locateTriggersInternal(conta ?? undefined, companiesPayload.selectedText);
+  } catch (error) {
+    handleError(error, "Falha ao carregar empresas para localizar gatilhos.");
+  }
+}
+
+function buildLocatePayload(
+  editor: vscode.TextEditor,
+  routineName: string,
+  conta?: string,
+  forcedSelectedText?: string
+): LocateTriggersPayload {
   const selectedText = getSelectedOrCurrentLineText(editor);
   const payload: LocateTriggersPayload = { routineName };
 
-  if (shouldSendSelectedText(selectedText)) {
-    payload.selectedText = escapeTriggerText(selectedText);
+  if (conta) {
+    payload.conta = conta;
   }
+
+  if (forcedSelectedText) {
+    payload.selectedText = forcedSelectedText;
+  } else if (shouldSendSelectedText(editor, selectedText)) {
+    payload.selectedText = formatSelectedText(selectedText);
+  }
+
+  return payload;
+}
+
+function buildLocateCompaniesPayload(editor: vscode.TextEditor, routineName: string): LocateTriggerCompaniesPayload {
+  return {
+    routineName,
+    selectedText: getExplicitSelectedText(editor),
+  };
+}
+
+async function locateTriggersInternal(conta?: string, forcedSelectedText?: string): Promise<void> {
+  const editor = vscode.window.activeTextEditor;
+
+  if (!editor) {
+    return;
+  }
+
+  const routineName = path.basename(editor.document.fileName);
+  if (!routineName) {
+    void vscode.window.showErrorMessage("Routine name not available for localizar gatilhos.");
+    return;
+  }
+
+  const payload = buildLocatePayload(editor, routineName, conta, forcedSelectedText);
 
   try {
     const { content, api } = await sharedClient.locate(editor.document, payload);
@@ -84,12 +154,85 @@ function getSelectedOrCurrentLineText(editor: vscode.TextEditor): string {
   return document.getText(selection).trim();
 }
 
-function shouldSendSelectedText(text: string): boolean {
+function getExplicitSelectedText(editor: vscode.TextEditor): string | undefined {
+  if (editor.selection.isEmpty) {
+    return undefined;
+  }
+
+  const selectedText = editor.document.getText(editor.selection).trim();
+
+  return selectedText ? formatSelectedText(selectedText) : undefined;
+}
+
+function shouldSendSelectedText(editor: vscode.TextEditor, text: string): boolean {
+  if (!editor.selection.isEmpty && editor.selection.start.line !== editor.selection.end.line) {
+    return true;
+  }
+
   return TRIGGER_PATTERNS.some((pattern) => pattern.test(text));
 }
 
-function escapeTriggerText(text: string): string {
-  return text.replace(/"/g, '""');
+function formatSelectedText(text: string): string {
+  return text.replace(/\r?\n/g, "\r\n");
+}
+
+function formatCompanyOptionLabel(conta: string, descricaoConta: string, quantidade: number): string {
+  return `${conta} - ${descricaoConta} (${quantidade})`;
+}
+
+async function promptForCompany(companies: TriggerCompany[]): Promise<string | "" | null | undefined> {
+  if (!companies.length) return undefined;
+
+  const quickPick = vscode.window.createQuickPick<vscode.QuickPickItem & { conta: string }>();
+  quickPick.title = "Localizar Gatilhos por Empresa";
+  quickPick.placeholder = "Selecione uma empresa ou pressione Enter vazio para buscar todas";
+  quickPick.ignoreFocusOut = true;
+
+  quickPick.items = companies.map((c) => ({
+    label: formatCompanyOptionLabel(c.conta, c.descricaoConta, c.quantidade),
+    conta: c.conta,
+  }));
+
+  return await new Promise((resolve) => {
+    let accepted = false;
+
+    let initializedActive = false;
+    let userTouchedList = false;
+
+    const disposeAll = () => {
+      quickPick.dispose();
+      acceptDisposable.dispose();
+      hideDisposable.dispose();
+      activeDisposable.dispose();
+    };
+
+    const activeDisposable = quickPick.onDidChangeActive(() => {
+      if (!initializedActive) {
+        initializedActive = true; // ignora ativação inicial automática do 1º item
+        return;
+      }
+      userTouchedList = true; // usuário navegou/ativou algo de propósito
+    });
+
+    const acceptDisposable = quickPick.onDidAccept(() => {
+      accepted = true;
+
+      if (!userTouchedList) {
+        resolve(""); // Enter sem tocar na lista => buscar todas
+      } else {
+        resolve(quickPick.activeItems[0]?.conta ?? "");
+      }
+
+      disposeAll();
+    });
+
+    const hideDisposable = quickPick.onDidHide(() => {
+      if (!accepted) resolve(null);
+      disposeAll();
+    });
+
+    quickPick.show();
+  });
 }
 
 async function renderContentToOutput(content: string, namespace?: string): Promise<void> {

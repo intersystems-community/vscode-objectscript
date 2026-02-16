@@ -7,6 +7,7 @@ export const ROUTES = {
   createItem: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/createItem`,
   runUnitTests: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/unitTests/runUnitTests`,
   locateTriggers: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/localizarGatilhos`,
+  getTriggerCompanies: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/obterGatilhosPorEmpresa`,
 } as const;
 
 export type RouteKey = keyof typeof ROUTES;

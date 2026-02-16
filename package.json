@@ -140,6 +140,10 @@
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
+          "command": "vscode-objectscript.ccs.locateTriggersByCompany",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
           "command": "vscode-objectscript.subclass",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
@@ -893,6 +897,11 @@
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.locateTriggers",
         "title": "Locate Triggers"
+      },
+      {
+        "category": "Consistem",
+        "command": "vscode-objectscript.ccs.locateTriggersByCompany",
+        "title": "Localizar Gatilhos por Empresa"
       },
       {
         "category": "Consistem",

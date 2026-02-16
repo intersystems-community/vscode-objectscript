@@ -167,6 +167,7 @@ import {
   resolveContextExpression,
   showGlobalDocumentation,
   locateTriggers,
+  locateTriggersByCompany,
   openLocatedTriggerLocation,
 } from "./ccs";
 
@@ -1419,6 +1420,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.ccs.locateTriggers", () => {
       sendCommandTelemetryEvent("locateTriggers");
       void locateTriggers();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.ccs.locateTriggersByCompany", () => {
+      sendCommandTelemetryEvent("locateTriggersByCompany");
+      void locateTriggersByCompany();
     }),
     vscode.commands.registerCommand("vscode-objectscript.ccs.locateTriggers.openLocation", (location) => {
       sendCommandTelemetryEvent("locateTriggers.openLocation");

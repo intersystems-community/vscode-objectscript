@@ -54,6 +54,9 @@ Base path: `GET/POST {baseURL}/api/sourcecontrol/vscode` (see `BASE_PATH` in `sr
 - `POST /namespaces/{NAMESPACE}/localizarGatilhos`
   - Used by: `vscode-objectscript.ccs.locateTriggers` (`src/ccs/commands/locateTriggers.ts`)
   - Behavior: locates triggers and supports opening returned locations.
+- `POST /namespaces/{NAMESPACE}/obterGatilhosPorEmpresa`
+  - Used by: `vscode-objectscript.ccs.locateTriggersByCompany` (`src/ccs/commands/locateTriggers.ts`)
+  - Behavior: returns available company accounts and trigger counts for a routine.
 
 ## Reliability & UX
 
