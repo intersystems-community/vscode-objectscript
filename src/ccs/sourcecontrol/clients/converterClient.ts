@@ -121,7 +121,9 @@ export class ConverterClient {
       if (fallbackApi.active && fallbackApi.ns) {
         api = fallbackApi;
       } else {
-        throw new Error("No active namespace for conversão de arquivo.");
+        throw new Error(
+          "Nenhum namespace ativo foi encontrado para conversão de arquivo. Verifique a conexão ativa e tente novamente."
+        );
       }
     }
 

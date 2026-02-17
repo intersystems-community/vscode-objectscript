@@ -54,7 +54,7 @@ export class DefinitionDocumentLinkProvider implements vscode.DocumentLinkProvid
         `command:${followDefinitionLinkCommand}?${encodeURIComponent(JSON.stringify(args))}`
       );
       const link = new vscode.DocumentLink(match.range, commandUri);
-      link.tooltip = vscode.l10n.t("Go to Definition");
+      link.tooltip = vscode.l10n.t("Ir para definição");
       return link;
     });
   }

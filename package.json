@@ -884,27 +884,27 @@
       {
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.resolveContextExpression",
-        "title": "Resolve Context Expression"
+        "title": "Ajuda de Contexto"
       },
       {
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.goToDefinition",
-        "title": "Go to Definition"
+        "title": "Ir para Definição"
       },
       {
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.followDefinitionLink",
-        "title": "Follow Definition Link"
+        "title": "Seguir Link de Definição"
       },
       {
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.followSourceAnalysisLink",
-        "title": "Follow Source Analysis Link"
+        "title": "Seguir Link de Análise de Código-Fonte"
       },
       {
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.locateTriggers",
-        "title": "Locate Triggers"
+        "title": "Localizar Gatilhos"
       },
       {
         "category": "Consistem",
@@ -914,22 +914,22 @@
       {
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.locateTriggers.openLocation",
-        "title": "Open Located Trigger"
+        "title": "Abrir Gatilho Localizado"
       },
       {
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.createItem",
-        "title": "Create Item"
+        "title": "Criar Item"
       },
       {
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.jumpToTagOffsetCrossEntity",
-        "title": "Go to Definition (+Offset ^Item)"
+        "title": "Ir para Definição (+linha ^Item)"
       },
       {
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.jumpToTagOffsetCrossEntity.insertSelection",
-        "title": "Insert Selection (Quick Pick)",
+        "title": "Inserir Seleção (Quick Pick)",
         "enablement": "inQuickOpen && vscode-objectscript.ccs.jumpToTagQuickPickActive"
       },
       {
@@ -1045,7 +1045,7 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.ccs.getGlobalDocumentation",
         "enablement": "vscode-objectscript.connectActive",
-        "title": "Show Global Documentation"
+        "title": "Documentação Global"
       },
       {
         "category": "ObjectScript",
@@ -1317,7 +1317,7 @@
       {
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.convertCurrentItem",
-        "title": "Converter Item (Simples)"
+        "title": "Converter Item"
       },
       {
         "category": "Consistem",
@@ -1378,12 +1378,12 @@
         "type": "object",
         "properties": {
           "consistem.globalDocumentation.openInFile": {
-            "description": "Open global documentation in a file instead of the Output view.",
+            "description": "Abrir a documentação global em um arquivo em vez da visualização de Saída.",
             "type": "boolean",
             "default": true
           },
           "consistem.globalDocumentation.filePath": {
-            "markdownDescription": "Path to the file where global documentation is written. Relative paths are resolved against the system temporary directory (e.g. %TEMP% on Windows). If empty, defaults to `%TEMP%\\globalDocumentation.txt`.",
+            "markdownDescription": "Caminho do arquivo onde a documentação global será gravada. Caminhos relativos são resolvidos em relação ao diretório temporário do sistema (ex.: %TEMP% no Windows). Se estiver vazio, o padrão será `%TEMP%\\globalDocumentation.txt`.",
             "type": "string",
             "default": "",
             "when": "config.consistem.globalDocumentation.openInFile"

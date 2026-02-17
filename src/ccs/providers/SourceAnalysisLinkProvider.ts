@@ -84,7 +84,7 @@ export class SourceAnalysisLinkProvider implements vscode.DocumentLinkProvider {
     );
 
     const link = new vscode.DocumentLink(range, commandUri);
-    link.tooltip = vscode.l10n.t("Open Source Analysis location");
+    link.tooltip = vscode.l10n.t("Abrir localização da análise de fonte");
     return link;
   }
 }

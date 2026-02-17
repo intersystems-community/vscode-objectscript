@@ -166,7 +166,9 @@ export class LocateTriggersClient {
       if (fallbackApi.active && fallbackApi.ns) {
         api = fallbackApi;
       } else {
-        throw new Error("No active namespace for localizar gatilhos.");
+        throw new Error(
+          "Nenhum namespace ativo foi encontrado para localizar gatilhos. Verifique a conexão ativa e tente novamente."
+        );
       }
     }
 

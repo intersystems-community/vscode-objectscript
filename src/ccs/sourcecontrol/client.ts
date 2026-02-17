@@ -17,7 +17,9 @@ export class SourceControlApi {
     const { host, port, username, password, https: useHttps, pathPrefix } = api.config;
 
     if (!host || !port) {
-      throw new Error("No active InterSystems server connection for this file.");
+      throw new Error(
+        "Nenhuma conexão ativa com servidor InterSystems foi encontrada para este arquivo. Verifique a conexão e o namespace selecionados."
+      );
     }
 
     const normalizedPrefix = pathPrefix ? (pathPrefix.startsWith("/") ? pathPrefix : `/${pathPrefix}`) : "";

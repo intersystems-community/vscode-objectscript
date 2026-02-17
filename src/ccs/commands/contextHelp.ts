@@ -21,7 +21,7 @@ export async function resolveContextExpression(): Promise<void> {
   const contextExpression = contextInfo.text;
 
   if (!contextExpression.trim()) {
-    void vscode.window.showErrorMessage("Context expression is empty.");
+    void vscode.window.showErrorMessage("A expressão da ajuda de contexto está vazia.");
     return;
   }
 
@@ -69,10 +69,10 @@ export async function resolveContextExpression(): Promise<void> {
     const errorMessage =
       typeof data === "object" && data && "message" in data && typeof data.message === "string"
         ? data.message
-        : "Failed to resolve context expression.";
+        : "Falha ao resolver a ajuda de contexto.";
     void vscode.window.showErrorMessage(errorMessage);
   } catch (error) {
-    handleError(error, "Failed to resolve context expression.");
+    handleError(error, "Falha ao resolver a ajuda de contexto.");
   }
 }
 
@@ -173,7 +173,7 @@ async function applyResolvedTextExpression(
     try {
       await showGifInWebview(gifUri);
     } catch (error) {
-      handleError(error, "Failed to open GIF from context expression.");
+      handleError(error, "Falha ao abrir o GIF da ajuda de contexto.");
     }
   }
 }
@@ -339,7 +339,7 @@ function normalizeGlobalDocumentationContent(content: GlobalDocumentationRespons
     try {
       return JSON.stringify(content, null, 2);
     } catch (error) {
-      handleError(error, "Failed to parse global documentation content.");
+      handleError(error, "Falha ao processar o conteúdo da documentação global.");
     }
   }
 
@@ -435,7 +435,7 @@ function getGifWebviewHtml(webview: vscode.Webview, gifUri: vscode.Uri, title: s
   const cspSource = escapeHtml(webview.cspSource);
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${cspSource} data:;" />
