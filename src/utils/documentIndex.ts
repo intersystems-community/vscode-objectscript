@@ -22,9 +22,9 @@ import { sendClientSideSyncTelemetryEvent } from "../extension";
 interface WSFolderIndex {
   /** The `FileSystemWatcher` for this workspace folder */
   watcher: vscode.FileSystemWatcher;
-  /** Map of document names (i.e., server-side names) to VSCode URIs */
+  /** Map of document names (i.e., server-side names) to VS Code URIs */
   documents: Map<string, vscode.Uri[]>;
-  /** Map of VSCode URIs to document names */
+  /** Map of VS Code URIs to document names */
   uris: Map<string, string>;
 }
 
@@ -425,4 +425,57 @@ export function allDocumentsInWorkspace(wsFolder: vscode.WorkspaceFolder): strin
 /** Get the class/routine name of the document in `uri` */
 export function getDocumentForUri(uri: vscode.Uri): string {
   return wsFolderIndex.get(vscode.workspace.getWorkspaceFolder(uri)?.uri.toString())?.uris.get(uri.toString());
+}
+
+/**
+ * Use the known mappings between files and document names to infer
+ * a name for a document contained in file `uri`. For example,
+ * `uri` with path `/wsFolder/src/User/Test.cls` may return
+ * `User.Test.cls`. Returns `undefined` if an inference couldn't
+ * be made. Only attempts inferencing for classes or routines.
+ * Does not attempt to read `uri`. This is useful for
+ * generating stub content for a file that was just created.
+ */
+export function inferDocName(uri: vscode.Uri): string | undefined {
+  const exts = [".cls", ".mac", ".int", ".inc"];
+  const fileExt = uri.path.slice(-4).toLowerCase();
+  if (!exts.includes(fileExt)) return;
+  const wsFolder = vscode.workspace.getWorkspaceFolder(uri);
+  if (!wsFolder) return;
+  const index = wsFolderIndex.get(wsFolder.uri.toString());
+  if (!index) return;
+  // Convert the URI into an array of path segments
+  const uriParts = uri.path.split("/");
+  uriParts.pop();
+  // Stop looping once we reach the workspace folder root
+  const loopEnd = wsFolder.uri.path.split("/").length - (wsFolder.uri.path.endsWith("/") ? 1 : 0);
+  // Look for known documents in the same directory tree as the target URI.
+  // Once we find a match, look at the relationship between the URI and name
+  // and apply that same relationship to the target URI. Start at the containing
+  // directory of the target and then work up the tree until we have a match.
+  let result: string;
+  for (let i = uriParts.length; i >= loopEnd; i--) {
+    const uriDir = `${uriParts.slice(0, i).join("/")}/`;
+    for (const [docUriStr, docName] of index.uris) {
+      const docUri = vscode.Uri.parse(docUriStr);
+      if (exts.includes(docName.slice(-4)) && docUri.path.startsWith(uriDir)) {
+        // This class or routine is in the same directory tree as the target
+        // so attempt to determine how its name relates to its URI
+        const docNamePath = `/${docName.slice(0, -4).replaceAll(".", "/")}${docName.slice(-4)}`;
+        // Make sure the file extension is lowercased in the path before matching
+        const startOfDocName = (docUri.path.slice(0, -3) + docUri.path.slice(-3).toLowerCase()).lastIndexOf(
+          docNamePath
+        );
+        if (startOfDocName > -1) {
+          // We've identified the leading path segments that don't contribute to the document name,
+          // so remove them from the target URI before generating the document name. Need the + 1 to
+          // remove the leading slash which was part of the match string.
+          result = `${uri.path.slice(startOfDocName + 1, -4).replaceAll("/", ".")}${fileExt}`;
+          break;
+        }
+      }
+    }
+    if (result) break;
+  }
+  return result;
 }

@@ -139,6 +139,7 @@ import { pickDocument } from "./utils/documentPicker";
 import {
   disposeDocumentIndex,
   indexWorkspaceFolder,
+  inferDocName,
   removeIndexOfWorkspaceFolder,
   storeTouchedByVSCode,
   updateIndex,
@@ -1411,12 +1412,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
             return;
           }
           // Generate the new content
+          const defaultName = inferDocName(uri)?.slice(0, -4);
           const fileExt = uri.path.split(".").pop().toLowerCase();
           const newContent =
             fileExt == "cls"
-              ? ["Class $1 Extends %RegisteredObject", "{", "// $0", "}", ""]
+              ? [`Class \${1${defaultName ? `:${defaultName}` : ""}} Extends %RegisteredObject`, "{", "$0", "}", ""]
               : [
-                  `ROUTINE $1${fileExt == "int" ? " [Type=INT]" : fileExt == "inc" ? " [Type=INC]" : ""}`,
+                  `ROUTINE \${1${defaultName ? `:${defaultName}` : ""}}${fileExt == "int" ? " [Type=INT]" : fileExt == "inc" ? " [Type=INC]" : ""}`,
                   `${fileExt == "int" ? ";" : "#;"} $0`,
                   "",
                 ];
