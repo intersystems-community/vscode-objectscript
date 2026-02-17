@@ -332,11 +332,6 @@
           "group": "navigation"
         },
         {
-          "command": "vscode-objectscript.explorer.project.openOtherServerNs",
-          "when": "view == ObjectScriptProjectsExplorer && vscode-objectscript.projectsExplorerRootCount > 0",
-          "group": "navigation"
-        },
-        {
           "command": "vscode-objectscript.openISCDocument",
           "when": "view == workbench.explorer.fileView && vscode-objectscript.connectActive && workspaceFolderCount != 0",
           "group": "navigation"
@@ -431,6 +426,11 @@
         {
           "command": "vscode-objectscript.explorer.project.closeOtherServerNs",
           "when": "view == ObjectScriptProjectsExplorer && viewItem == projectsServerNsNode:extra",
+          "group": "inline@10"
+        },
+        {
+          "command": "vscode-objectscript.explorer.project.openOtherServerNs",
+          "when": "view == ObjectScriptProjectsExplorer && viewItem == projectsServerNsNode",
           "group": "inline@10"
         },
         {
@@ -989,7 +989,7 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.explorer.project.openOtherServerNs",
-        "title": "View Projects in Another Server Namespace",
+        "title": "View Projects in Another Namespace...",
         "icon": "$(add)"
       },
       {

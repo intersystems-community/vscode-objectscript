@@ -296,15 +296,8 @@ export class AtelierAPI {
   }
 
   public get connInfo(): string {
-    const { serverName, host, port, docker, dockerService } = this.config;
-    const ns = this.ns.toUpperCase();
-    return (
-      (docker
-        ? "docker" + (dockerService ? `:${dockerService}:${port}` : "")
-        : serverName
-          ? serverName
-          : `${host}:${port}`) + `[${ns}]`
-    );
+    const { port, docker, dockerService } = this.config;
+    return (docker ? "docker" + (dockerService ? `:${dockerService}:${port}` : "") : this.serverId) + `[${this.ns}]`;
   }
 
   /** Return the server's name in `intersystems.servers` if it exists, else its `host:port/pathPrefix` */

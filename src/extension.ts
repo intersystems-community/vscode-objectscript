@@ -53,7 +53,7 @@ import {
   mainSourceControlMenu,
   StudioActions,
 } from "./commands/studio";
-import { addServerNamespaceToWorkspace, pickServerAndNamespace } from "./commands/addServerNamespaceToWorkspace";
+import { addServerNamespaceToWorkspace } from "./commands/addServerNamespaceToWorkspace";
 import { jumpToTagAndOffset, openErrorLocation } from "./commands/jumpToTagAndOffset";
 import { connectFolderToServerNamespace } from "./commands/connectFolderToServerNamespace";
 import { DocumaticPreviewPanel } from "./commands/documaticPreviewPanel";
@@ -441,14 +441,11 @@ export async function checkConnection(
   // What we do when api.serverInfo call succeeds
   const gotServerInfo = async (info: Response<Content<ServerInfo>>) => {
     panel.text = api.connInfo;
-    if (api.config.serverName) {
-      panel.tooltip = new vscode.MarkdownString(
-        `Connected to \`${api.config.host}:${api.config.port}${api.config.pathPrefix}\` as \`${username}\``
-      );
+    const { serverName, host, port, pathPrefix } = api.config;
+    if (serverName) {
+      panel.tooltip = new vscode.MarkdownString(`Connected to \`${host}:${port}${pathPrefix}\` as \`${username}\``);
     } else {
-      panel.tooltip = new vscode.MarkdownString(
-        `Connected${api.config.pathPrefix ? ` to \`${api.config.pathPrefix}\`` : ""} as \`${username}\``
-      );
+      panel.tooltip = new vscode.MarkdownString(`Connected as \`${username}\``);
     }
     if (!api.externalServer) {
       await setConnectionState(configName, true);
@@ -1335,12 +1332,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.commands.registerCommand("vscode-objectscript.explorer.otherNamespace", (workspaceNode: WorkspaceNode) => {
       sendCommandTelemetryEvent("explorer.otherNamespace");
-      return explorerProvider.selectNamespace(workspaceNode.label);
+      return explorerProvider.showExtraForWorkspace(workspaceNode.wsFolder);
     }),
     vscode.commands.registerCommand(
       "vscode-objectscript.explorer.otherNamespaceClose",
       (workspaceNode: WorkspaceNode) => {
-        return explorerProvider.closeExtra4Workspace(workspaceNode.label, workspaceNode.namespace);
+        return explorerProvider.closeExtraForWorkspace(workspaceNode.label, workspaceNode.namespace);
       }
     ),
     vscode.commands.registerCommand("vscode-objectscript.previewXml", () => {
@@ -1481,13 +1478,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("exportProjectContents");
       exportProjectContents();
     }),
-    vscode.commands.registerCommand("vscode-objectscript.explorer.project.openOtherServerNs", () => {
+    vscode.commands.registerCommand("vscode-objectscript.explorer.project.openOtherServerNs", (node) => {
       sendCommandTelemetryEvent("explorer.project.openOtherServerNs");
-      pickServerAndNamespace().then((pick) => {
-        if (pick != undefined) {
-          projectsExplorerProvider.openExtraServerNs(pick);
-        }
-      });
+      projectsExplorerProvider.openExtraServerNs(node.wsFolder);
     }),
     vscode.commands.registerCommand("vscode-objectscript.explorer.project.closeOtherServerNs", (node) =>
       projectsExplorerProvider.closeExtraServerNs(node)
@@ -1678,15 +1671,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     ),
     vscode.commands.registerCommand("vscode-objectscript.ObjectScriptExplorer.webterminal", (node: NodeBase) => {
       sendCommandTelemetryEvent("ObjectScriptExplorer.webterminal");
-      const targetUri = DocumentContentProvider.getUri(
-        node.fullName,
-        node.workspaceFolder,
-        node.namespace,
-        undefined,
-        undefined,
-        true
-      );
-      launchWebSocketTerminal(targetUri);
+      launchWebSocketTerminal(node.wsFolder.uri, node?.namespace);
     }),
     vscode.window.registerTerminalProfileProvider(
       "vscode-objectscript.webSocketTerminal",

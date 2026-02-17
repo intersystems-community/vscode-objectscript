@@ -16,7 +16,6 @@ import {
   RateLimiter,
   replaceFile,
   stringifyError,
-  uriOfWorkspaceFolder,
   workspaceFolderOfUri,
 } from "../utils";
 import { pickDocuments } from "../utils/documentPicker";
@@ -127,24 +126,24 @@ async function exportFile(wsFolderUri: vscode.Uri, namespace: string, name: stri
   }
 }
 
-export async function exportList(files: string[], workspaceFolder: string, namespace: string): Promise<any> {
+export async function exportList(files: string[], wsFolder: vscode.WorkspaceFolder, namespace?: string): Promise<any> {
   if (!files || !files.length) {
     vscode.window.showWarningMessage("No documents to export.", "Dismiss");
     return;
   }
-  const wsFolderUri = uriOfWorkspaceFolder(workspaceFolder);
-  if (!workspaceFolder || !wsFolderUri) return;
-  if (!vscode.workspace.fs.isWritableFileSystem(wsFolderUri.scheme)) {
-    vscode.window.showErrorMessage(`Cannot export to read-only file system '${wsFolderUri.scheme}'.`, "Dismiss");
+  if (!wsFolder) return;
+  if (!vscode.workspace.fs.isWritableFileSystem(wsFolder.uri.scheme)) {
+    vscode.window.showErrorMessage(`Cannot export to read-only file system '${wsFolder.uri.scheme}'.`, "Dismiss");
     return;
   }
-  if (!new AtelierAPI(wsFolderUri).active) {
+  const api = new AtelierAPI(wsFolder.uri);
+  if (!api.active) {
     vscode.window.showErrorMessage("Exporting documents requires an active server connection.", "Dismiss");
     return;
   }
 
-  const { atelier, folder, addCategory, map } = config("export", workspaceFolder);
-  const root = wsFolderUri.fsPath + (folder.length ? path.sep + folder : "");
+  const { atelier, folder, addCategory, map } = config("export", wsFolder.name);
+  const root = wsFolder.uri.fsPath + (folder.length ? path.sep + folder : "");
   outputChannel.show(true);
   const rateLimiter = new RateLimiter(50);
   return vscode.window.withProgress(
@@ -157,7 +156,7 @@ export async function exportList(files: string[], workspaceFolder: string, names
       Promise.allSettled<void>(
         files.map((file) =>
           rateLimiter.call(() =>
-            exportFile(wsFolderUri, namespace, file, getFileName(root, file, atelier, addCategory, map))
+            exportFile(wsFolder.uri, namespace ?? api.ns, file, getFileName(root, file, atelier, addCategory, map))
           )
         )
       )
@@ -223,8 +222,7 @@ export async function exportAll(): Promise<any> {
     if (!files?.length) return;
     await exportList(
       files.map((file) => file.label),
-      wsFolder.name,
-      api.ns
+      wsFolder
     );
   } catch (error) {
     handleError(error, "Error executing 'Export Code from Server...' command.");
@@ -232,15 +230,13 @@ export async function exportAll(): Promise<any> {
 }
 
 export async function exportExplorerItems(nodes: NodeBase[]): Promise<any> {
-  const node = nodes[0];
-  const nodeNs = node.namespace.toUpperCase();
-  const origNamespace = config("conn", node.workspaceFolder).ns?.toUpperCase();
-  if (origNamespace?.toUpperCase() != node.namespace.toUpperCase()) {
+  const { wsFolder, namespace } = nodes[0];
+  if (namespace) {
     const answer = await vscode.window.showWarningMessage(
       `
-You are about to export from namespace ${nodeNs}.
+You are about to export from namespace ${namespace}.
 
-Future edits to the file(s) in your local workspace will be saved and compiled in the primary namespace of your workspace root, ${origNamespace}, not the namespace from which you originally exported.
+Future edits to the file(s) in your local workspace will be saved and compiled in the primary namespace of your workspace root, ${new AtelierAPI(wsFolder.uri).ns}, not the namespace from which you originally exported.
 
 Would you like to continue?`,
       {
@@ -252,9 +248,9 @@ Would you like to continue?`,
       return;
     }
   }
-  return Promise.all(nodes.map((node) => node.getItems4Export()))
+  return Promise.all(nodes.map((node) => node.getItemsForExport()))
     .then((items) => {
-      return exportList(items.flat(), node.workspaceFolder, nodeNs).then(() => explorerProvider.refresh());
+      return exportList(items.flat(), wsFolder, namespace).then(() => explorerProvider.refresh());
     })
     .catch((error) => {
       handleError(error, "Error exporting Explorer items.");
@@ -272,8 +268,7 @@ export async function exportCurrentFile(): Promise<any> {
     // Only export files opened from the explorer
     return;
   }
-  const api = new AtelierAPI(openDoc.uri);
-  return exportList([currentFile(openDoc).name], api.configName, api.config.ns);
+  return exportList([currentFile(openDoc).name], vscode.workspace.getWorkspaceFolder(openDoc.uri));
 }
 
 export async function exportDocumentsToXMLFile(): Promise<void> {

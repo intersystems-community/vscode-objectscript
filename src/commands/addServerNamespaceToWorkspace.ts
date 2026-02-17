@@ -17,7 +17,7 @@ import { isfsConfig, IsfsUriParam } from "../utils/FileProviderUtil";
  * @param message The prefix of the message to show when the server manager API can't be found.
  * @returns An object containing `serverName` and `namespace`, or `undefined`.
  */
-export async function pickServerAndNamespace(message?: string): Promise<{ serverName: string; namespace: string }> {
+async function pickServerAndNamespace(message?: string): Promise<{ serverName: string; namespace: string }> {
   if (!serverManagerApi) {
     vscode.window.showErrorMessage(
       `${

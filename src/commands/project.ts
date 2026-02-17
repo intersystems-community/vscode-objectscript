@@ -92,8 +92,8 @@ export async function pickProject(api: AtelierAPI, allowCreate = true): Promise<
 export async function createProject(node: NodeBase | undefined, api?: AtelierAPI): Promise<string | undefined> {
   if (api == undefined) {
     if (node instanceof NodeBase) {
-      api = new AtelierAPI(node.workspaceFolderUri);
-      api.setNamespace(node.namespace);
+      api = new AtelierAPI(node.wsFolder.uri);
+      if (node.namespace) api.setNamespace(node.namespace);
     } else {
       // Have the user pick a server connection
       const connUri = await getWsServerConnection();
@@ -160,8 +160,8 @@ export async function deleteProject(node: ProjectNode | undefined): Promise<any>
   let api: AtelierAPI;
   let project: string;
   if (node instanceof ProjectNode) {
-    api = new AtelierAPI(node.workspaceFolderUri);
-    api.setNamespace(node.namespace);
+    api = new AtelierAPI(node.wsFolder.uri);
+    if (node.namespace) api.setNamespace(node.namespace);
     project = node.label;
   } else {
     // Have the user pick a server connection
@@ -910,8 +910,7 @@ export async function exportProjectContents(): Promise<any> {
           [project]
         )
         .then((data) => data.result.content.map((e) => e.Name)),
-      wsFolder.name,
-      api.ns
+      wsFolder
     );
   } catch (error) {
     handleError(error, "Error executing 'Export Project Contents from Server...' command.");
@@ -997,7 +996,10 @@ export async function addIsfsFileToProject(project: string, fileName: string, ap
 
 export function addWorkspaceFolderForProject(node: ProjectNode): void {
   // Check if an isfs folder already exists for this project
-  const idx = isfsFolderForProject(node.label, new AtelierAPI(node.workspaceFolderUri));
+  const api = new AtelierAPI(node.wsFolder.uri);
+  if (node.namespace) api.setNamespace(node.namespace);
+  const serverName = api.config.serverName;
+  const idx = isfsFolderForProject(node.label, api);
   // If not, create one
   if (idx != -1) {
     vscode.window.showWarningMessage(`A workspace folder for this project already exists.`, "Dismiss");
@@ -1008,8 +1010,8 @@ export function addWorkspaceFolderForProject(node: ProjectNode): void {
     vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length : 0,
     0,
     {
-      uri: vscode.Uri.parse(`isfs://${node.conn.serverName}:${node.namespace}/?project=${node.label}`),
-      name: `${node.label} - ${node.conn.serverName}:${node.namespace.toUpperCase()}`,
+      uri: vscode.Uri.parse(`isfs://${serverName}:${api.ns.toLowerCase()}/?project=${node.label}`),
+      name: `${node.label} - ${serverName}:${api.ns}`,
     }
   );
   // Switch to Explorer view so user sees the outcome
@@ -1025,8 +1027,8 @@ async function handleCommandArg(
   if (nodeOrUri instanceof NodeBase) {
     // Called from Projects Explorer
     node = nodeOrUri;
-    api = new AtelierAPI(node.workspaceFolderUri);
-    api.setNamespace(node.namespace);
+    api = new AtelierAPI(node.wsFolder.uri);
+    if (node.namespace) api.setNamespace(node.namespace);
     project = node.options.project;
   } else if (nodeOrUri instanceof vscode.Uri) {
     // Called from files explorer
