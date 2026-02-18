@@ -71,3 +71,7 @@ For interactive debugging, use VS Code’s `Run and Debug` launch config (see `.
 - Commit messages typically use an imperative subject and often include a PR reference, e.g. `Fix unit test failure (#73)`.
 - Work on a branch (not `master`). PRs should include: problem statement, approach, testing notes, and screenshots for UI/webview changes.
 - Keep CI green; governance requires PMC review/approvals (see `GOVERNANCE.md` and `CONTRIBUTING.md`). If a change is user-facing, update `CHANGELOG.md`.
+
+## Workflow-Specific Guidance
+
+- For CI/CD workflow rules and upstream sync governance, follow `.github/workflows/AGENTS.md`.

@@ -1,0 +1,246 @@
+name: Sync upstream (daily)
+
+on:
+  schedule:
+    # GitHub cron é UTC.
+    # 03:00 UTC ≈ 00:00 America/Sao_Paulo.
+    - cron: "0 3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    env:
+      UPSTREAM_REPO: intersystems-community/vscode-objectscript
+      UPSTREAM_BRANCH: master
+      BASE_BRANCH: master
+      SYNC_BRANCH: bot/sync-upstream-master
+
+    steps:
+      - name: Checkout base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BASE_BRANCH }}
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream and fetch
+        run: |
+          git remote add upstream https://github.com/${UPSTREAM_REPO}.git
+          git fetch upstream --prune
+
+      - name: Check if Chat webhook is configured
+        id: chat
+        env:
+          CHAT_WEBHOOK: ${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}
+        run: |
+          if [ -n "${CHAT_WEBHOOK}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check if upstream has new commits
+        id: diff
+        run: |
+          set -euo pipefail
+          BASE_SHA="$(git rev-parse HEAD)"
+          UP_SHA="$(git rev-parse upstream/${UPSTREAM_BRANCH})"
+          echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          echo "upstream_sha=$UP_SHA" >> "$GITHUB_OUTPUT"
+
+          # Só precisa sync quando o topo do upstream ainda NÃO está contido na base.
+          if git merge-base --is-ancestor "upstream/${UPSTREAM_BRANCH}" "$BASE_SHA"; then
+            echo "needs_update=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "needs_update=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stop if no updates
+        if: steps.diff.outputs.needs_update != 'true'
+        run: echo "No updates. Nothing to do."
+
+      - name: Find existing sync PR
+        if: steps.diff.outputs.needs_update == 'true'
+        id: pr_lookup
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          PR_NUMBER="$(gh pr list --head "${SYNC_BRANCH}" --base "${BASE_BRANCH}" --state open --json number -q '.[0].number' || true)"
+          if [ -z "$PR_NUMBER" ]; then
+            echo "has_pr=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_pr=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare sync branch
+        if: steps.diff.outputs.needs_update == 'true'
+        id: prepare_branch
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --heads origin "${SYNC_BRANCH}" >/dev/null 2>&1; then
+            git fetch origin "${SYNC_BRANCH}"
+            if [ "${{ steps.pr_lookup.outputs.has_pr }}" = "true" ]; then
+              git checkout -B "${SYNC_BRANCH}" "origin/${SYNC_BRANCH}"
+              echo "branch_mode=reused_open_pr" >> "$GITHUB_OUTPUT"
+            else
+              UNIQUE_ON_SYNC="$(git rev-list --count "origin/${BASE_BRANCH}..origin/${SYNC_BRANCH}")"
+              if [ "$UNIQUE_ON_SYNC" -gt 0 ]; then
+                # Existe trabalho na branch de sync sem PR aberto: preservar para não perder contexto manual.
+                git checkout -B "${SYNC_BRANCH}" "origin/${SYNC_BRANCH}"
+                echo "branch_mode=reused_manual_work" >> "$GITHUB_OUTPUT"
+              else
+                git checkout -B "${SYNC_BRANCH}" "${BASE_BRANCH}"
+                git push --force-with-lease origin "${SYNC_BRANCH}"
+                echo "branch_mode=reset_to_base" >> "$GITHUB_OUTPUT"
+              fi
+            fi
+          else
+            git checkout -B "${SYNC_BRANCH}" "${BASE_BRANCH}"
+            git push -u origin "${SYNC_BRANCH}"
+            echo "branch_mode=created_from_base" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Attempt merge upstream into sync branch (merge commit)
+        if: steps.diff.outputs.needs_update == 'true'
+        id: merge_result
+        run: |
+          set -euo pipefail
+          git checkout "${SYNC_BRANCH}"
+          # Força merge commit quando possível
+          if git merge --no-ff --no-edit "upstream/${UPSTREAM_BRANCH}"; then
+            echo "merged=true" >> "$GITHUB_OUTPUT"
+          else
+            git merge --abort || true
+            echo "merged=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push merged result
+        if: steps.diff.outputs.needs_update == 'true' && steps.merge_result.outputs.merged == 'true'
+        run: |
+          git push origin "${SYNC_BRANCH}"
+
+      - name: Check if sync branch has PR diff
+        if: steps.diff.outputs.needs_update == 'true'
+        id: diff_for_pr
+        run: |
+          set -euo pipefail
+          git fetch origin "${BASE_BRANCH}" "${SYNC_BRANCH}" --prune
+          DIFF_COMMITS="$(git rev-list --count "origin/${BASE_BRANCH}..origin/${SYNC_BRANCH}")"
+          if [ "$DIFF_COMMITS" -gt 0 ]; then
+            echo "has_diff=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_diff=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "diff_commits=$DIFF_COMMITS" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update PR
+        if: steps.diff.outputs.needs_update == 'true'
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TITLE="Sync upstream/${UPSTREAM_BRANCH} → ${BASE_BRANCH}"
+          BODY="$(printf '%s\n\n%s\n%s\n%s\n%s\n\n%s' \
+            "Este PR sincroniza o fork com **${UPSTREAM_REPO}:${UPSTREAM_BRANCH}**." \
+            "- Base: \`${BASE_BRANCH}\`" \
+            "- Branch de sync: \`${SYNC_BRANCH}\`" \
+            "- Upstream SHA: \`${{ steps.diff.outputs.upstream_sha }}\`" \
+            "- Merge automático no branch de sync: \`${{ steps.merge_result.outputs.merged }}\`" \
+            "Se houver conflito, o workflow vai comentar aqui pedindo intervenção manual.")"
+
+          PR_NUMBER="${{ steps.pr_lookup.outputs.pr_number }}"
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr edit "$PR_NUMBER" --title "$TITLE" --body "$BODY"
+          else
+            if [ "${{ steps.diff_for_pr.outputs.has_diff }}" = "true" ]; then
+              gh pr create \
+                --base "${BASE_BRANCH}" \
+                --head "${SYNC_BRANCH}" \
+                --title "$TITLE" \
+                --body "$BODY"
+              PR_NUMBER="$(gh pr list --head "${SYNC_BRANCH}" --base "${BASE_BRANCH}" --state open --json number -q '.[0].number')"
+            else
+              PR_NUMBER=""
+            fi
+          fi
+
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          if [ -n "$PR_NUMBER" ]; then
+            echo "pr_url=https://github.com/$GITHUB_REPOSITORY/pull/$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          else
+            echo "pr_url=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Log when conflict has no open PR
+        if: steps.diff.outputs.needs_update == 'true' && steps.merge_result.outputs.merged != 'true' && steps.pr.outputs.pr_number == ''
+        run: |
+          echo "Merge conflict detected, and no valid PR diff exists yet."
+          echo "Resolve manually on branch ${SYNC_BRANCH}; then open a PR to ${BASE_BRANCH}."
+
+      - name: Enable auto-merge (MERGE, not squash/rebase)
+        if: steps.diff.outputs.needs_update == 'true' && steps.merge_result.outputs.merged == 'true' && steps.pr.outputs.pr_number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge "${{ steps.pr.outputs.pr_number }}" --auto --merge || echo "Auto-merge not enabled/available."
+
+      - name: Comment on PR if conflicts happened
+        if: steps.diff.outputs.needs_update == 'true' && steps.merge_result.outputs.merged != 'true' && steps.pr.outputs.pr_number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BODY="$(printf '%s\n\n%s\n%s\n%s\n%s\n%s\n\n%s' \
+            '⚠️ **Conflito ao sincronizar com upstream**.' \
+            'Para resolver manualmente:' \
+            "1) \`git checkout ${SYNC_BRANCH}\`" \
+            '2) `git fetch upstream`' \
+            "3) \`git merge upstream/${UPSTREAM_BRANCH}\`" \
+            '4) `Resolver conflitos, git add ., git commit, git push`' \
+            "PR: https://github.com/${GITHUB_REPOSITORY}/pull/${{ steps.pr.outputs.pr_number }}")"
+          gh pr comment "${{ steps.pr.outputs.pr_number }}" --body "$BODY"
+
+      - name: Notify Google Chat (success)
+        if: steps.chat.outputs.enabled == 'true' && steps.diff.outputs.needs_update == 'true' && steps.merge_result.outputs.merged == 'true' && steps.pr.outputs.pr_url != ''
+        env:
+          WEBHOOK: ${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}
+          MSG: >-
+            ✅ Sync do upstream concluído (merge commit) e PR marcado para auto-merge.
+            Repo: ${{ github.repository }}
+            PR: ${{ steps.pr.outputs.pr_url }}
+            Upstream SHA: ${{ steps.diff.outputs.upstream_sha }}
+        run: |
+          curl -sS -X POST "$WEBHOOK" \
+            -H 'Content-Type: application/json' \
+            -d "$(python3 -c 'import json, os; print(json.dumps({"text": os.environ["MSG"]}))')"
+
+      - name: Notify Google Chat (conflict)
+        if: steps.chat.outputs.enabled == 'true' && steps.diff.outputs.needs_update == 'true' && steps.merge_result.outputs.merged != 'true'
+        env:
+          WEBHOOK: ${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}
+          MSG: >-
+            ⚠️ Sync do upstream encontrou CONFLITO e precisa intervenção manual.
+            Repo: ${{ github.repository }}
+            PR: ${{ steps.pr.outputs.pr_url }}
+            Branch: ${{ env.SYNC_BRANCH }}
+            Upstream SHA: ${{ steps.diff.outputs.upstream_sha }}
+        run: |
+          curl -sS -X POST "$WEBHOOK" \
+            -H 'Content-Type: application/json' \
+            -d "$(python3 -c 'import json, os; print(json.dumps({"text": os.environ["MSG"]}))')"
