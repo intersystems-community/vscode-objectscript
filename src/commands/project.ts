@@ -215,7 +215,7 @@ export async function deleteProject(node: ProjectNode | undefined): Promise<any>
 
 /**
  * @param Name The name of the item to add.
- * @param Type The type of the item to add. Either "MAC", "CLS", "PKG", "CSP", "DIR" or "OTH".
+ * @param Type The type of the item to add. Either "MAC", "CLS", "PKG", "CSP", "DIR", or an abstract document type like "OTH" or "LUT".
  * @param items The items currently in the project.
  */
 function addProjectItem(
@@ -268,7 +268,7 @@ function addProjectItem(
           (item.Type == "CSP" || item.Type == "DIR") && item.Name.toLowerCase().startsWith(`${Name.toLowerCase()}/`)
       )
     );
-  } else if (Type == "OTH" && !items.some((item) => item.Name.toLowerCase() == Name.toLowerCase())) {
+  } else if (!items.some((item) => item.Name.toLowerCase() == Name.toLowerCase())) {
     add.push({ Name, Type });
   }
 
@@ -321,8 +321,15 @@ export function removeProjectItem(Name: string, Type: string, items: ProjectItem
         )
       );
     }
-  } else if (Type == "OTH" && items.some((item) => item.Name.toLowerCase() == Name.toLowerCase())) {
-    remove.push({ Name, Type: items.find((item) => item.Name.toLowerCase() == Name.toLowerCase())?.Type ?? Type });
+  } else if (Type == "OTH") {
+    // Remove all items of any abstract document type that have the same name as the target item
+    remove.concat(
+      items.filter(
+        (item) =>
+          item.Name.toLowerCase() == Name.toLowerCase() &&
+          !["MAC", "CLS", "PKG", "CSP", "DIR", "GBL"].includes(item.Type)
+      )
+    );
   }
 
   return remove;
@@ -680,7 +687,9 @@ export async function modifyProject(
             type = "DIR";
           }
         } else {
-          type = "OTH";
+          // Other tools like Production deployment expect the Type of
+          // an abstract document item to be the document's extension
+          type = ext.toUpperCase();
         }
 
         let newAdd: ProjectItem[] = [];
@@ -952,7 +961,9 @@ export async function addIsfsFileToProject(project: string, fileName: string, ap
       ? "CLS"
       : ["mac", "int", "inc"].includes(ext)
         ? "MAC"
-        : "OTH";
+        : // Other tools like Production deployment expect the Type of
+          // an abstract document item to be the document's extension
+          ext.toUpperCase();
   const items: ProjectItem[] = await api
     .actionQuery("SELECT Name, Type FROM %Studio.Project_ProjectItemsList(?,?) WHERE Type != 'GBL'", [project, "1"])
     .then((data) => data.result.content);
