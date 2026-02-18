@@ -10,7 +10,7 @@ import {
   notIsfs,
   displayableUri,
   stripClassMemberNameQuotes,
-  uriIsParentOf,
+  uriIsAncestorOf,
 } from "../utils";
 import { fileSpecFromURI, isfsConfig } from "../utils/FileProviderUtil";
 import { AtelierAPI } from "../api";
@@ -418,7 +418,7 @@ function rootItemForItem(testController: vscode.TestController, uri: vscode.Uri)
   let rootItem: vscode.TestItem;
   const uriString = uri.toString();
   for (const [, i] of testController.items) {
-    if (uriIsParentOf(i.uri, uri) || uriString == i.uri.toString()) {
+    if (uriIsAncestorOf(i.uri, uri) || uriString == i.uri.toString()) {
       rootItem = i;
       break;
     }
@@ -696,10 +696,10 @@ function pathMatchesAnyWorkspaceRoot(workspaceRootItem: vscode.TestItem, candida
     if (candidate.toString() === rootUri.toString()) {
       return true;
     }
-    if (uriIsParentOf(candidate, rootUri)) {
+    if (uriIsAncestorOf(candidate, rootUri)) {
       return true;
     }
-    if (uriIsParentOf(rootUri, candidate)) {
+    if (uriIsAncestorOf(rootUri, candidate)) {
       return true;
     }
     return false;
@@ -1359,7 +1359,7 @@ async function runHandler(
         {
           matchOnDetail: true,
           title: `Cannot ${action} tests from multiple roots at once`,
-          placeHolder: `Pick a root to ${action} tests from`,
+          prompt: `Pick a root to ${action} tests from`,
         }
       );
       if (picked) {
@@ -1379,7 +1379,7 @@ async function runHandler(
     const rootUriString = root.uri.toString();
     if (request.include?.length) {
       request.include.forEach((i) => {
-        if (uriIsParentOf(root.uri, i.uri) || i.uri.toString() == rootUriString) {
+        if (uriIsAncestorOf(root.uri, i.uri) || i.uri.toString() == rootUriString) {
           queue.push(i);
         }
       });
@@ -2079,7 +2079,7 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
       // Update root items if needed
       e.removed.forEach((wf) => {
         testController.items.forEach((i) => {
-          if (uriIsParentOf(wf.uri, i.uri)) {
+          if (uriIsAncestorOf(wf.uri, i.uri)) {
             // Remove this TestItem
             classesForRoot.delete(i);
             testController.items.delete(i.id);

@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { classNameRegex } from "../utils";
+import { classNameRegex, webviewCSS } from "../utils";
 import { clsLangId, iscIcon } from "../extension";
 
 /**
@@ -120,17 +120,7 @@ export class DocumaticPreviewPanel {
 			<head>
 				<meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-          div.code-block {
-            background-color: var(--vscode-textCodeBlock-background);
-            border-radius: 5px;
-            font-family: monospace;
-            white-space: pre;
-            padding: 10px;
-            padding-top: initial;
-            overflow-x: scroll;
-          }
-        </style>
+        <style>${webviewCSS}</style>
 			</head>
 			<body>
 				<h2 id="header"></h2>

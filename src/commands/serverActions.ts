@@ -19,7 +19,6 @@ import {
 } from "../utils";
 import { mainCommandMenu, mainSourceControlMenu } from "./studio";
 import { AtelierAPI } from "../api";
-import { getCSPToken } from "../utils/getCSPToken";
 import { isfsConfig } from "../utils/FileProviderUtil";
 
 type ServerAction = { detail: string; id: string; label: string; rawLink?: string };
@@ -224,11 +223,11 @@ export async function serverActions(): Promise<void> {
       }
       switch (action.id) {
         case "openPortal": {
-          vscode.env.openExternal(vscode.Uri.parse(`${serverUrl}${portalPath}`));
+          vscode.commands.executeCommand("workbench.action.browser.open", `${serverUrl}${portalPath}`);
           break;
         }
         case "openClassReference": {
-          vscode.env.openExternal(vscode.Uri.parse(`${serverUrl}${classRef}`));
+          vscode.commands.executeCommand("workbench.action.browser.open", `${serverUrl}${classRef}`);
           break;
         }
         case "openStudioAddin": {
@@ -248,15 +247,12 @@ export async function serverActions(): Promise<void> {
             });
             if (addin) {
               sendStudioAddinTelemetryEvent(addin.label);
-              const token = await getCSPToken(api, addin.id);
               let params = `Namespace=${nsEncoded}`;
               params += `&User=${encodeURIComponent(username)}`;
-              if (project !== "") {
+              if (project != "") {
                 params += `&Project=${encodeURIComponent(project)}`;
               }
-              params += `&CSPCHD=${token}`;
-              params += "&CSPSHARE=1";
-              vscode.env.openExternal(vscode.Uri.parse(`${serverUrl}${addin.id}?${params}`));
+              vscode.commands.executeCommand("workbench.action.browser.open", `${serverUrl}${addin.id}?${params}`);
             }
           }
           break;
@@ -278,16 +274,7 @@ export async function serverActions(): Promise<void> {
           break;
         }
         default: {
-          let url = vscode.Uri.parse(action.detail);
-          if (action.rawLink?.startsWith("${serverUrl}")) {
-            const token = await getCSPToken(api, url.path);
-            if (token.length > 0) {
-              url = url.with({
-                query: url.query.length ? `${url.query}&CSPCHD=${token}` : `CSPCHD=${token}`,
-              });
-            }
-          }
-          vscode.env.openExternal(url);
+          vscode.commands.executeCommand("workbench.action.browser.open", action.detail);
         }
       }
     });
