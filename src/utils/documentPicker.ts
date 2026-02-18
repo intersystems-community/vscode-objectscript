@@ -89,9 +89,6 @@ export async function pickDocuments(api: AtelierAPI, prompt?: string): Promise<s
   let gen: "0" | "1" = "0";
   let map: "0" | "1" = "1";
   const query = "SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,?,0,0,?,,0,?)";
-  const sysBtn = new vscode.ThemeIcon("library");
-  const genBtn = new vscode.ThemeIcon("server-process");
-  const mapBtn = new vscode.ThemeIcon("references");
   const webApps = cspAppsForApi(api);
   const webAppRootItems = webApps.map((app: string) => {
     return {
@@ -117,9 +114,24 @@ export async function pickDocuments(api: AtelierAPI, prompt?: string): Promise<s
     quickPick.keepScrollPosition = true;
     quickPick.matchOnDescription = true;
     quickPick.buttons = [
-      { iconPath: sysBtn, tooltip: "Show system documents" },
-      { iconPath: genBtn, tooltip: "Show generated documents" },
-      { iconPath: mapBtn, tooltip: "Hide mapped documents" },
+      {
+        iconPath: new vscode.ThemeIcon("library"),
+        tooltip: "System",
+        location: vscode.QuickInputButtonLocation.Input,
+        toggle: { checked: false },
+      },
+      {
+        iconPath: new vscode.ThemeIcon("server-process"),
+        tooltip: "Generated",
+        location: vscode.QuickInputButtonLocation.Input,
+        toggle: { checked: false },
+      },
+      {
+        iconPath: new vscode.ThemeIcon("references"),
+        tooltip: "Mapped",
+        location: vscode.QuickInputButtonLocation.Input,
+        toggle: { checked: true },
+      },
     ];
 
     const getRootItems = (): Promise<void> => {
@@ -187,52 +199,12 @@ export async function pickDocuments(api: AtelierAPI, prompt?: string): Promise<s
     quickPick.onDidTriggerButton((button) => {
       quickPick.busy = true;
       quickPick.enabled = false;
-      if (button.tooltip.charAt(0) == "S") {
-        if (button.tooltip.includes("system")) {
-          quickPick.buttons = [
-            { iconPath: sysBtn, tooltip: "Hide system documents" },
-            quickPick.buttons[1],
-            quickPick.buttons[2],
-          ];
-          sys = "1";
-        } else if (button.tooltip.includes("generated")) {
-          quickPick.buttons = [
-            quickPick.buttons[0],
-            { iconPath: genBtn, tooltip: "Hide generated documents" },
-            quickPick.buttons[2],
-          ];
-          gen = "1";
-        } else {
-          quickPick.buttons = [
-            quickPick.buttons[0],
-            quickPick.buttons[1],
-            { iconPath: mapBtn, tooltip: "Hide mapped documents" },
-          ];
-          map = "1";
-        }
+      if (button.tooltip == "System") {
+        sys = button.toggle.checked ? "1" : "0";
+      } else if (button.tooltip == "Generated") {
+        gen = button.toggle.checked ? "1" : "0";
       } else {
-        if (button.tooltip.includes("system")) {
-          quickPick.buttons = [
-            { iconPath: sysBtn, tooltip: "Show system documents" },
-            quickPick.buttons[1],
-            quickPick.buttons[2],
-          ];
-          sys = "0";
-        } else if (button.tooltip.includes("generated")) {
-          quickPick.buttons = [
-            quickPick.buttons[0],
-            { iconPath: genBtn, tooltip: "Show generated documents" },
-            quickPick.buttons[2],
-          ];
-          gen = "0";
-        } else {
-          quickPick.buttons = [
-            quickPick.buttons[0],
-            quickPick.buttons[1],
-            { iconPath: mapBtn, tooltip: "Show mapped documents" },
-          ];
-          map = "0";
-        }
+        map = button.toggle.checked ? "1" : "0";
       }
       // Refresh the items list
       getRootItems();
@@ -320,9 +292,6 @@ export async function pickDocument(api: AtelierAPI, prompt?: string): Promise<st
   let gen: "0" | "1" = "0";
   let map: "0" | "1" = "1";
   const query = "SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,?,0,0,?,,0,?)";
-  const sysBtn = new vscode.ThemeIcon("library");
-  const genBtn = new vscode.ThemeIcon("server-process");
-  const mapBtn = new vscode.ThemeIcon("references");
   const webApps = cspAppsForApi(api);
   const webAppRootItems = webApps.map((app: string) => {
     return {
@@ -336,9 +305,24 @@ export async function pickDocument(api: AtelierAPI, prompt?: string): Promise<st
     quickPick.title = `${prompt ? prompt : "Select a document"} in namespace '${api.ns}' on server '${api.serverId}'`;
     quickPick.ignoreFocusOut = true;
     quickPick.buttons = [
-      { iconPath: sysBtn, tooltip: "Show system documents" },
-      { iconPath: genBtn, tooltip: "Show generated documents" },
-      { iconPath: mapBtn, tooltip: "Hide mapped documents" },
+      {
+        iconPath: new vscode.ThemeIcon("library"),
+        tooltip: "System",
+        location: vscode.QuickInputButtonLocation.Input,
+        toggle: { checked: false },
+      },
+      {
+        iconPath: new vscode.ThemeIcon("server-process"),
+        tooltip: "Generated",
+        location: vscode.QuickInputButtonLocation.Input,
+        toggle: { checked: false },
+      },
+      {
+        iconPath: new vscode.ThemeIcon("references"),
+        tooltip: "Mapped",
+        location: vscode.QuickInputButtonLocation.Input,
+        toggle: { checked: true },
+      },
     ];
 
     const getRootItems = (): Promise<void> => {
@@ -372,52 +356,12 @@ export async function pickDocument(api: AtelierAPI, prompt?: string): Promise<st
     quickPick.onDidTriggerButton((button) => {
       quickPick.busy = true;
       quickPick.enabled = false;
-      if (button.tooltip.charAt(0) == "S") {
-        if (button.tooltip.includes("system")) {
-          quickPick.buttons = [
-            { iconPath: sysBtn, tooltip: "Hide system documents" },
-            quickPick.buttons[1],
-            quickPick.buttons[2],
-          ];
-          sys = "1";
-        } else if (button.tooltip.includes("generated")) {
-          quickPick.buttons = [
-            quickPick.buttons[0],
-            { iconPath: genBtn, tooltip: "Hide generated documents" },
-            quickPick.buttons[2],
-          ];
-          gen = "1";
-        } else {
-          quickPick.buttons = [
-            quickPick.buttons[0],
-            quickPick.buttons[1],
-            { iconPath: mapBtn, tooltip: "Hide mapped documents" },
-          ];
-          map = "1";
-        }
+      if (button.tooltip == "System") {
+        sys = button.toggle.checked ? "1" : "0";
+      } else if (button.tooltip == "Generated") {
+        gen = button.toggle.checked ? "1" : "0";
       } else {
-        if (button.tooltip.includes("system")) {
-          quickPick.buttons = [
-            { iconPath: sysBtn, tooltip: "Show system documents" },
-            quickPick.buttons[1],
-            quickPick.buttons[2],
-          ];
-          sys = "0";
-        } else if (button.tooltip.includes("generated")) {
-          quickPick.buttons = [
-            quickPick.buttons[0],
-            { iconPath: genBtn, tooltip: "Show generated documents" },
-            quickPick.buttons[2],
-          ];
-          gen = "0";
-        } else {
-          quickPick.buttons = [
-            quickPick.buttons[0],
-            quickPick.buttons[1],
-            { iconPath: mapBtn, tooltip: "Show mapped documents" },
-          ];
-          map = "0";
-        }
+        map = button.toggle.checked ? "1" : "0";
       }
       // Refresh the items list
       getRootItems();

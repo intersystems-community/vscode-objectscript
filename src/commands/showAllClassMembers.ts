@@ -125,7 +125,7 @@ SELECT Name, Origin, 'x' AS MemberType, Parent, Internal, 0 AS NotInheritable, M
       }),
       {
         title: `All members of ${cls}`,
-        placeHolder: "Pick a member to show it in the editor",
+        prompt: "Pick a member to show it in the editor",
       }
     );
     if (!member) return;

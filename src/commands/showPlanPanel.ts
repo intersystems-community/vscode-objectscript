@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { DOMParser } from "@xmldom/xmldom";
 import { lt } from "semver";
 import { AtelierAPI } from "../api";
-import { handleError } from "../utils";
+import { handleError, webviewCSS } from "../utils";
 import { iscIcon } from "../extension";
 
 const viewType = "isc-show-plan";
@@ -219,15 +219,7 @@ export async function showPlanWebview(args: {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${viewTitle}</title>
-        <style>
-          .vscode-divider {
-            background-color: var(--vscode-widget-border);
-            border: 0;
-            display: block;
-            height: 1px;
-            margin-bottom: 10px;
-            margin-top: 10px;
-          }
+        <style>${webviewCSS}
           .warning-h {
             color: var(--vscode-terminal-ansiYellow);
           }
@@ -239,15 +231,6 @@ export async function showPlanWebview(args: {
           }
           .subquery {
             color: var(--vscode-terminal-ansiGreen);
-          }
-          div.code-block {
-            background-color: var(--vscode-textCodeBlock-background);
-            border-radius: 5px;
-            font-family: monospace;
-            white-space: pre;
-            padding: 10px;
-            padding-top: initial;
-            overflow-x: scroll;
           }
         </style>
       </head>
