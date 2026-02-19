@@ -443,39 +443,35 @@ export function inferDocName(uri: vscode.Uri): string | undefined {
   const wsFolder = vscode.workspace.getWorkspaceFolder(uri);
   if (!wsFolder) return;
   const index = wsFolderIndex.get(wsFolder.uri.toString());
-  if (!index) return;
-  // Convert the URI into an array of path segments
-  const uriParts = uri.path.split("/");
-  uriParts.pop();
-  // Stop looping once we reach the workspace folder root
-  const loopEnd = wsFolder.uri.path.split("/").length - (wsFolder.uri.path.endsWith("/") ? 1 : 0);
-  // Look for known documents in the same directory tree as the target URI.
-  // Once we find a match, look at the relationship between the URI and name
-  // and apply that same relationship to the target URI. Start at the containing
-  // directory of the target and then work up the tree until we have a match.
-  let result: string;
-  for (let i = uriParts.length; i >= loopEnd; i--) {
-    const uriDir = `${uriParts.slice(0, i).join("/")}/`;
-    for (const [docUriStr, docName] of index.uris) {
+  if (!index || !index.uris.size) return;
+  // Get a list of all unique paths containing classes or routines that
+  // do not contribute to the name of the documents contained within
+  const containingPaths: Set<string> = new Set();
+  index.uris.forEach((docName, docUriStr) => {
+    const docNameExt = docName.slice(-4);
+    if (exts.includes(docNameExt)) {
       const docUri = vscode.Uri.parse(docUriStr);
-      if (exts.includes(docName.slice(-4)) && docUri.path.startsWith(uriDir)) {
-        // This class or routine is in the same directory tree as the target
-        // so attempt to determine how its name relates to its URI
-        const docNamePath = `/${docName.slice(0, -4).replaceAll(".", "/")}${docName.slice(-4)}`;
-        // Make sure the file extension is lowercased in the path before matching
-        const startOfDocName = (docUri.path.slice(0, -3) + docUri.path.slice(-3).toLowerCase()).lastIndexOf(
-          docNamePath
-        );
-        if (startOfDocName > -1) {
-          // We've identified the leading path segments that don't contribute to the document name,
-          // so remove them from the target URI before generating the document name. Need the + 1 to
-          // remove the leading slash which was part of the match string.
-          result = `${uri.path.slice(startOfDocName + 1, -4).replaceAll("/", ".")}${fileExt}`;
-          break;
-        }
+      // This entry is for a class or routine so see if its name and file system path match
+      const docNamePath = `/${docName.slice(0, -4).replaceAll(".", "/")}${docNameExt}`;
+      // Make sure the file extension is lowercased in the path before matching
+      const startOfDocName = (docUri.path.slice(0, -3) + docUri.path.slice(-3).toLowerCase()).lastIndexOf(docNamePath);
+      if (startOfDocName > -1) {
+        // The document name is the trailing substring of the file system path with different delimiters
+        containingPaths.add(docUri.path.slice(0, startOfDocName + 1));
       }
     }
-    if (result) break;
+  });
+  if (!containingPaths.size) return; // We couldn't learn anyhting from the documents in the index
+  // Sort the values in the Set by number of segments descending so we check the longest paths first
+  const containingPathsSorted = Array.from(containingPaths).sort((a, b) => b.split("/").length - a.split("/").length);
+  let result: string;
+  for (const prefix of containingPathsSorted) {
+    if (uri.path.startsWith(prefix)) {
+      // We've identified the leading path segments that don't contribute to the document
+      // name, so remove them from the target URI before generating the document name
+      result = `${uri.path.slice(prefix.length, -4).replaceAll("/", ".")}${fileExt}`;
+      break;
+    }
   }
   return result;
 }
