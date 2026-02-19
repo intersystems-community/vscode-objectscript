@@ -450,14 +450,14 @@ export function inferDocName(uri: vscode.Uri): string | undefined {
   index.uris.forEach((docName, docUriStr) => {
     const docExt = docName.slice(-4);
     if (exts.includes(docExt)) {
-      const docUri = vscode.Uri.parse(docUriStr);
       // This entry is for a class or routine so see if its name and file system path match
       const docNamePath = `/${docName.slice(0, -4).replaceAll(".", "/")}${docExt}`;
       // Make sure the file extension is lowercased in the path before matching
-      const startOfDocName = (docUri.path.slice(0, -3) + docUri.path.slice(-3).toLowerCase()).lastIndexOf(docNamePath);
-      if (startOfDocName > -1) {
+      let fullPath = vscode.Uri.parse(docUriStr).path;
+      fullPath = fullPath.slice(0, -3) + fullPath.slice(-3).toLowerCase();
+      if (fullPath.endsWith(docNamePath)) {
         // The document name is the trailing substring of the file system path with different delimiters
-        containingPaths.add(docUri.path.slice(0, startOfDocName + 1));
+        containingPaths.add(fullPath.slice(0, -docNamePath.length + 1));
       }
     }
   });
