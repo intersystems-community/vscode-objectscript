@@ -448,11 +448,11 @@ export function inferDocName(uri: vscode.Uri): string | undefined {
   // do not contribute to the name of the documents contained within
   const containingPaths: Set<string> = new Set();
   index.uris.forEach((docName, docUriStr) => {
-    const docNameExt = docName.slice(-4);
-    if (exts.includes(docNameExt)) {
+    const docExt = docName.slice(-4);
+    if (exts.includes(docExt)) {
       const docUri = vscode.Uri.parse(docUriStr);
       // This entry is for a class or routine so see if its name and file system path match
-      const docNamePath = `/${docName.slice(0, -4).replaceAll(".", "/")}${docNameExt}`;
+      const docNamePath = `/${docName.slice(0, -4).replaceAll(".", "/")}${docExt}`;
       // Make sure the file extension is lowercased in the path before matching
       const startOfDocName = (docUri.path.slice(0, -3) + docUri.path.slice(-3).toLowerCase()).lastIndexOf(docNamePath);
       if (startOfDocName > -1) {
@@ -461,8 +461,8 @@ export function inferDocName(uri: vscode.Uri): string | undefined {
       }
     }
   });
-  if (!containingPaths.size) return; // We couldn't learn anyhting from the documents in the index
-  // Sort the values in the Set by number of segments descending so we check the longest paths first
+  if (!containingPaths.size) return; // We couldn't learn anything from the documents in the index
+  // Sort the values in the Set by number of segments descending so we check the deepest paths first
   const containingPathsSorted = Array.from(containingPaths).sort((a, b) => b.split("/").length - a.split("/").length);
   let result: string;
   for (const prefix of containingPathsSorted) {
