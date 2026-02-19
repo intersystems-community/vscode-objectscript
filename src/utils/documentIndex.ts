@@ -462,7 +462,10 @@ export function inferDocName(uri: vscode.Uri): string | undefined {
     }
   });
   if (!containingPaths.size) return; // We couldn't learn anything from the documents in the index
-  // Sort the values in the Set by number of segments descending so we check the deepest paths first
+  // Sort the values in the Set by length descending so we check child directories before their parents.
+  // This ensures that we use the mapping of a document that is as close a neighbor as possible. This
+  // is necessary for the rare situaions for documents in /foo/bar/ have a different mapping than /foo/
+  // and the target URI is in /foo/bar/ or a subfolder of it.
   const containingPathsSorted = Array.from(containingPaths).sort((a, b) => b.length - a.length);
   let result: string;
   for (const prefix of containingPathsSorted) {
