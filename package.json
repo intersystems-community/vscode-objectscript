@@ -48,7 +48,7 @@
     }
   ],
   "engines": {
-    "vscode": "^1.109.0"
+    "vscode": "^1.107.0"
   },
   "enabledApiProposals": [
     "fileSearchProvider",
