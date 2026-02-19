@@ -26,7 +26,7 @@ async function main() {
       });
 
     // Install dependent extensions
-    installExtension("intersystems-community.servermanager");
+    installExtension("consistem-sistemas.servermanager");
     installExtension("consistem-sistemas.language-server");
 
     const launchArgs = ["-n", workspace, "--enable-proposed-api", "consistem-sistemas.vscode-objectscript"];

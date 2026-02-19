@@ -22,7 +22,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
   }
   if (!serverManagerApi) {
     vscode.window.showErrorMessage(
-      "Connecting a folder to a server namespace requires the [InterSystems Server Manager extension](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) to be installed and enabled.",
+      "Connecting a folder to a server namespace requires the [InterSystems Server Manager extension](https://marketplace.visualstudio.com/items?itemName=consistem-sistemas.servermanager) to be installed and enabled.",
       "Dismiss"
     );
     return;

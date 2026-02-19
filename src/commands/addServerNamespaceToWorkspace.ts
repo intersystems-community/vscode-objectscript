@@ -22,7 +22,7 @@ export async function pickServerAndNamespace(message?: string): Promise<{ server
     vscode.window.showErrorMessage(
       `${
         message ? message : "Picking a server and namespace"
-      } requires the [InterSystems Server Manager extension](https://marketplace.visualstudio.com/items?itemName=intersystems-community.servermanager) to be installed and enabled.`,
+      } requires the [InterSystems Server Manager extension](https://marketplace.visualstudio.com/items?itemName=consistem-sistemas.servermanager) to be installed and enabled.`,
       "Dismiss"
     );
     return;

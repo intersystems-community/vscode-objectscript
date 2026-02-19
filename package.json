@@ -2000,6 +2000,6 @@
     "ws": "^8.18.3"
   },
   "extensionDependencies": [
-    "intersystems-community.servermanager"
+    "consistem-sistemas.servermanager"
   ]
 }
