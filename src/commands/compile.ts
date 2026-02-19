@@ -434,10 +434,10 @@ export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<
 }
 
 export async function compileExplorerItems(nodes: NodeBase[]): Promise<any> {
-  const { workspaceFolderUri, namespace } = nodes[0];
-  const conf = vscode.workspace.getConfiguration("objectscript", workspaceFolderUri);
-  const api = new AtelierAPI(workspaceFolderUri);
-  api.setNamespace(namespace);
+  const { wsFolder, namespace } = nodes[0];
+  const conf = vscode.workspace.getConfiguration("objectscript", wsFolder);
+  const api = new AtelierAPI(wsFolder.uri);
+  if (namespace) api.setNamespace(namespace);
   const docs = [];
   for (const node of nodes) {
     if (node instanceof PackageNode) {

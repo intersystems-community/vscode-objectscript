@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { config, documentContentProvider, OBJECTSCRIPT_FILE_SCHEMA, projectsExplorerProvider } from "../extension";
+import { documentContentProvider, OBJECTSCRIPT_FILE_SCHEMA, projectsExplorerProvider } from "../extension";
 import { handleError, notIsfs } from "../utils";
 import { StudioActions, OtherStudioAction } from "../commands/studio";
 import { NodeBase, WorkspaceNode } from "./nodes";
@@ -138,45 +138,47 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
   public onDidChangeTreeData: vscode.Event<NodeBase>;
 
   private _onDidChangeTreeData: vscode.EventEmitter<NodeBase>;
-  private _showExtra4Workspace: { [key: string]: string[] }[] = [];
+  private _showExtraForWorkspace: { [key: string]: string[] }[] = [];
 
   public constructor() {
     this._onDidChangeTreeData = new vscode.EventEmitter<NodeBase>();
     this.onDidChangeTreeData = this._onDidChangeTreeData.event;
   }
 
-  public async selectNamespace(workspaceFolder: string): Promise<any> {
-    const extra4Workspace = this._showExtra4Workspace[workspaceFolder] || [];
-    const api = new AtelierAPI(workspaceFolder);
-    return api
-      .serverInfo()
-      .then((data) => data.result.content.namespaces)
-      .then((data) => data.filter((ns) => ns !== api.ns && !extra4Workspace.includes(ns)))
-      .then((data) => data.map((ns) => ({ label: ns })))
-      .then((data) =>
-        vscode.window.showQuickPick(data, {
-          title: `Pick a namespace on ${api.config.host}:${api.config.port} to add to the Explorer`,
-        })
-      )
-      .then((ns) => this.showExtra4Workspace(workspaceFolder, ns.label))
-      .catch(() => null);
-  }
-
-  public showExtra4Workspace(workspaceFolder: string, ns: string): void {
-    const extra4Workspace = this._showExtra4Workspace[workspaceFolder] || [];
-    if (!extra4Workspace.includes(ns)) {
-      extra4Workspace.push(ns);
-      this._showExtra4Workspace[workspaceFolder] = extra4Workspace;
-      this._onDidChangeTreeData.fire(null);
+  public async showExtraForWorkspace(wsFolder: vscode.WorkspaceFolder): Promise<any> {
+    try {
+      const api = new AtelierAPI(wsFolder.uri);
+      const extras = this._showExtraForWorkspace[wsFolder.name] ?? [];
+      const namespaces = await api
+        .serverInfo()
+        .then((data) => data.result.content.namespaces.filter((ns) => ns != api.ns && !extras.includes(ns)));
+      const server = api.connInfo.slice(0, api.connInfo.lastIndexOf("["));
+      if (namespaces.length == 0) {
+        vscode.window.showInformationMessage(
+          `All accessible namespaces on server '${server}' are shown in the Explorer.`,
+          "Dismiss"
+        );
+        return;
+      }
+      const ns = await vscode.window.showQuickPick(namespaces, {
+        title: `Pick a namespace on '${server}' to show in the Explorer`,
+      });
+      if (ns) {
+        extras.push(ns);
+        this._showExtraForWorkspace[wsFolder.name] = extras;
+        this._onDidChangeTreeData.fire(null);
+      }
+    } catch (error) {
+      handleError(error, "Failed to fetch the list of accessible namespaces.");
     }
   }
 
-  public closeExtra4Workspace(workspaceFolder: string, ns: string): void {
-    const extra4Workspace = this._showExtra4Workspace[workspaceFolder] || [];
-    const pos = extra4Workspace.indexOf(ns);
+  public closeExtraForWorkspace(workspaceFolder: string, ns: string): void {
+    const extras = this._showExtraForWorkspace[workspaceFolder] || [];
+    const pos = extras.indexOf(ns);
     if (pos >= 0) {
-      extra4Workspace.splice(pos, 1);
-      this._showExtra4Workspace[workspaceFolder] = extra4Workspace;
+      extras.splice(pos, 1);
+      this._showExtraForWorkspace[workspaceFolder] = extras;
       this._onDidChangeTreeData.fire(null);
     }
   }
@@ -198,30 +200,25 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
 
   private async getRootNodes(): Promise<NodeBase[]> {
     const rootNodes: NodeBase[] = [];
-    let node: NodeBase;
-
-    const workspaceFolders = vscode.workspace.workspaceFolders || [];
-    workspaceFolders
-      .filter((workspaceFolder) => workspaceFolder.uri && notIsfs(workspaceFolder.uri))
-      .forEach((workspaceFolder) => {
-        const conn: any = config("conn", workspaceFolder.name);
-        if (conn.active && conn.ns) {
-          const extra4Workspace = this._showExtra4Workspace[workspaceFolder.name] || [];
-          node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData, {
-            workspaceFolder: workspaceFolder.name,
-          });
-          rootNodes.push(node);
-
-          extra4Workspace.forEach((ns) => {
-            node = new WorkspaceNode(workspaceFolder.name, this._onDidChangeTreeData, {
-              workspaceFolder: workspaceFolder.name,
+    // Add a root for each client-side folder with an active server connection
+    (vscode.workspace.workspaceFolders ?? []).forEach((wsFolder) => {
+      if (notIsfs(wsFolder.uri) && new AtelierAPI(wsFolder.uri).active) {
+        rootNodes.push(
+          new WorkspaceNode(wsFolder.name, this._onDidChangeTreeData, {
+            wsFolder: wsFolder,
+          })
+        );
+        // Add a root for each extra node the user configured
+        (this._showExtraForWorkspace[wsFolder.name] ?? []).forEach((ns: string) => {
+          rootNodes.push(
+            new WorkspaceNode(wsFolder.name, this._onDidChangeTreeData, {
+              wsFolder: wsFolder,
               namespace: ns,
-              extraNode: true,
-            });
-            rootNodes.push(node);
-          });
-        }
-      });
+            })
+          );
+        });
+      }
+    });
     await vscode.commands.executeCommand("setContext", "vscode-objectscript.explorerRootCount", rootNodes.length);
     return rootNodes;
   }

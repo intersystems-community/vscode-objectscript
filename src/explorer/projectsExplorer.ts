@@ -1,17 +1,16 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { notIsfs } from "../utils";
+import { handleError, notIsfs, notNull } from "../utils";
 import { NodeBase, ProjectsServerNsNode } from "./nodes";
 
 export class ProjectsExplorerProvider implements vscode.TreeDataProvider<NodeBase> {
   public onDidChangeTreeData: vscode.Event<NodeBase>;
   private _onDidChangeTreeData: vscode.EventEmitter<NodeBase>;
 
-  /** The labels of all current root nodes */
-  private _roots: string[] = [];
-
-  /** The server:ns string for all extra root nodes */
-  private readonly _extraRoots: string[] = [];
+  /** Connection info for all workspace folder roots */
+  private readonly _roots: string[] = [];
+  /** Info for all extra root nodes */
+  private readonly _extraRoots: { wsFolder: vscode.WorkspaceFolder; ns: string; server: string }[] = [];
 
   public constructor() {
     this._onDidChangeTreeData = new vscode.EventEmitter<NodeBase>();
@@ -32,69 +31,70 @@ export class ProjectsExplorerProvider implements vscode.TreeDataProvider<NodeBas
     return element.getChildren(element);
   }
 
-  public openExtraServerNs(serverNs: { serverName: string; namespace: string }): void {
-    // Check if this server namespace is already open
-    if (this._roots.includes(`${serverNs.serverName}[${serverNs.namespace}]`)) {
-      vscode.window.showWarningMessage(
-        `Namespace '${serverNs.namespace}' on server '${serverNs.serverName}' is already open in the Projects Explorer`,
-        "Dismiss"
-      );
-      return;
+  public async openExtraServerNs(wsFolder: vscode.WorkspaceFolder): Promise<void> {
+    try {
+      const api = new AtelierAPI(wsFolder.uri);
+      const connInfo = api.connInfo;
+      const server = connInfo.split("[").shift();
+      // Don't allow the user to pick a namespace that's already shown
+      const alreadyShown = this._extraRoots
+        .map((root) => (root.server == server ? root.ns : null))
+        .concat(
+          this._roots.map((root) => {
+            const [rootServer, rootNs] = root.split("[");
+            return rootServer == server ? rootNs.slice(0, -1) : null;
+          })
+        )
+        .filter(notNull);
+      const namespaces = await api
+        .serverInfo()
+        .then((data) => data.result.content.namespaces.filter((ns) => !alreadyShown.includes(ns)));
+      if (namespaces.length == 0) {
+        vscode.window.showInformationMessage(
+          `All accessible namespaces on server '${server}' are shown in the Projects Explorer.`,
+          "Dismiss"
+        );
+        return;
+      }
+      const ns = await vscode.window.showQuickPick(namespaces, {
+        title: `Pick a namespace on '${server}' to show in the Projects Explorer`,
+      });
+      if (ns) {
+        this._extraRoots.push({ wsFolder, ns, server });
+        this.refresh();
+      }
+    } catch (error) {
+      handleError(error, "Failed to fetch the list of accessible namespaces.");
     }
-    // Add the extra root node
-    this._extraRoots.push(`${serverNs.serverName}:${serverNs.namespace}`);
-    // Refresh the explorer
-    this.refresh();
   }
 
   public closeExtraServerNs(node: ProjectsServerNsNode): void {
-    const label = <string>node.getTreeItem().label;
-    const serverName = label.slice(0, label.lastIndexOf("["));
-    const namespace = label.slice(label.lastIndexOf("[") + 1, -1);
-    const idx = this._extraRoots.findIndex((authority) => authority == `${serverName}:${namespace}`);
+    const idx = this._extraRoots.findIndex(
+      (root) => root.wsFolder.uri.toString() == node.wsFolder.uri.toString() && root.ns == node?.namespace
+    );
     if (idx != -1) {
-      // Remove the extra root node
       this._extraRoots.splice(idx, 1);
-      // Refresh the explorer
       this.refresh();
     }
   }
 
   private async getRootNodes(): Promise<NodeBase[]> {
     const rootNodes: NodeBase[] = [];
-    let node: NodeBase;
-
-    const workspaceFolders = vscode.workspace.workspaceFolders || [];
-    const alreadyAdded: string[] = [];
-    // Add the workspace root nodes
-    workspaceFolders
-      .filter((workspaceFolder) => workspaceFolder.uri && !notIsfs(workspaceFolder.uri))
-      .forEach((workspaceFolder) => {
-        const conn = new AtelierAPI(workspaceFolder.uri).config;
-        if (conn.active && conn.ns) {
-          node = new ProjectsServerNsNode(workspaceFolder.name, this._onDidChangeTreeData, workspaceFolder.uri);
-          const label = <string>node.getTreeItem().label;
-          if (!alreadyAdded.includes(label)) {
-            alreadyAdded.push(label);
-            rootNodes.push(node);
-          }
-        }
-      });
+    // Add a root for each unique server-side server-namespace
+    for (const wsFolder of vscode.workspace.workspaceFolders ?? []) {
+      if (notIsfs(wsFolder.uri)) continue;
+      const api = new AtelierAPI(wsFolder.uri);
+      if (!api.active) continue;
+      const connInfo = api.connInfo;
+      rootNodes.push(new ProjectsServerNsNode(connInfo, this._onDidChangeTreeData, wsFolder));
+      this._roots.push(connInfo);
+    }
     // Add the extra root nodes
-    this._extraRoots.forEach((authority) => {
-      node = new ProjectsServerNsNode(
-        "",
-        this._onDidChangeTreeData,
-        vscode.Uri.parse(`isfs-readonly://${authority}/`),
-        true
-      );
-      const label = <string>node.getTreeItem().label;
-      if (!alreadyAdded.includes(label)) {
-        alreadyAdded.push(label);
-        rootNodes.push(node);
-      }
+    this._extraRoots.forEach((root) => {
+      const api = new AtelierAPI(root.wsFolder.uri);
+      api.setNamespace(root.ns);
+      rootNodes.push(new ProjectsServerNsNode(api.connInfo, this._onDidChangeTreeData, root.wsFolder, root.ns));
     });
-    this._roots = alreadyAdded;
     await vscode.commands.executeCommand(
       "setContext",
       "vscode-objectscript.projectsExplorerRootCount",
