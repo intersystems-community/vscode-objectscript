@@ -463,7 +463,7 @@ export function inferDocName(uri: vscode.Uri): string | undefined {
   });
   if (!containingPaths.size) return; // We couldn't learn anything from the documents in the index
   // Sort the values in the Set by number of segments descending so we check the deepest paths first
-  const containingPathsSorted = Array.from(containingPaths).sort((a, b) => b.split("/").length - a.split("/").length);
+  const containingPathsSorted = Array.from(containingPaths).sort((a, b) => b.length - a.length);
   let result: string;
   for (const prefix of containingPathsSorted) {
     if (uri.path.startsWith(prefix)) {
