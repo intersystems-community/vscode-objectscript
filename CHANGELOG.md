@@ -1,6 +1,6 @@
 # Change Log
 
-## [3.6.0] 24-Feb-2026
+## [3.6.0] 23-Feb-2026
 Minimum VS Code version is now 1.109.0.
 - Enhancements
   - Integrate new BPL Editor (#1699)
