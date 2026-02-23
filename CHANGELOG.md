@@ -18,7 +18,7 @@ Minimum VS Code version is now 1.109.0.
   - Show server connection information in Explorer and Projects Explorer root items in the same format as the connection Status Bar item (#1717)
   - Only add additional Projects Explorer roots for namespaces on currently opened servers (#1717)
   - Use extension for type when adding an abstract document to a server-side Project (#1720)
-  - Upgrade dependencies (#1708, #1712, #1714, #172X)
+  - Upgrade dependencies (#1708, #1712, #1714, #1723)
 
 ## [3.4.0] 29-Dec-2025
 - Enhancements
