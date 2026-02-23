@@ -1,5 +1,25 @@
 # Change Log
 
+## [3.6.0] 23-Feb-2026
+Minimum VS Code version is now 1.109.0.
+- Enhancements
+  - Integrate new BPL Editor (#1699)
+  - Remove UI component dependency from REST debugging Webview (#1702)
+  - Delete contained documents on the server when a client-side folder was deleted (#1705)
+  - Move command to export Project contents to Command Palette (#1707)
+  - Adopt new VS Code API to add toggle buttons to QuickPicks (#1709)
+  - Remove barely used commands (#1710)
+  - Open all web links in Integrated Browser (#1713)
+  - Use document index to infer a name for a newly created client-side class or routine (#1718)
+- Fixes
+  - Fix extension activation when clicking on InterSystems view container in an empty workspace folder (#1694)
+  - Add `Func` suffix to `Copy Invocation` result for Queries (#1695)
+  - Fix mapping of client-side DFI file to its document name (#1711)
+  - Show server connection information in Explorer and Projects Explorer root items in the same format as the connection Status Bar item (#1717)
+  - Only add additional Projects Explorer roots for namespaces on currently opened servers (#1717)
+  - Use extension for type when adding an abstract document to a server-side Project (#1720)
+  - Upgrade dependencies (#1708, #1712, #1714, #1723)
+
 ## [3.4.0] 29-Dec-2025
 - Enhancements
   - Insert file stub snippet when creating a new class or routine using client-side editing (#1681)
