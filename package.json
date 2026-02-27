@@ -318,6 +318,14 @@
         {
           "command": "vscode-objectscript.connectFolderToServerNamespace",
           "when": "!vscode-objectscript.connectActive && vscode-objectscript.explorerRootCount == 0 && workspaceFolderCount != 0"
+        },
+        {
+          "command": "vscode-objectscript.compileWithFlags",
+          "when": "!(resourceScheme =~ /^isfs(-readonly)?$/) && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty"
+        },
+        {
+          "command": "vscode-objectscript.compileOnlyWithFlags",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty"
         }
       ],
       "view/title": [
@@ -1112,8 +1120,18 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.showAllClassMembers",
-        "title": "Show All Class Members",
+        "title": "Show All Class Members...",
         "icon": "$(symbol-class)"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.compileWithFlags",
+        "title": "Import and Compile Current File with Specified Flags..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.compileOnlyWithFlags",
+        "title": "Compile Current File with Specified Flags..."
       }
     ],
     "keybindings": [

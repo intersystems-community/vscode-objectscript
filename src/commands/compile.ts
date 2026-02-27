@@ -250,11 +250,17 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
   );
 }
 
-export async function compile(docs: (CurrentTextFile | CurrentBinaryFile)[]): Promise<any> {
+export async function compile(docs: (CurrentTextFile | CurrentBinaryFile)[], askFlags = false): Promise<any> {
   docs = docs.filter(notNull);
   if (!docs.length) return;
   const wsFolder = vscode.workspace.getWorkspaceFolder(docs[0].uri);
-  const flags = vscode.workspace.getConfiguration("objectscript", wsFolder || docs[0].uri).get<string>("compileFlags");
+  const defaultFlags = vscode.workspace
+    .getConfiguration("objectscript", wsFolder || docs[0].uri)
+    .get<string>("compileFlags");
+  const flags = askFlags
+    ? await vscode.window.showInputBox({ title: "Enter compilation flags and qualifiers", value: defaultFlags })
+    : defaultFlags;
+  if (flags == undefined) return; // User clicked out of input box
   const api = new AtelierAPI(docs[0].uri);
   const docNames = docs.map((d) => d.name);
   // Determine the line ending to use for other documents affected
@@ -305,7 +311,7 @@ export async function compile(docs: (CurrentTextFile | CurrentBinaryFile)[]): Pr
     .then(loadChanges);
 }
 
-export async function importAndCompile(document?: vscode.TextDocument): Promise<any> {
+export async function importAndCompile(document?: vscode.TextDocument, askFlags = false): Promise<any> {
   const file = currentFile(document);
   if (!file || filesystemSchemas.includes(file.uri.scheme) || !new AtelierAPI(file.uri).active) {
     // Not for server-side URIs or folders with inactive server connections
@@ -315,14 +321,14 @@ export async function importAndCompile(document?: vscode.TextDocument): Promise<
   return (
     importFile(file)
       .then(() => {
-        if (isCompilable(file.name)) compile([file]);
+        if (isCompilable(file.name)) compile([file], askFlags);
       })
       // importFile handles any server errors
       .catch(() => {})
   );
 }
 
-export async function compileOnly(document?: vscode.TextDocument): Promise<any> {
+export async function compileOnly(document?: vscode.TextDocument, askFlags = false): Promise<any> {
   document =
     document ||
     (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document
@@ -338,7 +344,7 @@ export async function compileOnly(document?: vscode.TextDocument): Promise<any> 
     return;
   }
 
-  if (isCompilable(file.name)) compile([file]);
+  if (isCompilable(file.name)) compile([file], askFlags);
 }
 
 // Compiles all files types in the namespace
