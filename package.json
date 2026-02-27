@@ -1748,7 +1748,7 @@
     "core-js": "^3.41.0",
     "iconv-lite": "^0.7.2",
     "istextorbinary": "^7.0.0",
-    "minimatch": "^10.2.2",
+    "minimatch": "^10.2.4",
     "node-cmd": "^5.0.0",
     "vscode-cache": "^0.3.0",
     "ws": "^8.19.0"
