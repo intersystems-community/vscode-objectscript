@@ -1124,6 +1124,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("compile");
       importAndCompile();
     }),
+    vscode.commands.registerCommand("vscode-objectscript.compileWithFlags", () => {
+      sendCommandTelemetryEvent("compileWithFlags");
+      importAndCompile(undefined, true);
+    }),
     vscode.commands.registerCommand("vscode-objectscript.compileAll", () => {
       sendCommandTelemetryEvent("compileAll");
       namespaceCompile();
@@ -1375,6 +1379,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.compileOnly", () => {
       sendCommandTelemetryEvent("compileOnly");
       compileOnly();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.compileOnlyWithFlags", () => {
+      sendCommandTelemetryEvent("compileOnlyWithFlags");
+      compileOnly(undefined, true);
     }),
     vscode.languages.registerDocumentLinkProvider({ language: outputLangId }, new DocumentLinkProvider()),
     vscode.commands.registerCommand("vscode-objectscript.editOthers", () => {
