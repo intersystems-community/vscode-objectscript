@@ -224,13 +224,13 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
           if (isClass(file.uri.path)) {
             // Insert/update the storage part of class definition.
             content = new TextDecoder('utf-8').decode(await vscode.workspace.fs.readFile(file.uri)).split(/\r?\n/g);
-            let storageBegin = -1;
-            let storageEnd = -1;
-            let classEnd;
+            let storageBegin: number;  // the last "Storage ..." line 
+            let storageEnd: number;    // the first "}" after storageBegin
+            let classEnd: number;      // the last "}"
             for (let i = 0; i < content.length; i ++) {
-              if (content[i].startsWith("<Storage ")) {
+              if (content[i].startsWith("Storage ")) {
                 storageBegin = i;
-              } else if (content[i].startsWith("</Storage>")) {
+              } else if ((storageBegin !== undefined) && (storageEnd === undefined) && content[i].startsWith("}")) {
                 storageEnd = i;
               } else if (content[i].startsWith("}")) {
                 classEnd = i;
@@ -238,8 +238,12 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
             }
             let storage = (await api.getDoc(file.name, file.uri, undefined, true)).result.content;
             storage = Buffer.isBuffer(storage) ? new TextDecoder().decode(storage).split(/\r?\n/g) : storage;
-            if ((0 <= storageBegin) && (storageBegin < storageEnd)) {
-              content.splice(storageBegin, storageEnd - storageEnd, ...storage)
+            if ((storageBegin && storageEnd) !== undefined) {
+              // when replacing an existing storage definition, we don't need extra empty lines (if any).
+              while (storage[storage.length-1] == "") {
+                storage.pop()
+              }
+              content.splice(storageBegin, 1 + storageEnd - storageBegin, ...storage)
             } else {
               content.splice(classEnd, 0, ...storage)
             }
