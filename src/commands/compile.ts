@@ -24,6 +24,7 @@ import {
   exportedUris,
   getWsFolder,
   handleError,
+  isClass,
   isClassDeployed,
   isClassOrRtn,
   isCompilable,
@@ -37,6 +38,7 @@ import {
 import { StudioActions } from "./studio";
 import { NodeBase, PackageNode, RootNode } from "../explorer/nodes";
 import { getUrisForDocument, updateIndex } from "../utils/documentIndex";
+import { Document } from "../api/atelier";
 
 /**
  * For files being locally edited, get and return its mtime timestamp from workspace-state cache if present there,
@@ -218,7 +220,32 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
         const mtime = Number(new Date(doc.ts + "Z"));
         workspaceState.update(`${file.uniqueId}:mtime`, mtime > 0 ? mtime : undefined);
         if (notIsfs(file.uri)) {
-          const content = await api.getDoc(file.name, file.uri).then((data) => data.result.content);
+          let content: Document["content"];
+          if (isClass(file.uri.path)) {
+            // Insert/update the storage part of class definition.
+            content = new TextDecoder('utf-8').decode(await vscode.workspace.fs.readFile(file.uri)).split(/\r?\n/g);
+            let storageBegin = -1;
+            let storageEnd = -1;
+            let classEnd;
+            for (let i = 0; i < content.length; i ++) {
+              if (content[i].startsWith("<Storage ")) {
+                storageBegin = i;
+              } else if (content[i].startsWith("</Storage>")) {
+                storageEnd = i;
+              } else if (content[i].startsWith("}")) {
+                classEnd = i;
+              }
+            }
+            let storage = (await api.getDoc(file.name, file.uri, undefined, true)).result.content;
+            storage = Buffer.isBuffer(storage) ? new TextDecoder().decode(storage).split(/\r?\n/g) : storage;
+            if ((0 <= storageBegin) && (storageBegin < storageEnd)) {
+              content.splice(storageBegin, storageEnd - storageEnd, ...storage)
+            } else {
+              content.splice(classEnd, 0, ...storage)
+            }
+          } else {
+            content = (await api.getDoc(file.name, file.uri)).result.content;
+          }
           exportedUris.add(file.uri.toString()); // Set optimistically
           await vscode.workspace.fs
             .writeFile(
