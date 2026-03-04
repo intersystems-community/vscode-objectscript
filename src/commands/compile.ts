@@ -221,7 +221,9 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
         workspaceState.update(`${file.uniqueId}:mtime`, mtime > 0 ? mtime : undefined);
         if (notIsfs(file.uri)) {
           let content: Document["content"];
-          if (isClass(file.uri.path)) {
+          if (!isClass(file.uri.path)) {
+            content = (await api.getDoc(file.name, file.uri)).result.content;
+          } else {
             // Insert/update the storage part of class definition.
             content = new TextDecoder('utf-8').decode(await vscode.workspace.fs.readFile(file.uri)).split(/\r?\n/g);
             let storageBegin: number;  // the last "Storage ..." line 
@@ -247,8 +249,6 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
             } else {
               content.splice(classEnd, 0, ...storage)
             }
-          } else {
-            content = (await api.getDoc(file.name, file.uri)).result.content;
           }
           exportedUris.add(file.uri.toString()); // Set optimistically
           await vscode.workspace.fs
