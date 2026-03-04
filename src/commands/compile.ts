@@ -225,14 +225,14 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
             content = (await api.getDoc(file.name, file.uri)).result.content;
           } else {
             // Insert/update the storage part of class definition.
-            content = new TextDecoder('utf-8').decode(await vscode.workspace.fs.readFile(file.uri)).split(/\r?\n/g);
-            let storageBegin: number;  // the last "Storage ..." line 
-            let storageEnd: number;    // the first "}" after storageBegin
-            let classEnd: number;      // the last "}"
-            for (let i = 0; i < content.length; i ++) {
+            content = new TextDecoder("utf-8").decode(await vscode.workspace.fs.readFile(file.uri)).split(/\r?\n/g);
+            let storageBegin: number; // the last "Storage ..." line
+            let storageEnd: number; // the first "}" after storageBegin
+            let classEnd: number; // the last "}"
+            for (let i = 0; i < content.length; i++) {
               if (content[i].startsWith("Storage ")) {
                 storageBegin = i;
-              } else if ((storageBegin !== undefined) && (storageEnd === undefined) && content[i].startsWith("}")) {
+              } else if (storageBegin !== undefined && storageEnd === undefined && content[i].startsWith("}")) {
                 storageEnd = i;
               } else if (content[i].startsWith("}")) {
                 classEnd = i;
@@ -242,12 +242,12 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
             storage = Buffer.isBuffer(storage) ? new TextDecoder().decode(storage).split(/\r?\n/g) : storage;
             if ((storageBegin && storageEnd) !== undefined) {
               // when replacing an existing storage definition, we don't need extra empty lines (if any).
-              while (storage[storage.length-1] == "") {
-                storage.pop()
+              while (storage[storage.length - 1] == "") {
+                storage.pop();
               }
-              content.splice(storageBegin, 1 + storageEnd - storageBegin, ...storage)
+              content.splice(storageBegin, 1 + storageEnd - storageBegin, ...storage);
             } else {
-              content.splice(classEnd, 0, ...storage)
+              content.splice(classEnd, 0, ...storage);
             }
           }
           exportedUris.add(file.uri.toString()); // Set optimistically

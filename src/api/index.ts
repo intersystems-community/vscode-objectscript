@@ -626,7 +626,12 @@ export class AtelierAPI {
   }
 
   // api v1+
-  public getDoc(name: string, scope: vscode.Uri | string, mtime?: number, storageOnly: boolean = false): Promise<Atelier.Response<Atelier.Document>> {
+  public getDoc(
+    name: string,
+    scope: vscode.Uri | string,
+    mtime?: number,
+    storageOnly: boolean = false
+  ): Promise<Atelier.Response<Atelier.Document>> {
     let params, headers;
     name = this.transformNameIfCsp(name);
     if (
@@ -643,10 +648,10 @@ export class AtelierAPI {
     ) {
       params = { format: "udl-multiline" };
     } else {
-      params = {}
+      params = {};
     }
     if (storageOnly) {
-      params["storageOnly"] = "1"
+      params["storageOnly"] = "1";
     }
     if (mtime && mtime > 0) {
       headers = { "IF-NONE-MATCH": new Date(mtime).toISOString().replace(/T|Z/g, " ").trim() };
