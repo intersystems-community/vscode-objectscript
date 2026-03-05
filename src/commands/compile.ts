@@ -85,6 +85,7 @@ export async function checkChangedOnServer(file: CurrentTextFile | CurrentBinary
 // Synchronize the client version and the server version of the same file
 export async function importFile(
   file: CurrentTextFile | CurrentBinaryFile,
+  willCompile: boolean,
   ignoreConflict?: boolean,
   skipDeplCheck = false
 ): Promise<any> {
@@ -128,7 +129,7 @@ export async function importFile(
       ignoreConflict
     );
     workspaceState.update(`${file.uniqueId}:mtime`, Number(new Date(data.result.ts + "Z")));
-    if (data.result.flags === 1) {
+    if (data.result.flags === 1 && !willCompile) {
       // If flags === 1, putDoc returns new Storage definitions and the file must be a CLS
       const oldContent = new TextDecoder("utf-8").decode(await vscode.workspace.fs.readFile(file.uri));
       const oldContentArray = oldContent.split(/\r?\n/g);
@@ -180,7 +181,7 @@ What do you want to do?`,
           // Clear cache entry
           workspaceState.update(`${file.uniqueId}:mtime`, undefined);
           // Overwrite
-          return importFile(file, true, true);
+          return importFile(file, willCompile, true, true);
         case "Pull Server Changes":
           loadChanges([file]);
           return Promise.reject();
@@ -384,14 +385,16 @@ export async function importAndCompile(document?: vscode.TextDocument, askFlags 
     return;
   }
 
-  return (
-    importFile(file)
-      .then(() => {
-        if (isCompilable(file.name)) compile([file], askFlags);
-      })
-      // importFile handles any server errors
-      .catch(() => {})
-  );
+  try {
+    if (isCompilable(file.name)) {
+      await importFile(file, true);
+      compile([file], askFlags);
+    } else {
+      await importFile(file, false);
+    }
+  } catch (_) {
+    // importFile handles any server errors
+  }
 }
 
 export async function compileOnly(document?: vscode.TextDocument, askFlags = false): Promise<any> {
@@ -461,28 +464,26 @@ async function importFiles(files: vscode.Uri[], noCompile = false) {
   await Promise.allSettled<void>(
     files.map((uri) =>
       rateLimiter.call(async () => {
-        return vscode.workspace.fs
-          .readFile(uri)
-          .then((contentBytes) =>
-            currentFileFromContent(
-              uri,
-              isText(uri.path.split("/").pop(), Buffer.from(contentBytes))
-                ? new TextDecoder().decode(contentBytes)
-                : Buffer.from(contentBytes)
-            )
-          )
-          .then((curFile) => {
-            if (curFile) {
-              if (typeof curFile.content == "string" && isCompilable(curFile.name)) toCompile.push(curFile);
-              return importFile(curFile).then(() => outputChannel.appendLine("Imported file: " + curFile.fileName));
-            }
-          });
+        const contentBytes = await vscode.workspace.fs.readFile(uri);
+        const curFile = currentFileFromContent(
+          uri,
+          isText(uri.path.split("/").pop(), Buffer.from(contentBytes))
+            ? new TextDecoder().decode(contentBytes)
+            : Buffer.from(contentBytes)
+        );
+        if (curFile) {
+          if (typeof curFile.content == "string" && isCompilable(curFile.name)) {
+            toCompile.push(curFile);
+          }
+          await importFile(curFile, !noCompile);
+          outputChannel.appendLine("Imported file: " + curFile.fileName);
+        }
       })
     )
   );
 
   if (!noCompile && toCompile.length > 0) {
-    return compile(toCompile);
+    await compile(toCompile);
   }
   return;
 }
