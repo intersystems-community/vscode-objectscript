@@ -674,7 +674,19 @@ export class AtelierAPI {
     name: string,
     data: { enc: boolean; content: string[]; mtime: number },
     ignoreConflict?: boolean
-  ): Promise<Atelier.Response> {
+  ): Promise<
+    Atelier.Response<{
+      name: string;
+      db: string;
+      ts: string;
+      cat: "CLS" | "CSP" | "RTN" | "OTH";
+      status: string;
+      enc: boolean;
+      flag?: "1";
+      content: string[];
+      ext: any;
+    }>
+  > {
     const params = { ignoreConflict };
     name = this.transformNameIfCsp(name);
     const headers = {};

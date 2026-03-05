@@ -82,6 +82,7 @@ export async function checkChangedOnServer(file: CurrentTextFile | CurrentBinary
   return mtime;
 }
 
+// Synchronize the client version and the server version of the same file
 export async function importFile(
   file: CurrentTextFile | CurrentBinaryFile,
   ignoreConflict?: boolean,
@@ -116,8 +117,8 @@ export async function importFile(
     mtime < 0 ||
     (notIsfs(file.uri) &&
       vscode.workspace.getConfiguration("objectscript", file.uri).get<boolean>("overwriteServerChanges"));
-  return api
-    .putDoc(
+  try {
+    const data = await api.putDoc(
       file.name,
       {
         content,
@@ -125,69 +126,74 @@ export async function importFile(
         mtime,
       },
       ignoreConflict
-    )
-    .then((data) => {
-      // Update cache entry
-      workspaceState.update(`${file.uniqueId}:mtime`, Number(new Date(data.result.ts + "Z")));
-
-      // In case another extension has used an 'objectscript://' uri to load a document read-only from the server,
-      // make it reload with what we just imported to the server.
-      const serverUri = DocumentContentProvider.getUri(
-        file.name,
-        file.workspaceFolder,
-        undefined,
-        false,
-        undefined,
-        true
+    );
+    workspaceState.update(`${file.uniqueId}:mtime`, Number(new Date(data.result.ts + "Z")));
+    if (data.result.flag === "1") {
+      // putDoc returns new Storage definitions and the file must be a CLS
+      let content: string[];
+      (content = new TextDecoder("utf-8").decode(await vscode.workspace.fs.readFile(file.uri)).split(/\r?\n/g)),
+        (content = updateStorage(content, data.result.content));
+      await vscode.workspace.fs.writeFile(
+        file.uri,
+        new TextEncoder().encode(
+          content.join(((<CurrentTextFile>file)?.eol ?? vscode.EndOfLine.LF) == vscode.EndOfLine.CRLF ? "\r\n" : "\n")
+        )
       );
-      documentContentProvider.update(serverUri.with({ scheme: OBJECTSCRIPT_FILE_SCHEMA }));
-    })
-    .catch((error) => {
-      if (error?.statusCode == 409) {
-        const choices: string[] = [];
-        if (!enc) {
-          choices.push("Compare");
-        }
-        choices.push("Overwrite on Server", "Pull Server Changes", "Cancel");
-        return vscode.window
-          .showErrorMessage(
-            `Failed to import '${file.name}': The version of the file on the server is newer.
-What do you want to do?`,
-            ...choices
-          )
-          .then((action) => {
-            switch (action) {
-              case "Compare":
-                return vscode.commands
-                  .executeCommand(
-                    "vscode.diff",
-                    vscode.Uri.file(file.name).with({
-                      scheme: OBJECTSCRIPT_FILE_SCHEMA,
-                      authority: file.workspaceFolder,
-                      query: file.name.includes("/") ? "csp" : "",
-                    }),
-                    file.uri,
-                    `Server • ${file.name} ↔ Local • ${file.fileName}`
-                  )
-                  .then(() => Promise.reject());
-              case "Overwrite on Server":
-                // Clear cache entry
-                workspaceState.update(`${file.uniqueId}:mtime`, undefined);
-                // Overwrite
-                return importFile(file, true, true);
-              case "Pull Server Changes":
-                loadChanges([file]);
-                return Promise.reject();
-              case "Cancel":
-                return Promise.reject();
-            }
-            return Promise.reject();
-          });
-      } else {
-        handleError(error, `Failed to save file '${file.name}' on the server.`);
-        return Promise.reject();
+    }
+    // In case another extension has used an 'objectscript://' uri to load a document read-only from the server,
+    // make it reload with what we just imported to the server.
+    const serverUri = DocumentContentProvider.getUri(
+      file.name,
+      file.workspaceFolder,
+      undefined,
+      false,
+      undefined,
+      true
+    );
+    documentContentProvider.update(serverUri.with({ scheme: OBJECTSCRIPT_FILE_SCHEMA }));
+    return;
+  } catch (error) {
+    if (error?.statusCode == 409) {
+      const choices: string[] = [];
+      if (!enc) {
+        choices.push("Compare");
       }
-    });
+      choices.push("Overwrite on Server", "Pull Server Changes", "Cancel");
+      const action = await vscode.window.showErrorMessage(
+        `Failed to import '${file.name}': The version of the file on the server is newer.
+What do you want to do?`,
+        ...choices
+      );
+      switch (action) {
+        case "Compare":
+          await vscode.commands.executeCommand(
+            "vscode.diff",
+            vscode.Uri.file(file.name).with({
+              scheme: OBJECTSCRIPT_FILE_SCHEMA,
+              authority: file.workspaceFolder,
+              query: file.name.includes("/") ? "csp" : "",
+            }),
+            file.uri,
+            `Server • ${file.name} ↔ Local • ${file.fileName}`
+          );
+          return Promise.reject();
+        case "Overwrite on Server":
+          // Clear cache entry
+          workspaceState.update(`${file.uniqueId}:mtime`, undefined);
+          // Overwrite
+          return importFile(file, true, true);
+        case "Pull Server Changes":
+          loadChanges([file]);
+          return Promise.reject();
+        case "Cancel":
+          return Promise.reject();
+      }
+      return Promise.reject();
+    } else {
+      handleError(error, `Failed to save file '${file.name}' on the server.`);
+      return Promise.reject();
+    }
+  }
 }
 
 function updateOthers(others: string[], baseUri: vscode.Uri) {
@@ -231,29 +237,9 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
           } else {
             // Insert/update the storage part of class definition.
             content = new TextDecoder("utf-8").decode(await vscode.workspace.fs.readFile(file.uri)).split(/\r?\n/g);
-            let storageBegin: number; // the last "Storage ..." line
-            let storageEnd: number; // the first "}" after storageBegin
-            let classEnd: number; // the last "}"
-            for (let i = 0; i < content.length; i++) {
-              if (content[i].startsWith("Storage ")) {
-                storageBegin = i;
-              } else if (storageBegin !== undefined && storageEnd === undefined && content[i].startsWith("}")) {
-                storageEnd = i;
-              } else if (content[i].startsWith("}")) {
-                classEnd = i;
-              }
-            }
             let storage = (await api.getDoc(file.name, file.uri, undefined, true)).result.content;
             storage = Buffer.isBuffer(storage) ? new TextDecoder().decode(storage).split(/\r?\n/g) : storage;
-            if ((storageBegin && storageEnd) !== undefined) {
-              // when replacing an existing storage definition, we don't need extra empty lines (if any).
-              while (storage[storage.length - 1] == "") {
-                storage.pop();
-              }
-              content.splice(storageBegin, 1 + storageEnd - storageBegin, ...storage);
-            } else {
-              content.splice(classEnd, 0, ...storage);
-            }
+            content = updateStorage(content, storage);
           }
           exportedUris.add(file.uri.toString()); // Set optimistically
           await vscode.workspace.fs
@@ -284,6 +270,51 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
       })
     )
   );
+}
+
+function updateStorage(content: string[], storage: string[]): string[] {
+  const storageMap = storageToMap(storage);
+  let contentString = content.join("\n");
+  contentString = contentString
+    // update existing Storages
+    .replaceAll(/\n(\s*storage\s+(\w+)\s*{\s*)([^}]*?)(\s*})/gim, (_match, beforeXML, name, _oldXML, afterXML) => {
+      const newXML = storageMap.get(name);
+      if (newXML === undefined) {
+        return "";
+      }
+      storageMap.delete(name);
+      return "\n" + beforeXML + newXML + afterXML;
+    });
+  contentString = contentString
+    // insert remaining Storages
+    .replace(/}\s*$/m, (m) => {
+      for (const [name, content] of storageMap.entries()) {
+        m = `Storage ${name}\n{\n${content}\n}\n\n${m}`;
+      }
+      return m;
+    });
+  return contentString.split("\n");
+}
+
+function storageToMap(storage: string[]): Map<string, string> {
+  const map: Map<string, string> = new Map();
+  let k: string;
+  let v = [];
+  for (const line of storage) {
+    if (line.startsWith("Storage ")) {
+      k = line.slice("Storage ".length, line.length);
+      v = [];
+    } else if (line === "{") {
+      continue;
+    } else if (line === "}") {
+      map.set(k, v.join("\n"));
+    } else if (line === "") {
+      continue;
+    } else {
+      v.push(line);
+    }
+  }
+  return map;
 }
 
 export async function compile(docs: (CurrentTextFile | CurrentBinaryFile)[], askFlags = false): Promise<any> {
