@@ -221,7 +221,12 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
         workspaceState.update(`${file.uniqueId}:mtime`, mtime > 0 ? mtime : undefined);
         if (notIsfs(file.uri)) {
           let content: Document["content"];
-          if (!isClass(file.uri.path)) {
+          if (
+            !(
+              isClass(file.uri.path) &&
+              !vscode.workspace.getConfiguration("objectscript", file.uri).get("refreshClassesOnSync")
+            )
+          ) {
             content = (await api.getDoc(file.name, file.uri)).result.content;
           } else {
             // Insert/update the storage part of class definition.
