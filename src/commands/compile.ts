@@ -128,17 +128,16 @@ export async function importFile(
       ignoreConflict
     );
     workspaceState.update(`${file.uniqueId}:mtime`, Number(new Date(data.result.ts + "Z")));
-    if (data.result.flag === "1") {
-      // putDoc returns new Storage definitions and the file must be a CLS
-      let content: string[];
-      (content = new TextDecoder("utf-8").decode(await vscode.workspace.fs.readFile(file.uri)).split(/\r?\n/g)),
-        (content = updateStorage(content, data.result.content));
-      await vscode.workspace.fs.writeFile(
-        file.uri,
-        new TextEncoder().encode(
-          content.join(((<CurrentTextFile>file)?.eol ?? vscode.EndOfLine.LF) == vscode.EndOfLine.CRLF ? "\r\n" : "\n")
-        )
-      );
+    if (data.result.flags === 1) {
+      // If flags === 1, putDoc returns new Storage definitions and the file must be a CLS
+      const oldContent = new TextDecoder("utf-8").decode(await vscode.workspace.fs.readFile(file.uri));
+      const oldContentArray = oldContent.split(/\r?\n/g);
+      const newContentArray = updateStorage(oldContentArray, data.result.content);
+      if (oldContentArray.some((oldLine, index) => oldLine !== newContentArray[index])) {
+        const EOL = ((<CurrentTextFile>file)?.eol ?? vscode.EndOfLine.LF) == vscode.EndOfLine.CRLF ? "\r\n" : "\n";
+        const newContent = newContentArray.join(EOL);
+        await vscode.workspace.fs.writeFile(file.uri, new TextEncoder().encode(newContent));
+      }
     }
     // In case another extension has used an 'objectscript://' uri to load a document read-only from the server,
     // make it reload with what we just imported to the server.

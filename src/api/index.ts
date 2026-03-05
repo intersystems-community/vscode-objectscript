@@ -682,7 +682,7 @@ export class AtelierAPI {
       cat: "CLS" | "CSP" | "RTN" | "OTH";
       status: string;
       enc: boolean;
-      flag?: "1";
+      flags?: 0 | 1;
       content: string[];
       ext: any;
     }>
