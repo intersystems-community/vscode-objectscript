@@ -6,6 +6,7 @@ import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { replaceFile, getWsFolder, handleError, displayableUri } from "../utils";
 import { getFileName } from "./export";
 import { getUrisForDocument } from "../utils/documentIndex";
+import { pickClass } from "./project";
 
 interface InputStepItem extends vscode.QuickPickItem {
   value?: string;
@@ -937,7 +938,7 @@ Parameter ENSPURGE As BOOLEAN = 1;
 }
 `;
     } else if (type == NewFileType.Class) {
-      // Prompt the user
+      // Prompt the user for the class name and description
       const results = await multiStepInput(inputSteps);
       if (!results) {
         return;
@@ -945,10 +946,23 @@ Parameter ENSPURGE As BOOLEAN = 1;
       cls = results[0];
       const [, desc] = results;
 
+      // Prompt for an optional superclass
+      let superclass: string | undefined;
+      if (api) {
+        superclass = await pickClass(api, "Pick an optional superclass. Press 'Escape' to skip.");
+      } else {
+        superclass = await vscode.window.showInputBox({
+          title: "Enter an optional superclass. Press 'Escape' to skip.",
+          ignoreFocusOut: true,
+          placeHolder: "Package.Subpackage.Class",
+          validateInput: (value: string) => (value ? validateClassName(value) : undefined),
+        });
+      }
+
       // Generate the file's content
       clsContent = `
 ${typeof desc == "string" ? "/// " + desc.replace(/\n/g, "\n/// ") : ""}
-Class ${cls}
+Class ${cls}${superclass ? ` Extends ${superclass}` : ""}
 {
 
 }
