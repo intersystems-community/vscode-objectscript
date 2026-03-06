@@ -132,8 +132,9 @@ export async function importFile(
     if (data.result.flags === 1 && !willCompile) {
       // If flags === 1, putDoc returns new Storage definitions and the file must be a CLS
       const oldContent = new TextDecoder("utf-8").decode(await vscode.workspace.fs.readFile(file.uri));
-      const oldContentArray = oldContent.split(/\r?\n/g);
-      const newContentArray = updateStorage(oldContentArray, data.result.content);
+      const oldContentArray = oldContent.split(/\r?\n/);
+      const storage = Buffer.isBuffer(data.result.content) ? new TextDecoder().decode(data.result.content).split(/\r?\n/g) : data.result.content;
+      const newContentArray = updateStorage(oldContentArray, storage);
       if (oldContentArray.some((oldLine, index) => oldLine !== newContentArray[index])) {
         const EOL = ((<CurrentTextFile>file)?.eol ?? vscode.EndOfLine.LF) == vscode.EndOfLine.CRLF ? "\r\n" : "\n";
         const newContent = newContentArray.join(EOL);
@@ -304,14 +305,15 @@ function storageToMap(storage: string[]): Map<string, string> {
     if (line.startsWith("Storage ")) {
       k = line.slice("Storage ".length, line.length);
       v = [];
-    } else if (line === "{") {
-      continue;
-    } else if (line === "}") {
-      map.set(k, v.join("\n"));
-    } else if (line === "") {
-      continue;
-    } else {
-      v.push(line);
+    } else if (k !== undefined) {
+      if (line === "{") {
+        continue;
+      } else if (line === "}") {
+        map.set(k, v.join("\n"));
+        k = undefined;
+      } else {
+        v.push(line);
+      }
     }
   }
   return map;
@@ -392,7 +394,7 @@ export async function importAndCompile(document?: vscode.TextDocument, askFlags 
     } else {
       await importFile(file, false);
     }
-  } catch (_) {
+  } catch {
     // importFile handles any server errors
   }
 }

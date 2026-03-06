@@ -276,7 +276,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
             debouncedCompile(change.addedOrChanged);
           }
         }
-      } catch (_) {
+      } catch {
         // importFile handles any server errors
       }
     }
