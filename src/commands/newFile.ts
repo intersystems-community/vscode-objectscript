@@ -26,7 +26,13 @@ interface QuickPickStepOptions {
   items: InputStepItem[];
 }
 
-type InputStepOptions = InputBoxStepOptions | QuickPickStepOptions;
+interface ClassPickStepOptions {
+  type: "classPick";
+  title: string;
+  api: AtelierAPI | undefined;
+}
+
+type InputStepOptions = InputBoxStepOptions | QuickPickStepOptions | ClassPickStepOptions;
 
 /**
  * Get input from the user using multiple steps.
@@ -102,6 +108,58 @@ async function multiStepInput(steps: InputStepOptions[]): Promise<string[] | und
         });
         inputBox.show();
       });
+    } else if (stepOptions.type == "classPick") {
+      // Optional step: escape = skip (store ""), back = go back one step, pick = store class name
+      let picked: string | undefined;
+      if (stepOptions.api) {
+        picked = await pickClass(stepOptions.api, stepOptions.title, step > 0);
+      } else {
+        // Fallback InputBox when there's no server connection
+        picked = await new Promise<string | undefined>((resolve) => {
+          let settled = false;
+          const settle = (v: string | undefined) => {
+            if (!settled) {
+              settled = true;
+              resolve(v);
+            }
+          };
+          const inputBox = vscode.window.createInputBox();
+          inputBox.ignoreFocusOut = true;
+          inputBox.step = step + 1;
+          inputBox.totalSteps = steps.length;
+          inputBox.buttons = step > 0 ? [vscode.QuickInputButtons.Back] : [];
+          inputBox.title = stepOptions.title;
+          inputBox.placeholder = "Package.Subpackage.Class";
+          inputBox.onDidTriggerButton(() => {
+            settle(undefined); // Back was pressed
+            inputBox.hide();
+          });
+          inputBox.onDidAccept(() => {
+            if (typeof inputBox.validationMessage != "string") {
+              settle(inputBox.value); // "" = skip, or a valid class name
+              inputBox.hide();
+            }
+          });
+          inputBox.onDidHide(() => {
+            settle(""); // Escape = skip this optional step
+            inputBox.dispose();
+          });
+          inputBox.onDidChangeValue((value) => {
+            inputBox.validationMessage = value ? validateClassName(value) : undefined;
+          });
+          inputBox.show();
+        });
+      }
+      if (picked === undefined) {
+        // Back button was pressed: go back one step
+        step--;
+      } else {
+        // "" = skipped, or a class name was entered/picked
+        results[step] = picked;
+        step++;
+      }
+      // This is an optional step; never cancel the wizard on escape
+      escape = false;
     } else {
       // Show the QuickPick
       escape = await new Promise<boolean>((resolve) => {
@@ -938,26 +996,20 @@ Parameter ENSPURGE As BOOLEAN = 1;
 }
 `;
     } else if (type == NewFileType.Class) {
-      // Prompt the user for the class name and description
+      // Add the superclass picker as the third step
+      inputSteps.push({
+        type: "classPick",
+        title: "Pick an optional superclass. Press 'Escape' to skip.",
+        api: api,
+      });
+
+      // Prompt the user
       const results = await multiStepInput(inputSteps);
       if (!results) {
         return;
       }
       cls = results[0];
-      const [, desc] = results;
-
-      // Prompt for an optional superclass
-      let superclass: string | undefined;
-      if (api) {
-        superclass = await pickClass(api, "Pick an optional superclass. Press 'Escape' to skip.");
-      } else {
-        superclass = await vscode.window.showInputBox({
-          title: "Enter an optional superclass. Press 'Escape' to skip.",
-          ignoreFocusOut: true,
-          placeHolder: "Package.Subpackage.Class",
-          validateInput: (value: string) => (value ? validateClassName(value) : undefined),
-        });
-      }
+      const [, desc, superclass] = results;
 
       // Generate the file's content
       clsContent = `

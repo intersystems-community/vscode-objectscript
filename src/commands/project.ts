@@ -653,20 +653,32 @@ async function pickAdditions(
 /**
  * Show an expandable QuickPick to let the user pick a single class from the server.
  * Packages can be expanded to reveal their classes. Only leaf class items can be accepted.
- * Returns the class name (without the `.cls` extension), or `undefined` if the user escapes.
+ * - Returns the class name (without the `.cls` extension) when a class is picked.
+ * - Returns `""` when the user presses Escape (skip this optional step).
+ * - Returns `undefined` when the user presses the Back button (only when `canGoBack` is `true`).
  */
-export async function pickClass(api: AtelierAPI, title: string): Promise<string | undefined> {
+export async function pickClass(api: AtelierAPI, title: string, canGoBack = false): Promise<string | undefined> {
   const query = "SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,?,0,0,?)";
   let sys: "0" | "1" = "0";
   let gen: "0" | "1" = "0";
 
   return new Promise<string | undefined>((resolve) => {
+    // Use a settled flag so that onDidHide (which always fires) never double-resolves.
+    let settled = false;
+    const settle = (value: string | undefined) => {
+      if (!settled) {
+        settled = true;
+        resolve(value);
+      }
+    };
+
     const quickPick = vscode.window.createQuickPick<PickAdditionsItem>();
     quickPick.title = title;
     quickPick.ignoreFocusOut = true;
     quickPick.keepScrollPosition = true;
     quickPick.matchOnDescription = true;
     quickPick.buttons = [
+      ...(canGoBack ? [vscode.QuickInputButtons.Back] : []),
       {
         iconPath: new vscode.ThemeIcon("library"),
         tooltip: "System",
@@ -721,13 +733,18 @@ export async function pickClass(api: AtelierAPI, title: string): Promise<string 
     };
 
     quickPick.onDidTriggerButton((button) => {
-      quickPick.busy = true;
-      if (button.tooltip == "System") {
-        sys = button.toggle.checked ? "1" : "0";
+      if (button === vscode.QuickInputButtons.Back) {
+        settle(undefined); // signal "go back" to the caller
+        quickPick.hide();
       } else {
-        gen = button.toggle.checked ? "1" : "0";
+        quickPick.busy = true;
+        if (button.tooltip == "System") {
+          sys = button.toggle.checked ? "1" : "0";
+        } else {
+          gen = button.toggle.checked ? "1" : "0";
+        }
+        getRootItems();
       }
-      getRootItems();
     });
 
     quickPick.onDidTriggerItemButton((event) => {
@@ -771,13 +788,13 @@ export async function pickClass(api: AtelierAPI, title: string): Promise<string 
       if (selected && !selected.buttons?.length) {
         // Leaf class item (no expand button): strip the .cls extension and resolve
         const name = selected.fullName.endsWith(".cls") ? selected.fullName.slice(0, -4) : selected.fullName;
-        resolve(name);
+        settle(name);
         quickPick.hide();
       }
     });
 
     quickPick.onDidHide(() => {
-      resolve(undefined);
+      settle(""); // Escape pressed: resolve with "" to signal "skip this optional step"
       quickPick.dispose();
     });
 
