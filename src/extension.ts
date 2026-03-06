@@ -1607,6 +1607,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("loadStudioColors");
       loadStudioColors(languageServerExt);
     }),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.class", () => {
+      sendCommandTelemetryEvent("newFile.class");
+      newFile(NewFileType.Class);
+    }),
     vscode.commands.registerCommand("vscode-objectscript.newFile.businessOperation", () => {
       sendCommandTelemetryEvent("newFile.businessOperation");
       newFile(NewFileType.BusinessOperation);
