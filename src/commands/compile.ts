@@ -129,13 +129,13 @@ export async function importFile(
       ignoreConflict
     );
     workspaceState.update(`${file.uniqueId}:mtime`, Number(new Date(data.result.ts + "Z")));
-    if (data.result.flags !== undefined && !willCompile) {
+    if (!willCompile && isClass(file.name) && data.result.content.length) {
       // In this case, the file must be a CLS and data.result.content must be the new Storage definitions
       // (with the rest of the class if flags === 1)
-      const oldContent = new TextDecoder("utf-8").decode(await vscode.workspace.fs.readFile(file.uri));
+      const oldContent = new TextDecoder().decode(await vscode.workspace.fs.readFile(file.uri));
       const oldContentArray = oldContent.split(/\r?\n/);
       const storage = Buffer.isBuffer(data.result.content)
-        ? new TextDecoder().decode(data.result.content).split(/\r?\n/g)
+        ? new TextDecoder().decode(data.result.content).split(/\r?\n/)
         : data.result.content;
       const newContentArray = updateStorage(oldContentArray, storage);
       if (oldContentArray.some((oldLine, index) => oldLine !== newContentArray[index])) {
@@ -240,9 +240,9 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
             content = (await api.getDoc(file.name, file.uri)).result.content;
           } else {
             // Insert/update the storage part of class definition.
-            content = new TextDecoder("utf-8").decode(await vscode.workspace.fs.readFile(file.uri)).split(/\r?\n/g);
+            content = new TextDecoder().decode(await vscode.workspace.fs.readFile(file.uri)).split(/\r?\n/);
             let storage = (await api.getDoc(file.name, file.uri, undefined, true)).result.content;
-            storage = Buffer.isBuffer(storage) ? new TextDecoder().decode(storage).split(/\r?\n/g) : storage;
+            storage = Buffer.isBuffer(storage) ? new TextDecoder().decode(storage).split(/\r?\n/) : storage;
             content = updateStorage(content, storage);
           }
           exportedUris.add(file.uri.toString()); // Set optimistically

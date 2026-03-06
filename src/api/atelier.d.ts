@@ -41,7 +41,7 @@ export interface Document {
   cat: "RTN" | "CLS" | "CSP" | "OTH";
   status: string;
   enc: boolean;
-  flags?: 0 | 1;
+  flags: 0 | 1;
   content: string[] | Buffer;
   ext?: UserAction | UserAction[];
 }

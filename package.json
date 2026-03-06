@@ -1417,7 +1417,7 @@
           "default": true
         },
         "objectscript.refreshClassesOnSync": {
-          "description": "Automatically refresh classes after any save or change by compilation",
+          "description": "Controls whether the entire content of client-side classes is replaced with the server copy after synchronizing with the server. If `false`, only the contents of Storage definitions are replaced.",
           "type": "boolean",
           "default": false
         },
