@@ -129,8 +129,9 @@ export async function importFile(
       ignoreConflict
     );
     workspaceState.update(`${file.uniqueId}:mtime`, Number(new Date(data.result.ts + "Z")));
-    if (data.result.flags === 1 && !willCompile) {
-      // If flags === 1, putDoc returns new Storage definitions and the file must be a CLS
+    if (data.result.flags !== undefined && !willCompile) {
+      // In this case, the file must be a CLS and data.result.content must be the new Storage definitions
+      // (with the rest of the class if flags === 1)
       const oldContent = new TextDecoder("utf-8").decode(await vscode.workspace.fs.readFile(file.uri));
       const oldContentArray = oldContent.split(/\r?\n/);
       const storage = Buffer.isBuffer(data.result.content)

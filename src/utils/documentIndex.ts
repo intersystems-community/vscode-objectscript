@@ -263,14 +263,14 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     if (change.addedOrChanged) {
       // Create or update the document on the server
       try {
-        const willCompile = vscodeChange && vscode.window.activeTextEditor?.document.uri.toString() == uriString;
+        const willCompile = conf.get("compileOnSave") && isCompilable(change.addedOrChanged.name);
         await importFile(change.addedOrChanged, willCompile);
         outputImport(change.addedOrChanged.name, uri);
-        if (conf.get("compileOnSave") && isCompilable(change.addedOrChanged.name)) {
+        if (willCompile) {
           // Compile right away if this document is in the active text editor.
           // This is needed to avoid noticeable latency when a user is editing
           // a client-side file, saves it, and the auto-compile kicks in.
-          if (willCompile) {
+          if (vscodeChange && vscode.window.activeTextEditor?.document.uri.toString() == uriString) {
             compile([change.addedOrChanged]);
           } else {
             debouncedCompile(change.addedOrChanged);
