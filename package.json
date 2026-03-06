@@ -1416,6 +1416,11 @@
           "type": "boolean",
           "default": true
         },
+        "objectscript.refreshClassesOnSync": {
+          "description": "Controls whether the entire content of client-side classes is replaced with the server copy after synchronizing with the server. If `false`, only the contents of Storage definitions are replaced.",
+          "type": "boolean",
+          "default": false
+        },
         "objectscript.multilineMethodArgs": {
           "markdownDescription": "List method arguments on multiple lines, if the server supports it. **NOTE:** Only supported on IRIS 2019.1.2, 2020.1.1+, 2021.1.0+ and subsequent versions! On all other versions, this setting will have no effect.",
           "type": "boolean",
