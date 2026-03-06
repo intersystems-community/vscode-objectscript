@@ -592,6 +592,11 @@
       ],
       "file/newFile": [
         {
+          "command": "vscode-objectscript.newFile.class",
+          "when": "workspaceFolderCount != 0",
+          "group": "file"
+        },
+        {
           "command": "vscode-objectscript.newFile.kpi",
           "when": "workspaceFolderCount != 0",
           "group": "file"
@@ -1020,6 +1025,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.loadStudioColors",
         "title": "Load Studio Syntax Colors"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.newFile.class",
+        "title": "Class"
       },
       {
         "category": "ObjectScript",

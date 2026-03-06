@@ -222,6 +222,7 @@ function getAdapterPrompt(adapters: InputStepItem[], type: AdapaterClassType): I
 
 /** The types of classes we can create */
 export enum NewFileType {
+  Class = "Class",
   BusinessOperation = "Business Operation",
   BusinessService = "Business Service",
   BPL = "Business Process",
@@ -262,7 +263,7 @@ export async function newFile(type: NewFileType): Promise<void> {
       api = undefined;
     }
 
-    if (type != NewFileType.KPI) {
+    if (type != NewFileType.KPI && type != NewFileType.Class) {
       // Check if we're connected to an Interoperability namespace
       const ensemble: boolean = api
         ? await api.getNamespace().then((data) => data.result.content.features[0].enabled)
@@ -402,7 +403,7 @@ export async function newFile(type: NewFileType): Promise<void> {
     inputSteps.push(
       {
         type: "inputBox",
-        title: `Enter a name for the new ${type} class`,
+        title: `Enter a name for the new ${type == NewFileType.Class ? "class" : type + " class"}`,
         placeholder: "Package.Subpackage.Class",
         validateInput: (value: string) => {
           const valid = validateClassName(value);
@@ -932,6 +933,23 @@ Parameter RESPONSECLASSNAME As CLASSNAME = "${respClass}";`
 
 /// InterSystems IRIS purges message bodies based on the class when the option to purge message bodies is enabled
 Parameter ENSPURGE As BOOLEAN = 1;
+
+}
+`;
+    } else if (type == NewFileType.Class) {
+      // Prompt the user
+      const results = await multiStepInput(inputSteps);
+      if (!results) {
+        return;
+      }
+      cls = results[0];
+      const [, desc] = results;
+
+      // Generate the file's content
+      clsContent = `
+${typeof desc == "string" ? "/// " + desc.replace(/\n/g, "\n/// ") : ""}
+Class ${cls}
+{
 
 }
 `;
