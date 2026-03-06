@@ -240,6 +240,10 @@
           "when": "isWindows"
         },
         {
+          "command": "vscode-objectscript.newFile.class",
+          "when": "false"
+        },
+        {
           "command": "vscode-objectscript.newFile.businessOperation",
           "when": "false"
         },
