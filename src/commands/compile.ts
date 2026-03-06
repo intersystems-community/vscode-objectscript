@@ -131,7 +131,7 @@ export async function importFile(
     workspaceState.update(`${file.uniqueId}:mtime`, Number(new Date(data.result.ts + "Z")));
     if (!willCompile && isClass(file.name) && data.result.content.length) {
       // In this case, the file must be a CLS and data.result.content must be the new Storage definitions
-      // (with the rest of the class if flags === 1)
+      // (with the rest of the class if flags === 0)
       const oldContent = new TextDecoder().decode(await vscode.workspace.fs.readFile(file.uri));
       const oldContentArray = oldContent.split(/\r?\n/);
       const storage = Buffer.isBuffer(data.result.content)
@@ -291,7 +291,7 @@ function updateStorage(content: string[], storage: string[]): string[] {
     });
   contentString = contentString
     // insert remaining Storages
-    .replace(/}\s*$/m, (m) => {
+    .replace(/}\s*$/, (m) => {
       for (const [name, content] of storageMap.entries()) {
         m = `Storage ${name}\n{\n${content}\n}\n\n${m}`;
       }
