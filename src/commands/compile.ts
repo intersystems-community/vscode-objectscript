@@ -133,7 +133,9 @@ export async function importFile(
       // If flags === 1, putDoc returns new Storage definitions and the file must be a CLS
       const oldContent = new TextDecoder("utf-8").decode(await vscode.workspace.fs.readFile(file.uri));
       const oldContentArray = oldContent.split(/\r?\n/);
-      const storage = Buffer.isBuffer(data.result.content) ? new TextDecoder().decode(data.result.content).split(/\r?\n/g) : data.result.content;
+      const storage = Buffer.isBuffer(data.result.content)
+        ? new TextDecoder().decode(data.result.content).split(/\r?\n/g)
+        : data.result.content;
       const newContentArray = updateStorage(oldContentArray, storage);
       if (oldContentArray.some((oldLine, index) => oldLine !== newContentArray[index])) {
         const EOL = ((<CurrentTextFile>file)?.eol ?? vscode.EndOfLine.LF) == vscode.EndOfLine.CRLF ? "\r\n" : "\n";
