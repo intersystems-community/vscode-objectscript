@@ -6,7 +6,7 @@ import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { replaceFile, getWsFolder, handleError, displayableUri } from "../utils";
 import { getFileName } from "./export";
 import { getUrisForDocument } from "../utils/documentIndex";
-import { pickClass } from "./project";
+import { pickDocument } from "../utils/documentPicker";
 
 interface InputStepItem extends vscode.QuickPickItem {
   value?: string;
@@ -112,7 +112,7 @@ async function multiStepInput(steps: InputStepOptions[]): Promise<string[] | und
       // Optional step: escape = skip (store ""), back = go back one step, pick = store class name
       let picked: string | undefined;
       if (stepOptions.api) {
-        picked = await pickClass(stepOptions.api, stepOptions.title, step > 0);
+        picked = await pickDocument(stepOptions.api, stepOptions.title, "cls", step + 1, steps.length);
       } else {
         // Fallback InputBox when there's no server connection
         picked = await new Promise<string | undefined>((resolve) => {
@@ -150,11 +150,16 @@ async function multiStepInput(steps: InputStepOptions[]): Promise<string[] | und
           inputBox.show();
         });
       }
-      if (picked === undefined) {
+      if (picked === "") {
         // Back button was pressed: go back one step
         step--;
       } else {
-        // "" = skipped, or a class name was entered/picked
+        // undefined = skipped, or a class name was entered/picked
+        if (typeof picked == "undefined") {
+          picked = "";
+        } else if (picked.slice(-4) == ".cls") {
+          picked = picked.slice(0, -4);
+        }
         results[step] = picked;
         step++;
       }
@@ -999,7 +1004,7 @@ Parameter ENSPURGE As BOOLEAN = 1;
       // Add the superclass picker as the third step
       inputSteps.push({
         type: "classPick",
-        title: "Pick an optional superclass. Press 'Escape' to skip.",
+        title: "Pick an optional superclass or press 'Escape' for none",
         api: api,
       });
 
