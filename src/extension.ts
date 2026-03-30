@@ -338,6 +338,9 @@ export function getResolvedConnectionSpec(key: string, dflt: any): any {
   return dflt;
 }
 
+/** The `api.serverId`s of all servers that are known to be inactive */
+export const inactiveServerIds: Set<string> = new Set();
+
 export async function checkConnection(
   clearCookies = false,
   uri?: vscode.Uri,
@@ -432,9 +435,8 @@ export async function checkConnection(
     handleError(message);
     panel.text = `${PANEL_LABEL} $(error)`;
     panel.tooltip = `ERROR - ${message}`;
-    if (!api.externalServer) {
-      await setConnectionState(configName, false);
-    }
+    inactiveServerIds.add(api.serverId);
+    if (!api.externalServer) await setConnectionState(configName, false);
     return;
   }
   checkingConnection = true;
@@ -448,9 +450,8 @@ export async function checkConnection(
     } else {
       panel.tooltip = new vscode.MarkdownString(`Connected as \`${username}\``);
     }
-    if (!api.externalServer) {
-      await setConnectionState(configName, true);
-    }
+    inactiveServerIds.delete(api.serverId);
+    if (!api.externalServer) await setConnectionState(configName, true);
     return;
   };
 
@@ -503,7 +504,8 @@ export async function checkConnection(
                 });
             }
           } else {
-            await setConnectionState(configName, false);
+            inactiveServerIds.add(api.serverId);
+            if (!api.externalServer) await setConnectionState(configName, false);
           }
         } else {
           success = await new Promise<boolean>((resolve) => {
@@ -535,8 +537,9 @@ export async function checkConnection(
                         checkingConnection = false;
                       })
                   );
-                } else if (!api.externalServer) {
-                  await setConnectionState(configName, false);
+                } else {
+                  inactiveServerIds.add(api.serverId);
+                  if (!api.externalServer) await setConnectionState(configName, false);
                 }
                 resolve(false);
               });
@@ -554,7 +557,8 @@ export async function checkConnection(
       );
       panel.text = `${connInfo} $(error)`;
       panel.tooltip = `ERROR - ${message}`;
-      await setConnectionState(configName, false);
+      inactiveServerIds.add(api.serverId);
+      if (!api.externalServer) await setConnectionState(configName, false);
     })
     .finally(() => {
       checkingConnection = false;
