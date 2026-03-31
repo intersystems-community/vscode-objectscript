@@ -12,6 +12,7 @@ import {
   checkConnection,
   schemas,
   checkingConnection,
+  inactiveServerIds,
 } from "../extension";
 import { currentWorkspaceFolder, outputChannel, outputConsole } from "../utils";
 
@@ -232,7 +233,7 @@ export class AtelierAPI {
       } = getResolvedConnectionSpec(serverName, config("intersystems.servers", workspaceFolderName).get(serverName));
       this._config = {
         serverName,
-        active: this.externalServer || conn.active,
+        active: !inactiveServerIds.has(serverName),
         apiVersion: workspaceState.get(this.configName.toLowerCase() + ":apiVersion", DEFAULT_API_VERSION),
         serverVersion: workspaceState.get(this.configName.toLowerCase() + ":serverVersion", DEFAULT_SERVER_VERSION),
         https: scheme === "https",
@@ -245,13 +246,6 @@ export class AtelierAPI {
         pathPrefix,
         docker: false,
       };
-
-      // Report server as inactive when no namespace has been determined,
-      // otherwise output channel reports the issue.
-      // This arises when a server-only workspace is editing the user's settings.json, or the .code-workspace file.
-      if (this._config.ns === "" && this.externalServer) {
-        this._config.active = false;
-      }
     } else if (conn["docker-compose"]) {
       // Provided a docker-compose type connection spec has previously been resolved we can use its values
       const resolvedSpec = getResolvedConnectionSpec(workspaceFolderName, undefined);

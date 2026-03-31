@@ -285,14 +285,23 @@ export async function pickDocuments(api: AtelierAPI, prompt?: string): Promise<s
 
 /**
  * Prompts the user to select a single document in server-namespace `api`
- * using a custom QuickPick. An optional prompt will customize the title.
+ * using a custom QuickPick. An optional `prompt` will customize the title.
+ * `typeSuffix` can be provided to filter for specific types of documents (e.g. "cls").
+ * If `step` is provided and greater than 1, a back button will be included that resolves to an empty string when pressed.
+ * If `numberOfSteps` is provided, the title will be suffixed with the current step and total number of steps (e.g. "(2/4)") instead of the namespace and server information.
  */
-export async function pickDocument(api: AtelierAPI, prompt?: string): Promise<string> {
+export async function pickDocument(
+  api: AtelierAPI,
+  prompt?: string,
+  typeSuffix?: string,
+  step?: number,
+  numberOfSteps?: number
+): Promise<string> {
   let sys: "0" | "1" = "0";
   let gen: "0" | "1" = "0";
   let map: "0" | "1" = "1";
   const query = "SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,?,0,0,?,,0,?)";
-  const webApps = cspAppsForApi(api);
+  const webApps = (typeSuffix ?? "csp") == "csp" ? cspAppsForApi(api) : [];
   const webAppRootItems = webApps.map((app: string) => {
     return {
       label: app,
@@ -302,9 +311,12 @@ export async function pickDocument(api: AtelierAPI, prompt?: string): Promise<st
 
   return new Promise<string>((resolve) => {
     const quickPick = vscode.window.createQuickPick<DocumentPickerItem>();
-    quickPick.title = `${prompt ? prompt : "Select a document"} in namespace '${api.ns}' on server '${api.serverId}'`;
+    quickPick.prompt =
+      "Select a package or folder to view its contents. Selecting '..' shows the previous level's contents. You may also type a full document name into the filter box and press 'Enter' to select that document.";
+    quickPick.title = `${prompt ? prompt : "Select a document"} ${numberOfSteps ? `(${step}/${numberOfSteps})` : `in namespace '${api.ns}' on server '${api.serverId}'`}`;
     quickPick.ignoreFocusOut = true;
     quickPick.buttons = [
+      ...((step ?? 0) > 1 ? [vscode.QuickInputButtons.Back] : []),
       {
         iconPath: new vscode.ThemeIcon("library"),
         tooltip: "System",
@@ -327,7 +339,12 @@ export async function pickDocument(api: AtelierAPI, prompt?: string): Promise<st
 
     const getRootItems = (): Promise<void> => {
       return api
-        .actionQuery(`${query} WHERE Type != 5 AND Type != 10`, ["*,'*.prj", sys, gen, map])
+        .actionQuery(`${query} WHERE Type != 5 AND Type != 10`, [
+          typeSuffix ? `*.${typeSuffix}` : "*,'*.prj",
+          sys,
+          gen,
+          map,
+        ])
         .then((data) => {
           const rootitems: DocumentPickerItem[] = data.result.content.map((i) => createSingleSelectItem(i));
           const findLastIndex = (): number => {
@@ -356,6 +373,10 @@ export async function pickDocument(api: AtelierAPI, prompt?: string): Promise<st
     quickPick.onDidTriggerButton((button) => {
       quickPick.busy = true;
       quickPick.enabled = false;
+      if (button === vscode.QuickInputButtons.Back) {
+        resolve(""); // signal "go back" to the caller
+        quickPick.hide();
+      }
       if (button.tooltip == "System") {
         sys = button.toggle.checked ? "1" : "0";
       } else if (button.tooltip == "Generated") {
@@ -383,21 +404,47 @@ export async function pickDocument(api: AtelierAPI, prompt?: string): Promise<st
             doc.startsWith("%") && doc.split(".").length == 2 && doc.slice(-4) == ".cls"
               ? `%Library.${doc.slice(1)}`
               : doc;
-          api
-            .headDoc(doc)
-            .then(() => resolve(doc))
-            .catch((error) => {
-              vscode.window.showErrorMessage(
-                error?.statusCode == 400
-                  ? `'${doc}' is an invalid document name.`
-                  : error?.statusCode == 404
-                    ? `Document '${doc}' does not exist.`
-                    : `Internal Server Error encountered trying to validate document '${doc}'.`,
-                "Dismiss"
-              );
-              resolve(undefined);
-            })
-            .finally(() => quickPick.hide());
+          if (doc.endsWith(".cls")) {
+            // Use StudioOpenDialog for classes so we don't expose Hidden ones
+            api
+              .actionQuery("SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,1,1,0,1,,0,1)", [doc])
+              .then((data) => {
+                if (data.result.content?.length) {
+                  // doc is the name of a class that exists and is visible by the user
+                  resolve(doc);
+                } else {
+                  vscode.window.showErrorMessage(
+                    `Class '${doc.slice(0, -4)}' does not exist, or is Hidden.`,
+                    "Dismiss"
+                  );
+                  resolve(undefined);
+                }
+              })
+              .catch(() => {
+                vscode.window.showErrorMessage(
+                  `Internal Server Error encountered trying to validate class name '${doc.slice(0, -4)}'.`,
+                  "Dismiss"
+                );
+                resolve(undefined);
+              })
+              .finally(() => quickPick.hide());
+          } else {
+            api
+              .headDoc(doc)
+              .then(() => resolve(doc))
+              .catch((error) => {
+                vscode.window.showErrorMessage(
+                  error?.statusCode == 400
+                    ? `'${doc}' is an invalid document name.`
+                    : error?.statusCode == 404
+                      ? `Document '${doc}' does not exist.`
+                      : `Internal Server Error encountered trying to validate document '${doc}'.`,
+                  "Dismiss"
+                );
+                resolve(undefined);
+              })
+              .finally(() => quickPick.hide());
+          }
         } else {
           // The document name came from an item so no validation is required
           resolve(doc);
@@ -409,7 +456,7 @@ export async function pickDocument(api: AtelierAPI, prompt?: string): Promise<st
           getRootItems();
         } else {
           api
-            .actionQuery(query, [`${item.fullName}/*`, sys, gen, map])
+            .actionQuery(query, [`${item.fullName}/*${typeSuffix ? `.${typeSuffix}` : ""}`, sys, gen, map])
             .then((data) => {
               const delim = item.fullName.includes("/") ? "/" : ".";
               const newItems: DocumentPickerItem[] = data.result.content.map((i) =>

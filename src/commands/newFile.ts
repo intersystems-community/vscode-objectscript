@@ -6,6 +6,7 @@ import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { replaceFile, getWsFolder, handleError, displayableUri } from "../utils";
 import { getFileName } from "./export";
 import { getUrisForDocument } from "../utils/documentIndex";
+import { pickDocument } from "../utils/documentPicker";
 
 interface InputStepItem extends vscode.QuickPickItem {
   value?: string;
@@ -25,7 +26,13 @@ interface QuickPickStepOptions {
   items: InputStepItem[];
 }
 
-type InputStepOptions = InputBoxStepOptions | QuickPickStepOptions;
+interface ClassPickStepOptions {
+  type: "classPick";
+  title: string;
+  api: AtelierAPI | undefined;
+}
+
+type InputStepOptions = InputBoxStepOptions | QuickPickStepOptions | ClassPickStepOptions;
 
 /**
  * Get input from the user using multiple steps.
@@ -101,6 +108,63 @@ async function multiStepInput(steps: InputStepOptions[]): Promise<string[] | und
         });
         inputBox.show();
       });
+    } else if (stepOptions.type == "classPick") {
+      // Optional step: escape = skip (store ""), back = go back one step, pick = store class name
+      let picked: string | undefined;
+      if (stepOptions.api) {
+        picked = await pickDocument(stepOptions.api, stepOptions.title, "cls", step + 1, steps.length);
+      } else {
+        // Fallback InputBox when there's no server connection
+        picked = await new Promise<string | undefined>((resolve) => {
+          let settled = false;
+          const settle = (v: string | undefined) => {
+            if (!settled) {
+              settled = true;
+              resolve(v);
+            }
+          };
+          const inputBox = vscode.window.createInputBox();
+          inputBox.ignoreFocusOut = true;
+          inputBox.step = step + 1;
+          inputBox.totalSteps = steps.length;
+          inputBox.buttons = step > 0 ? [vscode.QuickInputButtons.Back] : [];
+          inputBox.title = stepOptions.title;
+          inputBox.placeholder = "Package.Subpackage.Class";
+          inputBox.onDidTriggerButton(() => {
+            settle(undefined); // Back was pressed
+            inputBox.hide();
+          });
+          inputBox.onDidAccept(() => {
+            if (typeof inputBox.validationMessage != "string") {
+              settle(inputBox.value); // "" = skip, or a valid class name
+              inputBox.hide();
+            }
+          });
+          inputBox.onDidHide(() => {
+            settle(""); // Escape = skip this optional step
+            inputBox.dispose();
+          });
+          inputBox.onDidChangeValue((value) => {
+            inputBox.validationMessage = value ? validateClassName(value) : undefined;
+          });
+          inputBox.show();
+        });
+      }
+      if (picked === "") {
+        // Back button was pressed: go back one step
+        step--;
+      } else {
+        // undefined = skipped, or a class name was entered/picked
+        if (typeof picked == "undefined") {
+          picked = "";
+        } else if (picked.slice(-4) == ".cls") {
+          picked = picked.slice(0, -4);
+        }
+        results[step] = picked;
+        step++;
+      }
+      // This is an optional step; never cancel the wizard on escape
+      escape = false;
     } else {
       // Show the QuickPick
       escape = await new Promise<boolean>((resolve) => {
@@ -222,6 +286,7 @@ function getAdapterPrompt(adapters: InputStepItem[], type: AdapaterClassType): I
 
 /** The types of classes we can create */
 export enum NewFileType {
+  Class = "Class",
   BusinessOperation = "Business Operation",
   BusinessService = "Business Service",
   BPL = "Business Process",
@@ -262,7 +327,7 @@ export async function newFile(type: NewFileType): Promise<void> {
       api = undefined;
     }
 
-    if (type != NewFileType.KPI) {
+    if (type != NewFileType.KPI && type != NewFileType.Class) {
       // Check if we're connected to an Interoperability namespace
       const ensemble: boolean = api
         ? await api.getNamespace().then((data) => data.result.content.features[0].enabled)
@@ -402,7 +467,7 @@ export async function newFile(type: NewFileType): Promise<void> {
     inputSteps.push(
       {
         type: "inputBox",
-        title: `Enter a name for the new ${type} class`,
+        title: `Enter a name for the new ${type == NewFileType.Class ? "class" : type + " class"}`,
         placeholder: "Package.Subpackage.Class",
         validateInput: (value: string) => {
           const valid = validateClassName(value);
@@ -932,6 +997,30 @@ Parameter RESPONSECLASSNAME As CLASSNAME = "${respClass}";`
 
 /// InterSystems IRIS purges message bodies based on the class when the option to purge message bodies is enabled
 Parameter ENSPURGE As BOOLEAN = 1;
+
+}
+`;
+    } else if (type == NewFileType.Class) {
+      // Add the superclass picker as the third step
+      inputSteps.push({
+        type: "classPick",
+        title: "Pick an optional superclass or press 'Escape' for none",
+        api: api,
+      });
+
+      // Prompt the user
+      const results = await multiStepInput(inputSteps);
+      if (!results) {
+        return;
+      }
+      cls = results[0];
+      const [, desc, superclass] = results;
+
+      // Generate the file's content
+      clsContent = `
+${typeof desc == "string" ? "/// " + desc.replace(/\n/g, "\n/// ") : ""}
+Class ${cls}${superclass ? ` Extends ${superclass}` : ""}
+{
 
 }
 `;
