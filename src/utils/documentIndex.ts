@@ -492,7 +492,7 @@ export function inferDocName(uri: vscode.Uri): string | undefined {
  */
 export function inferDocUri(docName: string, wsFolder: vscode.WorkspaceFolder): vscode.Uri | undefined {
   const exts = [".cls", ".mac", ".int", ".inc"];
-  const docExt = docName.slice(docName.lastIndexOf("."));
+  const docExt = docName.slice(-4).toLowerCase();
   if (!exts.includes(docExt)) return;
   const index = wsFolderIndex.get(wsFolder.uri.toString());
   if (!index || !index.uris.size) return;
@@ -504,7 +504,7 @@ export function inferDocUri(docName: string, wsFolder: vscode.WorkspaceFolder): 
   let bestPathPrefix = "";
   let bestMatchLen = -1;
   index.uris.forEach((indexDocName, indexDocUriStr) => {
-    const indexDocExt = indexDocName.slice(-4);
+    const indexDocExt = indexDocName.slice(-4).toLowerCase();
     if (!exts.includes(indexDocExt)) return;
     const indexDocNamePath = `/${indexDocName.slice(0, -4).replaceAll(".", "/")}${indexDocExt}`;
     let indexDocFullPath = vscode.Uri.parse(indexDocUriStr).path;
@@ -516,12 +516,11 @@ export function inferDocUri(docName: string, wsFolder: vscode.WorkspaceFolder): 
     // Count how many leading package segments the indexed doc shares with the target
     const indexPkgSegments = indexDocName.slice(0, -4).split(".").slice(0, -1);
     let matchLen = 0;
-    for (let i = 0; i < Math.min(docPkgSegments.length, indexPkgSegments.length); i++) {
-      if (docPkgSegments[i] === indexPkgSegments[i]) {
-        matchLen++;
-      } else {
-        break;
-      }
+    while (
+      matchLen < Math.min(docPkgSegments.length, indexPkgSegments.length) &&
+      docPkgSegments[matchLen] === indexPkgSegments[matchLen]
+    ) {
+      matchLen++;
     }
     if (matchLen > bestMatchLen) {
       bestMatchLen = matchLen;
@@ -530,7 +529,5 @@ export function inferDocUri(docName: string, wsFolder: vscode.WorkspaceFolder): 
   });
   if (!bestPathPrefix) return;
   // Convert the document name to a file path and prepend the prefix
-  const docNamePath = `${docNameNoExt.replaceAll(".", "/")}${docExt}`;
-  const inferredPath = `${bestPathPrefix}${docNamePath}`;
-  return wsFolder.uri.with({ path: inferredPath });
+  return wsFolder.uri.with({ path: `${bestPathPrefix}${docNameNoExt.replaceAll(".", "/")}${docExt}` });
 }

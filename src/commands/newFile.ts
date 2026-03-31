@@ -236,6 +236,55 @@ function getLocalUri(cls: string, wsFolder: vscode.WorkspaceFolder): vscode.Uri 
   return clsUri;
 }
 
+/** Prompt the user for a file path using the export settings as a default */
+function promptForDocUri(cls: string, wsFolder: vscode.WorkspaceFolder): Promise<vscode.Uri | undefined> {
+  const localUri = getLocalUri(cls, wsFolder);
+  return new Promise<vscode.Uri | undefined>((resolve) => {
+    const inputBox = vscode.window.createInputBox();
+    inputBox.ignoreFocusOut = true;
+    inputBox.buttons = [{ iconPath: new vscode.ThemeIcon("save-as"), tooltip: "Show 'Save As' dialog" }];
+    inputBox.prompt = `The path is relative to the workspace folder root (${displayableUri(wsFolder.uri)}). Intermediate folders that do not exist will be created. Click the 'Save As' icon to open the standard save dialog instead.`;
+    inputBox.title = "Enter a file path for the new class";
+    inputBox.value = localUri.path.slice(wsFolder.uri.path.length);
+    inputBox.valueSelection = [inputBox.value.length, inputBox.value.length];
+    let showingSave = false;
+    inputBox.onDidTriggerButton(() => {
+      // User wants to use the save dialog
+      showingSave = true;
+      inputBox.hide();
+      vscode.window
+        .showSaveDialog({
+          defaultUri: localUri,
+          filters: {
+            Classes: ["cls"],
+          },
+        })
+        .then(
+          (u) => resolve(u),
+          () => resolve(undefined)
+        );
+    });
+    inputBox.onDidAccept(() => {
+      if (typeof inputBox.validationMessage != "string") {
+        resolve(
+          wsFolder.uri.with({
+            path: `${wsFolder.uri.path}${!wsFolder.uri.path.endsWith("/") ? "/" : ""}${inputBox.value.replace(/^\/+/, "")}`,
+          })
+        );
+        inputBox.hide();
+      }
+    });
+    inputBox.onDidHide(() => {
+      if (!showingSave) resolve(undefined);
+      inputBox.dispose();
+    });
+    inputBox.onDidChangeValue((value) => {
+      inputBox.validationMessage = value.endsWith(".cls") ? undefined : "File extension must be .cls";
+    });
+    inputBox.show();
+  });
+}
+
 /**
  * Check if `cls` is a valid class name.
  * Returns `undefined` if yes, and the reason if no.
@@ -1033,58 +1082,7 @@ Class ${cls}${superclass ? ` Extends ${superclass}` : ""}
       clsUri = DocumentContentProvider.getUri(`${cls}.cls`, undefined, undefined, undefined, wsFolder.uri);
     } else {
       // Try to infer the URI from the document index
-      const inferredUri = inferDocUri(`${cls}.cls`, wsFolder);
-      if (inferredUri) {
-        // Use the inferred URI directly without prompting
-        clsUri = inferredUri;
-      } else {
-        // Fall back to objectscript.export settings and prompt the user
-        const localUri = getLocalUri(cls, wsFolder);
-        clsUri = await new Promise<vscode.Uri>((resolve) => {
-          const inputBox = vscode.window.createInputBox();
-          inputBox.ignoreFocusOut = true;
-          inputBox.buttons = [{ iconPath: new vscode.ThemeIcon("save-as"), tooltip: "Show 'Save As' dialog" }];
-          inputBox.prompt = `The path is relative to the workspace folder root (${displayableUri(wsFolder.uri)}). Intermediate folders that do not exist will be created. Click the 'Save As' icon to open the standard save dialog instead.`;
-          inputBox.title = "Enter a file path for the new class";
-          inputBox.value = localUri.path.slice(wsFolder.uri.path.length);
-          inputBox.valueSelection = [inputBox.value.length, inputBox.value.length];
-          let showingSave = false;
-          inputBox.onDidTriggerButton(() => {
-            // User wants to use the save dialog
-            showingSave = true;
-            inputBox.hide();
-            vscode.window
-              .showSaveDialog({
-                defaultUri: localUri,
-                filters: {
-                  Classes: ["cls"],
-                },
-              })
-              .then(
-                (u) => resolve(u),
-                () => resolve(undefined)
-              );
-          });
-          inputBox.onDidAccept(() => {
-            if (typeof inputBox.validationMessage != "string") {
-              resolve(
-                wsFolder.uri.with({
-                  path: `${wsFolder.uri.path}${!wsFolder.uri.path.endsWith("/") ? "/" : ""}${inputBox.value.replace(/^\/+/, "")}`,
-                })
-              );
-              inputBox.hide();
-            }
-          });
-          inputBox.onDidHide(() => {
-            if (!showingSave) resolve(undefined);
-            inputBox.dispose();
-          });
-          inputBox.onDidChangeValue((value) => {
-            inputBox.validationMessage = value.endsWith(".cls") ? undefined : "File extension must be .cls";
-          });
-          inputBox.show();
-        });
-      }
+      clsUri = inferDocUri(`${cls}.cls`, wsFolder) ?? (await promptForDocUri(cls, wsFolder));
     }
 
     if (clsUri && clsContent) {
