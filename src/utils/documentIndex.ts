@@ -479,3 +479,56 @@ export function inferDocName(uri: vscode.Uri): string | undefined {
   }
   return result;
 }
+
+/**
+ * Use the known mappings between files and document names to infer
+ * a URI for a new document with name `docName` in `wsFolder`.
+ * For example, if the index shows that `User.Existing.cls` maps to
+ * `/wsFolder/src/User/Existing.cls`, then calling this with
+ * `User.NewClass.cls` will return a URI for `/wsFolder/src/User/NewClass.cls`.
+ * Returns `undefined` if an inference couldn't be made.
+ *
+ * Finds the indexed document that shares the longest package prefix
+ * with `docName` and uses its containing path.
+ */
+export function inferDocUri(docName: string, wsFolder: vscode.WorkspaceFolder): vscode.Uri | undefined {
+  const exts = [".cls", ".mac", ".int", ".inc"];
+  const docExt = docName.slice(-4).toLowerCase();
+  if (!exts.includes(docExt)) return;
+  const index = wsFolderIndex.get(wsFolder.uri.toString());
+  if (!index || !index.uris.size) return;
+  const docNameNoExt = docName.slice(0, -4); // remove extension
+  const docPkgSegments = docNameNoExt.split(".").slice(0, -1); // remove class/routine name
+  // For each indexed document, compute its containing path and measure how
+  // closely its package matches the target document's package. Pick the one
+  // with the most shared leading package segments
+  let bestPathPrefix = "";
+  let bestMatchLen = -1;
+  index.uris.forEach((indexDocName, indexDocUriStr) => {
+    const indexDocExt = indexDocName.slice(-4).toLowerCase();
+    if (!exts.includes(indexDocExt)) return;
+    const indexDocNamePath = `/${indexDocName.slice(0, -4).replaceAll(".", "/")}${indexDocExt}`;
+    let indexDocFullPath = vscode.Uri.parse(indexDocUriStr).path;
+    indexDocFullPath = indexDocFullPath.slice(0, -3) + indexDocFullPath.slice(-3).toLowerCase();
+
+    if (!indexDocFullPath.endsWith(indexDocNamePath)) return;
+    const indexPathPrefix = indexDocFullPath.slice(0, -indexDocNamePath.length + 1);
+
+    // Count how many leading package segments the indexed doc shares with the target
+    const indexPkgSegments = indexDocName.slice(0, -4).split(".").slice(0, -1);
+    let matchLen = 0;
+    while (
+      matchLen < Math.min(docPkgSegments.length, indexPkgSegments.length) &&
+      docPkgSegments[matchLen] === indexPkgSegments[matchLen]
+    ) {
+      matchLen++;
+    }
+    if (matchLen > bestMatchLen) {
+      bestMatchLen = matchLen;
+      bestPathPrefix = indexPathPrefix;
+    }
+  });
+  if (!bestPathPrefix) return;
+  // Convert the document name to a file path and prepend the prefix
+  return wsFolder.uri.with({ path: `${bestPathPrefix}${docNameNoExt.replaceAll(".", "/")}${docExt}` });
+}
