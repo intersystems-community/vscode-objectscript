@@ -118,8 +118,8 @@ export async function importFile(
     mtime < 0 ||
     (notIsfs(file.uri) &&
       vscode.workspace.getConfiguration("objectscript", file.uri).get<boolean>("overwriteServerChanges"));
-  try {
-    const data = await api.putDoc(
+  return api
+    .putDoc(
       file.name,
       {
         content,
@@ -127,77 +127,82 @@ export async function importFile(
         mtime,
       },
       ignoreConflict
-    );
-    workspaceState.update(`${file.uniqueId}:mtime`, Number(new Date(data.result.ts + "Z")));
-    if (!willCompile && isClass(file.name) && data.result.content.length) {
-      // In this case, the file must be a CLS and data.result.content must be the new Storage definitions
-      // (with the rest of the class if flags === 0)
-      const oldContent = new TextDecoder().decode(await vscode.workspace.fs.readFile(file.uri));
-      const oldContentArray = oldContent.split(/\r?\n/);
-      const storage = Buffer.isBuffer(data.result.content)
-        ? new TextDecoder().decode(data.result.content).split(/\r?\n/)
-        : data.result.content;
-      const newContentArray = updateStorage(oldContentArray, storage);
-      if (oldContentArray.some((oldLine, index) => oldLine !== newContentArray[index])) {
-        const EOL = ((<CurrentTextFile>file)?.eol ?? vscode.EndOfLine.LF) == vscode.EndOfLine.CRLF ? "\r\n" : "\n";
-        const newContent = newContentArray.join(EOL);
-        await vscode.workspace.fs.writeFile(file.uri, new TextEncoder().encode(newContent));
+    )
+    .then((data) => {
+      // Update cache entry
+      workspaceState.update(`${file.uniqueId}:mtime`, Number(new Date(data.result.ts + "Z")));
+
+      if (!willCompile && isClass(file.name) && data.result.content.length) {
+        // In this case, the file must be a CLS and data.result.content must be the new Storage definitions
+        // (with the rest of the class if flags === 0)
+        const oldContent = new TextDecoder().decode(await vscode.workspace.fs.readFile(file.uri));
+        const oldContentArray = oldContent.split(/\r?\n/);
+        const storage = Buffer.isBuffer(data.result.content)
+          ? new TextDecoder().decode(data.result.content).split(/\r?\n/)
+          : data.result.content;
+        const newContentArray = updateStorage(oldContentArray, storage);
+        if (oldContentArray.some((oldLine, index) => oldLine !== newContentArray[index])) {
+          const EOL = ((<CurrentTextFile>file)?.eol ?? vscode.EndOfLine.LF) == vscode.EndOfLine.CRLF ? "\r\n" : "\n";
+          const newContent = newContentArray.join(EOL);
+          await vscode.workspace.fs.writeFile(file.uri, new TextEncoder().encode(newContent));
+        }
       }
-    }
-    // In case another extension has used an 'objectscript://' uri to load a document read-only from the server,
-    // make it reload with what we just imported to the server.
-    const serverUri = DocumentContentProvider.getUri(
-      file.name,
-      file.workspaceFolder,
-      undefined,
-      false,
-      undefined,
-      true
-    );
-    documentContentProvider.update(serverUri.with({ scheme: OBJECTSCRIPT_FILE_SCHEMA }));
-    return;
-  } catch (error) {
-    if (error?.statusCode == 409) {
-      const choices: string[] = [];
-      if (!enc) {
-        choices.push("Compare");
-      }
-      choices.push("Overwrite on Server", "Pull Server Changes", "Cancel");
-      const action = await vscode.window.showErrorMessage(
-        `Failed to import '${file.name}': The version of the file on the server is newer.
-What do you want to do?`,
-        ...choices
+      // In case another extension has used an 'objectscript://' uri to load a document read-only from the server,
+      // make it reload with what we just imported to the server.
+      const serverUri = DocumentContentProvider.getUri(
+        file.name,
+        file.workspaceFolder,
+        undefined,
+        false,
+        undefined,
+        true
       );
-      switch (action) {
-        case "Compare":
-          await vscode.commands.executeCommand(
-            "vscode.diff",
-            vscode.Uri.file(file.name).with({
-              scheme: OBJECTSCRIPT_FILE_SCHEMA,
-              authority: file.workspaceFolder,
-              query: file.name.includes("/") ? "csp" : "",
-            }),
-            file.uri,
-            `Server • ${file.name} ↔ Local • ${file.fileName}`
-          );
-          return Promise.reject();
-        case "Overwrite on Server":
-          // Clear cache entry
-          workspaceState.update(`${file.uniqueId}:mtime`, undefined);
-          // Overwrite
-          return importFile(file, willCompile, true, true);
-        case "Pull Server Changes":
-          loadChanges([file]);
-          return Promise.reject();
-        case "Cancel":
-          return Promise.reject();
+      documentContentProvider.update(serverUri.with({ scheme: OBJECTSCRIPT_FILE_SCHEMA }));
+      return;
+    })
+    .catch((error) => {
+      if (error?.statusCode == 409) {
+        const choices: string[] = [];
+        if (!enc) {
+          choices.push("Compare");
+        }
+        choices.push("Overwrite on Server", "Pull Server Changes", "Cancel");
+        const action = await vscode.window.showErrorMessage(
+          `Failed to import '${file.name}': The version of the file on the server is newer.
+What do you want to do?`,
+          ...choices
+        );
+        switch (action) {
+          case "Compare":
+            return vscode.commands
+              .executeCommand(
+                "vscode.diff",
+                vscode.Uri.file(file.name).with({
+                  scheme: OBJECTSCRIPT_FILE_SCHEMA,
+                  authority: file.workspaceFolder,
+                  query: file.name.includes("/") ? "csp" : "",
+                }),
+                file.uri,
+                `Server • ${file.name} ↔ Local • ${file.fileName}`
+              )
+              .then(() => Promise.reject());
+          case "Overwrite on Server":
+            // Clear cache entry
+            workspaceState.update(`${file.uniqueId}:mtime`, undefined);
+            // Overwrite
+            return importFile(file, willCompile, true, true);
+          case "Pull Server Changes":
+            loadChanges([file]);
+            return Promise.reject();
+          case "Cancel":
+            return Promise.reject();
+        }
+        return Promise.reject();
+      } else {
+        handleError(error, `Failed to save file '${file.name}' on the server.`);
+        return Promise.reject();
       }
-      return Promise.reject();
-    } else {
-      handleError(error, `Failed to save file '${file.name}' on the server.`);
-      return Promise.reject();
-    }
-  }
+    });
 }
 
 function updateOthers(others: string[], baseUri: vscode.Uri) {
