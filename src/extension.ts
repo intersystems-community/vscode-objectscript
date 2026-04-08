@@ -1896,6 +1896,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     serverManagerVersion: smExt?.packageJSON.version,
     "config.showProposedApiPrompt": String(conf.get("showProposedApiPrompt")),
     "config.unitTest.enabled": String(conf.get("unitTest.enabled")),
+    colorTheme: String(vscode.workspace.getConfiguration("workbench").get("colorTheme")),
+    "env.language": vscode.env.language,
+    "env.appName": vscode.env.appName,
   });
   sendWsFolderTelemetryEvent(vscode.workspace.workspaceFolders);
 
