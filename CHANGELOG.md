@@ -1,5 +1,17 @@
 # Change Log
 
+## [3.8.0] 08-Apr-2026
+- Enhancements
+  - Synchronize only the storage definition when compiling `*.cls` documents (#1730)
+  - Add Class entry to New File... quickpick (#1732)
+  - Infer doc URI based on doc name for the New File commands in client-side folders (#1741)
+- Fixes
+  - Restore "compile with flags" commands (#1727)
+  - Disallow opening Hidden classes using `Open InterSystems Document...` command (#1735)
+  - Fix hanging in activation when a server-side folder connection is inactive (#1740)
+  - Don't show error when trying to trigger reload of any open `objectscript://` documents after importing a file (#1744)
+  - Upgrade dependencies (#1728, #1737, #1738, #1739, #1742, #1746)
+
 ## [3.6.0] 23-Feb-2026
 Minimum VS Code version is now 1.109.0.
 - Enhancements

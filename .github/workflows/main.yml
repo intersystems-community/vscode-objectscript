@@ -26,7 +26,7 @@ jobs:
     outputs:
       taggedbranch: ${{ steps.find-branch.outputs.taggedbranch }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
       - name: Find which branch the release tag points at
         id: find-branch
@@ -58,9 +58,9 @@ jobs:
           echo $VERSION > meta.version
           echo $NAME > meta.name
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
       - run: npm install
       - name: lint
         run: npm run lint
@@ -70,12 +70,12 @@ jobs:
       - name: Build package
         run: |
           npx vsce package -o ${{ steps.set-version.outputs.name }}.vsix
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: github.event_name != 'release'
         with:
           name: ${{ steps.set-version.outputs.name }}.vsix
           path: ${{ steps.set-version.outputs.name }}.vsix
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: meta
           path: |
@@ -112,7 +112,7 @@ jobs:
     if: github.event_name == 'release' && needs.build.outputs.taggedbranch == 'master'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: master
           token: ${{ secrets.TOKEN }}
@@ -121,9 +121,9 @@ jobs:
           name: meta
           path: .
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
       - name: Prepare build
         id: set-version
         run: |
