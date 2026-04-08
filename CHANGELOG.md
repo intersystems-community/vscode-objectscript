@@ -10,7 +10,7 @@
   - Disallow opening Hidden classes using `Open InterSystems Document...` command (#1735)
   - Fix hanging in activation when a server-side folder connection is inactive (#1740)
   - Don't show error when trying to trigger reload of any open `objectscript://` documents after importing a file (#1744)
-  - Upgrade dependencies (#1728, #1737, #1738, #1739, #1742, #17XX)
+  - Upgrade dependencies (#1728, #1737, #1738, #1739, #1742, #1746)
 
 ## [3.6.0] 23-Feb-2026
 Minimum VS Code version is now 1.109.0.
