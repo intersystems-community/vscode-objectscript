@@ -885,6 +885,11 @@ export function base64EncodeContent(content: Buffer): string[] {
   return result;
 }
 
+/** Returns `true` if `uri` has a class file extension */
+export function isClass(uriOrName: string): boolean {
+  return "cls" == uriOrName.split(".").pop().toLowerCase();
+}
+
 /** Returns `true` if `uri` has a class or routine file extension */
 export function isClassOrRtn(uriOrName: string): boolean {
   return ["cls", "mac", "int", "inc"].includes(uriOrName.split(".").pop().toLowerCase());

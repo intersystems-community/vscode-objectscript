@@ -806,6 +806,7 @@ function sendWsFolderTelemetryEvent(wsFolders: readonly vscode.WorkspaceFolder[]
       "config.syncLocalChanges": !serverSide ? conf.get("syncLocalChanges") : undefined,
       dockerCompose: !serverSide ? String(typeof conf.get("conn.docker-compose") == "object") : undefined,
       "config.conn.links": String(Object.keys(conf.get("conn.links", {})).length),
+      "config.refreshClassesOnSync": !serverSide ? conf.get("refreshClassesOnSync") : undefined,
     });
   });
 }
