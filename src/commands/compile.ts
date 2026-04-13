@@ -283,11 +283,12 @@ function updateStorage(content: string[], storage: string[]): string[] {
   let contentString = content.join("\n");
   contentString = contentString
     // update existing Storages
-    .replaceAll(/\n(\s*storage\s+(\w+)\s*{\s*)([^}]*?)(\s*})/gim, (_match, beforeXML, name, _oldXML, afterXML) => {
-      const newXML = storageMap.get(name);
+    .replaceAll(/\n(\s*storage\s+(\w+)\s*{\s*)(.*?)(>\s*})/gis, (_match, beforeXML, name, _oldXML, afterXML) => {
+      let newXML = storageMap.get(name);
       if (newXML === undefined) {
         return "";
       }
+      newXML = newXML.slice(0, newXML.length - 1);
       storageMap.delete(name);
       return "\n" + beforeXML + newXML + afterXML;
     });
