@@ -63,23 +63,25 @@ export function stringifyError(error): string {
       return errs.length ? `AggregateError:\n- ${errs.join("\n- ")}` : "";
     }
     return (
-      error == undefined
-        ? ""
-        : error.errorText
-          ? <string>error.errorText
-          : typeof error == "string"
-            ? error
-            : error instanceof Error
-              ? error.toString()
-              : JSON.stringify(error)
-    )
-      .trim()
-      // Unescape any HTML-escpaed characters
-      .replaceAll("&amp;", "&")
-      .replaceAll("&lt;", "<")
-      .replaceAll("&gt;", ">")
-      .replaceAll("&quot;", '"')
-      .replaceAll("&#39;", "'");
+      (
+        error == undefined
+          ? ""
+          : error.errorText
+            ? <string>error.errorText
+            : typeof error == "string"
+              ? error
+              : error instanceof Error
+                ? error.toString()
+                : JSON.stringify(error)
+      )
+        .trim()
+        // Unescape any HTML-escpaed characters
+        .replaceAll("&amp;", "&")
+        .replaceAll("&lt;", "<")
+        .replaceAll("&gt;", ">")
+        .replaceAll("&quot;", '"')
+        .replaceAll("&#39;", "'")
+    );
   } catch {
     // Need to catch errors from JSON.stringify()
     return "";
@@ -1025,21 +1027,12 @@ export async function replaceFile(uri: vscode.Uri, content: string | string[] | 
 
 /** Show the compilation failure error message if required. */
 export function compileErrorMsg(error: any): void {
-  if (!(error instanceof Error && error.message.endsWith("Compile error"))) {
+  if (error instanceof Error && error.message.endsWith("Compile error")) {
     // Don't log the generic placeholder error
-    handleError(error);
+    handleError("", "Compilaton failed.");
+  } else {
+    handleError(error, "Compilaton failed.");
   }
-  vscode.window
-    .showErrorMessage(
-      "Compilation failed. Check 'ObjectScript' Output channel for details.",
-      !vscode.window.visibleTextEditors.some((e) => e.document.languageId == outputLangId) ? "Show" : undefined,
-      "Dismiss"
-    )
-    .then((action) => {
-      if (action == "Show") {
-        outputChannel.show(true);
-      }
-    });
 }
 
 /** Return a string containing the displayable form of `uri` */
