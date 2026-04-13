@@ -63,16 +63,25 @@ export function stringifyError(error): string {
       return errs.length ? `AggregateError:\n- ${errs.join("\n- ")}` : "";
     }
     return (
-      error == undefined
-        ? ""
-        : error.errorText
-          ? <string>error.errorText
-          : typeof error == "string"
-            ? error
-            : error instanceof Error
-              ? error.toString()
-              : JSON.stringify(error)
-    ).trim();
+      (
+        error == undefined
+          ? ""
+          : error.errorText
+            ? <string>error.errorText
+            : typeof error == "string"
+              ? error
+              : error instanceof Error
+                ? error.toString()
+                : JSON.stringify(error)
+      )
+        .trim()
+        // Unescape any HTML-escpaed characters
+        .replaceAll("&lt;", "<")
+        .replaceAll("&gt;", ">")
+        .replaceAll("&quot;", '"')
+        .replaceAll("&#39;", "'")
+        .replaceAll("&amp;", "&")
+    );
   } catch {
     // Need to catch errors from JSON.stringify()
     return "";
@@ -1017,18 +1026,12 @@ export async function replaceFile(uri: vscode.Uri, content: string | string[] | 
 }
 
 /** Show the compilation failure error message if required. */
-export function compileErrorMsg(): void {
-  vscode.window
-    .showErrorMessage(
-      "Compilation failed. Check 'ObjectScript' Output channel for details.",
-      !vscode.window.visibleTextEditors.some((e) => e.document.languageId == outputLangId) ? "Show" : undefined,
-      "Dismiss"
-    )
-    .then((action) => {
-      if (action == "Show") {
-        outputChannel.show(true);
-      }
-    });
+export function compileErrorMsg(error: any): void {
+  handleError(
+    // Don't log the generic placeholder error if that's all we have
+    error instanceof Error && error.message.endsWith("Compile error") ? "" : error,
+    "Compilaton failed."
+  );
 }
 
 /** Return a string containing the displayable form of `uri` */

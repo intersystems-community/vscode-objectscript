@@ -914,7 +914,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             }
             data.result.content.forEach((f) => filesToUpdate.push(f.name));
           })
-          .catch(() => compileErrorMsg())
+          .catch((error) => compileErrorMsg(error))
     );
     if (file && (update || filesToUpdate.includes(file.fileName))) {
       // This file was just written and the write may have changed its contents or the
