@@ -376,8 +376,8 @@ export async function compile(docs: (CurrentTextFile | CurrentBinaryFile)[], ask
             }
             return docs;
           })
-          .catch(() => {
-            compileErrorMsg();
+          .catch((error) => {
+            compileErrorMsg(error);
             // Always fetch server changes, even when compile failed or got cancelled
             return docs;
           })
@@ -550,7 +550,7 @@ export async function compileExplorerItems(nodes: NodeBase[]): Promise<any> {
             throw new Error(`${info}Compile error`);
           }
         })
-        .catch(() => compileErrorMsg())
+        .catch((error) => compileErrorMsg(error))
   );
 }
 
@@ -637,7 +637,7 @@ async function promptForCompile(imported: string[], api: AtelierAPI, isIsfs: boo
                     throw new Error(`${info}Compile error`);
                   }
                 })
-                .catch(() => compileErrorMsg())
+                .catch((error) => compileErrorMsg(error))
                 .finally(() => {
                   if (isIsfs) {
                     // Refresh the files explorer to show the new files
