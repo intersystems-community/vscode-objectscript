@@ -76,11 +76,11 @@ export function stringifyError(error): string {
       )
         .trim()
         // Unescape any HTML-escpaed characters
-        .replaceAll("&amp;", "&")
         .replaceAll("&lt;", "<")
         .replaceAll("&gt;", ">")
         .replaceAll("&quot;", '"')
         .replaceAll("&#39;", "'")
+        .replaceAll("&amp;", "&")
     );
   } catch {
     // Need to catch errors from JSON.stringify()
