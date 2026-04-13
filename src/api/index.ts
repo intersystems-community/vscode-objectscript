@@ -1,7 +1,6 @@
 import axios from "axios";
 import * as httpsModule from "https";
 import * as vscode from "vscode";
-import * as Cache from "vscode-cache";
 import * as semver from "semver";
 import {
   getResolvedConnectionSpec,
@@ -21,8 +20,11 @@ const DEFAULT_SERVER_VERSION = "2016.2.0";
 import * as Atelier from "./atelier";
 import { isfsConfig } from "../utils/FileProviderUtil";
 
-// Map of the authRequest promises for each username@host:port target to avoid concurrency issues
+// Map of the authRequest promises for each username@host:port/pathPrefix target to avoid concurrency issues
 const authRequestMap = new Map<string, Promise<any>>();
+
+/** Map of `username@host:port/pathPrefix` to cookies */
+const cookiesMap = new Map<string, string[]>();
 
 interface ConnectionSettings {
   serverName: string;
@@ -170,12 +172,11 @@ export class AtelierAPI {
   }
 
   public get cookies(): string[] {
-    const cookies = this.cache.get("cookies", []);
-    return cookies;
+    return cookiesMap.get(this.mapKey()) ?? [];
   }
 
-  public async clearCookies(): Promise<void> {
-    await this.cache.put("cookies", []);
+  public clearCookies(): void {
+    cookiesMap.delete(this.mapKey());
   }
 
   public xdebugUrl(): string {
@@ -191,8 +192,9 @@ export class AtelierAPI {
       : "";
   }
 
-  public async updateCookies(newCookies: string[]): Promise<void> {
-    const cookies = this.cache.get("cookies", []);
+  public updateCookies(newCookies: string[]): void {
+    const mapKey = this.mapKey();
+    const cookies = cookiesMap.get(mapKey) ?? [];
     newCookies.forEach((cookie) => {
       const [cookieName] = cookie.split("=");
       const index = cookies.findIndex((el) => el.startsWith(cookieName));
@@ -202,7 +204,17 @@ export class AtelierAPI {
         cookies.push(cookie);
       }
     });
-    await this.cache.put("cookies", cookies);
+    cookiesMap.set(mapKey, cookies);
+  }
+
+  /** Return the key for getting values from connection-specific Maps for this connection */
+  private mapKey(): string {
+    const { host, port, username } = this.config;
+    let pathPrefix = this._config.pathPrefix || "";
+    if (pathPrefix.length && !pathPrefix.startsWith("/")) {
+      pathPrefix = "/" + pathPrefix;
+    }
+    return `${username}@${host}:${port}${pathPrefix}`;
   }
 
   private setConnection(workspaceFolderName: string, namespace?: string): void {
@@ -284,11 +296,6 @@ export class AtelierAPI {
     }
   }
 
-  private get cache(): Cache {
-    const { host, port } = this.config;
-    return new Cache(extensionContext, `API:${host}:${port}`);
-  }
-
   public get connInfo(): string {
     const { port, docker, dockerService } = this.config;
     return (docker ? "docker" + (dockerService ? `:${dockerService}:${port}` : "") : this.serverId) + `[${this.ns}]`;
@@ -358,9 +365,9 @@ export class AtelierAPI {
     path = encodeURI(`${pathPrefix}/api/atelier/${path || ""}`) + buildParams();
 
     const cookies = this.cookies;
-    const target = `${username}@${host}:${port}`;
+    const mapKey = this.mapKey();
     let auth: Promise<any>;
-    let authRequest = authRequestMap.get(target);
+    let authRequest = authRequestMap.get(mapKey);
     if (cookies.length || (method === "HEAD" && !originalPath)) {
       auth = Promise.resolve(cookies);
 
@@ -372,7 +379,7 @@ export class AtelierAPI {
       if (!authRequest) {
         // Recursion point
         authRequest = this.request(0, "HEAD", undefined, undefined, undefined, undefined, options);
-        authRequestMap.set(target, authRequest);
+        authRequestMap.set(mapKey, authRequest);
       }
       auth = authRequest;
     }
@@ -438,7 +445,7 @@ export class AtelierAPI {
         };
       }
       if (response.status === 401) {
-        authRequestMap.delete(target);
+        authRequestMap.delete(mapKey);
         if (this.wsOrFile && !checkingConnection) {
           setTimeout(() => {
             checkConnection(
@@ -453,7 +460,7 @@ export class AtelierAPI {
       await this.updateCookies(response.headers["set-cookie"] || []);
       if (method === "HEAD") {
         if (!originalPath) {
-          authRequestMap.delete(target);
+          authRequestMap.delete(mapKey);
           return this.cookies;
         } else if (response.status >= 400) {
           // The HEAD /doc request errored out
@@ -552,7 +559,7 @@ export class AtelierAPI {
         outputChannel.appendLine(`+- END ----------------------------------------------`);
       }
       // always discard the cached authentication promise
-      authRequestMap.delete(target);
+      authRequestMap.delete(mapKey);
 
       // In some cases schedule an automatic retry.
       // ENOTFOUND occurs if, say, the VPN to the server's network goes down.
