@@ -1027,12 +1027,11 @@ export async function replaceFile(uri: vscode.Uri, content: string | string[] | 
 
 /** Show the compilation failure error message if required. */
 export function compileErrorMsg(error: any): void {
-  if (error instanceof Error && error.message.endsWith("Compile error")) {
-    // Don't log the generic placeholder error
-    handleError("", "Compilaton failed.");
-  } else {
-    handleError(error, "Compilaton failed.");
-  }
+  handleError(
+    // Don't log the generic placeholder error if that's all we have
+    error instanceof Error && error.message.endsWith("Compile error") ? "" : error,
+    "Compilaton failed."
+  );
 }
 
 /** Return a string containing the displayable form of `uri` */
