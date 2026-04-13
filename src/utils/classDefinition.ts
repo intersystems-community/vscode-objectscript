@@ -88,15 +88,14 @@ export class ClassDefinition {
     WHERE Name %inlist (SELECT $LISTFROMSTRING(Super, ',') FROM %Dictionary.CompiledClass WHERE Name = ?)`;
     return api
       .actionQuery(sql, [this._className])
-      .then(
-        (data) =>
-          data.result.content
-            .reduce(
-              (list: string[], el: { PrimarySuper: string }) =>
-                list.concat(el.PrimarySuper.split("~").filter((item) => item.length)),
-              []
-            )
-            .filter((name: string) => name !== this._className)
+      .then((data) =>
+        data.result.content
+          .reduce(
+            (list: string[], el: { PrimarySuper: string }) =>
+              list.concat(el.PrimarySuper.split("~").filter((item) => item.length)),
+            []
+          )
+          .filter((name: string) => name !== this._className)
       )
       .then((data) => data);
   }

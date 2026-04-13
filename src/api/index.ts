@@ -24,7 +24,7 @@ import { isfsConfig } from "../utils/FileProviderUtil";
 const authRequestMap = new Map<string, Promise<any>>();
 
 /** Map of `username@host:port/pathPrefix` to cookies */
-const cookiesMap = new Map<string,string[]>();
+const cookiesMap = new Map<string, string[]>();
 
 interface ConnectionSettings {
   serverName: string;
