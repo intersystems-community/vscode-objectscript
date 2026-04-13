@@ -1,8 +1,6 @@
 import * as vscode from "vscode";
-import * as Cache from "vscode-cache";
 import { onlyUnique } from ".";
 import { AtelierAPI } from "../api";
-import { extensionContext } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 
 export class ClassDefinition {
@@ -15,7 +13,6 @@ export class ClassDefinition {
   }
   private _className: string;
   private _classFileName: string;
-  private _cache;
   private _workspaceFolder: string;
   private _namespace: string;
 
@@ -27,26 +24,14 @@ export class ClassDefinition {
     }
     this._className = ClassDefinition.normalizeClassName(className, false);
     this._classFileName = ClassDefinition.normalizeClassName(className, true);
-    this._cache = new Cache(extensionContext, this._classFileName);
   }
 
   public async getDocument(): Promise<vscode.TextDocument> {
     return vscode.workspace.openTextDocument(this.uri);
   }
 
-  public store(kind: string, data: any): any {
-    return this._cache.put(kind, data, 36000).then(() => data);
-  }
-
-  public load(kind: string): any {
-    return this._cache.get(kind);
-  }
-
   public async methods(scope: "any" | "class" | "instance" = "any"): Promise<any[]> {
-    const methods = this.load("methods-" + scope) || [];
-    if (methods.length) {
-      return Promise.resolve(methods);
-    }
+    const methods = [];
     const filterScope = (method) => scope === "any" || method.scope === scope;
     const api = new AtelierAPI(this.uri);
     const getMethods = (content) => {
@@ -58,16 +43,13 @@ export class ClassDefinition {
       if (extend.length) {
         return api.actionIndex(extend).then((data) => getMethods(data.result.content));
       }
-      return this.store("methods-" + scope, methods.filter(filterScope).filter(onlyUnique).sort());
+      return methods.filter(filterScope).filter(onlyUnique).sort();
     };
     return api.actionIndex([this._classFileName]).then((data) => getMethods(data.result.content));
   }
 
   public async properties(): Promise<any[]> {
-    const properties = this.load("properties") || [];
-    if (properties.length) {
-      return Promise.resolve(properties);
-    }
+    const properties = [];
     const api = new AtelierAPI(this.uri);
     const getProperties = (content) => {
       const extend = [];
@@ -78,16 +60,13 @@ export class ClassDefinition {
       if (extend.length) {
         return api.actionIndex(extend).then((data) => getProperties(data.result.content));
       }
-      return this.store("properties", properties.filter(onlyUnique).sort());
+      return properties.filter(onlyUnique).sort();
     };
     return api.actionIndex([this._classFileName]).then((data) => getProperties(data.result.content));
   }
 
   public async parameters(): Promise<any[]> {
-    const parameters = this.load("parameters") || [];
-    if (parameters.length) {
-      return Promise.resolve(parameters);
-    }
+    const parameters = [];
     const api = new AtelierAPI(this.uri);
     const getParameters = (content) => {
       const extend = [];
@@ -98,16 +77,12 @@ export class ClassDefinition {
       if (extend.length) {
         return api.actionIndex(extend).then((data) => getParameters(data.result.content));
       }
-      return this.store("parameters", parameters.filter(onlyUnique).sort());
+      return parameters.filter(onlyUnique).sort();
     };
     return api.actionIndex([this._classFileName]).then((data) => getParameters(data.result.content));
   }
 
   public async super(): Promise<string[]> {
-    const superList = this.load("super");
-    if (superList) {
-      return Promise.resolve(superList);
-    }
     const api = new AtelierAPI(this.uri);
     const sql = `SELECT PrimarySuper FROM %Dictionary.CompiledClass
     WHERE Name %inlist (SELECT $LISTFROMSTRING(Super, ',') FROM %Dictionary.CompiledClass WHERE Name = ?)`;
@@ -122,16 +97,11 @@ export class ClassDefinition {
               []
             )
             .filter((name: string) => name !== this._className)
-        // .filter(name => !['%Library.Base', '%Library.SystemBase'].includes(name))
       )
-      .then((data) => this.store("super", data));
+      .then((data) => data);
   }
 
   public async includeCode(): Promise<string[]> {
-    const includeCode = this.load("includeCode");
-    if (includeCode) {
-      return Promise.resolve(includeCode);
-    }
     const api = new AtelierAPI(this.uri);
     const sql = `SELECT LIST(IncludeCode) List FROM %Dictionary.CompiledClass WHERE Name %INLIST (
       SELECT $LISTFROMSTRING(PrimarySuper, '~') FROM %Dictionary.CompiledClass WHERE Name = ?)`;
@@ -144,7 +114,7 @@ export class ClassDefinition {
           defaultIncludes
         )
       )
-      .then((data) => this.store("includeCode", data));
+      .then((data) => data);
   }
 
   public async getMemberLocation(name: string): Promise<vscode.Location> {
