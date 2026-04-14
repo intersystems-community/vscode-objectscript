@@ -259,6 +259,19 @@ function validateUriIsCanonical(uri: vscode.Uri): void {
   }
 }
 
+/**
+ * Throws `error` or a `vscode.FileSystemError.FileNotFound` error when `uri`
+ * is an invalid dot folder or is in an invalid dot folder. `.vscode`
+ * is allowed for any workspace folder, but other dot folders are only
+ * allowed in web app workspace folders. This filtering is done here to
+ * avoid spamming the server with requests that will never return meaningful data.
+ */
+function filterDotPaths(uri: vscode.Uri, error?: vscode.FileSystemError): void {
+  if (!isfsConfig(uri).csp && uri.path.includes("/.") && !/\/\.vscode($|\/)/.test(uri.path)) {
+    throw error ?? vscode.FileSystemError.FileNotFound(uri);
+  }
+}
+
 export class FileSystemProvider implements vscode.FileSystemProvider {
   private superRoot = new Directory("", "");
 
@@ -299,6 +312,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   public async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
     const api = new AtelierAPI(uri);
     if (!api.active) throw vscode.FileSystemError.Unavailable("Server connection is inactive");
+    filterDotPaths(uri);
     validateUriIsCanonical(uri);
     let entryPromise: Promise<Entry>;
     let result: Entry;
@@ -349,6 +363,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
+    filterDotPaths(uri);
     if (uri.path.includes(".vscode/") || uri.path.endsWith(".vscode")) {
       throw new vscode.FileSystemError("Cannot read the /.vscode directory");
     }
@@ -465,6 +480,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public createDirectory(uri: vscode.Uri): void | Thenable<void> {
+    filterDotPaths(uri, new vscode.FileSystemError("dot-folders are not supported by the server"));
     uri = redirectDotvscodeRoot(uri, new vscode.FileSystemError("Server does not have a /_vscode web application"));
     const basename = path.posix.basename(uri.path);
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
@@ -481,6 +497,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
+    filterDotPaths(uri);
     validateUriIsCanonical(uri);
     // Use _lookup() instead of _lookupAsFile() so we send
     // our cached mtime with the GET /doc request if we have it
@@ -495,13 +512,11 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       overwrite: boolean;
     }
   ): void | Thenable<void> {
+    filterDotPaths(uri, new vscode.FileSystemError("dot-folders are not supported by the server"));
     const originalUriString = uri.toString();
     const originalUri = vscode.Uri.parse(originalUriString);
     this._needsUpdate.delete(originalUriString);
     uri = redirectDotvscodeRoot(uri, new vscode.FileSystemError("Server does not have a /_vscode web application"));
-    if (uri.path.startsWith("/.")) {
-      throw new vscode.FileSystemError("dot-folders are not supported by server");
-    }
     validateUriIsCanonical(uri);
     const csp = isCSP(uri);
     const fileName = isfsDocumentName(uri, csp);
@@ -697,6 +712,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async delete(uri: vscode.Uri, options: { recursive: boolean }): Promise<void> {
+    filterDotPaths(uri);
     uri = redirectDotvscodeRoot(uri, vscode.FileSystemError.FileNotFound(uri));
     validateUriIsCanonical(uri);
     const { project } = isfsConfig(uri);
