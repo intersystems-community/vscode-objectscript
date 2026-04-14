@@ -1142,7 +1142,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       const file = currentFile();
       if (!file) return;
       try {
-        await loadChanges([file]);
+        await loadChanges([file], true);
       } catch (error) {
         handleError(
           error,
