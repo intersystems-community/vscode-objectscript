@@ -218,7 +218,16 @@ function updateOthers(others: string[], baseUri: vscode.Uri) {
   });
 }
 
-export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]): Promise<any> {
+/**
+ * Pull changes due to save/compile from server and write them into the local file.
+ * Also used to refresh the local copy from the server outside of the save/compile workflow.
+ * Pass `forceRefreshClasses` to replace the entire text of classes regardless of the
+ * value of the `objectscript.refreshClassesOnSync` setting.
+ */
+export async function loadChanges(
+  files: (CurrentTextFile | CurrentBinaryFile)[],
+  forceRefreshClasses = false
+): Promise<any> {
   if (!files.length) {
     return;
   }
@@ -236,7 +245,8 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
           if (
             !(
               isClass(file.uri.path) &&
-              !vscode.workspace.getConfiguration("objectscript", file.uri).get("refreshClassesOnSync")
+              !vscode.workspace.getConfiguration("objectscript", file.uri).get("refreshClassesOnSync") &&
+              !forceRefreshClasses
             )
           ) {
             content = (await api.getDoc(file.name, file.uri)).result.content;
