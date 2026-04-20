@@ -1713,8 +1713,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       // Send telemetry events for all added folders
       sendWsFolderTelemetryEvent(e.added, true);
     }),
-    vscode.commands.registerCommand("vscode-objectscript.importXMLFiles", () => {
-      sendCommandTelemetryEvent("importXMLFiles");
+    vscode.commands.registerCommand("vscode-objectscript.importFiles", () => {
+      sendCommandTelemetryEvent("importFiles");
       importArbitraryFiles();
     }),
     vscode.commands.registerCommand("vscode-objectscript.exportToXMLFile", () => {

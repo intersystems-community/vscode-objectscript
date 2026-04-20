@@ -296,7 +296,7 @@
           "when": "false"
         },
         {
-          "command": "vscode-objectscript.importXMLFiles",
+          "command": "vscode-objectscript.importFiles",
           "when": "vscode-objectscript.connectActive && workspaceFolderCount != 0"
         },
         {
@@ -1093,7 +1093,7 @@
       },
       {
         "category": "ObjectScript",
-        "command": "vscode-objectscript.importXMLFiles",
+        "command": "vscode-objectscript.importFiles",
         "title": "Import Files..."
       },
       {
