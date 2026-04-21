@@ -35,9 +35,8 @@ import {
   compileExplorerItems,
   checkChangedOnServer,
   compileOnly,
-  importLocalFilesToServerSideFolder,
   loadChanges,
-  importXMLFiles,
+  importArbitraryFiles,
 } from "./commands/compile";
 import { deleteExplorerItems } from "./commands/delete";
 import { exportAll, exportCurrentFile, exportDocumentsToXMLFile, exportExplorerItems } from "./commands/export";
@@ -1646,19 +1645,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.window.registerFileDecorationProvider(fileDecorationProvider),
     vscode.workspace.onDidOpenTextDocument((doc) => !doc.isUntitled && fileDecorationProvider.emitter.fire(doc.uri)),
-    vscode.commands.registerCommand("vscode-objectscript.importLocalFilesServerSide", (wsFolderUri) => {
-      sendCommandTelemetryEvent("importLocalFilesServerSide");
-      if (
-        wsFolderUri instanceof vscode.Uri &&
-        wsFolderUri.scheme == FILESYSTEM_SCHEMA &&
-        (vscode.workspace.workspaceFolders != undefined
-          ? vscode.workspace.workspaceFolders.some((wsFolder) => wsFolder.uri.toString() == wsFolderUri.toString())
-          : false)
-      ) {
-        // wsFolderUri is an isfs workspace folder URI
-        return importLocalFilesToServerSideFolder(wsFolderUri);
-      }
-    }),
     vscode.commands.registerCommand("vscode-objectscript.modifyWsFolder", (wsFolderUri?: vscode.Uri) => {
       sendCommandTelemetryEvent("modifyWsFolder");
       modifyWsFolder(wsFolderUri);
@@ -1727,9 +1713,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       // Send telemetry events for all added folders
       sendWsFolderTelemetryEvent(e.added, true);
     }),
-    vscode.commands.registerCommand("vscode-objectscript.importXMLFiles", () => {
-      sendCommandTelemetryEvent("importXMLFiles");
-      importXMLFiles();
+    vscode.commands.registerCommand("vscode-objectscript.importFiles", () => {
+      sendCommandTelemetryEvent("importFiles");
+      importArbitraryFiles();
     }),
     vscode.commands.registerCommand("vscode-objectscript.exportToXMLFile", () => {
       sendCommandTelemetryEvent("exportToXMLFile");

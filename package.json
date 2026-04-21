@@ -272,10 +272,6 @@
           "when": "false"
         },
         {
-          "command": "vscode-objectscript.importLocalFilesServerSide",
-          "when": "false"
-        },
-        {
           "command": "vscode-objectscript.showRESTDebugWebview",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && activeCustomEditorId == ''"
         },
@@ -300,7 +296,7 @@
           "when": "false"
         },
         {
-          "command": "vscode-objectscript.importXMLFiles",
+          "command": "vscode-objectscript.importFiles",
           "when": "vscode-objectscript.connectActive && workspaceFolderCount != 0"
         },
         {
@@ -572,11 +568,6 @@
           "command": "vscode-objectscript.modifyProjectMetadata",
           "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && resourcePath =~ /^\\/?$/ && !listMultiSelection",
           "group": "objectscript_prj@3"
-        },
-        {
-          "command": "vscode-objectscript.importLocalFilesServerSide",
-          "when": "vscode-objectscript.connectActive && resourceScheme == isfs && explorerResourceIsRoot && !listMultiSelection",
-          "group": "objectscript_modify@2"
         },
         {
           "command": "vscode-objectscript.modifyWsFolder",
@@ -1072,11 +1063,6 @@
       },
       {
         "category": "ObjectScript",
-        "command": "vscode-objectscript.importLocalFilesServerSide",
-        "title": "Import Local Files..."
-      },
-      {
-        "category": "ObjectScript",
         "command": "vscode-objectscript.showRESTDebugWebview",
         "title": "Debug REST Service..."
       },
@@ -1107,8 +1093,8 @@
       },
       {
         "category": "ObjectScript",
-        "command": "vscode-objectscript.importXMLFiles",
-        "title": "Import XML Files..."
+        "command": "vscode-objectscript.importFiles",
+        "title": "Import Files..."
       },
       {
         "category": "ObjectScript",
