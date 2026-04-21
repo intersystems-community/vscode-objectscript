@@ -806,6 +806,7 @@ function sendWsFolderTelemetryEvent(wsFolders: readonly vscode.WorkspaceFolder[]
       dockerCompose: !serverSide ? String(typeof conf.get("conn.docker-compose") == "object") : undefined,
       "config.conn.links": String(Object.keys(conf.get("conn.links", {})).length),
       "config.refreshClassesOnSync": !serverSide ? conf.get("refreshClassesOnSync") : undefined,
+      "config.insertStubContent": !serverSide ? conf.get("insertStubContent") : undefined,
     });
   });
 }
@@ -1408,8 +1409,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.workspace.onDidCreateFiles((e: vscode.FileCreateEvent) =>
       e.files
         // Attempt to fill in stub content for classes and routines that
-        // are not server-side files and were not created due to an export
-        .filter((f) => notIsfs(f) && isClassOrRtn(f.path) && !exportedUris.has(f.toString()))
+        // are client-side files and were not created due to an export
+        .filter(
+          (f) =>
+            notIsfs(f) &&
+            isClassOrRtn(f.path) &&
+            !exportedUris.has(f.toString()) &&
+            vscode.workspace.getConfiguration("objectscript", f).get<boolean>("insertStubContent")
+        )
         .forEach(async (uri) => {
           // Need to wait in case file was created using "Save As..."
           // because in that case the file gets created without
