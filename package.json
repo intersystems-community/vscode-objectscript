@@ -1753,7 +1753,7 @@
     "@vscode/debugadapter": "^1.68.0",
     "@vscode/debugprotocol": "^1.68.0",
     "@vscode/extension-telemetry": "^1.5.1",
-    "@xmldom/xmldom": "^0.9.9",
+    "@xmldom/xmldom": "^0.9.10",
     "axios": "^1.15.0",
     "iconv-lite": "^0.7.2",
     "istextorbinary": "^7.0.0",
