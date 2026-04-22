@@ -155,6 +155,13 @@ export function generateFileContent(
         eol,
       };
     }
+  } else if (csp && sourceContent.length == 0) {
+    // Some IRIS versions do not allow empty content to be PUT for CSP files, so add a newline if the content is empty. See DP-442552.
+    return {
+      content: [""],
+      enc: false,
+      eol,
+    };
   }
   return {
     content: base64EncodeContent(Buffer.from(sourceContent)),
@@ -606,7 +613,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           // Create content (typically a stub, unless the write-phase of a copy operation).
           const newContent = generateFileContent(uri, fileName, content);
 
-          // Write it to the server
+          // Write it to the server, ignoring conflict report that some IRIS versions incorrectly give
           return api
             .putDoc(
               fileName,
@@ -614,7 +621,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
                 ...newContent,
                 mtime: Date.now(),
               },
-              false
+              true
             )
             .catch((error) => {
               // Throw all failures
