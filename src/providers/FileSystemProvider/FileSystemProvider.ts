@@ -247,7 +247,7 @@ export function isfsDocumentName(uri: vscode.Uri, csp?: boolean, pkg = false): s
  * and `/%Library/CHUIScreen.CLS` (extension has wrong case). This is needed to
  * prevent the user from opening multiple copies of the same document. This
  * function does not return a value; it throws a `vscode.FileSystemError.FileNotFound`
- * error, or a more descriptive custome error when `descriptiveError` is `true`,
+ * error, or a more descriptive custom error when `descriptiveError` is `true`,
  * when `uri`'s path is not in "canonical form".
  */
 function validateUriIsCanonical(uri: vscode.Uri, descriptiveError = false): void {
