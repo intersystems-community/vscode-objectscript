@@ -1833,14 +1833,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("showAllClassMembers");
       if (uri instanceof vscode.Uri) showAllClassMembers(uri);
     }),
-    vscode.workspace.onDidSaveTextDocument((d) => {
+    vscode.workspace.onDidSaveTextDocument(async (d) => {
       // If the document just saved is a server-side document that needs to be updated in the UI,
       // then force VS Code to update the document's contents. This is needed if the document has
       // been changed during a save, for example by adding or changing the Storage definition.
       if (notIsfs(d.uri)) return;
       const uriString = d.uri.toString();
       if (fileSystemProvider.needsUpdate(uriString)) {
-        const activeDoc = vscode.window.activeTextEditor?.document;
+        let activeDoc = vscode.window.activeTextEditor?.document;
+        if (activeDoc?.uri.toString() != uriString) {
+          // The active text editor (if any) does not contain this document. Wait a short time and
+          // check again in case this document was saved using the "Save As..." command. In that
+          // case VS Code saves the document once with no content and then saves it again with content
+          // from the source document. During that second save our FileSystemProvider will likely
+          // change the content of the document so the header matches the new URI. We need to force
+          // VS Code to reflect that change in the editor UI.
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          activeDoc = vscode.window.activeTextEditor?.document;
+        }
         if (activeDoc && !activeDoc.isDirty && !activeDoc.isClosed && activeDoc.uri.toString() == uriString) {
           // Force VS Code to refresh the file's contents in the editor tab
           vscode.commands.executeCommand("workbench.action.files.revert");
