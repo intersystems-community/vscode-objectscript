@@ -249,22 +249,21 @@ export function isfsDocumentName(uri: vscode.Uri, csp?: boolean, pkg = false): s
  * and `/%Library/CHUIScreen.CLS` (extension has wrong case). This is needed to
  * prevent the user from opening multiple copies of the same document. This
  * function does not return a value; it throws a `vscode.FileSystemError.FileNotFound`
- * error when `uri`'s path is not in "canonical form".
+ * error, or a more descriptive custom error when `descriptiveError` is `true`,
+ * when `uri`'s path is not in "canonical form".
  */
-function validateUriIsCanonical(uri: vscode.Uri): void {
+function validateUriIsCanonical(uri: vscode.Uri, descriptiveError = false): void {
   const numDots = uri.path.split(".").length - 1;
   const lastFour = uri.path.slice(-4);
-  if (
-    !isfsConfig(uri).csp &&
-    [".cls", ".mac", ".int", ".inc"].includes(lastFour.toLowerCase()) &&
-    // extension has wrong case
-    (![".cls", ".mac", ".int", ".inc"].includes(lastFour) ||
-      // short alias for %Library class
-      (uri.path.startsWith("/%") && lastFour == ".cls" && numDots == 1 && uri.path.split("/").length == 2) ||
-      // dotted packages
-      (numDots > 1 && !(numDots == 2 && /\.G?\d\.int$/.test(uri.path))))
-  ) {
-    throw vscode.FileSystemError.FileNotFound(uri);
+  if (!isfsConfig(uri).csp && [".cls", ".mac", ".int", ".inc"].includes(lastFour.toLowerCase())) {
+    const msg = ![".cls", ".mac", ".int", ".inc"].includes(lastFour)
+      ? "File extension must be in all lowercase"
+      : uri.path.startsWith("/%") && lastFour == ".cls" && numDots == 1 && uri.path.split("/").length == 2
+        ? "Must use the full name of %Library classes"
+        : numDots > 1 && !(numDots == 2 && /\.G?\d\.int$/.test(uri.path))
+          ? "Packages must use forward slashes as delimiters instead of dots"
+          : undefined;
+    if (msg) throw descriptiveError ? new vscode.FileSystemError(msg) : vscode.FileSystemError.FileNotFound(uri);
   }
 }
 
@@ -526,7 +525,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const originalUri = vscode.Uri.parse(originalUriString);
     this._needsUpdate.delete(originalUriString);
     uri = redirectDotvscodeRoot(uri, new vscode.FileSystemError("Server does not have a /_vscode web application"));
-    validateUriIsCanonical(uri);
+    validateUriIsCanonical(uri, true);
     const csp = isCSP(uri);
     const fileName = isfsDocumentName(uri, csp);
     if (fileName.startsWith(".")) {
@@ -820,7 +819,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       throw new vscode.FileSystemError("Cannot rename a file across workspace folders");
     }
     validateUriIsCanonical(oldUri);
-    validateUriIsCanonical(newUri);
+    validateUriIsCanonical(newUri, true);
     // Check if the destination exists
     let newFileStat: vscode.FileStat;
     try {
