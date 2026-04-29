@@ -18,6 +18,7 @@ import {
   openLowCodeEditors,
   compileErrorMsg,
   isCompilable,
+  currentFileFromContent,
 } from "../../utils";
 import { FILESYSTEM_READONLY_SCHEMA, FILESYSTEM_SCHEMA, intLangId, macLangId } from "../../extension";
 import { addIsfsFileToProject, modifyProject } from "../../commands/project";
@@ -65,6 +66,11 @@ class Directory implements vscode.FileStat {
 
 type Entry = File | Directory;
 
+/**
+ * Generates stub content for document `fileName` in file `uri`.
+ * If `sourceContent` is supplied, the name of the document in
+ * that content is modified to match `fileName`.
+ */
 export function generateFileContent(
   uri: vscode.Uri,
   fileName: string,
@@ -89,7 +95,6 @@ export function generateFileContent(
     const className = fileName.split(".").slice(0, -1).join(".");
     let content: string[] = [];
     const preamble: string[] = [];
-
     if (sourceLines.length) {
       if (notIsfs(uri) && (fileName.includes(path.sep) || fileName.includes(" "))) {
         // We couldn't resolve a class name from the file path,
@@ -100,11 +105,9 @@ export function generateFileContent(
         // Replace that with one to match fileName.
         while (sourceLines.length > 0) {
           const nextLine = sourceLines.shift();
-          if (nextLine.toLowerCase().startsWith("class ")) {
-            const classLine = nextLine.split(" ");
-            classLine[0] = "Class";
-            classLine[1] = className;
-            content.push(...preamble, classLine.join(" "), ...sourceLines);
+          const classNameMatch = nextLine.match(classNameRegex);
+          if (classNameMatch) {
+            content.push(...preamble, nextLine.replace(classNameMatch[1], fileName.slice(0, -4)), ...sourceLines);
             break;
           }
           preamble.push(nextLine);
@@ -117,7 +120,6 @@ export function generateFileContent(
     } else {
       content = [`Class ${className} Extends %RegisteredObject`, "{", "}"];
     }
-
     return {
       content,
       enc: false,
@@ -133,8 +135,8 @@ export function generateFileContent(
         eol,
       };
     } else {
-      sourceLines.shift();
-      const routineName = fileName.split(".").slice(0, -1).join(".");
+      if (sourceLines[0]?.startsWith("ROUTINE ")) sourceLines.shift();
+      const routineName = fileName.slice(0, -4);
       const routineType = fileExt != "mac" ? `[Type=${fileExt.toUpperCase()}]` : "";
       if (sourceLines.length === 0 && fileExt !== "inc") {
         const languageId = fileExt === "mac" ? macLangId : intLangId;
@@ -156,7 +158,7 @@ export function generateFileContent(
       };
     }
   } else if (csp && sourceContent.length == 0) {
-    // Some IRIS versions do not allow empty content to be PUT for CSP files, so add a newline if the content is empty. See DP-442552.
+    // Some IRIS versions do not allow empty content to be PUT for web app files, so add a newline if the content is empty
     return {
       content: [""],
       enc: false,
@@ -532,38 +534,12 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const api = new AtelierAPI(uri);
     let created = false;
     let update = false;
-    const isCls = !csp && fileName.split(".").pop().toLowerCase() == "cls";
+    const fileExt = fileName.split(".").pop().toLowerCase();
     // Use _lookup() instead of _lookupAsFile() so we send
     // our cached mtime with the GET /doc request if we have it
     return this._lookup(uri)
       .then(
         async (entry: File) => {
-          // Check cases for which we should fail the write and leave the document dirty if changed
-          if (isCls) {
-            // Check if the class name and file name match
-            let clsname = "";
-            const match = new TextDecoder().decode(content).match(classNameRegex);
-            if (match) {
-              [, clsname] = match;
-            }
-            if (clsname == "") {
-              throw new vscode.FileSystemError("Cannot save a malformed class");
-            }
-            if (fileName.slice(0, -4) != clsname) {
-              throw new vscode.FileSystemError(
-                "Cannot save an isfs class where the class name and file name do not match"
-              );
-            }
-            if (openLowCodeEditors.has(uri.toString())) {
-              // This class is open in a low-code editor, so any
-              // updates to the class will be handled by that editor
-              return;
-            }
-            // Check if the class is deployed
-            if (await isClassDeployed(fileName, api)) {
-              throw new vscode.FileSystemError("Cannot overwrite a deployed class");
-            }
-          }
           const contentBuffer = Buffer.from(content);
           const putContent = isText(uri.path.split("/").pop(), contentBuffer)
             ? {
@@ -574,6 +550,35 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
                 content: base64EncodeContent(contentBuffer),
                 enc: true,
               };
+          if (!csp && ["cls", "mac", "int", "inc"].includes(fileExt)) {
+            const curFile = currentFileFromContent(uri, putContent.enc ? contentBuffer : putContent.content.join("\n"));
+            if (!curFile) {
+              throw new vscode.FileSystemError(
+                `Cannot save a malformed ${fileExt == "cls" ? "class" : fileExt == "inc" ? "include file" : "routine"}`
+              );
+            }
+            if (curFile.name != fileName) {
+              // Update the content so the name in text matches the URI
+              const newContent = generateFileContent(uri, fileName, content);
+              putContent.content = newContent.content;
+              putContent.enc = newContent.enc;
+              // Make sure the editor tab is updated to show the new content
+              update = true;
+            }
+            if (fileExt == "cls") {
+              if (openLowCodeEditors.has(uri.toString())) {
+                // This class is open in a low-code editor, so any
+                // updates to the class will be handled by that editor
+                return;
+              }
+              // Check if the class is deployed
+              if (await isClassDeployed(fileName, api)) {
+                throw new vscode.FileSystemError("Cannot overwrite a deployed class");
+              }
+              // Always update the editor tab for a class after saving
+              update = true;
+            }
+          }
           if (
             csp &&
             !putContent.enc &&
@@ -595,7 +600,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               true
             )
             .then((data) => {
-              update = isCls || data.result.content.length > 0;
+              update = update || data.result.content.length > 0;
               return entry;
             })
             .catch((error) => {
@@ -641,7 +646,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               // Create an entry in our cache for the document
               return this._lookupAsFile(uri).then((entry) => {
                 created = true;
-                update = isCls || data.result.content.length > 0;
+                update = (!csp && fileExt == "cls") || data.result.content.length > 0;
                 this._fireSoon({ type: vscode.FileChangeType.Created, uri });
                 return entry;
               });
