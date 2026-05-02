@@ -1030,7 +1030,7 @@ export function compileErrorMsg(error: any): void {
   handleError(
     // Don't log the generic placeholder error if that's all we have
     error instanceof Error && error.message.endsWith("Compile error") ? "" : error,
-    "Compilaton failed."
+    "Compilation failed."
   );
 }
 
