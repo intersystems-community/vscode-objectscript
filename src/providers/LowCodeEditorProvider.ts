@@ -243,7 +243,7 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
             });
           } else if (isClientSide) {
             // Load changes
-            loadChanges([file]);
+            loadChanges([file], true);
           }
           return;
         case "compiled":
@@ -253,7 +253,7 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
             vscode.commands.executeCommand("workbench.action.files.revert");
           }
           // Load changes
-          if (isClientSide) loadChanges([file]);
+          if (isClientSide) loadChanges([file], true);
           return;
         case "userAction": {
           // Process the source control user action

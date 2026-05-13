@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "3.8.1-SNAPSHOT",
+  "version": "3.8.2-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "InstrumentationKey=9cd75d51-697c-406c-a929-2bcf46e97c64;IngestionEndpoint=https://eastus2-4.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus2.livediagnostics.monitor.azure.com/;ApplicationId=a431c56f-8ccc-4b99-b5e9-fce3763215b1",
   "categories": [
@@ -272,10 +272,6 @@
           "when": "false"
         },
         {
-          "command": "vscode-objectscript.importLocalFilesServerSide",
-          "when": "false"
-        },
-        {
           "command": "vscode-objectscript.showRESTDebugWebview",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && activeCustomEditorId == ''"
         },
@@ -300,7 +296,7 @@
           "when": "false"
         },
         {
-          "command": "vscode-objectscript.importXMLFiles",
+          "command": "vscode-objectscript.importFiles",
           "when": "vscode-objectscript.connectActive && workspaceFolderCount != 0"
         },
         {
@@ -572,11 +568,6 @@
           "command": "vscode-objectscript.modifyProjectMetadata",
           "when": "vscode-objectscript.connectActive && resourceScheme =~ /^isfs(-readonly)?$/ && resource =~ /project%3D/ && resourcePath =~ /^\\/?$/ && !listMultiSelection",
           "group": "objectscript_prj@3"
-        },
-        {
-          "command": "vscode-objectscript.importLocalFilesServerSide",
-          "when": "vscode-objectscript.connectActive && resourceScheme == isfs && explorerResourceIsRoot && !listMultiSelection",
-          "group": "objectscript_modify@2"
         },
         {
           "command": "vscode-objectscript.modifyWsFolder",
@@ -1072,11 +1063,6 @@
       },
       {
         "category": "ObjectScript",
-        "command": "vscode-objectscript.importLocalFilesServerSide",
-        "title": "Import Local Files..."
-      },
-      {
-        "category": "ObjectScript",
         "command": "vscode-objectscript.showRESTDebugWebview",
         "title": "Debug REST Service..."
       },
@@ -1107,8 +1093,8 @@
       },
       {
         "category": "ObjectScript",
-        "command": "vscode-objectscript.importXMLFiles",
-        "title": "Import XML Files..."
+        "command": "vscode-objectscript.importFiles",
+        "title": "Import Files..."
       },
       {
         "category": "ObjectScript",
@@ -1561,6 +1547,11 @@
           "description": "If true, REST requests and responses to and from InterSystems servers will be logged to the ObjectScript Output channel. This should only be enabled when debugging a potential issue.",
           "type": "boolean",
           "default": false
+        },
+        "objectscript.insertStubContent": {
+          "description": "If true, stub content will be inserted when a blank new class or routine file is created in a client-side workspace folder.",
+          "type": "boolean",
+          "default": true
         }
       }
     },
@@ -1762,8 +1753,8 @@
     "@vscode/debugadapter": "^1.68.0",
     "@vscode/debugprotocol": "^1.68.0",
     "@vscode/extension-telemetry": "^1.5.1",
-    "@xmldom/xmldom": "^0.9.9",
-    "axios": "^1.15.0",
+    "@xmldom/xmldom": "^0.9.10",
+    "axios": "^1.15.2",
     "iconv-lite": "^0.7.2",
     "istextorbinary": "^7.0.0",
     "minimatch": "^10.2.5",

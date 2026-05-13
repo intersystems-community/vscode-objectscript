@@ -2,7 +2,6 @@ import vscode = require("vscode");
 import { isText } from "istextorbinary";
 import { AtelierAPI } from "../api";
 import {
-  config,
   documentContentProvider,
   FILESYSTEM_SCHEMA,
   OBJECTSCRIPT_FILE_SCHEMA,
@@ -14,7 +13,6 @@ import {
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import {
   base64EncodeContent,
-  classNameRegex,
   compileErrorMsg,
   cspAppsForUri,
   CurrentBinaryFile,
@@ -22,7 +20,7 @@ import {
   currentFileFromContent,
   CurrentTextFile,
   exportedUris,
-  getWsFolder,
+  getWsServerConnection,
   handleError,
   isClass,
   isClassDeployed,
@@ -33,7 +31,6 @@ import {
   notNull,
   outputChannel,
   RateLimiter,
-  routineNameTypeRegex,
 } from "../utils";
 import { StudioActions } from "./studio";
 import { NodeBase, PackageNode, RootNode } from "../explorer/nodes";
@@ -218,7 +215,16 @@ function updateOthers(others: string[], baseUri: vscode.Uri) {
   });
 }
 
-export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]): Promise<any> {
+/**
+ * Pull changes due to save/compile from server and write them into the local file.
+ * Also used to refresh the local copy from the server outside of the save/compile workflow.
+ * Pass `forceRefreshClasses` to replace the entire text of classes regardless of the
+ * value of the `objectscript.refreshClassesOnSync` setting.
+ */
+export async function loadChanges(
+  files: (CurrentTextFile | CurrentBinaryFile)[],
+  forceRefreshClasses = false
+): Promise<any> {
   if (!files.length) {
     return;
   }
@@ -236,7 +242,8 @@ export async function loadChanges(files: (CurrentTextFile | CurrentBinaryFile)[]
           if (
             !(
               isClass(file.uri.path) &&
-              !vscode.workspace.getConfiguration("objectscript", file.uri).get("refreshClassesOnSync")
+              !vscode.workspace.getConfiguration("objectscript", file.uri).get("refreshClassesOnSync") &&
+              !forceRefreshClasses
             )
           ) {
             content = (await api.getDoc(file.name, file.uri)).result.content;
@@ -377,8 +384,8 @@ export async function compile(docs: (CurrentTextFile | CurrentBinaryFile)[], ask
             }
             return docs;
           })
-          .catch(() => {
-            compileErrorMsg();
+          .catch((error) => {
+            compileErrorMsg(error);
             // Always fetch server changes, even when compile failed or got cancelled
             return docs;
           })
@@ -551,59 +558,8 @@ export async function compileExplorerItems(nodes: NodeBase[]): Promise<any> {
             throw new Error(`${info}Compile error`);
           }
         })
-        .catch(() => compileErrorMsg())
+        .catch((error) => compileErrorMsg(error))
   );
-}
-
-/** Import file `name` to server `api`. Used for importing local files that are not used as part of a client-side editing workspace. */
-async function importFileFromContent(
-  name: string,
-  content: string,
-  api: AtelierAPI,
-  ignoreConflict?: boolean,
-  skipDeplCheck = false
-): Promise<void> {
-  if (name.split(".").pop().toLowerCase() === "cls" && !skipDeplCheck) {
-    if (await isClassDeployed(name, api)) {
-      vscode.window.showErrorMessage(`Cannot import ${name} because it is deployed on the server.`, "Dismiss");
-      return Promise.reject();
-    }
-  }
-  ignoreConflict = ignoreConflict || config("overwriteServerChanges");
-  return api
-    .putDoc(
-      name,
-      {
-        content: content.split(/\r?\n/),
-        enc: false,
-        // We don't have an mtime for this file because it's outside a local workspace folder
-        mtime: 0,
-      },
-      ignoreConflict
-    )
-    .then(() => {
-      return;
-    })
-    .catch((error) => {
-      if (error?.statusCode == 409) {
-        return vscode.window
-          .showErrorMessage(
-            `Failed to import '${name}' because it already exists on the server. Overwrite server copy?`,
-            "Yes",
-            "No"
-          )
-          .then((action) => {
-            if (action == "Yes") {
-              return importFileFromContent(name, content, api, true, true);
-            } else {
-              return Promise.reject();
-            }
-          });
-      } else {
-        handleError(error, `Failed to save file '${name}' on the server.`);
-        return Promise.reject();
-      }
-    });
 }
 
 /** Prompt the user to compile documents after importing them */
@@ -638,7 +594,7 @@ async function promptForCompile(imported: string[], api: AtelierAPI, isIsfs: boo
                     throw new Error(`${info}Compile error`);
                   }
                 })
-                .catch(() => compileErrorMsg())
+                .catch((error) => compileErrorMsg(error))
                 .finally(() => {
                   if (isIsfs) {
                     // Refresh the files explorer to show the new files
@@ -659,207 +615,57 @@ async function promptForCompile(imported: string[], api: AtelierAPI, isIsfs: boo
   }
 }
 
-/** Import files from the local file system into a server-namespace from an `isfs` workspace folder. */
-export async function importLocalFilesToServerSideFolder(wsFolderUri: vscode.Uri): Promise<any> {
-  if (
-    !(
-      wsFolderUri instanceof vscode.Uri &&
-      wsFolderUri.scheme == FILESYSTEM_SCHEMA &&
-      (vscode.workspace.workspaceFolders != undefined
-        ? vscode.workspace.workspaceFolders.some((wsFolder) => wsFolder.uri.toString() == wsFolderUri.toString())
-        : false)
-    )
-  ) {
-    // Need an isfs workspace folder URI
-    return;
-  }
-  if (vscode.workspace.workspaceFile.scheme != "file") {
-    vscode.window.showErrorMessage(
-      "'Import Local Files...' command is not supported for unsaved workspaces.",
-      "Dismiss"
-    );
-    return;
-  }
-  const api = new AtelierAPI(wsFolderUri);
-  // Get the default URI and remove the file anme
-  let defaultUri = lastUsedLocalUri() ?? vscode.workspace.workspaceFile;
-  defaultUri = defaultUri.with({ path: defaultUri.path.split("/").slice(0, -1).join("/") });
-  // Prompt the user for files to import
-  let uris = await vscode.window.showOpenDialog({
-    canSelectFiles: true,
-    canSelectFolders: false,
-    canSelectMany: true,
-    openLabel: "Import",
-    filters: {
-      "InterSystems Files": ["cls", "mac", "int", "inc"],
-    },
-    // Need a default URI with file scheme or the open dialog
-    // will show the virtual files from the workspace folder
-    defaultUri,
-  });
-  if (!Array.isArray(uris) || uris.length == 0) {
-    // No files to import
-    return;
-  }
-  // Filter out non-ISC files
-  uris = uris.filter((uri) => isClassOrRtn(uri.path));
-  if (uris.length == 0) {
-    vscode.window.showErrorMessage("No classes or routines were selected.", "Dismiss");
-    return;
-  }
-  lastUsedLocalUri(uris[0]);
-  // Get the name and content of the files to import
-  const textDecoder = new TextDecoder();
-  const docs = await Promise.allSettled<{ name: string; content: string; uri: vscode.Uri }>(
-    uris.map((uri) =>
-      vscode.workspace.fs
-        .readFile(uri)
-        .then((contentBytes) => textDecoder.decode(contentBytes))
-        .then((content) => {
-          // Determine the name of this file
-          let docName = "";
-          let ext = "";
-          if (uri.path.split(".").pop().toLowerCase() == "cls") {
-            // Allow Unicode letters
-            const match = content.match(classNameRegex);
-            if (match) {
-              [, docName, ext = "cls"] = match;
-            }
-          } else {
-            const match = content.match(routineNameTypeRegex);
-            if (match) {
-              [, docName, ext = "mac"] = match;
-            } else {
-              const basename = uri.path.split("/").pop();
-              docName = basename.slice(0, basename.lastIndexOf("."));
-              ext = basename.slice(basename.lastIndexOf(".") + 1);
-            }
-          }
-          if (docName != "" && ext != "") {
-            return {
-              name: `${docName}.${ext.toLowerCase()}`,
-              content,
-              uri,
-            };
-          } else {
-            return Promise.reject();
-          }
-        })
-    )
-  ).then((results) => results.map((result) => (result.status == "fulfilled" ? result.value : null)).filter(notNull));
-  // The user is importing into a server-side folder, so fire the import list User Action
-  const docNames = docs.map((e) => e.name).join(",");
-  await new StudioActions().fireImportUserAction(api, docNames);
-  // Check the status of the documents to be imported and skip any that are read-only
-  await api.actionQuery("select * from %Atelier_v1_Utils.Extension_GetStatus(?)", [docNames]).then((data) =>
-    data?.result?.content?.forEach((e) => {
-      if (!e.editable) {
-        const idx = docs.findIndex((d) => {
-          const nameSplit = d.name.split(".");
-          return e.name == `${nameSplit.slice(0, -1).join(".")}.${nameSplit.pop().toUpperCase()}`;
-        });
-        if (idx != -1) {
-          docs.splice(idx, 1);
-          outputChannel.appendLine(
-            `Skipping '${e.name}' because it has been marked read-only by server-side source control.`
-          );
-        }
-      }
-    })
-  );
-  // Import the files
-  const rateLimiter = new RateLimiter(50);
-  return Promise.allSettled<string>(
-    docs.map((doc) =>
-      rateLimiter.call(async () => {
-        // Allow importing over deployed classes since the XML import
-        // command and SMP, terminal, and Studio imports allow it
-        return importFileFromContent(doc.name, doc.content, api, false, true).then(() => {
-          outputChannel.appendLine("Imported file: " + doc.uri.path.split("/").pop());
-          return doc.name;
-        });
-      })
-    )
-  ).then((results) =>
-    promptForCompile(
-      results.map((result) => (result.status == "fulfilled" ? result.value : null)).filter(notNull),
-      api,
-      true
-    )
-  );
-}
-
-interface XMLQuickPickItem extends vscode.QuickPickItem {
+interface FileQuickPickItem extends vscode.QuickPickItem {
   file: string;
 }
 
-export async function importXMLFiles(): Promise<any> {
+export async function importArbitraryFiles(): Promise<any> {
   try {
-    // Use the server connection from a workspace folder
-    const wsFolder = await getWsFolder(
-      "Pick a workspace folder. Server-side folders import from the local file system.",
-      false,
-      false,
-      false,
-      true
-    );
-    if (!wsFolder) {
-      if (wsFolder === undefined) {
+    const wsFolderUri = await getWsServerConnection("2023.2.0");
+    if (!wsFolderUri) {
+      if (wsFolderUri === undefined) {
         // Strict equality needed because undefined == null
         vscode.window.showErrorMessage(
-          "'Import XML Files...' command requires a workspace folder with an active server connection.",
+          "'Import Files...' command requires an active server connection to InterSystems IRIS version 2023.2 or above.",
           "Dismiss"
         );
       }
       return;
     }
-    const api = new AtelierAPI(wsFolder.uri);
-    // Make sure the server has the xml endpoints
-    if (api.config.apiVersion < 7) {
-      vscode.window.showErrorMessage(
-        "'Import XML Files...' command requires InterSystems IRIS version 2023.2 or above.",
-        "Dismiss"
-      );
-      return;
-    }
-    let defaultUri = wsFolder.uri;
+    const api = new AtelierAPI(wsFolderUri);
+    let defaultUri = wsFolderUri;
     if (defaultUri.scheme == FILESYSTEM_SCHEMA) {
       // Need a default URI without the isfs scheme or the open dialog
       // will show the server-side files instead of local ones
       defaultUri = lastUsedLocalUri() ?? vscode.workspace.workspaceFile;
       if (defaultUri.scheme != "file") {
-        vscode.window.showErrorMessage(
-          "'Import XML Files...' command is not supported for unsaved workspaces.",
-          "Dismiss"
-        );
+        vscode.window.showErrorMessage("'Import Files...' command is not supported for unsaved workspaces.", "Dismiss");
         return;
       }
       // Remove the file name from the URI
       defaultUri = defaultUri.with({ path: defaultUri.path.split("/").slice(0, -1).join("/") });
     }
     // Prompt the user the file to import
+    const supportedExts = ["cls", "mac", "int", "inc", "xml", "rtn", "ro"];
     let uris = await vscode.window.showOpenDialog({
       canSelectFiles: true,
       canSelectFolders: false,
       canSelectMany: true,
       openLabel: "Import",
       filters: {
-        "XML Files": ["xml"],
+        "InterSystems Files": supportedExts,
       },
       defaultUri,
     });
-    if (!Array.isArray(uris) || uris.length == 0) {
-      // No file to import
-      return;
-    }
-    // Filter out non-XML files
-    uris = uris.filter((uri) => uri.path.split(".").pop().toLowerCase() == "xml");
+    if (!uris?.length) return;
+    // Filter out non-importable files
+    uris = uris.filter((uri) => supportedExts.includes(uri.path.split(".").pop().toLowerCase()));
     if (uris.length == 0) {
-      vscode.window.showErrorMessage("No XML files were selected.", "Dismiss");
+      vscode.window.showErrorMessage("No selected files are importable.", "Dismiss");
       return;
     }
     lastUsedLocalUri(uris[0]);
-    // Read the XML files
+    // Read the files
     const fileTimestamps: Map<string, string> = new Map();
     const filesToList = await Promise.allSettled(
       uris.map(async (uri) => {
@@ -872,11 +678,23 @@ export async function importXMLFiles(): Promise<any> {
           content: new TextDecoder().decode(await vscode.workspace.fs.readFile(uri)).split(/\r?\n/),
         };
       })
-    ).then((results) => results.map((result) => (result.status == "fulfilled" ? result.value : null)).filter(notNull));
+    ).then((results) =>
+      results
+        .map((result) => {
+          if (result.status == "fulfilled") {
+            return result.value;
+          } else {
+            handleError(result.reason);
+            return null;
+          }
+        })
+        .filter(notNull)
+    );
     if (filesToList.length == 0) {
+      vscode.window.showErrorMessage("Failed to read the text of every selected file.", "Dismiss");
       return;
     }
-    // List the documents in the XML files
+    // List the documents in the files
     const documentsPerFile = await api.actionXMLList(filesToList).then((data) => data.result.content);
     // Prompt the user to select documents to import
     const quickPickItems = documentsPerFile
@@ -889,7 +707,7 @@ export async function importXMLFiles(): Promise<any> {
         }
       })
       .flatMap((file) => {
-        const items: XMLQuickPickItem[] = [];
+        const items: FileQuickPickItem[] = [];
         if (file.documents.length > 0) {
           // Add a separator for this file
           items.push({
@@ -916,10 +734,9 @@ export async function importXMLFiles(): Promise<any> {
       ignoreFocusOut: true,
       title: `Select the documents to import into namespace '${api.ns}' on server '${api.serverId}'`,
     });
-    if (docsToImport == undefined || docsToImport.length == 0) {
-      return;
-    }
-    const isIsfs = filesystemSchemas.includes(wsFolder.uri.scheme);
+    if (!docsToImport?.length) return;
+    outputChannel.show(true);
+    const isIsfs = filesystemSchemas.includes(wsFolderUri.scheme);
     if (isIsfs) {
       // The user is importing into a server-side folder
       const docNames = [...new Set(docsToImport.map((qpi) => qpi.label))].join(",");
@@ -964,6 +781,6 @@ export async function importXMLFiles(): Promise<any> {
     // Prompt the user for compilation
     promptForCompile([...new Set(imported)], api, isIsfs);
   } catch (error) {
-    handleError(error, "Error executing 'Import XML Files...' command.");
+    handleError(error, "Error executing 'Import Files...' command.");
   }
 }

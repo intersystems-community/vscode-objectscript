@@ -63,16 +63,25 @@ export function stringifyError(error): string {
       return errs.length ? `AggregateError:\n- ${errs.join("\n- ")}` : "";
     }
     return (
-      error == undefined
-        ? ""
-        : error.errorText
-          ? <string>error.errorText
-          : typeof error == "string"
-            ? error
-            : error instanceof Error
-              ? error.toString()
-              : JSON.stringify(error)
-    ).trim();
+      (
+        error == undefined
+          ? ""
+          : error.errorText
+            ? <string>error.errorText
+            : typeof error == "string"
+              ? error
+              : error instanceof Error
+                ? error.toString()
+                : JSON.stringify(error)
+      )
+        .trim()
+        // Unescape any HTML-escpaed characters
+        .replaceAll("&lt;", "<")
+        .replaceAll("&gt;", ">")
+        .replaceAll("&quot;", '"')
+        .replaceAll("&#39;", "'")
+        .replaceAll("&amp;", "&")
+    );
   } catch {
     // Need to catch errors from JSON.stringify()
     return "";
@@ -806,7 +815,7 @@ export function parseClassMemberDefinition(
  */
 export function uriIsAncestorOf(uri1: vscode.Uri, uri2: vscode.Uri): boolean {
   return (
-    uri1.with({ path: "" }).toString == uri2.with({ path: "" }).toString &&
+    uri1.with({ path: "" }).toString() == uri2.with({ path: "" }).toString() &&
     // uri2.path "properly" starts with uri1.path.
     uri2.path.startsWith(uri1.path) &&
     (uri1.path.endsWith("/") || [undefined, "/"].includes(uri2.path.at(uri1.path.length)))
@@ -993,7 +1002,7 @@ export function queryToFuzzyLike(query: string): string {
 
 let _lastUsedLocalUri: vscode.Uri;
 
-/** Get or set the uri of last used local file for XML import/export or local file import from an `isfs(-readonly)` workspace folder  */
+/** Get or set the uri of last used local file for arbitrary import/export */
 export function lastUsedLocalUri(newValue?: vscode.Uri): vscode.Uri {
   if (newValue) _lastUsedLocalUri = newValue;
   return _lastUsedLocalUri;
@@ -1017,18 +1026,12 @@ export async function replaceFile(uri: vscode.Uri, content: string | string[] | 
 }
 
 /** Show the compilation failure error message if required. */
-export function compileErrorMsg(): void {
-  vscode.window
-    .showErrorMessage(
-      "Compilation failed. Check 'ObjectScript' Output channel for details.",
-      !vscode.window.visibleTextEditors.some((e) => e.document.languageId == outputLangId) ? "Show" : undefined,
-      "Dismiss"
-    )
-    .then((action) => {
-      if (action == "Show") {
-        outputChannel.show(true);
-      }
-    });
+export function compileErrorMsg(error: any): void {
+  handleError(
+    // Don't log the generic placeholder error if that's all we have
+    error instanceof Error && error.message.endsWith("Compile error") ? "" : error,
+    "Compilation failed."
+  );
 }
 
 /** Return a string containing the displayable form of `uri` */

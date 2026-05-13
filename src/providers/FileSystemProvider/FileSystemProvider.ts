@@ -18,6 +18,7 @@ import {
   openLowCodeEditors,
   compileErrorMsg,
   isCompilable,
+  currentFileFromContent,
 } from "../../utils";
 import { FILESYSTEM_READONLY_SCHEMA, FILESYSTEM_SCHEMA, intLangId, macLangId } from "../../extension";
 import { addIsfsFileToProject, modifyProject } from "../../commands/project";
@@ -65,6 +66,11 @@ class Directory implements vscode.FileStat {
 
 type Entry = File | Directory;
 
+/**
+ * Generates stub content for document `fileName` in file `uri`.
+ * If `sourceContent` is supplied, the name of the document in
+ * that content is modified to match `fileName`.
+ */
 export function generateFileContent(
   uri: vscode.Uri,
   fileName: string,
@@ -89,7 +95,6 @@ export function generateFileContent(
     const className = fileName.split(".").slice(0, -1).join(".");
     let content: string[] = [];
     const preamble: string[] = [];
-
     if (sourceLines.length) {
       if (notIsfs(uri) && (fileName.includes(path.sep) || fileName.includes(" "))) {
         // We couldn't resolve a class name from the file path,
@@ -100,11 +105,9 @@ export function generateFileContent(
         // Replace that with one to match fileName.
         while (sourceLines.length > 0) {
           const nextLine = sourceLines.shift();
-          if (nextLine.toLowerCase().startsWith("class ")) {
-            const classLine = nextLine.split(" ");
-            classLine[0] = "Class";
-            classLine[1] = className;
-            content.push(...preamble, classLine.join(" "), ...sourceLines);
+          const classNameMatch = nextLine.match(classNameRegex);
+          if (classNameMatch) {
+            content.push(...preamble, nextLine.replace(classNameMatch[1], fileName.slice(0, -4)), ...sourceLines);
             break;
           }
           preamble.push(nextLine);
@@ -117,7 +120,6 @@ export function generateFileContent(
     } else {
       content = [`Class ${className} Extends %RegisteredObject`, "{", "}"];
     }
-
     return {
       content,
       enc: false,
@@ -133,8 +135,8 @@ export function generateFileContent(
         eol,
       };
     } else {
-      sourceLines.shift();
-      const routineName = fileName.split(".").slice(0, -1).join(".");
+      if (sourceLines[0]?.startsWith("ROUTINE ")) sourceLines.shift();
+      const routineName = fileName.slice(0, -4);
       const routineType = fileExt != "mac" ? `[Type=${fileExt.toUpperCase()}]` : "";
       if (sourceLines.length === 0 && fileExt !== "inc") {
         const languageId = fileExt === "mac" ? macLangId : intLangId;
@@ -155,6 +157,13 @@ export function generateFileContent(
         eol,
       };
     }
+  } else if (csp && sourceContent.length == 0) {
+    // Some IRIS versions do not allow empty content to be PUT for web app files, so add a newline if the content is empty
+    return {
+      content: [""],
+      enc: false,
+      eol,
+    };
   }
   return {
     content: base64EncodeContent(Buffer.from(sourceContent)),
@@ -240,22 +249,34 @@ export function isfsDocumentName(uri: vscode.Uri, csp?: boolean, pkg = false): s
  * and `/%Library/CHUIScreen.CLS` (extension has wrong case). This is needed to
  * prevent the user from opening multiple copies of the same document. This
  * function does not return a value; it throws a `vscode.FileSystemError.FileNotFound`
- * error when `uri`'s path is not in "canonical form".
+ * error, or a more descriptive custom error when `descriptiveError` is `true`,
+ * when `uri`'s path is not in "canonical form".
  */
-function validateUriIsCanonical(uri: vscode.Uri): void {
+function validateUriIsCanonical(uri: vscode.Uri, descriptiveError = false): void {
   const numDots = uri.path.split(".").length - 1;
   const lastFour = uri.path.slice(-4);
-  if (
-    !isfsConfig(uri).csp &&
-    [".cls", ".mac", ".int", ".inc"].includes(lastFour.toLowerCase()) &&
-    // extension has wrong case
-    (![".cls", ".mac", ".int", ".inc"].includes(lastFour) ||
-      // short alias for %Library class
-      (uri.path.startsWith("/%") && lastFour == ".cls" && numDots == 1 && uri.path.split("/").length == 2) ||
-      // dotted packages
-      (numDots > 1 && !(numDots == 2 && /\.G?\d\.int$/.test(uri.path))))
-  ) {
-    throw vscode.FileSystemError.FileNotFound(uri);
+  if (!isfsConfig(uri).csp && [".cls", ".mac", ".int", ".inc"].includes(lastFour.toLowerCase())) {
+    const msg = ![".cls", ".mac", ".int", ".inc"].includes(lastFour)
+      ? "File extension must be in all lowercase"
+      : uri.path.startsWith("/%") && lastFour == ".cls" && numDots == 1 && uri.path.split("/").length == 2
+        ? "Must use the full name of %Library classes"
+        : numDots > 1 && !(numDots == 2 && /\.G?\d\.int$/.test(uri.path))
+          ? "Packages must use forward slashes as delimiters instead of dots"
+          : undefined;
+    if (msg) throw descriptiveError ? new vscode.FileSystemError(msg) : vscode.FileSystemError.FileNotFound(uri);
+  }
+}
+
+/**
+ * Throws `error` or a `vscode.FileSystemError.FileNotFound` error when `uri`
+ * is an invalid dot folder or is in an invalid dot folder. `.vscode`
+ * is allowed for any workspace folder, but other dot folders are only
+ * allowed in web app workspace folders. This filtering is done here to
+ * avoid spamming the server with requests that will never return meaningful data.
+ */
+function assertDotPathValid(uri: vscode.Uri, error?: vscode.FileSystemError): void {
+  if (!isfsConfig(uri).csp && uri.path.includes("/.") && !/\/\.vscode($|\/)/.test(uri.path)) {
+    throw error ?? vscode.FileSystemError.FileNotFound(uri);
   }
 }
 
@@ -299,6 +320,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   public async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
     const api = new AtelierAPI(uri);
     if (!api.active) throw vscode.FileSystemError.Unavailable("Server connection is inactive");
+    assertDotPathValid(uri);
     validateUriIsCanonical(uri);
     let entryPromise: Promise<Entry>;
     let result: Entry;
@@ -349,6 +371,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
+    assertDotPathValid(uri);
     if (uri.path.includes(".vscode/") || uri.path.endsWith(".vscode")) {
       throw new vscode.FileSystemError("Cannot read the /.vscode directory");
     }
@@ -465,6 +488,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public createDirectory(uri: vscode.Uri): void | Thenable<void> {
+    assertDotPathValid(uri, new vscode.FileSystemError("dot-folders are not supported by the server"));
     uri = redirectDotvscodeRoot(uri, new vscode.FileSystemError("Server does not have a /_vscode web application"));
     const basename = path.posix.basename(uri.path);
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
@@ -481,6 +505,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
+    assertDotPathValid(uri);
     validateUriIsCanonical(uri);
     // Use _lookup() instead of _lookupAsFile() so we send
     // our cached mtime with the GET /doc request if we have it
@@ -495,14 +520,12 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       overwrite: boolean;
     }
   ): void | Thenable<void> {
+    assertDotPathValid(uri, new vscode.FileSystemError("dot-folders are not supported by the server"));
     const originalUriString = uri.toString();
     const originalUri = vscode.Uri.parse(originalUriString);
     this._needsUpdate.delete(originalUriString);
     uri = redirectDotvscodeRoot(uri, new vscode.FileSystemError("Server does not have a /_vscode web application"));
-    if (uri.path.startsWith("/.")) {
-      throw new vscode.FileSystemError("dot-folders are not supported by server");
-    }
-    validateUriIsCanonical(uri);
+    validateUriIsCanonical(uri, true);
     const csp = isCSP(uri);
     const fileName = isfsDocumentName(uri, csp);
     if (fileName.startsWith(".")) {
@@ -511,38 +534,12 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const api = new AtelierAPI(uri);
     let created = false;
     let update = false;
-    const isCls = !csp && fileName.split(".").pop().toLowerCase() == "cls";
+    const fileExt = fileName.split(".").pop().toLowerCase();
     // Use _lookup() instead of _lookupAsFile() so we send
     // our cached mtime with the GET /doc request if we have it
     return this._lookup(uri)
       .then(
         async (entry: File) => {
-          // Check cases for which we should fail the write and leave the document dirty if changed
-          if (isCls) {
-            // Check if the class name and file name match
-            let clsname = "";
-            const match = new TextDecoder().decode(content).match(classNameRegex);
-            if (match) {
-              [, clsname] = match;
-            }
-            if (clsname == "") {
-              throw new vscode.FileSystemError("Cannot save a malformed class");
-            }
-            if (fileName.slice(0, -4) != clsname) {
-              throw new vscode.FileSystemError(
-                "Cannot save an isfs class where the class name and file name do not match"
-              );
-            }
-            if (openLowCodeEditors.has(uri.toString())) {
-              // This class is open in a low-code editor, so any
-              // updates to the class will be handled by that editor
-              return;
-            }
-            // Check if the class is deployed
-            if (await isClassDeployed(fileName, api)) {
-              throw new vscode.FileSystemError("Cannot overwrite a deployed class");
-            }
-          }
           const contentBuffer = Buffer.from(content);
           const putContent = isText(uri.path.split("/").pop(), contentBuffer)
             ? {
@@ -553,6 +550,35 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
                 content: base64EncodeContent(contentBuffer),
                 enc: true,
               };
+          if (!csp && ["cls", "mac", "int", "inc"].includes(fileExt)) {
+            const curFile = currentFileFromContent(uri, putContent.enc ? contentBuffer : putContent.content.join("\n"));
+            if (!curFile) {
+              throw new vscode.FileSystemError(
+                `Cannot save a malformed ${fileExt == "cls" ? "class" : fileExt == "inc" ? "include file" : "routine"}`
+              );
+            }
+            if (curFile.name != fileName) {
+              // Update the content so the name in text matches the URI
+              const newContent = generateFileContent(uri, fileName, content);
+              putContent.content = newContent.content;
+              putContent.enc = newContent.enc;
+              // Make sure the editor tab is updated to show the new content
+              update = true;
+            }
+            if (fileExt == "cls") {
+              if (openLowCodeEditors.has(uri.toString())) {
+                // This class is open in a low-code editor, so any
+                // updates to the class will be handled by that editor
+                return;
+              }
+              // Check if the class is deployed
+              if (await isClassDeployed(fileName, api)) {
+                throw new vscode.FileSystemError("Cannot overwrite a deployed class");
+              }
+              // Always update the editor tab for a class after saving
+              update = true;
+            }
+          }
           if (
             csp &&
             !putContent.enc &&
@@ -574,7 +600,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               true
             )
             .then((data) => {
-              update = isCls || data.result.content.length > 0;
+              update = update || data.result.content.length > 0;
               return entry;
             })
             .catch((error) => {
@@ -591,7 +617,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           // Create content (typically a stub, unless the write-phase of a copy operation).
           const newContent = generateFileContent(uri, fileName, content);
 
-          // Write it to the server
+          // Write it to the server, ignoring conflict report that some IRIS versions incorrectly give
           return api
             .putDoc(
               fileName,
@@ -599,7 +625,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
                 ...newContent,
                 mtime: Date.now(),
               },
-              false
+              true
             )
             .catch((error) => {
               // Throw all failures
@@ -620,7 +646,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               // Create an entry in our cache for the document
               return this._lookupAsFile(uri).then((entry) => {
                 created = true;
-                update = isCls || data.result.content.length > 0;
+                update = (!csp && fileExt == "cls") || data.result.content.length > 0;
                 this._fireSoon({ type: vscode.FileChangeType.Created, uri });
                 return entry;
               });
@@ -697,6 +723,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async delete(uri: vscode.Uri, options: { recursive: boolean }): Promise<void> {
+    assertDotPathValid(uri);
     uri = redirectDotvscodeRoot(uri, vscode.FileSystemError.FileNotFound(uri));
     validateUriIsCanonical(uri);
     const { project } = isfsConfig(uri);
@@ -792,7 +819,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       throw new vscode.FileSystemError("Cannot rename a file across workspace folders");
     }
     validateUriIsCanonical(oldUri);
-    validateUriIsCanonical(newUri);
+    validateUriIsCanonical(newUri, true);
     // Check if the destination exists
     let newFileStat: vscode.FileStat;
     try {
@@ -914,7 +941,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
             }
             data.result.content.forEach((f) => filesToUpdate.push(f.name));
           })
-          .catch(() => compileErrorMsg())
+          .catch((error) => compileErrorMsg(error))
     );
     if (file && (update || filesToUpdate.includes(file.fileName))) {
       // This file was just written and the write may have changed its contents or the
