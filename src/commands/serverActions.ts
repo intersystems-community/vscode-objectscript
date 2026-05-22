@@ -41,7 +41,7 @@ export async function serverActions(): Promise<void> {
       label: "Toggle Connection",
     });
   }
-  if (active) {
+  if (active || api.externalServer) {
     actions.push({
       id: "refreshConnection",
       label: "Refresh Connection",
