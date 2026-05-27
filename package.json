@@ -1759,7 +1759,7 @@
     "istextorbinary": "^7.0.0",
     "minimatch": "^10.2.5",
     "node-cmd": "^5.0.0",
-    "ws": "^8.20.0"
+    "ws": "^8.20.1"
   },
   "extensionDependencies": [
     "intersystems-community.servermanager"
