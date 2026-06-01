@@ -375,7 +375,7 @@ export async function checkConnection(
     return;
   }
   let connInfo = api.connInfo;
-  if (!active) {
+  if (!active && !api.externalServer) {
     panel.text = `${PANEL_LABEL} $(warning)`;
     panel.tooltip = new vscode.MarkdownString(
       `Connection to${
@@ -426,7 +426,11 @@ export async function checkConnection(
     api.clearCookies();
   }
 
-  // Why must this be recreated here? Maybe in case something has updated connection details since we last fetched them.
+  // Before recreating the api object (in case something has updated connection details since we last fetched them?)
+  // if this is an external server, remove it from the inactive list because its presence there would block the reconnect that we want to be attempting
+  if (api.externalServer) {
+    inactiveServerIds.delete(api.serverId);
+  }
   api = new AtelierAPI(apiTarget, false);
 
   if (!api.config.host || !api.config.port || !api.config.ns) {
@@ -460,9 +464,9 @@ export async function checkConnection(
     .serverInfo(true, serverInfoTimeout)
     .then(gotServerInfo)
     .catch(async (error) => {
-      let message = error.message;
+      let message = error ? error.message : "Unknown error";
       let errorMessage;
-      if (error.statusCode === 401) {
+      if (error?.statusCode === 401) {
         let success = false;
         message = "Not Authorized.";
         errorMessage = `Authorization error: Check your credentials in Settings, and that you have sufficient privileges on the /api/atelier web application on ${connInfo}`;
