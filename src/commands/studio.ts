@@ -353,7 +353,7 @@ export class StudioActions {
               const actionToProcess: UserAction = data.result.content.pop();
 
               if (actionToProcess.reload && !isPrj) {
-                await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
+                await vscode.commands.executeCommand("workbench.action.files.revert");
               }
 
               const attemptedEditLabel = getOtherStudioActionLabel(OtherStudioAction.AttemptedEdit);
@@ -364,7 +364,7 @@ export class StudioActions {
                     this.projectEditAnswer = "-1";
                   } else if (this.uri) {
                     // Only revert if we have a URI
-                    await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
+                    await vscode.commands.executeCommand("workbench.action.files.revert");
                   }
                 }
                 outputChannel.appendLine(actionToProcess.errorText);
@@ -376,7 +376,7 @@ export class StudioActions {
                 if (action.label === attemptedEditLabel) {
                   if (answer != "1" && this.uri) {
                     // Only revert if we have a URI
-                    await vscode.commands.executeCommand("workbench.action.files.revert", this.uri);
+                    await vscode.commands.executeCommand("workbench.action.files.revert");
                   }
                   if (isPrj) {
                     // Store the answer. No answer means "allow the edit".
@@ -387,6 +387,20 @@ export class StudioActions {
                   answer.msg || answer.msg === ""
                     ? this.userAction(action, true, answer.answer, answer.msg, type)
                     : this.userAction(action, true, answer, "", type);
+                }
+              } else if (action.id != "6" && !isPrj && this.uri) {
+                // This action was run on a document. If the user is respecting
+                // editable status force VS Code to check the status of the
+                // document in case it was changed by the action.
+                const activeDoc = vscode.window.activeTextEditor?.document;
+                if (
+                  vscode.workspace
+                    .getConfiguration("objectscript.serverSourceControl", this.uri)
+                    ?.get("respectEditableStatus") &&
+                  activeDoc?.uri.toString() == this.uri.toString() &&
+                  !activeDoc.isDirty
+                ) {
+                  vscode.commands.executeCommand("workbench.action.files.revert");
                 }
               }
             })
