@@ -13,7 +13,7 @@
   - Reinstate reconnect option from status bar panel of server-side workspace folder (#1788)
   - Update status of document after running server-side source control action on it when `respectEditableStatus` is set (#1792)
   - Ensure cookies are always fresh before starting a Lite Terminal (#1793)
-  - Upgrade dependencies (#1761, #1769, #1778, #1779, #1785, #1786, #1789)
+  - Upgrade dependencies
 
 ## [3.8.1] 15-Apr-2026
 - Fixes
