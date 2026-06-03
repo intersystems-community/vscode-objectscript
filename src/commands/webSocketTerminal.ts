@@ -796,7 +796,7 @@ export async function launchWebSocketTerminal(targetUri?: vscode.Uri, nsOverride
   }
   const api = new AtelierAPI(targetUri);
 
-  // Guarantee we know the apiVersion of the server
+  // Guarantee that we know the apiVersion of the server and that cookies are fresh
   await api.serverInfo();
 
   // Get the terminal configuration
@@ -814,8 +814,11 @@ export class WebSocketTerminalProfileProvider implements vscode.TerminalProfileP
     const uri: vscode.Uri = await getWsServerConnection("2023.2.0");
 
     if (uri) {
+      const api = new AtelierAPI(uri);
+      // Ensure cookies aren't stale because a 401 error will kill the terminal with no error log
+      await api.serverInfo();
       // Get the terminal configuration. Will throw if there's an error.
-      const terminalOpts = terminalConfigForUri(new AtelierAPI(uri), uri, true);
+      const terminalOpts = terminalConfigForUri(api, uri, true);
       return new vscode.TerminalProfile(terminalOpts);
     } else if (uri === undefined) {
       throw new Error(NO_ELIGIBLE_CONNECTIONS);
