@@ -81,7 +81,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: meta
           path: .
@@ -91,7 +91,7 @@ jobs:
           set -x
           echo "version=`cat meta.version`" >> $GITHUB_OUTPUT
           echo "name=`cat meta.name`" >> $GITHUB_OUTPUT
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: ${{ steps.set-version.outputs.name }}.vsix
       - name: Create Pre-Release
@@ -111,7 +111,7 @@ jobs:
         with:
           ref: prerelease
           token: ${{ secrets.TOKEN }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: meta
           path: .
