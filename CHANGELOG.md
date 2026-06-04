@@ -1,5 +1,20 @@
 # Change Log
 
+## [3.8.2] 04-Jun-2026
+- Enhancements
+  - Add `Import Files...` command that supports many file types (#1764)
+  - Add `objectscript.insertStubContent` setting (#1765)
+- Fixes
+  - Allow webapp file creation on older IRIS servers (#1768)
+  - Show detailed error messages when a server-side URI is invalid (#1772)
+  - Support `Save As...` for server-side documents (#1774)
+  - Fix issue where unit tests are always run in the first workspace folder (#1775)
+  - Fix a spelling error (#1777)
+  - Reinstate reconnect option from status bar panel of server-side workspace folder (#1788)
+  - Update status of document after running server-side source control action on it when `respectEditableStatus` is set (#1792)
+  - Ensure cookies are always fresh before starting a Lite Terminal (#1793)
+  - Upgrade dependencies
+
 ## [3.8.1] 15-Apr-2026
 - Fixes
   - Fix issue that causes client-side connections to be forced active (#1748)

@@ -1752,14 +1752,14 @@
   "dependencies": {
     "@vscode/debugadapter": "^1.68.0",
     "@vscode/debugprotocol": "^1.68.0",
-    "@vscode/extension-telemetry": "^1.5.1",
+    "@vscode/extension-telemetry": "^1.5.2",
     "@xmldom/xmldom": "^0.9.10",
-    "axios": "^1.16.0",
+    "axios": "^1.17.0",
     "iconv-lite": "^0.7.2",
     "istextorbinary": "^7.0.0",
     "minimatch": "^10.2.5",
     "node-cmd": "^5.0.0",
-    "ws": "^8.20.1"
+    "ws": "^8.21.0"
   },
   "extensionDependencies": [
     "intersystems-community.servermanager"

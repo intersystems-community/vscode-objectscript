@@ -101,7 +101,7 @@ jobs:
           name: ${{ steps.set-version.outputs.name }}.vsix
       - name: Create Release
         id: create-release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ steps.set-version.outputs.version }}
           prerelease: ${{ github.event_name != 'release' }}
