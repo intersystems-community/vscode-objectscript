@@ -186,7 +186,7 @@ What do you want to do?`,
           // Overwrite
           return importFile(file, willCompile, true, true);
         case "Pull Server Changes":
-          loadChanges([file]);
+          loadChanges([file], true);
           return Promise.reject();
         case "Cancel":
           return Promise.reject();
