@@ -209,7 +209,7 @@ export let checkingConnection = false;
 export let serverManagerApi: serverManager.ServerManagerAPI;
 
 /** Map of the intersystems.server connection specs we have resolved via the API to that extension */
-const resolvedConnSpecs = new Map<string, any>();
+const resolvedConnSpecs = new Map<string, serverManager.IServerSpec>();
 
 /**
  * If servermanager extension is available, fetch the connection spec unless already cached.
@@ -364,7 +364,7 @@ export async function checkConnection(
     _onDidChangeConnection.fire();
   }
   let api = new AtelierAPI(apiTarget, false);
-  const { active, host = "", port = 0, superserverPort = 0, username, ns = "" } = api.config;
+  const { active, host = "", port = 0, superserverPort = 0, ns = "", username } = api.config;
   vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
   if (!panel.text) {
     panel.text = `${PANEL_LABEL}`;
@@ -1945,9 +1945,35 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   return extensionApi;
 }
 
+type HttpsAndScheme =
+  | {
+      scheme: "https";
+      https: true;
+    }
+  | {
+      scheme: "http";
+      https?: false;
+    };
+
+export interface GeneralServerForUri {
+  serverName: string;
+  active: boolean;
+  host: string;
+  port: number;
+  superserverPort: number;
+  pathPrefix: string;
+  namespace: string;
+  apiVersion: number;
+  serverVersion: string;
+}
+
+export type ServerForUri = GeneralServerForUri &
+  HttpsAndScheme &
+  Required<Pick<serverManager.Authorization, "authMethod" | "username" | "password">>;
+
 // This function is exported as one of our API functions but is also used internally
 // for example to implement the async variant capable of resolving docker port number.
-function serverForUri(uri: vscode.Uri): any {
+function serverForUri(uri: vscode.Uri): ServerForUri {
   const { apiTarget, configName } = connectionTarget(uri);
   const configNameLower = configName.toLowerCase();
   const api = new AtelierAPI(apiTarget);
@@ -1958,25 +1984,27 @@ function serverForUri(uri: vscode.Uri): any {
   const {
     serverName,
     active,
-    host = "",
+    host,
     https,
     port,
     superserverPort,
     pathPrefix,
+    authMethod,
     username,
     password,
-    ns = "",
+    ns,
     apiVersion,
     serverVersion,
   } = api.config;
   return {
     serverName,
     active,
-    scheme: https ? "https" : "http",
+    ...(https ? ({ https: true, scheme: "https" } as const) : ({ scheme: "http" } as const)),
     host,
     port,
     superserverPort,
     pathPrefix,
+    authMethod,
     username,
     password:
       serverName === ""

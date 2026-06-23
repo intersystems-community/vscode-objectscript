@@ -12,6 +12,7 @@ import {
   schemas,
   checkingConnection,
   inactiveServerIds,
+  serverManagerApi,
 } from "../extension";
 import { currentWorkspaceFolder, outputChannel, outputConsole } from "../utils";
 
@@ -19,6 +20,7 @@ const DEFAULT_API_VERSION = 1;
 const DEFAULT_SERVER_VERSION = "2016.2.0";
 import * as Atelier from "./atelier";
 import { isfsConfig } from "../utils/FileProviderUtil";
+import { IServerSpec } from "@intersystems-community/intersystems-servermanager";
 
 // Map of the authRequest promises for each username@host:port/pathPrefix target to avoid concurrency issues
 const authRequestMap = new Map<string, Promise<any>>();
@@ -37,6 +39,7 @@ interface ConnectionSettings {
   superserverPort?: number;
   pathPrefix: string;
   ns: string;
+  authMethod: "password" | "oauth2";
   username: string;
   password: string;
   docker: boolean;
@@ -59,7 +62,7 @@ export class AtelierAPI {
   }
 
   public get config(): ConnectionSettings {
-    const { serverName, active = false, https = false, pathPrefix = "", username } = this._config;
+    const { serverName, active = false, https = false, pathPrefix = "", authMethod, username } = this._config;
     const ns = this.namespace || this._config.ns;
     const wsKey = this.configName.toLowerCase();
     const host = this.externalServer ? this._config.host : workspaceState.get(wsKey + ":host", this._config.host);
@@ -83,6 +86,7 @@ export class AtelierAPI {
       superserverPort,
       pathPrefix,
       ns,
+      authMethod,
       username,
       password,
       docker,
@@ -147,12 +151,14 @@ export class AtelierAPI {
    * Manually set the connection spec for this object,
    * where `connSpec` is the return value of `getResolvedConnectionSpec()`.
    */
-  public setConnSpec(serverName: string, connSpec: any): void {
+  public setConnSpec(serverName: string, connSpec: IServerSpec): void {
     const {
       webServer: { scheme, host, port, pathPrefix = "" },
+      authMethod = "password",
       username,
       password,
     } = connSpec;
+    this._config.authMethod = authMethod;
     this._config.username = username;
     this._config.password = password;
     this._config.https = scheme == "https";
@@ -239,6 +245,7 @@ export class AtelierAPI {
     if (serverName !== "") {
       const {
         webServer: { scheme, host, port, pathPrefix = "" },
+        authMethod,
         username,
         password,
         superServer,
@@ -253,6 +260,7 @@ export class AtelierAPI {
         host,
         port,
         superserverPort: superServer?.port,
+        authMethod,
         username,
         password,
         pathPrefix,
@@ -264,6 +272,7 @@ export class AtelierAPI {
       if (resolvedSpec) {
         const {
           webServer: { scheme, host, port, pathPrefix = "" },
+          authMethod,
           username,
           password,
           superServer,
@@ -278,6 +287,7 @@ export class AtelierAPI {
           host,
           port,
           superserverPort: superServer?.port,
+          authMethod,
           username,
           password,
           pathPrefix,
@@ -316,7 +326,7 @@ export class AtelierAPI {
     headers?: any,
     options?: any
   ): Promise<any> {
-    const { active, apiVersion, host, port, username, password, https } = this.config;
+    const { active, apiVersion, host, port, password, https } = this.config;
     if (!active || !port || !host) {
       return Promise.reject();
     }
@@ -370,11 +380,7 @@ export class AtelierAPI {
     let authRequest = authRequestMap.get(mapKey);
     if (cookies.length || (method === "HEAD" && !originalPath)) {
       auth = Promise.resolve(cookies);
-
-      // Only send basic authorization if username and password specified (including blank, for unauthenticated access)
-      if (typeof username === "string" && typeof password === "string") {
-        headers["Authorization"] = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
-      }
+      headers["Authorization"] = serverManagerApi.getAuthorization(this.config);
     } else if (!cookies.length) {
       if (!authRequest) {
         // Recursion point

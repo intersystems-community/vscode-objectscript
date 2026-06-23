@@ -3,7 +3,7 @@ import * as httpsModule from "https";
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { handleError, webviewCSS } from "../utils";
-import { iscIcon } from "../extension";
+import { iscIcon, serverManagerApi } from "../extension";
 
 interface WebviewMessage {
   /** Whether this message was triggered by the user pressing the 'Start Debugging' button */
@@ -501,8 +501,8 @@ export class RESTDebugPanel {
           form.onchange = () => sendData(false);
           button.onclick = () => sendData(true);
           // Bubble change events up to the form
-          bodyContent.onchange = headersText.onchange = 
-            paramsText.onchange = path.onchange = 
+          bodyContent.onchange = headersText.onchange =
+            paramsText.onchange = path.onchange =
             () => form.dispatchEvent(new Event("change"));
         </script>
 			</body>
@@ -548,16 +548,7 @@ export class RESTDebugPanel {
                   .trim();
               }
             });
-            if (
-              headers["authorization"] == undefined &&
-              typeof api.config.username === "string" &&
-              typeof api.config.password === "string"
-            ) {
-              // Use the server connection's auth if the user didn't specify any
-              headers["authorization"] = `Basic ${Buffer.from(`${api.config.username}:${api.config.password}`).toString(
-                "base64"
-              )}`;
-            }
+            headers["authorization"] = headers["authorization"] ?? serverManagerApi.getAuthorization(api.config);
             const hasBody =
               typeof message.bodyContent == "string" && message.bodyContent != "" && message.bodyType != "No Body";
             if (hasBody) {
