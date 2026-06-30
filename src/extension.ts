@@ -365,7 +365,6 @@ export async function checkConnection(
   }
   let api = new AtelierAPI(apiTarget, false);
   const { active, host = "", port = 0, superserverPort = 0, ns = "", authorization } = api.config;
-  const username = authorization.resolved() ? authorization.username : "";
   vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
   if (!panel.text) {
     panel.text = `${PANEL_LABEL}`;
@@ -450,9 +449,11 @@ export async function checkConnection(
     panel.text = api.connInfo;
     const { serverName, host, port, pathPrefix } = api.config;
     if (serverName) {
-      panel.tooltip = new vscode.MarkdownString(`Connected to \`${host}:${port}${pathPrefix}\` as \`${username}\``);
+      panel.tooltip = new vscode.MarkdownString(
+        `Connected to \`${host}:${port}${pathPrefix}\` as \`${authorization.username}\``
+      );
     } else {
-      panel.tooltip = new vscode.MarkdownString(`Connected as \`${username}\``);
+      panel.tooltip = new vscode.MarkdownString(`Connected as \`${authorization.username}\``);
     }
     inactiveServerIds.delete(api.serverId);
     if (!api.externalServer) await setConnectionState(configName, true);

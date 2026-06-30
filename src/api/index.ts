@@ -210,12 +210,11 @@ export class AtelierAPI {
   /** Return the key for getting values from connection-specific Maps for this connection */
   private mapKey(): string {
     const { host, port, authorization } = this.config;
-    const username = authorization.resolved() ? authorization.username : "";
     let pathPrefix = this._config.pathPrefix || "";
     if (pathPrefix.length && !pathPrefix.startsWith("/")) {
       pathPrefix = "/" + pathPrefix;
     }
-    return `${username}@${host}:${port}${pathPrefix}`;
+    return `${authorization.username}@${host}:${port}${pathPrefix}`;
   }
 
   private setConnection(workspaceFolderName: string, namespace?: string): void {
