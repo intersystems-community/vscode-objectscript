@@ -39,7 +39,6 @@ interface ConnectionSettings {
   pathPrefix: string;
   ns: string;
   authorization: Authorization;
-  password?: string;
   docker: boolean;
   dockerService?: string;
 }
@@ -314,7 +313,7 @@ export class AtelierAPI {
     headers?: any,
     options?: any
   ): Promise<any> {
-    const { active, apiVersion, host, port, password, https } = this.config;
+    const { active, apiVersion, host, port, https, authorization } = this.config;
     if (!active || !port || !host) {
       return Promise.reject();
     }
@@ -445,7 +444,7 @@ export class AtelierAPI {
         if (this.wsOrFile && !checkingConnection) {
           setTimeout(() => {
             checkConnection(
-              password ? true : false,
+              authorization.resolved(),
               typeof this.wsOrFile === "object" ? this.wsOrFile : undefined,
               true
             );
