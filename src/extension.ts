@@ -71,7 +71,7 @@ import { ObjectScriptRoutineSymbolProvider } from "./providers/ObjectScriptRouti
 import { ObjectScriptCodeLensProvider } from "./providers/ObjectScriptCodeLensProvider";
 import { XmlContentProvider } from "./providers/XmlContentProvider";
 
-import { AtelierAPI } from "./api";
+import { AtelierAPI, ConnectionSettings } from "./api";
 import { ObjectScriptDebugAdapterDescriptorFactory } from "./debug/debugAdapterFactory";
 import { ObjectScriptConfigurationProvider } from "./debug/debugConfProvider";
 import { ProjectsExplorerProvider } from "./explorer/projectsExplorer";
@@ -254,7 +254,7 @@ export async function resolveConnectionSpec(
           superServer: {
             port: serverForUri.superserverPort,
           },
-          authorization: serverManagerApi.makeAuthorization(serverForUri.username, serverForUri.password),
+          authorization: serverForUri.authorization.clone(),
           description: `Server for workspace folder '${serverName}'`,
         };
       }
@@ -1955,20 +1955,10 @@ type HttpsAndScheme =
       https?: false;
     };
 
-export interface GeneralServerForUri {
-  serverName: string;
-  active: boolean;
-  host: string;
-  port: number;
-  superserverPort: number;
-  pathPrefix: string;
-  namespace: string;
-  apiVersion: number;
-  serverVersion: string;
-  authorization: serverManager.Authorization;
-}
-
-export type ServerForUri = GeneralServerForUri & HttpsAndScheme;
+export type ServerForUri = Omit<ConnectionSettings, "https" | "ns" | "docker" | "dockerService"> &
+  HttpsAndScheme & {
+    namespace: ConnectionSettings["ns"];
+  };
 
 // This function is exported as one of our API functions but is also used internally
 // for example to implement the async variant capable of resolving docker port number.
@@ -2027,7 +2017,7 @@ function serverForUri(uri: vscode.Uri): ServerForUri {
 
 // An async variant capable of resolving docker port number.
 // It is exported as one of our API functions but is also used internally.
-async function asyncServerForUri(uri: vscode.Uri): Promise<any> {
+async function asyncServerForUri(uri: vscode.Uri): Promise<ServerForUri> {
   const server = serverForUri(uri);
   if (!server.port) {
     let { apiTarget } = connectionTarget(uri);

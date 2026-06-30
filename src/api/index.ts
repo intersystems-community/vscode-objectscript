@@ -27,7 +27,7 @@ const authRequestMap = new Map<string, Promise<any>>();
 /** Map of `username@host:port/pathPrefix` to cookies */
 const cookiesMap = new Map<string, string[]>();
 
-interface ConnectionSettings {
+export interface ConnectionSettings {
   serverName: string;
   active: boolean;
   apiVersion: number;
