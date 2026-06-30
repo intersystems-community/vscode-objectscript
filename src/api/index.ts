@@ -12,7 +12,6 @@ import {
   schemas,
   checkingConnection,
   inactiveServerIds,
-  serverManagerApi,
 } from "../extension";
 import { currentWorkspaceFolder, outputChannel, outputConsole } from "../utils";
 
@@ -20,7 +19,7 @@ const DEFAULT_API_VERSION = 1;
 const DEFAULT_SERVER_VERSION = "2016.2.0";
 import * as Atelier from "./atelier";
 import { isfsConfig } from "../utils/FileProviderUtil";
-import { IServerSpec } from "@intersystems-community/intersystems-servermanager";
+import { Authorization, IServerSpec } from "@intersystems-community/intersystems-servermanager";
 
 // Map of the authRequest promises for each username@host:port/pathPrefix target to avoid concurrency issues
 const authRequestMap = new Map<string, Promise<any>>();
@@ -39,9 +38,8 @@ interface ConnectionSettings {
   superserverPort?: number;
   pathPrefix: string;
   ns: string;
-  authMethod: "password" | "oauth2";
-  username: string;
-  password: string;
+  authorization: Authorization;
+  password?: string;
   docker: boolean;
   dockerService?: string;
 }
@@ -62,7 +60,7 @@ export class AtelierAPI {
   }
 
   public get config(): ConnectionSettings {
-    const { serverName, active = false, https = false, pathPrefix = "", authMethod, username } = this._config;
+    const { serverName, active = false, https = false, pathPrefix = "", authorization } = this._config;
     const ns = this.namespace || this._config.ns;
     const wsKey = this.configName.toLowerCase();
     const host = this.externalServer ? this._config.host : workspaceState.get(wsKey + ":host", this._config.host);
@@ -70,7 +68,10 @@ export class AtelierAPI {
     const superserverPort = this.externalServer
       ? this._config.superserverPort
       : workspaceState.get(wsKey + ":superserverPort", this._config.superserverPort);
-    const password = workspaceState.get(wsKey + ":password", this._config.password);
+    const password = workspaceState.get(wsKey + ":password", undefined);
+    if (password !== undefined) {
+      authorization.resolve(password);
+    }
     const apiVersion = workspaceState.get(wsKey + ":apiVersion", DEFAULT_API_VERSION);
     const serverVersion = workspaceState.get(wsKey + ":serverVersion", DEFAULT_SERVER_VERSION);
     const docker = workspaceState.get(wsKey + ":docker", false);
@@ -86,9 +87,7 @@ export class AtelierAPI {
       superserverPort,
       pathPrefix,
       ns,
-      authMethod,
-      username,
-      password,
+      authorization,
       docker,
       dockerService,
     };
@@ -154,13 +153,9 @@ export class AtelierAPI {
   public setConnSpec(serverName: string, connSpec: IServerSpec): void {
     const {
       webServer: { scheme, host, port, pathPrefix = "" },
-      authMethod = "password",
-      username,
-      password,
+      authorization,
     } = connSpec;
-    this._config.authMethod = authMethod;
-    this._config.username = username;
-    this._config.password = password;
+    this._config.authorization = authorization;
     this._config.https = scheme == "https";
     this._config.host = host;
     this._config.port = port;
@@ -215,7 +210,8 @@ export class AtelierAPI {
 
   /** Return the key for getting values from connection-specific Maps for this connection */
   private mapKey(): string {
-    const { host, port, username } = this.config;
+    const { host, port, authorization } = this.config;
+    const username = authorization.resolved() ? authorization.username : "";
     let pathPrefix = this._config.pathPrefix || "";
     if (pathPrefix.length && !pathPrefix.startsWith("/")) {
       pathPrefix = "/" + pathPrefix;
@@ -245,9 +241,7 @@ export class AtelierAPI {
     if (serverName !== "") {
       const {
         webServer: { scheme, host, port, pathPrefix = "" },
-        authMethod,
-        username,
-        password,
+        authorization,
         superServer,
       } = getResolvedConnectionSpec(serverName, config("intersystems.servers", workspaceFolderName).get(serverName));
       this._config = {
@@ -260,9 +254,7 @@ export class AtelierAPI {
         host,
         port,
         superserverPort: superServer?.port,
-        authMethod,
-        username,
-        password,
+        authorization,
         pathPrefix,
         docker: false,
       };
@@ -272,9 +264,7 @@ export class AtelierAPI {
       if (resolvedSpec) {
         const {
           webServer: { scheme, host, port, pathPrefix = "" },
-          authMethod,
-          username,
-          password,
+          authorization,
           superServer,
         } = resolvedSpec;
         this._config = {
@@ -287,9 +277,7 @@ export class AtelierAPI {
           host,
           port,
           superserverPort: superServer?.port,
-          authMethod,
-          username,
-          password,
+          authorization,
           pathPrefix,
           docker: true,
           dockerService: conn["docker-compose"].service,
@@ -380,7 +368,9 @@ export class AtelierAPI {
     let authRequest = authRequestMap.get(mapKey);
     if (cookies.length || (method === "HEAD" && !originalPath)) {
       auth = Promise.resolve(cookies);
-      headers["Authorization"] = serverManagerApi.getAuthorization(this.config);
+      headers["Authorization"] = this.config.authorization.resolved()
+        ? this.config.authorization.httpAuthorizationHeader
+        : "";
     } else if (!cookies.length) {
       if (!authRequest) {
         // Recursion point

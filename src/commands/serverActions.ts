@@ -25,7 +25,8 @@ type ServerAction = { detail: string; id: string; label: string; rawLink?: strin
 export async function serverActions(): Promise<void> {
   const { apiTarget, configName: workspaceFolder } = connectionTarget();
   const api = new AtelierAPI(apiTarget);
-  const { active, host = "", ns = "", https, port = 0, pathPrefix, username, docker } = api.config;
+  const { active, host = "", ns = "", https, port = 0, pathPrefix, authorization, docker } = api.config;
+  const username = authorization.username;
   const explorerCount = (await explorerProvider.getChildren()).length;
   if (!explorerCount && (!docker || host === "")) {
     await vscode.commands.executeCommand("ObjectScriptExplorer.focus");

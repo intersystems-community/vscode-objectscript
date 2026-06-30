@@ -928,7 +928,7 @@ export async function getWsServerConnection(minVersion?: string): Promise<vscode
     if (minVersion && lt(config.serverVersion, minVersion)) continue;
     const conn = {
       label: api.connInfo,
-      description: isUnauthenticated(config.username) ? "Unauthenticated" : config.username,
+      description: isUnauthenticated(config.authorization.username) ? "Unauthenticated" : config.authorization.username,
       detail: `http${config.https ? "s" : ""}://${config.host}:${config.port}${config.pathPrefix}`,
       uri: wsFolder.uri,
       ns: api.ns,

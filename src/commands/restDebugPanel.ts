@@ -3,7 +3,7 @@ import * as httpsModule from "https";
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
 import { handleError, webviewCSS } from "../utils";
-import { iscIcon, serverManagerApi } from "../extension";
+import { iscIcon } from "../extension";
 
 interface WebviewMessage {
   /** Whether this message was triggered by the user pressing the 'Start Debugging' button */
@@ -548,7 +548,9 @@ export class RESTDebugPanel {
                   .trim();
               }
             });
-            headers["authorization"] = headers["authorization"] ?? serverManagerApi.getAuthorization(api.config);
+            headers["authorization"] =
+              headers["authorization"] ??
+              (api.config.authorization.resolved() ? api.config.authorization.httpAuthorizationHeader : "");
             const hasBody =
               typeof message.bodyContent == "string" && message.bodyContent != "" && message.bodyType != "No Body";
             if (hasBody) {

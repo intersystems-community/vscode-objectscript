@@ -209,7 +209,7 @@ export let checkingConnection = false;
 export let serverManagerApi: serverManager.ServerManagerAPI;
 
 /** Map of the intersystems.server connection specs we have resolved via the API to that extension */
-const resolvedConnSpecs = new Map<string, serverManager.IServerSpec>();
+const resolvedConnSpecs = new Map<string, serverManager.IServerSpec & { accessToken?: string }>();
 
 /**
  * If servermanager extension is available, fetch the connection spec unless already cached.
@@ -255,8 +255,7 @@ export async function resolveConnectionSpec(
           superServer: {
             port: serverForUri.superserverPort,
           },
-          username: serverForUri.username,
-          password: serverForUri.password ? serverForUri.password : undefined,
+          authorization: serverManagerApi.makeAuthorization(serverForUri.username, serverForUri.password),
           description: `Server for workspace folder '${serverName}'`,
         };
       }
@@ -269,14 +268,12 @@ export async function resolveConnectionSpec(
   }
 }
 
-async function resolvePassword(serverSpec, ignoreUnauthenticated = false): Promise<void> {
-  if (
-    // Connection isn't unauthenticated
-    (!isUnauthenticated(serverSpec.username) || ignoreUnauthenticated) &&
-    // A password is missing
-    typeof serverSpec.password == "undefined"
-  ) {
-    const scopes = [serverSpec.name, serverSpec.username || ""];
+async function resolvePassword(
+  serverSpec: Pick<serverManager.IServerSpec, "name" | "authorization">,
+  ignoreUnauthenticated = false
+): Promise<string | undefined> {
+  if (!(serverSpec.authorization.resolved() || ignoreUnauthenticated)) {
+    const scopes = [serverSpec.name, serverSpec.authorization.username || ""];
 
     // Handle Server Manager extension version < 3.8.0
     const account = serverManagerApi.getAccount ? serverManagerApi.getAccount(serverSpec) : undefined;
@@ -293,25 +290,28 @@ async function resolvePassword(serverSpec, ignoreUnauthenticated = false): Promi
     }
     if (session) {
       // If original spec lacked username use the one obtained from the user by the authprovider (exact case)
-      serverSpec.username = serverSpec.username || session.scopes[1];
-      serverSpec.password = session.accessToken;
+      serverSpec.authorization.resolve(session.accessToken, session.scopes[1]);
+      return session.accessToken;
     }
   }
 }
 
 /** Resolve credentials for `serverName` and returned the complete connection spec if successful */
-export async function resolveUsernameAndPassword(serverName: string, oldSpec: any): Promise<any> {
-  const newSpec: { name: string; username?: string; password?: string } = {
-    name: serverName,
-    username: oldSpec?.username,
-  };
-  await resolvePassword(newSpec, true);
-  if (newSpec.password) {
+export async function resolveUsernameAndPassword(
+  serverName: string,
+  oldSpec: serverManager.IServerSpec
+): Promise<(serverManager.IServerSpec & { accessToken?: string }) | undefined> {
+  const { authorization: _authorization, ...newSpec } = oldSpec;
+  newSpec.name = serverName;
+  const authorization = _authorization.clone();
+
+  const accessToken = await resolvePassword({ ...newSpec, authorization }, true);
+  if (authorization.resolved()) {
     // Update the connection spec
     resolvedConnSpecs.set(serverName, {
       ...oldSpec,
-      username: newSpec.username,
-      password: newSpec.password,
+      authorization,
+      accessToken,
     });
     return resolvedConnSpecs.get(serverName);
   }
@@ -364,7 +364,8 @@ export async function checkConnection(
     _onDidChangeConnection.fire();
   }
   let api = new AtelierAPI(apiTarget, false);
-  const { active, host = "", port = 0, superserverPort = 0, ns = "", username } = api.config;
+  const { active, host = "", port = 0, superserverPort = 0, ns = "", authorization } = api.config;
+  const username = authorization.resolved() ? authorization.username : "";
   vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
   if (!panel.text) {
     panel.text = `${PANEL_LABEL}`;
@@ -470,8 +471,7 @@ export async function checkConnection(
         let success = false;
         message = "Not Authorized.";
         errorMessage = `Authorization error: Check your credentials in Settings, and that you have sufficient privileges on the /api/atelier web application on ${connInfo}`;
-        const username = api.config.username;
-        if (isUnauthenticated(username)) {
+        if (isUnauthenticated(api.config.authorization.username)) {
           vscode.window.showErrorMessage(
             `Unauthenticated access rejected by '${api.serverId}'.${
               !api.config.serverName ? " Connection has been disabled." : ""
@@ -487,7 +487,7 @@ export async function checkConnection(
             const newSpec = await resolveUsernameAndPassword(api.config.serverName, oldSpec);
             if (newSpec) {
               // We were able to resolve credentials, so try again
-              await workspaceState.update(wsKey + ":password", newSpec.password);
+              await workspaceState.update(wsKey + ":password", newSpec.accessToken);
               api = new AtelierAPI(apiTarget, false);
               await api
                 .serverInfo(true, serverInfoTimeout)
@@ -515,7 +515,7 @@ export async function checkConnection(
             vscode.window
               .showInputBox({
                 password: true,
-                title: `Not Authorized. Enter password to connect as user '${username}' to ${connInfo}`,
+                title: `Not Authorized. Enter password to connect as user '${api.config.authorization.username}' to ${connInfo}`,
                 prompt: !api.externalServer ? "If no password is entered the connection will be disabled." : "",
                 ignoreFocusOut: true,
               })
@@ -1965,11 +1965,10 @@ export interface GeneralServerForUri {
   namespace: string;
   apiVersion: number;
   serverVersion: string;
+  authorization: serverManager.Authorization;
 }
 
-export type ServerForUri = GeneralServerForUri &
-  HttpsAndScheme &
-  Required<Pick<serverManager.Authorization, "authMethod" | "username" | "password">>;
+export type ServerForUri = GeneralServerForUri & HttpsAndScheme;
 
 // This function is exported as one of our API functions but is also used internally
 // for example to implement the async variant capable of resolving docker port number.
@@ -1989,13 +1988,28 @@ function serverForUri(uri: vscode.Uri): ServerForUri {
     port,
     superserverPort,
     pathPrefix,
-    authMethod,
-    username,
-    password,
+    authorization,
     ns,
     apiVersion,
     serverVersion,
   } = api.config;
+  if (serverName !== "") {
+    const password = vscode.workspace
+      .getConfiguration(
+        `intersystems.servers.${serverName.toLowerCase()}`,
+        // objectscript(xml):// URIs are not in any workspace folder,
+        // so make sure we resolve the server definition with the proper
+        // granularity. This is needed to prevent other extensions like
+        // Language Server prompting for a passwoord when it's not needed.
+        [OBJECTSCRIPT_FILE_SCHEMA, OBJECTSCRIPTXML_FILE_SCHEMA].includes(uri.scheme)
+          ? vscode.workspace.workspaceFolders?.find((f) => f.name.toLowerCase() == configNameLower)?.uri
+          : uri
+      )
+      .get("password") as string | undefined;
+    if (password !== undefined) {
+      authorization.resolve(password);
+    }
+  }
   return {
     serverName,
     active,
@@ -2004,23 +2018,7 @@ function serverForUri(uri: vscode.Uri): ServerForUri {
     port,
     superserverPort,
     pathPrefix,
-    authMethod,
-    username,
-    password:
-      serverName === ""
-        ? password
-        : vscode.workspace
-            .getConfiguration(
-              `intersystems.servers.${serverName.toLowerCase()}`,
-              // objectscript(xml):// URIs are not in any workspace folder,
-              // so make sure we resolve the server definition with the proper
-              // granularity. This is needed to prevent other extensions like
-              // Language Server prompting for a passwoord when it's not needed.
-              [OBJECTSCRIPT_FILE_SCHEMA, OBJECTSCRIPTXML_FILE_SCHEMA].includes(uri.scheme)
-                ? vscode.workspace.workspaceFolders?.find((f) => f.name.toLowerCase() == configNameLower)?.uri
-                : uri
-            )
-            .get("password"),
+    authorization,
     namespace: ns,
     apiVersion: active ? apiVersion : undefined,
     serverVersion: active ? serverVersion : undefined,

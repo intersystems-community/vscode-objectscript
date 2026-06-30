@@ -80,7 +80,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
     .serverInfo(false)
     .then((data) => data.result.content.namespaces)
     .catch(async (error) => {
-      if (error?.statusCode == 401 && isUnauthenticated(api.config.username)) {
+      if (error?.statusCode == 401 && isUnauthenticated(api.config.authorization.username)) {
         // Attempt to resolve username and password and try again
         const newSpec = await resolveUsernameAndPassword(api.config.serverName, connSpec);
         if (newSpec) {
