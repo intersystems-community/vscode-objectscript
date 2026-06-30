@@ -85,7 +85,6 @@ import {
   portFromDockerCompose,
   notNull,
   currentFile,
-  isUnauthenticated,
   notIsfs,
   handleError,
   cspApps,
@@ -472,7 +471,7 @@ export async function checkConnection(
         let success = false;
         message = "Not Authorized.";
         errorMessage = `Authorization error: Check your credentials in Settings, and that you have sufficient privileges on the /api/atelier web application on ${connInfo}`;
-        if (isUnauthenticated(api.config.authorization.username)) {
+        if (!api.config.authorization.resolved()) {
           vscode.window.showErrorMessage(
             `Unauthenticated access rejected by '${api.serverId}'.${
               !api.config.serverName ? " Connection has been disabled." : ""

@@ -871,11 +871,6 @@ export function methodOffsetToLine(
   return line;
 }
 
-/** Return `true` if this username signals unauthenticated access  */
-export function isUnauthenticated(username: string): boolean {
-  return username == undefined || username == "" || username.toLowerCase() == "unknownuser";
-}
-
 /** Returns `true` if `uri.scheme` is neither `isfs` nor `isfs-readonly` */
 export function notIsfs(uri: vscode.Uri): boolean {
   return !filesystemSchemas.includes(uri.scheme);
@@ -928,7 +923,7 @@ export async function getWsServerConnection(minVersion?: string): Promise<vscode
     if (minVersion && lt(config.serverVersion, minVersion)) continue;
     const conn = {
       label: api.connInfo,
-      description: isUnauthenticated(config.authorization.username) ? "Unauthenticated" : config.authorization.username,
+      description: !config.authorization.resolved() ? "Unauthenticated" : config.authorization.username,
       detail: `http${config.https ? "s" : ""}://${config.host}:${config.port}${config.pathPrefix}`,
       uri: wsFolder.uri,
       ns: api.ns,
