@@ -312,7 +312,7 @@ export class AtelierAPI {
     headers?: any,
     options?: any
   ): Promise<any> {
-    const { active, apiVersion, host, port, https, authorization } = this.config;
+    const { active, apiVersion, host, port, authorization, https } = this.config;
     if (!active || !port || !host) {
       return Promise.reject();
     }
