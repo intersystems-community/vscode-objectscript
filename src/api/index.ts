@@ -38,7 +38,7 @@ export interface ConnectionSettings {
   superserverPort?: number;
   pathPrefix: string;
   ns: string;
-  authorization: Authorization;
+  auth: Authorization;
   docker: boolean;
   dockerService?: string;
 }
@@ -59,7 +59,7 @@ export class AtelierAPI {
   }
 
   public get config(): ConnectionSettings {
-    const { serverName, active = false, https = false, pathPrefix = "", authorization } = this._config;
+    const { serverName, active = false, https = false, pathPrefix = "", auth: authorization } = this._config;
     const ns = this.namespace || this._config.ns;
     const wsKey = this.configName.toLowerCase();
     const host = this.externalServer ? this._config.host : workspaceState.get(wsKey + ":host", this._config.host);
@@ -86,7 +86,7 @@ export class AtelierAPI {
       superserverPort,
       pathPrefix,
       ns,
-      authorization,
+      auth: authorization,
       docker,
       dockerService,
     };
@@ -152,9 +152,9 @@ export class AtelierAPI {
   public setConnSpec(serverName: string, connSpec: IServerSpec): void {
     const {
       webServer: { scheme, host, port, pathPrefix = "" },
-      authorization,
+      auth,
     } = connSpec;
-    this._config.authorization = authorization;
+    this._config.auth = auth;
     this._config.https = scheme == "https";
     this._config.host = host;
     this._config.port = port;
@@ -209,7 +209,7 @@ export class AtelierAPI {
 
   /** Return the key for getting values from connection-specific Maps for this connection */
   private mapKey(): string {
-    const { host, port, authorization } = this.config;
+    const { host, port, auth: authorization } = this.config;
     let pathPrefix = this._config.pathPrefix || "";
     if (pathPrefix.length && !pathPrefix.startsWith("/")) {
       pathPrefix = "/" + pathPrefix;
@@ -252,7 +252,7 @@ export class AtelierAPI {
         host,
         port,
         superserverPort: superServer?.port,
-        authorization,
+        auth: authorization,
         pathPrefix,
         docker: false,
       };
@@ -275,7 +275,7 @@ export class AtelierAPI {
           host,
           port,
           superserverPort: superServer?.port,
-          authorization,
+          auth: authorization,
           pathPrefix,
           docker: true,
           dockerService: conn["docker-compose"].service,
@@ -312,7 +312,7 @@ export class AtelierAPI {
     headers?: any,
     options?: any
   ): Promise<any> {
-    const { active, apiVersion, host, port, authorization, https } = this.config;
+    const { active, apiVersion, host, port, auth: authorization, https } = this.config;
     if (!active || !port || !host) {
       return Promise.reject();
     }
@@ -366,9 +366,7 @@ export class AtelierAPI {
     let authRequest = authRequestMap.get(mapKey);
     if (cookies.length || (method === "HEAD" && !originalPath)) {
       auth = Promise.resolve(cookies);
-      headers["Authorization"] = this.config.authorization.resolved()
-        ? this.config.authorization.httpAuthorizationHeader
-        : "";
+      headers["Authorization"] = this.config.auth.resolved() ? this.config.auth.httpAuthorizationHeader : "";
     } else if (!cookies.length) {
       if (!authRequest) {
         // Recursion point

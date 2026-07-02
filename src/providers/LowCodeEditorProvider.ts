@@ -212,8 +212,8 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
             webviewPanel.webview.postMessage({
               direction: "editor",
               type: "auth",
-              username: api.config.authorization.username,
-              password: api.config.authorization.password,
+              username: api.config.auth.username,
+              password: api.config.auth.password,
             });
           }
           return;

@@ -476,10 +476,10 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       .catch((error) => {
         if (error) {
           if (error.errorText.includes(" #5540:")) {
-            const message = `User '${api.config.authorization.username}' cannot list ${
+            const message = `User '${api.config.auth.username}' cannot list ${
               csp ? `web application '${uri.path}'` : "namespace"
             } contents. If they do not have READ permission on the default code database of the ${api.config.ns.toUpperCase()} namespace then grant it and retry. If the problem remains then execute the following SQL in that namespace:\n\t GRANT EXECUTE ON %Library.RoutineMgr_StudioOpenDialog TO ${
-              api.config.authorization.username
+              api.config.auth.username
             }`;
             handleError(message);
           }
@@ -1006,7 +1006,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   private async _lookup(uri: vscode.Uri, fillInPath?: boolean): Promise<Entry> {
     const api = new AtelierAPI(uri);
     const config = api.config;
-    const rootName = `${config.authorization.username}@${config.host}:${config.port}${config.pathPrefix}/${config.ns.toUpperCase()}`;
+    const rootName = `${config.auth.username}@${config.host}:${config.port}${config.pathPrefix}/${config.ns.toUpperCase()}`;
     let entry: Entry = this.superRoot.entries.get(rootName);
     if (!entry) {
       entry = new Directory(rootName, "");

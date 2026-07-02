@@ -254,7 +254,7 @@ export async function resolveConnectionSpec(
           superServer: {
             port: serverForUri.superserverPort,
           },
-          authorization: serverForUri.authorization.clone(),
+          auth: serverForUri.auth.clone(),
           description: `Server for workspace folder '${serverName}'`,
         };
       }
@@ -268,11 +268,11 @@ export async function resolveConnectionSpec(
 }
 
 async function resolvePassword(
-  serverSpec: Pick<serverManager.IServerSpec, "name" | "authorization">,
+  serverSpec: Pick<serverManager.IServerSpec, "name" | "auth">,
   ignoreUnauthenticated = false
 ): Promise<string | undefined> {
-  if (!(serverSpec.authorization.resolved() || ignoreUnauthenticated)) {
-    const scopes = [serverSpec.name, serverSpec.authorization.username || ""];
+  if (!(serverSpec.auth.resolved() || ignoreUnauthenticated)) {
+    const scopes = [serverSpec.name, serverSpec.auth.username || ""];
 
     // Handle Server Manager extension version < 3.8.0
     const account = serverManagerApi.getAccount ? serverManagerApi.getAccount(serverSpec) : undefined;
@@ -289,7 +289,10 @@ async function resolvePassword(
     }
     if (session) {
       // If original spec lacked username use the one obtained from the user by the authprovider (exact case)
-      serverSpec.authorization.resolve(session.accessToken, session.scopes[1]);
+      serverSpec.auth.resolve({
+        username: session.scopes[1],
+        accessToken: session.accessToken,
+      });
       return session.accessToken;
     }
   }
@@ -300,16 +303,16 @@ export async function resolveUsernameAndPassword(
   serverName: string,
   oldSpec: serverManager.IServerSpec
 ): Promise<(serverManager.IServerSpec & { accessToken?: string }) | undefined> {
-  const { authorization: _authorization, ...newSpec } = oldSpec;
+  const { auth: _auth, ...newSpec } = oldSpec;
   newSpec.name = serverName;
-  const authorization = _authorization.clone();
+  const auth = _auth.clone();
 
-  const accessToken = await resolvePassword({ ...newSpec, authorization }, true);
-  if (authorization.resolved()) {
+  const accessToken = await resolvePassword({ ...newSpec, auth }, true);
+  if (auth.resolved()) {
     // Update the connection spec
     resolvedConnSpecs.set(serverName, {
       ...oldSpec,
-      authorization,
+      auth,
       accessToken,
     });
     return resolvedConnSpecs.get(serverName);
@@ -363,7 +366,7 @@ export async function checkConnection(
     _onDidChangeConnection.fire();
   }
   let api = new AtelierAPI(apiTarget, false);
-  const { active, host = "", port = 0, superserverPort = 0, ns = "", authorization } = api.config;
+  const { active, host = "", port = 0, superserverPort = 0, ns = "", auth: authorization } = api.config;
   vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
   if (!panel.text) {
     panel.text = `${PANEL_LABEL}`;
@@ -471,7 +474,7 @@ export async function checkConnection(
         let success = false;
         message = "Not Authorized.";
         errorMessage = `Authorization error: Check your credentials in Settings, and that you have sufficient privileges on the /api/atelier web application on ${connInfo}`;
-        if (!api.config.authorization.resolved()) {
+        if (!api.config.auth.resolved()) {
           vscode.window.showErrorMessage(
             `Unauthenticated access rejected by '${api.serverId}'.${
               !api.config.serverName ? " Connection has been disabled." : ""
@@ -515,7 +518,7 @@ export async function checkConnection(
             vscode.window
               .showInputBox({
                 password: true,
-                title: `Not Authorized. Enter password to connect as user '${api.config.authorization.username}' to ${connInfo}`,
+                title: `Not Authorized. Enter password to connect as user '${api.config.auth.username}' to ${connInfo}`,
                 prompt: !api.externalServer ? "If no password is entered the connection will be disabled." : "",
                 ignoreFocusOut: true,
               })
@@ -1978,7 +1981,7 @@ function serverForUri(uri: vscode.Uri): ServerForUri {
     port,
     superserverPort,
     pathPrefix,
-    authorization,
+    auth: authorization,
     ns,
     apiVersion,
     serverVersion,
@@ -1997,7 +2000,7 @@ function serverForUri(uri: vscode.Uri): ServerForUri {
       )
       .get("password") as string | undefined;
     if (password !== undefined) {
-      authorization.resolve(password);
+      authorization.resolve({ accessToken: password });
     }
   }
   return {
@@ -2008,7 +2011,7 @@ function serverForUri(uri: vscode.Uri): ServerForUri {
     port,
     superserverPort,
     pathPrefix,
-    authorization,
+    auth: authorization,
     namespace: ns,
     apiVersion: active ? apiVersion : undefined,
     serverVersion: active ? serverVersion : undefined,
