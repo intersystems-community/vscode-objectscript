@@ -25,7 +25,7 @@ type ServerAction = { detail: string; id: string; label: string; rawLink?: strin
 export async function serverActions(): Promise<void> {
   const { apiTarget, configName: workspaceFolder } = connectionTarget();
   const api = new AtelierAPI(apiTarget);
-  const { active, host = "", ns = "", https, port = 0, pathPrefix, auth: authorization, docker } = api.config;
+  const { active, host = "", ns = "", https, port = 0, pathPrefix, auth, docker } = api.config;
   const explorerCount = (await explorerProvider.getChildren()).length;
   if (!explorerCount && (!docker || host === "")) {
     await vscode.commands.executeCommand("ObjectScriptExplorer.focus");
@@ -152,7 +152,7 @@ export async function serverActions(): Promise<void> {
       .replace("${serverAuth}", "")
       .replace("${ns}", nsEncoded)
       .replace("${namespace}", ns == "%SYS" ? "sys" : nsEncoded.toLowerCase())
-      .replace("${username}", authorization.username)
+      .replace("${username}", auth.username)
       .replace("${classname}", classname)
       .replace("${classnameEncoded}", classnameEncoded)
       .replace("${project}", project);
@@ -248,7 +248,7 @@ export async function serverActions(): Promise<void> {
             if (addin) {
               sendStudioAddinTelemetryEvent(addin.label);
               let params = `Namespace=${nsEncoded}`;
-              params += `&User=${encodeURIComponent(authorization.username)}`;
+              params += `&User=${encodeURIComponent(auth.username)}`;
               if (project != "") {
                 params += `&Project=${encodeURIComponent(project)}`;
               }

@@ -67,10 +67,7 @@ export class AtelierAPI {
     const superserverPort = this.externalServer
       ? this._config.superserverPort
       : workspaceState.get(wsKey + ":superserverPort", this._config.superserverPort);
-    const accessToken = workspaceState.get(wsKey + ":password", undefined);
-    if (accessToken !== undefined) {
-      auth.resolve({ accessToken });
-    }
+    auth.resolve({ accessToken: workspaceState.get(wsKey + ":password", undefined) });
     const apiVersion = workspaceState.get(wsKey + ":apiVersion", DEFAULT_API_VERSION);
     const serverVersion = workspaceState.get(wsKey + ":serverVersion", DEFAULT_SERVER_VERSION);
     const docker = workspaceState.get(wsKey + ":docker", false);
@@ -365,6 +362,10 @@ export class AtelierAPI {
     let auth: Promise<any>;
     let authRequest = authRequestMap.get(mapKey);
     if (cookies.length || (method === "HEAD" && !originalPath)) {
+      // Only send basic authorization if username and password specified (including blank, for unauthenticated access)
+      if (this.config.auth.resolved()) {
+        headers["Authorization"] = this.config.auth.httpAuthorizationHeader;
+      }
       auth = Promise.resolve(cookies);
     } else if (!cookies.length) {
       if (!authRequest) {
@@ -373,10 +374,6 @@ export class AtelierAPI {
         authRequestMap.set(mapKey, authRequest);
       }
       auth = authRequest;
-    }
-    // Always set Authorization header if credentials are resolved
-    if (this.config.auth.resolved()) {
-      headers["Authorization"] = this.config.auth.httpAuthorizationHeader;
     }
 
     const outputTraffic = vscode.workspace.getConfiguration("objectscript").get<boolean>("outputRESTTraffic");

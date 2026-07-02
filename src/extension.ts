@@ -208,7 +208,7 @@ export let checkingConnection = false;
 export let serverManagerApi: serverManager.ServerManagerAPI;
 
 /** Map of the intersystems.server connection specs we have resolved via the API to that extension */
-const resolvedConnSpecs = new Map<string, serverManager.IServerSpec & { accessToken?: string }>();
+const resolvedConnSpecs = new Map<string, serverManager.IServerSpec>();
 
 /**
  * If servermanager extension is available, fetch the connection spec unless already cached.
@@ -267,10 +267,10 @@ export async function resolveConnectionSpec(
 }
 
 async function resolvePassword(
-  serverSpec: Pick<serverManager.IServerSpec, "name" | "auth">,
+  serverSpec: serverManager.IServerSpec,
   ignoreUnauthenticated = false
 ): Promise<string | undefined> {
-  if (!((serverSpec.auth.resolved() as boolean) || ignoreUnauthenticated)) {
+  if (!(serverSpec.auth.resolved() as boolean) || ignoreUnauthenticated) {
     const scopes = [serverSpec.name, serverSpec.auth?.username || ""];
 
     // Handle Server Manager extension version < 3.8.0
@@ -304,15 +304,14 @@ export async function resolveUsernameAndPassword(
 ): Promise<(serverManager.IServerSpec & { accessToken?: string }) | undefined> {
   const { auth: _auth, ...newSpec } = oldSpec;
   newSpec.name = serverName;
-  const auth = _auth.clone();
+  const auth = _auth?.clone();
 
   const accessToken = await resolvePassword({ ...newSpec, auth }, true);
-  if (auth.resolved()) {
+  if (auth.resolve({ accessToken })) {
     // Update the connection spec
     resolvedConnSpecs.set(serverName, {
       ...oldSpec,
       auth,
-      accessToken,
     });
     return resolvedConnSpecs.get(serverName);
   }
@@ -365,7 +364,7 @@ export async function checkConnection(
     _onDidChangeConnection.fire();
   }
   let api = new AtelierAPI(apiTarget, false);
-  const { active, host = "", port = 0, superserverPort = 0, ns = "", auth: authorization } = api.config;
+  const { active, host = "", port = 0, superserverPort = 0, ns = "", auth } = api.config;
   vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
   if (!panel.text) {
     panel.text = `${PANEL_LABEL}`;
@@ -451,10 +450,10 @@ export async function checkConnection(
     const { serverName, host, port, pathPrefix } = api.config;
     if (serverName) {
       panel.tooltip = new vscode.MarkdownString(
-        `Connected to \`${host}:${port}${pathPrefix}\` as \`${authorization.username}\``
+        `Connected to \`${host}:${port}${pathPrefix}\` as \`${auth.username}\``
       );
     } else {
-      panel.tooltip = new vscode.MarkdownString(`Connected as \`${authorization.username}\``);
+      panel.tooltip = new vscode.MarkdownString(`Connected as \`${auth.username}\``);
     }
     inactiveServerIds.delete(api.serverId);
     if (!api.externalServer) await setConnectionState(configName, true);
