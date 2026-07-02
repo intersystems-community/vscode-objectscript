@@ -67,9 +67,9 @@ export class AtelierAPI {
     const superserverPort = this.externalServer
       ? this._config.superserverPort
       : workspaceState.get(wsKey + ":superserverPort", this._config.superserverPort);
-    const password = workspaceState.get(wsKey + ":password", undefined);
-    if (password !== undefined) {
-      auth.resolve({ accessToken: password });
+    const accessToken = workspaceState.get(wsKey + ":password", undefined);
+    if (accessToken !== undefined) {
+      auth.resolve({ accessToken });
     }
     const apiVersion = workspaceState.get(wsKey + ":apiVersion", DEFAULT_API_VERSION);
     const serverVersion = workspaceState.get(wsKey + ":serverVersion", DEFAULT_SERVER_VERSION);
@@ -209,12 +209,12 @@ export class AtelierAPI {
 
   /** Return the key for getting values from connection-specific Maps for this connection */
   private mapKey(): string {
-    const { host, port, auth: authorization } = this.config;
+    const { host, port, auth } = this.config;
     let pathPrefix = this._config.pathPrefix || "";
     if (pathPrefix.length && !pathPrefix.startsWith("/")) {
       pathPrefix = "/" + pathPrefix;
     }
-    return `${authorization.username}@${host}:${port}${pathPrefix}`;
+    return `${auth.username}@${host}:${port}${pathPrefix}`;
   }
 
   private setConnection(workspaceFolderName: string, namespace?: string): void {
@@ -239,7 +239,7 @@ export class AtelierAPI {
     if (serverName !== "") {
       const {
         webServer: { scheme, host, port, pathPrefix = "" },
-        authorization,
+        auth,
         superServer,
       } = getResolvedConnectionSpec(serverName, config("intersystems.servers", workspaceFolderName).get(serverName));
       this._config = {
@@ -252,7 +252,7 @@ export class AtelierAPI {
         host,
         port,
         superserverPort: superServer?.port,
-        auth: authorization,
+        auth,
         pathPrefix,
         docker: false,
       };
@@ -262,7 +262,7 @@ export class AtelierAPI {
       if (resolvedSpec) {
         const {
           webServer: { scheme, host, port, pathPrefix = "" },
-          authorization,
+          auth,
           superServer,
         } = resolvedSpec;
         this._config = {
@@ -275,7 +275,7 @@ export class AtelierAPI {
           host,
           port,
           superserverPort: superServer?.port,
-          auth: authorization,
+          auth,
           pathPrefix,
           docker: true,
           dockerService: conn["docker-compose"].service,

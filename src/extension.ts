@@ -320,7 +320,7 @@ export async function resolveUsernameAndPassword(
 }
 
 /** Accessor for the cache of resolved connection specs */
-export function getResolvedConnectionSpec(key: string, dflt: any): any {
+export function getResolvedConnectionSpec(key: string, dflt: serverManager.IServerSpec): serverManager.IServerSpec {
   let spec = resolvedConnSpecs.get(key);
   if (spec) {
     return spec;
@@ -1973,19 +1973,8 @@ function serverForUri(uri: vscode.Uri): ServerForUri {
   // This function intentionally no longer exposes the password for a named server UNLESS it is already exposed as plaintext in settings.
   // API client extensions should use Server Manager 3's authentication provider to request a missing password themselves,
   // which will require explicit user consent to divulge the password to the requesting extension.
-  const {
-    serverName,
-    active,
-    host,
-    https,
-    port,
-    superserverPort,
-    pathPrefix,
-    auth: authorization,
-    ns,
-    apiVersion,
-    serverVersion,
-  } = api.config;
+  const { serverName, active, host, https, port, superserverPort, pathPrefix, auth, ns, apiVersion, serverVersion } =
+    api.config;
   if (serverName !== "") {
     const password = vscode.workspace
       .getConfiguration(
@@ -2000,7 +1989,7 @@ function serverForUri(uri: vscode.Uri): ServerForUri {
       )
       .get("password") as string | undefined;
     if (password !== undefined) {
-      authorization.resolve({ accessToken: password });
+      auth.resolve({ accessToken: password });
     }
   }
   return {
@@ -2011,7 +2000,7 @@ function serverForUri(uri: vscode.Uri): ServerForUri {
     port,
     superserverPort,
     pathPrefix,
-    auth: authorization,
+    auth: auth,
     namespace: ns,
     apiVersion: active ? apiVersion : undefined,
     serverVersion: active ? serverVersion : undefined,
