@@ -207,8 +207,12 @@ export let checkingConnection = false;
 
 export let serverManagerApi: serverManager.ServerManagerAPI;
 
+interface ResolvedConnSpec extends serverManager.IServerSpec {
+  auth: serverManager.ResolvedAuthorization;
+}
+
 /** Map of the intersystems.server connection specs we have resolved via the API to that extension */
-const resolvedConnSpecs = new Map<string, serverManager.IServerSpec>();
+const resolvedConnSpecs = new Map<string, ResolvedConnSpec>();
 
 /**
  * If servermanager extension is available, fetch the connection spec unless already cached.
@@ -235,7 +239,7 @@ export async function resolveConnectionSpec(
     }
   }
 
-  let connSpec: serverManager.IServerSpec = await serverManagerApi.getServerSpec(serverName, scope);
+  let connSpec = await serverManagerApi.getServerSpec(serverName, scope);
 
   if (!connSpec && uri) {
     // Caller passed uri as a signal to process any docker-compose settings
@@ -255,13 +259,15 @@ export async function resolveConnectionSpec(
             port: serverForUri.superserverPort,
           },
           description: `Server for workspace folder '${serverName}'`,
+          auth: serverManagerApi.defaultAuth(),
         };
       }
     }
   }
 
   if (connSpec) {
-    await resolvePassword(connSpec);
+    const accessToken = await resolvePassword(connSpec);
+    connSpec.auth.resolve({ accessToken });
     resolvedConnSpecs.set(serverName, connSpec);
   }
 }
@@ -287,11 +293,6 @@ async function resolvePassword(
       });
     }
     if (session) {
-      // If original spec lacked username use the one obtained from the user by the authprovider (exact case)
-      serverSpec.auth.resolve({
-        username: session.scopes[1],
-        accessToken: session.accessToken,
-      });
       return session.accessToken;
     }
   }
@@ -301,13 +302,13 @@ async function resolvePassword(
 export async function resolveUsernameAndPassword(
   serverName: string,
   oldSpec: serverManager.IServerSpec
-): Promise<(serverManager.IServerSpec & { accessToken?: string }) | undefined> {
+): Promise<serverManager.IServerSpec | undefined> {
   const { auth: _auth, ...newSpec } = oldSpec;
   newSpec.name = serverName;
   const auth = _auth?.clone();
 
   const accessToken = await resolvePassword({ ...newSpec, auth }, true);
-  if (auth.resolve({ accessToken })) {
+  if (auth?.resolve({ accessToken })) {
     // Update the connection spec
     resolvedConnSpecs.set(serverName, {
       ...oldSpec,
@@ -488,7 +489,7 @@ export async function checkConnection(
             const newSpec = await resolveUsernameAndPassword(api.config.serverName, oldSpec);
             if (newSpec) {
               // We were able to resolve credentials, so try again
-              await workspaceState.update(wsKey + ":password", newSpec.accessToken);
+              await workspaceState.update(wsKey + ":password", newSpec.auth?.accessToken);
               api = new AtelierAPI(apiTarget, false);
               await api
                 .serverInfo(true, serverInfoTimeout)
