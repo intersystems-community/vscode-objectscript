@@ -312,7 +312,7 @@ export class AtelierAPI {
     headers?: any,
     options?: any
   ): Promise<any> {
-    const { active, apiVersion, host, port, auth: authorization, https } = this.config;
+    const { active, apiVersion, host, port, auth, https } = this.config;
     if (!active || !port || !host) {
       return Promise.reject();
     }
@@ -443,11 +443,7 @@ export class AtelierAPI {
         authRequestMap.delete(mapKey);
         if (this.wsOrFile && !checkingConnection) {
           setTimeout(() => {
-            checkConnection(
-              authorization.resolved(),
-              typeof this.wsOrFile === "object" ? this.wsOrFile : undefined,
-              true
-            );
+            checkConnection(auth.resolved(), typeof this.wsOrFile === "object" ? this.wsOrFile : undefined, true);
           }, 500);
         }
         throw { statusCode: response.status, message: response.statusText };
