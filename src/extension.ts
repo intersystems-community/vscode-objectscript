@@ -235,7 +235,7 @@ export async function resolveConnectionSpec(
     }
   }
 
-  let connSpec = await serverManagerApi.getServerSpec(serverName, scope);
+  let connSpec: serverManager.IServerSpec = await serverManagerApi.getServerSpec(serverName, scope);
 
   if (!connSpec && uri) {
     // Caller passed uri as a signal to process any docker-compose settings
@@ -254,7 +254,6 @@ export async function resolveConnectionSpec(
           superServer: {
             port: serverForUri.superserverPort,
           },
-          auth: serverForUri.auth.clone(),
           description: `Server for workspace folder '${serverName}'`,
         };
       }
@@ -271,8 +270,8 @@ async function resolvePassword(
   serverSpec: Pick<serverManager.IServerSpec, "name" | "auth">,
   ignoreUnauthenticated = false
 ): Promise<string | undefined> {
-  if (!(serverSpec.auth.resolved() || ignoreUnauthenticated)) {
-    const scopes = [serverSpec.name, serverSpec.auth.username || ""];
+  if (!((serverSpec.auth.resolved() as boolean) || ignoreUnauthenticated)) {
+    const scopes = [serverSpec.name, serverSpec.auth?.username || ""];
 
     // Handle Server Manager extension version < 3.8.0
     const account = serverManagerApi.getAccount ? serverManagerApi.getAccount(serverSpec) : undefined;
@@ -2000,7 +1999,7 @@ function serverForUri(uri: vscode.Uri): ServerForUri {
     port,
     superserverPort,
     pathPrefix,
-    auth: auth,
+    auth,
     namespace: ns,
     apiVersion: active ? apiVersion : undefined,
     serverVersion: active ? serverVersion : undefined,

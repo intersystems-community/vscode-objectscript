@@ -86,7 +86,7 @@ export class AtelierAPI {
       superserverPort,
       pathPrefix,
       ns,
-      auth: auth,
+      auth,
       docker,
       dockerService,
     };
@@ -312,7 +312,7 @@ export class AtelierAPI {
     headers?: any,
     options?: any
   ): Promise<any> {
-    const { active, apiVersion, host, port, auth, https } = this.config;
+    const { active, apiVersion, host, port, https } = this.config;
     if (!active || !port || !host) {
       return Promise.reject();
     }
@@ -443,7 +443,11 @@ export class AtelierAPI {
         authRequestMap.delete(mapKey);
         if (this.wsOrFile && !checkingConnection) {
           setTimeout(() => {
-            checkConnection(auth.resolved(), typeof this.wsOrFile === "object" ? this.wsOrFile : undefined, true);
+            checkConnection(
+              this.config.auth.resolved(),
+              typeof this.wsOrFile === "object" ? this.wsOrFile : undefined,
+              true
+            );
           }, 500);
         }
         throw { statusCode: response.status, message: response.statusText };
