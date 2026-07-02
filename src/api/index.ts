@@ -59,7 +59,7 @@ export class AtelierAPI {
   }
 
   public get config(): ConnectionSettings {
-    const { serverName, active = false, https = false, pathPrefix = "", auth: authorization } = this._config;
+    const { serverName, active = false, https = false, pathPrefix = "", auth } = this._config;
     const ns = this.namespace || this._config.ns;
     const wsKey = this.configName.toLowerCase();
     const host = this.externalServer ? this._config.host : workspaceState.get(wsKey + ":host", this._config.host);
@@ -69,7 +69,7 @@ export class AtelierAPI {
       : workspaceState.get(wsKey + ":superserverPort", this._config.superserverPort);
     const password = workspaceState.get(wsKey + ":password", undefined);
     if (password !== undefined) {
-      authorization.resolve(password);
+      auth.resolve({ accessToken: password });
     }
     const apiVersion = workspaceState.get(wsKey + ":apiVersion", DEFAULT_API_VERSION);
     const serverVersion = workspaceState.get(wsKey + ":serverVersion", DEFAULT_SERVER_VERSION);
@@ -86,7 +86,7 @@ export class AtelierAPI {
       superserverPort,
       pathPrefix,
       ns,
-      auth: authorization,
+      auth: auth,
       docker,
       dockerService,
     };
@@ -366,7 +366,6 @@ export class AtelierAPI {
     let authRequest = authRequestMap.get(mapKey);
     if (cookies.length || (method === "HEAD" && !originalPath)) {
       auth = Promise.resolve(cookies);
-      headers["Authorization"] = this.config.auth.resolved() ? this.config.auth.httpAuthorizationHeader : "";
     } else if (!cookies.length) {
       if (!authRequest) {
         // Recursion point
@@ -374,6 +373,10 @@ export class AtelierAPI {
         authRequestMap.set(mapKey, authRequest);
       }
       auth = authRequest;
+    }
+    // Always set Authorization header if credentials are resolved
+    if (this.config.auth.resolved()) {
+      headers["Authorization"] = this.config.auth.httpAuthorizationHeader;
     }
 
     const outputTraffic = vscode.workspace.getConfiguration("objectscript").get<boolean>("outputRESTTraffic");

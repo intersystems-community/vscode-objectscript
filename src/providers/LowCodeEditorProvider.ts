@@ -213,7 +213,7 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
               direction: "editor",
               type: "auth",
               username: api.config.auth.username,
-              password: api.config.auth.password,
+              password: api.config.auth.accessToken,
             });
           }
           return;
