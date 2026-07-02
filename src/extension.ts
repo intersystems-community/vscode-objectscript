@@ -71,7 +71,7 @@ import { ObjectScriptRoutineSymbolProvider } from "./providers/ObjectScriptRouti
 import { ObjectScriptCodeLensProvider } from "./providers/ObjectScriptCodeLensProvider";
 import { XmlContentProvider } from "./providers/XmlContentProvider";
 
-import { AtelierAPI, ConnectionSettings } from "./api";
+import { AtelierAPI } from "./api";
 import { ObjectScriptDebugAdapterDescriptorFactory } from "./debug/debugAdapterFactory";
 import { ObjectScriptConfigurationProvider } from "./debug/debugConfProvider";
 import { ProjectsExplorerProvider } from "./explorer/projectsExplorer";
@@ -853,7 +853,7 @@ let macLangConf: vscode.Disposable;
 let incLangConf: vscode.Disposable;
 let intLangConf: vscode.Disposable;
 
-export async function activate(context: vscode.ExtensionContext): Promise<any> {
+export async function activate(context: vscode.ExtensionContext): Promise<serverManager.VSCodeObjectScriptAPI> {
   if (!packageJson.version.includes("-") || packageJson.version.includes("-beta.")) {
     // Don't send telemetry for development builds
     try {
@@ -1948,24 +1948,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   return extensionApi;
 }
 
-type HttpsAndScheme =
-  | {
-      scheme: "https";
-      https: true;
-    }
-  | {
-      scheme: "http";
-      https?: false;
-    };
-
-export type ServerForUri = Omit<ConnectionSettings, "https" | "ns" | "docker" | "dockerService"> &
-  HttpsAndScheme & {
-    namespace: ConnectionSettings["ns"];
-  };
-
 // This function is exported as one of our API functions but is also used internally
 // for example to implement the async variant capable of resolving docker port number.
-function serverForUri(uri: vscode.Uri): ServerForUri {
+function serverForUri(uri: vscode.Uri): serverManager.ServerForUri {
   const { apiTarget, configName } = connectionTarget(uri);
   const configNameLower = configName.toLowerCase();
   const api = new AtelierAPI(apiTarget);
@@ -2009,7 +1994,7 @@ function serverForUri(uri: vscode.Uri): ServerForUri {
 
 // An async variant capable of resolving docker port number.
 // It is exported as one of our API functions but is also used internally.
-async function asyncServerForUri(uri: vscode.Uri): Promise<ServerForUri> {
+async function asyncServerForUri(uri: vscode.Uri): Promise<serverManager.ServerForUri> {
   const server = serverForUri(uri);
   if (!server.port) {
     let { apiTarget } = connectionTarget(uri);
