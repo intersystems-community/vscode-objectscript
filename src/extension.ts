@@ -267,8 +267,9 @@ export async function resolveConnectionSpec(
 
   if (connSpec) {
     const accessToken = await resolvePassword(connSpec);
-    connSpec.auth.resolve({ accessToken });
-    resolvedConnSpecs.set(serverName, connSpec);
+    if (connSpec.auth.resolve({ accessToken })) {
+      resolvedConnSpecs.set(serverName, connSpec);
+    }
   }
 }
 
@@ -302,7 +303,7 @@ async function resolvePassword(
 export async function resolveUsernameAndPassword(
   serverName: string,
   oldSpec: serverManager.IServerSpec
-): Promise<serverManager.IServerSpec | undefined> {
+): Promise<ResolvedConnSpec | undefined> {
   const { auth: _auth, ...newSpec } = oldSpec;
   newSpec.name = serverName;
   const auth = _auth?.clone();
@@ -319,7 +320,7 @@ export async function resolveUsernameAndPassword(
 }
 
 /** Accessor for the cache of resolved connection specs */
-export function getResolvedConnectionSpec(key: string, dflt: serverManager.IServerSpec): serverManager.IServerSpec {
+export function getResolvedConnectionSpec(key: string, dflt: ResolvedConnSpec): ResolvedConnSpec {
   let spec = resolvedConnSpecs.get(key);
   if (spec) {
     return spec;
