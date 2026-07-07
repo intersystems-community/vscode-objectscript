@@ -71,7 +71,7 @@ import { ObjectScriptRoutineSymbolProvider } from "./providers/ObjectScriptRouti
 import { ObjectScriptCodeLensProvider } from "./providers/ObjectScriptCodeLensProvider";
 import { XmlContentProvider } from "./providers/XmlContentProvider";
 
-import { AtelierAPI } from "./api";
+import { AtelierAPI, ConnectionSettings } from "./api";
 import { ObjectScriptDebugAdapterDescriptorFactory } from "./debug/debugAdapterFactory";
 import { ObjectScriptConfigurationProvider } from "./debug/debugConfProvider";
 import { ProjectsExplorerProvider } from "./explorer/projectsExplorer";
@@ -155,7 +155,15 @@ const lowCodeEditorViewType = packageJson.contributes.customEditors[0].viewType;
 
 const _onDidChangeConnection = new vscode.EventEmitter<void>();
 
-export const config = (setting?: string, workspaceFolderName?: string): vscode.WorkspaceConfiguration | any => {
+type ConnConfig = Pick<ConnectionSettings, "active" | "https" | "ns" | "host" | "port" | "auth"> & {
+  "docker-compose"?: any;
+  server?: any;
+  links?: any;
+};
+
+export function config(setting: "conn", workspaceFolderName?: string): ConnConfig;
+export function config(setting?: string, workspaceFolderName?: string): any;
+export function config(setting?: string, workspaceFolderName?: string): any {
   workspaceFolderName = workspaceFolderName || currentWorkspaceFolder();
   if (
     vscode.workspace.workspaceFolders?.length &&
@@ -181,16 +189,17 @@ export const config = (setting?: string, workspaceFolderName?: string): vscode.W
         const { port, hostname: host, auth, query } = url.parse("http://" + workspaceFolderName, true);
         const { ns = "USER", https = false } = query;
         const [username, password] = (auth || "_SYSTEM:SYS").split(":");
+        const authorization = serverManagerApi.defaultAuth();
+        authorization.resolve({ username, accessToken: password });
         if (setting == "conn") {
           return {
             active: true,
             https,
             ns,
             host,
-            port,
-            username,
-            password,
-          };
+            port: +port,
+            auth: authorization,
+          } as ConnConfig;
         } else if (setting == "export") {
           return {};
         }
@@ -199,7 +208,7 @@ export const config = (setting?: string, workspaceFolderName?: string): vscode.W
   }
   const result = vscode.workspace.getConfiguration(prefix, workspaceFolder?.uri);
   return setting && setting.length ? result.get(setting) : result;
-};
+}
 
 let reporter: TelemetryReporter;
 

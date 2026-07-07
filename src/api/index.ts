@@ -30,16 +30,16 @@ const cookiesMap = new Map<string, string[]>();
 export interface ConnectionSettings {
   serverName: string;
   active: boolean;
-  apiVersion: number;
-  serverVersion: string;
+  apiVersion?: number;
+  serverVersion?: string;
   https: boolean;
   host: string;
   port: number;
   superserverPort?: number;
-  pathPrefix: string;
+  pathPrefix?: string;
   ns: string;
   auth: Authorization;
-  docker: boolean;
+  docker?: boolean;
   dockerService?: string;
 }
 
@@ -278,14 +278,18 @@ export class AtelierAPI {
           dockerService: conn["docker-compose"].service,
         };
       } else {
-        this._config = conn;
-        this._config.ns = ns;
-        this._config.serverName = "";
+        this._config = {
+          ...conn,
+          ns,
+          serverName: "",
+        };
       }
     } else {
-      this._config = conn;
-      this._config.ns = ns;
-      this._config.serverName = "";
+      this._config = {
+        ...conn,
+        ns,
+        serverName: "",
+      };
     }
   }
 
