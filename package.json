@@ -1718,7 +1718,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
-    "@intersystems-community/intersystems-servermanager": "^3.10.2",
+    "@intersystems-community/intersystems-servermanager": "^3.10.3-beta.1",
     "@types/istextorbinary": "2.3.1",
     "@types/minimatch": "6.0.0",
     "@types/mocha": "^10.0.10",
