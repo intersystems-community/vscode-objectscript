@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { cspAppsForApi, handleError } from ".";
+import { cspAppsForApi, handleError, notIsfs } from ".";
+import { isfsConfig } from "./FileProviderUtil";
 
 interface DocumentPickerItem extends vscode.QuickPickItem {
   /** The full name of this item, including its parent(s). */
@@ -293,6 +294,9 @@ export async function pickDocument(
   let gen: "0" | "1" = "0";
   let map: "0" | "1" = "1";
   const query = "SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,?,1,0,?,,0,?)";
+  // Only show web app files in the list if we're in a server-side web app folder.
+  // Hiding these files in other cases will improve performance.
+  const showWeb = typeof api.wsOrFile == "object" && !notIsfs(api.wsOrFile) && isfsConfig(api.wsOrFile).csp;
 
   return new Promise<string>((resolve) => {
     const quickPick = vscode.window.createQuickPick();
@@ -325,7 +329,16 @@ export async function pickDocument(
     const getItems = (): Promise<void> => {
       quickPick.busy = true;
       return api
-        .actionQuery(query, [typeSuffix ? `*.${typeSuffix}` : "*,'*.prj,'*.bpl,'*.dtl", sys, gen, map])
+        .actionQuery(query, [
+          typeSuffix
+            ? `*.${typeSuffix}`
+            : showWeb
+              ? "*,'*.prj,'*.bpl,'*.dtl"
+              : "*.cls,*.mac,*.int,*.inc,*.other,'*.bpl,'*.dtl",
+          sys,
+          gen,
+          map,
+        ])
         .then((data) => {
           quickPick.items = data.result.content.map((i) => createSingleSelectItem(i));
           quickPick.selectedItems = [];
