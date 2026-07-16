@@ -71,7 +71,7 @@ import { ObjectScriptRoutineSymbolProvider } from "./providers/ObjectScriptRouti
 import { ObjectScriptCodeLensProvider } from "./providers/ObjectScriptCodeLensProvider";
 import { XmlContentProvider } from "./providers/XmlContentProvider";
 
-import { AtelierAPI } from "./api";
+import { AtelierAPI, cookiesMap, logoutOfSessions } from "./api";
 import { ObjectScriptDebugAdapterDescriptorFactory } from "./debug/debugAdapterFactory";
 import { ObjectScriptConfigurationProvider } from "./debug/debugConfProvider";
 import { ProjectsExplorerProvider } from "./explorer/projectsExplorer";
@@ -340,11 +340,7 @@ export function getResolvedConnectionSpec(key: string, dflt: any): any {
 /** The `api.serverId`s of all servers that are known to be inactive */
 export const inactiveServerIds: Set<string> = new Set();
 
-export async function checkConnection(
-  clearCookies = false,
-  uri?: vscode.Uri,
-  triggerRefreshes?: boolean
-): Promise<void> {
+export async function checkConnection(clearState = false, uri?: vscode.Uri, triggerRefreshes?: boolean): Promise<void> {
   // Do nothing if already checking the connection
   if (checkingConnection) {
     return;
@@ -352,8 +348,8 @@ export async function checkConnection(
 
   const { apiTarget, configName } = connectionTarget(uri);
   const wsKey = configName.toLowerCase();
-  if (clearCookies) {
-    /// clean-up cached values
+  if (clearState) {
+    // clean-up cached values
     await workspaceState.update(wsKey + ":host", undefined);
     await workspaceState.update(wsKey + ":port", undefined);
     await workspaceState.update(wsKey + ":superserverPort", undefined);
@@ -420,10 +416,6 @@ export async function checkConnection(
       panel.tooltip = error;
       return;
     }
-  }
-
-  if (clearCookies) {
-    api.clearCookies();
   }
 
   // Before recreating the api object (in case something has updated connection details since we last fetched them?)
@@ -1521,38 +1513,44 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       supportsMultipleEditorsPerDocument: false,
     }),
     vscode.workspace.onDidChangeConfiguration(async ({ affectsConfiguration }) => {
-      if (affectsConfiguration("objectscript.conn") || affectsConfiguration("intersystems.servers")) {
-        if (affectsConfiguration("intersystems.servers")) {
-          // Gather the server names previously resolved
-          const resolvedServers: string[] = [];
-          resolvedConnSpecs.forEach((v, k) => resolvedServers.push(k));
-          // Clear the cache
-          resolvedConnSpecs.clear();
-          // Resolve them again, sequentially in case user needs to be prompted for credentials
-          for await (const serverName of resolvedServers) {
-            await resolveConnectionSpec(serverName);
-          }
+      // Loop through all ws folder connections and see if any changed
+      // Find all "sessions" that are new or orphaned.
+      // For new ones, establish a connection?
+      // For orphans, logout and clear the cookies.
+      let refreshFilesExplorer = false;
+      const newConnections: Set<string> = new Set();
+      const affectedWsFolders: vscode.WorkspaceFolder[] = [];
+      for (const wsFolder of vscode.workspace.workspaceFolders ?? []) {
+        const api = new AtelierAPI(wsFolder.uri);
+        newConnections.add(api.mapKey());
+        const { serverName } = api.config;
+        if (
+          (notIsfs(wsFolder.uri) && affectsConfiguration("objectscript.conn", wsFolder)) ||
+          (serverName && affectsConfiguration(`intersystems.servers.${serverName}`, wsFolder))
+        ) {
+          // Connection info changed
+          affectedWsFolders.push(wsFolder);
+          if (filesystemSchemas.includes(wsFolder.uri.scheme)) refreshFilesExplorer = true;
         }
-        // Check connections sequentially for each workspace folder
-        let refreshFilesExplorer = false;
-        for await (const folder of vscode.workspace.workspaceFolders ?? []) {
-          if (schemas.includes(folder.uri.scheme)) {
-            refreshFilesExplorer = true;
-          }
-          try {
-            await checkConnection(true, folder.uri, true);
-          } catch (_) {
-            continue;
-          }
-        }
-        explorerProvider.refresh();
-        projectsExplorerProvider.refresh();
-        if (refreshFilesExplorer) {
-          // This unavoidably switches to the File Explorer view, so only do it if isfs folders were found
-          vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
-        }
-        updateWebAndAbstractDocsCaches(vscode.workspace.workspaceFolders);
       }
+      // Log out of any sessions that are orphaned
+      logoutOfSessions(Array.from(cookiesMap.keys()).filter((k) => !newConnections.has(k)));
+      // Update the connection info for affected workspace folders
+      // This should create new CSP sessions if needed
+      for (const wsFolder of affectedWsFolders) {
+        try {
+          await checkConnection(true, wsFolder.uri, true);
+        } catch {
+          // Errors are handled by checkConnection()
+        }
+      }
+      explorerProvider.refresh();
+      projectsExplorerProvider.refresh();
+      if (refreshFilesExplorer) {
+        // This unavoidably switches to the File Explorer view, so only do it if isfs folders were found
+        vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
+      }
+      updateWebAndAbstractDocsCaches(affectedWsFolders);
       if (affectsConfiguration("objectscript.commentToken")) {
         // Update the language configuration for "objectscript" and "objectscript-macros"
         macLangConf?.dispose();
@@ -2037,24 +2035,5 @@ export async function deactivate(): Promise<void> {
   intLangConf?.dispose();
   disposeDocumentIndex();
   // Log out of all CSP sessions
-  const loggedOut: Set<string> = new Set();
-  const promises: Promise<any>[] = [];
-  for (const f of vscode.workspace.workspaceFolders ?? []) {
-    const api = new AtelierAPI(f.uri);
-    if (!api.active || !api.cookies.length) continue;
-    const sessionCookie = api.cookies.find((c) => c.startsWith("CSPSESSIONID-"));
-    if (!sessionCookie || loggedOut.has(sessionCookie)) continue;
-    loggedOut.add(sessionCookie);
-    promises.push(
-      api.request(
-        0,
-        "HEAD",
-        undefined,
-        undefined,
-        // Prefer IRISLogout for servers that support it
-        semver.lt(api.config.serverVersion, "2018.2.0") ? { CacheLogout: "end" } : { IRISLogout: "end" }
-      )
-    );
-  }
-  await Promise.allSettled(promises);
+  await logoutOfSessions();
 }

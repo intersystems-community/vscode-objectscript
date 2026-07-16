@@ -20,11 +20,31 @@ const DEFAULT_SERVER_VERSION = "2016.2.0";
 import * as Atelier from "./atelier";
 import { isfsConfig } from "../utils/FileProviderUtil";
 
-// Map of the authRequest promises for each username@host:port/pathPrefix target to avoid concurrency issues
+// Map of the authRequest promises for each `username@http(s)://host:port/pathPrefix` target to avoid concurrency issues
 const authRequestMap = new Map<string, Promise<any>>();
 
-/** Map of `username@host:port/pathPrefix` to cookies */
-const cookiesMap = new Map<string, string[]>();
+/** Map of `username@http(s)://host:port/pathPrefix` to cookies */
+export const cookiesMap = new Map<string, string[]>();
+
+/** Log out of CSP sessions specified in the `sessions` array, or all known sessions if no argument was passed. */
+export async function logoutOfSessions(sessions?: string[]): Promise<void> {
+  const httpsAgent = new httpsModule.Agent({
+    rejectUnauthorized: vscode.workspace.getConfiguration("http").get("proxyStrictSSL"),
+  });
+  return Promise.allSettled(
+    (sessions ?? Array.from(cookiesMap.keys())).map((session) => {
+      const cookie = cookiesMap.get(session);
+      if (!cookie) return;
+      const url = session.slice(session.indexOf("@") + 1);
+      return axios.head(`${url}/api/atelier/?CacheLogout=end`, {
+        headers: {
+          Cookie: cookie,
+        },
+        httpsAgent,
+      });
+    })
+  ).then(() => {}); // Returned object isn't needed
+}
 
 interface ConnectionSettings {
   serverName: string;
@@ -175,10 +195,6 @@ export class AtelierAPI {
     return cookiesMap.get(this.mapKey()) ?? [];
   }
 
-  public clearCookies(): void {
-    cookiesMap.delete(this.mapKey());
-  }
-
   public xdebugUrl(): string {
     const { host, https, port, apiVersion, pathPrefix } = this.config;
     const proto = https ? "wss" : "ws";
@@ -208,13 +224,13 @@ export class AtelierAPI {
   }
 
   /** Return the key for getting values from connection-specific Maps for this connection */
-  private mapKey(): string {
-    const { host, port, username } = this.config;
+  public mapKey(): string {
+    const { host, https, port, username } = this.config;
     let pathPrefix = this._config.pathPrefix || "";
     if (pathPrefix.length && !pathPrefix.startsWith("/")) {
       pathPrefix = "/" + pathPrefix;
     }
-    return `${username}@${host}:${port}${pathPrefix}`;
+    return `${username}@http${https ? "s" : ""}://${host}:${port}${pathPrefix}`;
   }
 
   private setConnection(workspaceFolderName: string, namespace?: string): void {
@@ -307,7 +323,7 @@ export class AtelierAPI {
     return serverName && serverName !== "" ? serverName : `${host}:${port}${pathPrefix}`;
   }
 
-  public async request(
+  private async request(
     minVersion: number,
     method: string,
     path?: string,
@@ -457,7 +473,7 @@ export class AtelierAPI {
         }
         throw { statusCode: response.status, message: response.statusText };
       }
-      await this.updateCookies(response.headers["set-cookie"] || []);
+      this.updateCookies(response.headers["set-cookie"] || []);
       if (method === "HEAD") {
         if (!originalPath) {
           authRequestMap.delete(mapKey);
