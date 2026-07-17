@@ -1518,23 +1518,36 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       // For new ones, establish a connection?
       // For orphans, logout and clear the cookies.
       let refreshFilesExplorer = false;
-      const newConnections: Set<string> = new Set();
+      const newConnections = new Set<string>();
       const affectedWsFolders: vscode.WorkspaceFolder[] = [];
       for (const wsFolder of vscode.workspace.workspaceFolders ?? []) {
         const api = new AtelierAPI(wsFolder.uri);
         newConnections.add(api.mapKey());
         const { serverName } = api.config;
-        if (
-          (notIsfs(wsFolder.uri) && affectsConfiguration("objectscript.conn", wsFolder)) ||
-          (serverName && affectsConfiguration(`intersystems.servers.${serverName}`, wsFolder))
-        ) {
+        if (notIsfs(wsFolder.uri) && affectsConfiguration("objectscript.conn", wsFolder)) {
           // Connection info changed
           affectedWsFolders.push(wsFolder);
-          if (filesystemSchemas.includes(wsFolder.uri.scheme)) refreshFilesExplorer = true;
+        } else if (serverName && affectsConfiguration("intersystems.servers", wsFolder)) {
+          const oldSpec = getResolvedConnectionSpec(serverName, undefined);
+          const newSpec = vscode.workspace.getConfiguration("intersystems.servers", wsFolder).get<any>(serverName);
+          if (
+            !oldSpec ||
+            !(
+              oldSpec.webServer.host == newSpec.webServer.host &&
+              oldSpec.webServer.port == newSpec.webServer.port &&
+              oldSpec.webServer.scheme == newSpec.webServer.scheme &&
+              oldSpec.webServer.pathPrefix == newSpec.webServer.pathPrefix
+            )
+          ) {
+            // Connection info changed
+            resolvedConnSpecs.delete(serverName);
+            affectedWsFolders.push(wsFolder);
+            if (filesystemSchemas.includes(wsFolder.uri.scheme)) refreshFilesExplorer = true;
+          }
         }
       }
       // Log out of any sessions that are orphaned
-      logoutOfSessions(Array.from(cookiesMap.keys()).filter((k) => !newConnections.has(k)));
+      await logoutOfSessions(Array.from(cookiesMap.keys()).filter((k) => !newConnections.has(k)));
       // Update the connection info for affected workspace folders
       // This should create new CSP sessions if needed
       for (const wsFolder of affectedWsFolders) {
