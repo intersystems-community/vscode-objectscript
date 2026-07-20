@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import { cspAppsForApi, handleError } from ".";
+import { cspAppsForApi, handleError, notIsfs } from ".";
+import { isfsConfig } from "./FileProviderUtil";
 
 interface DocumentPickerItem extends vscode.QuickPickItem {
   /** The full name of this item, including its parent(s). */
@@ -53,31 +54,23 @@ function createMultiSelectItem(
   return result;
 }
 
-function createSingleSelectItem(
-  item: { Name: string; Type: number },
-  parent?: string,
-  delimiter?: string
-): DocumentPickerItem {
-  const result: DocumentPickerItem = { label: item.Name, fullName: item.Name };
-  // Add the icon
+function createSingleSelectItem(item: { Name: string; Type: number }): vscode.QuickPickItem {
+  // Determine the icon
+  let icon = "$(symbol-file)";
   if (item.Type == 0) {
     if (item.Name.endsWith(".inc")) {
-      result.label = "$(file-symlink-file) " + result.label;
+      icon = "$(file-symlink-file)";
     } else if (item.Name.endsWith(".int") || item.Name.endsWith(".mac")) {
-      result.label = "$(note) " + result.label;
+      icon = "$(note)";
     } else {
-      result.label = "$(symbol-misc) " + result.label;
+      icon = "$(symbol-misc)";
     }
   } else if (item.Type == 4) {
-    result.label = "$(symbol-class) " + result.label;
-  } else if (![9, 10].includes(item.Type)) {
-    result.label = "$(symbol-file) " + result.label;
+    icon = "$(symbol-class)";
+  } else {
+    icon = "$(symbol-file)";
   }
-  if (parent) {
-    // Update the full name if this is a nested item
-    result.fullName = parent + delimiter + item.Name;
-  }
-  return result;
+  return { label: `${icon} ${item.Name}` };
 }
 
 /**
@@ -300,19 +293,15 @@ export async function pickDocument(
   let sys: "0" | "1" = "0";
   let gen: "0" | "1" = "0";
   let map: "0" | "1" = "1";
-  const query = "SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,?,0,0,?,,0,?)";
-  const webApps = (typeSuffix ?? "csp") == "csp" ? cspAppsForApi(api) : [];
-  const webAppRootItems = webApps.map((app: string) => {
-    return {
-      label: app,
-      fullName: app,
-    };
-  });
+  const query = "SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,?,1,0,?,,0,?)";
+  // Only show web app files in the list if we're in a server-side web app folder.
+  // Hiding these files in other cases will improve performance.
+  const showWeb = typeof api.wsOrFile == "object" && !notIsfs(api.wsOrFile) && isfsConfig(api.wsOrFile).csp;
 
   return new Promise<string>((resolve) => {
-    const quickPick = vscode.window.createQuickPick<DocumentPickerItem>();
+    const quickPick = vscode.window.createQuickPick();
     quickPick.prompt =
-      "Select a package or folder to view its contents. Selecting '..' shows the previous level's contents. You may also type a full document name into the filter box and press 'Enter' to select that document.";
+      "You may also type a full document name with extension into the filter box and press 'Enter' to select it.";
     quickPick.title = `${prompt ? prompt : "Select a document"} ${numberOfSteps ? `(${step}/${numberOfSteps})` : `in namespace '${api.ns}' on server '${api.serverId}'`}`;
     quickPick.ignoreFocusOut = true;
     quickPick.buttons = [
@@ -337,32 +326,23 @@ export async function pickDocument(
       },
     ];
 
-    const getRootItems = (): Promise<void> => {
+    const getItems = (): Promise<void> => {
+      quickPick.busy = true;
       return api
-        .actionQuery(`${query} WHERE Type != 5 AND Type != 10`, [
-          typeSuffix ? `*.${typeSuffix}` : "*,'*.prj",
+        .actionQuery(query, [
+          typeSuffix
+            ? `*.${typeSuffix}`
+            : showWeb
+              ? "*,'*.prj,'*.bpl,'*.dtl"
+              : "*.cls,*.mac,*.int,*.inc,*.other,'*.bpl,'*.dtl",
           sys,
           gen,
           map,
         ])
         .then((data) => {
-          const rootitems: DocumentPickerItem[] = data.result.content.map((i) => createSingleSelectItem(i));
-          const findLastIndex = (): number => {
-            let l = rootitems.length;
-            while (l--) {
-              if (!rootitems[l].label.startsWith("$(")) return l;
-            }
-            return -1;
-          };
-          rootitems.splice(findLastIndex() + 1, 0, ...webAppRootItems);
-          return rootitems;
-        })
-        .then((items) => {
-          quickPick.items = items;
+          quickPick.items = data.result.content.map((i) => createSingleSelectItem(i));
           quickPick.selectedItems = [];
-          quickPick.value = "";
           quickPick.busy = false;
-          quickPick.enabled = true;
         })
         .catch((error) => {
           quickPick.hide();
@@ -371,8 +351,6 @@ export async function pickDocument(
     };
 
     quickPick.onDidTriggerButton((button) => {
-      quickPick.busy = true;
-      quickPick.enabled = false;
       if (button === vscode.QuickInputButtons.Back) {
         resolve(""); // signal "go back" to the caller
         quickPick.hide();
@@ -385,108 +363,81 @@ export async function pickDocument(
         map = button.toggle.checked ? "1" : "0";
       }
       // Refresh the items list
-      getRootItems();
+      getItems();
     });
     quickPick.onDidAccept(() => {
       quickPick.busy = true;
       quickPick.enabled = false;
       const item = quickPick.selectedItems[0];
-      if (!item || item.label.startsWith("$(")) {
-        let doc = item?.fullName ?? quickPick.value.trim();
-        if (!item) {
-          // The document name came from the value text, so validate it first
-          // Normalize the file extension case for classes and routines
-          doc = [".cls", ".mac", ".int", ".inc"].includes(doc.slice(-4).toLowerCase())
-            ? doc.slice(0, -3) + doc.slice(-3).toLowerCase()
-            : doc;
-          // Expand the short form of %Library classes to the long form
-          doc =
-            doc.startsWith("%") && doc.split(".").length == 2 && doc.slice(-4) == ".cls"
-              ? `%Library.${doc.slice(1)}`
-              : doc;
-          if (doc.endsWith(".cls")) {
-            // Use StudioOpenDialog for classes so we don't expose Hidden ones
-            api
-              .actionQuery("SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,1,1,0,1,,0,1)", [doc])
-              .then((data) => {
-                if (data.result.content?.length) {
-                  // doc is the name of a class that exists and is visible by the user
-                  resolve(doc);
-                } else {
-                  vscode.window.showErrorMessage(
-                    `Class '${doc.slice(0, -4)}' does not exist, or is Hidden.`,
-                    "Dismiss"
-                  );
-                  resolve(undefined);
-                }
-              })
-              .catch(() => {
-                vscode.window.showErrorMessage(
-                  `Internal Server Error encountered trying to validate class name '${doc.slice(0, -4)}'.`,
-                  "Dismiss"
-                );
-                resolve(undefined);
-              })
-              .finally(() => quickPick.hide());
-          } else {
-            api
-              .headDoc(doc)
-              .then(() => resolve(doc))
-              .catch((error) => {
-                vscode.window.showErrorMessage(
-                  error?.statusCode == 400
-                    ? `'${doc}' is an invalid document name.`
-                    : error?.statusCode == 404
-                      ? `Document '${doc}' does not exist.`
-                      : `Internal Server Error encountered trying to validate document '${doc}'.`,
-                  "Dismiss"
-                );
-                resolve(undefined);
-              })
-              .finally(() => quickPick.hide());
-          }
-        } else {
-          // The document name came from an item so no validation is required
-          resolve(doc);
-          quickPick.hide();
+      let doc = item?.label.slice(item?.label.indexOf(" ") + 1) ?? quickPick.value.trim();
+      if (!item) {
+        if (typeSuffix && !new RegExp(`\\.${typeSuffix}$`, "i").test(doc)) {
+          // The text the user entered does not match the required type
+          vscode.window.showErrorMessage(
+            `Selected document '${doc}' does not have required extension '${typeSuffix}'.`,
+            "Dismiss"
+          );
+          resolve(undefined);
         }
-      } else {
-        // Replace the items with the folder's contents
-        if (item.fullName == "") {
-          getRootItems();
+        // The document name came from the value text, so validate it first
+        // Normalize the file extension case for classes and routines
+        doc = [".cls", ".mac", ".int", ".inc"].includes(doc.slice(-4).toLowerCase())
+          ? doc.slice(0, -3) + doc.slice(-3).toLowerCase()
+          : doc;
+        // Expand the short form of %Library classes to the long form
+        doc =
+          doc.startsWith("%") && doc.split(".").length == 2 && doc.slice(-4) == ".cls"
+            ? `%Library.${doc.slice(1)}`
+            : doc;
+        if (doc.endsWith(".cls")) {
+          // Use StudioOpenDialog for classes so we don't expose Hidden ones
+          api
+            .actionQuery("SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,1,1,0,1,,0,1)", [doc])
+            .then((data) => {
+              if (data.result.content?.length) {
+                // doc is the name of a class that exists and is visible by the user
+                resolve(doc);
+              } else {
+                vscode.window.showErrorMessage(`Class '${doc.slice(0, -4)}' does not exist, or is Hidden.`, "Dismiss");
+                resolve(undefined);
+              }
+            })
+            .catch(() => {
+              vscode.window.showErrorMessage(
+                `Internal Server Error encountered trying to validate class name '${doc.slice(0, -4)}'.`,
+                "Dismiss"
+              );
+              resolve(undefined);
+            })
+            .finally(() => quickPick.hide());
         } else {
           api
-            .actionQuery(query, [`${item.fullName}/*${typeSuffix ? `.${typeSuffix}` : ""}`, sys, gen, map])
-            .then((data) => {
-              const delim = item.fullName.includes("/") ? "/" : ".";
-              const newItems: DocumentPickerItem[] = data.result.content.map((i) =>
-                createSingleSelectItem(i, item.fullName, delim)
-              );
-              let parentFullName =
-                delim == "/" && webApps.includes(item.fullName)
-                  ? ""
-                  : item.fullName.split(delim).slice(0, -1).join(delim);
-              if (parentFullName == "/") parentFullName = "";
-              quickPick.items = [{ label: "..", fullName: parentFullName }].concat(newItems);
-              quickPick.value = "";
-              quickPick.selectedItems = [];
-              quickPick.busy = false;
-              quickPick.enabled = true;
-            })
+            .headDoc(doc)
+            .then(() => resolve(doc))
             .catch((error) => {
-              quickPick.hide();
-              handleError(error, "Failed to get namespace contents.");
-            });
+              vscode.window.showErrorMessage(
+                error?.statusCode == 400
+                  ? `'${doc}' is an invalid document name.`
+                  : error?.statusCode == 404
+                    ? `Document '${doc}' does not exist.`
+                    : `Internal Server Error encountered trying to validate document '${doc}'.`,
+                "Dismiss"
+              );
+              resolve(undefined);
+            })
+            .finally(() => quickPick.hide());
         }
+      } else {
+        // The document name came from an item so no validation is required
+        resolve(doc);
+        quickPick.hide();
       }
     });
     quickPick.onDidHide(() => {
       resolve(undefined);
       quickPick.dispose();
     });
-    quickPick.busy = true;
-    quickPick.enabled = false;
     quickPick.show();
-    getRootItems();
+    getItems();
   });
 }
