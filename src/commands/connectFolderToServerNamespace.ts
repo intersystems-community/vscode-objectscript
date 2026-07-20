@@ -7,7 +7,7 @@ import {
   serverManagerApi,
   resolveUsernameAndPassword,
 } from "../extension";
-import { handleError, isUnauthenticated, notIsfs, displayableUri } from "../utils";
+import { handleError, notIsfs, displayableUri } from "../utils";
 
 interface ConnSettings {
   server: string;
@@ -80,7 +80,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
     .serverInfo(false)
     .then((data) => data.result.content.namespaces)
     .catch(async (error) => {
-      if (error?.statusCode == 401 && isUnauthenticated(api.config.username)) {
+      if (error?.statusCode == 401 && !api.config.auth.resolved()) {
         // Attempt to resolve username and password and try again
         const newSpec = await resolveUsernameAndPassword(api.config.serverName, connSpec);
         if (newSpec) {

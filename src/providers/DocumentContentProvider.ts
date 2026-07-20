@@ -9,8 +9,8 @@ import { getUrisForDocument } from "../utils/documentIndex";
 import { isfsConfig, IsfsUriParam } from "../utils/FileProviderUtil";
 
 export function compareConns(
-  conn1: { ns: any; server: any; host: any; port: any; "docker-compose": any },
-  conn2: { ns: any; server: any; host: any; port: any; "docker-compose": any }
+  conn1: { ns: any; server?: any; host: any; port: any; "docker-compose"?: any },
+  conn2: { ns: any; server?: any; host: any; port: any; "docker-compose"?: any }
 ): boolean {
   if (conn1.ns === conn2.ns) {
     // Same namespace name
