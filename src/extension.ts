@@ -340,7 +340,12 @@ export function getResolvedConnectionSpec(key: string, dflt: any): any {
 /** The `api.serverId`s of all servers that are known to be inactive */
 export const inactiveServerIds: Set<string> = new Set();
 
-export async function checkConnection(clearState = false, uri?: vscode.Uri, triggerRefreshes?: boolean): Promise<void> {
+export async function checkConnection(
+  clearState = false,
+  uri?: vscode.Uri,
+  triggerRefreshes?: boolean,
+  inActivate = false
+): Promise<void> {
   // Do nothing if already checking the connection
   if (checkingConnection) {
     return;
@@ -451,7 +456,9 @@ export async function checkConnection(clearState = false, uri?: vscode.Uri, trig
   };
 
   // Do the check
-  const serverInfoTimeout = 5000;
+  // Only time out requests when called from activate()
+  // Timeout is needed in that case to prevent extension activation from hanging
+  const serverInfoTimeout = inActivate ? 5000 : undefined;
   return api
     .serverInfo(true, serverInfoTimeout)
     .then(gotServerInfo)
@@ -898,7 +905,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     const serverName = notIsfs(uri) && !conn["docker-compose"] ? conn.server : configName;
     toCheck.set(serverName, uri);
   });
-  for await (const oneToCheck of toCheck) {
+  for (const oneToCheck of toCheck) {
     const serverName = oneToCheck[0];
     const uri = oneToCheck[1];
     try {
@@ -907,7 +914,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         // Necessary because we are in our activate method, so its call to the Server Manager API cannot call back to our API to do that.
         await resolveConnectionSpec(serverName, uri);
       } finally {
-        await checkConnection(true, uri, true);
+        await checkConnection(true, uri, true, true);
       }
     } catch (_) {
       // Ignore any failure
