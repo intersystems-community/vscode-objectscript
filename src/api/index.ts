@@ -223,7 +223,6 @@ export class AtelierAPI {
   /** Return the key for getting values from connection-specific Maps for this connection */
   public mapKey(): string {
     const { host, https, port, auth } = this.config;
-    const username = auth.username;
     let pathPrefix = this._config.pathPrefix || "";
     if (pathPrefix.length && !pathPrefix.startsWith("/")) {
       pathPrefix = "/" + pathPrefix;
