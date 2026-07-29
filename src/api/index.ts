@@ -383,7 +383,7 @@ export class AtelierAPI {
     let authRequest = authRequestMap.get(mapKey);
     if (cookies.length || (method === "HEAD" && !originalPath)) {
       // Only send basic authorization if username and password specified (including blank, for unauthenticated access)
-      if (this.config.auth.resolved()) {
+      if (!cookies.length && this.config.auth.resolved()) {
         headers["Authorization"] = this.config.auth.httpAuthorizationHeader;
       }
       auth = Promise.resolve(cookies);
