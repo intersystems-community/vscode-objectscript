@@ -647,9 +647,11 @@ export class AtelierAPI {
     name: string,
     scope: vscode.Uri | string,
     mtime?: number,
-    storageOnly: boolean = false
+    storageOnly = false,
+    forceBinary = false
   ): Promise<Atelier.Response<Atelier.Document>> {
-    let params, headers;
+    const params: Record<string, string> = {};
+    let headers: any;
     name = this.transformNameIfCsp(name);
     if (
       this.config.apiVersion >= 4 &&
@@ -663,13 +665,10 @@ export class AtelierAPI {
         )
         .get("multilineMethodArgs")
     ) {
-      params = { format: "udl-multiline" };
-    } else {
-      params = {};
+      params.format = "udl-multiline";
     }
-    if (storageOnly) {
-      params["storageOnly"] = "1";
-    }
+    if (storageOnly) params.storageOnly = "1";
+    if (forceBinary) params.binary = "1";
     if (mtime && mtime > 0) {
       headers = { "IF-NONE-MATCH": new Date(mtime).toISOString().replace(/T|Z/g, " ").trim() };
     }

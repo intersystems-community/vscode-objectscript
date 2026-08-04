@@ -1,6 +1,5 @@
 import * as path from "path";
 import * as vscode from "vscode";
-import { isText } from "istextorbinary";
 import { AtelierAPI } from "../../api";
 import { fireOtherStudioAction, OtherStudioAction } from "../../commands/studio";
 import { isfsConfig, projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
@@ -541,15 +540,16 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       .then(
         async (entry: File) => {
           const contentBuffer = Buffer.from(content);
-          const putContent = isText(uri.path.split("/").pop(), contentBuffer)
-            ? {
-                content: new TextDecoder().decode(content).split(/\r?\n/),
-                enc: false,
-              }
-            : {
-                content: base64EncodeContent(contentBuffer),
-                enc: true,
-              };
+          const putContent =
+            !csp // Web app files must always be written as raw bytes
+              ? {
+                  content: new TextDecoder().decode(content).split(/\r?\n/),
+                  enc: false,
+                }
+              : {
+                  content: base64EncodeContent(contentBuffer),
+                  enc: true,
+                };
           if (!csp && ["cls", "mac", "int", "inc"].includes(fileExt)) {
             const curFile = currentFileFromContent(uri, putContent.enc ? contentBuffer : putContent.content.join("\n"));
             if (!curFile) {
@@ -578,15 +578,6 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               // Always update the editor tab for a class after saving
               update = true;
             }
-          }
-          if (
-            csp &&
-            !putContent.enc &&
-            putContent.content.length > 1 &&
-            putContent.content[putContent.content.length - 1] == ""
-          ) {
-            // Avoid appending a blank line on every save, which would cause a web app file to grow each time
-            putContent.content.pop();
           }
           // By the time we get here VS Code's built-in conflict resolution mechanism will already have interacted with the user.
           // Therefore, it's safe to ignore any conflicts.
@@ -1075,7 +1066,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const fileName = isfsDocumentName(uri, csp);
     const api = new AtelierAPI(uri);
     return api
-      .getDoc(fileName, uri, cachedFile?.mtime)
+      .getDoc(fileName, uri, cachedFile?.mtime, undefined, csp) // Web app files must always be read as raw bytes
       .then((data) => data.result)
       .then(
         ({ ts, content }) =>
