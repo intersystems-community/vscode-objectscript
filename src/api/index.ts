@@ -651,7 +651,6 @@ export class AtelierAPI {
     forceBinary = false
   ): Promise<Atelier.Response<Atelier.Document>> {
     const params: Record<string, string> = {};
-    let headers: any;
     name = this.transformNameIfCsp(name);
     if (
       this.config.apiVersion >= 4 &&
@@ -669,10 +668,15 @@ export class AtelierAPI {
     }
     if (storageOnly) params.storageOnly = "1";
     if (forceBinary) params.binary = "1";
-    if (mtime && mtime > 0) {
-      headers = { "IF-NONE-MATCH": new Date(mtime).toISOString().replace(/T|Z/g, " ").trim() };
-    }
-    return this.request(1, "GET", `${this.ns}/doc/${name}`, null, params, headers);
+    return this.request(
+      1,
+      "GET",
+      `${this.ns}/doc/${name}`,
+      null,
+      params,
+      // headers
+      mtime && mtime > 0 ? { "IF-NONE-MATCH": new Date(mtime).toISOString().replace(/T|Z/g, " ").trim() } : undefined
+    );
   }
 
   // api v1+
