@@ -540,16 +540,15 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       .then(
         async (entry: File) => {
           const contentBuffer = Buffer.from(content);
-          const putContent =
-            !csp // Web app files must always be written as raw bytes
-              ? {
-                  content: new TextDecoder().decode(content).split(/\r?\n/),
-                  enc: false,
-                }
-              : {
-                  content: base64EncodeContent(contentBuffer),
-                  enc: true,
-                };
+          const putContent = !csp // Web app files must always be written as raw bytes
+            ? {
+                content: new TextDecoder().decode(content).split(/\r?\n/),
+                enc: false,
+              }
+            : {
+                content: base64EncodeContent(contentBuffer),
+                enc: true,
+              };
           if (!csp && ["cls", "mac", "int", "inc"].includes(fileExt)) {
             const curFile = currentFileFromContent(uri, putContent.enc ? contentBuffer : putContent.content.join("\n"));
             if (!curFile) {
