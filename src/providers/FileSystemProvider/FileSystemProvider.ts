@@ -477,13 +477,11 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         if (error) {
           if (error.errorText.includes(" #5540:")) {
             const username = api.config.auth.username;
-            const identity = username.includes("*")
-              ? `Users using ${username.slice(1, -1)}`
-              : `User '${api.config.auth.username}'`;
+            const identity = username.includes("*") ? `Users using ${username.slice(1, -1)}` : `User '${username}'`;
             const message = `${identity} cannot list ${
               csp ? `web application '${uri.path}'` : "namespace"
             } contents. If they do not have READ permission on the default code database of the ${api.config.ns.toUpperCase()} namespace then grant it and retry. If the problem remains then execute the following SQL in that namespace:\n\t GRANT EXECUTE ON %Library.RoutineMgr_StudioOpenDialog TO ${
-              api.config.auth.username
+              username.includes("*") ? "<USERNAME>" : username
             }`;
             handleError(message);
           }

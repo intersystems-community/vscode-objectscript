@@ -452,12 +452,13 @@ export async function checkConnection(
   }
   checkingConnection = true;
 
+  const username = auth.username || "UnknownUser";
+  const identity = username.startsWith("*") ? `using ${username.slice(1, -1)}` : `as user '\`${username}\`'`;
+
   // What we do when api.serverInfo call succeeds
   const gotServerInfo = async (info: Response<Content<ServerInfo>>) => {
     panel.text = api.connInfo;
     const { serverName, host, port, pathPrefix } = api.config;
-    const username = auth.username || "UnknownUser";
-    const identity = username.startsWith("*") ? `using ${username.slice(1, -1)}` : `as \`${username}\``;
     if (serverName) {
       panel.tooltip = new vscode.MarkdownString(`Connected to \`${host}:${port}${pathPrefix}\` ${identity}`);
     } else {
@@ -526,7 +527,7 @@ export async function checkConnection(
             vscode.window
               .showInputBox({
                 password: true,
-                title: `Not Authorized. Enter password to connect as user '${api.config.auth.username}' to ${connInfo}`,
+                title: `Not Authorized. Enter password to connect ${identity} to ${connInfo}`,
                 prompt: !api.externalServer ? "If no password is entered the connection will be disabled." : "",
                 ignoreFocusOut: true,
               })
