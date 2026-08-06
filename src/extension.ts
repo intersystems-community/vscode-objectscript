@@ -456,12 +456,12 @@ export async function checkConnection(
   const gotServerInfo = async (info: Response<Content<ServerInfo>>) => {
     panel.text = api.connInfo;
     const { serverName, host, port, pathPrefix } = api.config;
+    const username = auth.username || "UnknownUser";
+    const identity = username.startsWith("*") ? `using ${username.slice(1, -1)}` : `as \`${username}\``;
     if (serverName) {
-      panel.tooltip = new vscode.MarkdownString(
-        `Connected to \`${host}:${port}${pathPrefix}\` as \`${auth.username}\``
-      );
+      panel.tooltip = new vscode.MarkdownString(`Connected to \`${host}:${port}${pathPrefix}\` ${identity}`);
     } else {
-      panel.tooltip = new vscode.MarkdownString(`Connected as \`${auth.username}\``);
+      panel.tooltip = new vscode.MarkdownString(`Connected ${identity}`);
     }
     inactiveServerIds.delete(api.serverId);
     if (!api.externalServer) await setConnectionState(configName, true);
