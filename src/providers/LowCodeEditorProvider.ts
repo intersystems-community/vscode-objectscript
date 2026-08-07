@@ -208,13 +208,19 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
           if (!editorCompatible) {
             this._errorMessage("This low-code editor does not support embedding in VS Code.");
           } else {
-            // Editor is compatible so send the credentials
-            webviewPanel.webview.postMessage({
-              direction: "editor",
-              type: "auth",
-              username: api.config.username,
-              password: api.config.password,
-            });
+            const username = api.config.auth.username;
+            if (username.includes("*")) {
+              vscode.window.showWarningMessage(
+                `Cannot automatically log into low-code editors if VS Code is logged in using ${username.slice(1, -1)}.`
+              );
+            } else {
+              webviewPanel.webview.postMessage({
+                direction: "editor",
+                type: "auth",
+                username,
+                password: api.config.auth.password,
+              });
+            }
           }
           return;
         case "changed":
