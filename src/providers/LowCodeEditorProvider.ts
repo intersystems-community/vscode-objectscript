@@ -218,7 +218,6 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
                 type: "auth",
               });
             } else {
-              // Editor is compatible so send the credentials
               webviewPanel.webview.postMessage({
                 direction: "editor",
                 type: "auth",
