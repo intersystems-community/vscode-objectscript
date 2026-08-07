@@ -19,27 +19,47 @@ const DEFAULT_API_VERSION = 1;
 const DEFAULT_SERVER_VERSION = "2016.2.0";
 import * as Atelier from "./atelier";
 import { isfsConfig } from "../utils/FileProviderUtil";
+import { Authorization, IServerSpec } from "@intersystems-community/intersystems-servermanager";
 
-// Map of the authRequest promises for each username@host:port/pathPrefix target to avoid concurrency issues
+// Map of the authRequest promises for each `username@http(s)://host:port/pathPrefix` target to avoid concurrency issues
 const authRequestMap = new Map<string, Promise<any>>();
 
-/** Map of `username@host:port/pathPrefix` to cookies */
-const cookiesMap = new Map<string, string[]>();
+/** Map of `username@http(s)://host:port/pathPrefix` to cookies */
+export const cookiesMap = new Map<string, string[]>();
 
-interface ConnectionSettings {
+/** Log out of CSP sessions specified in the `sessions` array, or all known sessions if no argument was passed. */
+export async function logoutOfSessions(sessions?: string[]): Promise<void> {
+  const httpsAgent = new httpsModule.Agent({
+    rejectUnauthorized: vscode.workspace.getConfiguration("http").get("proxyStrictSSL"),
+  });
+  return Promise.allSettled(
+    (sessions ?? Array.from(cookiesMap.keys())).map((session) => {
+      const cookie = cookiesMap.get(session);
+      if (!cookie) return;
+      const url = session.slice(session.indexOf("@") + 1);
+      return axios.head(`${url}/api/atelier/?CacheLogout=end`, {
+        headers: {
+          Cookie: cookie,
+        },
+        httpsAgent,
+      });
+    })
+  ).then(() => {}); // Returned object isn't needed
+}
+
+export interface ConnectionSettings {
   serverName: string;
   active: boolean;
-  apiVersion: number;
-  serverVersion: string;
+  apiVersion?: number;
+  serverVersion?: string;
   https: boolean;
   host: string;
   port: number;
   superserverPort?: number;
-  pathPrefix: string;
+  pathPrefix?: string;
   ns: string;
-  username: string;
-  password: string;
-  docker: boolean;
+  auth: Authorization;
+  docker?: boolean;
   dockerService?: string;
 }
 
@@ -59,7 +79,7 @@ export class AtelierAPI {
   }
 
   public get config(): ConnectionSettings {
-    const { serverName, active = false, https = false, pathPrefix = "", username } = this._config;
+    const { serverName, active = false, https = false, pathPrefix = "", auth } = this._config;
     const ns = this.namespace || this._config.ns;
     const wsKey = this.configName.toLowerCase();
     const host = this.externalServer ? this._config.host : workspaceState.get(wsKey + ":host", this._config.host);
@@ -67,7 +87,7 @@ export class AtelierAPI {
     const superserverPort = this.externalServer
       ? this._config.superserverPort
       : workspaceState.get(wsKey + ":superserverPort", this._config.superserverPort);
-    const password = workspaceState.get(wsKey + ":password", this._config.password);
+    auth.resolve({ accessToken: workspaceState.get(wsKey + ":password", undefined) });
     const apiVersion = workspaceState.get(wsKey + ":apiVersion", DEFAULT_API_VERSION);
     const serverVersion = workspaceState.get(wsKey + ":serverVersion", DEFAULT_SERVER_VERSION);
     const docker = workspaceState.get(wsKey + ":docker", false);
@@ -83,8 +103,7 @@ export class AtelierAPI {
       superserverPort,
       pathPrefix,
       ns,
-      username,
-      password,
+      auth,
       docker,
       dockerService,
     };
@@ -147,14 +166,12 @@ export class AtelierAPI {
    * Manually set the connection spec for this object,
    * where `connSpec` is the return value of `getResolvedConnectionSpec()`.
    */
-  public setConnSpec(serverName: string, connSpec: any): void {
+  public setConnSpec(serverName: string, connSpec: IServerSpec): void {
     const {
       webServer: { scheme, host, port, pathPrefix = "" },
-      username,
-      password,
+      auth,
     } = connSpec;
-    this._config.username = username;
-    this._config.password = password;
+    this._config.auth = auth;
     this._config.https = scheme == "https";
     this._config.host = host;
     this._config.port = port;
@@ -173,10 +190,6 @@ export class AtelierAPI {
 
   public get cookies(): string[] {
     return cookiesMap.get(this.mapKey()) ?? [];
-  }
-
-  public clearCookies(): void {
-    cookiesMap.delete(this.mapKey());
   }
 
   public xdebugUrl(): string {
@@ -208,13 +221,13 @@ export class AtelierAPI {
   }
 
   /** Return the key for getting values from connection-specific Maps for this connection */
-  private mapKey(): string {
-    const { host, port, username } = this.config;
+  public mapKey(): string {
+    const { host, https, port, auth } = this.config;
     let pathPrefix = this._config.pathPrefix || "";
     if (pathPrefix.length && !pathPrefix.startsWith("/")) {
       pathPrefix = "/" + pathPrefix;
     }
-    return `${username}@${host}:${port}${pathPrefix}`;
+    return `${auth.username}@http${https ? "s" : ""}://${host}:${port}${pathPrefix}`;
   }
 
   private setConnection(workspaceFolderName: string, namespace?: string): void {
@@ -239,8 +252,7 @@ export class AtelierAPI {
     if (serverName !== "") {
       const {
         webServer: { scheme, host, port, pathPrefix = "" },
-        username,
-        password,
+        auth,
         superServer,
       } = getResolvedConnectionSpec(serverName, config("intersystems.servers", workspaceFolderName).get(serverName));
       this._config = {
@@ -253,8 +265,7 @@ export class AtelierAPI {
         host,
         port,
         superserverPort: superServer?.port,
-        username,
-        password,
+        auth,
         pathPrefix,
         docker: false,
       };
@@ -264,8 +275,7 @@ export class AtelierAPI {
       if (resolvedSpec) {
         const {
           webServer: { scheme, host, port, pathPrefix = "" },
-          username,
-          password,
+          auth,
           superServer,
         } = resolvedSpec;
         this._config = {
@@ -278,21 +288,24 @@ export class AtelierAPI {
           host,
           port,
           superserverPort: superServer?.port,
-          username,
-          password,
+          auth,
           pathPrefix,
           docker: true,
           dockerService: conn["docker-compose"].service,
         };
       } else {
-        this._config = conn;
-        this._config.ns = ns;
-        this._config.serverName = "";
+        this._config = {
+          ...conn,
+          ns,
+          serverName: "",
+        };
       }
     } else {
-      this._config = conn;
-      this._config.ns = ns;
-      this._config.serverName = "";
+      this._config = {
+        ...conn,
+        ns,
+        serverName: "",
+      };
     }
   }
 
@@ -307,7 +320,7 @@ export class AtelierAPI {
     return serverName && serverName !== "" ? serverName : `${host}:${port}${pathPrefix}`;
   }
 
-  public async request(
+  private async request(
     minVersion: number,
     method: string,
     path?: string,
@@ -316,7 +329,7 @@ export class AtelierAPI {
     headers?: any,
     options?: any
   ): Promise<any> {
-    const { active, apiVersion, host, port, username, password, https } = this.config;
+    const { active, apiVersion, host, port, https } = this.config;
     if (!active || !port || !host) {
       return Promise.reject();
     }
@@ -369,12 +382,11 @@ export class AtelierAPI {
     let auth: Promise<any>;
     let authRequest = authRequestMap.get(mapKey);
     if (cookies.length || (method === "HEAD" && !originalPath)) {
-      auth = Promise.resolve(cookies);
-
       // Only send basic authorization if username and password specified (including blank, for unauthenticated access)
-      if (typeof username === "string" && typeof password === "string") {
-        headers["Authorization"] = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
+      if (!cookies.length && this.config.auth.resolved()) {
+        headers["Authorization"] = this.config.auth.httpAuthorizationHeader;
       }
+      auth = Promise.resolve(cookies);
     } else if (!cookies.length) {
       if (!authRequest) {
         // Recursion point
@@ -449,7 +461,7 @@ export class AtelierAPI {
         if (this.wsOrFile && !checkingConnection) {
           setTimeout(() => {
             checkConnection(
-              password ? true : false,
+              this.config.auth.resolved(),
               typeof this.wsOrFile === "object" ? this.wsOrFile : undefined,
               true
             );
@@ -457,7 +469,7 @@ export class AtelierAPI {
         }
         throw { statusCode: response.status, message: response.statusText };
       }
-      await this.updateCookies(response.headers["set-cookie"] || []);
+      this.updateCookies(response.headers["set-cookie"] || []);
       if (method === "HEAD") {
         if (!originalPath) {
           authRequestMap.delete(mapKey);
@@ -631,9 +643,10 @@ export class AtelierAPI {
     name: string,
     scope: vscode.Uri | string,
     mtime?: number,
-    storageOnly: boolean = false
+    storageOnly = false,
+    forceBinary = false
   ): Promise<Atelier.Response<Atelier.Document>> {
-    let params, headers;
+    const params: Record<string, string> = {};
     name = this.transformNameIfCsp(name);
     if (
       this.config.apiVersion >= 4 &&
@@ -647,17 +660,19 @@ export class AtelierAPI {
         )
         .get("multilineMethodArgs")
     ) {
-      params = { format: "udl-multiline" };
-    } else {
-      params = {};
+      params.format = "udl-multiline";
     }
-    if (storageOnly) {
-      params["storageOnly"] = "1";
-    }
-    if (mtime && mtime > 0) {
-      headers = { "IF-NONE-MATCH": new Date(mtime).toISOString().replace(/T|Z/g, " ").trim() };
-    }
-    return this.request(1, "GET", `${this.ns}/doc/${name}`, null, params, headers);
+    if (storageOnly) params.storageOnly = "1";
+    if (forceBinary) params.binary = "1";
+    return this.request(
+      1,
+      "GET",
+      `${this.ns}/doc/${name}`,
+      null,
+      params,
+      // headers
+      mtime && mtime > 0 ? { "IF-NONE-MATCH": new Date(mtime).toISOString().replace(/T|Z/g, " ").trim() } : undefined
+    );
   }
 
   // api v1+

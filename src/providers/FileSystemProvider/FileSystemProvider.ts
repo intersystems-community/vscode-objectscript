@@ -1,6 +1,5 @@
 import * as path from "path";
 import * as vscode from "vscode";
-import { isText } from "istextorbinary";
 import { AtelierAPI } from "../../api";
 import { fireOtherStudioAction, OtherStudioAction } from "../../commands/studio";
 import { isfsConfig, projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
@@ -476,10 +475,12 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       .catch((error) => {
         if (error) {
           if (error.errorText.includes(" #5540:")) {
-            const message = `User '${api.config.username}' cannot list ${
+            const username = api.config.auth.username;
+            const identity = username.includes("*") ? `Users using ${username.slice(1, -1)}` : `User '${username}'`;
+            const message = `${identity} cannot list ${
               csp ? `web application '${uri.path}'` : "namespace"
             } contents. If they do not have READ permission on the default code database of the ${api.config.ns.toUpperCase()} namespace then grant it and retry. If the problem remains then execute the following SQL in that namespace:\n\t GRANT EXECUTE ON %Library.RoutineMgr_StudioOpenDialog TO ${
-              api.config.username
+              username.includes("*") ? "<USERNAME>" : username
             }`;
             handleError(message);
           }
@@ -541,7 +542,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       .then(
         async (entry: File) => {
           const contentBuffer = Buffer.from(content);
-          const putContent = isText(uri.path.split("/").pop(), contentBuffer)
+          const putContent = !csp // Web app files must always be written as raw bytes
             ? {
                 content: new TextDecoder().decode(content).split(/\r?\n/),
                 enc: false,
@@ -578,15 +579,6 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               // Always update the editor tab for a class after saving
               update = true;
             }
-          }
-          if (
-            csp &&
-            !putContent.enc &&
-            putContent.content.length > 1 &&
-            putContent.content[putContent.content.length - 1] == ""
-          ) {
-            // Avoid appending a blank line on every save, which would cause a web app file to grow each time
-            putContent.content.pop();
           }
           // By the time we get here VS Code's built-in conflict resolution mechanism will already have interacted with the user.
           // Therefore, it's safe to ignore any conflicts.
@@ -1006,7 +998,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   private async _lookup(uri: vscode.Uri, fillInPath?: boolean): Promise<Entry> {
     const api = new AtelierAPI(uri);
     const config = api.config;
-    const rootName = `${config.username}@${config.host}:${config.port}${config.pathPrefix}/${config.ns.toUpperCase()}`;
+    const rootName = `${config.auth.username}@${config.host}:${config.port}${config.pathPrefix}/${config.ns.toUpperCase()}`;
     let entry: Entry = this.superRoot.entries.get(rootName);
     if (!entry) {
       entry = new Directory(rootName, "");
@@ -1075,7 +1067,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const fileName = isfsDocumentName(uri, csp);
     const api = new AtelierAPI(uri);
     return api
-      .getDoc(fileName, uri, cachedFile?.mtime)
+      .getDoc(fileName, uri, cachedFile?.mtime, undefined, csp) // Web app files must always be read as raw bytes
       .then((data) => data.result)
       .then(
         ({ ts, content }) =>

@@ -1718,7 +1718,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
-    "@intersystems-community/intersystems-servermanager": "^3.10.2",
+    "@intersystems-community/intersystems-servermanager": "^3.14.0",
     "@types/istextorbinary": "2.3.1",
     "@types/minimatch": "6.0.0",
     "@types/mocha": "^10.0.10",
@@ -1754,7 +1754,7 @@
     "@vscode/debugprotocol": "^1.68.0",
     "@vscode/extension-telemetry": "^1.5.2",
     "@xmldom/xmldom": "^0.9.10",
-    "axios": "^1.17.0",
+    "axios": "^1.18.0",
     "iconv-lite": "^0.7.2",
     "istextorbinary": "^7.0.0",
     "minimatch": "^10.2.5",
