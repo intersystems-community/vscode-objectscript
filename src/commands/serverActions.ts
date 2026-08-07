@@ -249,11 +249,9 @@ export async function serverActions(): Promise<void> {
               sendStudioAddinTelemetryEvent(addin.label);
               let params = `Namespace=${nsEncoded}`;
               const username = auth.username;
-              if (username.includes("*")) {
-                handleError(new Error("Can't Open Studio Add-In while using OAuth2"));
-                return;
+              if (!username.includes("*")) {
+                params += `&User=${encodeURIComponent(username)}`;
               }
-              params += `&User=${encodeURIComponent(username)}`;
               if (project != "") {
                 params += `&Project=${encodeURIComponent(project)}`;
               }
