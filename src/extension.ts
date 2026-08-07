@@ -248,8 +248,7 @@ export async function resolveConnectionSpec(
       return;
     }
   }
-  const rawConnSpec: Omit<serverManager.IServerSpecWithAuth, "auth"> &
-    Partial<Pick<serverManager.IServerSpecWithAuth, "auth">> = await serverManagerApi.getServerSpec(serverName, scope);
+  const rawConnSpec = await serverManagerApi.getServerSpec(serverName, scope);
   let connSpec = {
     ...rawConnSpec,
     auth: rawConnSpec.auth ?? new BasicAuthorization(rawConnSpec.username, rawConnSpec.password),
@@ -273,7 +272,7 @@ export async function resolveConnectionSpec(
             port: serverForUri.superserverPort,
           },
           description: `Server for workspace folder '${serverName}'`,
-          auth: serverManagerApi.defaultAuth(),
+          auth: new BasicAuthorization(),
         };
       }
     }
