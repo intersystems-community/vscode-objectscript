@@ -146,6 +146,7 @@ import { WorkspaceNode, NodeBase } from "./explorer/nodes";
 import { showPlanWebview } from "./commands/showPlanPanel";
 import { isfsConfig } from "./utils/FileProviderUtil";
 import { showAllClassMembers } from "./commands/showAllClassMembers";
+import { Authorization, ResolvedAuthorization } from "@intersystems-community/intersystems-servermanager";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -247,8 +248,11 @@ export async function resolveConnectionSpec(
       return;
     }
   }
-
-  let connSpec = await serverManagerApi.getServerSpec(serverName, scope);
+  const rawConnSpec = await serverManagerApi.getServerSpec(serverName, scope);
+  let connSpec = {
+    ...rawConnSpec,
+    auth: rawConnSpec.auth ?? new BasicAuthorization(rawConnSpec.username, rawConnSpec.password),
+  };
 
   if (!connSpec && uri) {
     // Caller passed uri as a signal to process any docker-compose settings
@@ -268,7 +272,7 @@ export async function resolveConnectionSpec(
             port: serverForUri.superserverPort,
           },
           description: `Server for workspace folder '${serverName}'`,
-          auth: serverManagerApi.defaultAuth(),
+          auth: new BasicAuthorization(),
         };
       }
     }
@@ -2059,4 +2063,59 @@ export async function deactivate(): Promise<void> {
   disposeDocumentIndex();
   // Log out of all CSP sessions
   await logoutOfSessions();
+}
+
+// A copy of the BasicAuthorization class from ServerManager
+// We use it to patch older version of getServerSpec.
+export default class BasicAuthorization implements Authorization {
+  #username?: string;
+  #password?: string;
+  constructor(username?: string, password?: string) {
+    this.#username = username;
+    this.#password = password;
+  }
+
+  public get username(): string {
+    return this.#username || "";
+  }
+
+  public get password(): string | undefined {
+    return this.#password;
+  }
+
+  public get accessToken(): string | undefined {
+    return this.#password;
+  }
+
+  public get httpAuthorizationHeader(): string {
+    return `Basic ${Buffer.from(`${this.#username}:${this.#password}`).toString("base64")}`;
+  }
+
+  public resolved(): this is ResolvedAuthorization {
+    return this.username !== "" && this.#password !== undefined;
+  }
+
+  public resolve(param: { accessToken: string; username?: string }): this is ResolvedAuthorization {
+    this.#username = param.username ?? this.#username;
+    this.#password = param.accessToken ?? this.#password;
+    return this.resolved();
+  }
+
+  public clear(): asserts this is Authorization {
+    this.#password = undefined;
+  }
+
+  public get credentials(): { auth: { username: string; password: string }; headers?: Record<string, string> } {
+    return {
+      auth: {
+        username: this.username,
+        password: this.password!,
+      },
+      headers: {},
+    };
+  }
+
+  public clone(): BasicAuthorization {
+    return new BasicAuthorization(this.#username, this.#password);
+  }
 }
