@@ -213,10 +213,6 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
               vscode.window.showWarningMessage(
                 `Cannot automatically log into low-code editors if VS Code is logged in using ${username.slice(1, -1)}.`
               );
-              webviewPanel.webview.postMessage({
-                direction: "editor",
-                type: "auth",
-              });
             } else {
               webviewPanel.webview.postMessage({
                 direction: "editor",
