@@ -24,7 +24,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     if (selfRef) {
       const selfEntity = document.getText(selfRef).substr(2);
       const range = new vscode.Range(position.line, selfRef.start.character + 2, position.line, selfRef.end.character);
-      const classDefinition = new ClassDefinition(file.name);
+      const classDefinition = new ClassDefinition(file!.name);
       return classDefinition.getMemberLocations(selfEntity).then((locations): vscode.DefinitionLink[] =>
         locations.map(
           (location): vscode.DefinitionLink => ({
@@ -41,9 +41,9 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     const macroMatch = macroText.match(/^\${3}(\b\w+\b)$/);
     if (macroMatch) {
       const [, macro] = macroMatch;
-      return this.macro(workspaceFolderName, currentFile(), macro).then((data) =>
+      return this.macro(workspaceFolderName, currentFile()!, macro).then((data) =>
         data && data.document.length
-          ? new vscode.Location(DocumentContentProvider.getUri(data.document), new vscode.Position(data.line, 0))
+          ? new vscode.Location(DocumentContentProvider.getUri(data.document)!, new vscode.Position(data.line, 0))
           : null
       );
     }
@@ -77,7 +77,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
         const [keyword, name] = part.split(" ");
         const start = pos + keyword.length + 1;
         if (this.isValid(position, start, name.length)) {
-          return [this.makePropertyDefinition(document, name)];
+          return [this.makePropertyDefinition(document, name)!];
         }
       }
       pos += part.length;
@@ -87,7 +87,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     pos = 0;
     for (const part of parts) {
       if (part.match(onPropertyList)) {
-        const listProperties = /\(([^)]+)\)/.exec(part)[1].split(/\s*,\s*/);
+        const listProperties = /\(([^)]+)\)/.exec(part)![1].split(/\s*,\s*/);
         return listProperties
           .map((name) => {
             name = name.trim();
@@ -105,7 +105,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     pos = 0;
     for (const part of parts) {
       if (part.match(asClassList)) {
-        const listClasses = /\(([^)]+)\)/.exec(part)[1].split(/\s*,\s*/);
+        const listClasses = /\(([^)]+)\)/.exec(part)![1].split(/\s*,\s*/);
         return listClasses
           .map((name) => {
             name = name.trim();
@@ -149,7 +149,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     pos = 0;
     for (const part of parts) {
       if (part.match(asRoutineList)) {
-        const listRoutines = /\(([^)]+)\)/.exec(part)[1].split(",");
+        const listRoutines = /\(([^)]+)\)/.exec(part)![1].split(",");
         for (let name of listRoutines) {
           name = name.trim();
           const start = pos + part.indexOf(name);
@@ -174,7 +174,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     pos = 0;
     for (const part of parts) {
       if (part.match(asLabelRoutineCall)) {
-        const [, routine] = part.match(/\^(%?\b\w+\b)/);
+        const [, routine] = part.match(/\^(%?\b\w+\b)/)!;
         const start = pos + part.indexOf(routine) - 1;
         const length = routine.length + 1;
         return this.getFullRoutineName(routine).then((routineName) => [
@@ -195,7 +195,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     const classRef = /##class\(([^)]+)\)(?:\\$this)?\.(#?%?[a-zA-Z][a-zA-Z0-9]*)/i;
     const classRefRange = document.getWordRangeAtPosition(position, classRef);
     if (classRefRange) {
-      const [, className, entity] = document.getText(classRefRange).match(classRef);
+      const [, className, entity] = document.getText(classRefRange).match(classRef)!;
       const start = classRefRange.start.character + 8;
       if (this.isValid(position, start, className.length)) {
         return [
@@ -274,11 +274,11 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
         new vscode.Position(position.line, start + length)
       ),
       targetRange: new vscode.Range(firstLinePos, firstLinePos),
-      targetUri: DocumentContentProvider.getUri(name, workspaceFolder),
+      targetUri: DocumentContentProvider.getUri(name, workspaceFolder)!,
     };
   }
 
-  public makePropertyDefinition(document: vscode.TextDocument, name: string): vscode.DefinitionLink {
+  public makePropertyDefinition(document: vscode.TextDocument, name: string): vscode.DefinitionLink | null {
     const property = new RegExp(`(?<=^Property\\s)\\b${name}\\b`, "i");
     let descrLine = -1;
     for (let i = 0; i < document.lineCount; i++) {
@@ -292,12 +292,12 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
       const propertyMatch = line.match(property);
       if (propertyMatch) {
         const targetSelectionRange = new vscode.Range(
-          new vscode.Position(i, propertyMatch.index),
-          new vscode.Position(i, propertyMatch.index + name.length)
+          new vscode.Position(i, propertyMatch.index!),
+          new vscode.Position(i, propertyMatch.index! + name.length)
         );
         const targetRange = new vscode.Range(
           new vscode.Position(descrLine >= 0 ? descrLine : i, 0),
-          new vscode.Position(i, propertyMatch.index + line.length)
+          new vscode.Position(i, propertyMatch.index! + line.length)
         );
         return {
           targetUri: document.uri,
@@ -323,7 +323,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
         new vscode.Position(position.line, start + length)
       ),
       targetRange: new vscode.Range(firstLinePos, firstLinePos),
-      targetUri: DocumentContentProvider.getUri(name, workspaceFolder),
+      targetUri: DocumentContentProvider.getUri(name, workspaceFolder)!,
     };
   }
 
@@ -334,7 +334,7 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
   ): Promise<{ document: string; line: number }> {
     const fileName = file.name;
     const api = new AtelierAPI();
-    let includes = [];
+    let includes: string[] = [];
     if (fileName.toLowerCase().endsWith("cls")) {
       const classDefinition = new ClassDefinition(fileName);
       includes = await classDefinition.includeCode();

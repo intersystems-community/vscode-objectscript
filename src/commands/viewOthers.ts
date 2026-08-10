@@ -18,9 +18,9 @@ export async function viewOthers(forceEditable = false): Promise<void> {
       item = item.slice(0, colonidx);
       let uri: vscode.Uri;
       if (forceEditable) {
-        uri = DocumentContentProvider.getUri(item, undefined, undefined, forceEditable);
+        uri = DocumentContentProvider.getUri(item, undefined, undefined, forceEditable)!;
       } else {
-        uri = DocumentContentProvider.getUri(item);
+        uri = DocumentContentProvider.getUri(item)!;
       }
 
       if (item.endsWith(".cls")) {
@@ -75,9 +75,9 @@ export async function viewOthers(forceEditable = false): Promise<void> {
     } else {
       let uri: vscode.Uri;
       if (forceEditable) {
-        uri = DocumentContentProvider.getUri(item, undefined, undefined, forceEditable);
+        uri = DocumentContentProvider.getUri(item, undefined, undefined, forceEditable)!;
       } else {
-        uri = DocumentContentProvider.getUri(item);
+        uri = DocumentContentProvider.getUri(item)!;
       }
       vscode.window.showTextDocument(uri);
     }
@@ -90,11 +90,11 @@ export async function viewOthers(forceEditable = false): Promise<void> {
   const api = new AtelierAPI(file.uri);
   if (!api.active) return;
   let indexarg: string = file.name;
-  const cursorpos: vscode.Position = vscode.window.activeTextEditor.selection.active;
-  const fileExt: string = file.name.split(".").pop().toLowerCase();
+  const cursorpos: vscode.Position = vscode.window.activeTextEditor!.selection.active;
+  const fileExt: string = file.name.split(".").pop()!.toLowerCase();
 
   if (
-    api.config.apiVersion >= 4 &&
+    api.config.apiVersion! >= 4 &&
     (fileExt === "cls" || fileExt === "mac" || fileExt === "int") &&
     !/^%sqlcq/i.test(indexarg)
   ) {
@@ -108,7 +108,7 @@ export async function viewOthers(forceEditable = false): Promise<void> {
         symbols = symbols[0].children;
       }
 
-      let currentSymbol: vscode.DocumentSymbol;
+      let currentSymbol: vscode.DocumentSymbol | undefined;
       for (const symbol of symbols) {
         if (symbol.range.contains(cursorpos)) {
           currentSymbol = symbol;
@@ -128,7 +128,7 @@ export async function viewOthers(forceEditable = false): Promise<void> {
 
         let isObjectScript = true;
         if (fileExt === "cls") {
-          const memberInfo = parseClassMemberDefinition(vscode.window.activeTextEditor.document, currentSymbol);
+          const memberInfo = parseClassMemberDefinition(vscode.window.activeTextEditor!.document, currentSymbol);
           if (memberInfo) {
             const { defEndLine, language } = memberInfo;
             offset = cursorpos.line - defEndLine;
@@ -157,7 +157,7 @@ export async function viewOthers(forceEditable = false): Promise<void> {
         open(listOthers[0], forceEditable);
       } else {
         vscode.window.showQuickPick(listOthers).then((item) => {
-          open(item, forceEditable);
+          open(item!, forceEditable);
         });
       }
     })

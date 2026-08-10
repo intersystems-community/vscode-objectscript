@@ -32,12 +32,12 @@ export function isfsConfig(uri: vscode.Uri): IsfsUriConfig {
     mapped: params.get(IsfsUriParam.Mapped) != "0",
     filter: params.get(IsfsUriParam.Filter) ?? "",
     project: params.get(IsfsUriParam.Project) ?? "",
-    csp: ["", "1"].includes(params.get(IsfsUriParam.CSP)),
+    csp: ["", "1"].includes(params.get(IsfsUriParam.CSP)!),
     ns: params.get(IsfsUriParam.NS) || undefined,
   };
 }
 
-export async function projectContentsFromUri(uri: vscode.Uri, flat = false): Promise<ProjectItem[]> {
+export async function projectContentsFromUri(uri: vscode.Uri, flat = false): Promise<ProjectItem[] | undefined> {
   const api = new AtelierAPI(uri);
   if (!api.active) {
     return;
@@ -162,7 +162,7 @@ export function fileSpecFromURI(uri: vscode.Uri): string {
 export function studioOpenDialogFromURI(
   uri: vscode.Uri,
   overrides: { flat?: boolean; filter?: string } = { flat: false, filter: "" }
-): Promise<any> {
+): Promise<any> | undefined {
   const api = new AtelierAPI(uri);
   if (!api.active) return;
   const { system, generated, mapped } = isfsConfig(uri);
@@ -174,7 +174,7 @@ export function studioOpenDialogFromURI(
     overrides?.flat ? "1" : "0",
     "0", // NotStudio (0 means hide globals and OBJ files)
     generated ? "1" : "0",
-    overrides.filter,
+    overrides.filter!,
     "0", // RoundTime (0 means no rounding)
     mapped ? "1" : "0",
   ]);

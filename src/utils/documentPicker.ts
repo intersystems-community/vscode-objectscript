@@ -39,7 +39,7 @@ function createMultiSelectItem(
       delim = "/";
     }
     result.fullName = parent + delim + item.Name;
-    result.label = " ".repeat(parentPad + 2) + result.label;
+    result.label = " ".repeat(parentPad! + 2) + result.label;
     result.description = result.fullName;
   }
   if (item.Type == 9 || item.Type == 10) {
@@ -193,11 +193,11 @@ export async function pickDocuments(api: AtelierAPI, prompt?: string): Promise<s
       quickPick.busy = true;
       quickPick.enabled = false;
       if (button.tooltip == "System") {
-        sys = button.toggle.checked ? "1" : "0";
+        sys = button.toggle!.checked ? "1" : "0";
       } else if (button.tooltip == "Generated") {
-        gen = button.toggle.checked ? "1" : "0";
+        gen = button.toggle!.checked ? "1" : "0";
       } else {
-        map = button.toggle.checked ? "1" : "0";
+        map = button.toggle!.checked ? "1" : "0";
       }
       // Refresh the items list
       getRootItems();
@@ -206,7 +206,7 @@ export async function pickDocuments(api: AtelierAPI, prompt?: string): Promise<s
       quickPick.busy = true;
       quickPick.enabled = false;
       const itemIdx = quickPick.items.findIndex((i) => i.fullName === event.item.fullName);
-      if (event.button.tooltip.charAt(0) == "E") {
+      if (event.button.tooltip!.charAt(0) == "E") {
         // Expand this item
         expandItem(itemIdx);
       } else {
@@ -233,8 +233,8 @@ export async function pickDocuments(api: AtelierAPI, prompt?: string): Promise<s
         );
         if (
           itemIdx != -1 &&
-          quickPick.items[itemIdx].buttons.length &&
-          quickPick.items[itemIdx].buttons[0].tooltip.charAt(0) == "E"
+          quickPick.items[itemIdx].buttons!.length &&
+          quickPick.items[itemIdx].buttons![0].tooltip!.charAt(0) == "E"
         ) {
           // Expand this item
           quickPick.busy = true;
@@ -289,7 +289,7 @@ export async function pickDocument(
   typeSuffix?: string,
   step?: number,
   numberOfSteps?: number
-): Promise<string> {
+): Promise<string | undefined> {
   let sys: "0" | "1" = "0";
   let gen: "0" | "1" = "0";
   let map: "0" | "1" = "1";
@@ -298,7 +298,7 @@ export async function pickDocument(
   // Hiding these files in other cases will improve performance.
   const showWeb = typeof api.wsOrFile == "object" && !notIsfs(api.wsOrFile) && isfsConfig(api.wsOrFile).csp;
 
-  return new Promise<string>((resolve) => {
+  return new Promise<string | undefined>((resolve) => {
     const quickPick = vscode.window.createQuickPick();
     quickPick.prompt =
       "You may also type a full document name with extension into the filter box and press 'Enter' to select it.";
@@ -356,11 +356,11 @@ export async function pickDocument(
         quickPick.hide();
       }
       if (button.tooltip == "System") {
-        sys = button.toggle.checked ? "1" : "0";
+        sys = button.toggle!.checked ? "1" : "0";
       } else if (button.tooltip == "Generated") {
-        gen = button.toggle.checked ? "1" : "0";
+        gen = button.toggle!.checked ? "1" : "0";
       } else {
-        map = button.toggle.checked ? "1" : "0";
+        map = button.toggle!.checked ? "1" : "0";
       }
       // Refresh the items list
       getItems();

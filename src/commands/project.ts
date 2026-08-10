@@ -158,7 +158,7 @@ export async function createProject(node: NodeBase | undefined, api?: AtelierAPI
 
 export async function deleteProject(node: ProjectNode | undefined): Promise<any> {
   let api: AtelierAPI;
-  let project: string;
+  let project: string | undefined;
   if (node instanceof ProjectNode) {
     api = new AtelierAPI(node.wsFolder.uri);
     if (node.namespace) api.setNamespace(node.namespace);
@@ -373,7 +373,7 @@ function sodItemToPickAdditionsItem(
       delim = "/";
     }
     result.fullName = parent + delim + item.Name;
-    result.label = " ".repeat(parentPad + 2) + result.label;
+    result.label = " ".repeat(parentPad! + 2) + result.label;
     result.description = result.fullName;
   }
   if (item.Type && (item.Type == 9 || item.Type == 10)) {
@@ -514,7 +514,7 @@ async function pickAdditions(
           handleError(error, "Failed to get namespace contents.");
         });
     };
-    const expandItem = (itemIdx: number): Promise<void> => {
+    const expandItem = (itemIdx: number): Promise<void> | undefined => {
       const selected = quickPick.selectedItems;
       const item = quickPick.items[itemIdx];
       quickPick.items[itemIdx].buttons = [
@@ -572,8 +572,8 @@ async function pickAdditions(
       quickPick.busy = true;
       // Change value of correct parameter in array
       if (button.tooltip == "System") {
-        sys = button.toggle.checked ? "1" : "0";
-        if (["RTN", "INC", "OTH"].includes(category)) {
+        sys = button.toggle!.checked ? "1" : "0";
+        if (["RTN", "INC", "OTH"].includes(category!)) {
           parameters[0] = sys;
         } else if (category != undefined) {
           parameters[1] = sys;
@@ -582,8 +582,8 @@ async function pickAdditions(
           parameters[4] = sys;
         }
       } else {
-        gen = button.toggle.checked ? "1" : "0";
-        if (["RTN", "INC", "OTH"].includes(category)) {
+        gen = button.toggle!.checked ? "1" : "0";
+        if (["RTN", "INC", "OTH"].includes(category!)) {
           parameters[1] = gen;
         } else if (category != undefined) {
           parameters[2] = gen;
@@ -598,7 +598,7 @@ async function pickAdditions(
     quickPick.onDidTriggerItemButton((event) => {
       quickPick.busy = true;
       const itemIdx = quickPick.items.findIndex((i) => i.fullName === event.item.fullName);
-      if (event.button.tooltip.charAt(0) == "E") {
+      if (event.button.tooltip!.charAt(0) == "E") {
         // Expand this item
         expandItem(itemIdx);
       } else {
@@ -627,8 +627,8 @@ async function pickAdditions(
         );
         if (
           itemIdx != -1 &&
-          quickPick.items[itemIdx].buttons.length &&
-          quickPick.items[itemIdx].buttons[0].tooltip.charAt(0) == "E"
+          quickPick.items[itemIdx].buttons!.length &&
+          quickPick.items[itemIdx].buttons![0].tooltip!.charAt(0) == "E"
         ) {
           // Expand this item
           quickPick.busy = true;
@@ -673,7 +673,7 @@ export async function modifyProject(
       for (const pick of picks) {
         // Determine the type of this item
         let type: string;
-        const ext: string = pick.split(".").pop().toLowerCase();
+        const ext: string = pick.split(".").pop()!.toLowerCase();
         if (["mac", "int", "inc"].includes(ext)) {
           type = "MAC";
         } else if (ext == "cls") {
@@ -681,7 +681,7 @@ export async function modifyProject(
         } else if (ext == "pkg") {
           type = "PKG";
         } else if (pick.includes("/")) {
-          if (pick.split("/").pop().includes(".")) {
+          if (pick.split("/").pop()!.includes(".")) {
             type = "CSP";
           } else {
             type = "DIR";
@@ -780,7 +780,7 @@ export async function modifyProject(
         // This is a file, so remove it
         const fileName = isfsDocumentName(nodeOrUri);
         let prjFileName = fileName.startsWith("/") ? fileName.slice(1) : fileName;
-        const ext = prjFileName.split(".").pop().toLowerCase();
+        const ext = prjFileName.split(".").pop()!.toLowerCase();
         prjFileName = ext == "cls" ? prjFileName.slice(0, -4) : prjFileName;
         const prjType = fileName.includes("/")
           ? "CSP"
@@ -952,7 +952,7 @@ function isfsFolderForProject(project: string, api: AtelierAPI): number {
  */
 export async function addIsfsFileToProject(project: string, fileName: string, api: AtelierAPI): Promise<void> {
   let prjFileName = fileName.startsWith("/") ? fileName.slice(1) : fileName;
-  const ext = prjFileName.split(".").pop().toLowerCase();
+  const ext = prjFileName.split(".").pop()!.toLowerCase();
   prjFileName = ext == "cls" ? prjFileName.slice(0, -4) : prjFileName;
   const prjType = fileName.includes("/")
     ? "CSP"
@@ -1031,10 +1031,10 @@ export function addWorkspaceFolderForProject(node: ProjectNode): void {
 
 async function handleCommandArg(
   nodeOrUri: NodeBase | vscode.Uri | undefined
-): Promise<{ node: NodeBase; api: AtelierAPI; project: string } | undefined> {
-  let node: NodeBase;
+): Promise<{ node: NodeBase | undefined; api: AtelierAPI; project: string } | undefined> {
+  let node: NodeBase | undefined;
   let api: AtelierAPI;
-  let project: string;
+  let project: string | undefined;
   if (nodeOrUri instanceof NodeBase) {
     // Called from Projects Explorer
     node = nodeOrUri;
@@ -1054,10 +1054,10 @@ async function handleCommandArg(
     api = new AtelierAPI(connUri);
   }
   if (!project) {
-    project = await pickProject(api);
+    project = await pickProject(api!);
     if (!project) return;
   }
-  return { node, api, project };
+  return { node, api: api!, project };
 }
 
 export async function modifyProjectMetadata(nodeOrUri: NodeBase | vscode.Uri | undefined): Promise<void> {
