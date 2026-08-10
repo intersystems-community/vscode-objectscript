@@ -2030,6 +2030,8 @@ function serverForUri(uri: vscode.Uri): serverManager.ServerForUri {
     superserverPort,
     pathPrefix: pathPrefix!,
     auth,
+    username: auth.username,
+    password: auth.password,
     namespace: ns!,
     apiVersion: (active ? apiVersion : undefined)!,
     serverVersion: (active ? serverVersion : undefined)!,
