@@ -2,7 +2,7 @@ import axios from "axios";
 import * as httpsModule from "https";
 import * as vscode from "vscode";
 import * as semver from "semver";
-import {
+import BasicAuthorization, {
   getResolvedConnectionSpec,
   config,
   extensionContext,
@@ -171,7 +171,7 @@ export class AtelierAPI {
       webServer: { scheme, host, port, pathPrefix = "" },
       auth,
     } = connSpec;
-    this._config.auth = auth!;
+    this._config.auth = auth ?? new BasicAuthorization();
     this._config.https = scheme == "https";
     this._config.host = host;
     this._config.port = port;
@@ -232,7 +232,11 @@ export class AtelierAPI {
 
   private setConnection(workspaceFolderName: string, namespace?: string): void {
     this.configName = workspaceFolderName;
-    const conn = config("conn", workspaceFolderName);
+    const rawConn = config("conn", workspaceFolderName);
+    const conn = {
+      ...rawConn,
+      auth: new BasicAuthorization(rawConn.username, rawConn.password),
+    };
     let serverName = workspaceFolderName.toLowerCase();
     if (config("intersystems.servers", workspaceFolderName).has(serverName)) {
       this.externalServer = true;

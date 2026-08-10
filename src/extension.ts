@@ -156,10 +156,12 @@ const lowCodeEditorViewType = packageJson.contributes.customEditors[0].viewType;
 
 const _onDidChangeConnection = new vscode.EventEmitter<void>();
 
-type ConnConfig = Pick<ConnectionSettings, "active" | "https" | "ns" | "host" | "port" | "auth"> & {
+type ConnConfig = Pick<ConnectionSettings, "active" | "https" | "ns" | "host" | "port"> & {
   "docker-compose"?: any;
   server?: any;
   links?: any;
+  username?: string;
+  password?: string;
 };
 
 export function config(setting: "conn", workspaceFolderName?: string): ConnConfig;
@@ -190,8 +192,6 @@ export function config(setting?: string, workspaceFolderName?: string): any {
         const { port, hostname: host, auth, query } = url.parse("http://" + workspaceFolderName, true);
         const { ns = "USER", https = false } = query;
         const [username, password] = (auth || "_SYSTEM:SYS").split(":");
-        const authorization = serverManagerApi.defaultAuth!();
-        authorization.resolve({ username, accessToken: password });
         if (setting == "conn") {
           return {
             active: true,
@@ -199,7 +199,8 @@ export function config(setting?: string, workspaceFolderName?: string): any {
             ns,
             host,
             port: +port!,
-            auth: authorization,
+            username,
+            password,
           } as ConnConfig;
         } else if (setting == "export") {
           return {};
@@ -290,7 +291,7 @@ async function resolvePassword(
   serverSpec: serverManager.IServerSpec,
   ignoreUnauthenticated = false
 ): Promise<string | undefined> {
-  if (!(serverSpec.auth!.resolved() as boolean) || ignoreUnauthenticated) {
+  if (!serverSpec.auth?.resolved() || ignoreUnauthenticated) {
     const scopes = [serverSpec.name, serverSpec.auth?.username || ""];
 
     // Handle Server Manager extension version < 3.8.0
