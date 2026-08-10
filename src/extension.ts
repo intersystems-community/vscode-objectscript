@@ -249,11 +249,16 @@ export async function resolveConnectionSpec(
       return;
     }
   }
-  const rawConnSpec = (await serverManagerApi.getServerSpec(serverName, scope))!;
-  let connSpec = {
-    ...rawConnSpec,
-    auth: rawConnSpec.auth ?? new BasicAuthorization(rawConnSpec.username, rawConnSpec.password),
-  };
+  const rawConnSpec = await serverManagerApi.getServerSpec(serverName, scope);
+  let connSpec;
+  if (rawConnSpec) {
+    connSpec = {
+      ...rawConnSpec,
+      // Some old server managers does not set name as the types suggest.
+      name: rawConnSpec.name ?? serverName,
+      auth: rawConnSpec.auth ?? new BasicAuthorization(rawConnSpec.username, rawConnSpec.password),
+    };
+  }
 
   if (!connSpec && uri) {
     // Caller passed uri as a signal to process any docker-compose settings
