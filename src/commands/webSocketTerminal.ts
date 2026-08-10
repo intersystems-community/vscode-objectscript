@@ -198,7 +198,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
    */
   private _moveCursorToLastLine(): void {
     const currRow = (this._cursorCol - (this._cursorCol % this._cols)) / this._cols;
-    const newRow = Math.ceil((this._margin + this._input.split("\r\n").pop().length + 1) / this._cols) - 1;
+    const newRow = Math.ceil((this._margin + this._input.split("\r\n").pop()!.length + 1) / this._cols) - 1;
     const rowDelta = newRow - currRow;
     if (rowDelta) this._hideCursorWrite(`\x1b[${rowDelta}B`);
   }
@@ -259,19 +259,19 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
             // Write the output to the terminal
             if (this._firstOutputLineSincePrompt) {
               // Strip leading \r\n since we printed it already
-              message.text = message.text.startsWith("\r\n") ? message.text.slice(2) : message.text;
+              message.text = message.text!.startsWith("\r\n") ? message.text!.slice(2) : message.text;
               this._firstOutputLineSincePrompt = false;
             }
-            if (message.text.includes("\x1b[31;1m")) {
-              if (message.text.includes("\x1b[31;1m<INTERRUPT>")) {
+            if (message.text!.includes("\x1b[31;1m")) {
+              if (message.text!.includes("\x1b[31;1m<INTERRUPT>")) {
                 // Report no exit code for interrupts
                 this._promptExitCode = "";
               } else {
                 this._promptExitCode = ";1";
               }
             }
-            this._margin = this._cursorCol = message.text.split("\r\n").pop().length;
-            this._hideCursorWrite(message.text);
+            this._margin = this._cursorCol = message.text!.split("\r\n").pop()!.length;
+            this._hideCursorWrite(message.text!);
             break;
           case "prompt":
           case "read":
@@ -280,11 +280,11 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
               this._hideCursorWrite(
                 `\x1b]633;D${this._promptExitCode}\x07\r\n\x1b]633;A\x07${message.text}\x1b]633;B\x07`
               );
-              this._margin = this._cursorCol = message.text.replace(this._colorsRegex, "").length;
-              this._prompt = message.text;
+              this._margin = this._cursorCol = message.text!.replace(this._colorsRegex, "").length;
+              this._prompt = message.text!;
               this._promptExitCode = ";0";
               // Store the current namespace
-              this.currentNs = message.ns;
+              this.currentNs = message.ns!;
             }
             // Enable input
             this._state = message.type;
@@ -303,13 +303,13 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           case "color": {
             // Replace the input with the syntax colored text, keeping the cursor at the same spot
             let cursorLine = Math.ceil((this._cursorCol + 1) / this._cols) - 1;
-            if (message.text.includes("\r\n")) {
-              const lines = message.text.replace(this._colorsRegex, "").split("\r\n");
+            if (message.text!.includes("\r\n")) {
+              const lines = message.text!.replace(this._colorsRegex, "").split("\r\n");
               lines.pop();
               cursorLine += lines.reduce((sum, line) => sum + Math.ceil((line.length + 1) / this._cols), 0);
             }
             this._hideCursorWrite(
-              `\x1b7${cursorLine > 0 ? `\x1b[${cursorLine}A` : ""}\r\x1b[0J${this._prompt}${message.text.replace(
+              `\x1b7${cursorLine > 0 ? `\x1b[${cursorLine}A` : ""}\r\x1b[0J${this._prompt}${message.text!.replace(
                 /\r\n/g,
                 `\r\n${this.multiLinePrompt}`
               )}\x1b8`
@@ -517,7 +517,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           // User can't move cursor
           return;
         }
-        if (this._cursorCol < this._margin + this._input.split("\r\n").pop().length) {
+        if (this._cursorCol < this._margin + this._input.split("\r\n").pop()!.length) {
           this._cursorCol++;
           if (this._cursorCol % this._cols == 0) {
             // Move the cursor to the beginning of the next line
@@ -553,7 +553,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
       case keys.ctrlE: {
         if (this._state == "prompt") {
           // Move the cursor to the end of the input
-          const lineLength = this._input.split("\r\n").pop().length;
+          const lineLength = this._input.split("\r\n").pop()!.length;
           if (lineLength > this._cursorCol) {
             this._moveCursor(lineLength - this._cursorCol);
           }
@@ -658,7 +658,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
               // Add a blank "line" to move the cursor to the next viewport row
               return [""];
             }
-            const chunks = [];
+            const chunks: string[] = [];
             for (let i = 0; i < line.length; i += this._cols) {
               chunks.push(line.slice(i, i + this._cols));
             }
@@ -759,7 +759,7 @@ function terminalConfigForUri(
     return;
   }
   // Make sure the server has the terminal endpoint
-  if (api.config.apiVersion < 7) {
+  if (api.config.apiVersion! < 7) {
     reportError("Lite Terminal requires InterSystems IRIS version 2023.2 or above.", throwErrors);
     return;
   }
@@ -782,7 +782,7 @@ function terminalConfigForUri(
   };
 }
 
-export async function launchWebSocketTerminal(targetUri?: vscode.Uri, nsOverride?: string): Promise<void> {
+export async function launchWebSocketTerminal(targetUri?: vscode.Uri | null, nsOverride?: string): Promise<void> {
   // Determine the server to connect to
   if (targetUri) {
     // Uri passed as command argument might be for a server we haven't yet resolved
@@ -815,7 +815,7 @@ export async function launchWebSocketTerminal(targetUri?: vscode.Uri, nsOverride
 export class WebSocketTerminalProfileProvider implements vscode.TerminalProfileProvider {
   async provideTerminalProfile(): Promise<vscode.TerminalProfile> {
     // Determine the server connection to use
-    const uri: vscode.Uri = await getWsServerConnection("2023.2.0");
+    const uri: vscode.Uri | null | undefined = await getWsServerConnection("2023.2.0");
 
     if (uri) {
       const api = new AtelierAPI(uri);
@@ -823,7 +823,7 @@ export class WebSocketTerminalProfileProvider implements vscode.TerminalProfileP
       await api.serverInfo();
       // Get the terminal configuration. Will throw if there's an error.
       const terminalOpts = terminalConfigForUri(api, uri, true);
-      return new vscode.TerminalProfile(terminalOpts);
+      return new vscode.TerminalProfile(terminalOpts!);
     } else if (uri === undefined) {
       throw new Error(NO_ELIGIBLE_CONNECTIONS);
     } else {

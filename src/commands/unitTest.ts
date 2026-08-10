@@ -61,9 +61,9 @@ const textDecoder = new TextDecoder();
 
 /** Find the root `TestItem` for `uri` */
 function rootItemForItem(testController: vscode.TestController, uri: vscode.Uri): vscode.TestItem | undefined {
-  let rootItem: vscode.TestItem;
+  let rootItem: vscode.TestItem | undefined;
   for (const [, i] of testController.items) {
-    if (uriIsAncestorOf(i.uri, uri)) {
+    if (uriIsAncestorOf(i.uri!, uri)) {
       rootItem = i;
       break;
     }
@@ -80,14 +80,14 @@ async function addTestItemsForClass(testController: vscode.TestController, paren
     parent.uri
   );
   if (parentSymbols?.length == 1 && parentSymbols[0].kind == vscode.SymbolKind.Class) {
-    const rootItem = rootItemForItem(testController, parent.uri);
+    const rootItem = rootItemForItem(testController, parent.uri!);
     if (rootItem) {
       // Add this class to our cache
       // Need to do this here because we need the
       // DocumentSymbols to accurately determine the class
       const classes = classesForRoot.get(rootItem);
-      classes.set(parentSymbols[0].name, parent);
-      classesForRoot.set(rootItem, classes);
+      classes!.set(parentSymbols[0].name, parent);
+      classesForRoot.set(rootItem, classes!);
     }
     parent.range = parentSymbols[0].range;
     // Add an item for each Test* method defined in this class
@@ -104,10 +104,10 @@ async function addTestItemsForClass(testController: vscode.TestController, paren
         parent.children.add(newItem);
       }
     });
-    if (filesystemSchemas.includes(parent.uri.scheme)) {
+    if (filesystemSchemas.includes(parent.uri!.scheme)) {
       // Query the server to find inherited Test* methods
-      const api = new AtelierAPI(parent.uri);
-      const workspaceFolder = vscode.workspace.getWorkspaceFolder(parent.uri).name;
+      const api = new AtelierAPI(parent.uri!);
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(parent.uri!)!.name;
       const methodsMap: Map<string, string[]> = new Map();
       const inheritedMethods: { Name: string; Origin: string }[] = await api
         .actionQuery(
@@ -156,7 +156,7 @@ async function addTestItemsForClass(testController: vscode.TestController, paren
 
 /** Get the array of `objectscript.unitTest.relativeTestRoots` for workspace folder `uri`. */
 function relativeTestRootsForUri(uri: vscode.Uri): string[] {
-  let roots: string[] = vscode.workspace.getConfiguration("objectscript.unitTest", uri).get("relativeTestRoots");
+  let roots: string[] = vscode.workspace.getConfiguration("objectscript.unitTest", uri).get("relativeTestRoots")!;
   roots = roots.map((r) => r.replaceAll("\\", "/")); // VS Code URIs always use / as a separator
   if (roots.length > 1) {
     // Filter out any duplicate roots, or roots that are a subdirectory of another root
@@ -179,7 +179,7 @@ function createRootItemsForWorkspaceFolder(
       ? "Server connection is inactive"
       : api.ns == "%SYS"
         ? "Connected to the %SYS namespace"
-        : api.config.apiVersion < 8
+        : api.config.apiVersion! < 8
           ? "Must be connected to InterSystems IRIS version 2023.3 or above"
           : filesystemSchemas.includes(folder.uri.scheme) && csp
             ? "Web application folder"
@@ -217,20 +217,20 @@ async function getTestItemForClass(
   uri: vscode.Uri,
   create = false
 ): Promise<vscode.TestItem | undefined> {
-  let item: vscode.TestItem;
+  let item: vscode.TestItem | undefined;
   const rootItem = rootItemForItem(testController, uri);
   if (rootItem && !rootItem.error) {
     // Walk the directory path until we reach a dead end or the TestItem for this class
-    let docPath = uri.path.slice(rootItem.uri.path.length);
+    let docPath = uri.path.slice(rootItem.uri!.path.length);
     docPath = docPath.startsWith("/") ? docPath.slice(1) : docPath;
     const docPathParts = docPath.split("/");
     item = rootItem;
     for (const part of docPathParts) {
-      const currUri = item.uri.with({ path: `${item.uri.path}${!item.uri.path.endsWith("/") ? "/" : ""}${part}` });
+      const currUri = item.uri!.with({ path: `${item.uri!.path}${!item.uri!.path.endsWith("/") ? "/" : ""}${part}` });
       let currItem = item.children.get(currUri.toString());
       if (!currItem && create) {
         // We're allowed to create non-existent directory TestItems as we walk the path
-        await testController.resolveHandler(item);
+        await testController.resolveHandler!(item);
         currItem = item.children.get(currUri.toString());
       }
       item = currItem;
@@ -258,10 +258,10 @@ function replaceRootTestItems(testController: vscode.TestController): void {
 async function childrenForServerSideFolderItem(
   item: vscode.TestItem
 ): Promise<Atelier.Response<Atelier.Content<{ Name: string }[]>>> {
-  const { project, system, generated, mapped } = isfsConfig(item.uri);
+  const { project, system, generated, mapped } = isfsConfig(item.uri!);
   let query: string;
   let parameters: string[];
-  let folder = !item.uri.path.endsWith("/") ? item.uri.path + "/" : item.uri.path;
+  let folder = !item.uri!.path.endsWith("/") ? item.uri!.path + "/" : item.uri!.path;
   folder = folder.startsWith("/") ? folder.slice(1) : folder;
   if (folder == "/") {
     // Treat this the same as an empty folder
@@ -269,7 +269,7 @@ async function childrenForServerSideFolderItem(
   }
   folder = folder.replace(/\//g, ".");
   const folderLen = String(folder.length + 1); // Need the + 1 because SUBSTR is 1 indexed
-  const api = new AtelierAPI(item.uri);
+  const api = new AtelierAPI(item.uri!);
   if (project) {
     query =
       "SELECT DISTINCT CASE " +
@@ -293,7 +293,7 @@ async function childrenForServerSideFolderItem(
       folderLen,
       folderLen,
       folderLen,
-      fileSpecFromURI(item.uri),
+      fileSpecFromURI(item.uri!),
       "1",
       "1",
       system ? "1" : "0",
@@ -311,8 +311,8 @@ async function childrenForServerSideFolderItem(
 
 /** Create a child `TestItem` of `item` with label `child`. */
 function addChildItem(testController: vscode.TestController, item: vscode.TestItem, child: string): void {
-  const newUri = item.uri.with({
-    path: `${item.uri.path}${!item.uri.path.endsWith("/") ? "/" : ""}${child}`,
+  const newUri = item.uri!.with({
+    path: `${item.uri!.path}${!item.uri!.path.endsWith("/") ? "/" : ""}${child}`,
   });
   if (!item.children.get(newUri.toString())) {
     // Only add the item if it doesn't already exist
@@ -324,7 +324,7 @@ function addChildItem(testController: vscode.TestController, item: vscode.TestIt
 
 /** Determine the class name of `item` in `root` */
 function classNameForItem(item: vscode.TestItem, root: vscode.TestItem): string | undefined {
-  let cls: string;
+  let cls: string | undefined;
   const classes = classesForRoot.get(root);
   if (classes) {
     for (const element of classes) {
@@ -359,7 +359,7 @@ async function addItemForClassUri(testController: vscode.TestController, uri: vs
     const item = await getTestItemForClass(testController, uri, true);
     if (item && item.canResolveChildren && !item.children.size) {
       // Resolve the methods
-      testController.resolveHandler(item);
+      testController.resolveHandler!(item);
     }
   }
 }
@@ -372,7 +372,7 @@ async function runHandler(
   debug = false
 ): Promise<void> {
   const action = debug ? "debug" : "run";
-  let root: vscode.TestItem;
+  let root: vscode.TestItem | undefined;
   const asyncRequest: Atelier.AsyncUnitTestRequest = {
     request: "unittest",
     tests: [],
@@ -382,9 +382,9 @@ async function runHandler(
 
   try {
     // Determine the test root for this run
-    let roots: vscode.TestItem[];
+    let roots: (vscode.TestItem | undefined)[];
     if (request.include?.length) {
-      roots = [...new Set(request.include.map((i) => rootItemForItem(testController, i.uri)))];
+      roots = [...new Set(request.include.map((i) => rootItemForItem(testController, i.uri!)))];
     } else {
       // Run was launched from controller's root level
       // Ignore any roots that have errors
@@ -396,8 +396,8 @@ async function runHandler(
       const picked = await vscode.window.showQuickPick(
         roots.map((i) => {
           return {
-            label: i.label,
-            detail: displayableUri(i.uri),
+            label: i!.label,
+            detail: displayableUri(i!.uri!),
             item: i,
           };
         }),
@@ -417,13 +417,13 @@ async function runHandler(
       // Need a root to continue
       return;
     }
-    sendUnitTestTelemetryEvent(root.uri, debug);
+    sendUnitTestTelemetryEvent(root.uri!, debug);
 
     // Add the initial items to the queue to process
     const queue: vscode.TestItem[] = [];
     if (request.include?.length) {
       request.include.forEach((i) => {
-        if (uriIsAncestorOf(root.uri, i.uri)) {
+        if (uriIsAncestorOf(root!.uri!, i.uri!)) {
           queue.push(i);
         }
       });
@@ -433,16 +433,16 @@ async function runHandler(
 
     // Get the autoload configuration for the root
     const autoload = vscode.workspace.getConfiguration("objectscript.unitTest.autoload", root.uri);
-    const autoloadFolder: string = autoload.get("folder");
-    const autoloadXml: boolean = autoload.get("xml");
-    const autoloadUdl: boolean = autoload.get("udl");
-    const autoloadEnabled: boolean = autoloadFolder != "" && (autoloadXml || autoloadUdl) && notIsfs(root.uri);
+    const autoloadFolder: string = autoload.get("folder")!;
+    const autoloadXml: boolean = autoload.get("xml")!;
+    const autoloadUdl: boolean = autoload.get("udl")!;
+    const autoloadEnabled: boolean = autoloadFolder != "" && (autoloadXml || autoloadUdl) && notIsfs(root.uri!);
     const autoloadProcessed: string[] = [];
 
     // Process every test that was queued
     // Recurse down to leaves (methods) and build a map of their parents (classes)
     while (queue.length > 0 && !token.isCancellationRequested) {
-      const test = queue.pop();
+      const test = queue.pop()!;
 
       // Skip tests the user asked to exclude
       if (request.exclude?.length && request.exclude.some((excludedTest) => excludedTest.id === test.id)) {
@@ -451,8 +451,8 @@ async function runHandler(
 
       if (autoloadEnabled) {
         // Process any autoload folders needed by this item
-        const basePath = root.uri.path.endsWith("/") ? root.uri.path.slice(0, -1) : root.uri.path;
-        const directories = ["", ...test.uri.path.slice(basePath.length + 1).split("/")];
+        const basePath = root.uri!.path.endsWith("/") ? root.uri!.path.slice(0, -1) : root.uri!.path;
+        const directories = ["", ...test.uri!.path.slice(basePath.length + 1).split("/")];
         if (directories[directories.length - 1].toLowerCase().endsWith(".cls")) {
           // Remove the class name
           directories.pop();
@@ -465,7 +465,7 @@ async function runHandler(
             // Look for XML or UDL files in the autoload folder
             const files = await vscode.workspace.findFiles(
               new vscode.RelativePattern(
-                test.uri.with({ path: `${basePath}${testPath}/${autoloadFolder}` }),
+                test.uri!.with({ path: `${basePath}${testPath}/${autoloadFolder}` }),
                 `**/*.{${autoloadXml ? "xml,XML" : ""}${autoloadXml && autoloadUdl ? "," : ""}${
                   autoloadUdl ? "cls,CLS,mac,MAC,int,INT,inc,INC" : ""
                 }}`
@@ -488,16 +488,16 @@ async function runHandler(
 
       // Resolve children if not already done
       if (test.canResolveChildren && !test.children.size) {
-        await testController.resolveHandler(test);
+        await testController.resolveHandler!(test);
       }
 
-      if (test.uri.path.toLowerCase().endsWith(".cls")) {
+      if (test.uri!.path.toLowerCase().endsWith(".cls")) {
         if (test.id.includes(methodIdSeparator)) {
           // This is a method item
           // Will only reach this code if this item is in request.include
 
           // Look up the name of this class
-          const cls = classNameForItem(test.parent, root);
+          const cls = classNameForItem(test.parent!, root);
           if (cls) {
             // Check if there's a test object for the parent class already
             const clsObjIdx = asyncRequest.tests.findIndex((t) => t.class == cls);
@@ -514,15 +514,15 @@ async function runHandler(
                 class: cls,
                 methods: [test.label],
               });
-              if (notIsfs(test.parent.uri)) {
+              if (notIsfs(test.parent!.uri!)) {
                 // Add this class to the list to load
                 if (asyncRequest.load == undefined) asyncRequest.load = [];
                 asyncRequest.load.push({
-                  file: test.parent.uri.fsPath,
-                  content: textDecoder.decode(await vscode.workspace.fs.readFile(test.parent.uri)).split(/\r?\n/),
+                  file: test.parent!.uri!.fsPath,
+                  content: textDecoder.decode(await vscode.workspace.fs.readFile(test.parent!.uri!)).split(/\r?\n/),
                 });
               }
-              clsItemsRun.push(test.parent);
+              clsItemsRun.push(test.parent!);
             }
           }
         } else {
@@ -538,8 +538,8 @@ async function runHandler(
               // Determine the methods to run
               clsObj.methods = [];
               test.children.forEach((i) => {
-                if (!request.exclude.some((excludedTest) => excludedTest.id === i.id)) {
-                  clsObj.methods.push(i.label);
+                if (!request.exclude!.some((excludedTest) => excludedTest.id === i.id)) {
+                  clsObj.methods!.push(i.label);
                 }
               });
               if (clsObj.methods.length == 0) {
@@ -551,12 +551,12 @@ async function runHandler(
                 delete clsObj.methods;
               }
             }
-            if (notIsfs(test.uri)) {
+            if (notIsfs(test.uri!)) {
               // Add this class to the list to load
               if (asyncRequest.load == undefined) asyncRequest.load = [];
               asyncRequest.load.push({
-                file: test.uri.fsPath,
-                content: textDecoder.decode(await vscode.workspace.fs.readFile(test.uri)).split(/\r?\n/),
+                file: test.uri!.fsPath,
+                content: textDecoder.decode(await vscode.workspace.fs.readFile(test.uri!)).split(/\r?\n/),
               });
             }
             asyncRequest.tests.push(clsObj);
@@ -586,8 +586,8 @@ async function runHandler(
   asyncRequest.console = vscode.workspace.getConfiguration("objectscript.unitTest", root.uri).get("showOutput");
 
   // Send the queue request
-  const api = new AtelierAPI(root.uri);
-  const queueResp: Atelier.Response<any> = await api.queueAsync(asyncRequest, true).catch((error) => {
+  const api = new AtelierAPI(root.uri!);
+  const queueResp: Atelier.Response<any> | undefined = await api.queueAsync(asyncRequest, true).catch((error) => {
     handleError(error, `Error creating job to ${action} tests.`);
     return undefined;
   });
@@ -624,7 +624,7 @@ async function runHandler(
     let currentOutputItem: vscode.TestItem | undefined;
 
     // The workspace folder that we're running tests in
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(root.uri);
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(root.uri!);
 
     // A map of all documents that we've computed symbols for
     const documentSymbols: Map<string, vscode.DocumentSymbol[]> = new Map();
@@ -642,19 +642,19 @@ async function runHandler(
           if (indent == 4) {
             if (consoleLine.endsWith("...")) {
               // This is the beginning of a class
-              currentOutputItem = classes.get(consoleLine.trim().split(" ")[0]);
+              currentOutputItem = classes!.get(consoleLine.trim().split(" ")[0]);
             } else {
               // This is the end of a class
               if (currentOutputItem != undefined && currentOutputItem.id.includes(methodIdSeparator)) {
-                currentOutputItem = currentOutputItem.parent;
+                currentOutputItem = currentOutputItem.parent!;
               }
             }
           } else if (indent == 6 && consoleLine.endsWith("...")) {
             // This is the beginning of a method
             if (currentOutputItem != undefined) {
               if (currentOutputItem.id.includes(methodIdSeparator)) {
-                currentOutputItem = currentOutputItem.parent.children.get(
-                  `${currentOutputItem.parent.id}${methodIdSeparator}${consoleLine.trim().slice(4).split("(")[0]}`
+                currentOutputItem = currentOutputItem.parent!.children.get(
+                  `${currentOutputItem.parent!.id}${methodIdSeparator}${consoleLine.trim().slice(4).split("(")[0]}`
                 );
               } else {
                 currentOutputItem = currentOutputItem.children.get(
@@ -669,7 +669,7 @@ async function runHandler(
           if (currentOutputItem != undefined) {
             testRun.appendOutput(
               `${consoleLine}\r\n`,
-              new vscode.Location(currentOutputItem.uri, currentOutputItem.range),
+              new vscode.Location(currentOutputItem.uri!, currentOutputItem.range!),
               currentOutputItem
             );
           } else {
@@ -685,7 +685,7 @@ async function runHandler(
       if (Array.isArray(pollResp.result)) {
         // Process results
         for (const testResult of <TestResult[]>pollResp.result) {
-          const clsItem = classes.get(testResult.class);
+          const clsItem = classes!.get(testResult.class);
           if (clsItem) {
             if (testResult.method) {
               // This is a method's result
@@ -709,10 +709,10 @@ async function runHandler(
                         );
                         if (failure.location) {
                           if (failure.location.document.toLowerCase().endsWith(".cls")) {
-                            let locationUri: vscode.Uri;
-                            if (classes.has(failure.location.document.slice(0, -4))) {
+                            let locationUri: vscode.Uri | null | undefined;
+                            if (classes!.has(failure.location.document.slice(0, -4))) {
                               // This is one of the known test classes
-                              locationUri = classes.get(failure.location.document.slice(0, -4)).uri;
+                              locationUri = classes!.get(failure.location.document.slice(0, -4))!.uri;
                             } else {
                               // This is some other class. There's a chance that
                               // the class won't exist after the tests are run
@@ -720,7 +720,7 @@ async function runHandler(
                               // because it will often be useful to the user.
                               locationUri = DocumentContentProvider.getUri(
                                 failure.location.document,
-                                workspaceFolder.name,
+                                workspaceFolder!.name,
                                 failure.location.namespace
                               );
                             }
@@ -749,7 +749,7 @@ async function runHandler(
                                   const locationLine = methodOffsetToLine(
                                     locationSymbols,
                                     fileText,
-                                    failure.location.label,
+                                    failure.location.label!,
                                     failure.location.offset
                                   );
                                   if (locationLine != undefined) {
@@ -773,7 +773,7 @@ async function runHandler(
                             // because it will often be useful to the user.
                             const locationUri = DocumentContentProvider.getUri(
                               failure.location.document,
-                              workspaceFolder.name,
+                              workspaceFolder!.name,
                               failure.location.namespace
                             );
                             if (locationUri) {
@@ -859,7 +859,7 @@ async function runHandler(
       } else if (debug && queueResp.result.content?.debugId && pollResp.result?.content?.debugReady) {
         // Make sure the activeTextEditor's document is in the same workspace folder as the test
         // root so the debugger connects to the correct server and runs in the correct namespace
-        const rootWsFolderIdx = vscode.workspace.getWorkspaceFolder(root.uri)?.index;
+        const rootWsFolderIdx = vscode.workspace.getWorkspaceFolder(root.uri!)?.index;
         if (
           !vscode.window.activeTextEditor?.document.uri ||
           vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri)?.index != rootWsFolderIdx
@@ -875,7 +875,9 @@ async function runHandler(
           }
           if (!shown) {
             // Show the first test class. Ugly but necessary.
-            await vscode.window.showTextDocument(classesForRoot.get(root).get(asyncRequest.tests[0].class)?.uri);
+            await vscode.window.showTextDocument(
+              classesForRoot.get(root)!.get(asyncRequest.tests[0].class)?.uri as vscode.Uri
+            );
           }
         }
         // Start the debugging session
@@ -951,16 +953,16 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
     if (!item) return; // Can't resolve "undefined"
     item.busy = true;
     try {
-      if (item.uri.path.toLowerCase().endsWith(".cls")) {
+      if (item.uri!.path.toLowerCase().endsWith(".cls")) {
         // Compute items for the Test* methods in this class
         await addTestItemsForClass(testController, item);
       } else {
-        if (notIsfs(item.uri)) {
+        if (notIsfs(item.uri!)) {
           // Read the local directory for non-autoload subdirectories and classes
           const autoload = vscode.workspace.getConfiguration("objectscript.unitTest.autoload", item.uri);
-          const autoloadFolder: string = autoload.get("folder");
-          const autoloadEnabled: boolean = autoloadFolder != "" && (autoload.get("xml") || autoload.get("udl"));
-          (await vscode.workspace.fs.readDirectory(item.uri)).forEach((element) => {
+          const autoloadFolder: string = autoload.get("folder")!;
+          const autoloadEnabled: boolean = autoloadFolder != "" && (autoload.get("xml") || autoload.get("udl"))!;
+          (await vscode.workspace.fs.readDirectory(item.uri!)).forEach((element) => {
             if (
               (element[1] == vscode.FileType.Directory &&
                 !element[0].startsWith("_") && // %UnitTest.Manager skips subfolders that start with _
@@ -990,7 +992,7 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
     // Create new roots
     replaceRootTestItems(testController);
     // Resolve children for the roots
-    testController.items.forEach((item) => testController.resolveHandler(item));
+    testController.items.forEach((item) => testController.resolveHandler!(item));
   };
   // Create the run and debug profiles
   const runProfile = testController.createRunProfile(
@@ -1029,7 +1031,7 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
                 : r
             );
     Promise.allSettled([
-      vscode.extensions.getExtension(extensionId).activate(),
+      vscode.extensions.getExtension(extensionId)!.activate(),
       languageServer && !languageServer.isActive
         ? Promise.allSettled([languageServer.activate(), waitForResponse(1)])
         : Promise.resolve(),
@@ -1050,7 +1052,7 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
           // Remove from our cache of classes
           const classes = classesForRoot.get(rootItem);
           if (classes) {
-            let cls: string;
+            let cls: string | undefined;
             for (const element of classes) {
               if (element[1].id == item.id) {
                 cls = element[0];
@@ -1063,7 +1065,7 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
             }
           }
         }
-        item.parent.children.delete(uri.toString());
+        item.parent!.children.delete(uri.toString());
         result = true;
       }
     }
@@ -1080,7 +1082,7 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
       // Update root items if needed
       e.removed.forEach((wf) => {
         testController.items.forEach((i) => {
-          if (uriIsAncestorOf(wf.uri, i.uri)) {
+          if (uriIsAncestorOf(wf.uri, i.uri!)) {
             // Remove this TestItem
             classesForRoot.delete(i);
             testController.items.delete(i.id);
@@ -1100,7 +1102,7 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
       const replace: vscode.TestItem[] = [];
       testController.items.forEach((item) => {
         if (
-          (notIsfs(item.uri) && e.affectsConfiguration("objectscript.unitTest", item.uri)) ||
+          (notIsfs(item.uri!) && e.affectsConfiguration("objectscript.unitTest", item.uri)) ||
           e.affectsConfiguration("objectscript.conn", item.uri) ||
           e.affectsConfiguration("intersystems.servers", item.uri)
         ) {
@@ -1111,7 +1113,7 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
       replace.forEach((item) => {
         classesForRoot.delete(item);
         testController.items.delete(item.id);
-        const folder = vscode.workspace.getWorkspaceFolder(item.uri);
+        const folder = vscode.workspace.getWorkspaceFolder(item.uri!);
         if (folder) {
           const newItems = createRootItemsForWorkspaceFolder(testController, folder);
           newItems.forEach((i) => {
@@ -1137,7 +1139,7 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
           testController.invalidateTestResults(item);
           if (item.canResolveChildren) {
             // Resolve the methods
-            testController.resolveHandler(item);
+            testController.resolveHandler!(item);
           }
         }
       }

@@ -5,7 +5,7 @@ import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 
 export class ClassDefinition {
   public get uri(): vscode.Uri {
-    return DocumentContentProvider.getUri(this._classFileName, this._workspaceFolder, this._namespace);
+    return DocumentContentProvider.getUri(this._classFileName, this._workspaceFolder, this._namespace)!;
   }
 
   public static normalizeClassName(className: string, withExtension = false): string {
@@ -13,8 +13,8 @@ export class ClassDefinition {
   }
   private _className: string;
   private _classFileName: string;
-  private _workspaceFolder: string;
-  private _namespace: string;
+  private _workspaceFolder: string | undefined;
+  private _namespace: string | undefined;
 
   public constructor(className: string, workspaceFolder?: string, namespace?: string) {
     this._workspaceFolder = workspaceFolder;
@@ -31,11 +31,11 @@ export class ClassDefinition {
   }
 
   public async methods(scope: "any" | "class" | "instance" = "any"): Promise<any[]> {
-    const methods = [];
+    const methods: any[] = [];
     const filterScope = (method) => scope === "any" || method.scope === scope;
     const api = new AtelierAPI(this.uri);
     const getMethods = (content) => {
-      const extend = [];
+      const extend: any[] = [];
       content.forEach((el) => {
         methods.push(...el.content.methods);
         extend.push(...el.content.super.map((extendName) => ClassDefinition.normalizeClassName(extendName, true)));
@@ -49,10 +49,10 @@ export class ClassDefinition {
   }
 
   public async properties(): Promise<any[]> {
-    const properties = [];
+    const properties: any[] = [];
     const api = new AtelierAPI(this.uri);
     const getProperties = (content) => {
-      const extend = [];
+      const extend: any[] = [];
       content.forEach((el) => {
         properties.push(...el.content.properties);
         extend.push(...el.content.super.map((extendName) => ClassDefinition.normalizeClassName(extendName, true)));
@@ -66,10 +66,10 @@ export class ClassDefinition {
   }
 
   public async parameters(): Promise<any[]> {
-    const parameters = [];
+    const parameters: any[] = [];
     const api = new AtelierAPI(this.uri);
     const getParameters = (content) => {
-      const extend = [];
+      const extend: any[] = [];
       content.forEach((el) => {
         parameters.push(...el.content.parameters);
         extend.push(...el.content.super.map((extendName) => ClassDefinition.normalizeClassName(extendName, true)));
@@ -116,7 +116,7 @@ export class ClassDefinition {
       .then((data) => data);
   }
 
-  public async getMemberLocation(name: string): Promise<vscode.Location> {
+  public async getMemberLocation(name: string): Promise<vscode.Location | undefined> {
     let pattern;
     if (name.startsWith("#")) {
       pattern = `(Parameter) ${name.substr(1)}(?=[( ;])`;

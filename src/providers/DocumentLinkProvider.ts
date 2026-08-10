@@ -54,7 +54,10 @@ export class DocumentLinkProvider implements vscode.DocumentLinkProvider {
     return documentLinks;
   }
 
-  public async resolveDocumentLink(link: StudioLink, token: vscode.CancellationToken): Promise<vscode.DocumentLink> {
+  public async resolveDocumentLink(
+    link: StudioLink,
+    token: vscode.CancellationToken
+  ): Promise<vscode.DocumentLink | undefined> {
     const editor = await vscode.window
       .showTextDocument(link.uri)
       .then(undefined, (error) => handleError(error, "Failed to resolve DocumentLink to a specific location."));
@@ -63,7 +66,7 @@ export class DocumentLinkProvider implements vscode.DocumentLinkProvider {
 
     // add the offset of the method if it is a class
     if (link.methodname) {
-      const symbols = await vscode.commands.executeCommand("vscode.executeDocumentSymbolProvider", link.uri);
+      const symbols: any = await vscode.commands.executeCommand("vscode.executeDocumentSymbolProvider", link.uri);
       const method = symbols[0].children.find(
         (info) => (info.detail === "ClassMethod" || info.detail === "Method") && info.name === link.methodname
       );

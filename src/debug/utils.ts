@@ -15,7 +15,7 @@ export function formatPropertyValue(property: BaseProperty): string {
     }
   } else {
     // for null, uninitialized, resource, etc. show the type
-    displayValue = property.value || property.type === "string" ? property.value : property.type;
+    displayValue = property.value || property.type === "string" ? property.value! : property.type;
     if (property.type === "string") {
       displayValue = '"' + displayValue + '"';
     } else if (property.type === "bool") {

@@ -9,7 +9,7 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
     query: vscode.FileSearchQuery,
     options: vscode.FileSearchOptions,
     token: vscode.CancellationToken
-  ): Promise<vscode.Uri[]> {
+  ): Promise<vscode.Uri[] | undefined> {
     let counter = 0;
     // Replace all back slashes with forward slashes
     let pattern = query.pattern.replace(/\\/g, "/");
@@ -28,18 +28,19 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
       for (const c of pattern) regexStr += `${[".", "/"].includes(c) ? "[./]" : c}.*`;
       const patternRegex = new RegExp(regexStr, "i");
       if (token.isCancellationRequested) return;
-      return projectContentsFromUri(options.folder, true).then((docs) =>
-        docs
-          .map((doc: ProjectItem) =>
-            !token.isCancellationRequested &&
-            // The document matches the query
-            (!pattern.length || patternRegex.test(doc.Name)) &&
-            // We haven't hit the max number of results
-            (!options.maxResults || ++counter <= options.maxResults)
-              ? DocumentContentProvider.getUri(doc.Name, "", "", true, options.folder)
-              : null
-          )
-          .filter(notNull)
+      return projectContentsFromUri(options.folder, true).then(
+        (docs) =>
+          docs!
+            .map((doc: ProjectItem) =>
+              !token.isCancellationRequested &&
+              // The document matches the query
+              (!pattern.length || patternRegex.test(doc.Name)) &&
+              // We haven't hit the max number of results
+              (!options.maxResults || ++counter <= options.maxResults)
+                ? DocumentContentProvider.getUri(doc.Name, "", "", true, options.folder)
+                : null
+            )
+            .filter(notNull) as vscode.Uri[]
       );
     }
     // When this is called without a query.pattern every file is supposed to be returned, so do not provide a filter
@@ -48,16 +49,17 @@ export class FileSearchProvider implements vscode.FileSearchProvider {
       ? `Name LIKE '${!csp ? likePattern.replace(/\//g, ".") : likePattern}' ESCAPE '\\'`
       : "";
     if (token.isCancellationRequested) return;
-    return studioOpenDialogFromURI(options.folder, { flat: true, filter }).then((data) =>
-      data.result.content
-        .map((doc: { Name: string; Type: number }) =>
-          !token.isCancellationRequested &&
-          // We haven't hit the max number of results
-          (!options.maxResults || ++counter <= options.maxResults)
-            ? DocumentContentProvider.getUri(doc.Name, "", "", true, options.folder)
-            : null
-        )
-        .filter(notNull)
+    return studioOpenDialogFromURI(options.folder, { flat: true, filter })!.then(
+      (data) =>
+        data.result.content
+          .map((doc: { Name: string; Type: number }) =>
+            !token.isCancellationRequested &&
+            // We haven't hit the max number of results
+            (!options.maxResults || ++counter <= options.maxResults)
+              ? DocumentContentProvider.getUri(doc.Name, "", "", true, options.folder)
+              : null
+          )
+          .filter(notNull) as vscode.Uri[]
     );
   }
 }

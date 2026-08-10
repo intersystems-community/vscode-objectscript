@@ -15,7 +15,7 @@ interface NodeOptions {
 
 /** Get the URI for this leaf node */
 function getLeafNodeUri(node: NodeBase): vscode.Uri {
-  return DocumentContentProvider.getUri(node.fullName, undefined, node?.namespace, false, node.wsFolder.uri, true);
+  return DocumentContentProvider.getUri(node.fullName, undefined, node?.namespace, false, node.wsFolder.uri, true)!;
 }
 
 const inactiveMsg = "Server connection is inactive";
@@ -61,7 +61,7 @@ export class RootNode extends NodeBase {
   public readonly contextValue: string;
   private readonly _category: string;
   private readonly isCsp: boolean;
-  private readonly iconPath: vscode.ThemeIcon;
+  private readonly iconPath: vscode.ThemeIcon | undefined;
 
   public constructor(
     label: string,
@@ -97,7 +97,7 @@ export class RootNode extends NodeBase {
     const path = this instanceof PackageNode || this.isCsp ? this.fullName + "/" : "";
     return this.getList(path, this._category, false)
       .then((data) =>
-        data
+        data!
           .filter((el) => {
             if (this._category === "OTH") {
               return el.Type === "100";
@@ -148,7 +148,7 @@ export class RootNode extends NodeBase {
     path: string,
     category: string,
     flat: boolean
-  ): Promise<{ Name: string; Type: string; fullName: string }[]> {
+  ): Promise<{ Name: string; Type: string; fullName: string }[] | undefined> {
     const sql = "SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)";
     let spec = "";
     switch (category) {
@@ -192,9 +192,9 @@ export class RootNode extends NodeBase {
       let nsCspApps: string[] | undefined = cspApps.get(cspAppsKey);
       if (nsCspApps == undefined) {
         nsCspApps = await api.getCSPApps().then((data) => data.result.content || []);
-        cspApps.set(cspAppsKey, nsCspApps);
+        cspApps.set(cspAppsKey, nsCspApps!);
       }
-      return nsCspApps.map((cspApp) => {
+      return nsCspApps!.map((cspApp) => {
         return { Name: cspApp.slice(1), fullName: cspApp.slice(1), Type: "10" };
       });
     } else {
@@ -226,7 +226,7 @@ export class RootNode extends NodeBase {
   public getItemsForExport(): Promise<string[]> {
     const path = this instanceof PackageNode || this.isCsp ? this.fullName + "/" : "";
     const cat = this.isCsp ? "CSP" : "ALL";
-    return this.getList(path, cat, true).then((data) => data.map((el) => el.Name));
+    return this.getList(path, cat, true).then((data) => data!.map((el) => el.Name));
   }
 }
 
@@ -324,9 +324,9 @@ export class RoutineNode extends NodeBase {
 }
 
 export class WorkspaceNode extends NodeBase {
-  public eventEmitter: vscode.EventEmitter<NodeBase>;
+  public eventEmitter: vscode.EventEmitter<NodeBase | null>;
   public uniqueId: string;
-  public constructor(label: string, eventEmitter: vscode.EventEmitter<NodeBase>, options: NodeOptions) {
+  public constructor(label: string, eventEmitter: vscode.EventEmitter<NodeBase | null>, options: NodeOptions) {
     super(label, label, options);
     this.uniqueId = `serverNode:${this.namespace}:${this.namespace ? ":extra:" : ""}`;
     this.options.generated = workspaceState.get(`ExplorerGenerated:${this.uniqueId}`);
@@ -335,7 +335,7 @@ export class WorkspaceNode extends NodeBase {
   }
 
   public getTreeItem(): vscode.TreeItem {
-    const flags = [];
+    const flags: string[] = [];
     this.options.generated && flags.push(":generated:");
     this.options.system && flags.push(":system:");
     const api = new AtelierAPI(this.wsFolder.uri);
@@ -356,7 +356,7 @@ export class WorkspaceNode extends NodeBase {
 
   public async getChildren(_element: NodeBase): Promise<NodeBase[]> {
     if (!new AtelierAPI(this.wsFolder.uri).active) return [new InactiveNode("", "", { wsFolder: this.wsFolder })];
-    const children = [];
+    const children: RootNode[] = [];
     let node: RootNode;
 
     node = new RootNode(
@@ -426,7 +426,7 @@ export class ProjectNode extends NodeBase {
   }
 
   public async getChildren(_element: NodeBase): Promise<NodeBase[]> {
-    const children = [];
+    const children: ProjectRootNode[] = [];
     let node: ProjectRootNode;
 
     // Technically a project is a "document", so tell the server that we're opening it
@@ -523,9 +523,9 @@ export class ProjectRootNode extends RootNode {
           "SELECT DISTINCT $PIECE(SUBSTR(sod.Name,?+1),'/') AS Name FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,1,0,1) AS sod " +
           "JOIN %Studio.Project_ProjectItemsList(?,1) AS pil ON SUBSTR(sod.Name,2) %STARTSWITH ? AND (" +
           "(pil.Type = 'DIR' AND SUBSTR(sod.Name,2) %STARTSWITH pil.Name||'/') OR (pil.Type = 'CSP' AND SUBSTR(sod.Name,2) = pil.Name))";
-        parameters = [l, this.options.project, this.fullName + "/"];
+        parameters = [l, this.options.project!, this.fullName + "/"];
       } else {
-        parameters = [l, l, l, this.options.project, this.fullName + "."];
+        parameters = [l, l, l, this.options.project!, this.fullName + "."];
         if (this.category == "CLS") {
           query =
             "SELECT DISTINCT CASE " +
@@ -556,7 +556,7 @@ export class ProjectRootNode extends RootNode {
         "WHEN Type = 'CSP' OR Type = 'DIR' THEN $PIECE(Name,'/') " +
         "WHEN (Type != 'CSP' AND Type != 'DIR' AND $LENGTH(Name,'.') > 2) OR Type = 'CLS' OR Type = 'PKG' THEN $PIECE(Name,'.') " +
         "ELSE Name END Name FROM %Studio.Project_ProjectItemsList(?,1) WHERE ";
-      parameters = [this.options.project];
+      parameters = [this.options.project!];
       if (this.category == "CLS") {
         query += "Type = 'PKG' OR Type = 'CLS'";
       } else if (this.category == "RTN") {
@@ -594,7 +594,7 @@ export class ProjectRootNode extends RootNode {
             }
           } else {
             if (entry.includes(".")) {
-              if (["mac", "int", "inc"].includes(entry.split(".").pop().toLowerCase())) {
+              if (["mac", "int", "inc"].includes(entry.split(".").pop()!.toLowerCase())) {
                 return new RoutineNode(entry, fullName, this.options);
               } else {
                 return new ClassNode(entry, fullName, this.options);
@@ -613,11 +613,11 @@ export class ProjectRootNode extends RootNode {
 }
 
 export class ProjectsServerNsNode extends NodeBase {
-  public eventEmitter: vscode.EventEmitter<NodeBase>;
+  public eventEmitter: vscode.EventEmitter<NodeBase | null>;
 
   public constructor(
     label: string,
-    eventEmitter: vscode.EventEmitter<NodeBase>,
+    eventEmitter: vscode.EventEmitter<NodeBase | null>,
     wsFolder: vscode.WorkspaceFolder,
     namespace?: string
   ) {

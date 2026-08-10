@@ -45,9 +45,9 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
   }
 
   /** Returns the `Uri` of `name` in `workspaceFolder` if it exists */
-  private static findLocalUri(name: string, workspaceFolder: string): vscode.Uri {
+  private static findLocalUri(name: string, workspaceFolder: string | undefined): vscode.Uri | undefined {
     if (!workspaceFolder) return;
-    const wsFolder = vscode.workspace.workspaceFolders.find((wf) => wf.name == workspaceFolder);
+    const wsFolder = vscode.workspace.workspaceFolders!.find((wf) => wf.name == workspaceFolder);
     if (!wsFolder) return;
     if (!notIsfs(wsFolder.uri)) return;
     const conf = vscode.workspace.getConfiguration("objectscript.export", wsFolder);
@@ -121,7 +121,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     vfs?: boolean,
     wFolderUri?: vscode.Uri,
     forceServerCopy = false
-  ): vscode.Uri {
+  ): vscode.Uri | null {
     let scheme = vfs ? FILESYSTEM_SCHEMA : OBJECTSCRIPT_FILE_SCHEMA;
     const isCsp = name.includes("/");
 
@@ -131,8 +131,8 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
       wFolderUri = uriOfWorkspaceFolder(workspaceFolder);
     } else if (!workspaceFolder) {
       // Make sure workspaceFolder is set correctly if only wFolderUri was passed
-      workspaceFolder = vscode.workspace.workspaceFolders.find(
-        (wf) => wf.uri.toString() == wFolderUri.toString()
+      workspaceFolder = vscode.workspace.workspaceFolders!.find(
+        (wf) => wf.uri.toString() == wFolderUri!.toString()
       )?.name;
     }
     let uri: vscode.Uri;
@@ -144,7 +144,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
         namespace = "";
       }
       const params = new URLSearchParams(wFolderUri.query);
-      const cspParam = params.has(IsfsUriParam.CSP) && ["", "1"].includes(params.get(IsfsUriParam.CSP));
+      const cspParam = params.has(IsfsUriParam.CSP) && ["", "1"].includes(params.get(IsfsUriParam.CSP)!);
       const lastDot = name.lastIndexOf(".");
       let uriPath = isCsp ? name : name.slice(0, lastDot).replace(/\./g, "/") + "." + name.slice(lastDot + 1);
       if (!isCsp && /.\.G?[1-9]\.int$/i.test(name)) {
@@ -202,7 +202,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
       const fileName = name
         .split(".")
         .slice(0, -1)
-        .join(fileExt.match(/cls/i) ? "/" : ".");
+        .join(fileExt!.match(/cls/i) ? "/" : ".");
       name = fileName + "." + fileExt;
       uri = vscode.Uri.file(name).with({
         scheme: scheme,

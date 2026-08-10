@@ -148,7 +148,7 @@ import { isfsConfig } from "./utils/FileProviderUtil";
 import { showAllClassMembers } from "./commands/showAllClassMembers";
 import { Authorization, ResolvedAuthorization } from "@intersystems-community/intersystems-servermanager";
 
-const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
+const packageJson = vscode.extensions.getExtension(extensionId)!.packageJSON;
 const extensionVersion = packageJson.version;
 const aiKey = packageJson.aiKey;
 const PANEL_LABEL = "ObjectScript";
@@ -176,7 +176,7 @@ export function config(setting?: string, workspaceFolderName?: string): any {
   }
   let prefix: string;
   const workspaceFolder = vscode.workspace.workspaceFolders?.find(
-    (el) => el.name.toLowerCase() === workspaceFolderName.toLowerCase()
+    (el) => el.name.toLowerCase() === workspaceFolderName!.toLowerCase()
   );
   if (setting && setting.startsWith("intersystems")) {
     return vscode.workspace.getConfiguration(setting, workspaceFolder);
@@ -184,13 +184,13 @@ export function config(setting?: string, workspaceFolderName?: string): any {
     prefix = "objectscript";
   }
 
-  if (["conn", "export"].includes(setting)) {
+  if (["conn", "export"].includes(setting!)) {
     if (workspaceFolderName && workspaceFolderName !== "") {
       if (workspaceFolderName.match(/.+:\d+$/)) {
         const { port, hostname: host, auth, query } = url.parse("http://" + workspaceFolderName, true);
         const { ns = "USER", https = false } = query;
         const [username, password] = (auth || "_SYSTEM:SYS").split(":");
-        const authorization = serverManagerApi.defaultAuth();
+        const authorization = serverManagerApi.defaultAuth!();
         authorization.resolve({ username, accessToken: password });
         if (setting == "conn") {
           return {
@@ -198,7 +198,7 @@ export function config(setting?: string, workspaceFolderName?: string): any {
             https,
             ns,
             host,
-            port: +port,
+            port: +port!,
             auth: authorization,
           } as ConnConfig;
         } else if (setting == "export") {
@@ -211,7 +211,7 @@ export function config(setting?: string, workspaceFolderName?: string): any {
   return setting && setting.length ? result.get(setting) : result;
 }
 
-let reporter: TelemetryReporter;
+let reporter: TelemetryReporter | undefined;
 
 export let checkingConnection = false;
 
@@ -248,7 +248,7 @@ export async function resolveConnectionSpec(
       return;
     }
   }
-  const rawConnSpec = await serverManagerApi.getServerSpec(serverName, scope);
+  const rawConnSpec = (await serverManagerApi.getServerSpec(serverName, scope))!;
   let connSpec = {
     ...rawConnSpec,
     auth: rawConnSpec.auth ?? new BasicAuthorization(rawConnSpec.username, rawConnSpec.password),
@@ -269,7 +269,7 @@ export async function resolveConnectionSpec(
             pathPrefix: serverForUri.pathPrefix,
           },
           superServer: {
-            port: serverForUri.superserverPort,
+            port: serverForUri.superserverPort!,
           },
           description: `Server for workspace folder '${serverName}'`,
           auth: new BasicAuthorization(),
@@ -281,7 +281,7 @@ export async function resolveConnectionSpec(
   if (connSpec) {
     const accessToken = await resolvePassword(connSpec);
     if (connSpec.auth.resolve({ accessToken })) {
-      resolvedConnSpecs.set(serverName, connSpec);
+      resolvedConnSpecs.set(serverName, connSpec as ResolvedConnSpec);
     }
   }
 }
@@ -290,7 +290,7 @@ async function resolvePassword(
   serverSpec: serverManager.IServerSpec,
   ignoreUnauthenticated = false
 ): Promise<string | undefined> {
-  if (!(serverSpec.auth.resolved() as boolean) || ignoreUnauthenticated) {
+  if (!(serverSpec.auth!.resolved() as boolean) || ignoreUnauthenticated) {
     const scopes = [serverSpec.name, serverSpec.auth?.username || ""];
 
     // Handle Server Manager extension version < 3.8.0
@@ -333,14 +333,17 @@ export async function resolveUsernameAndPassword(
 }
 
 /** Accessor for the cache of resolved connection specs */
-export function getResolvedConnectionSpec(key: string, dflt: ResolvedConnSpec): ResolvedConnSpec {
+export function getResolvedConnectionSpec(
+  key: string,
+  dflt: ResolvedConnSpec | undefined
+): ResolvedConnSpec | undefined {
   let spec = resolvedConnSpecs.get(key);
   if (spec) {
     return spec;
   }
 
   // Try a case-insensitive match
-  key = resolvedConnSpecs.keys().find((oneKey) => oneKey.toLowerCase() === key.toLowerCase());
+  key = resolvedConnSpecs.keys().find((oneKey) => oneKey.toLowerCase() === key.toLowerCase())!;
   if (key) {
     spec = resolvedConnSpecs.get(key);
     if (spec) {
@@ -500,7 +503,7 @@ export async function checkConnection(
               api.config.serverName,
               vscode.workspace.getConfiguration("intersystems.servers", uri).get(api.config.serverName)
             );
-            const newSpec = await resolveUsernameAndPassword(api.config.serverName, oldSpec);
+            const newSpec = await resolveUsernameAndPassword(api.config.serverName, oldSpec!);
             if (newSpec) {
               // We were able to resolve credentials, so try again
               await workspaceState.update(wsKey + ":password", newSpec.auth?.accessToken);
@@ -601,15 +604,15 @@ export async function checkConnection(
  */
 function setConnectionState(configName: string, active: boolean) {
   const connConfig: vscode.WorkspaceConfiguration = config("", configName);
-  const target: vscode.ConfigurationTarget = connConfig.inspect("conn").workspaceFolderValue
+  const target: vscode.ConfigurationTarget = connConfig.inspect("conn")!.workspaceFolderValue
     ? vscode.ConfigurationTarget.WorkspaceFolder
     : vscode.ConfigurationTarget.Workspace;
   const targetConfig: any =
-    connConfig.inspect("conn").workspaceFolderValue || connConfig.inspect("conn").workspaceValue;
+    connConfig.inspect("conn")!.workspaceFolderValue || connConfig.inspect("conn")!.workspaceValue;
   return connConfig.update("conn", { ...targetConfig, active }, target);
 }
 
-function languageServer(install = true): vscode.Extension<any> {
+function languageServer(install = true): vscode.Extension<any> | undefined {
   let extension = vscode.extensions.getExtension(lsExtensionId);
 
   async function languageServerInstall() {
@@ -685,7 +688,7 @@ function proposedApiPrompt(active: boolean, added?: readonly vscode.WorkspaceFol
 const systemModes: Map<string, string> = new Map();
 
 /** Output a message notifying the user of the SystemMode of any servers they are connected to. */
-async function systemModeWarning(wsFolders: readonly vscode.WorkspaceFolder[]): Promise<void> {
+async function systemModeWarning(wsFolders: readonly vscode.WorkspaceFolder[] | undefined): Promise<void> {
   if (!wsFolders || wsFolders.length == 0) return;
   for (const wsFolder of wsFolders) {
     const api = new AtelierAPI(wsFolder.uri),
@@ -718,7 +721,7 @@ async function systemModeWarning(wsFolders: readonly vscode.WorkspaceFolder[]): 
         );
         outputChannel.show(true);
     }
-    systemModes.set(mapKey, systemMode);
+    systemModes.set(mapKey, systemMode!);
   }
 }
 
@@ -727,7 +730,7 @@ async function systemModeWarning(wsFolders: readonly vscode.WorkspaceFolder[]): 
  * that are showing the contents of a server-side project.
  * This must be done because technically a project is a "document".
  */
-async function fireOpenProjectUserAction(wsFolders: readonly vscode.WorkspaceFolder[]): Promise<void> {
+async function fireOpenProjectUserAction(wsFolders: readonly vscode.WorkspaceFolder[] | undefined): Promise<void> {
   if (!wsFolders || wsFolders.length == 0) return;
   for (const wsFolder of wsFolders) {
     if (notIsfs(wsFolder.uri)) return;
@@ -763,7 +766,7 @@ function setExplorerContextKeys(): void {
 }
 
 /** Cache the lists of web apps and abstract document types for all server-namespaces in `wsFolders` */
-async function updateWebAndAbstractDocsCaches(wsFolders: readonly vscode.WorkspaceFolder[]): Promise<any> {
+async function updateWebAndAbstractDocsCaches(wsFolders: readonly vscode.WorkspaceFolder[] | undefined): Promise<any> {
   if (!wsFolders?.length) return;
   const keys: Set<string> = new Set();
   const connections: { key: string; api: AtelierAPI }[] = [];
@@ -808,14 +811,14 @@ export function sendStudioAddinTelemetryEvent(addInName: string): void {
 }
 
 /** Send a telemetry event with details of each folder in `wsFolders` */
-function sendWsFolderTelemetryEvent(wsFolders: readonly vscode.WorkspaceFolder[], added = false): void {
+function sendWsFolderTelemetryEvent(wsFolders: readonly vscode.WorkspaceFolder[] | undefined, added = false): void {
   if (!reporter || !wsFolders?.length) return;
   wsFolders.forEach((wsFolder) => {
     const api = new AtelierAPI(wsFolder.uri);
     const { csp, project, ns } = isfsConfig(wsFolder.uri);
     const serverSide = filesystemSchemas.includes(wsFolder.uri.scheme);
     const conf = vscode.workspace.getConfiguration("objectscript", wsFolder);
-    reporter.sendTelemetryEvent("workspaceFolder", {
+    reporter!.sendTelemetryEvent("workspaceFolder", {
       scheme: wsFolder.uri.scheme,
       added: String(added),
       isWeb: serverSide ? String(csp) : undefined,
@@ -888,7 +891,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
   workspaceState.update("workspaceFolder", undefined);
 
   // Get api for servermanager extension
-  const smExt = vscode.extensions.getExtension(smExtensionId);
+  const smExt = vscode.extensions.getExtension(smExtensionId)!;
   if (!smExt.isActive) await smExt.activate();
   serverManagerApi = smExt.exports;
 
@@ -945,7 +948,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
   xmlContentProvider = new XmlContentProvider();
 
   const documentSelector = (...list) =>
-    ["file", ...schemas].reduce((acc, scheme) => acc.concat(list.map((language) => ({ scheme, language }))), []);
+    ["file", ...schemas].reduce(
+      (acc, scheme) => acc.concat(list.map((language) => ({ scheme, language }))),
+      [] as { scheme: string; language: any }[]
+    );
 
   const diagnosticProvider = new ObjectScriptDiagnosticProvider();
 
@@ -1074,14 +1080,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
   // Migrate removed importOnSave setting to new, more generic syncLocalChanges
   const conf = vscode.workspace.getConfiguration("objectscript");
   const importOnSave = conf.inspect("importOnSave");
-  if (typeof importOnSave.globalValue == "boolean") {
-    if (!importOnSave.globalValue) {
+  if (typeof importOnSave!.globalValue == "boolean") {
+    if (!importOnSave!.globalValue) {
       conf.update("syncLocalChanges", "off", vscode.ConfigurationTarget.Global);
     }
     conf.update("importOnSave", undefined, vscode.ConfigurationTarget.Global);
   }
-  if (typeof importOnSave.workspaceValue == "boolean") {
-    if (!importOnSave.workspaceValue) {
+  if (typeof importOnSave!.workspaceValue == "boolean") {
+    if (!importOnSave!.workspaceValue) {
       conf.update("syncLocalChanges", "off", vscode.ConfigurationTarget.Workspace);
     }
     conf.update("importOnSave", undefined, vscode.ConfigurationTarget.Workspace);
@@ -1109,7 +1115,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
         fireOtherStudioAction(OtherStudioAction.AttemptedEdit, event.document.uri);
       }
       if (!event.document.isDirty) {
-        checkChangedOnServer(currentFile(event.document));
+        checkChangedOnServer(currentFile(event.document)!);
       }
       if (
         notIsfs(event.document.uri) &&
@@ -1122,7 +1128,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
       }
     }),
     vscode.window.onDidChangeActiveTextEditor(async (editor) => {
-      if (vscode.workspace.workspaceFolders?.length > 1) {
+      if (vscode.workspace.workspaceFolders!.length > 1) {
         const workspaceFolder = currentWorkspaceFolder();
         if (workspaceFolder && workspaceFolder != workspaceState.get<string>("workspaceFolder")) {
           await workspaceState.update("workspaceFolder", workspaceFolder);
@@ -1218,7 +1224,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
     vscode.commands.registerCommand("vscode-objectscript.pickProcess", async (config) => {
       sendCommandTelemetryEvent("pickProcess");
       const system = config.system;
-      let connectionUri = vscode.window.activeTextEditor?.document.uri;
+      let connectionUri: vscode.Uri | null | undefined = vscode.window.activeTextEditor?.document.uri;
       if (connectionUri) {
         // Ignore active editor if its document is outside the workspace (e.g. user settings.json)
         connectionUri = vscode.workspace.getWorkspaceFolder(connectionUri)?.uri;
@@ -1283,8 +1289,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
         })
         .then((value) => {
           if (value) {
-            const workspaceFolderIndex = vscode.workspace.workspaceFolders.findIndex(
-              (folder) => folder.uri.toString() === connectionUri.toString()
+            const workspaceFolderIndex = vscode.workspace.workspaceFolders!.findIndex(
+              (folder) => folder.uri.toString() === connectionUri!.toString()
             );
             return workspaceFolderIndex < 0 ? value.label : `${value.label}@${workspaceFolderIndex}`;
           }
@@ -1372,7 +1378,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
     ),
     vscode.commands.registerCommand("vscode-objectscript.previewXml", () => {
       sendCommandTelemetryEvent("previewXml");
-      previewXMLAsUDL(vscode.window.activeTextEditor);
+      previewXMLAsUDL(vscode.window.activeTextEditor!);
     }),
     vscode.commands.registerCommand("vscode-objectscript.addServerNamespaceToWorkspace", (resource?: vscode.Uri) => {
       sendCommandTelemetryEvent("addServerNamespaceToWorkspace");
@@ -1449,7 +1455,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
           }
           // Generate the new content
           const defaultName = inferDocName(uri)?.slice(0, -4);
-          const fileExt = uri.path.split(".").pop().toLowerCase();
+          const fileExt = uri.path.split(".").pop()!.toLowerCase();
           const newContent =
             fileExt == "cls"
               ? [`Class \${1${defaultName ? `:${defaultName}` : ""}} Extends %RegisteredObject`, "{", "$0", "}", ""]
@@ -1619,7 +1625,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
         ) {
           throw undefined;
         }
-        const file = currentFile(document);
+        const file = currentFile(document)!;
         const nameMatch = file.name.match(/(.*)\.(int|mac)$/i);
         if (!nameMatch) throw undefined;
         const [, routine] = nameMatch;
@@ -1826,7 +1832,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
       const doc = await pickDocument(api, "Open a document");
       if (!doc) return;
       vscode.window.showTextDocument(
-        DocumentContentProvider.getUri(doc, undefined, undefined, undefined, wsFolder.uri)
+        DocumentContentProvider.getUri(doc, undefined, undefined, undefined, wsFolder.uri)!
       );
     }),
     vscode.window.tabGroups.onDidChangeTabs((e) => {
@@ -1930,7 +1936,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
     ),
 
     /* Anything we use from the VS Code proposed API */
-    ...proposed
+    ...(proposed as vscode.Disposable[])
   );
 
   // Send the activation and workspace folders telemetry events
@@ -1972,7 +1978,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
       return _onDidChangeConnection.event;
     },
     getUriForDocument(document: string): vscode.Uri {
-      return DocumentContentProvider.getUri(document);
+      return DocumentContentProvider.getUri(document)!;
     },
   };
 
@@ -2016,11 +2022,11 @@ function serverForUri(uri: vscode.Uri): serverManager.ServerForUri {
     host,
     port,
     superserverPort,
-    pathPrefix,
+    pathPrefix: pathPrefix!,
     auth,
-    namespace: ns,
-    apiVersion: active ? apiVersion : undefined,
-    serverVersion: active ? serverVersion : undefined,
+    namespace: ns!,
+    apiVersion: (active ? apiVersion : undefined)!,
+    serverVersion: (active ? serverVersion : undefined)!,
   };
 }
 
@@ -2031,13 +2037,13 @@ async function asyncServerForUri(uri: vscode.Uri): Promise<serverManager.ServerF
   if (!server.port) {
     let { apiTarget } = connectionTarget(uri);
     if (apiTarget instanceof vscode.Uri) {
-      apiTarget = vscode.workspace.getWorkspaceFolder(apiTarget)?.name;
+      apiTarget = vscode.workspace.getWorkspaceFolder(apiTarget)?.name as string;
     }
     const {
       port: dockerPort,
       superserverPort: dockerSuperserverPort,
       docker: withDocker,
-    } = await portFromDockerCompose(apiTarget);
+    } = await portFromDockerCompose(apiTarget as string | undefined);
     if (withDocker && dockerPort && dockerSuperserverPort) {
       server.port = dockerPort;
       server.superserverPort = dockerSuperserverPort;
