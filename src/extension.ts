@@ -2004,6 +2004,7 @@ function serverForUri(uri: vscode.Uri): serverManager.ServerForUri {
   // which will require explicit user consent to divulge the password to the requesting extension.
   const { serverName, active, host, https, port, superserverPort, pathPrefix, auth, ns, apiVersion, serverVersion } =
     api.config;
+  auth.clear() as void;
   if (serverName !== "") {
     const password = vscode.workspace
       .getConfiguration(
