@@ -239,11 +239,11 @@ export class StudioActions {
             }
           }
 
-          const fileExt = fileName.split(".").pop().toLowerCase();
+          const fileExt = fileName.split(".").pop()!.toLowerCase();
           const isCorrectMethod = (text: string) =>
             fileExt === "cls" ? text.match("Method " + method) : text.startsWith(method);
 
-          vscode.window.showTextDocument(DocumentContentProvider.getUri(fileName), { preview: false }).then(
+          vscode.window.showTextDocument(DocumentContentProvider.getUri(fileName)!, { preview: false }).then(
             (newEditor) => {
               if (method) {
                 const document = newEditor.document;
@@ -289,7 +289,7 @@ export class StudioActions {
     return Promise.resolve();
   }
 
-  private userAction(action, afterUserAction = false, answer = "", msg = "", type = 0): Thenable<void> {
+  private userAction(action, afterUserAction = false, answer = "", msg = "", type = 0): Thenable<void> | undefined {
     if (!action || action.id == "") {
       return;
     }
@@ -515,7 +515,7 @@ export class StudioActions {
   public getServerInfo(): { server: string; namespace: string } {
     return {
       server: `${this.api.config.host}:${this.api.config.port}${this.api.config.pathPrefix}`,
-      namespace: this.api.config.ns,
+      namespace: this.api.config.ns!,
     };
   }
 }
@@ -574,7 +574,7 @@ export async function fireOtherStudioAction(
   action: OtherStudioAction,
   uri: vscode.Uri,
   userAction?: UserAction
-): Promise<void> {
+): Promise<void | boolean> {
   if (vscode.workspace.getConfiguration("objectscript.serverSourceControl", uri)?.get("disableOtherActionTriggers")) {
     return;
   }

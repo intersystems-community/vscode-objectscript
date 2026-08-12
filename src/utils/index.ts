@@ -171,10 +171,10 @@ function otherDocExtsForUri(uri: vscode.Uri): string[] {
 }
 
 /** Determine the server name of a non-`isfs` non-ObjectScript file (any file that's not CLS,MAC,INT,INC). */
-export function getServerDocName(uri: vscode.Uri): string {
+export function getServerDocName(uri: vscode.Uri): string | undefined {
   const wsFolder = vscode.workspace.getWorkspaceFolder(uri);
   if (!wsFolder) return;
-  const cspIdx = uri.path.lastIndexOf(cspAppsForUri(uri).find((cspApp) => uri.path.includes(cspApp + "/")));
+  const cspIdx = uri.path.lastIndexOf(cspAppsForUri(uri).find((cspApp) => uri.path.includes(cspApp + "/"))!);
   if (cspIdx != -1) {
     return uri.path.slice(cspIdx);
   } else if (uri.path.toLowerCase().endsWith(".dfi")) {
@@ -184,8 +184,8 @@ export function getServerDocName(uri: vscode.Uri): string {
     if (relativeFilePath == "") return; // uri isn't in the workspace folder. Should never happen.
     // Check for matching export settings first. If no match, use base name.
     const config = vscode.workspace.getConfiguration("objectscript.export", uri);
-    const folder: string = config.get("folder");
-    const addCategory: boolean = config.get("addCategory");
+    const folder: string = config.get("folder")!;
+    const addCategory: boolean = config.get("addCategory")!;
     let root = [
       typeof folder == "string" && folder.length ? folder : null,
       addCategory ? getCategory(uri.fsPath, addCategory) : null,
@@ -218,7 +218,7 @@ export function isImportableLocalFile(uri: vscode.Uri): boolean {
   if (!vscode.workspace.getWorkspaceFolder(uri)) return false;
   return (
     cspAppsForUri(uri).some((cspApp) => uri.path.includes(cspApp + "/")) ||
-    otherDocExtsForUri(uri).includes(uri.path.split(".").pop().toLowerCase())
+    otherDocExtsForUri(uri).includes(uri.path.split(".").pop()!.toLowerCase())
   );
 }
 
@@ -228,14 +228,17 @@ export const classNameRegex = /^[ \t]*Class[ \t]+(%?[\p{L}\d\u{100}-\u{ffff}]+(?
 /** A regex for extracting the name and type of a routine from its content */
 export const routineNameTypeRegex = /^ROUTINE ([^\s]+)(?:\s*\[\s*Type\s*=\s*\b([a-z]{3})\b)?/i;
 
-export function currentFileFromContent(uri: vscode.Uri, content: string | Buffer): CurrentTextFile | CurrentBinaryFile {
+export function currentFileFromContent(
+  uri: vscode.Uri,
+  content: string | Buffer
+): CurrentTextFile | CurrentBinaryFile | null {
   const fileName = uri.fsPath;
   const workspaceFolder = workspaceFolderOfUri(uri);
   if (!workspaceFolder) {
     // No workspace folders are open
     return null;
   }
-  const fileExt = fileName.split(".").pop().toLowerCase();
+  const fileExt = fileName.split(".").pop()!.toLowerCase();
   if (
     notIsfs(uri) &&
     !isClassOrRtn(uri.path) &&
@@ -258,7 +261,7 @@ export function currentFileFromContent(uri: vscode.Uri, content: string | Buffer
       [, name, ext = "mac"] = match;
     }
   } else {
-    name = notIsfs(uri) ? getServerDocName(uri) : isfsDocumentName(uri);
+    name = notIsfs(uri) ? getServerDocName(uri)! : isfsDocumentName(uri);
   }
   if (!name) {
     return null;
@@ -288,7 +291,7 @@ export function currentFileFromContent(uri: vscode.Uri, content: string | Buffer
   }
 }
 
-export function currentFile(document?: vscode.TextDocument): CurrentTextFile {
+export function currentFile(document?: vscode.TextDocument | null): CurrentTextFile | null {
   document =
     document ||
     (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document
@@ -298,7 +301,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentTextFile {
     return null;
   }
   const fileName = document.fileName;
-  const fileExt = fileName.split(".").pop().toLowerCase();
+  const fileExt = fileName.split(".").pop()!.toLowerCase();
   if (
     notIsfs(document.uri) &&
     !isClassOrRtn(document.uri.path) &&
@@ -324,7 +327,7 @@ export function currentFile(document?: vscode.TextDocument): CurrentTextFile {
       [, name, ext = "mac"] = match;
     }
   } else {
-    name = notIsfs(uri) ? getServerDocName(uri) : isfsDocumentName(uri);
+    name = notIsfs(uri) ? getServerDocName(uri)! : isfsDocumentName(uri);
   }
   if (!name) {
     return null;
@@ -385,7 +388,7 @@ export function connectionTarget(uri?: vscode.Uri): ConnectionTarget {
       result.configName = parts.length === 2 ? parts[0] : firstFolder.uri.authority;
       result.apiTarget = firstFolder.uri;
     } else {
-      result.configName = workspaceState.get<string>("workspaceFolder") || firstFolder ? firstFolder.name : "";
+      result.configName = workspaceState.get<string>("workspaceFolder") || firstFolder ? firstFolder!.name : "";
       result.apiTarget = result.configName;
     }
   }
@@ -411,7 +414,7 @@ export function currentWorkspaceFolder(document?: vscode.TextDocument): string {
   if (firstFolder && schemas.includes(firstFolder.uri.scheme)) {
     return firstFolder.uri.authority;
   } else {
-    return workspaceState.get<string>("workspaceFolder") || firstFolder ? firstFolder.name : "";
+    return workspaceState.get<string>("workspaceFolder") || firstFolder ? firstFolder!.name : "";
   }
 }
 
@@ -426,7 +429,7 @@ export function workspaceFolderOfUri(uri: vscode.Uri): string {
     return vscode.workspace.getWorkspaceFolder(uri)?.name ?? "";
   } else {
     const rootUri = uri.with({ path: "/" }).toString();
-    const foundFolder = vscode.workspace.workspaceFolders.find(
+    const foundFolder = vscode.workspace.workspaceFolders!.find(
       (workspaceFolder) => workspaceFolder.uri.toString() == rootUri
     );
     return foundFolder ? foundFolder.name : uri.authority;
@@ -491,14 +494,19 @@ export async function portFromDockerCompose(
     return { docker: false, port: null, superserverPort: null };
   }
 
-  const result = { port: null, superserverPort: null, docker: true, service };
+  const result: { port: number | null; superserverPort: number | null; docker: boolean; service?: string } = {
+    port: null,
+    superserverPort: null,
+    docker: true,
+    service,
+  };
   const workspaceFolder = uriOfWorkspaceFolder(workspaceFolderName);
   if (!workspaceFolder) {
     // No workspace folders are open
     return { docker: false, port: null, superserverPort: null };
   }
   const workspaceFolderPath = workspaceFolder.fsPath;
-  const workspaceRootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+  const workspaceRootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
 
   const cwd: string = await fileExists(vscode.Uri.file(path.join(workspaceFolderPath, file))).then(async (exists) => {
     if (exists) {
@@ -631,7 +639,9 @@ interface WSServerRootFolderData {
 const wsServerRootFolders = new Map<string, WSServerRootFolderData>();
 
 /** Cache information about redirection of `.vscode` folder contents for server-side folders */
-export async function addWsServerRootFolderData(wsFolders: readonly vscode.WorkspaceFolder[]): Promise<any> {
+export async function addWsServerRootFolderData(
+  wsFolders: readonly vscode.WorkspaceFolder[] | undefined
+): Promise<any> {
   if (!wsFolders?.length) return;
   return Promise.allSettled(
     wsFolders.map(async (wsFolder) => {
@@ -662,10 +672,10 @@ export async function addWsServerRootFolderData(wsFolders: readonly vscode.Works
           webApps = await api
             .getCSPApps(false, "%SYS")
             .then((data) => data.result.content ?? [])
-            .catch(() => []);
-          cspApps.set(key, webApps);
+            .catch((): string[] => []);
+          cspApps.set(key, webApps!);
         }
-        value.canRedirectDotvscode = webApps.includes("/_vscode");
+        value.canRedirectDotvscode = webApps!.includes("/_vscode");
       }
       wsServerRootFolders.set(wsFolder.uri.toString(), value);
     })
@@ -772,7 +782,7 @@ export function parseClassMemberDefinition(
   document: vscode.TextDocument,
   symbol: vscode.DocumentSymbol,
   symbolLine?: number
-): { definition: string; defEndLine: number; language: string; isPrivate: boolean } {
+): { definition: string; defEndLine: number; language: string; isPrivate: boolean } | undefined {
   const languageServer: boolean = vscode.extensions.getExtension(lsExtensionId)?.isActive ?? false;
   if (symbolLine == undefined) {
     if (languageServer) {
@@ -786,9 +796,9 @@ export function parseClassMemberDefinition(
       }
     }
   }
-  let definition: string;
-  let defEndLine: number;
-  for (let defLine = symbolLine; defLine < document.lineCount; defLine++) {
+  let definition: string | undefined;
+  let defEndLine: number | undefined;
+  for (let defLine = symbolLine!; defLine < document.lineCount; defLine++) {
     const line = document.lineAt(defLine);
     if (line.text.trimEnd().endsWith("{")) {
       definition = document.getText(
@@ -804,7 +814,7 @@ export function parseClassMemberDefinition(
   const privateMatch = definitionNoDelimitedValues.match(privateRegex);
   return {
     definition,
-    defEndLine,
+    defEndLine: defEndLine!,
     language: languageMatch && languageMatch[1] ? languageMatch[1].toLowerCase() : "objectscript",
     isPrivate: privateMatch != null,
   };
@@ -838,10 +848,10 @@ export function methodOffsetToLine(
   method: string,
   offset = 0
 ): number | undefined {
-  let line: number;
+  let line: number | undefined;
   const languageServer: boolean = vscode.extensions.getExtension(lsExtensionId)?.isActive ?? false;
   // Find the DocumentSymbol for this method
-  let currentSymbol: vscode.DocumentSymbol;
+  let currentSymbol: vscode.DocumentSymbol | undefined;
   for (const symbol of members) {
     if (stripClassMemberNameQuotes(symbol.name) === method && symbol.detail.toLowerCase().includes("method")) {
       currentSymbol = symbol;
@@ -881,7 +891,7 @@ export function base64EncodeContent(content: Buffer): string[] {
   // Output is 4 chars for each 3 input, so 24573/3*4 = 32764
   const chunkSize = 24573;
   let start = 0;
-  const result = [];
+  const result: string[] = [];
   while (start < content.byteLength) {
     result.push(content.toString("base64", start, start + chunkSize));
     start += chunkSize;
@@ -891,12 +901,12 @@ export function base64EncodeContent(content: Buffer): string[] {
 
 /** Returns `true` if `uri` has a class file extension */
 export function isClass(uriOrName: string): boolean {
-  return "cls" == uriOrName.split(".").pop().toLowerCase();
+  return "cls" == uriOrName.split(".").pop()!.toLowerCase();
 }
 
 /** Returns `true` if `uri` has a class or routine file extension */
 export function isClassOrRtn(uriOrName: string): boolean {
-  return ["cls", "mac", "int", "inc"].includes(uriOrName.split(".").pop().toLowerCase());
+  return ["cls", "mac", "int", "inc"].includes(uriOrName.split(".").pop()!.toLowerCase());
 }
 
 interface ConnQPItem extends vscode.QuickPickItem {
@@ -920,7 +930,7 @@ export async function getWsServerConnection(minVersion?: string): Promise<vscode
     const api = new AtelierAPI(wsFolder.uri);
     if (!api.active) continue;
     const config = api.config;
-    if (minVersion && lt(config.serverVersion, minVersion)) continue;
+    if (minVersion && lt(config.serverVersion!, minVersion)) continue;
     const conn = {
       label: api.connInfo,
       description: !config.auth.resolved() ? "Unauthenticated" : config.auth.username || "UnknownUser",
@@ -1037,7 +1047,7 @@ export function displayableUri(uri: vscode.Uri): string {
 /** Return `true` if document `name` can be compiled */
 export function isCompilable(name: string): boolean {
   // Exlcude web app files that are not CSP or CSR files
-  return !(name.includes("/") && !["csp", "csr"].includes(name.split(".").pop().toLowerCase()));
+  return !(name.includes("/") && !["csp", "csr"].includes(name.split(".").pop()!.toLowerCase()));
 }
 
 /** CSS that is shared between multiple webviews. Most webview CSS was borrowed from https://github.com/vscode-elements/elements-lite. */
@@ -1108,12 +1118,12 @@ export class RateLimiter {
   }
 
   /** Execute a function with rate limiting */
-  async call<T>(fn: () => Promise<T>): Promise<T> {
+  async call<T>(fn: () => Promise<T> | undefined): Promise<T> {
     // Acquire a slot in the semaphore. Will not reject.
     await this._semaphore.acquire();
     try {
       // Execute the provided function
-      return await fn();
+      return (await fn())!;
     } finally {
       // Always release the slot in the semaphore after the function completes
       this._semaphore.release();

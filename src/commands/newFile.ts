@@ -364,7 +364,7 @@ export async function newFile(type: NewFileType): Promise<void> {
     }
 
     // Check if workspace folder has an active connection
-    let api = new AtelierAPI(wsFolder.uri);
+    let api: AtelierAPI | undefined = new AtelierAPI(wsFolder.uri);
     if (!api.active) {
       if (wsFolder.uri.scheme == FILESYSTEM_SCHEMA) {
         vscode.window.showErrorMessage(
@@ -538,8 +538,8 @@ export async function newFile(type: NewFileType): Promise<void> {
     );
 
     // Create the type-specific elements prompts, then use them to generate the content
-    let clsContent: string;
-    let cls: string;
+    let clsContent: string | undefined;
+    let cls: string | undefined;
     if (type == NewFileType.BusinessOperation) {
       // Create the prompts for the invocation style and adapter class
       inputSteps.push(
@@ -809,7 +809,7 @@ ClassMethod Transform(source As ${sourceCls}, ByRef target As ${targetCls}) As %
       const [, desc, assistCls] = results;
 
       // Determine the context class, if possible
-      let contextClass: string;
+      let contextClass: string | undefined;
       switch (assistCls) {
         case "Ens.Alerting.Rule.CreateAlertAssist":
           contextClass = "Ens.Alerting.Context.CreateAlert";
@@ -829,9 +829,9 @@ ClassMethod Transform(source As ${sourceCls}, ByRef target As ${targetCls}) As %
       }
 
       // Prompt for the production, if required
-      let production: string;
+      let production: string | undefined;
       if (Object.keys(ruleAssists).length && assistCls in ruleAssists && ruleAssists[assistCls].hasProduction) {
-        const productions: string[] = await api
+        const productions: string[] = await api!
           .getEnsClassList(11)
           .then((data) => data.result.content)
           .catch(() => []);
@@ -972,7 +972,7 @@ ClassMethod %OnDashboardAction(pAction As %String, pContext As %ZEN.proxyObject)
       cls = results[0];
       const [, desc, msgType] = results;
 
-      let respClass: string;
+      let respClass: string | undefined;
       if (msgType == "Request") {
         // Prompt the user for the response type
         const respClasses: vscode.QuickPickItem[] = api
@@ -1079,10 +1079,10 @@ Class ${cls}${superclass ? ` Extends ${superclass}` : ""}
     let clsUri: vscode.Uri;
     if (wsFolder.uri.scheme == FILESYSTEM_SCHEMA) {
       // Generate the URI
-      clsUri = DocumentContentProvider.getUri(`${cls}.cls`, undefined, undefined, undefined, wsFolder.uri);
+      clsUri = DocumentContentProvider.getUri(`${cls}.cls`, undefined, undefined, undefined, wsFolder.uri)!;
     } else {
       // Try to infer the URI from the document index
-      clsUri = inferDocUri(`${cls}.cls`, wsFolder) ?? (await promptForDocUri(cls, wsFolder));
+      clsUri = inferDocUri(`${cls}.cls`, wsFolder) ?? (await promptForDocUri(cls!, wsFolder))!;
     }
 
     if (clsUri && clsContent) {

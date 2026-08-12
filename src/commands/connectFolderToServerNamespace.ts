@@ -32,7 +32,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
     .filter((folder) => notIsfs(folder.uri))
     .map((folder) => {
       const config = vscode.workspace.getConfiguration("objectscript", folder);
-      const conn: ConnSettings = config.get("conn");
+      const conn: ConnSettings = config.get("conn")!;
       return {
         label: folder.name,
         description: folder.uri.fsPath,
@@ -47,14 +47,14 @@ export async function connectFolderToServerNamespace(): Promise<void> {
     return;
   }
   const pick =
-    items.length == 1 && !items[0].detail.startsWith("Currently")
+    items.length == 1 && !items[0].detail!.startsWith("Currently")
       ? items[0]
       : await vscode.window.showQuickPick(items, { title: "Pick a folder" });
   if (!pick) return;
   const folder = vscode.workspace.workspaceFolders.find((el) => el.name === pick.label);
   // Get user's choice of server
   const options: vscode.QuickPickOptions = {};
-  const serverName: string = await serverManagerApi.pickServer(folder, options);
+  const serverName: string | undefined = await serverManagerApi.pickServer(folder, options);
   if (!serverName) {
     return;
   }
@@ -62,27 +62,27 @@ export async function connectFolderToServerNamespace(): Promise<void> {
   // Prepare a displayable form of its connection spec as a hint to the user
   // This will never return the default value (second parameter) because we only just resolved the connection spec.
   const connSpec = getResolvedConnectionSpec(serverName, undefined);
-  const connDisplayString = `${connSpec.webServer.scheme}://${connSpec.webServer.host}:${connSpec.webServer.port}/${connSpec.webServer.pathPrefix}`;
+  const connDisplayString = `${connSpec!.webServer.scheme}://${connSpec!.webServer.host}:${connSpec!.webServer.port}/${connSpec!.webServer.pathPrefix}`;
   // Connect and fetch namespaces
   const api = new AtelierAPI(vscode.Uri.parse(`isfs://${serverName}/?ns=%SYS`));
   const serverConf = vscode.workspace
     .getConfiguration("intersystems", folder)
     .inspect<{ [key: string]: any }>("servers");
   if (
-    serverConf.workspaceFolderValue &&
-    typeof serverConf.workspaceFolderValue[serverName] == "object" &&
-    !(serverConf.workspaceValue && typeof serverConf.workspaceValue[serverName] == "object")
+    serverConf!.workspaceFolderValue &&
+    typeof serverConf!.workspaceFolderValue[serverName] == "object" &&
+    !(serverConf!.workspaceValue && typeof serverConf!.workspaceValue[serverName] == "object")
   ) {
     // Need to manually set connection info if the server is defined at the workspace folder level
-    api.setConnSpec(serverName, connSpec);
+    api.setConnSpec(serverName, connSpec!);
   }
-  const allNamespaces: string[] = await api
+  const allNamespaces: string[] | undefined = await api
     .serverInfo(false)
     .then((data) => data.result.content.namespaces)
     .catch(async (error) => {
       if (error?.statusCode == 401 && !api.config.auth.resolved()) {
         // Attempt to resolve username and password and try again
-        const newSpec = await resolveUsernameAndPassword(api.config.serverName, connSpec);
+        const newSpec = await resolveUsernameAndPassword(api.config.serverName, connSpec!);
         if (newSpec) {
           // We were able to resolve credentials, so try again
           api.setConnSpec(api.config.serverName, newSpec);
@@ -131,7 +131,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
     // the server may be configured at the workspace folder level.
     const answer = await vscode.window.showQuickPick(
       [
-        { label: `Workspace Folder ${folder.name}`, detail: displayableUri(folder.uri) },
+        { label: `Workspace Folder ${folder!.name}`, detail: displayableUri(folder!.uri) },
         { label: "Workspace File", detail: displayableUri(vscode.workspace.workspaceFile) },
       ],
       { title: "Store the server connection at the workspace or folder level?" }
@@ -139,7 +139,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
     if (!answer) return;
     if (answer.label == "Workspace File") {
       // Enable the connection at the workspace level
-      const conn: any = config.inspect("conn").workspaceValue;
+      const conn: any = config.inspect("conn")!.workspaceValue;
       await config.update(
         "conn",
         { ...conn, server: serverName, ns: namespace, active: true },
@@ -149,7 +149,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
     }
   }
   // Enable the connection at the workspace folder level
-  const conn: any = config.inspect("conn").workspaceFolderValue;
+  const conn: any = config.inspect("conn")!.workspaceFolderValue;
   await config.update(
     "conn",
     { ...conn, server: serverName, ns: namespace, active: true },

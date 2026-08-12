@@ -16,12 +16,12 @@ export class ObjectScriptDebugAdapterDescriptorFactory
     // pickProcess may have added a suffix to inform us which folder's connection it used
     const workspaceFolderIndex = (session.configuration.processId as string)?.split("@")[1];
     const workspaceFolderUri = workspaceFolderIndex
-      ? vscode.workspace.workspaceFolders[parseInt(workspaceFolderIndex)]?.uri
+      ? vscode.workspace.workspaceFolders![parseInt(workspaceFolderIndex)]?.uri
       : undefined;
     debugSession.setupAPI(workspaceFolderUri);
 
     const serverId = debugSession.serverId;
-    let server = this.serverMap.get(serverId);
+    let server = this.serverMap.get(serverId!);
     if (!server) {
       // start listening on a random port
       server = net
@@ -30,12 +30,12 @@ export class ObjectScriptDebugAdapterDescriptorFactory
           debugSession.start(socket as NodeJS.ReadableStream, socket);
         })
         .listen(0);
-      this.serverMap.set(serverId, server);
+      this.serverMap.set(serverId!, server);
     }
 
     // make VS Code connect to this debug server
     const address = server.address();
-    const port = typeof address !== "string" ? address.port : 9000;
+    const port = typeof address !== "string" ? address!.port : 9000;
     return new vscode.DebugAdapterServer(port);
   }
 

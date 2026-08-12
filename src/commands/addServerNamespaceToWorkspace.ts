@@ -17,7 +17,9 @@ import { isfsConfig, IsfsUriParam } from "../utils/FileProviderUtil";
  * @param message The prefix of the message to show when the server manager API can't be found.
  * @returns An object containing `serverName` and `namespace`, or `undefined`.
  */
-async function pickServerAndNamespace(message?: string): Promise<{ serverName: string; namespace: string }> {
+async function pickServerAndNamespace(
+  message?: string
+): Promise<{ serverName: string; namespace: string } | undefined> {
   if (!serverManagerApi) {
     vscode.window.showErrorMessage(
       `${
@@ -29,7 +31,7 @@ async function pickServerAndNamespace(message?: string): Promise<{ serverName: s
   }
   // Get user's choice of server
   const options: vscode.QuickPickOptions = { ignoreFocusOut: true };
-  const serverName: string = await serverManagerApi.pickServer(undefined, options);
+  const serverName: string | undefined = await serverManagerApi.pickServer(undefined, options);
   if (!serverName) {
     return;
   }
@@ -40,13 +42,13 @@ async function pickServerAndNamespace(message?: string): Promise<{ serverName: s
   return { serverName, namespace };
 }
 
-async function pickNamespaceOnServer(serverName: string): Promise<string> {
+async function pickNamespaceOnServer(serverName: string): Promise<string | undefined> {
   // Get its namespace list
   const uri = vscode.Uri.parse(`isfs://${serverName}:%sys/`);
   await resolveConnectionSpec(serverName);
   // Prepare a displayable form of its connection spec as a hint to the user.
   // This will never return the default value (second parameter) because we only just resolved the connection spec.
-  const connSpec = getResolvedConnectionSpec(serverName, undefined);
+  const connSpec = getResolvedConnectionSpec(serverName, undefined)!;
   const connDisplayString = `${connSpec.webServer.scheme}://${connSpec.webServer.host}:${connSpec.webServer.port}/${connSpec.webServer.pathPrefix}`;
   // Connect and fetch namespaces
   const api = new AtelierAPI(uri);
@@ -81,9 +83,9 @@ async function pickNamespaceOnServer(serverName: string): Promise<string> {
 export async function addServerNamespaceToWorkspace(resource?: vscode.Uri): Promise<void> {
   const TITLE = "Add server namespace to workspace";
   let serverName = "";
-  let namespace = "";
-  if (filesystemSchemas.includes(resource?.scheme)) {
-    serverName = resource.authority.split(":")[0];
+  let namespace: string | undefined = "";
+  if (filesystemSchemas.includes(resource?.scheme as string)) {
+    serverName = resource!.authority.split(":")[0];
     if (serverName) {
       const ANOTHER = "Choose another server";
       const choice = await vscode.window.showQuickPick([`Add a '${serverName}' namespace`, ANOTHER], {
@@ -111,7 +113,7 @@ export async function addServerNamespaceToWorkspace(resource?: vscode.Uri): Prom
     }
   }
   const wsFolders = vscode.workspace.workspaceFolders ?? [];
-  let scheme: string;
+  let scheme: string | undefined;
   if (wsFolders.length && wsFolders.some((wf) => notIsfs(wf.uri))) {
     // Don't allow the creation of an editable ISFS folder
     // if the workspace contains non-ISFS folders already
@@ -221,7 +223,7 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
   }
 
   let newParams = "";
-  let newPath = uri.path;
+  let newPath: string | undefined = uri.path;
   if (filterType == "csp") {
     // Prompt for a specific web app
     let cspApps = cspAppsForUri(uri);
@@ -243,7 +245,7 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
       }
     }
     newPath = await new Promise<string | undefined>((resolve) => {
-      let result: string;
+      let result: string | undefined;
       const allItem: vscode.QuickPickItem = { label: "All" };
       const quickPick = vscode.window.createQuickPick();
       quickPick.title = "Pick a specific web application to show, or show all";
@@ -352,7 +354,7 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
 }
 
 export async function modifyWsFolder(wsFolderUri?: vscode.Uri): Promise<void> {
-  let wsFolder: vscode.WorkspaceFolder;
+  let wsFolder: vscode.WorkspaceFolder | null | undefined;
   if (!wsFolderUri) {
     // Select a workspace folder to modify
     wsFolder = await getWsFolder("Pick the workspace folder to modify", false, true);

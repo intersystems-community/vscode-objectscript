@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "3.8.3-SNAPSHOT",
+  "version": "3.8.4-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "InstrumentationKey=9cd75d51-697c-406c-a929-2bcf46e97c64;IngestionEndpoint=https://eastus2-4.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus2.livediagnostics.monitor.azure.com/;ApplicationId=a431c56f-8ccc-4b99-b5e9-fce3763215b1",
   "categories": [
@@ -1718,7 +1718,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
-    "@intersystems-community/intersystems-servermanager": "^3.14.0",
+    "@intersystems-community/intersystems-servermanager": "^3.14.1",
     "@types/istextorbinary": "2.3.1",
     "@types/minimatch": "6.0.0",
     "@types/mocha": "^10.0.10",
@@ -1754,7 +1754,7 @@
     "@vscode/debugprotocol": "^1.68.0",
     "@vscode/extension-telemetry": "^1.5.2",
     "@xmldom/xmldom": "^0.9.10",
-    "axios": "^1.18.0",
+    "axios": "^1.19.0",
     "iconv-lite": "^0.7.2",
     "istextorbinary": "^7.0.0",
     "minimatch": "^10.2.5",

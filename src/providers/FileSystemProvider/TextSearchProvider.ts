@@ -34,9 +34,9 @@ function searchMatchToLine(
   let line = match.line ? Number(match.line) : null;
   if (match.member !== undefined) {
     // This is an attribute of a class member
-    if (match.member == "Storage" && match.attr.includes(",") && match.attrline == undefined) {
+    if (match.member == "Storage" && match.attr!.includes(",") && match.attrline == undefined) {
       // This is inside a Storage definition
-      const xmlTags = match.attr.split(",");
+      const xmlTags = match.attr!.split(",");
       const storageRegex = new RegExp(`^Storage ${xmlTags[0]}`);
       let inStorage = false;
       for (let i = 0; i < content.length; i++) {
@@ -90,14 +90,14 @@ function searchMatchToLine(
           } else {
             if (match.attr === "Description") {
               // This is in the description
-              line = descLineToDocLine(content, match.attrline, i);
-            } else if (match.attrline || ["Code", "Data", "SqlQuery"].includes(match.attr)) {
-              if (["Code", "Data", "SqlQuery"].includes(match.attr)) {
+              line = descLineToDocLine(content, match.attrline!, i);
+            } else if (match.attrline || ["Code", "Data", "SqlQuery"].includes(match.attr!)) {
+              if (["Code", "Data", "SqlQuery"].includes(match.attr!)) {
                 // This is in the implementation
                 line = memend + (match.attrline ?? 1);
               } else {
                 // This is a keyword with a multiline value
-                line = i + (match.attrline - 1 || 0);
+                line = i + (match.attrline! - 1 || 0);
               }
             } else {
               // This is in the class member definition
@@ -163,7 +163,7 @@ function searchMatchToLine(
         if (content[i].match(classMatchPattern)) {
           if (match.attr == "Description") {
             // This is in the class description
-            line = descLineToDocLine(content, match.attrline, i);
+            line = descLineToDocLine(content, match.attrline!, i);
             break;
           } else if (match.attr == "Super" || match.attr == "Name") {
             // This is in the class definition line
@@ -220,7 +220,7 @@ async function processSearchResults(
   results: number,
   maxResults: number,
   token: vscode.CancellationToken
-): Promise<vscode.TextSearchComplete> {
+): Promise<vscode.TextSearchComplete | undefined> {
   if (token.isCancellationRequested) {
     return;
   }
@@ -228,7 +228,7 @@ async function processSearchResults(
   if (token.isCancellationRequested) {
     return;
   }
-  let message: vscode.TextSearchCompleteMessage;
+  let message: vscode.TextSearchCompleteMessage | undefined;
   const rejected = fileResults.filter((r) => r.status == "rejected").length;
   if (rejected > 0) {
     outputChannel.appendLine("Search errors:");
@@ -258,7 +258,7 @@ async function processSearchResults(
 function removeConfigExcludes(folder: vscode.Uri, excludes: string[]): string[] {
   // Function to get one of the two kinds of exclude settings as an array
   const getConfigExcludes = (key: string) => {
-    return Object.entries(vscode.workspace.getConfiguration(key, folder).get("exclude"))
+    return Object.entries(vscode.workspace.getConfiguration(key, folder).get("exclude")!)
       .filter((value) => value[1] === true)
       .map((value) => value[0]);
   };
@@ -289,7 +289,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
     options: vscode.TextSearchOptions,
     progress: vscode.Progress<vscode.TextSearchResult>,
     token: vscode.CancellationToken
-  ): Promise<vscode.TextSearchComplete> {
+  ): Promise<vscode.TextSearchComplete | undefined> {
     const api = new AtelierAPI(options.folder);
     const rateLimiter = new RateLimiter(50);
     if (!api.active) {
@@ -359,13 +359,13 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
           return;
         }
 
-        const uri = DocumentContentProvider.getUri(file.doc, "", "", true, options.folder);
+        const uri = DocumentContentProvider.getUri(file.doc, "", "", true, options.folder)!;
         const content = decoder.decode(await vscode.workspace.fs.readFile(uri)).split(/\r?\n/);
         const contentLength = content.length;
         // Find all lines that we have matches on
         const multilineMethodArgs: boolean = vscode.workspace
           .getConfiguration("objectscript", options.folder)
-          .get("multilineMethodArgs");
+          .get("multilineMethodArgs")!;
         const lines = file.matches
           .map((match: SearchMatch) =>
             token.isCancellationRequested ? null : searchMatchToLine(content, match, file.doc, multilineMethodArgs)
@@ -378,26 +378,26 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
           if (token.isCancellationRequested) {
             return;
           }
-          const text = content[line];
+          const text = content[line!];
           const regex = new RegExp(
             query.isRegExp ? query.pattern : query.pattern.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"),
             query.isCaseSensitive ? "g" : "gi"
           );
-          let regexMatch: RegExpExecArray;
+          let regexMatch: RegExpExecArray | null;
           const matchRanges: vscode.Range[] = [];
           const previewRanges: vscode.Range[] = [];
-          while ((regexMatch = regex.exec(text)) !== null && counter < options.maxResults) {
+          while ((regexMatch = regex.exec(text)) !== null && counter < options.maxResults!) {
             const start = regexMatch.index;
             const end = start + regexMatch[0].length;
-            matchRanges.push(new vscode.Range(line, start, line, end));
+            matchRanges.push(new vscode.Range(line!, start, line!, end));
             previewRanges.push(new vscode.Range(0, start, 0, end));
             counter++;
           }
           if (matchRanges.length && previewRanges.length) {
             if (options.beforeContext) {
               // Add preceding context lines that aren't themselves result lines
-              const previewFrom = Math.max(line - options.beforeContext, 0);
-              for (let i = previewFrom; i < line; i++) {
+              const previewFrom = Math.max(line! - options.beforeContext, 0);
+              for (let i = previewFrom; i < line!; i++) {
                 if (!matchedLines.has(i)) {
                   progress.report({
                     uri,
@@ -417,8 +417,8 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
             });
             if (options.afterContext) {
               // Add following context lines that aren't themselves result lines
-              const previewTo = Math.min(line + options.afterContext, contentLength - 1);
-              for (let i = line + 1; i <= previewTo; i++) {
+              const previewTo = Math.min(line! + options.afterContext, contentLength - 1);
+              for (let i = line! + 1; i <= previewTo; i++) {
                 if (!matchedLines.has(i)) {
                   progress.report({
                     uri,
@@ -444,7 +444,7 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
     options.includes = deduplicateGlobArray(options.includes);
     options.excludes = deduplicateGlobArray(removeConfigExcludes(options.folder, options.excludes));
 
-    if (api.config.apiVersion >= 6) {
+    if (api.config.apiVersion! >= 6) {
       // Build the request object
       const request: AsyncSearchRequest = {
         request: "search",
@@ -559,8 +559,8 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
         let groupLen = 0;
         let group: string[] = [];
         for (const doc of prjContents) {
-          group.push(doc);
-          groupLen += doc.length;
+          group.push(doc!);
+          groupLen += doc!.length;
           if (groupLen >= 1300) {
             // Be conservative because we really don't want ugly 414 errors
             requestGroups.push(group);

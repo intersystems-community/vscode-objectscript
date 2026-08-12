@@ -52,7 +52,7 @@ async function getCurrentFile(
   uri: vscode.Uri,
   forceText = false,
   content?: string[] | Buffer
-): Promise<CurrentTextFile | CurrentBinaryFile | undefined> {
+): Promise<CurrentTextFile | CurrentBinaryFile | null | undefined> {
   if (content) {
     // forceText is always true when content is passed
     return currentFileFromContent(uri, Buffer.isBuffer(content) ? textDecoder.decode(content) : content.join("\n"));
@@ -191,10 +191,11 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
   // Index classes and routines that currently exist
   vscode.workspace.findFiles(new vscode.RelativePattern(wsFolder, "{**/*}")).then((files) =>
     files.forEach((file) =>
-      fsRateLimiter.call(() => {
+      fsRateLimiter.call<WSFolderIndexChange | undefined>(async () => {
         if (isClassOrRtn(file.path) || isImportableLocalFile(file)) {
           return updateIndexInternal(file, documents, uris, true);
         }
+        return undefined;
       })
     )
   );
@@ -217,7 +218,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     if (notToSync(uri)) {
       return;
     }
-    if (!uri.path.split("/").pop().includes(".")) {
+    if (!uri.path.split("/").pop()!.includes(".")) {
       // Ignore creation and change events for folders
       return;
     }
@@ -254,7 +255,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     }
     const api = new AtelierAPI(uri);
     const conf = vscode.workspace.getConfiguration("objectscript", wsFolder);
-    const syncLocalChanges: string = conf.get("syncLocalChanges");
+    const syncLocalChanges: string = conf.get("syncLocalChanges")!;
     const vscodeChange = touchedByVSCode.has(uriString);
     const sync = api.active && (syncLocalChanges == "all" || (syncLocalChanges == "vscodeOnly" && vscodeChange));
     touchedByVSCode.delete(uriString);
@@ -263,8 +264,8 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     if (change.addedOrChanged) {
       // Create or update the document on the server
       try {
-        const willCompile = conf.get("compileOnSave") && isCompilable(change.addedOrChanged.name);
-        await importFile(change.addedOrChanged, willCompile);
+        const willCompile = conf.get<boolean>("compileOnSave") && isCompilable(change.addedOrChanged.name);
+        await importFile(change.addedOrChanged, willCompile!);
         outputImport(change.addedOrChanged.name, uri);
         if (willCompile) {
           // Compile right away if this document is in the active text editor.
@@ -293,7 +294,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     const api = new AtelierAPI(uri);
     const syncLocalChanges: string = vscode.workspace
       .getConfiguration("objectscript", wsFolder)
-      .get("syncLocalChanges");
+      .get("syncLocalChanges")!;
     const sync: boolean =
       api.active && (syncLocalChanges == "all" || (syncLocalChanges == "vscodeOnly" && touchedByVSCode.has(uriString)));
     for (const subUriString of uris.keys()) {
@@ -352,7 +353,7 @@ async function updateIndexInternal(
   if (!file) return result;
   result.addedOrChanged = file;
   if (isImportableLocalFile(uri) && sync) {
-    sendClientSideSyncTelemetryEvent(file.fileName.split(".").pop().toLowerCase());
+    sendClientSideSyncTelemetryEvent(file.fileName.split(".").pop()!.toLowerCase());
   }
   const documentUris = documents.get(file.name) ?? [];
   if (documentUris.some((u) => u.toString() == uriString)) {
@@ -424,8 +425,10 @@ export function allDocumentsInWorkspace(wsFolder: vscode.WorkspaceFolder): strin
 }
 
 /** Get the class/routine name of the document in `uri` */
-export function getDocumentForUri(uri: vscode.Uri): string {
-  return wsFolderIndex.get(vscode.workspace.getWorkspaceFolder(uri)?.uri.toString())?.uris.get(uri.toString());
+export function getDocumentForUri(uri: vscode.Uri): string | undefined {
+  return wsFolderIndex
+    .get(vscode.workspace.getWorkspaceFolder(uri)?.uri.toString() as string)
+    ?.uris.get(uri.toString());
 }
 
 /**
@@ -468,7 +471,7 @@ export function inferDocName(uri: vscode.Uri): string | undefined {
   // is necessary for the rare situaions for documents in /foo/bar/ have a different mapping than /foo/
   // and the target URI is in /foo/bar/ or a subfolder of it.
   const containingPathsSorted = Array.from(containingPaths).sort((a, b) => b.length - a.length);
-  let result: string;
+  let result: string | undefined;
   for (const prefix of containingPathsSorted) {
     if (uri.path.startsWith(prefix)) {
       // We've identified the leading path segments that don't contribute to the document

@@ -1,5 +1,17 @@
 # Change Log
 
+## [3.8.3] 11-Aug-2026
+- Enhancements
+  - Support OAuth2 for authorizing with InterSystems servers (#1799, #1820)
+  - Update `Open InterSystems Document...` command to show a flat list of documents (#1804)
+- Fixes
+  - Always overwrite entire class for Pull Server Changes when there's a conflict between the local copy and server copy (#1797)
+  - Improve management of web sessions when connection changes (#1808)
+  - Improve performance of server-side project query (#1809)
+  - Only timeout server connection check during extension activation (#1814)
+  - Sync server-side web app files as raw bytes (#1818)
+  - Upgrade dependencies
+
 ## [3.8.2] 04-Jun-2026
 - Enhancements
   - Add `Import Files...` command that supports many file types (#1764)

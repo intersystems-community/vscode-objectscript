@@ -72,7 +72,7 @@ export class RESTDebugPanel {
       vscode.window.showErrorMessage("REST service debugging webview requires an active server connection.", "Dismiss");
       return;
     }
-    if (api.config.apiVersion < 2) {
+    if (api.config.apiVersion! < 2) {
       vscode.window.showErrorMessage(
         "REST service debugging webview requires Atelier API version 2 or above.",
         "Dismiss"
@@ -83,7 +83,7 @@ export class RESTDebugPanel {
     if (this.currentPanel !== undefined) {
       // Can only have one panel open at once
       if (!this.currentPanel._panel.visible) {
-        if (openEditor.document.uri.toString() == this._file.toString()) {
+        if (openEditor.document.uri.toString() == this._file!.toString()) {
           // The open panel is for this document, so show it
           this.currentPanel._panel.reveal(vscode.ViewColumn.Active);
           return;
@@ -522,7 +522,7 @@ export class RESTDebugPanel {
 
             // Make sure the original document is the active text editor
             this._panel.dispose();
-            await vscode.window.showTextDocument(RESTDebugPanel._file, {
+            await vscode.window.showTextDocument(RESTDebugPanel._file!, {
               preview: false,
               viewColumn: vscode.ViewColumn.Active,
             });
@@ -592,7 +592,7 @@ export class RESTDebugPanel {
             await new Promise((resolve) => setTimeout(resolve, 500));
 
             // Start the debugging session
-            await vscode.debug.startDebugging(vscode.workspace.getWorkspaceFolder(RESTDebugPanel._file), {
+            await vscode.debug.startDebugging(vscode.workspace.getWorkspaceFolder(RESTDebugPanel._file!), {
               type: "objectscript",
               request: "attach",
               name: "REST",

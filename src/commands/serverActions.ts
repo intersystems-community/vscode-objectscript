@@ -57,7 +57,7 @@ export async function serverActions(): Promise<void> {
       });
     }
   }
-  const connectionActionsHandler = async (action: ServerAction): Promise<ServerAction> => {
+  const connectionActionsHandler = async (action: ServerAction): Promise<ServerAction | undefined> => {
     if (!action) {
       return;
     }
@@ -95,7 +95,7 @@ export async function serverActions(): Promise<void> {
         }
 
         // Filter out the current namespace
-        allNamespaces = allNamespaces.filter((ns) => ns.toLowerCase() != api.config.ns.toLowerCase());
+        allNamespaces = allNamespaces.filter((ns) => ns.toLowerCase() != api.config.ns!.toLowerCase());
         if (!allNamespaces.length) {
           vscode.window.showErrorMessage(`You don't have access to any other namespaces.`, "Dismiss");
           return;
@@ -204,7 +204,7 @@ export async function serverActions(): Promise<void> {
   }
   if (
     (!vscode.window.activeTextEditor && wsUri && filesystemSchemas.includes(wsUri.scheme)) ||
-    filesystemSchemas.includes(vscode.window.activeTextEditor?.document.uri.scheme)
+    filesystemSchemas.includes(vscode.window.activeTextEditor?.document.uri.scheme as string)
   ) {
     actions.push({
       id: "serverCommandMenu",

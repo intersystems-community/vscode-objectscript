@@ -36,14 +36,14 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
       return this._errorMessage(`${document.fileName} is a malformed class definition.`);
     }
     const api = new AtelierAPI(document.uri);
-    if (!vscode.workspace.fs.isWritableFileSystem(document.uri.scheme) && lt(api.config.serverVersion, "2025.3.0")) {
+    if (!vscode.workspace.fs.isWritableFileSystem(document.uri.scheme) && lt(api.config.serverVersion!, "2025.3.0")) {
       return this._errorMessage(`File system '${document.uri.scheme}' is read-only.`);
     }
     const className = file.name.slice(0, -4);
     if (!api.active) {
       return this._errorMessage("Server connection is not active.");
     }
-    if (lt(api.config.serverVersion, "2023.1.0")) {
+    if (lt(api.config.serverVersion!, "2023.1.0")) {
       return this._errorMessage(
         "Opening a low-code editor in VS Code requires InterSystems IRIS version 2023.1 or above."
       );
@@ -66,14 +66,14 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
     } else if (queryData.result.content[0].Rule) {
       webApp = this._rule;
     } else if (queryData.result.content[0].DTL) {
-      if (lt(api.config.serverVersion, "2025.1.0")) {
+      if (lt(api.config.serverVersion!, "2025.1.0")) {
         return this._errorMessage(
           "Opening the DTL editor in VS Code requires InterSystems IRIS version 2025.1 or above."
         );
       }
       webApp = this._dtl;
     } else if (queryData.result.content[0].BPL) {
-      if (lt(api.config.serverVersion, "2026.1.0")) {
+      if (lt(api.config.serverVersion!, "2026.1.0")) {
         return this._errorMessage(
           "Opening the BPL editor in VS Code requires InterSystems IRIS version 2026.1 or above."
         );
