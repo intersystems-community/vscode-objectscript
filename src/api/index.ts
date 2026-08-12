@@ -79,7 +79,8 @@ export class AtelierAPI {
   }
 
   public get config(): ConnectionSettings {
-    const { serverName, active = false, https = false, pathPrefix = "", auth } = this._config;
+    const { serverName, active = false, https = false, pathPrefix = "" } = this._config;
+    const auth = this._config.auth.clone();
     const ns = this.namespace || this._config.ns;
     const wsKey = this.configName.toLowerCase();
     const host = this.externalServer ? this._config.host : workspaceState.get(wsKey + ":host", this._config.host);
