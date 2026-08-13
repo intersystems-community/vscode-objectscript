@@ -2005,8 +2005,9 @@ function serverForUri(uri: vscode.Uri): serverManager.ServerForUri {
   const { serverName, active, host, https, port, superserverPort, pathPrefix, auth, ns, apiVersion, serverVersion } =
     api.config;
   auth.clear() as void;
-  if (serverName !== "") {
-    const password = vscode.workspace
+  const password: string | undefined =
+    serverName &&
+    vscode.workspace
       .getConfiguration(
         `intersystems.servers.${serverName.toLowerCase()}`,
         // objectscript(xml):// URIs are not in any workspace folder,
@@ -2017,11 +2018,8 @@ function serverForUri(uri: vscode.Uri): serverManager.ServerForUri {
           ? vscode.workspace.workspaceFolders?.find((f) => f.name.toLowerCase() == configNameLower)?.uri
           : uri
       )
-      .get("password") as string | undefined;
-    if (password !== undefined) {
-      auth.resolve({ accessToken: password });
-    }
-  }
+      .get("password");
+  password && auth.resolve({ accessToken: password });
   return {
     serverName,
     active,
