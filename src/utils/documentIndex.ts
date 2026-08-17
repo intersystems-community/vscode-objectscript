@@ -535,3 +535,22 @@ export function inferDocUri(docName: string, wsFolder: vscode.WorkspaceFolder): 
   // Convert the document name to a file path and prepend the prefix
   return wsFolder.uri.with({ path: `${bestPathPrefix}${docNameNoExt.replaceAll(".", "/")}${docExt}` });
 }
+
+/**
+ * Returns the `Uri`s of all indexed documents in folder `uri`.
+ * Assumes `uri` is a folder URI. Returns documents in nested folders.
+ */
+export function urisInFolder(uri: vscode.Uri): vscode.Uri[] {
+  const wsFolder = vscode.workspace.getWorkspaceFolder(uri);
+  if (!wsFolder) return [];
+  const index = wsFolderIndex.get(wsFolder.uri.toString());
+  if (!index || !index.uris.size) return [];
+  let folderPath = uri.path;
+  if (!folderPath.endsWith("/")) folderPath = `${folderPath}/`;
+  const result: vscode.Uri[] = [];
+  index.uris.forEach((indexDocName, indexDocUriStr) => {
+    const indexDocUri = vscode.Uri.parse(indexDocUriStr);
+    if (indexDocUri.path.startsWith(folderPath)) result.push(indexDocUri);
+  });
+  return result;
+}
