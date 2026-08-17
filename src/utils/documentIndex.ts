@@ -447,7 +447,7 @@ export function inferDocName(uri: vscode.Uri): string | undefined {
   const wsFolder = vscode.workspace.getWorkspaceFolder(uri);
   if (!wsFolder) return;
   const index = wsFolderIndex.get(wsFolder.uri.toString());
-  if (!index || !index.uris.size) return;
+  if (!index?.uris.size) return;
   // Get a list of all unique paths containing classes or routines that
   // do not contribute to the name of the documents contained within
   const containingPaths: Set<string> = new Set();
@@ -499,7 +499,7 @@ export function inferDocUri(docName: string, wsFolder: vscode.WorkspaceFolder): 
   const docExt = docName.slice(-4).toLowerCase();
   if (!exts.includes(docExt)) return;
   const index = wsFolderIndex.get(wsFolder.uri.toString());
-  if (!index || !index.uris.size) return;
+  if (!index?.uris.size) return;
   const docNameNoExt = docName.slice(0, -4); // remove extension
   const docPkgSegments = docNameNoExt.split(".").slice(0, -1); // remove class/routine name
   // For each indexed document, compute its containing path and measure how
@@ -544,7 +544,7 @@ export function urisInFolder(uri: vscode.Uri): vscode.Uri[] {
   const wsFolder = vscode.workspace.getWorkspaceFolder(uri);
   if (!wsFolder) return [];
   const index = wsFolderIndex.get(wsFolder.uri.toString());
-  if (!index || !index.uris.size) return [];
+  if (!index?.uris.size) return [];
   let folderPath = uri.path;
   if (!folderPath.endsWith("/")) folderPath = `${folderPath}/`;
   const result: vscode.Uri[] = [];
