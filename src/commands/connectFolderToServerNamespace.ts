@@ -62,7 +62,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
   // Prepare a displayable form of its connection spec as a hint to the user
   // This will never return the default value (second parameter) because we only just resolved the connection spec.
   const connSpec = getResolvedConnectionSpec(serverName, undefined);
-  const connDisplayString = `${connSpec!.webServer.scheme}://${connSpec!.webServer.host}:${connSpec!.webServer.port}/${connSpec!.webServer.pathPrefix}`;
+  const connDisplayString = `${connSpec!.webServer.scheme}://${connSpec!.webServer.host}:${connSpec!.webServer.port}${connSpec!.webServer.pathPrefix}`;
   // Connect and fetch namespaces
   const api = new AtelierAPI(vscode.Uri.parse(`isfs://${serverName}/?ns=%SYS`));
   const serverConf = vscode.workspace
