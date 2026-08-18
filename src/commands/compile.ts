@@ -14,7 +14,6 @@ import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import {
   base64EncodeContent,
   compileErrorMsg,
-  cspAppsForUri,
   CurrentBinaryFile,
   currentFile,
   currentFileFromContent,
@@ -34,7 +33,7 @@ import {
 } from "../utils";
 import { StudioActions } from "./studio";
 import { NodeBase, PackageNode, RootNode } from "../explorer/nodes";
-import { getUrisForDocument, updateIndex } from "../utils/documentIndex";
+import { getUrisForDocument, updateIndex, urisInFolder } from "../utils/documentIndex";
 import { Document } from "../api/atelier";
 
 /**
@@ -474,6 +473,8 @@ export async function namespaceCompile(): Promise<any> {
 }
 
 async function importFiles(files: vscode.Uri[], noCompile = false) {
+  if (!files.length) return;
+  const textDecoder = new TextDecoder();
   const toCompile: (CurrentTextFile | CurrentBinaryFile)[] = [];
   const rateLimiter = new RateLimiter(50);
   await Promise.allSettled<void>(
@@ -483,7 +484,7 @@ async function importFiles(files: vscode.Uri[], noCompile = false) {
         const curFile = currentFileFromContent(
           uri,
           isText(uri.path.split("/").pop(), Buffer.from(contentBytes))
-            ? new TextDecoder().decode(contentBytes)
+            ? textDecoder.decode(contentBytes)
             : Buffer.from(contentBytes)
         );
         if (curFile) {
@@ -500,7 +501,6 @@ async function importFiles(files: vscode.Uri[], noCompile = false) {
   if (!noCompile && toCompile.length > 0) {
     await compile(toCompile);
   }
-  return;
 }
 
 export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<any> {
@@ -509,16 +509,7 @@ export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<
   if ((await vscode.workspace.fs.stat(uri)).type != vscode.FileType.Directory) {
     return importFiles([uri], noCompile);
   }
-  let globpattern = "*.{cls,inc,int,mac}";
-  if (cspAppsForUri(uri).findIndex((cspApp) => uri.path.includes(cspApp + "/") || uri.path.endsWith(cspApp)) != -1) {
-    // This folder is a CSP application, so import all files
-    // We need to include eveything because CSP applications can
-    // include non-InterSystems files
-    globpattern = "*";
-  }
-  vscode.workspace
-    .findFiles(new vscode.RelativePattern(uri, `**/${globpattern}`))
-    .then((files) => importFiles(files, noCompile));
+  importFiles(urisInFolder(uri), noCompile);
 }
 
 export async function compileExplorerItems(nodes: NodeBase[]): Promise<any> {

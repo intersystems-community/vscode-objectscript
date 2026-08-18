@@ -36,6 +36,7 @@ export async function logoutOfSessions(sessions?: string[]): Promise<void> {
     (sessions ?? Array.from(cookiesMap.keys())).map((session) => {
       const cookie = cookiesMap.get(session);
       if (!cookie) return;
+      cookiesMap.delete(session);
       const url = session.slice(session.indexOf("@") + 1);
       return axios.head(`${url}/api/atelier/?CacheLogout=end`, {
         headers: {
@@ -79,7 +80,8 @@ export class AtelierAPI {
   }
 
   public get config(): ConnectionSettings {
-    const { serverName, active = false, https = false, pathPrefix = "", auth } = this._config;
+    const { serverName, active = false, https = false, pathPrefix = "" } = this._config;
+    const auth = this._config.auth.clone();
     const ns = this.namespace || this._config.ns;
     const wsKey = this.configName.toLowerCase();
     const host = this.externalServer ? this._config.host : workspaceState.get(wsKey + ":host", this._config.host);
@@ -462,6 +464,7 @@ export class AtelierAPI {
       }
       if (response.status === 401) {
         authRequestMap.delete(mapKey);
+        cookiesMap.delete(mapKey);
         if (this.wsOrFile && !checkingConnection) {
           setTimeout(() => {
             checkConnection(
