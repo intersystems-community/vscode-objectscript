@@ -577,8 +577,9 @@ export class AtelierAPI {
         outputChannel.appendLine(`${JSON.stringify(error, null, 2)}`);
         outputChannel.appendLine(`+- END ----------------------------------------------`);
       }
-      // always discard the cached authentication promise
+      // always discard the cached authentication promise and cookies
       authRequestMap.delete(mapKey);
+      cookiesMap.delete(mapKey);
 
       // In some cases schedule an automatic retry.
       // ENOTFOUND occurs if, say, the VPN to the server's network goes down.
