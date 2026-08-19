@@ -17,7 +17,6 @@ import {
 import { isText } from "istextorbinary";
 import { AtelierAPI } from "../api";
 import { compile, importFile } from "../commands/compile";
-import { sendClientSideSyncTelemetryEvent } from "../extension";
 
 interface WSFolderIndex {
   /** The `FileSystemWatcher` for this workspace folder */
@@ -352,9 +351,6 @@ async function updateIndexInternal(
   const file = await getCurrentFile(uri, true, content);
   if (!file) return result;
   result.addedOrChanged = file;
-  if (isImportableLocalFile(uri) && sync) {
-    sendClientSideSyncTelemetryEvent(file.fileName.split(".").pop()!.toLowerCase());
-  }
   const documentUris = documents.get(file.name) ?? [];
   if (documentUris.some((u) => u.toString() == uriString)) {
     // No need to update the index since this document is already present
