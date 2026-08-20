@@ -1,5 +1,15 @@
 # Change Log
 
+## [3.8.4] 20-Aug-2026
+- Fixes
+  - Fix issue where exported `serverForUri()` function may expose a password (#1824)
+  - Sending stale cookies can cause authorization failures (#1824)
+  - Support abstract documents when importing a client-side folder (#1827)
+  - Fix issue where user is intermittently unable to connect to server (#1830)
+  - Telemetry changes:
+    - Remove `clientSideFileSynced` event
+    - Add `usesServerManager` key to `workspaceFolder` event for client-side folders
+
 ## [3.8.3] 11-Aug-2026
 - Enhancements
   - Support OAuth2 for authorizing with InterSystems servers (#1799, #1820)

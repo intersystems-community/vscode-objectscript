@@ -466,7 +466,7 @@ export async function checkConnection(
   checkingConnection = true;
 
   const username = auth.username || "UnknownUser";
-  const identity = username.startsWith("*") ? `using ${username.slice(1, -1)}` : `as user '\`${username}\`'`;
+  const identity = username.startsWith("*") ? `using ${username.slice(1, -1)}` : `as user \`${username}\``;
 
   // What we do when api.serverInfo call succeeds
   const gotServerInfo = async (info: Response<Content<ServerInfo>>) => {
@@ -836,6 +836,7 @@ function sendWsFolderTelemetryEvent(wsFolders: readonly vscode.WorkspaceFolder[]
       "config.conn.links": String(Object.keys(conf.get("conn.links", {})).length),
       "config.refreshClassesOnSync": !serverSide ? conf.get("refreshClassesOnSync") : undefined,
       "config.insertStubContent": !serverSide ? conf.get("insertStubContent") : undefined,
+      usesServerManager: !serverSide ? String(api.config.serverName != "") : undefined,
     });
   });
 }
@@ -843,11 +844,6 @@ function sendWsFolderTelemetryEvent(wsFolders: readonly vscode.WorkspaceFolder[]
 /** Send a telemetry event that a unit test run was started */
 export function sendUnitTestTelemetryEvent(root: vscode.Uri, debug: boolean): void {
   reporter?.sendTelemetryEvent("unitTestRun", { scheme: root.scheme, debug: String(debug) });
-}
-
-/** Send a telemetry event that a non-class or routine client-side file was saved */
-export function sendClientSideSyncTelemetryEvent(fileExt: string): void {
-  reporter?.sendTelemetryEvent("clientSideFileSynced", { fileExt });
 }
 
 /** Send a telemetry event that a low-code editor was opened */
