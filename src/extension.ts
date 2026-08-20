@@ -1133,7 +1133,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
       }
     }),
     vscode.window.onDidChangeActiveTextEditor(async (editor) => {
-      if (vscode.workspace.workspaceFolders!.length > 1) {
+      if ((vscode.workspace.workspaceFolders?.length ?? 0) > 1) {
         const workspaceFolder = currentWorkspaceFolder();
         if (workspaceFolder && workspaceFolder != workspaceState.get<string>("workspaceFolder")) {
           await workspaceState.update("workspaceFolder", workspaceFolder);
