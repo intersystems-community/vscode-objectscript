@@ -466,6 +466,12 @@ export class AtelierAPI {
         authRequestMap.delete(mapKey);
         cookiesMap.delete(mapKey);
         if (this.wsOrFile && !checkingConnection) {
+          if (!options?._retriedAfter401) {
+            return this.request(minVersion, method, originalPath, body, params, headers, {
+              ...options,
+              _retriedAfter401: true,
+            });
+          }
           setTimeout(() => {
             checkConnection(
               this.config.auth.resolved(),
@@ -583,6 +589,9 @@ export class AtelierAPI {
       // In some cases schedule an automatic retry.
       // ENOTFOUND occurs if, say, the VPN to the server's network goes down.
       if (["ECONNREFUSED", "ENOTFOUND", "ECONNABORTED", "ERR_CANCELED"].includes(error.code)) {
+        // The cached cookie is unusable once the connection itself has failed; discard it
+        // so the next request re-authenticates instead of resending a stale cookie.
+        cookiesMap.delete(mapKey);
         panel.text = `${this.connInfo} $(debug-disconnect)`;
         panel.tooltip = "Disconnected";
         workspaceState.update(this.configName.toLowerCase() + ":host", undefined);
