@@ -920,6 +920,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
   const toCheck = new Map<string, vscode.Uri>();
   vscode.workspace.workspaceFolders?.map((workspaceFolder) => {
     const uri = workspaceFolder.uri;
+    if (!new AtelierAPI(uri).active) return; // No point checking an inactive connection
     const { configName } = connectionTarget(uri);
     const conn = config("conn", configName);
 
@@ -1741,6 +1742,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
       const toCheck = new Map<string, vscode.Uri>();
       e.added.map((workspaceFolder) => {
         const uri = workspaceFolder.uri;
+        if (!new AtelierAPI(uri).active) return; // No point checking an inactive connection
         const { configName } = connectionTarget(uri);
         toCheck.set(configName, uri);
       });
