@@ -60,9 +60,15 @@ export async function connectFolderToServerNamespace(): Promise<void> {
   }
   await resolveConnectionSpec(serverName, undefined, folder);
   // Prepare a displayable form of its connection spec as a hint to the user
-  // This will never return the default value (second parameter) because we only just resolved the connection spec.
   const connSpec = getResolvedConnectionSpec(serverName, undefined);
-  const connDisplayString = `${connSpec!.webServer.scheme}://${connSpec!.webServer.host}:${connSpec!.webServer.port}${connSpec!.webServer.pathPrefix}`;
+  if (!connSpec) {
+    vscode.window.showErrorMessage(
+      `Failed to resolve connection details for server '${serverName}'. Folder was not connected.`,
+      "Dismiss"
+    );
+    return;
+  }
+  const connDisplayString = `${connSpec.webServer.scheme}://${connSpec.webServer.host}:${connSpec.webServer.port}${connSpec.webServer.pathPrefix}`;
   // Connect and fetch namespaces
   const api = new AtelierAPI(vscode.Uri.parse(`isfs://${serverName}/?ns=%SYS`));
   const serverConf = vscode.workspace
@@ -74,7 +80,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
     !(serverConf!.workspaceValue && typeof serverConf!.workspaceValue[serverName] == "object")
   ) {
     // Need to manually set connection info if the server is defined at the workspace folder level
-    api.setConnSpec(serverName, connSpec!);
+    api.setConnSpec(serverName, connSpec);
   }
   const allNamespaces: string[] | undefined = await api
     .serverInfo(false)
@@ -82,7 +88,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
     .catch(async (error) => {
       if (error?.statusCode == 401 && !api.config.auth.resolved()) {
         // Attempt to resolve username and password and try again
-        const newSpec = await resolveUsernameAndPassword(api.config.serverName, connSpec!);
+        const newSpec = await resolveUsernameAndPassword(api.config.serverName, connSpec);
         if (newSpec) {
           // We were able to resolve credentials, so try again
           api.setConnSpec(api.config.serverName, newSpec);
