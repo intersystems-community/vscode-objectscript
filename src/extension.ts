@@ -165,6 +165,7 @@ type ConnConfig = Pick<ConnectionSettings, "active" | "https" | "ns" | "host" | 
 };
 
 export function config(setting: "conn", workspaceFolderName?: string): ConnConfig;
+export function config(setting: "intersystems.servers", workspaceFolderName?: string): vscode.WorkspaceConfiguration;
 export function config(setting?: string, workspaceFolderName?: string): any;
 export function config(setting?: string, workspaceFolderName?: string): any {
   workspaceFolderName = workspaceFolderName || currentWorkspaceFolder();
@@ -218,12 +219,12 @@ export let checkingConnection = false;
 
 export let serverManagerApi: serverManager.ServerManagerAPI;
 
-interface ResolvedConnSpec extends serverManager.IServerSpec {
-  auth: serverManager.ResolvedAuthorization;
-}
+type ConnSpec = serverManager.IServerSpec & {
+  auth: serverManager.Authorization;
+};
 
 /** Map of the intersystems.server connection specs we have resolved via the API to that extension */
-const resolvedConnSpecs = new Map<string, ResolvedConnSpec>();
+const resolvedConnSpecs = new Map<string, ConnSpec>();
 
 /**
  * If servermanager extension is available, fetch the connection spec unless already cached.
@@ -287,7 +288,7 @@ export async function resolveConnectionSpec(
   if (connSpec) {
     const accessToken = await resolvePassword(connSpec);
     if (connSpec.auth.resolve({ accessToken })) {
-      resolvedConnSpecs.set(serverName, connSpec as ResolvedConnSpec);
+      resolvedConnSpecs.set(serverName, connSpec as ConnSpec);
     }
   }
 }
@@ -322,7 +323,7 @@ async function resolvePassword(
 export async function resolveUsernameAndPassword(
   serverName: string,
   oldSpec: serverManager.IServerSpec
-): Promise<ResolvedConnSpec | undefined> {
+): Promise<ConnSpec | undefined> {
   const { auth: _auth, ...newSpec } = oldSpec;
   newSpec.name = serverName;
   const auth = _auth?.clone();
@@ -341,8 +342,8 @@ export async function resolveUsernameAndPassword(
 /** Accessor for the cache of resolved connection specs */
 export function getResolvedConnectionSpec(
   key: string,
-  dflt: ResolvedConnSpec | undefined
-): ResolvedConnSpec | undefined {
+  dflt: serverManager.IServerSpec | undefined
+): ConnSpec | undefined {
   let spec = resolvedConnSpecs.get(key);
   if (spec) {
     return spec;
@@ -358,7 +359,9 @@ export function getResolvedConnectionSpec(
   }
 
   // Return the default if not found
-  return dflt;
+  if (dflt) {
+    return { ...dflt, auth: new BasicAuthorization(dflt.username, dflt.password) };
+  }
 }
 
 /** The `api.serverId`s of all servers that are known to be inactive */
@@ -1131,7 +1134,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
       }
     }),
     vscode.window.onDidChangeActiveTextEditor(async (editor) => {
-      if (vscode.workspace.workspaceFolders!.length > 1) {
+      if ((vscode.workspace.workspaceFolders?.length ?? 0) > 1) {
         const workspaceFolder = currentWorkspaceFolder();
         if (workspaceFolder && workspaceFolder != workspaceState.get<string>("workspaceFolder")) {
           await workspaceState.update("workspaceFolder", workspaceFolder);
