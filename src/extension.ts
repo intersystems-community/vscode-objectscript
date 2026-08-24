@@ -1745,7 +1745,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
       const toCheck = new Map<string, vscode.Uri>();
       e.added.map((workspaceFolder) => {
         const uri = workspaceFolder.uri;
-        if (!new AtelierAPI(uri).active) return; // No point checking an inactive connection
+        if (notIsfs(uri) && !vscode.workspace.getConfiguration("objectscript.conn", workspaceFolder).get("active"))
+          return; // Don't check inactive connections
         const { configName } = connectionTarget(uri);
         toCheck.set(configName, uri);
       });
