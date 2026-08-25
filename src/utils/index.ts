@@ -459,18 +459,19 @@ export function notNull(el: any): boolean {
   return el !== null;
 }
 
-/** Determine the compose command to use (`docker-compose` or `docker compose`).  */
+/** Determine the compose command to use, trying each candidate in order until one is found to work. */
 async function composeCommand(cwd?: string): Promise<string> {
-  return new Promise<string>((resolve) => {
-    let cmd = "docker compose";
-    exec(`${cmd} version`, { cwd }, (error) => {
-      if (error) {
-        // 'docker compose' is not present, so default to 'docker-compose'
-        cmd = "docker-compose";
-      }
-      resolve(cmd);
+  const candidates = ["docker compose", "docker-compose", "podman compose", "podman-compose"];
+  for (const cmd of candidates) {
+    const works = await new Promise<boolean>((resolve) => {
+      exec(`${cmd} version`, { cwd }, (error) => resolve(!error));
     });
-  });
+    if (works) {
+      return cmd;
+    }
+  }
+  // Nothing found; fall back to the original default so error messages remain unchanged
+  return "docker compose";
 }
 
 export async function portFromDockerCompose(
@@ -580,7 +581,7 @@ export async function terminalWithDocker(): Promise<vscode.Terminal> {
   if (!terminal) {
     let exe = await composeCommand();
     const argsArr: string[] = [];
-    if (exe == "docker compose") {
+    if (exe.includes(" ")) {
       const exeSplit = exe.split(" ");
       exe = exeSplit[0];
       argsArr.push(exeSplit[1]);
@@ -615,7 +616,7 @@ export async function shellWithDocker(): Promise<vscode.Terminal> {
   if (!terminal) {
     let exe = await composeCommand();
     const argsArr: string[] = [];
-    if (exe == "docker compose") {
+    if (exe.includes(" ")) {
       const exeSplit = exe.split(" ");
       exe = exeSplit[0];
       argsArr.push(exeSplit[1]);

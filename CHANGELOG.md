@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+- Enhancements
+  - Support Podman Compose (`podman compose`/`podman-compose`) as an alternative to Docker Compose for the `docker-compose` connection setting
+
 ## [3.8.4] 20-Aug-2026
 - Fixes
   - Fix issue where exported `serverForUri()` function may expose a password (#1824)
