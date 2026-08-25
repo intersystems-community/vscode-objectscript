@@ -530,11 +530,17 @@ export async function portFromDockerCompose(
   const cmd = `${await composeCommand(cwd)} -f ${file} ${envFileParam} `;
 
   return new Promise((resolve, reject) => {
-    exec(`${cmd} ps --services --filter status=running`, { cwd }, (error, stdout) => {
+    // `--services --filter status=running` isn't supported by podman-compose, so use `--format json`
+    // instead and inspect each entry ourselves; docker compose exposes the service name directly,
+    // podman-compose only via a label.
+    exec(`${cmd} ps --format json`, { cwd }, (error, stdout) => {
       if (error) {
         reject(error.message);
       }
-      if (!stdout.replaceAll("\r", "").split("\n").includes(service)) {
+      const isRunning = parseComposePsJson(stdout).some(
+        (entry) => (entry.Service ?? entry.Labels?.["com.docker.compose.service"]) === service && entry.State === "running"
+      );
+      if (!isRunning) {
         reject(`Service '${service}' not found in '${path.join(cwd, file)}', or not running.`);
       }
 
@@ -542,7 +548,8 @@ export async function portFromDockerCompose(
         if (error) {
           reject(error.message);
         }
-        const [, port] = stdout.match(/:(\d+)/) || [];
+        // docker compose prints "host:port"; podman-compose prints a bare port number.
+        const [, port] = stdout.trim().match(/(\d+)$/) || [];
         if (!port) {
           reject(`Webserver port ${internalPort} not published for service '${service}' in '${path.join(cwd, file)}'.`);
         }
@@ -556,7 +563,7 @@ export async function portFromDockerCompose(
             }
             reject(error.message);
           }
-          const [, superserverPort] = stdout.match(/:(\d+)/) || [];
+          const [, superserverPort] = stdout.trim().match(/(\d+)$/) || [];
           if (!superserverPort) {
             reject(
               `Superserver port ${internalSuperserverPort} not published for service '${service}' in '${path.join(cwd, file)}'.`
@@ -568,6 +575,27 @@ export async function portFromDockerCompose(
       });
     });
   });
+}
+
+/** Parse `compose ps --format json` output, which is a JSON array for docker compose or one JSON object per line for podman-compose. */
+function parseComposePsJson(stdout: string): any[] {
+  try {
+    const parsed = JSON.parse(stdout);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    return stdout
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return undefined;
+        }
+      })
+      .filter((entry) => entry !== undefined);
+  }
 }
 
 export async function terminalWithDocker(): Promise<vscode.Terminal> {
