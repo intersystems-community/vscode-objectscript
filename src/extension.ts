@@ -229,6 +229,9 @@ const resolvedConnSpecs = new Map<string, ConnSpec>();
 /**
  * If servermanager extension is available, fetch the connection spec unless already cached.
  * Prompt for credentials if necessary.
+ *
+ * Best-effort only: never contacts the server, so a no-username spec is assumed unauthenticated
+ * and cached as-is. If wrong, `resolveUsernameAndPassword` corrects it later on an actual 401.
  * @param serverName authority element of an isfs uri, or `objectscript.conn.server` property, or the name of a root folder with an `objectscript.conn.docker-compose` property object
  * @param uri if passed, re-check the `objectscript.conn.docker-compose` case in case servermanager API couldn't do that because we're still running our own `activate` method.
  */
@@ -251,7 +254,7 @@ export async function resolveConnectionSpec(
     }
   }
   const rawConnSpec = await serverManagerApi.getServerSpec(serverName, scope);
-  let connSpec;
+  let connSpec: ConnSpec | undefined;
   if (rawConnSpec) {
     connSpec = {
       ...rawConnSpec,
@@ -286,18 +289,23 @@ export async function resolveConnectionSpec(
   }
 
   if (connSpec) {
-    const accessToken = await resolvePassword(connSpec);
-    if (connSpec.auth.resolve({ accessToken })) {
-      resolvedConnSpecs.set(serverName, connSpec as ConnSpec);
+    if (connSpec.auth.resolved() || isUnknownUser(connSpec.auth.username)) {
+      resolvedConnSpecs.set(serverName, connSpec);
+    } else {
+      const accessToken = await resolvePassword(connSpec);
+      if (connSpec.auth.resolve({ accessToken })) {
+        resolvedConnSpecs.set(serverName, connSpec);
+      }
     }
   }
 }
 
-async function resolvePassword(
-  serverSpec: serverManager.IServerSpec,
-  ignoreUnauthenticated = false
-): Promise<string | undefined> {
-  if (!serverSpec.auth?.resolved() || ignoreUnauthenticated) {
+function isUnknownUser(username: string | undefined): boolean {
+  return (username || "unknownuser").toLowerCase() == "unknownuser";
+}
+
+async function resolvePassword(serverSpec: serverManager.IServerSpec): Promise<string | undefined> {
+  if (!serverSpec.auth?.resolved()) {
     const scopes = [serverSpec.name, serverSpec.auth?.username || ""];
 
     // Handle Server Manager extension version < 3.8.0
@@ -328,7 +336,7 @@ export async function resolveUsernameAndPassword(
   newSpec.name = serverName;
   const auth = _auth?.clone();
 
-  const accessToken = await resolvePassword({ ...newSpec, auth }, true);
+  const accessToken = await resolvePassword({ ...newSpec, auth });
   if (auth?.resolve({ accessToken })) {
     // Update the connection spec
     resolvedConnSpecs.set(serverName, {
@@ -923,6 +931,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
   const toCheck = new Map<string, vscode.Uri>();
   vscode.workspace.workspaceFolders?.map((workspaceFolder) => {
     const uri = workspaceFolder.uri;
+    if (notIsfs(uri) && !vscode.workspace.getConfiguration("objectscript.conn", workspaceFolder).get("active")) return; // Don't check inactive connections
     const { configName } = connectionTarget(uri);
     const conn = config("conn", configName);
 
@@ -1744,6 +1753,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
       const toCheck = new Map<string, vscode.Uri>();
       e.added.map((workspaceFolder) => {
         const uri = workspaceFolder.uri;
+        if (notIsfs(uri) && !vscode.workspace.getConfiguration("objectscript.conn", workspaceFolder).get("active"))
+          return; // Don't check inactive connections
         const { configName } = connectionTarget(uri);
         toCheck.set(configName, uri);
       });

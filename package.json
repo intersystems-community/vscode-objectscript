@@ -1259,6 +1259,11 @@
                 "envFile": {
                   "description": "Name of env-file for docker-compose configuration.",
                   "type": "string"
+                },
+                "command": {
+                  "description": "Compose command to invoke. If omitted, auto-detected.",
+                  "type": "string",
+                  "enum": ["docker compose", "docker-compose", "podman compose"]
                 }
               }
             }

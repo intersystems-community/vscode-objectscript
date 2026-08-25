@@ -47,8 +47,14 @@ async function pickNamespaceOnServer(serverName: string): Promise<string | undef
   const uri = vscode.Uri.parse(`isfs://${serverName}:%sys/`);
   await resolveConnectionSpec(serverName);
   // Prepare a displayable form of its connection spec as a hint to the user.
-  // This will never return the default value (second parameter) because we only just resolved the connection spec.
-  const connSpec = getResolvedConnectionSpec(serverName, undefined)!;
+  const connSpec = getResolvedConnectionSpec(serverName, undefined);
+  if (!connSpec) {
+    vscode.window.showErrorMessage(
+      `Failed to resolve connection details for server '${serverName}'. Could not list its namespaces.`,
+      "Dismiss"
+    );
+    return;
+  }
   const connDisplayString = `${connSpec.webServer.scheme}://${connSpec.webServer.host}:${connSpec.webServer.port}/${connSpec.webServer.pathPrefix}`;
   // Connect and fetch namespaces
   const api = new AtelierAPI(uri);
