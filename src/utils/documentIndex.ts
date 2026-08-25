@@ -541,7 +541,12 @@ export function urisInFolder(uri: vscode.Uri): vscode.Uri[] {
   if (!wsFolder) return [];
   const index = wsFolderIndex.get(wsFolder.uri.toString());
   if (!index?.uris.size) return [];
-  let folderPath = uri.path;
+  // Need to round-trip the argument through the Uri parser
+  // because it can change the case of Windows drive letters
+  // and the check below is case-sensitive. I found this
+  // preferable to adding a Windows-only case-insensitive
+  // carve-out in the logic below.
+  let folderPath = vscode.Uri.parse(uri.toString()).path;
   if (!folderPath.endsWith("/")) folderPath = `${folderPath}/`;
   const result: vscode.Uri[] = [];
   index.uris.forEach((indexDocName, indexDocUriStr) => {
