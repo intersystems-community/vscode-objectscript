@@ -2014,10 +2014,9 @@ function serverForUri(uri: vscode.Uri): serverManager.ServerForUri | undefined {
   // which will require explicit user consent to divulge the password to the requesting extension.
   const { serverName, active, host, https, port, superserverPort, pathPrefix, auth, ns, apiVersion, serverVersion } =
     api.config;
-  auth.clear() as void;
-  const password: string | undefined =
-    serverName &&
-    vscode.workspace
+  if (serverName) {
+    auth.clear() as void;
+    const password: string | undefined = vscode.workspace
       .getConfiguration(
         `intersystems.servers.${serverName.toLowerCase()}`,
         // objectscript(xml):// URIs are not in any workspace folder,
@@ -2029,7 +2028,8 @@ function serverForUri(uri: vscode.Uri): serverManager.ServerForUri | undefined {
           : uri
       )
       .get("password");
-  password && auth.resolve({ accessToken: password });
+    password && auth.resolve({ accessToken: password });
+  }
   if (ns) {
     return {
       serverName,
