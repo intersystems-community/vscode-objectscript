@@ -1237,27 +1237,27 @@
             },
             "docker-compose": {
               "type": "object",
-              "description": "Connect to server running in a Docker Compose or Podman Compose service.",
+              "description": "Connect to server running in docker-compose.",
               "additionalProperties": false,
               "properties": {
                 "service": {
-                  "description": "Name of the service.",
+                  "description": "Name of service in docker-compose.",
                   "type": "string"
                 },
                 "internalPort": {
-                  "description": "Target webserver port inside the service.",
+                  "description": "Target webserver port inside the service in docker-compose.",
                   "type": "number"
                 },
                 "internalSuperserverPort": {
-                  "description": "Target superserver port inside the service.",
+                  "description": "Target superserver port inside the service in docker-compose.",
                   "type": "number"
                 },
                 "file": {
-                  "description": "Name of the compose file.",
+                  "description": "Name of docker-compose file.",
                   "type": "string"
                 },
                 "envFile": {
-                  "description": "Name of env-file for the compose configuration.",
+                  "description": "Name of env-file for docker-compose configuration.",
                   "type": "string"
                 }
               }
