@@ -474,6 +474,59 @@ async function composeCommand(cwd?: string): Promise<string> {
   return "docker compose";
 }
 
+/**
+ * Extract the published host port from `compose port` output. Docker Compose prints a host:port
+ * pair (e.g. `0.0.0.0:52774`) while Podman Compose prints just the bare port number.
+ */
+function parsePublishedPort(stdout: string): string | undefined {
+  return stdout
+    .trim()
+    .split("\n")
+    .pop()
+    ?.match(/(\d+)$/)?.[1];
+}
+
+/**
+ * Check whether `service` has a running container. `cmd` is the already-built compose invocation
+ * (compose executable plus `-f`/`--env-file` args). Podman's compose tooling doesn't support the
+ * `--services`/`--filter` flags that Docker Compose does, so it needs a different check.
+ */
+function isServiceRunning(cmd: string, cwd: string, service: string): Promise<boolean> {
+  if (cmd.includes("podman")) {
+    return new Promise<boolean>((resolve, reject) => {
+      exec(`${cmd} ps --format json`, { cwd }, (error, stdout) => {
+        if (error) {
+          reject(error.message);
+          return;
+        }
+        let containers: { State?: string; Labels?: Record<string, string> }[] = [];
+        try {
+          containers = JSON.parse(stdout);
+        } catch {
+          // Leave containers empty; resolves to false below
+        }
+        resolve(
+          containers.some(
+            (c) =>
+              c.State === "running" &&
+              (c.Labels?.["io.podman.compose.service"] === service ||
+                c.Labels?.["com.docker.compose.service"] === service)
+          )
+        );
+      });
+    });
+  }
+  return new Promise<boolean>((resolve, reject) => {
+    exec(`${cmd} ps --services --filter status=running`, { cwd }, (error, stdout) => {
+      if (error) {
+        reject(error.message);
+        return;
+      }
+      resolve(stdout.replaceAll("\r", "").split("\n").includes(service));
+    });
+  });
+}
+
 export async function portFromDockerCompose(
   workspaceFolderName?: string
 ): Promise<{ port: number | null; superserverPort: number | null; docker: boolean; service?: string }> {
@@ -531,21 +584,20 @@ export async function portFromDockerCompose(
   const cmd = `${await composeCommand(cwd)} -f ${file} ${envFileParam} `;
 
   return new Promise((resolve, reject) => {
-    exec(`${cmd} ps --services --filter status=running`, { cwd }, (error, stdout) => {
-      if (error) {
-        reject(error.message);
-      }
-      if (!stdout.replaceAll("\r", "").split("\n").includes(service)) {
+    isServiceRunning(cmd, cwd, service).then((running) => {
+      if (!running) {
         reject(`Service '${service}' not found in '${path.join(cwd, file)}', or not running.`);
+        return;
       }
 
       exec(`${cmd} port --protocol=tcp ${service} ${internalPort}`, { cwd }, (error, stdout) => {
         if (error) {
           reject(error.message);
         }
-        const [, port] = stdout.match(/:(\d+)/) || [];
+        const port = parsePublishedPort(stdout);
         if (!port) {
           reject(`Webserver port ${internalPort} not published for service '${service}' in '${path.join(cwd, file)}'.`);
+          return;
         }
         result.port = parseInt(port, 10);
 
@@ -554,20 +606,23 @@ export async function portFromDockerCompose(
             // Not an error if we were merely looking for the default port and the container doesn't publish it
             if (!dockerCompose.internalSuperserverPort) {
               resolve(result);
+              return;
             }
             reject(error.message);
+            return;
           }
-          const [, superserverPort] = stdout.match(/:(\d+)/) || [];
+          const superserverPort = parsePublishedPort(stdout);
           if (!superserverPort) {
             reject(
               `Superserver port ${internalSuperserverPort} not published for service '${service}' in '${path.join(cwd, file)}'.`
             );
+            return;
           }
           result.superserverPort = parseInt(superserverPort, 10);
           resolve(result);
         });
       });
-    });
+    }, reject);
   });
 }
 
