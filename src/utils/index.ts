@@ -459,11 +459,8 @@ export function notNull(el: any): boolean {
   return el !== null;
 }
 
-/** Determine the compose command to use (`docker-compose` or `docker compose`), honoring an explicit override. */
-async function composeCommand(cwd?: string, configuredCommand?: string): Promise<string> {
-  if (configuredCommand) {
-    return configuredCommand;
-  }
+/** Determine the compose command to use (`docker-compose` or `docker compose`).  */
+async function composeCommand(cwd?: string): Promise<string> {
   return new Promise<string>((resolve) => {
     let cmd = "docker compose";
     exec(`${cmd} version`, { cwd }, (error) => {
@@ -492,7 +489,6 @@ export async function portFromDockerCompose(
     internalPort = 52773,
     internalSuperserverPort = 1972,
     envFile,
-    command,
   } = dockerCompose;
   if (!internalPort || !internalSuperserverPort || !file || !service || service === "") {
     return { docker: false, port: null, superserverPort: null };
@@ -531,7 +527,7 @@ export async function portFromDockerCompose(
   }
 
   const envFileParam = envFile ? `--env-file ${envFile}` : "";
-  const cmd = `${await composeCommand(cwd, command)} -f ${file} ${envFileParam} `;
+  const cmd = `${await composeCommand(cwd)} -f ${file} ${envFileParam} `;
 
   return new Promise((resolve, reject) => {
     exec(`${cmd} ps --services --filter status=running`, { cwd }, (error, stdout) => {
@@ -576,15 +572,19 @@ export async function portFromDockerCompose(
 
 export async function terminalWithDocker(): Promise<vscode.Terminal> {
   const { ns, "docker-compose": dockerCompose } = config("conn");
-  const { service, file = "docker-compose.yml", command } = dockerCompose;
+  const { service, file = "docker-compose.yml" } = dockerCompose;
   const workspace = currentWorkspaceFolder();
 
   const terminalName = `ObjectScript:${workspace}`;
   let terminal = terminals.find((t) => t.name == terminalName && t.exitStatus == undefined);
   if (!terminal) {
-    const exeSplit = (await composeCommand(undefined, command)).split(" ");
-    const exe = exeSplit[0];
-    const argsArr = exeSplit.slice(1);
+    let exe = await composeCommand();
+    const argsArr: string[] = [];
+    if (exe == "docker compose") {
+      const exeSplit = exe.split(" ");
+      exe = exeSplit[0];
+      argsArr.push(exeSplit[1]);
+    }
     terminal = vscode.window.createTerminal(
       terminalName,
       `${exe}${process.platform == "win32" ? ".exe" : ""}`,
@@ -607,15 +607,19 @@ export async function terminalWithDocker(): Promise<vscode.Terminal> {
 
 export async function shellWithDocker(): Promise<vscode.Terminal> {
   const { "docker-compose": dockerCompose } = config("conn");
-  const { service, file = "docker-compose.yml", command } = dockerCompose;
+  const { service, file = "docker-compose.yml" } = dockerCompose;
   const workspace = currentWorkspaceFolder();
 
   const terminalName = `Shell:${workspace}`;
   let terminal = terminals.find((t) => t.name == terminalName && t.exitStatus == undefined);
   if (!terminal) {
-    const exeSplit = (await composeCommand(undefined, command)).split(" ");
-    const exe = exeSplit[0];
-    const argsArr = exeSplit.slice(1);
+    let exe = await composeCommand();
+    const argsArr: string[] = [];
+    if (exe == "docker compose") {
+      const exeSplit = exe.split(" ");
+      exe = exeSplit[0];
+      argsArr.push(exeSplit[1]);
+    }
     terminal = vscode.window.createTerminal(
       terminalName,
       `${exe}${process.platform == "win32" ? ".exe" : ""}`,
