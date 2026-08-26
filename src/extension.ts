@@ -2014,22 +2014,20 @@ function serverForUri(uri: vscode.Uri): serverManager.ServerForUri | undefined {
   // which will require explicit user consent to divulge the password to the requesting extension.
   const { serverName, active, host, https, port, superserverPort, pathPrefix, auth, ns, apiVersion, serverVersion } =
     api.config;
-  if (serverName) {
     auth.clear() as void;
-    const password: string | undefined = vscode.workspace
-      .getConfiguration(
-        `intersystems.servers.${serverName.toLowerCase()}`,
-        // objectscript(xml):// URIs are not in any workspace folder,
-        // so make sure we resolve the server definition with the proper
-        // granularity. This is needed to prevent other extensions like
-        // Language Server prompting for a passwoord when it's not needed.
-        [OBJECTSCRIPT_FILE_SCHEMA, OBJECTSCRIPTXML_FILE_SCHEMA].includes(uri.scheme)
-          ? vscode.workspace.workspaceFolders?.find((f) => f.name.toLowerCase() == configNameLower)?.uri
-          : uri
-      )
-      .get("password");
-    password && auth.resolve({ accessToken: password });
-  }
+  const password = config("conn", configName).password || vscode.workspace
+    .getConfiguration(
+      `intersystems.servers.${serverName.toLowerCase()}`,
+      // objectscript(xml):// URIs are not in any workspace folder,
+      // so make sure we resolve the server definition with the proper
+      // granularity. This is needed to prevent other extensions like
+      // Language Server prompting for a passwoord when it's not needed.
+      [OBJECTSCRIPT_FILE_SCHEMA, OBJECTSCRIPTXML_FILE_SCHEMA].includes(uri.scheme)
+        ? vscode.workspace.workspaceFolders?.find((f) => f.name.toLowerCase() == configNameLower)?.uri
+        : uri
+    )
+    .get<string>("password");
+  password && auth.resolve({ accessToken: password });
   if (ns) {
     return {
       serverName,
