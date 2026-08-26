@@ -2004,7 +2004,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
 
 // This function is exported as one of our API functions but is also used internally
 // for example to implement the async variant capable of resolving docker port number.
-function serverForUri(uri: vscode.Uri): serverManager.ServerForUri {
+function serverForUri(uri: vscode.Uri): serverManager.ServerForUri | undefined {
   const { apiTarget, configName } = connectionTarget(uri);
   const configNameLower = configName.toLowerCase();
   const api = new AtelierAPI(apiTarget);
@@ -2030,27 +2030,32 @@ function serverForUri(uri: vscode.Uri): serverManager.ServerForUri {
       )
       .get<string>("password");
   password && auth.resolve({ accessToken: password });
-  return {
-    serverName,
-    active,
-    ...(https ? ({ https: true, scheme: "https" } as const) : ({ scheme: "http" } as const)),
-    host,
-    port,
-    superserverPort,
-    pathPrefix: pathPrefix!,
-    auth,
-    username: auth.username,
-    password: auth.password,
-    namespace: ns!,
-    apiVersion: (active ? apiVersion : undefined)!,
-    serverVersion: (active ? serverVersion : undefined)!,
-  };
+  if (ns) {
+    return {
+      serverName,
+      active,
+      ...(https ? ({ https: true, scheme: "https" } as const) : ({ scheme: "http" } as const)),
+      host,
+      port,
+      superserverPort,
+      pathPrefix: pathPrefix || "",
+      auth,
+      username: auth.username,
+      password: auth.password,
+      namespace: ns,
+      apiVersion: (active ? apiVersion : undefined)!,
+      serverVersion: (active ? serverVersion : undefined)!,
+    };
+  }
 }
 
 // An async variant capable of resolving docker port number.
 // It is exported as one of our API functions but is also used internally.
-async function asyncServerForUri(uri: vscode.Uri): Promise<serverManager.ServerForUri> {
+async function asyncServerForUri(uri: vscode.Uri): Promise<serverManager.ServerForUri | undefined> {
   const server = serverForUri(uri);
+  if (!server) {
+    return;
+  }
   if (!server.port) {
     let { apiTarget } = connectionTarget(uri);
     if (apiTarget instanceof vscode.Uri) {

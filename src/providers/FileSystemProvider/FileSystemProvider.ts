@@ -251,7 +251,7 @@ export function isfsDocumentName(uri: vscode.Uri, csp?: boolean, pkg = false): s
  * error, or a more descriptive custom error when `descriptiveError` is `true`,
  * when `uri`'s path is not in "canonical form".
  */
-function validateUriIsCanonical(uri: vscode.Uri, descriptiveError = false): void {
+function validateUriIsCanonical(uri: vscode.Uri): void {
   const numDots = uri.path.split(".").length - 1;
   const lastFour = uri.path.slice(-4);
   if (!isfsConfig(uri).csp && [".cls", ".mac", ".int", ".inc"].includes(lastFour.toLowerCase())) {
@@ -259,10 +259,12 @@ function validateUriIsCanonical(uri: vscode.Uri, descriptiveError = false): void
       ? "File extension must be in all lowercase"
       : uri.path.startsWith("/%") && lastFour == ".cls" && numDots == 1 && uri.path.split("/").length == 2
         ? "Must use the full name of %Library classes"
-        : numDots > 1 && !(numDots == 2 && /\.G?\d\.int$/.test(uri.path))
-          ? "Packages must use forward slashes as delimiters instead of dots"
+        : numDots > 1 && !((numDots == 2 && /\.G?\d\.int$/.test(uri.path)) || /\.\d+\.(mac|int|inc)$/.test(uri.path))
+          ? // Need to allow URIs for routines with last dotted sections that are entirely digits
+            // due to a server-side bug. These routines are not properly split into folders.
+            "Packages must use forward slashes as delimiters instead of dots"
           : undefined;
-    if (msg) throw descriptiveError ? new vscode.FileSystemError(msg) : vscode.FileSystemError.FileNotFound(uri);
+    if (msg) throw new vscode.FileSystemError(msg);
   }
 }
 
@@ -526,7 +528,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const originalUri = vscode.Uri.parse(originalUriString);
     this._needsUpdate.delete(originalUriString);
     uri = redirectDotvscodeRoot(uri, new vscode.FileSystemError("Server does not have a /_vscode web application"));
-    validateUriIsCanonical(uri, true);
+    validateUriIsCanonical(uri);
     const csp = isCSP(uri);
     const fileName = isfsDocumentName(uri, csp);
     if (fileName.startsWith(".")) {
@@ -811,7 +813,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       throw new vscode.FileSystemError("Cannot rename a file across workspace folders");
     }
     validateUriIsCanonical(oldUri);
-    validateUriIsCanonical(newUri, true);
+    validateUriIsCanonical(newUri);
     // Check if the destination exists
     let newFileStat: vscode.FileStat | undefined;
     try {

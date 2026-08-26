@@ -58,7 +58,7 @@ export interface ConnectionSettings {
   port: number;
   superserverPort?: number;
   pathPrefix?: string;
-  ns: string | undefined;
+  ns?: string;
   auth: Authorization;
   docker?: boolean;
   dockerService?: string;
@@ -254,7 +254,7 @@ export class AtelierAPI {
       serverName = "";
     }
 
-    const ns = namespace ? namespace.toUpperCase() : conn.ns ? (conn.ns as string).toUpperCase() : undefined;
+    const ns = namespace?.toUpperCase() || conn.ns?.toUpperCase();
     if (serverName !== "") {
       const {
         webServer: { scheme, host, port, pathPrefix = "" },
