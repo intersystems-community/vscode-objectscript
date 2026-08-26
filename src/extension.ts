@@ -2014,24 +2014,22 @@ function serverForUri(uri: vscode.Uri): serverManager.ServerForUri {
   // which will require explicit user consent to divulge the password to the requesting extension.
   const { serverName, active, host, https, port, superserverPort, pathPrefix, auth, ns, apiVersion, serverVersion } =
     api.config;
-  // The auth is resolved if and only if a password is provided by settings.json["objectscript.conn"]
-  if (! auth.resolved()) {
-    const password: string | undefined =
-      serverName &&
-      vscode.workspace
-        .getConfiguration(
-          `intersystems.servers.${serverName.toLowerCase()}`,
-          // objectscript(xml):// URIs are not in any workspace folder,
-          // so make sure we resolve the server definition with the proper
-          // granularity. This is needed to prevent other extensions like
-          // Language Server prompting for a passwoord when it's not needed.
-          [OBJECTSCRIPT_FILE_SCHEMA, OBJECTSCRIPTXML_FILE_SCHEMA].includes(uri.scheme)
-            ? vscode.workspace.workspaceFolders?.find((f) => f.name.toLowerCase() == configNameLower)?.uri
-            : uri
-        )
-        .get("password");
-    password && auth.resolve({ accessToken: password });
-  }
+  auth.clear() as void;
+  const password =
+    config("conn", configName).password ||
+    vscode.workspace
+      .getConfiguration(
+        `intersystems.servers.${serverName.toLowerCase()}`,
+        // objectscript(xml):// URIs are not in any workspace folder,
+        // so make sure we resolve the server definition with the proper
+        // granularity. This is needed to prevent other extensions like
+        // Language Server prompting for a passwoord when it's not needed.
+        [OBJECTSCRIPT_FILE_SCHEMA, OBJECTSCRIPTXML_FILE_SCHEMA].includes(uri.scheme)
+          ? vscode.workspace.workspaceFolders?.find((f) => f.name.toLowerCase() == configNameLower)?.uri
+          : uri
+      )
+      .get<string>("password");
+  password && auth.resolve({ accessToken: password });
   return {
     serverName,
     active,
