@@ -556,7 +556,7 @@ export class AtelierAPI {
       }
 
       return data;
-    } catch (error) {
+    } catch (error: any) {
       if (
         error?.message?.includes("Connection: close") &&
         path?.includes("/doc/") &&

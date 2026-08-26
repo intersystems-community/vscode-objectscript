@@ -459,9 +459,9 @@ export function notNull(el: any): boolean {
   return el !== null;
 }
 
-/** Determine the compose command to use, trying each candidate in order until one is found to work. */
+/** Determine the compose command to use (`docker compose` or `docker-compose` or `podman-compose`).  */
 async function composeCommand(cwd?: string): Promise<string> {
-  const candidates = ["docker compose", "docker-compose", "podman compose", "podman-compose"];
+  const candidates = ["docker compose", "docker-compose", "podman-compose"];
   for (const cmd of candidates) {
     const works = await new Promise<boolean>((resolve) => {
       exec(`${cmd} version`, { cwd }, (error) => resolve(!error));
@@ -470,8 +470,7 @@ async function composeCommand(cwd?: string): Promise<string> {
       return cmd;
     }
   }
-  // Nothing found; fall back to the original default so error messages remain unchanged
-  return "docker compose";
+  return candidates[0];
 }
 
 /**
