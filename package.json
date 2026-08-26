@@ -1196,6 +1196,7 @@
             "port": {
               "type": "integer",
               "description": "TCP port number the web server listens on.",
+              "deprecationMessage": "It is recommended to define a server connection in `#intersystems.servers#` instead of here.",
               "minimum": 1,
               "maximum": 65535
             },
