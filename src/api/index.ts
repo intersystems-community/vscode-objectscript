@@ -576,6 +576,15 @@ export class AtelierAPI {
         }
         throw { statusCode: 304, message: "Not Modified" };
       }
+      if (error?.message?.includes("Connection: close") && !options?._retriedAfterParseError) {
+        // Same underlying Node 22/llhttp strictness as above, but not the specific IIS/doc/ETag
+        // shape that implies a 304, e.g. seen fronting IRIS via podman's proxy layer. There's no
+        // way to recover the real response here, so just retry once on a fresh connection.
+        return this.request(minVersion, method, originalPath, body, params, headers, {
+          ...options,
+          _retriedAfterParseError: true,
+        });
+      }
       if (outputTraffic && !error.statusCode) {
         // Only output errors here if they were "hard" errors, not HTTP response errors
         outputRequest();
