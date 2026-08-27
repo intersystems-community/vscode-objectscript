@@ -2015,8 +2015,8 @@ function serverForUri(uri: vscode.Uri): serverManager.ServerForUri | undefined {
   const { serverName, active, host, https, port, superserverPort, pathPrefix, auth, ns, apiVersion, serverVersion } =
     api.config;
   auth.clear() as void;
-  const password: string | undefined =
-    serverName &&
+  const password =
+    config("conn", configName).password ||
     vscode.workspace
       .getConfiguration(
         `intersystems.servers.${serverName.toLowerCase()}`,
@@ -2028,7 +2028,7 @@ function serverForUri(uri: vscode.Uri): serverManager.ServerForUri | undefined {
           ? vscode.workspace.workspaceFolders?.find((f) => f.name.toLowerCase() == configNameLower)?.uri
           : uri
       )
-      .get("password");
+      .get<string>("password");
   password && auth.resolve({ accessToken: password });
   if (ns) {
     return {
