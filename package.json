@@ -1706,7 +1706,7 @@
     "vscode:prepublish": "webpack --mode production",
     "webpack": "webpack --mode development",
     "webpack-dev": "webpack --mode development --watch",
-    "package": "vsce package",
+    "package": "@vscode/vsce package",
     "compile": "webpack --mode production && tsc -p ./",
     "test-compile": "webpack --mode development && tsc -p ./",
     "watch": "tsc -w -p ./tsconfig.json",
