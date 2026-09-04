@@ -496,6 +496,13 @@ async function portFromPodmanCompose(
   result: { port: number | null; superserverPort: number | null; docker: boolean; service?: string }
 ): Promise<typeof result> {
   const execAsync = promisify(exec);
+  // Runs a compose subcommand and returns its stdout, converting a failed exec into a plain-string rejection.
+  const run = (args: string): Promise<string> =>
+    execAsync(`${cmd} ${args}`, { cwd })
+      .then(({ stdout }) => stdout)
+      .catch((error) => {
+        throw error.message;
+      });
   const parsePort = (stdout: string): string | undefined =>
     stdout
       .trim()
@@ -503,9 +510,7 @@ async function portFromPodmanCompose(
       .pop()
       ?.match(/(\d+)$/)?.[1];
 
-  const { stdout: psOutput } = await execAsync(`${cmd} ps --format json`, { cwd }).catch((error) => {
-    throw error.message;
-  });
+  const psOutput = await run("ps --format json");
   let containers: { State?: string; Labels?: Record<string, string> }[] = [];
   try {
     containers = JSON.parse(psOutput);
@@ -517,33 +522,25 @@ async function portFromPodmanCompose(
     throw `Service '${service}' not found in '${path.join(cwd, file)}', or not running.`;
   }
 
-  const { stdout: portOutput } = await execAsync(`${cmd} port --protocol=tcp ${service} ${internalPort}`, {
-    cwd,
-  }).catch((error) => {
-    throw error.message;
-  });
-  const port = parsePort(portOutput);
+  const port = parsePort(await run(`port --protocol=tcp ${service} ${internalPort}`));
   if (!port) {
     throw `Webserver port ${internalPort} not published for service '${service}' in '${path.join(cwd, file)}'.`;
   }
   result.port = parseInt(port, 10);
 
-  const superserverPortResult = await execAsync(`${cmd} port --protocol=tcp ${service} ${internalSuperserverPort}`, {
-    cwd,
-  }).catch((error) => {
+  let superserverPortOutput: string | undefined;
+  try {
+    superserverPortOutput = await run(`port --protocol=tcp ${service} ${internalSuperserverPort}`);
+  } catch (error) {
     // Not an error if we were merely looking for the default port and the container doesn't publish it
-    if (!dockerCompose.internalSuperserverPort) {
-      return undefined;
-    }
-    throw error.message;
-  });
-  if (superserverPortResult) {
-    const superserverPort = parsePort(superserverPortResult.stdout);
-    if (!superserverPort) {
-      throw `Superserver port ${internalSuperserverPort} not published for service '${service}' in '${path.join(cwd, file)}'.`;
-    }
-    result.superserverPort = parseInt(superserverPort, 10);
+    if (!dockerCompose.internalSuperserverPort) return result;
+    throw error;
   }
+  const superserverPort = parsePort(superserverPortOutput);
+  if (!superserverPort) {
+    throw `Superserver port ${internalSuperserverPort} not published for service '${service}' in '${path.join(cwd, file)}'.`;
+  }
+  result.superserverPort = parseInt(superserverPort, 10);
 
   return result;
 }
