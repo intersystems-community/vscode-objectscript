@@ -459,40 +459,49 @@ export function notNull(el: any): boolean {
   return el !== null;
 }
 
-/** Determine the compose command to use (`docker compose` or `docker-compose` or `podman-compose`).  */
+/** Determine the compose command to use (`docker-compose` or `docker compose` or `podman-compose`).  */
 async function composeCommand(cwd?: string): Promise<string> {
-  const candidates = ["docker compose", "docker-compose", "podman-compose"];
-  for (const cmd of candidates) {
-    const works = await new Promise<boolean>((resolve) => {
-      exec(`${cmd} version`, { cwd }, (error) => resolve(!error));
+  return new Promise<string>((resolve) => {
+    let cmd = "docker compose";
+    exec(`${cmd} version`, { cwd }, (error) => {
+      if (error) {
+        // 'docker compose' is not present, so default to 'docker-compose'
+        cmd = "docker-compose";
+      }
+      exec(`${cmd} version`, { cwd }, (error) => {
+        if (error) {
+          // Neither Docker Compose variant is present; fall back to Podman Compose
+          cmd = "podman-compose";
+        }
+        resolve(cmd);
+      });
     });
-    if (works) {
-      return cmd;
-    }
-  }
-  return candidates[0];
+  });
 }
 
 /**
- * Extract the published host port from `compose port` output. Docker Compose prints a host:port
- * pair (e.g. `0.0.0.0:52774`) while Podman Compose prints just the bare port number.
+ * Podman's compose tooling doesn't support the same `ps --services --filter status=running` and
+ * `port` output format as Docker Compose (bare port number instead of a host:port pair, and no
+ * `--services`/`--filter` flags), so it needs its own port/running-state resolution.
  */
-function parsePublishedPort(stdout: string): string | undefined {
-  return stdout
-    .trim()
-    .split("\n")
-    .pop()
-    ?.match(/(\d+)$/)?.[1];
-}
-
-/**
- * Check whether `service` has a running container. `cmd` is the already-built compose invocation
- * (compose executable plus `-f`/`--env-file` args). Podman's compose tooling doesn't support the
- * `--services`/`--filter` flags that Docker Compose does, so it needs a different check.
- */
-function isServiceRunning(cmd: string, cwd: string, service: string): Promise<boolean> {
-  if (cmd.includes("podman")) {
-    return new Promise<boolean>((resolve, reject) => {
+function portFromPodmanCompose(
+  cmd: string,
+  cwd: string,
+  file: string,
+  service: string,
+  internalPort: number,
+  internalSuperserverPort: number,
+  dockerCompose: { internalSuperserverPort?: number },
+  result: { port: number | null; superserverPort: number | null; docker: boolean; service?: string }
+): Promise<typeof result> {
+  const parsePort = (stdout: string): string | undefined =>
+    stdout
+      .trim()
+      .split("\n")
+      .pop()
+      ?.match(/(\d+)$/)?.[1];
+  const isServiceRunning = (): Promise<boolean> =>
+    new Promise<boolean>((resolve, reject) => {
       exec(`${cmd} ps --format json`, { cwd }, (error, stdout) => {
         if (error) {
           reject(error.message);
@@ -504,25 +513,50 @@ function isServiceRunning(cmd: string, cwd: string, service: string): Promise<bo
         } catch {
           // Leave containers empty; resolves to false below
         }
-        resolve(
-          containers.some(
-            (c) =>
-              c.State === "running" &&
-              (c.Labels?.["io.podman.compose.service"] === service ||
-                c.Labels?.["com.docker.compose.service"] === service)
-          )
-        );
+        resolve(containers.some((c) => c.State === "running" && c.Labels?.["com.docker.compose.service"] === service));
       });
     });
-  }
-  return new Promise<boolean>((resolve, reject) => {
-    exec(`${cmd} ps --services --filter status=running`, { cwd }, (error, stdout) => {
-      if (error) {
-        reject(error.message);
+
+  return new Promise((resolve, reject) => {
+    isServiceRunning().then((running) => {
+      if (!running) {
+        reject(`Service '${service}' not found in '${path.join(cwd, file)}', or not running.`);
         return;
       }
-      resolve(stdout.replaceAll("\r", "").split("\n").includes(service));
-    });
+
+      exec(`${cmd} port --protocol=tcp ${service} ${internalPort}`, { cwd }, (error, stdout) => {
+        if (error) {
+          reject(error.message);
+        }
+        const port = parsePort(stdout);
+        if (!port) {
+          reject(`Webserver port ${internalPort} not published for service '${service}' in '${path.join(cwd, file)}'.`);
+          return;
+        }
+        result.port = parseInt(port, 10);
+
+        exec(`${cmd} port --protocol=tcp ${service} ${internalSuperserverPort}`, { cwd }, (error, stdout) => {
+          if (error) {
+            // Not an error if we were merely looking for the default port and the container doesn't publish it
+            if (!dockerCompose.internalSuperserverPort) {
+              resolve(result);
+              return;
+            }
+            reject(error.message);
+            return;
+          }
+          const superserverPort = parsePort(stdout);
+          if (!superserverPort) {
+            reject(
+              `Superserver port ${internalSuperserverPort} not published for service '${service}' in '${path.join(cwd, file)}'.`
+            );
+            return;
+          }
+          result.superserverPort = parseInt(superserverPort, 10);
+          resolve(result);
+        });
+      });
+    }, reject);
   });
 }
 
@@ -582,21 +616,26 @@ export async function portFromDockerCompose(
   const envFileParam = envFile ? `--env-file ${envFile}` : "";
   const cmd = `${await composeCommand(cwd)} -f ${file} ${envFileParam} `;
 
+  if (cmd.includes("podman")) {
+    return portFromPodmanCompose(cmd, cwd, file, service, internalPort, internalSuperserverPort, dockerCompose, result);
+  }
+
   return new Promise((resolve, reject) => {
-    isServiceRunning(cmd, cwd, service).then((running) => {
-      if (!running) {
+    exec(`${cmd} ps --services --filter status=running`, { cwd }, (error, stdout) => {
+      if (error) {
+        reject(error.message);
+      }
+      if (!stdout.replaceAll("\r", "").split("\n").includes(service)) {
         reject(`Service '${service}' not found in '${path.join(cwd, file)}', or not running.`);
-        return;
       }
 
       exec(`${cmd} port --protocol=tcp ${service} ${internalPort}`, { cwd }, (error, stdout) => {
         if (error) {
           reject(error.message);
         }
-        const port = parsePublishedPort(stdout);
+        const [, port] = stdout.match(/:(\d+)/) || [];
         if (!port) {
           reject(`Webserver port ${internalPort} not published for service '${service}' in '${path.join(cwd, file)}'.`);
-          return;
         }
         result.port = parseInt(port, 10);
 
@@ -605,23 +644,20 @@ export async function portFromDockerCompose(
             // Not an error if we were merely looking for the default port and the container doesn't publish it
             if (!dockerCompose.internalSuperserverPort) {
               resolve(result);
-              return;
             }
             reject(error.message);
-            return;
           }
-          const superserverPort = parsePublishedPort(stdout);
+          const [, superserverPort] = stdout.match(/:(\d+)/) || [];
           if (!superserverPort) {
             reject(
               `Superserver port ${internalSuperserverPort} not published for service '${service}' in '${path.join(cwd, file)}'.`
             );
-            return;
           }
           result.superserverPort = parseInt(superserverPort, 10);
           resolve(result);
         });
       });
-    }, reject);
+    });
   });
 }
 
@@ -635,7 +671,7 @@ export async function terminalWithDocker(): Promise<vscode.Terminal> {
   if (!terminal) {
     let exe = await composeCommand();
     const argsArr: string[] = [];
-    if (exe.includes(" ")) {
+    if (exe == "docker compose") {
       const exeSplit = exe.split(" ");
       exe = exeSplit[0];
       argsArr.push(exeSplit[1]);
@@ -670,7 +706,7 @@ export async function shellWithDocker(): Promise<vscode.Terminal> {
   if (!terminal) {
     let exe = await composeCommand();
     const argsArr: string[] = [];
-    if (exe.includes(" ")) {
+    if (exe == "docker compose") {
       const exeSplit = exe.split(" ");
       exe = exeSplit[0];
       argsArr.push(exeSplit[1]);
