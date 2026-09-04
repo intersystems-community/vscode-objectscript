@@ -282,7 +282,7 @@ export async function resolveConnectionSpec(
             port: serverForUri.superserverPort!,
           },
           description: `Server for workspace folder '${serverName}'`,
-          auth: new BasicAuthorization(),
+          auth: serverForUri.auth ?? new BasicAuthorization(),
         };
       }
     }
