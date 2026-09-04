@@ -497,12 +497,14 @@ async function portFromPodmanCompose(
 ): Promise<typeof result> {
   const execAsync = promisify(exec);
   // Runs a compose subcommand and returns its stdout, converting a failed exec into a plain-string rejection.
-  const run = (args: string): Promise<string> =>
-    execAsync(`${cmd} ${args}`, { cwd })
-      .then(({ stdout }) => stdout)
-      .catch((error) => {
-        throw error.message;
-      });
+  const run = async (args: string): Promise<string> => {
+    try {
+      const { stdout } = await execAsync(`${cmd} ${args}`, { cwd });
+      return stdout;
+    } catch (error: any) {
+      throw error.message;
+    }
+  };
   const parsePort = (stdout: string): string | undefined =>
     stdout
       .trim()
