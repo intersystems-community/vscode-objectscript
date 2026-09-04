@@ -505,7 +505,7 @@ async function portFromPodmanCompose(
       throw error.message;
     }
   };
-  const parsePort = (stdout: string): string | undefined =>
+  const parsePort = (stdout: string) =>
     stdout
       .trim()
       .split("\n")
@@ -519,8 +519,7 @@ async function portFromPodmanCompose(
   } catch {
     // Leave containers empty; treated as not running below
   }
-  const running = containers.some((c) => c.State === "running" && c.Labels?.["com.docker.compose.service"] === service);
-  if (!running) {
+  if (!containers.some((c) => c.State === "running" && c.Labels?.["com.docker.compose.service"] === service)) {
     throw `Service '${service}' not found in '${path.join(cwd, file)}', or not running.`;
   }
 
@@ -600,11 +599,11 @@ export async function portFromDockerCompose(
     return result;
   }
 
-  const composeExe = await composeCommand(cwd);
+  const composeCmd = await composeCommand(cwd);
   const envFileParam = envFile ? `--env-file ${envFile}` : "";
-  const cmd = `${composeExe} -f ${file} ${envFileParam} `;
+  const cmd = `${composeCmd} -f ${file} ${envFileParam} `;
 
-  if (composeExe === "podman-compose") {
+  if (composeCmd === "podman-compose") {
     return portFromPodmanCompose(cmd, cwd, file, service, internalPort, internalSuperserverPort, dockerCompose, result);
   }
 
