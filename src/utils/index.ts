@@ -599,11 +599,10 @@ export async function portFromDockerCompose(
     return result;
   }
 
-  const composeCmd = await composeCommand(cwd);
   const envFileParam = envFile ? `--env-file ${envFile}` : "";
-  const cmd = `${composeCmd} -f ${file} ${envFileParam} `;
+  const cmd = `${await composeCommand(cwd)} -f ${file} ${envFileParam} `;
 
-  if (composeCmd === "podman-compose") {
+  if (cmd.startsWith("podman-compose ")) {
     return portFromPodmanCompose(cmd, cwd, file, service, internalPort, internalSuperserverPort, dockerCompose, result);
   }
 
