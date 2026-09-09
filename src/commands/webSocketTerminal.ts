@@ -301,6 +301,8 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
             );
             break;
           case "color": {
+            // Outdated: the input is no longer on screen
+            if (this._state != "prompt") break;
             // Replace the input with the syntax colored text, keeping the cursor at the same spot
             let cursorLine = Math.ceil((this._cursorCol + 1) / this._cols) - 1;
             if (message.text!.includes("\r\n")) {
@@ -670,7 +672,12 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         }
         // Save the cursor position, write the text, restore the cursor position, then move the cursor manually
         this._hideCursorWrite(`\x1b7${eraseAfterCursor}${char}\x1b8${rowStr}${colStr}`);
+        if (this._input != "" && this._state == "prompt") {
+          this._socket.send(JSON.stringify({ type: "color", input: this._input }));
+        }
         if (submit) {
+          // Let the coloring arrive before submitting moves the input off its line
+          await new Promise((resolve) => setTimeout(resolve, 100));
           if (this._state == "prompt") {
             // Reset historyIdx
             this._historyIdx = -1;
@@ -703,9 +710,6 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           this._input = "";
           this._state = "eval";
           this._margin = this._cursorCol = 0;
-        } else if (this._input != "" && this._state == "prompt") {
-          // Syntax color input
-          this._socket.send(JSON.stringify({ type: "color", input: this._input }));
         }
       }
     }
