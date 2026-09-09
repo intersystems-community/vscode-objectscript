@@ -120,15 +120,13 @@ function computeCursorMove(
 ): { escape: string; cursorCol: number; cols: number } {
   // Calculate the row/column number of the current position
   const currCol = cursorCol % cols;
-  const currRow = (cursorCol - currCol) / cols;
   // Work out the adjustment
   const newCursorCol = cursorColDelta != 0 ? cursorCol + cursorColDelta : cursorCol;
   const newCols = cursorColDelta != 0 ? cols : cols + colsDelta;
   // Calculate the row/column number of the new position
   const newCol = newCursorCol % newCols;
-  const newRow = (newCursorCol - newCol) / newCols;
   // Move the cursor
-  const rowDelta = newRow - currRow;
+  const rowDelta = (newCursorCol - newCol) / newCols - (cursorCol - currCol) / cols;
   const colDelta = newCol - currCol;
   const rowStr = rowDelta ? (rowDelta > 0 ? `\x1b[${rowDelta}B` : `\x1b[${Math.abs(rowDelta)}A`) : "";
   const colStr = colDelta ? (colDelta > 0 ? `\x1b[${colDelta}C` : `\x1b[${Math.abs(colDelta)}D`) : "";
@@ -140,9 +138,8 @@ function computeCursorMove(
  * so any output doesn't overwrite the end of the input
  */
 function computeMoveToLastLineEscape(cursorCol: number, margin: number, input: string, cols: number): string {
-  const currRow = (cursorCol - (cursorCol % cols)) / cols;
-  const newRow = Math.ceil((margin + input.split("\r\n").pop()!.length + 1) / cols) - 1;
-  const rowDelta = newRow - currRow;
+  const rowDelta =
+    Math.ceil((margin + input.split("\r\n").pop()!.length + 1) / cols) - 1 - (cursorCol - (cursorCol % cols)) / cols;
   return rowDelta ? `\x1b[${rowDelta}B` : "";
 }
 
@@ -213,7 +210,6 @@ function computeInsertMove(
   multiLinePrompt: string
 ): { char: string; newMargin: number; newCursorCol: number; escape: string } {
   const currCol = cursorCol % cols;
-  const currRow = (cursorCol - currCol) / cols;
   let newMargin = margin;
   let newCursorCol: number;
   let newRow: number;
@@ -230,7 +226,7 @@ function computeInsertMove(
     newRow = Math.ceil((cursorCol + char.length + 1) / cols) - 1;
     newCursorCol = cursorCol + char.length;
   }
-  const rowDelta = newRow - currRow;
+  const rowDelta = newRow - (cursorCol - currCol) / cols;
   const colDelta = (newCursorCol % cols) - currCol;
   const rowStr = rowDelta ? (rowDelta > 0 ? `\x1b[${rowDelta}B` : `\x1b[${Math.abs(rowDelta)}A`) : "";
   const colStr = colDelta ? (colDelta > 0 ? `\x1b[${colDelta}C` : `\x1b[${Math.abs(colDelta)}D`) : "";
@@ -330,7 +326,6 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   open(initialDimensions?: vscode.TerminalDimensions): void {
     const api = new AtelierAPI(this.targetUri);
     if (this._nsOverride) api.setNamespace(this._nsOverride);
-    const cols = initialDimensions?.columns ?? 100000;
     let socket: WebSocket;
     try {
       // Open the WebSocket
@@ -350,11 +345,12 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     this._write("\x1b]633;P;HasRichCommandDetection=True\x07");
     // Print the opening message
     const username = api.config.auth.username;
-    const identity = username.includes("*")
-      ? `using \x1b[0m\x1b[3m${username.slice(1, -1)}\x1b[0m\r\n`
-      : `as \x1b[0m\x1b[3m${username}\x1b[0m\r\n`;
     this._write(
-      `\x1b[32mConnected to \x1b[0m\x1b[4m${api.config.host}:${api.config.port}${api.config.pathPrefix}\x1b[0m\x1b[32m ${identity}`
+      `\x1b[32mConnected to \x1b[0m\x1b[4m${api.config.host}:${api.config.port}${api.config.pathPrefix}\x1b[0m\x1b[32m ${
+        username.includes("*")
+          ? `using \x1b[0m\x1b[3m${username.slice(1, -1)}\x1b[0m\r\n`
+          : `as \x1b[0m\x1b[3m${username}\x1b[0m\r\n`
+      }`
     );
     // Add event handlers to the socket
     socket
@@ -386,12 +382,11 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
             // Strip leading \r\n since we printed it already
             const text = wasFirstLine && message.text!.startsWith("\r\n") ? message.text!.slice(2) : message.text!;
             const isInterrupt = text.includes("\x1b[31;1m<INTERRUPT>");
-            const isError = !isInterrupt && text.includes("\x1b[31;1m");
             this._write(text);
             if (wasFirstLine) this._firstOutputLineSincePrompt = false;
             // Report no exit code for interrupts
             if (isInterrupt) this._promptExitCode = "";
-            else if (isError) this._promptExitCode = ";1";
+            else if (!isInterrupt && text.includes("\x1b[31;1m")) this._promptExitCode = ";1";
             this._margin = this._cursorCol = text.split("\r\n").pop()!.length;
             break;
           }
@@ -440,7 +435,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           }
         }
       });
-    this._cols = cols;
+    this._cols = initialDimensions?.columns ?? 100000;
     this._socket = socket;
   }
 
@@ -590,11 +585,8 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     cols: number,
     socket: WebSocket
   ): void {
-    const recordHistory = input != "" && !input.includes("\r\n");
     // Remove the input from the existing history, then append it
-    const newHistory = recordHistory ? [...history.filter((h) => h != input), input] : history;
-
-    this._history = newHistory;
+    this._history = input != "" && !input.includes("\r\n") ? [...history.filter((h) => h != input), input] : history;
     this._historyIdx = -1;
     // Check if we should enter multi-line mode
     if (isInputUnterminated(input)) {
@@ -720,8 +712,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
       newInput = "";
     }
     // Move cursor to start of input, clear everything, then write new input
-    const move = computeCursorMove(cursorCol, cols, margin - cursorCol);
-    this._write(move.escape);
+    this._write(computeCursorMove(cursorCol, cols, margin - cursorCol).escape);
     this._write(`\x1b[0J${newInput}`);
     if (newInput != "") {
       // Syntax color input
@@ -761,8 +752,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     }
     const newInput = newHistoryIdx != -1 ? history[newHistoryIdx] : "";
     // Move cursor to start of input, clear everything, then write new input
-    const move = computeCursorMove(cursorCol, cols, margin - cursorCol);
-    this._write(move.escape);
+    this._write(computeCursorMove(cursorCol, cols, margin - cursorCol).escape);
     this._write(`\x1b[0J${newInput}`);
     if (newInput != "") {
       // Syntax color input
@@ -870,20 +860,25 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     const normalized = normalizeTypedChars(char, state, this.multiLinePrompt);
     const inserted = computeInsertedInput(input, cursorCol, margin, normalized.char);
     const move = computeInsertMove(cursorCol, cols, margin, state, normalized.char, this.multiLinePrompt);
-    const displayChar = wrapForReadMode(move.char + inserted.trailingText, cols, cursorCol, state);
 
     // Save the cursor position, write the text, restore the cursor position, then move the cursor manually
-    this._write(`\x1b7${inserted.eraseAfterCursor}${displayChar}\x1b8${move.escape}`);
+    this._write(
+      `\x1b7${inserted.eraseAfterCursor}${wrapForReadMode(
+        move.char + inserted.trailingText,
+        cols,
+        cursorCol,
+        state
+      )}\x1b8${move.escape}`
+    );
 
     if (normalized.submit) {
       const isPrompt = state == "prompt";
       if (isPrompt) {
         // Remove the input from the existing history, then append it, and reset historyIdx
-        const newHistory =
+        this._history =
           inserted.newInput != "" && !inserted.newInput.includes("\r\n")
             ? [...history.filter((h) => h != inserted.newInput), inserted.newInput]
             : history;
-        this._history = newHistory;
         this._historyIdx = -1;
         // Reset first line tracker
         this._firstOutputLineSincePrompt = true;
@@ -992,8 +987,7 @@ export async function launchWebSocketTerminal(targetUri?: vscode.Uri | null, nsO
     // Uri passed as command argument might be for a server we haven't yet resolved
     // connection details such as password, so make sure that happens now if needed
     const { configName } = connectionTarget(targetUri);
-    const serverName = notIsfs(targetUri) ? config("conn", configName).server : configName;
-    await resolveConnectionSpec(serverName);
+    await resolveConnectionSpec(notIsfs(targetUri) ? config("conn", configName).server : configName);
   } else {
     // Determine the server connection to use
     targetUri = currentFile()?.uri ?? (await getWsServerConnection("2023.2.0"));
@@ -1011,8 +1005,7 @@ export async function launchWebSocketTerminal(targetUri?: vscode.Uri | null, nsO
   const terminalOpts = terminalConfigForUri(api, targetUri, false, nsOverride);
   if (terminalOpts) {
     // Launch the terminal
-    const terminal = vscode.window.createTerminal(terminalOpts);
-    terminal.show();
+    vscode.window.createTerminal(terminalOpts).show();
   }
 }
 
@@ -1026,8 +1019,7 @@ export class WebSocketTerminalProfileProvider implements vscode.TerminalProfileP
       // Ensure cookies aren't stale because a 401 error will kill the terminal with no error log
       await api.serverInfo();
       // Get the terminal configuration. Will throw if there's an error.
-      const terminalOpts = terminalConfigForUri(api, uri, true);
-      return new vscode.TerminalProfile(terminalOpts!);
+      return new vscode.TerminalProfile(terminalConfigForUri(api, uri, true)!);
     } else if (uri === undefined) {
       throw new Error(NO_ELIGIBLE_CONNECTIONS);
     } else {
