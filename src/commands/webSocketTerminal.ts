@@ -36,18 +36,12 @@ const actions = {
 };
 
 /** Data received from the WebSocket */
-interface WebSocketMessage {
-  /** The type of the message */
-  type: "prompt" | "read" | "error" | "output" | "init" | "color";
-  /** The text of the message. Present for all types but "read" and "init". */
-  text?: string;
-  /** The WebSocket protocol version. Only present for "init". */
-  protocol?: number;
-  /** The InterSystems IRIS `$ZVERSION`. Only present for "init". */
-  version?: string;
-  /** The current namespace. Only present for "prompt" on IRIS 2025.3+. */
-  ns?: string;
-}
+type WebSocketMessage =
+  /** `ns` is only sent by IRIS 2025.3+ */
+  | { type: "prompt"; text: string; ns?: string }
+  | { type: "error" | "output" | "color"; text: string }
+  | { type: "read" }
+  | { type: "init"; protocol: number; version: string };
 
 class WebSocketTerminal implements vscode.Pseudoterminal {
   private _writeEmitter = new vscode.EventEmitter<string>();
@@ -99,7 +93,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   private _colorsRegex = /\x1b[^m]*?m/g;
 
   /** The terminal's current namespace */
-  public currentNs: string;
+  public currentNs?: string;
 
   constructor(
     public readonly targetUri: vscode.Uri,
@@ -259,19 +253,19 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
             // Write the output to the terminal
             if (this._firstOutputLineSincePrompt) {
               // Strip leading \r\n since we printed it already
-              message.text = message.text!.startsWith("\r\n") ? message.text!.slice(2) : message.text;
+              message.text = message.text.startsWith("\r\n") ? message.text.slice(2) : message.text;
               this._firstOutputLineSincePrompt = false;
             }
-            if (message.text!.includes("\x1b[31;1m")) {
-              if (message.text!.includes("\x1b[31;1m<INTERRUPT>")) {
+            if (message.text.includes("\x1b[31;1m")) {
+              if (message.text.includes("\x1b[31;1m<INTERRUPT>")) {
                 // Report no exit code for interrupts
                 this._promptExitCode = "";
               } else {
                 this._promptExitCode = ";1";
               }
             }
-            this._margin = this._cursorCol = message.text!.split("\r\n").pop()!.length;
-            this._hideCursorWrite(message.text!);
+            this._margin = this._cursorCol = message.text.split("\r\n").pop()!.length;
+            this._hideCursorWrite(message.text);
             break;
           case "prompt":
           case "read":
@@ -280,11 +274,11 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
               this._hideCursorWrite(
                 `\x1b]633;D${this._promptExitCode}\x07\r\n\x1b]633;A\x07${message.text}\x1b]633;B\x07`
               );
-              this._margin = this._cursorCol = message.text!.replace(this._colorsRegex, "").length;
-              this._prompt = message.text!;
+              this._margin = this._cursorCol = message.text.replace(this._colorsRegex, "").length;
+              this._prompt = message.text;
               this._promptExitCode = ";0";
               // Store the current namespace
-              this.currentNs = message.ns!;
+              this.currentNs = message.ns;
             }
             // Enable input
             this._state = message.type;
@@ -305,13 +299,13 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
             if (this._state != "prompt") break;
             // Replace the input with the syntax colored text, keeping the cursor at the same spot
             let cursorLine = Math.ceil((this._cursorCol + 1) / this._cols) - 1;
-            if (message.text!.includes("\r\n")) {
-              const lines = message.text!.replace(this._colorsRegex, "").split("\r\n");
+            if (message.text.includes("\r\n")) {
+              const lines = message.text.replace(this._colorsRegex, "").split("\r\n");
               lines.pop();
               cursorLine += lines.reduce((sum, line) => sum + Math.ceil((line.length + 1) / this._cols), 0);
             }
             this._hideCursorWrite(
-              `\x1b7${cursorLine > 0 ? `\x1b[${cursorLine}A` : ""}\r\x1b[0J${this._prompt}${message.text!.replace(
+              `\x1b7${cursorLine > 0 ? `\x1b[${cursorLine}A` : ""}\r\x1b[0J${this._prompt}${message.text.replace(
                 /\r\n/g,
                 `\r\n${this.multiLinePrompt}`
               )}\x1b8`
