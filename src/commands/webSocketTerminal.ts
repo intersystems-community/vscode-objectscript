@@ -322,89 +322,8 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     private readonly _nsOverride?: string
   ) {}
 
-  /** Set the text of the input line */
-  private _setInput(input: string): void {
-    this._input = input;
-  }
-
-  /** Set the number of characters on the line that the user can't delete */
-  private _setMargin(margin: number): void {
-    this._margin = margin;
-  }
-
-  /** Set the position of the cursor within the line */
-  private _setCursorCol(cursorCol: number): void {
-    this._cursorCol = cursorCol;
-  }
-
-  /** Set the margin and place the cursor right after it */
-  private _setMarginAndCursorCol(value: number): void {
-    this._setMargin(value);
-    this._setCursorCol(value);
-  }
-
-  /** Replace the input line with fresh text, with the cursor right after the new margin */
-  private _resetLine(input: string, margin: number): void {
-    this._setInput(input);
-    this._setMarginAndCursorCol(margin);
-  }
-
-  /** Replace the input line's text and move the cursor within it */
-  private _setInputAndCursorCol(input: string, cursorCol: number): void {
-    this._setInput(input);
-    this._setCursorCol(cursorCol);
-  }
-
-  /** Set the scroll position within the command history */
-  private _setHistoryIdx(historyIdx: number): void {
-    this._historyIdx = historyIdx;
-  }
-
-  /** Replace the command history and reset the scroll position within it */
-  private _setHistory(history: string[], historyIdx: number): void {
-    this._history = history;
-    this._setHistoryIdx(historyIdx);
-  }
-
-  /** Set the prompt/read/eval protocol state */
-  private _setState(state: "prompt" | "read" | "eval"): void {
-    this._state = state;
-  }
-
-  /** Set whether the next output line is the first since sending the prompt input */
-  private _setFirstOutputLineSincePrompt(firstOutputLineSincePrompt: boolean): void {
-    this._firstOutputLineSincePrompt = firstOutputLineSincePrompt;
-  }
-
-  /** Set the `text` of the last `prompt` message sent by the server */
-  private _setPrompt(prompt: string): void {
-    this._prompt = prompt;
-  }
-
-  /** Set the exit code to report for the last prompt executed */
-  private _setPromptExitCode(promptExitCode: string): void {
-    this._promptExitCode = promptExitCode;
-  }
-
-  /** Record a newly received prompt and enable prompt input */
-  private _setPromptReceived(prompt: string): void {
-    this._setPrompt(prompt);
-    this._setPromptExitCode(";0");
-    this._setState("prompt");
-  }
-
-  /** Update the number of columns in the terminal */
-  private _setCols(cols: number): void {
-    this._cols = cols;
-  }
-
-  /** Update the terminal's current namespace */
-  private _setNamespace(currentNs: string): void {
-    this.currentNs = currentNs;
-  }
-
   /** Hide the cursor, write `data` to the terminal, then show the cursor again. */
-  private _hideCursorWrite(data: string): void {
+  private _write(data: string): void {
     this._writeEmitter.fire(`\x1b[?25l${data}\x1b[?25h`);
   }
 
@@ -428,13 +347,13 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
       return;
     }
     // Set terminal properties
-    this._hideCursorWrite("\x1b]633;P;HasRichCommandDetection=True\x07");
+    this._write("\x1b]633;P;HasRichCommandDetection=True\x07");
     // Print the opening message
     const username = api.config.auth.username;
     const identity = username.includes("*")
       ? `using \x1b[0m\x1b[3m${username.slice(1, -1)}\x1b[0m\r\n`
       : `as \x1b[0m\x1b[3m${username}\x1b[0m\r\n`;
-    this._hideCursorWrite(
+    this._write(
       `\x1b[32mConnected to \x1b[0m\x1b[4m${api.config.host}:${api.config.port}${api.config.pathPrefix}\x1b[0m\x1b[32m ${identity}`
     );
     // Add event handlers to the socket
@@ -468,28 +387,28 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
             const text = wasFirstLine && message.text!.startsWith("\r\n") ? message.text!.slice(2) : message.text!;
             const isInterrupt = text.includes("\x1b[31;1m<INTERRUPT>");
             const isError = !isInterrupt && text.includes("\x1b[31;1m");
-            this._hideCursorWrite(text);
-            if (wasFirstLine) this._setFirstOutputLineSincePrompt(false);
+            this._write(text);
+            if (wasFirstLine) this._firstOutputLineSincePrompt = false;
             // Report no exit code for interrupts
-            if (isInterrupt) this._setPromptExitCode("");
-            else if (isError) this._setPromptExitCode(";1");
-            this._setMarginAndCursorCol(text.split("\r\n").pop()!.length);
+            if (isInterrupt) this._promptExitCode = "";
+            else if (isError) this._promptExitCode = ";1";
+            this._margin = this._cursorCol = text.split("\r\n").pop()!.length;
             break;
           }
           case "prompt":
           case "read":
             if (message.type == "prompt") {
               // Write the prompt to the terminal
-              this._hideCursorWrite(
-                `\x1b]633;D${this._promptExitCode}\x07\r\n\x1b]633;A\x07${message.text}\x1b]633;B\x07`
-              );
-              this._setMarginAndCursorCol(message.text!.replace(this._colorsRegex, "").length);
-              this._setPromptReceived(message.text!);
+              this._write(`\x1b]633;D${this._promptExitCode}\x07\r\n\x1b]633;A\x07${message.text}\x1b]633;B\x07`);
+              this._margin = this._cursorCol = message.text!.replace(this._colorsRegex, "").length;
+              this._prompt = message.text!;
+              this._promptExitCode = ";0";
+              this._state = "prompt";
               // Store the current namespace
-              this._setNamespace(message.ns!);
+              this.currentNs = message.ns!;
             } else {
               // Enable input
-              this._setState("read");
+              this._state = "read";
             }
             break;
           case "init":
@@ -511,7 +430,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
               lines.pop();
               cursorLine += lines.reduce((sum, line) => sum + Math.ceil((line.length + 1) / this._cols), 0);
             }
-            this._hideCursorWrite(
+            this._write(
               `\x1b7${cursorLine > 0 ? `\x1b[${cursorLine}A` : ""}\r\x1b[0J${this._prompt}${message.text!.replace(
                 /\r\n/g,
                 `\r\n${this.multiLinePrompt}`
@@ -675,36 +594,40 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     // Remove the input from the existing history, then append it
     const newHistory = recordHistory ? [...history.filter((h) => h != input), input] : history;
 
-    this._setHistory(newHistory, -1);
+    this._history = newHistory;
+    this._historyIdx = -1;
     // Check if we should enter multi-line mode
     if (isInputUnterminated(input)) {
       // Write the multi-line mode prompt to the terminal
-      this._hideCursorWrite(`\r\n${this.multiLinePrompt}`);
-      this._resetLine(input + "\r\n", this.multiLinePrompt.length);
+      this._write(`\r\n${this.multiLinePrompt}`);
+      this._input = input + "\r\n";
+      this._margin = this._cursorCol = this.multiLinePrompt.length;
     } else {
       // Reset first line tracker
-      this._setFirstOutputLineSincePrompt(true);
+      this._firstOutputLineSincePrompt = true;
       // Move cursor to the last line of the input, then send it to the server for processing
       const moveEscape = computeMoveToLastLineEscape(cursorCol, margin, input, cols);
-      if (moveEscape) this._hideCursorWrite(moveEscape);
+      if (moveEscape) this._write(moveEscape);
       socket.send(JSON.stringify({ type: "prompt", input }));
-      this._hideCursorWrite(shellIntegrationSubmitEscape(input, this._nonce));
-      if (input == "") this._setPromptExitCode("");
-      this._setState("eval");
-      this._resetLine("", 0);
+      this._write(shellIntegrationSubmitEscape(input, this._nonce));
+      if (input == "") this._promptExitCode = "";
+      this._state = "eval";
+      this._input = "";
+      this._margin = this._cursorCol = 0;
     }
   }
 
   /** Submit the current READ input */
   private _handleSubmitRead(cursorCol: number, margin: number, input: string, cols: number, socket: WebSocket): void {
     // Reset first line tracker
-    this._setFirstOutputLineSincePrompt(false);
+    this._firstOutputLineSincePrompt = false;
     // Move cursor to the last line of the input, then send it to the server for processing
     const moveEscape = computeMoveToLastLineEscape(cursorCol, margin, input, cols);
-    if (moveEscape) this._hideCursorWrite(moveEscape);
+    if (moveEscape) this._write(moveEscape);
     socket.send(JSON.stringify({ type: "read", input }));
-    this._setState("eval");
-    this._resetLine("", 0);
+    this._state = "eval";
+    this._input = "";
+    this._margin = this._cursorCol = 0;
   }
 
   /** Erase to the left */
@@ -725,14 +648,14 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     inputArr[inputArr.length - 1] = inputArr[inputArr.length - 1].slice(0, cursorCol - margin - 1) + trailingText;
     const newInput = inputArr.join("\r\n");
     const move = computeCursorMove(cursorCol, cols, -1);
-    this._hideCursorWrite(move.escape);
-    this._hideCursorWrite(`\x1b7\x1b[0J${trailingText}\x1b8`);
+    this._write(move.escape);
+    this._write(`\x1b7\x1b[0J${trailingText}\x1b8`);
     if (newInput != "" && state == "prompt") {
       // Syntax color input
       socket.send(JSON.stringify({ type: "color", input: newInput }));
     }
-    this._setCursorCol(move.cursorCol);
-    this._setInput(newInput);
+    this._cursorCol = move.cursorCol;
+    this._input = newInput;
   }
 
   /** Erase to the right */
@@ -750,12 +673,12 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     const trailingText = inputArr[inputArr.length - 1].slice(cursorCol - margin + 1);
     inputArr[inputArr.length - 1] = inputArr[inputArr.length - 1].slice(0, cursorCol - margin) + trailingText;
     const newInput = inputArr.join("\r\n");
-    this._hideCursorWrite(`\x1b7\x1b[0J${trailingText}\x1b8`);
+    this._write(`\x1b7\x1b[0J${trailingText}\x1b8`);
     if (newInput != "" && state == "prompt") {
       // Syntax color input
       socket.send(JSON.stringify({ type: "color", input: newInput }));
     }
-    this._setInput(newInput);
+    this._input = newInput;
   }
 
   /** Scroll backwards through the history */
@@ -798,14 +721,15 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     }
     // Move cursor to start of input, clear everything, then write new input
     const move = computeCursorMove(cursorCol, cols, margin - cursorCol);
-    this._hideCursorWrite(move.escape);
-    this._hideCursorWrite(`\x1b[0J${newInput}`);
+    this._write(move.escape);
+    this._write(`\x1b[0J${newInput}`);
     if (newInput != "") {
       // Syntax color input
       socket.send(JSON.stringify({ type: "color", input: newInput }));
     }
-    this._setHistoryIdx(newHistoryIdx);
-    this._setInputAndCursorCol(newInput, margin + newInput.length);
+    this._historyIdx = newHistoryIdx;
+    this._input = newInput;
+    this._cursorCol = margin + newInput.length;
   }
 
   /** Scroll forwards through the history */
@@ -838,14 +762,15 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     const newInput = newHistoryIdx != -1 ? history[newHistoryIdx] : "";
     // Move cursor to start of input, clear everything, then write new input
     const move = computeCursorMove(cursorCol, cols, margin - cursorCol);
-    this._hideCursorWrite(move.escape);
-    this._hideCursorWrite(`\x1b[0J${newInput}`);
+    this._write(move.escape);
+    this._write(`\x1b[0J${newInput}`);
     if (newInput != "") {
       // Syntax color input
       socket.send(JSON.stringify({ type: "color", input: newInput }));
     }
-    this._setHistoryIdx(newHistoryIdx);
-    this._setInputAndCursorCol(newInput, margin + newInput.length);
+    this._historyIdx = newHistoryIdx;
+    this._input = newInput;
+    this._cursorCol = margin + newInput.length;
   }
 
   /** Move the cursor back one column */
@@ -853,12 +778,12 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     if (cursorCol > margin) {
       if (cursorCol % cols == 0) {
         // Move the cursor to the end of the previous line
-        this._hideCursorWrite(`${actions.cursorUp}\x1b[${cols}G`);
+        this._write(`${actions.cursorUp}\x1b[${cols}G`);
       } else {
         // Move the cursor back one column
-        this._hideCursorWrite(actions.cursorBack);
+        this._write(actions.cursorBack);
       }
-      this._setCursorCol(cursorCol - 1);
+      this._cursorCol = cursorCol - 1;
     }
   }
 
@@ -868,12 +793,12 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
       const newCursorCol = cursorCol + 1;
       if (newCursorCol % cols == 0) {
         // Move the cursor to the beginning of the next line
-        this._hideCursorWrite("\x1b[1E");
+        this._write("\x1b[1E");
       } else {
         // Move the cursor forward one column
-        this._hideCursorWrite(actions.cursorForward);
+        this._write(actions.cursorForward);
       }
-      this._setCursorCol(newCursorCol);
+      this._cursorCol = newCursorCol;
     }
   }
 
@@ -883,20 +808,20 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     socket.send(JSON.stringify({ type: "interrupt" }));
     const wasPrompting = state == "prompt";
     if (wasPrompting) {
-      this._hideCursorWrite("\r\n");
+      this._write("\r\n");
     }
-    this._setInput("");
+    this._input = "";
     // Reset first line tracker
-    if (wasPrompting) this._setFirstOutputLineSincePrompt(true);
-    this._setState("eval");
+    if (wasPrompting) this._firstOutputLineSincePrompt = true;
+    this._state = "eval";
   }
 
   /** Move the cursor to the beginning of the input */
   private _handleCursorHome(cursorCol: number, margin: number, cols: number): void {
     if (cursorCol - margin > 0) {
       const move = computeCursorMove(cursorCol, cols, margin - cursorCol);
-      this._hideCursorWrite(move.escape);
-      this._setCursorCol(move.cursorCol);
+      this._write(move.escape);
+      this._cursorCol = move.cursorCol;
     }
   }
 
@@ -905,8 +830,8 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     const lineLength = input.split("\r\n").pop()!.length;
     if (lineLength > cursorCol) {
       const move = computeCursorMove(cursorCol, cols, lineLength - cursorCol);
-      this._hideCursorWrite(move.escape);
-      this._setCursorCol(move.cursorCol);
+      this._write(move.escape);
+      this._cursorCol = move.cursorCol;
     }
   }
 
@@ -918,17 +843,17 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     }
     // Move the cursor to the beginning of the input
     const move = computeCursorMove(cursorCol, cols, margin - cursorCol);
-    this._hideCursorWrite(move.escape);
+    this._write(move.escape);
     // Erase everything to the right of the cursor
-    this._hideCursorWrite("\x1b[0J");
+    this._write("\x1b[0J");
     inputArr[inputArr.length - 1] = "";
     const newInput = inputArr.join("\r\n");
     if (newInput != "") {
       // Syntax color input
       socket.send(JSON.stringify({ type: "color", input: newInput }));
     }
-    this._setCursorCol(move.cursorCol);
-    this._setInput(newInput);
+    this._cursorCol = move.cursorCol;
+    this._input = newInput;
   }
 
   /** Insert one or more typed characters into the input at the cursor position */
@@ -948,7 +873,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     const displayChar = wrapForReadMode(move.char + inserted.trailingText, cols, cursorCol, state);
 
     // Save the cursor position, write the text, restore the cursor position, then move the cursor manually
-    this._hideCursorWrite(`\x1b7${inserted.eraseAfterCursor}${displayChar}\x1b8${move.escape}`);
+    this._write(`\x1b7${inserted.eraseAfterCursor}${displayChar}\x1b8${move.escape}`);
 
     if (normalized.submit) {
       const isPrompt = state == "prompt";
@@ -958,27 +883,29 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           inserted.newInput != "" && !inserted.newInput.includes("\r\n")
             ? [...history.filter((h) => h != inserted.newInput), inserted.newInput]
             : history;
-        this._setHistory(newHistory, -1);
+        this._history = newHistory;
+        this._historyIdx = -1;
         // Reset first line tracker
-        this._setFirstOutputLineSincePrompt(true);
+        this._firstOutputLineSincePrompt = true;
       } else {
         // Reset first line tracker
-        this._setFirstOutputLineSincePrompt(false);
+        this._firstOutputLineSincePrompt = false;
       }
       // Move cursor to the last line of the input, then send it to the server for processing
       const moveEscape = computeMoveToLastLineEscape(move.newCursorCol, move.newMargin, inserted.newInput, cols);
-      if (moveEscape) this._hideCursorWrite(moveEscape);
+      if (moveEscape) this._write(moveEscape);
       socket.send(JSON.stringify({ type: state, input: inserted.newInput }));
       if (isPrompt) {
-        this._hideCursorWrite(shellIntegrationSubmitEscape(inserted.newInput, this._nonce));
-        if (inserted.newInput == "") this._setPromptExitCode("");
+        this._write(shellIntegrationSubmitEscape(inserted.newInput, this._nonce));
+        if (inserted.newInput == "") this._promptExitCode = "";
       }
-      this._setState("eval");
-      this._resetLine("", 0);
+      this._state = "eval";
+      this._input = "";
+      this._margin = this._cursorCol = 0;
     } else {
-      this._setInput(inserted.newInput);
-      this._setMargin(move.newMargin);
-      this._setCursorCol(move.newCursorCol);
+      this._input = inserted.newInput;
+      this._margin = move.newMargin;
+      this._cursorCol = move.newCursorCol;
       if (inserted.newInput != "" && state == "prompt") {
         // Syntax color input
         socket.send(JSON.stringify({ type: "color", input: inserted.newInput }));
@@ -990,7 +917,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     if (this._state != "eval" && this._input != "") {
       // Move the cursor to the correct new position
       const move = computeCursorMove(this._cursorCol, this._cols, 0, dimensions.columns - this._cols);
-      this._hideCursorWrite(move.escape);
+      this._write(move.escape);
       // Save the cursor position, move the cursor to just after the margin,
       // clear the screen from that point, write the input, then restore the cursor
       let cursorLine = Math.ceil((this._cursorCol + 1) / move.cols) - 1;
@@ -999,7 +926,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         lines.pop();
         cursorLine += lines.reduce((sum, line) => sum + Math.ceil((line.length + 1) / move.cols), 0);
       }
-      this._hideCursorWrite(
+      this._write(
         `\x1b7${cursorLine > 0 ? `\x1b[${cursorLine}A` : ""}\r\x1b[${this._margin}C\x1b[0J${this._input.replace(
           /\r\n/g,
           `\r\n${this.multiLinePrompt}`
@@ -1009,9 +936,9 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         // Syntax color input
         this._socket.send(JSON.stringify({ type: "color", input: this._input }));
       }
-      this._setCols(move.cols);
+      this._cols = move.cols;
     } else {
-      this._setCols(dimensions.columns);
+      this._cols = dimensions.columns;
     }
   }
 }
