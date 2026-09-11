@@ -68,7 +68,7 @@ export class DbgpConnection extends EventEmitter {
 
   private _handleDataChunk() {
     if (!this._messages.length) return; // Shouldn't ever happen
-    const data: Buffer = this._messages.shift();
+    const data: Buffer = this._messages.shift()!;
     if (this._parsingState === ParsingState.DataLength) {
       // does data contain a NULL byte?
       const separatorIndex = data.indexOf("|");

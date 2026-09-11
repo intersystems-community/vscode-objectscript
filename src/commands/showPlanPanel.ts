@@ -8,7 +8,7 @@ import { iscIcon } from "../extension";
 const viewType = "isc-show-plan";
 const viewTitle = "Show Plan";
 
-let panel: vscode.WebviewPanel;
+let panel: vscode.WebviewPanel | undefined;
 
 /** Escape any HTML characters so they are rendered literally */
 function htmlEncode(str: string): string {
@@ -82,7 +82,7 @@ export async function showPlanWebview(args: {
     vscode.window.showErrorMessage("Show Plan requires an active server connection.", "Dismiss");
     return;
   }
-  if (lt(api.config.serverVersion, "2024.1.0")) {
+  if (lt(api.config.serverVersion!, "2024.1.0")) {
     vscode.window.showErrorMessage("Show Plan requires InterSystems IRIS version 2024.1 or above.", "Dismiss");
     return;
   }
@@ -111,7 +111,7 @@ export async function showPlanWebview(args: {
   const planXML: string = await api
     .actionQuery("SELECT %SYSTEM.QUERY_PLAN(?,,,,,?) XML", [
       args.sqlQuery.trimEnd(),
-      `{${!lt(api.config.serverVersion, "2026.1.0") ? '"format":"LINEAR-XML",' : ""}"selectmode":"${args.selectMode}"${args.imports.length ? `,"packages":"$LFS(\\"${[...new Set(args.imports)].join(",")}\\")"` : ""}${args.includes.length ? `,"includeFiles":"$LFS(\\"${[...new Set(args.includes)].join(",")}\\")"` : ""}}`,
+      `{${!lt(api.config.serverVersion!, "2026.1.0") ? '"format":"LINEAR-XML",' : ""}"selectmode":"${args.selectMode}"${args.imports.length ? `,"packages":"$LFS(\\"${[...new Set(args.imports)].join(",")}\\")"` : ""}${args.includes.length ? `,"includeFiles":"$LFS(\\"${[...new Set(args.includes)].join(",")}\\")"` : ""}}`,
     ])
     .then((data) => data?.result?.content[0]?.XML)
     .catch((error) => {
@@ -129,7 +129,7 @@ export async function showPlanWebview(args: {
     // Loop through the child elements of the plan
     let capturePlan = false;
     let planText = "";
-    let planChild = <Element>(<unknown>planElem.firstChild);
+    let planChild = <Element>(<unknown>planElem!.firstChild);
     while (planChild) {
       switch (planChild.nodeName) {
         case "sql":
@@ -140,16 +140,16 @@ export async function showPlanWebview(args: {
           planHTML += `</div>\n<hr class="vscode-divider">\n`;
           break;
         case "warning":
-          planHTML += `<h3 class="warning-h">Warning</h3>\n<p>\n${formatTextBlock(planChild.textContent)}</p>\n<hr class="vscode-divider">\n`;
+          planHTML += `<h3 class="warning-h">Warning</h3>\n<p>\n${formatTextBlock(planChild.textContent!)}</p>\n<hr class="vscode-divider">\n`;
           break;
         case "info":
-          planHTML += `<h3 class="info-h">Information</h3>\n${formatTextBlock(planChild.textContent)}<hr class="vscode-divider">\n`;
+          planHTML += `<h3 class="info-h">Information</h3>\n${formatTextBlock(planChild.textContent!)}<hr class="vscode-divider">\n`;
           break;
         case "cost": {
           planHTML += `<h4>Relative Cost `;
           // The plan might not have a cost
           const cost = planChild.attributes.getNamedItem("value")?.value;
-          planHTML += +cost ? `= ${cost}` : "Unavailable";
+          planHTML += +cost! ? `= ${cost}` : "Unavailable";
           planHTML += "</h4>\n";
           capturePlan = true;
           break;
@@ -171,7 +171,7 @@ export async function showPlanWebview(args: {
             moduleText += moduleChild.textContent;
             moduleChild = moduleChild.nextSibling;
           }
-          planHTML += `<h3 class="module">Module ${planChild.attributes.item(0).value}</h3>\n${formatTextBlock(moduleText)}<hr class="vscode-divider">\n`;
+          planHTML += `<h3 class="module">Module ${planChild.attributes.item(0)!.value}</h3>\n${formatTextBlock(moduleText)}<hr class="vscode-divider">\n`;
           break;
         }
         case "subquery": {
@@ -181,7 +181,7 @@ export async function showPlanWebview(args: {
             subqueryText += subqueryChild.textContent;
             subqueryChild = subqueryChild.nextSibling;
           }
-          planHTML += `<h3 class="subquery">Subquery ${planChild.attributes.item(0).value}</h3>\n${formatTextBlock(subqueryText)}<hr class="vscode-divider">\n`;
+          planHTML += `<h3 class="subquery">Subquery ${planChild.attributes.item(0)!.value}</h3>\n${formatTextBlock(subqueryText)}<hr class="vscode-divider">\n`;
           break;
         }
       }

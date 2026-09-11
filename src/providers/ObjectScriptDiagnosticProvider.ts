@@ -324,12 +324,12 @@ export class ObjectScriptDiagnosticProvider {
       }
 
       const pattern = /(?<!\$)(\$[a-z]+)/gi;
-      let functionsMatch = null;
+      let functionsMatch: RegExpExecArray | null = null;
       while ((functionsMatch = pattern.exec(text)) !== null) {
         const [, found] = functionsMatch;
         const pos = functionsMatch.index;
         const range = new vscode.Range(new vscode.Position(i, pos), new vscode.Position(i, pos + found.length));
-        const systemFunction: CompletionModel = [
+        const systemFunction: CompletionModel | undefined = [
           ...systemFunctions,
           ...systemVariables,
           ...structuredSystemVariables,

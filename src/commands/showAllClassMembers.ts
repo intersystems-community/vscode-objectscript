@@ -166,7 +166,7 @@ SELECT Name, Origin, 'x' AS MemberType, Parent, Internal, 0 AS NotInheritable, M
     const position = vscode.extensions.getExtension(lsExtensionId)?.isActive
       ? symbol.selectionRange.start
       : symbol.range.start;
-    await vscode.window.showTextDocument(targetUri, {
+    await vscode.window.showTextDocument(targetUri!, {
       selection: new vscode.Range(position, position),
       preview: false,
     });

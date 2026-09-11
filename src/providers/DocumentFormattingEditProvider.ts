@@ -19,7 +19,7 @@ export class DocumentFormattingEditProvider implements vscode.DocumentFormatting
   }
 
   private commands(document: vscode.TextDocument, options: vscode.FormattingOptions): vscode.TextEdit[] {
-    const edits = [];
+    const edits: vscode.TextEdit[] = [];
     let indent = 1;
     const isClass = document.fileName.toLowerCase().endsWith(".cls");
 
@@ -166,8 +166,8 @@ export class DocumentFormattingEditProvider implements vscode.DocumentFormatting
         }
 
         // keep strings and comments
-        const keepList = [];
-        const restorePattern = [];
+        const keepList: string[] = [];
+        const restorePattern: string[] = [];
         const toKeep = (str) => {
           keepList.push(str);
           restorePattern.push(String.fromCharCode(keepList.length));
@@ -225,13 +225,13 @@ export class DocumentFormattingEditProvider implements vscode.DocumentFormatting
   }
 
   private functions(document: vscode.TextDocument, options: vscode.FormattingOptions): vscode.TextEdit[] {
-    const edits = [];
+    const edits: vscode.TextEdit[] = [];
 
     for (let i = 0; i < document.lineCount; i++) {
       const line = document.lineAt(i);
 
       const pattern = /(?<!\$)(\$\b[a-z]+)\b(\()?/gi;
-      let functionsMatch = null;
+      let functionsMatch: RegExpExecArray | null = null;
       while ((functionsMatch = pattern.exec(line.text)) !== null) {
         const [, found, isFunc] = functionsMatch;
         const pos = functionsMatch.index;

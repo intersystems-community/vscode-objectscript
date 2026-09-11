@@ -19,7 +19,7 @@ function deleteList(items: string[], wsFolder: vscode.WorkspaceFolder, namespace
       if (file.result.ext && wsFolder.uri.scheme == FILESYSTEM_SCHEMA) {
         // Only process source control output if we're in an isfs folder
         const uri = DocumentContentProvider.getUri(file.result.name);
-        fireOtherStudioAction(OtherStudioAction.DeletedDocument, uri, <UserAction>file.result.ext);
+        fireOtherStudioAction(OtherStudioAction.DeletedDocument, uri!, <UserAction>file.result.ext);
       }
     });
     outputChannel.appendLine(`Deleted items: ${files.filter((el) => el.result).length}`);

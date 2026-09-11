@@ -30,7 +30,8 @@ export class SourceControlApi {
   }
 
   public static fromAtelierApi(api: AtelierAPI): SourceControlApi {
-    const { host, port, username, password, https: useHttps, pathPrefix } = api.config;
+    const { host, port, auth: authorization, https: useHttps, pathPrefix } = api.config;
+    const { username, password } = authorization;
 
     if (!host || !port) {
       throw new Error(
@@ -77,11 +78,11 @@ export class SourceControlApi {
     return new SourceControlApi(client);
   }
 
-  public post<T = unknown, R = AxiosResponse<T>>(
+  public post<T = unknown>(
     route: string,
     data?: unknown,
     config?: AxiosRequestConfig<unknown>
-  ): Promise<R> {
-    return this.client.post<T, R>(route, data, config);
+  ): Promise<AxiosResponse<T>> {
+    return this.client.post<T>(route, data, config);
   }
 }

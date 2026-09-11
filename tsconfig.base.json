@@ -5,6 +5,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": false,
     "experimentalDecorators": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "strictNullChecks": true,
   }
 }

@@ -75,7 +75,7 @@ import { ObjectScriptRoutineSymbolProvider } from "./providers/ObjectScriptRouti
 import { ObjectScriptCodeLensProvider } from "./providers/ObjectScriptCodeLensProvider";
 import { XmlContentProvider } from "./providers/XmlContentProvider";
 
-import { AtelierAPI } from "./api";
+import { AtelierAPI, cookiesMap, logoutOfSessions, ConnectionSettings } from "./api";
 import { ObjectScriptDebugAdapterDescriptorFactory } from "./debug/debugAdapterFactory";
 import { ObjectScriptConfigurationProvider } from "./debug/debugConfProvider";
 import { ProjectsExplorerProvider } from "./explorer/projectsExplorer";
@@ -89,7 +89,6 @@ import {
   portFromDockerCompose,
   notNull,
   currentFile,
-  isUnauthenticated,
   notIsfs,
   handleError,
   cspApps,
@@ -175,8 +174,9 @@ import {
   activateSiblingFolders,
   reactivateNamespaceConnections,
 } from "./ccs";
+import { Authorization, ResolvedAuthorization } from "@intersystems-community/intersystems-servermanager";
 
-const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
+const packageJson = vscode.extensions.getExtension(extensionId)!.packageJSON;
 const extensionVersion = packageJson.version;
 const aiKey = packageJson.aiKey;
 const PANEL_LABEL = "ObjectScript";
@@ -184,7 +184,18 @@ const lowCodeEditorViewType = packageJson.contributes.customEditors[0].viewType;
 
 const _onDidChangeConnection = new vscode.EventEmitter<void>();
 
-export const config = (setting?: string, workspaceFolderName?: string): vscode.WorkspaceConfiguration | any => {
+type ConnConfig = Pick<ConnectionSettings, "active" | "https" | "ns" | "host" | "port"> & {
+  "docker-compose"?: any;
+  server?: any;
+  links?: any;
+  username?: string;
+  password?: string;
+};
+
+export function config(setting: "conn", workspaceFolderName?: string): ConnConfig;
+export function config(setting: "intersystems.servers", workspaceFolderName?: string): vscode.WorkspaceConfiguration;
+export function config(setting?: string, workspaceFolderName?: string): any;
+export function config(setting?: string, workspaceFolderName?: string): any {
   workspaceFolderName = workspaceFolderName || currentWorkspaceFolder();
   if (
     vscode.workspace.workspaceFolders?.length &&
@@ -196,7 +207,7 @@ export const config = (setting?: string, workspaceFolderName?: string): vscode.W
   }
   let prefix: string;
   const workspaceFolder = vscode.workspace.workspaceFolders?.find(
-    (el) => el.name.toLowerCase() === workspaceFolderName.toLowerCase()
+    (el) => el.name.toLowerCase() === workspaceFolderName!.toLowerCase()
   );
   if (setting && setting.startsWith("intersystems")) {
     return vscode.workspace.getConfiguration(setting, workspaceFolder);
@@ -204,9 +215,13 @@ export const config = (setting?: string, workspaceFolderName?: string): vscode.W
     prefix = "objectscript";
   }
 
-  if (["conn", "export"].includes(setting)) {
+  if (["conn", "export"].includes(setting!)) {
     if (workspaceFolderName && workspaceFolderName !== "") {
-      if (workspaceFolderName.match(/.+:\d+$/)) {
+      const portSeparator = workspaceFolderName.lastIndexOf(":");
+      const portText = workspaceFolderName.slice(portSeparator + 1);
+      const hasNumericPort =
+        portSeparator > 0 && portText.length > 0 && [...portText].every((char) => char >= "0" && char <= "9");
+      if (hasNumericPort) {
         const { port, hostname: host, auth, query } = url.parse("http://" + workspaceFolderName, true);
         const { ns = "USER", https = false } = query;
         const [username, password] = (auth || "_SYSTEM:SYS").split(":");
@@ -216,10 +231,10 @@ export const config = (setting?: string, workspaceFolderName?: string): vscode.W
             https,
             ns,
             host,
-            port,
+            port: +port!,
             username,
             password,
-          };
+          } as ConnConfig;
         } else if (setting == "export") {
           return {};
         }
@@ -228,20 +243,25 @@ export const config = (setting?: string, workspaceFolderName?: string): vscode.W
   }
   const result = vscode.workspace.getConfiguration(prefix, workspaceFolder?.uri);
   return setting && setting.length ? result.get(setting) : result;
-};
+}
 
-let reporter: TelemetryReporter;
-
-export let checkingConnection = false;
+let reporter: TelemetryReporter | undefined;
 
 export let serverManagerApi: serverManager.ServerManagerAPI;
 
+type ConnSpec = serverManager.IServerSpec & {
+  auth: serverManager.Authorization;
+};
+
 /** Map of the intersystems.server connection specs we have resolved via the API to that extension */
-const resolvedConnSpecs = new Map<string, any>();
+const resolvedConnSpecs = new Map<string, ConnSpec>();
 
 /**
  * If servermanager extension is available, fetch the connection spec unless already cached.
  * Prompt for credentials if necessary.
+ *
+ * Best-effort only: never contacts the server, so a no-username spec is assumed unauthenticated
+ * and cached as-is. If wrong, `resolveUsernameAndPassword` corrects it later on an actual 401.
  * @param serverName authority element of an isfs uri, or `objectscript.conn.server` property, or the name of a root folder with an `objectscript.conn.docker-compose` property object
  * @param uri if passed, re-check the `objectscript.conn.docker-compose` case in case servermanager API couldn't do that because we're still running our own `activate` method.
  */
@@ -263,8 +283,16 @@ export async function resolveConnectionSpec(
       return;
     }
   }
-
-  let connSpec = await serverManagerApi.getServerSpec(serverName, scope);
+  const rawConnSpec = await serverManagerApi.getServerSpec(serverName, scope);
+  let connSpec: ConnSpec | undefined;
+  if (rawConnSpec) {
+    connSpec = {
+      ...rawConnSpec,
+      // Some old server managers does not set name as the types suggest.
+      name: rawConnSpec.name ?? serverName,
+      auth: rawConnSpec.auth ?? new BasicAuthorization(rawConnSpec.username, rawConnSpec.password),
+    };
+  }
 
   if (!connSpec && uri) {
     // Caller passed uri as a signal to process any docker-compose settings
@@ -281,30 +309,34 @@ export async function resolveConnectionSpec(
             pathPrefix: serverForUri.pathPrefix,
           },
           superServer: {
-            port: serverForUri.superserverPort,
+            port: serverForUri.superserverPort!,
           },
-          username: serverForUri.username,
-          password: serverForUri.password ? serverForUri.password : undefined,
           description: `Server for workspace folder '${serverName}'`,
+          auth: serverForUri.auth ?? new BasicAuthorization(),
         };
       }
     }
   }
 
   if (connSpec) {
-    await resolvePassword(connSpec);
-    resolvedConnSpecs.set(serverName, connSpec);
+    if (connSpec.auth.resolved() || isUnknownUser(connSpec.auth.username)) {
+      resolvedConnSpecs.set(serverName, connSpec);
+    } else {
+      const accessToken = await resolvePassword(connSpec);
+      if (connSpec.auth.resolve({ accessToken })) {
+        resolvedConnSpecs.set(serverName, connSpec);
+      }
+    }
   }
 }
 
-async function resolvePassword(serverSpec, ignoreUnauthenticated = false): Promise<void> {
-  if (
-    // Connection isn't unauthenticated
-    (!isUnauthenticated(serverSpec.username) || ignoreUnauthenticated) &&
-    // A password is missing
-    typeof serverSpec.password == "undefined"
-  ) {
-    const scopes = [serverSpec.name, serverSpec.username || ""];
+function isUnknownUser(username: string | undefined): boolean {
+  return (username || "unknownuser").toLowerCase() == "unknownuser";
+}
+
+async function resolvePassword(serverSpec: serverManager.IServerSpec): Promise<string | undefined> {
+  if (!serverSpec.auth?.resolved()) {
+    const scopes = [serverSpec.name, serverSpec.auth?.username || ""];
 
     // Handle Server Manager extension version < 3.8.0
     const account = serverManagerApi.getAccount ? serverManagerApi.getAccount(serverSpec) : undefined;
@@ -320,40 +352,43 @@ async function resolvePassword(serverSpec, ignoreUnauthenticated = false): Promi
       });
     }
     if (session) {
-      // If original spec lacked username use the one obtained from the user by the authprovider (exact case)
-      serverSpec.username = serverSpec.username || session.scopes[1];
-      serverSpec.password = session.accessToken;
+      return session.accessToken;
     }
   }
 }
 
 /** Resolve credentials for `serverName` and returned the complete connection spec if successful */
-export async function resolveUsernameAndPassword(serverName: string, oldSpec: any): Promise<any> {
-  const newSpec: { name: string; username?: string; password?: string } = {
-    name: serverName,
-    username: oldSpec?.username,
-  };
-  await resolvePassword(newSpec, true);
-  if (newSpec.password) {
+export async function resolveUsernameAndPassword(
+  serverName: string,
+  oldSpec: serverManager.IServerSpec
+): Promise<ConnSpec | undefined> {
+  const { auth: _auth, ...newSpec } = oldSpec;
+  newSpec.name = serverName;
+  const auth = _auth?.clone();
+
+  const accessToken = await resolvePassword({ ...newSpec, auth });
+  if (auth?.resolve({ accessToken })) {
     // Update the connection spec
     resolvedConnSpecs.set(serverName, {
       ...oldSpec,
-      username: newSpec.username,
-      password: newSpec.password,
+      auth,
     });
     return resolvedConnSpecs.get(serverName);
   }
 }
 
 /** Accessor for the cache of resolved connection specs */
-export function getResolvedConnectionSpec(key: string, dflt: any): any {
+export function getResolvedConnectionSpec(
+  key: string,
+  dflt: serverManager.IServerSpec | undefined
+): ConnSpec | undefined {
   let spec = resolvedConnSpecs.get(key);
   if (spec) {
     return spec;
   }
 
   // Try a case-insensitive match
-  key = resolvedConnSpecs.keys().find((oneKey) => oneKey.toLowerCase() === key.toLowerCase());
+  key = resolvedConnSpecs.keys().find((oneKey) => oneKey.toLowerCase() === key.toLowerCase())!;
   if (key) {
     spec = resolvedConnSpecs.get(key);
     if (spec) {
@@ -362,26 +397,40 @@ export function getResolvedConnectionSpec(key: string, dflt: any): any {
   }
 
   // Return the default if not found
-  return dflt;
+  if (dflt) {
+    return { ...dflt, auth: new BasicAuthorization(dflt.username, dflt.password) };
+  }
 }
 
 /** The `api.serverId`s of all servers that are known to be inactive */
 export const inactiveServerIds: Set<string> = new Set();
 
-export async function checkConnection(
-  clearCookies = false,
+/** `configName`s for which an `ensureConnection` call is currently in progress */
+const ensuringConnection: Set<string> = new Set();
+
+/**
+ * Verify `uri`'s connection works, repairing it if not (may show a modal credential prompt).
+ * Reflects the outcome in the status bar, `objectscript.conn.active`, and `workspaceState`.
+ * No-ops if a call is already in progress.
+ * @param clearState Discard cached connection details first, forcing fresh resolution.
+ * @param triggerRefreshes Refresh the explorer/projects views once settled.
+ * @param withTimeout Time out the check so it can't hang extension activation.
+ */
+export async function ensureConnection(
+  clearState = false,
   uri?: vscode.Uri,
-  triggerRefreshes?: boolean
+  triggerRefreshes?: boolean,
+  withTimeout = false
 ): Promise<void> {
-  // Do nothing if already checking the connection
-  if (checkingConnection) {
+  const { apiTarget, configName } = connectionTarget(uri);
+  // Do nothing if already checking this connection
+  if (ensuringConnection.has(configName)) {
     return;
   }
 
-  const { apiTarget, configName } = connectionTarget(uri);
   const wsKey = configName.toLowerCase();
-  if (clearCookies) {
-    /// clean-up cached values
+  if (clearState) {
+    // clean-up cached values
     await workspaceState.update(wsKey + ":host", undefined);
     await workspaceState.update(wsKey + ":port", undefined);
     await workspaceState.update(wsKey + ":superserverPort", undefined);
@@ -391,8 +440,8 @@ export async function checkConnection(
     await workspaceState.update(wsKey + ":docker", undefined);
     _onDidChangeConnection.fire();
   }
-  let api = new AtelierAPI(apiTarget, false);
-  const { active, host = "", port = 0, superserverPort = 0, username, ns = "" } = api.config;
+  let api = new AtelierAPI(apiTarget);
+  const { active, host = "", port = 0, superserverPort = 0, ns = "", auth } = api.config;
   vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
   if (!panel.text) {
     panel.text = `${PANEL_LABEL}`;
@@ -450,16 +499,12 @@ export async function checkConnection(
     }
   }
 
-  if (clearCookies) {
-    api.clearCookies();
-  }
-
   // Before recreating the api object (in case something has updated connection details since we last fetched them?)
   // if this is an external server, remove it from the inactive list because its presence there would block the reconnect that we want to be attempting
   if (api.externalServer) {
     inactiveServerIds.delete(api.serverId);
   }
-  api = new AtelierAPI(apiTarget, false);
+  api = new AtelierAPI(apiTarget);
 
   if (!api.config.host || !api.config.port || !api.config.ns) {
     const message = "'host', 'port' and 'ns' must be specified.";
@@ -470,16 +515,19 @@ export async function checkConnection(
     if (!api.externalServer) await setConnectionState(configName, false);
     return;
   }
-  checkingConnection = true;
+  ensuringConnection.add(configName);
+
+  const username = auth.username || "UnknownUser";
+  const identity = username.startsWith("*") ? `using ${username.slice(1, -1)}` : `as user \`${username}\``;
 
   // What we do when api.serverInfo call succeeds
   const gotServerInfo = async (info: Response<Content<ServerInfo>>) => {
     panel.text = api.connInfo;
     const { serverName, host, port, pathPrefix } = api.config;
     if (serverName) {
-      panel.tooltip = new vscode.MarkdownString(`Connected to \`${host}:${port}${pathPrefix}\` as \`${username}\``);
+      panel.tooltip = new vscode.MarkdownString(`Connected to \`${host}:${port}${pathPrefix}\` ${identity}`);
     } else {
-      panel.tooltip = new vscode.MarkdownString(`Connected as \`${username}\``);
+      panel.tooltip = new vscode.MarkdownString(`Connected ${identity}`);
     }
     inactiveServerIds.delete(api.serverId);
     if (!api.externalServer) {
@@ -490,7 +538,9 @@ export async function checkConnection(
   };
 
   // Do the check
-  const serverInfoTimeout = 5000;
+  // Only time out requests when called from activate()
+  // Timeout is needed in that case to prevent extension activation from hanging
+  const serverInfoTimeout = withTimeout ? 5000 : undefined;
   return api
     .serverInfo(true, serverInfoTimeout)
     .then(gotServerInfo)
@@ -501,8 +551,7 @@ export async function checkConnection(
         let success = false;
         message = "Not Authorized.";
         errorMessage = `Authorization error: Check your credentials in Settings, and that you have sufficient privileges on the /api/atelier web application on ${connInfo}`;
-        const username = api.config.username;
-        if (isUnauthenticated(username)) {
+        if (!api.config.auth.resolved()) {
           vscode.window.showErrorMessage(
             `Unauthenticated access rejected by '${api.serverId}'.${
               !api.config.serverName ? " Connection has been disabled." : ""
@@ -515,11 +564,11 @@ export async function checkConnection(
               api.config.serverName,
               vscode.workspace.getConfiguration("intersystems.servers", uri).get(api.config.serverName)
             );
-            const newSpec = await resolveUsernameAndPassword(api.config.serverName, oldSpec);
+            const newSpec = await resolveUsernameAndPassword(api.config.serverName, oldSpec!);
             if (newSpec) {
               // We were able to resolve credentials, so try again
-              await workspaceState.update(wsKey + ":password", newSpec.password);
-              api = new AtelierAPI(apiTarget, false);
+              await workspaceState.update(wsKey + ":password", newSpec.auth?.accessToken);
+              api = new AtelierAPI(apiTarget);
               await api
                 .serverInfo(true, serverInfoTimeout)
                 .then(async (info) => {
@@ -532,9 +581,6 @@ export async function checkConnection(
                   if (error?.statusCode != 401) errorMessage = undefined;
                   await workspaceState.update(wsKey + ":password", undefined);
                   success = false;
-                })
-                .finally(() => {
-                  checkingConnection = false;
                 });
             }
           } else {
@@ -546,7 +592,7 @@ export async function checkConnection(
             vscode.window
               .showInputBox({
                 password: true,
-                title: `Not Authorized. Enter password to connect as user '${username}' to ${connInfo}`,
+                title: `Not Authorized. Enter password to connect ${identity} to ${connInfo}`,
                 prompt: !api.externalServer ? "If no password is entered the connection will be disabled." : "",
                 ignoreFocusOut: true,
               })
@@ -566,9 +612,6 @@ export async function checkConnection(
                         if (error?.statusCode != 401) errorMessage = undefined;
                         await workspaceState.update(wsKey + ":password", undefined);
                         return false;
-                      })
-                      .finally(() => {
-                        checkingConnection = false;
                       })
                   );
                 } else {
@@ -595,7 +638,7 @@ export async function checkConnection(
       if (!api.externalServer) await setConnectionState(configName, false);
     })
     .finally(() => {
-      checkingConnection = false;
+      ensuringConnection.delete(configName);
       if (triggerRefreshes) {
         setTimeout(() => {
           explorerProvider.refresh();
@@ -616,15 +659,15 @@ export async function checkConnection(
  */
 function setConnectionState(configName: string, active: boolean) {
   const connConfig: vscode.WorkspaceConfiguration = config("", configName);
-  const target: vscode.ConfigurationTarget = connConfig.inspect("conn").workspaceFolderValue
+  const target: vscode.ConfigurationTarget = connConfig.inspect("conn")!.workspaceFolderValue
     ? vscode.ConfigurationTarget.WorkspaceFolder
     : vscode.ConfigurationTarget.Workspace;
   const targetConfig: any =
-    connConfig.inspect("conn").workspaceFolderValue || connConfig.inspect("conn").workspaceValue;
+    connConfig.inspect("conn")!.workspaceFolderValue || connConfig.inspect("conn")!.workspaceValue;
   return connConfig.update("conn", { ...targetConfig, active }, target);
 }
 
-function languageServer(install = true): vscode.Extension<any> {
+function languageServer(install = true): vscode.Extension<any> | undefined {
   let extension = vscode.extensions.getExtension(lsExtensionId);
 
   async function languageServerInstall() {
@@ -700,7 +743,7 @@ function proposedApiPrompt(active: boolean, added?: readonly vscode.WorkspaceFol
 const systemModes: Map<string, string> = new Map();
 
 /** Output a message notifying the user of the SystemMode of any servers they are connected to. */
-async function systemModeWarning(wsFolders: readonly vscode.WorkspaceFolder[]): Promise<void> {
+async function systemModeWarning(wsFolders: readonly vscode.WorkspaceFolder[] | undefined): Promise<void> {
   if (!wsFolders || wsFolders.length == 0) return;
   for (const wsFolder of wsFolders) {
     const api = new AtelierAPI(wsFolder.uri),
@@ -733,7 +776,7 @@ async function systemModeWarning(wsFolders: readonly vscode.WorkspaceFolder[]): 
         );
         outputChannel.show(true);
     }
-    systemModes.set(mapKey, systemMode);
+    systemModes.set(mapKey, systemMode!);
   }
 }
 
@@ -742,7 +785,7 @@ async function systemModeWarning(wsFolders: readonly vscode.WorkspaceFolder[]): 
  * that are showing the contents of a server-side project.
  * This must be done because technically a project is a "document".
  */
-async function fireOpenProjectUserAction(wsFolders: readonly vscode.WorkspaceFolder[]): Promise<void> {
+async function fireOpenProjectUserAction(wsFolders: readonly vscode.WorkspaceFolder[] | undefined): Promise<void> {
   if (!wsFolders || wsFolders.length == 0) return;
   for (const wsFolder of wsFolders) {
     if (notIsfs(wsFolder.uri)) return;
@@ -778,7 +821,7 @@ function setExplorerContextKeys(): void {
 }
 
 /** Cache the lists of web apps and abstract document types for all server-namespaces in `wsFolders` */
-async function updateWebAndAbstractDocsCaches(wsFolders: readonly vscode.WorkspaceFolder[]): Promise<any> {
+async function updateWebAndAbstractDocsCaches(wsFolders: readonly vscode.WorkspaceFolder[] | undefined): Promise<any> {
   if (!wsFolders?.length) return;
   const keys: Set<string> = new Set();
   const connections: { key: string; api: AtelierAPI }[] = [];
@@ -823,14 +866,14 @@ export function sendStudioAddinTelemetryEvent(addInName: string): void {
 }
 
 /** Send a telemetry event with details of each folder in `wsFolders` */
-function sendWsFolderTelemetryEvent(wsFolders: readonly vscode.WorkspaceFolder[], added = false): void {
+function sendWsFolderTelemetryEvent(wsFolders: readonly vscode.WorkspaceFolder[] | undefined, added = false): void {
   if (!reporter || !wsFolders?.length) return;
   wsFolders.forEach((wsFolder) => {
     const api = new AtelierAPI(wsFolder.uri);
     const { csp, project, ns } = isfsConfig(wsFolder.uri);
     const serverSide = filesystemSchemas.includes(wsFolder.uri.scheme);
     const conf = vscode.workspace.getConfiguration("objectscript", wsFolder);
-    reporter.sendTelemetryEvent("workspaceFolder", {
+    reporter!.sendTelemetryEvent("workspaceFolder", {
       scheme: wsFolder.uri.scheme,
       added: String(added),
       isWeb: serverSide ? String(csp) : undefined,
@@ -842,6 +885,7 @@ function sendWsFolderTelemetryEvent(wsFolders: readonly vscode.WorkspaceFolder[]
       "config.conn.links": String(Object.keys(conf.get("conn.links", {})).length),
       "config.refreshClassesOnSync": !serverSide ? conf.get("refreshClassesOnSync") : undefined,
       "config.insertStubContent": !serverSide ? conf.get("insertStubContent") : undefined,
+      usesServerManager: !serverSide ? String(api.config.serverName != "") : undefined,
     });
   });
 }
@@ -849,11 +893,6 @@ function sendWsFolderTelemetryEvent(wsFolders: readonly vscode.WorkspaceFolder[]
 /** Send a telemetry event that a unit test run was started */
 export function sendUnitTestTelemetryEvent(root: vscode.Uri, debug: boolean): void {
   reporter?.sendTelemetryEvent("unitTestRun", { scheme: root.scheme, debug: String(debug) });
-}
-
-/** Send a telemetry event that a non-class or routine client-side file was saved */
-export function sendClientSideSyncTelemetryEvent(fileExt: string): void {
-  reporter?.sendTelemetryEvent("clientSideFileSynced", { fileExt });
 }
 
 /** Send a telemetry event that a low-code editor was opened */
@@ -881,7 +920,7 @@ let macLangConf: vscode.Disposable;
 let incLangConf: vscode.Disposable;
 let intLangConf: vscode.Disposable;
 
-export async function activate(context: vscode.ExtensionContext): Promise<any> {
+export async function activate(context: vscode.ExtensionContext): Promise<serverManager.VSCodeObjectScriptAPI> {
   if (!packageJson.version.includes("-") || packageJson.version.includes("-beta.")) {
     // Don't send telemetry for development builds
     try {
@@ -903,7 +942,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   workspaceState.update("workspaceFolder", undefined);
 
   // Get api for servermanager extension
-  const smExt = vscode.extensions.getExtension(smExtensionId);
+  const smExt = vscode.extensions.getExtension(smExtensionId)!;
   if (!smExt.isActive) await smExt.activate();
   serverManagerApi = smExt.exports;
 
@@ -930,6 +969,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   const toCheck = new Map<string, vscode.Uri>();
   vscode.workspace.workspaceFolders?.map((workspaceFolder) => {
     const uri = workspaceFolder.uri;
+    if (notIsfs(uri) && !vscode.workspace.getConfiguration("objectscript.conn", workspaceFolder).get("active")) return; // Don't check inactive connections
     const { configName } = connectionTarget(uri);
     const conn = config("conn", configName);
 
@@ -937,7 +977,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     const serverName = notIsfs(uri) && !conn["docker-compose"] ? conn.server : configName;
     toCheck.set(serverName, uri);
   });
-  for await (const oneToCheck of toCheck) {
+  for (const oneToCheck of toCheck) {
     const serverName = oneToCheck[0];
     const uri = oneToCheck[1];
     try {
@@ -946,7 +986,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         // Necessary because we are in our activate method, so its call to the Server Manager API cannot call back to our API to do that.
         await resolveConnectionSpec(serverName, uri);
       } finally {
-        await checkConnection(true, uri, true);
+        await ensureConnection(true, uri, true, true);
       }
     } catch (_) {
       // Ignore any failure
@@ -960,7 +1000,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   xmlContentProvider = new XmlContentProvider();
 
   const documentSelector = (...list) =>
-    ["file", ...schemas].reduce((acc, scheme) => acc.concat(list.map((language) => ({ scheme, language }))), []);
+    ["file", ...schemas].reduce(
+      (acc, scheme) => acc.concat(list.map((language) => ({ scheme, language }))),
+      [] as { scheme: string; language: any }[]
+    );
 
   const definitionDocumentLinkProvider = new DefinitionDocumentLinkProvider([
     clsLangId,
@@ -1172,14 +1215,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   // Migrate removed importOnSave setting to new, more generic syncLocalChanges
   const conf = vscode.workspace.getConfiguration("objectscript");
   const importOnSave = conf.inspect("importOnSave");
-  if (typeof importOnSave.globalValue == "boolean") {
-    if (!importOnSave.globalValue) {
+  if (typeof importOnSave!.globalValue == "boolean") {
+    if (!importOnSave!.globalValue) {
       conf.update("syncLocalChanges", "off", vscode.ConfigurationTarget.Global);
     }
     conf.update("importOnSave", undefined, vscode.ConfigurationTarget.Global);
   }
-  if (typeof importOnSave.workspaceValue == "boolean") {
-    if (!importOnSave.workspaceValue) {
+  if (typeof importOnSave!.workspaceValue == "boolean") {
+    if (!importOnSave!.workspaceValue) {
       conf.update("syncLocalChanges", "off", vscode.ConfigurationTarget.Workspace);
     }
     conf.update("importOnSave", undefined, vscode.ConfigurationTarget.Workspace);
@@ -1207,7 +1250,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         fireOtherStudioAction(OtherStudioAction.AttemptedEdit, event.document.uri);
       }
       if (!event.document.isDirty) {
-        checkChangedOnServer(currentFile(event.document));
+        checkChangedOnServer(currentFile(event.document)!);
       }
       if (
         notIsfs(event.document.uri) &&
@@ -1220,19 +1263,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       }
     }),
     vscode.window.onDidChangeActiveTextEditor(async (editor) => {
-      if (vscode.workspace.workspaceFolders?.length > 1) {
+      if ((vscode.workspace.workspaceFolders?.length ?? 0) > 1) {
         const workspaceFolder = currentWorkspaceFolder();
         if (workspaceFolder && workspaceFolder != workspaceState.get<string>("workspaceFolder")) {
           await workspaceState.update("workspaceFolder", workspaceFolder);
           // Only need to check when editor is undefined because
           // we will always check when editor is defined below
-          if (!editor) await checkConnection(false);
+          if (!editor) await ensureConnection(false);
         }
       }
       if (editor) {
         const conf = vscode.workspace.getConfiguration("objectscript");
         const uriString = editor.document.uri.toString();
-        await checkConnection(false, editor.document.uri);
+        await ensureConnection(false, editor.document.uri);
         if (
           conf.get("openClassContracted") &&
           editor.document.languageId == clsLangId &&
@@ -1343,7 +1386,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.pickProcess", async (config) => {
       sendCommandTelemetryEvent("pickProcess");
       const system = config.system;
-      let connectionUri = vscode.window.activeTextEditor?.document.uri;
+      let connectionUri: vscode.Uri | null | undefined = vscode.window.activeTextEditor?.document.uri;
       if (connectionUri) {
         // Ignore active editor if its document is outside the workspace (e.g. user settings.json)
         connectionUri = vscode.workspace.getWorkspaceFolder(connectionUri)?.uri;
@@ -1408,8 +1451,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         })
         .then((value) => {
           if (value) {
-            const workspaceFolderIndex = vscode.workspace.workspaceFolders.findIndex(
-              (folder) => folder.uri.toString() === connectionUri.toString()
+            const workspaceFolderIndex = vscode.workspace.workspaceFolders!.findIndex(
+              (folder) => folder.uri.toString() === connectionUri!.toString()
             );
             return workspaceFolderIndex < 0 ? value.label : `${value.label}@${workspaceFolderIndex}`;
           }
@@ -1508,7 +1551,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
           for (const folderUri of result.activatedFolderUris) {
             const { apiTarget, configName } = connectionTarget(folderUri);
-            const api = new AtelierAPI(apiTarget, false);
+            const api = new AtelierAPI(apiTarget);
             try {
               await api.serverInfo(true, 5000);
               successCount++;
@@ -1598,7 +1641,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     ),
     vscode.commands.registerCommand("vscode-objectscript.previewXml", () => {
       sendCommandTelemetryEvent("previewXml");
-      previewXMLAsUDL(vscode.window.activeTextEditor);
+      previewXMLAsUDL(vscode.window.activeTextEditor!);
     }),
     vscode.commands.registerCommand("vscode-objectscript.addServerNamespaceToWorkspace", (resource?: vscode.Uri) => {
       sendCommandTelemetryEvent("addServerNamespaceToWorkspace");
@@ -1675,7 +1718,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
           }
           // Generate the new content
           const defaultName = inferDocName(uri)?.slice(0, -4);
-          const fileExt = uri.path.split(".").pop().toLowerCase();
+          const fileExt = uri.path.split(".").pop()!.toLowerCase();
           const newContent =
             fileExt == "cls"
               ? [`Class \${1${defaultName ? `:${defaultName}` : ""}} Extends %RegisteredObject`, "{", "$0", "}", ""]
@@ -1763,38 +1806,57 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       supportsMultipleEditorsPerDocument: false,
     }),
     vscode.workspace.onDidChangeConfiguration(async ({ affectsConfiguration }) => {
-      if (affectsConfiguration("objectscript.conn") || affectsConfiguration("intersystems.servers")) {
-        if (affectsConfiguration("intersystems.servers")) {
-          // Gather the server names previously resolved
-          const resolvedServers: string[] = [];
-          resolvedConnSpecs.forEach((v, k) => resolvedServers.push(k));
-          // Clear the cache
-          resolvedConnSpecs.clear();
-          // Resolve them again, sequentially in case user needs to be prompted for credentials
-          for await (const serverName of resolvedServers) {
-            await resolveConnectionSpec(serverName);
+      // Loop through all ws folder connections and see if any changed
+      // Find all "sessions" that are new or orphaned.
+      // For new ones, establish a connection?
+      // For orphans, logout and clear the cookies.
+      let refreshFilesExplorer = false;
+      const newConnections = new Set<string>();
+      const affectedWsFolders: vscode.WorkspaceFolder[] = [];
+      for (const wsFolder of vscode.workspace.workspaceFolders ?? []) {
+        const api = new AtelierAPI(wsFolder.uri);
+        newConnections.add(api.mapKey());
+        const { serverName } = api.config;
+        if (notIsfs(wsFolder.uri) && affectsConfiguration("objectscript.conn", wsFolder)) {
+          // Connection info changed
+          affectedWsFolders.push(wsFolder);
+        } else if (serverName && affectsConfiguration("intersystems.servers", wsFolder)) {
+          const oldSpec = getResolvedConnectionSpec(serverName, undefined);
+          const newSpec = vscode.workspace.getConfiguration("intersystems.servers", wsFolder).get<any>(serverName);
+          if (
+            !oldSpec ||
+            !(
+              oldSpec.webServer.host == newSpec.webServer.host &&
+              oldSpec.webServer.port == newSpec.webServer.port &&
+              oldSpec.webServer.scheme == newSpec.webServer.scheme &&
+              oldSpec.webServer.pathPrefix == newSpec.webServer.pathPrefix
+            )
+          ) {
+            // Connection info changed
+            resolvedConnSpecs.delete(serverName);
+            affectedWsFolders.push(wsFolder);
+            if (filesystemSchemas.includes(wsFolder.uri.scheme)) refreshFilesExplorer = true;
           }
         }
-        // Check connections sequentially for each workspace folder
-        let refreshFilesExplorer = false;
-        for await (const folder of vscode.workspace.workspaceFolders ?? []) {
-          if (schemas.includes(folder.uri.scheme)) {
-            refreshFilesExplorer = true;
-          }
-          try {
-            await checkConnection(true, folder.uri, true);
-          } catch (_) {
-            continue;
-          }
-        }
-        explorerProvider.refresh();
-        projectsExplorerProvider.refresh();
-        if (refreshFilesExplorer) {
-          // This unavoidably switches to the File Explorer view, so only do it if isfs folders were found
-          vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
-        }
-        updateWebAndAbstractDocsCaches(vscode.workspace.workspaceFolders);
       }
+      // Log out of any sessions that are orphaned
+      await logoutOfSessions(Array.from(cookiesMap.keys()).filter((k) => !newConnections.has(k)));
+      // Update the connection info for affected workspace folders
+      // This should create new CSP sessions if needed
+      for (const wsFolder of affectedWsFolders) {
+        try {
+          await ensureConnection(true, wsFolder.uri, true);
+        } catch {
+          // Errors are handled by ensureConnection()
+        }
+      }
+      explorerProvider.refresh();
+      projectsExplorerProvider.refresh();
+      if (refreshFilesExplorer) {
+        // This unavoidably switches to the File Explorer view, so only do it if isfs folders were found
+        vscode.commands.executeCommand("workbench.files.action.refreshFilesExplorer");
+      }
+      updateWebAndAbstractDocsCaches(affectedWsFolders);
       if (affectsConfiguration("objectscript.commentToken")) {
         // Update the language configuration for "objectscript" and "objectscript-macros"
         macLangConf?.dispose();
@@ -1826,7 +1888,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         ) {
           throw undefined;
         }
-        const file = currentFile(document);
+        const file = currentFile(document)!;
         const nameMatch = file.name.match(/(.*)\.(int|mac)$/i);
         if (!nameMatch) throw undefined;
         const [, routine] = nameMatch;
@@ -1940,6 +2002,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       const toCheck = new Map<string, vscode.Uri>();
       e.added.map((workspaceFolder) => {
         const uri = workspaceFolder.uri;
+        if (notIsfs(uri) && !vscode.workspace.getConfiguration("objectscript.conn", workspaceFolder).get("active"))
+          return; // Don't check inactive connections
         const { configName } = connectionTarget(uri);
         toCheck.set(configName, uri);
       });
@@ -2033,7 +2097,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       const doc = await pickDocument(api, "Open a document");
       if (!doc) return;
       vscode.window.showTextDocument(
-        DocumentContentProvider.getUri(doc, undefined, undefined, undefined, wsFolder.uri)
+        DocumentContentProvider.getUri(doc, undefined, undefined, undefined, wsFolder.uri)!
       );
     }),
     vscode.window.tabGroups.onDidChangeTabs((e) => {
@@ -2139,7 +2203,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     ),
 
     /* Anything we use from the VS Code proposed API */
-    ...proposed
+    ...(proposed as vscode.Disposable[])
   );
 
   // Send the activation and workspace folders telemetry events
@@ -2181,7 +2245,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       return _onDidChangeConnection.event;
     },
     getUriForDocument(document: string): vscode.Uri {
-      return DocumentContentProvider.getUri(document);
+      return DocumentContentProvider.getUri(document)!;
     },
   };
 
@@ -2191,7 +2255,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
 
 // This function is exported as one of our API functions but is also used internally
 // for example to implement the async variant capable of resolving docker port number.
-function serverForUri(uri: vscode.Uri): any {
+function serverForUri(uri: vscode.Uri): serverManager.ServerForUri | undefined {
   const { apiTarget, configName } = connectionTarget(uri);
   const configNameLower = configName.toLowerCase();
   const api = new AtelierAPI(apiTarget);
@@ -2199,64 +2263,60 @@ function serverForUri(uri: vscode.Uri): any {
   // This function intentionally no longer exposes the password for a named server UNLESS it is already exposed as plaintext in settings.
   // API client extensions should use Server Manager 3's authentication provider to request a missing password themselves,
   // which will require explicit user consent to divulge the password to the requesting extension.
-  const {
-    serverName,
-    active,
-    host = "",
-    https,
-    port,
-    superserverPort,
-    pathPrefix,
-    username,
-    password,
-    ns = "",
-    apiVersion,
-    serverVersion,
-  } = api.config;
-  return {
-    serverName,
-    active,
-    scheme: https ? "https" : "http",
-    host,
-    port,
-    superserverPort,
-    pathPrefix,
-    username,
-    password:
-      serverName === ""
-        ? password
-        : vscode.workspace
-            .getConfiguration(
-              `intersystems.servers.${serverName.toLowerCase()}`,
-              // objectscript(xml):// URIs are not in any workspace folder,
-              // so make sure we resolve the server definition with the proper
-              // granularity. This is needed to prevent other extensions like
-              // Language Server prompting for a passwoord when it's not needed.
-              [OBJECTSCRIPT_FILE_SCHEMA, OBJECTSCRIPTXML_FILE_SCHEMA].includes(uri.scheme)
-                ? vscode.workspace.workspaceFolders?.find((f) => f.name.toLowerCase() == configNameLower)?.uri
-                : uri
-            )
-            .get("password"),
-    namespace: ns,
-    apiVersion: active ? apiVersion : undefined,
-    serverVersion: active ? serverVersion : undefined,
-  };
+  const { serverName, active, host, https, port, superserverPort, pathPrefix, auth, ns, apiVersion, serverVersion } =
+    api.config;
+  auth.clear() as void;
+  const password =
+    config("conn", configName).password ||
+    vscode.workspace
+      .getConfiguration(
+        `intersystems.servers.${serverName.toLowerCase()}`,
+        // objectscript(xml):// URIs are not in any workspace folder,
+        // so make sure we resolve the server definition with the proper
+        // granularity. This is needed to prevent other extensions like
+        // Language Server prompting for a passwoord when it's not needed.
+        [OBJECTSCRIPT_FILE_SCHEMA, OBJECTSCRIPTXML_FILE_SCHEMA].includes(uri.scheme)
+          ? vscode.workspace.workspaceFolders?.find((f) => f.name.toLowerCase() == configNameLower)?.uri
+          : uri
+      )
+      .get<string>("password");
+  password && auth.resolve({ accessToken: password });
+  if (ns) {
+    return {
+      serverName,
+      active,
+      ...(https ? ({ https: true, scheme: "https" } as const) : ({ scheme: "http" } as const)),
+      host,
+      port,
+      superserverPort,
+      pathPrefix: pathPrefix || "",
+      auth,
+      username: auth.username,
+      password: auth.password,
+      namespace: ns,
+      apiVersion: (active ? apiVersion : undefined)!,
+      serverVersion: (active ? serverVersion : undefined)!,
+    };
+  }
 }
 
 // An async variant capable of resolving docker port number.
 // It is exported as one of our API functions but is also used internally.
-async function asyncServerForUri(uri: vscode.Uri): Promise<any> {
+async function asyncServerForUri(uri: vscode.Uri): Promise<serverManager.ServerForUri | undefined> {
   const server = serverForUri(uri);
+  if (!server) {
+    return;
+  }
   if (!server.port) {
     let { apiTarget } = connectionTarget(uri);
     if (apiTarget instanceof vscode.Uri) {
-      apiTarget = vscode.workspace.getWorkspaceFolder(apiTarget)?.name;
+      apiTarget = vscode.workspace.getWorkspaceFolder(apiTarget)?.name as string;
     }
     const {
       port: dockerPort,
       superserverPort: dockerSuperserverPort,
       docker: withDocker,
-    } = await portFromDockerCompose(apiTarget);
+    } = await portFromDockerCompose(apiTarget as string | undefined);
     if (withDocker && dockerPort && dockerSuperserverPort) {
       server.port = dockerPort;
       server.superserverPort = dockerSuperserverPort;
@@ -2281,25 +2341,61 @@ export async function deactivate(): Promise<void> {
   intLangConf?.dispose();
   disposeDocumentIndex();
   // Log out of all CSP sessions
-  const loggedOut: Set<string> = new Set();
-  const promises: Promise<any>[] = [];
-  for (const f of vscode.workspace.workspaceFolders ?? []) {
-    const api = new AtelierAPI(f.uri);
-    if (!api.active || !api.cookies.length) continue;
-    const sessionCookie = api.cookies.find((c) => c.startsWith("CSPSESSIONID-"));
-    if (!sessionCookie || loggedOut.has(sessionCookie)) continue;
-    loggedOut.add(sessionCookie);
-    promises.push(
-      api.request(
-        0,
-        "HEAD",
-        undefined,
-        undefined,
-        // Prefer IRISLogout for servers that support it
-        semver.lt(api.config.serverVersion, "2018.2.0") ? { CacheLogout: "end" } : { IRISLogout: "end" }
-      )
-    );
+  await logoutOfSessions();
+}
+
+// A copy of the BasicAuthorization class from ServerManager
+// We use it to patch older version of getServerSpec.
+export default class BasicAuthorization implements Authorization {
+  #username?: string;
+  #password?: string;
+  constructor(username?: string, password?: string) {
+    this.#username = username;
+    this.#password = password;
   }
-  await Promise.allSettled(promises);
+
+  public get username(): string {
+    return this.#username || "";
+  }
+
+  public get password(): string | undefined {
+    return this.#password;
+  }
+
+  public get accessToken(): string | undefined {
+    return this.#password;
+  }
+
+  public get httpAuthorizationHeader(): string {
+    return `Basic ${Buffer.from(`${this.#username}:${this.#password}`).toString("base64")}`;
+  }
+
+  public resolved(): this is ResolvedAuthorization {
+    return this.username !== "" && this.#password !== undefined;
+  }
+
+  public resolve(param: { accessToken: string; username?: string }): this is ResolvedAuthorization {
+    this.#username = param.username ?? this.#username;
+    this.#password = param.accessToken ?? this.#password;
+    return this.resolved();
+  }
+
+  public clear(): asserts this is Authorization {
+    this.#password = undefined;
+  }
+
+  public get credentials(): { auth: { username: string; password: string }; headers?: Record<string, string> } {
+    return {
+      auth: {
+        username: this.username,
+        password: this.password!,
+      },
+      headers: {},
+    };
+  }
+
+  public clone(): BasicAuthorization {
+    return new BasicAuthorization(this.#username, this.#password);
+  }
 }
 export { outputChannel };

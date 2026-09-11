@@ -63,7 +63,8 @@ export class ResolveDefinitionClient {
     token: vscode.CancellationToken
   ): Promise<vscode.Location | undefined> {
     const api = new AtelierAPI(document.uri);
-    const { host, port, username, password } = api.config;
+    const { host, port, auth } = api.config;
+    const { username, password } = auth;
     const namespace = api.ns;
 
     if (!api.active || !namespace || !host || !port || !username || !password) {

@@ -75,7 +75,7 @@ export function registerExplorerOpen(): vscode.Disposable {
               }
               // Remove the item from the project
               let prjFileName = fullName.startsWith("/") ? fullName.slice(1) : fullName;
-              const ext = prjFileName.split(".").pop().toLowerCase();
+              const ext = prjFileName.split(".").pop()!.toLowerCase();
               prjFileName = ext == "cls" ? prjFileName.slice(0, -4) : prjFileName;
               const prjType = prjFileName.includes("/")
                 ? "CSP"
@@ -135,13 +135,13 @@ function wasDoubleClick(uri: vscode.Uri): boolean {
 
 export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<NodeBase> {
   public onDidChange?: vscode.Event<vscode.Uri>;
-  public onDidChangeTreeData: vscode.Event<NodeBase>;
+  public onDidChangeTreeData: vscode.Event<NodeBase | null>;
 
-  private _onDidChangeTreeData: vscode.EventEmitter<NodeBase>;
+  private _onDidChangeTreeData: vscode.EventEmitter<NodeBase | null>;
   private _showExtraForWorkspace: { [key: string]: string[] }[] = [];
 
   public constructor() {
-    this._onDidChangeTreeData = new vscode.EventEmitter<NodeBase>();
+    this._onDidChangeTreeData = new vscode.EventEmitter<NodeBase | null>();
     this.onDidChangeTreeData = this._onDidChangeTreeData.event;
   }
 
@@ -173,7 +173,7 @@ export class ObjectScriptExplorerProvider implements vscode.TreeDataProvider<Nod
     }
   }
 
-  public closeExtraForWorkspace(workspaceFolder: string, ns: string): void {
+  public closeExtraForWorkspace(workspaceFolder: string, ns: string | undefined): void {
     const extras = this._showExtraForWorkspace[workspaceFolder] || [];
     const pos = extras.indexOf(ns);
     if (pos >= 0) {

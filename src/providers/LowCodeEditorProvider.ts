@@ -36,14 +36,14 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
       return this._errorMessage(`${document.fileName} is a malformed class definition.`);
     }
     const api = new AtelierAPI(document.uri);
-    if (!vscode.workspace.fs.isWritableFileSystem(document.uri.scheme) && lt(api.config.serverVersion, "2025.3.0")) {
+    if (!vscode.workspace.fs.isWritableFileSystem(document.uri.scheme) && lt(api.config.serverVersion!, "2025.3.0")) {
       return this._errorMessage(`File system '${document.uri.scheme}' is read-only.`);
     }
     const className = file.name.slice(0, -4);
     if (!api.active) {
       return this._errorMessage("Server connection is not active.");
     }
-    if (lt(api.config.serverVersion, "2023.1.0")) {
+    if (lt(api.config.serverVersion!, "2023.1.0")) {
       return this._errorMessage(
         "Opening a low-code editor in VS Code requires InterSystems IRIS version 2023.1 or above."
       );
@@ -66,14 +66,14 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
     } else if (queryData.result.content[0].Rule) {
       webApp = this._rule;
     } else if (queryData.result.content[0].DTL) {
-      if (lt(api.config.serverVersion, "2025.1.0")) {
+      if (lt(api.config.serverVersion!, "2025.1.0")) {
         return this._errorMessage(
           "Opening the DTL editor in VS Code requires InterSystems IRIS version 2025.1 or above."
         );
       }
       webApp = this._dtl;
     } else if (queryData.result.content[0].BPL) {
-      if (lt(api.config.serverVersion, "2026.1.0")) {
+      if (lt(api.config.serverVersion!, "2026.1.0")) {
         return this._errorMessage(
           "Opening the BPL editor in VS Code requires InterSystems IRIS version 2026.1 or above."
         );
@@ -208,13 +208,19 @@ export class LowCodeEditorProvider implements vscode.CustomTextEditorProvider {
           if (!editorCompatible) {
             this._errorMessage("This low-code editor does not support embedding in VS Code.");
           } else {
-            // Editor is compatible so send the credentials
-            webviewPanel.webview.postMessage({
-              direction: "editor",
-              type: "auth",
-              username: api.config.username,
-              password: api.config.password,
-            });
+            const username = api.config.auth.username;
+            if (username.includes("*")) {
+              vscode.window.showWarningMessage(
+                `Cannot automatically log into low-code editors if VS Code is logged in using ${username.slice(1, -1)}.`
+              );
+            } else {
+              webviewPanel.webview.postMessage({
+                direction: "editor",
+                type: "auth",
+                username,
+                password: api.config.auth.password,
+              });
+            }
           }
           return;
         case "changed":

@@ -1,6 +1,5 @@
 import * as path from "path";
 import * as vscode from "vscode";
-import { isText } from "istextorbinary";
 import { AtelierAPI } from "../../api";
 import { fireOtherStudioAction, OtherStudioAction } from "../../commands/studio";
 import { isfsConfig, projectContentsFromUri, studioOpenDialogFromURI } from "../../utils/FileProviderUtil";
@@ -89,7 +88,7 @@ export function generateFileContent(
     }
   }
 
-  const fileExt = fileName.split(".").pop().toLowerCase();
+  const fileExt = fileName.split(".").pop()!.toLowerCase();
   const csp = fileName.startsWith("/");
   if (fileExt === "cls" && !csp) {
     const className = fileName.split(".").slice(0, -1).join(".");
@@ -105,12 +104,12 @@ export function generateFileContent(
         // Replace that with one to match fileName.
         while (sourceLines.length > 0) {
           const nextLine = sourceLines.shift();
-          const classNameMatch = nextLine.match(classNameRegex);
+          const classNameMatch = nextLine!.match(classNameRegex);
           if (classNameMatch) {
-            content.push(...preamble, nextLine.replace(classNameMatch[1], fileName.slice(0, -4)), ...sourceLines);
+            content.push(...preamble, nextLine!.replace(classNameMatch[1], fileName.slice(0, -4)), ...sourceLines);
             break;
           }
-          preamble.push(nextLine);
+          preamble.push(nextLine!);
         }
         if (!content.length) {
           // Transfer sourceLines verbatim in cases where no class header line is found
@@ -193,12 +192,12 @@ export function isCSP(uri: vscode.Uri): boolean {
         path: path.dirname(uri.path),
       })
       .toString();
-    if (cspFilesInProjectFolder.has(parent) && cspFilesInProjectFolder.get(parent).includes(path.basename(uri.path))) {
+    if (cspFilesInProjectFolder.has(parent) && cspFilesInProjectFolder.get(parent)!.includes(path.basename(uri.path))) {
       return true;
     }
     // Read the parent directory and file is not CSP OR haven't read the parent directory yet
     // Use the file extension to guess if it's a web app file
-    const additionalExts: string[] = vscode.workspace
+    const additionalExts: string[] | undefined = vscode.workspace
       .getConfiguration("objectscript.projects", uri)
       .get("webAppFileExtensions");
     return [
@@ -221,8 +220,8 @@ export function isCSP(uri: vscode.Uri): boolean {
       "ico",
       "xml",
       "txt",
-      ...additionalExts,
-    ].includes(uri.path.split(".").pop().toLowerCase());
+      ...additionalExts!,
+    ].includes(uri.path.split(".").pop()!.toLowerCase());
   }
   return csp;
 }
@@ -238,7 +237,7 @@ export function isfsDocumentName(uri: vscode.Uri, csp?: boolean, pkg = false): s
   if (csp == undefined) csp = isCSP(uri);
   const doc = csp ? uri.path : uri.path.slice(1).replace(/\//g, ".");
   // Add the .PKG extension to non-web folders if called from StudioActions
-  return pkg && !csp && !doc.split("/").pop().includes(".") ? `${doc}.PKG` : doc;
+  return pkg && !csp && !doc.split("/").pop()!.includes(".") ? `${doc}.PKG` : doc;
 }
 
 /**
@@ -252,7 +251,7 @@ export function isfsDocumentName(uri: vscode.Uri, csp?: boolean, pkg = false): s
  * error, or a more descriptive custom error when `descriptiveError` is `true`,
  * when `uri`'s path is not in "canonical form".
  */
-function validateUriIsCanonical(uri: vscode.Uri, descriptiveError = false): void {
+function validateUriIsCanonical(uri: vscode.Uri): void {
   const numDots = uri.path.split(".").length - 1;
   const lastFour = uri.path.slice(-4);
   if (!isfsConfig(uri).csp && [".cls", ".mac", ".int", ".inc"].includes(lastFour.toLowerCase())) {
@@ -260,10 +259,12 @@ function validateUriIsCanonical(uri: vscode.Uri, descriptiveError = false): void
       ? "File extension must be in all lowercase"
       : uri.path.startsWith("/%") && lastFour == ".cls" && numDots == 1 && uri.path.split("/").length == 2
         ? "Must use the full name of %Library classes"
-        : numDots > 1 && !(numDots == 2 && /\.G?\d\.int$/.test(uri.path))
-          ? "Packages must use forward slashes as delimiters instead of dots"
+        : numDots > 1 && !((numDots == 2 && /\.G?\d\.int$/.test(uri.path)) || /\.\d+\.(mac|int|inc)$/.test(uri.path))
+          ? // Need to allow URIs for routines with last dotted sections that are entirely digits
+            // due to a server-side bug. These routines are not properly split into folders.
+            "Packages must use forward slashes as delimiters instead of dots"
           : undefined;
-    if (msg) throw descriptiveError ? new vscode.FileSystemError(msg) : vscode.FileSystemError.FileNotFound(uri);
+    if (msg) throw new vscode.FileSystemError(msg);
   }
 }
 
@@ -340,7 +341,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (entryPromise instanceof File) {
       // previously resolved as a file
       result = entryPromise;
-    } else if (entryPromise instanceof Promise && uri.path.split("/").pop()?.split(".").length > 1) {
+    } else if (entryPromise instanceof Promise && uri.path.split("/").pop()!.split(".").length > 1) {
       // apparently a file, so resolve ahead of adding permissions
       result = await entryPromise;
     } else {
@@ -352,7 +353,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       const serverName = isfsDocumentName(uri);
       if (serverName.slice(-4).toLowerCase() == ".cls") {
         if (await isClassDeployed(serverName, api)) {
-          result.permissions |= vscode.FilePermission.Readonly;
+          result.permissions = result.permissions! | vscode.FilePermission.Readonly;
           return result;
         }
       }
@@ -363,7 +364,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         const statusObj = await api.actionQuery(query, [serverName]);
         const docStatus = statusObj.result?.content?.pop();
         if (docStatus) {
-          result.permissions = docStatus.editable ? undefined : result.permissions | vscode.FilePermission.Readonly;
+          result.permissions = docStatus.editable ? undefined : result.permissions! | vscode.FilePermission.Readonly;
         }
       }
     }
@@ -382,7 +383,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     if (project) {
       // Get all items in the project
       return projectContentsFromUri(uri).then((entries) =>
-        entries.map((entry) => {
+        entries!.map((entry) => {
           const csp = ["CSP", "DIR"].includes(entry.Type);
           if (!entry.Name.includes(".")) {
             if (!parent.entries.has(entry.Name)) {
@@ -404,7 +405,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               const mapkey = uri.toString();
               let mapvalue: string[] = [];
               if (cspFilesInProjectFolder.has(mapkey)) {
-                mapvalue = cspFilesInProjectFolder.get(mapkey);
+                mapvalue = cspFilesInProjectFolder.get(mapkey)!;
               }
               mapvalue.push(entry.Name);
               cspFilesInProjectFolder.set(mapkey, mapvalue);
@@ -435,7 +436,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       }
     }
     const cspSubfolders = Array.from(cspSubfolderMap.entries());
-    return studioOpenDialogFromURI(uri)
+    return studioOpenDialogFromURI(uri)!
       .then((data) => data.result.content || [])
       .then((data) => {
         const results = data
@@ -476,10 +477,12 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       .catch((error) => {
         if (error) {
           if (error.errorText.includes(" #5540:")) {
-            const message = `User '${api.config.username}' cannot list ${
+            const username = api.config.auth.username;
+            const identity = username.includes("*") ? `Users using ${username.slice(1, -1)}` : `User '${username}'`;
+            const message = `${identity} cannot list ${
               csp ? `web application '${uri.path}'` : "namespace"
-            } contents. If they do not have READ permission on the default code database of the ${api.config.ns.toUpperCase()} namespace then grant it and retry. If the problem remains then execute the following SQL in that namespace:\n\t GRANT EXECUTE ON %Library.RoutineMgr_StudioOpenDialog TO ${
-              api.config.username
+            } contents. If they do not have READ permission on the default code database of the ${api.config.ns!.toUpperCase()} namespace then grant it and retry. If the problem remains then execute the following SQL in that namespace:\n\t GRANT EXECUTE ON %Library.RoutineMgr_StudioOpenDialog TO ${
+              username.includes("*") ? "<USERNAME>" : username
             }`;
             handleError(message);
           }
@@ -509,7 +512,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     validateUriIsCanonical(uri);
     // Use _lookup() instead of _lookupAsFile() so we send
     // our cached mtime with the GET /doc request if we have it
-    return this._lookup(uri, true).then((file: File) => file.data);
+    return this._lookup(uri, true).then((file: File) => file.data!);
   }
 
   public writeFile(
@@ -525,7 +528,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const originalUri = vscode.Uri.parse(originalUriString);
     this._needsUpdate.delete(originalUriString);
     uri = redirectDotvscodeRoot(uri, new vscode.FileSystemError("Server does not have a /_vscode web application"));
-    validateUriIsCanonical(uri, true);
+    validateUriIsCanonical(uri);
     const csp = isCSP(uri);
     const fileName = isfsDocumentName(uri, csp);
     if (fileName.startsWith(".")) {
@@ -534,14 +537,14 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const api = new AtelierAPI(uri);
     let created = false;
     let update = false;
-    const fileExt = fileName.split(".").pop().toLowerCase();
+    const fileExt = fileName.split(".").pop()!.toLowerCase();
     // Use _lookup() instead of _lookupAsFile() so we send
     // our cached mtime with the GET /doc request if we have it
     return this._lookup(uri)
       .then(
         async (entry: File) => {
           const contentBuffer = Buffer.from(content);
-          const putContent = isText(uri.path.split("/").pop(), contentBuffer)
+          const putContent = !csp // Web app files must always be written as raw bytes
             ? {
                 content: new TextDecoder().decode(content).split(/\r?\n/),
                 enc: false,
@@ -578,15 +581,6 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
               // Always update the editor tab for a class after saving
               update = true;
             }
-          }
-          if (
-            csp &&
-            !putContent.enc &&
-            putContent.content.length > 1 &&
-            putContent.content[putContent.content.length - 1] == ""
-          ) {
-            // Avoid appending a blank line on every save, which would cause a web app file to grow each time
-            putContent.content.pop();
           }
           // By the time we get here VS Code's built-in conflict resolution mechanism will already have interacted with the user.
           // Therefore, it's safe to ignore any conflicts.
@@ -703,11 +697,11 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           })
           .toString();
         const mapvalue = cspFilesInProjectFolder.get(parentUriStr);
-        const idx = mapvalue.indexOf(path.basename(uri.path));
+        const idx = mapvalue!.indexOf(path.basename(uri.path));
         if (idx != -1) {
-          mapvalue.splice(idx, 1);
-          if (mapvalue.length) {
-            cspFilesInProjectFolder.set(parentUriStr, mapvalue);
+          mapvalue!.splice(idx, 1);
+          if (mapvalue!.length) {
+            cspFilesInProjectFolder.set(parentUriStr, mapvalue!);
           } else {
             cspFilesInProjectFolder.delete(parentUriStr);
           }
@@ -736,7 +730,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         // Ignore the recursive flag for project folders
         toDeletePromise = projectContentsFromUri(uri, true);
       } else {
-        toDeletePromise = studioOpenDialogFromURI(uri, options.recursive ? { flat: true } : undefined).then(
+        toDeletePromise = studioOpenDialogFromURI(uri, options.recursive ? { flat: true } : undefined)!.then(
           (data) => data.result.content
         );
       }
@@ -764,7 +758,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
           if (doc.status == "") {
             this.processDeletedDoc(
               doc,
-              DocumentContentProvider.getUri(doc.name, undefined, undefined, true, uri),
+              DocumentContentProvider.getUri(doc.name, undefined, undefined, true, uri)!,
               doc.name.includes("/"),
               project.length > 0
             );
@@ -809,25 +803,25 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): Promise<void> {
-    if (!oldUri.path.split("/").pop().includes(".")) {
+    if (!oldUri.path.split("/").pop()!.includes(".")) {
       throw new vscode.FileSystemError("Cannot rename a package/folder");
     }
-    if (oldUri.path.split(".").pop().toLowerCase() != newUri.path.split(".").pop().toLowerCase()) {
+    if (oldUri.path.split(".").pop()!.toLowerCase() != newUri.path.split(".").pop()!.toLowerCase()) {
       throw new vscode.FileSystemError("Cannot change a file's extension during rename");
     }
     if (vscode.workspace.getWorkspaceFolder(oldUri) != vscode.workspace.getWorkspaceFolder(newUri)) {
       throw new vscode.FileSystemError("Cannot rename a file across workspace folders");
     }
     validateUriIsCanonical(oldUri);
-    validateUriIsCanonical(newUri, true);
+    validateUriIsCanonical(newUri);
     // Check if the destination exists
-    let newFileStat: vscode.FileStat;
+    let newFileStat: vscode.FileStat | undefined;
     try {
       newFileStat = await vscode.workspace.fs.stat(newUri);
       if (!options.overwrite) {
         // If it does and we can't overwrite it, throw an error
         throw vscode.FileSystemError.FileExists(newUri);
-      } else if (newFileStat.permissions & vscode.FilePermission.Readonly) {
+      } else if (newFileStat.permissions! & vscode.FilePermission.Readonly) {
         // If the file is read-only, throw an error
         // This can happen if the target class is deployed,
         // or the document is marked read-only by source control
@@ -909,7 +903,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         if (isfsConfig(uri).project) {
           compileListPromise = projectContentsFromUri(uri, true);
         } else {
-          compileListPromise = studioOpenDialogFromURI(uri, { flat: true }).then((data) => data.result.content);
+          compileListPromise = studioOpenDialogFromURI(uri, { flat: true })!.then((data) => data.result.content);
         }
         compileList.push(...(await compileListPromise.then((data) => data.map((e) => e.Name))));
       } else {
@@ -972,7 +966,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       ...filesToUpdate.map((f) => {
         return {
           type: vscode.FileChangeType.Changed,
-          uri: DocumentContentProvider.getUri(f, undefined, undefined, undefined, originalUri),
+          uri: DocumentContentProvider.getUri(f, undefined, undefined, undefined, originalUri)!,
         };
       })
     );
@@ -990,7 +984,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
       ).map((f: string) => {
         return {
           type: vscode.FileChangeType.Changed,
-          uri: DocumentContentProvider.getUri(f, undefined, undefined, undefined, originalUri),
+          uri: DocumentContentProvider.getUri(f, undefined, undefined, undefined, originalUri)!,
         };
       })
     );
@@ -1006,8 +1000,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
   private async _lookup(uri: vscode.Uri, fillInPath?: boolean): Promise<Entry> {
     const api = new AtelierAPI(uri);
     const config = api.config;
-    const rootName = `${config.username}@${config.host}:${config.port}${config.pathPrefix}/${config.ns.toUpperCase()}`;
-    let entry: Entry = this.superRoot.entries.get(rootName);
+    const rootName = `${config.auth.username}@${config.host}:${config.port}${config.pathPrefix}/${config.ns!.toUpperCase()}`;
+    let entry: Entry | undefined = this.superRoot.entries.get(rootName);
     if (!entry) {
       entry = new Directory(rootName, "");
       this.superRoot.entries.set(rootName, entry);
@@ -1075,7 +1069,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     const fileName = isfsDocumentName(uri, csp);
     const api = new AtelierAPI(uri);
     return api
-      .getDoc(fileName, uri, cachedFile?.mtime)
+      .getDoc(fileName, uri, cachedFile?.mtime, undefined, csp) // Web app files must always be read as raw bytes
       .then((data) => data.result)
       .then(
         ({ ts, content }) =>

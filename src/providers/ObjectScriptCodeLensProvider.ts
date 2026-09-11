@@ -81,7 +81,7 @@ function getSqlQuery(document: vscode.TextDocument, startLine: number, startChar
   if (
     result.length &&
     !["SELECT", "DECLARE", "UPDATE", "DELETE", "TRUNCATE", "INSERT"].includes(
-      result.trimStart().split(/\s+/).shift().toUpperCase()
+      result.trimStart().split(/\s+/).shift()!.toUpperCase()
     )
   ) {
     // Can only generate plans for certain SQL statements
@@ -109,8 +109,8 @@ function scanCodeBlock(
   let inCStyleComment = false;
   for (let i = start; i < end; i++) {
     const line = document.lineAt(i).text;
-    let commentStart: number;
-    let commentEnd: number;
+    let commentStart: number | undefined;
+    let commentEnd: number | undefined;
     if (!inCStyleComment) {
       const commentMatch = line.match(commentRegex);
       if (commentMatch) {
@@ -138,20 +138,20 @@ function scanCodeBlock(
       // Check if the match is commented out or in a string literal
       if (
         ((commentStart == undefined && commentEnd == undefined) ||
-          (commentStart != undefined && eSqlMatch.index < commentStart) ||
-          (commentEnd != undefined && eSqlMatch.index > commentEnd)) &&
+          (commentStart != undefined && eSqlMatch.index! < commentStart) ||
+          (commentEnd != undefined && eSqlMatch.index! > commentEnd)) &&
         // There are an even number of, or zero, quotes preceding the match
-        line.slice(0, eSqlMatch.index).split('"').length % 2 == 1
+        line.slice(0, eSqlMatch.index!).split('"').length % 2 == 1
       ) {
         const sqlQuery = getSqlQuery(
           document,
           i,
-          eSqlMatch.index + eSqlMatch[0].length,
+          eSqlMatch.index! + eSqlMatch[0].length,
           `)${(eSqlMatch[1] ?? "").split("").reverse().join("")}`
         );
         if (sqlQuery) {
           result.push(
-            new vscode.CodeLens(new vscode.Range(i, eSqlMatch.index, i, eSqlMatch.index + eSqlMatch[0].length), {
+            new vscode.CodeLens(new vscode.Range(i, eSqlMatch.index!, i, eSqlMatch.index! + eSqlMatch[0].length), {
               title: "Show Plan",
               tooltip: "Show the plan for this query",
               command: "vscode-objectscript.showPlanWebview",
@@ -187,7 +187,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
   public async provideCodeLenses(
     document: vscode.TextDocument,
     token: vscode.CancellationToken
-  ): Promise<vscode.CodeLens[]> {
+  ): Promise<vscode.CodeLens[] | undefined> {
     if (![clsLangId, macLangId, intLangId].includes(document.languageId)) return;
     const file = currentFile(document);
     if (!file) return; // Document is malformed
@@ -198,9 +198,9 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
     if (!symbols?.length || token.isCancellationRequested) return;
     const api = new AtelierAPI(document.uri);
     const conf = vscode.workspace.getConfiguration("objectscript.debug");
-    const debugThisMethod: boolean = conf.get("debugThisMethod") && api.active;
-    const copyToClipboard: boolean = conf.get("copyToClipboard");
-    const showPlan = api.active && gte(api.config.serverVersion, "2024.1.0");
+    const debugThisMethod: boolean = conf.get<boolean>("debugThisMethod")! && api.active;
+    const copyToClipboard: boolean = conf.get("copyToClipboard")!;
+    const showPlan = api.active && gte(api.config.serverVersion!, "2024.1.0");
     const result: vscode.CodeLens[] = [];
     if (document.languageId == clsLangId) {
       if (!symbols[0].children.length) return;
@@ -245,7 +245,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
       symbols[0].children.forEach((symbol, idx) => {
         const type = symbol.detail.toLowerCase();
         if (!["xdata", "method", "classmethod", "query", "trigger"].includes(type)) return;
-        let symbolLine: number;
+        let symbolLine: number | undefined;
         if (languageServer) {
           symbolLine = symbol.selectionRange.start.line;
         } else {
@@ -259,17 +259,17 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
         switch (type) {
           case "xdata": {
             if (api.active) {
-              let cmd: vscode.Command;
+              let cmd: vscode.Command | undefined;
               if (
                 (symbol.name == "RuleDefinition" &&
                   superclasses.includes("Ens.Rule.Definition") &&
-                  gte(api.config.serverVersion, "2023.1.0")) ||
+                  gte(api.config.serverVersion!, "2023.1.0")) ||
                 (symbol.name == "DTL" &&
                   superclasses.includes("Ens.DataTransformDTL") &&
-                  gte(api.config.serverVersion, "2025.1.0")) ||
+                  gte(api.config.serverVersion!, "2025.1.0")) ||
                 (symbol.name == "BPL" &&
                   superclasses.includes("Ens.BusinessProcessBPL") &&
-                  gte(api.config.serverVersion, "2026.1.0"))
+                  gte(api.config.serverVersion!, "2026.1.0"))
               ) {
                 cmd = {
                   title: "Reopen in Low-Code Editor",
@@ -285,7 +285,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
                   arguments: [`/${className}.cls`, document.uri],
                 };
               }
-              if (cmd) result.push(new vscode.CodeLens(this.range(symbolLine), cmd));
+              if (cmd) result.push(new vscode.CodeLens(this.range(symbolLine!), cmd));
             }
             break;
           }
@@ -294,7 +294,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
           case "trigger":
           case "query": {
             // Capture the entire text of the class member definition up to the implementation
-            const memberInfo = parseClassMemberDefinition(document, symbol, symbolLine);
+            const memberInfo = parseClassMemberDefinition(document, symbol, symbolLine!);
             if (!memberInfo) break;
             const { definition, defEndLine, language, isPrivate } = memberInfo;
             if (showPlan) {
@@ -307,7 +307,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
                   const sqlQuery = getSqlQuery(document, defEndLine + 1, 0, "}");
                   if (sqlQuery) {
                     result.push(
-                      new vscode.CodeLens(this.range(symbolLine), {
+                      new vscode.CodeLens(this.range(symbolLine!), {
                         title: "Show Plan",
                         tooltip: "Show the plan for this query",
                         command: "vscode-objectscript.showPlanWebview",
@@ -342,7 +342,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
             ) {
               const argsMatch = definition.match(new RegExp(`${displayName}\\(([^)]*)\\)`));
               result.push(
-                this.addDebugThisMethod(symbolLine, [
+                this.addDebugThisMethod(symbolLine!, [
                   `##class(${className}).${displayName}`,
                   argsMatch && typeof argsMatch[1] == "string" && argsMatch[1].trim().length > 0,
                 ])
@@ -354,7 +354,7 @@ export class ObjectScriptCodeLensProvider implements vscode.CodeLensProvider {
               (type == "classmethod" || (type == "query" && displayName[0] != '"'))
             ) {
               result.push(
-                this.addCopyToClipboard(symbolLine, [
+                this.addCopyToClipboard(symbolLine!, [
                   `##class(${className}).${displayName}${type == "query" ? "Func" : ""}()`,
                 ])
               );

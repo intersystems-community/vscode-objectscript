@@ -17,7 +17,6 @@ import {
 import { isText } from "istextorbinary";
 import { AtelierAPI } from "../api";
 import { compile, importFile } from "../commands/compile";
-import { sendClientSideSyncTelemetryEvent } from "../extension";
 
 interface WSFolderIndex {
   /** The `FileSystemWatcher` for this workspace folder */
@@ -52,7 +51,7 @@ async function getCurrentFile(
   uri: vscode.Uri,
   forceText = false,
   content?: string[] | Buffer
-): Promise<CurrentTextFile | CurrentBinaryFile | undefined> {
+): Promise<CurrentTextFile | CurrentBinaryFile | null | undefined> {
   if (content) {
     // forceText is always true when content is passed
     return currentFileFromContent(uri, Buffer.isBuffer(content) ? textDecoder.decode(content) : content.join("\n"));
@@ -191,10 +190,11 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
   // Index classes and routines that currently exist
   vscode.workspace.findFiles(new vscode.RelativePattern(wsFolder, "{**/*}")).then((files) =>
     files.forEach((file) =>
-      fsRateLimiter.call(() => {
+      fsRateLimiter.call<WSFolderIndexChange | undefined>(async () => {
         if (isClassOrRtn(file.path) || isImportableLocalFile(file)) {
           return updateIndexInternal(file, documents, uris, true);
         }
+        return undefined;
       })
     )
   );
@@ -217,7 +217,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     if (notToSync(uri)) {
       return;
     }
-    if (!uri.path.split("/").pop().includes(".")) {
+    if (!uri.path.split("/").pop()!.includes(".")) {
       // Ignore creation and change events for folders
       return;
     }
@@ -254,7 +254,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     }
     const api = new AtelierAPI(uri);
     const conf = vscode.workspace.getConfiguration("objectscript", wsFolder);
-    const syncLocalChanges: string = conf.get("syncLocalChanges");
+    const syncLocalChanges: string = conf.get("syncLocalChanges")!;
     const vscodeChange = touchedByVSCode.has(uriString);
     const sync = api.active && (syncLocalChanges == "all" || (syncLocalChanges == "vscodeOnly" && vscodeChange));
     touchedByVSCode.delete(uriString);
@@ -263,8 +263,8 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     if (change.addedOrChanged) {
       // Create or update the document on the server
       try {
-        const willCompile = conf.get("compileOnSave") && isCompilable(change.addedOrChanged.name);
-        await importFile(change.addedOrChanged, willCompile);
+        const willCompile = conf.get<boolean>("compileOnSave") && isCompilable(change.addedOrChanged.name);
+        await importFile(change.addedOrChanged, willCompile!);
         outputImport(change.addedOrChanged.name, uri);
         if (willCompile) {
           // Compile right away if this document is in the active text editor.
@@ -293,7 +293,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     const api = new AtelierAPI(uri);
     const syncLocalChanges: string = vscode.workspace
       .getConfiguration("objectscript", wsFolder)
-      .get("syncLocalChanges");
+      .get("syncLocalChanges")!;
     const sync: boolean =
       api.active && (syncLocalChanges == "all" || (syncLocalChanges == "vscodeOnly" && touchedByVSCode.has(uriString)));
     for (const subUriString of uris.keys()) {
@@ -351,9 +351,6 @@ async function updateIndexInternal(
   const file = await getCurrentFile(uri, true, content);
   if (!file) return result;
   result.addedOrChanged = file;
-  if (isImportableLocalFile(uri) && sync) {
-    sendClientSideSyncTelemetryEvent(file.fileName.split(".").pop().toLowerCase());
-  }
   const documentUris = documents.get(file.name) ?? [];
   if (documentUris.some((u) => u.toString() == uriString)) {
     // No need to update the index since this document is already present
@@ -424,8 +421,10 @@ export function allDocumentsInWorkspace(wsFolder: vscode.WorkspaceFolder): strin
 }
 
 /** Get the class/routine name of the document in `uri` */
-export function getDocumentForUri(uri: vscode.Uri): string {
-  return wsFolderIndex.get(vscode.workspace.getWorkspaceFolder(uri)?.uri.toString())?.uris.get(uri.toString());
+export function getDocumentForUri(uri: vscode.Uri): string | undefined {
+  return wsFolderIndex
+    .get(vscode.workspace.getWorkspaceFolder(uri)?.uri.toString() as string)
+    ?.uris.get(uri.toString());
 }
 
 /**
@@ -444,7 +443,7 @@ export function inferDocName(uri: vscode.Uri): string | undefined {
   const wsFolder = vscode.workspace.getWorkspaceFolder(uri);
   if (!wsFolder) return;
   const index = wsFolderIndex.get(wsFolder.uri.toString());
-  if (!index || !index.uris.size) return;
+  if (!index?.uris.size) return;
   // Get a list of all unique paths containing classes or routines that
   // do not contribute to the name of the documents contained within
   const containingPaths: Set<string> = new Set();
@@ -468,7 +467,7 @@ export function inferDocName(uri: vscode.Uri): string | undefined {
   // is necessary for the rare situaions for documents in /foo/bar/ have a different mapping than /foo/
   // and the target URI is in /foo/bar/ or a subfolder of it.
   const containingPathsSorted = Array.from(containingPaths).sort((a, b) => b.length - a.length);
-  let result: string;
+  let result: string | undefined;
   for (const prefix of containingPathsSorted) {
     if (uri.path.startsWith(prefix)) {
       // We've identified the leading path segments that don't contribute to the document
@@ -496,7 +495,7 @@ export function inferDocUri(docName: string, wsFolder: vscode.WorkspaceFolder): 
   const docExt = docName.slice(-4).toLowerCase();
   if (!exts.includes(docExt)) return;
   const index = wsFolderIndex.get(wsFolder.uri.toString());
-  if (!index || !index.uris.size) return;
+  if (!index?.uris.size) return;
   const docNameNoExt = docName.slice(0, -4); // remove extension
   const docPkgSegments = docNameNoExt.split(".").slice(0, -1); // remove class/routine name
   // For each indexed document, compute its containing path and measure how
@@ -531,4 +530,28 @@ export function inferDocUri(docName: string, wsFolder: vscode.WorkspaceFolder): 
   if (!bestPathPrefix) return;
   // Convert the document name to a file path and prepend the prefix
   return wsFolder.uri.with({ path: `${bestPathPrefix}${docNameNoExt.replaceAll(".", "/")}${docExt}` });
+}
+
+/**
+ * Returns the `Uri`s of all indexed documents in folder `uri`.
+ * Assumes `uri` is a folder URI. Returns documents in nested folders.
+ */
+export function urisInFolder(uri: vscode.Uri): vscode.Uri[] {
+  const wsFolder = vscode.workspace.getWorkspaceFolder(uri);
+  if (!wsFolder) return [];
+  const index = wsFolderIndex.get(wsFolder.uri.toString());
+  if (!index?.uris.size) return [];
+  // Need to round-trip the argument through the Uri parser
+  // because it can change the case of Windows drive letters
+  // and the check below is case-sensitive. I found this
+  // preferable to adding a Windows-only case-insensitive
+  // carve-out in the logic below.
+  let folderPath = vscode.Uri.parse(uri.toString()).path;
+  if (!folderPath.endsWith("/")) folderPath = `${folderPath}/`;
+  const result: vscode.Uri[] = [];
+  index.uris.forEach((indexDocName, indexDocUriStr) => {
+    const indexDocUri = vscode.Uri.parse(indexDocUriStr);
+    if (indexDocUri.path.startsWith(folderPath)) result.push(indexDocUri);
+  });
+  return result;
 }

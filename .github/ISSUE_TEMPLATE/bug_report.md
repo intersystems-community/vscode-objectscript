@@ -7,6 +7,7 @@ assignees: ''
 
 ---
 
+<!-- ⚠️ If you have an InterSystems support contract, please contact InterSystems' Worldwide Response Center (WRC) for support. -->
 <!-- Please read our issue reporting guide: https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_reporting -->
 <!-- Please read our docs on troubleshooting common issues: https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_editproblems -->
 <!-- 🔎 Search existing issues to avoid creating duplicates. -->

@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { gte } from "semver";
 import { AtelierAPI } from "../api";
 import { ProjectItem } from "../commands/project";
 
@@ -32,12 +33,12 @@ export function isfsConfig(uri: vscode.Uri): IsfsUriConfig {
     mapped: params.get(IsfsUriParam.Mapped) != "0",
     filter: params.get(IsfsUriParam.Filter) ?? "",
     project: params.get(IsfsUriParam.Project) ?? "",
-    csp: ["", "1"].includes(params.get(IsfsUriParam.CSP)),
+    csp: ["", "1"].includes(params.get(IsfsUriParam.CSP)!),
     ns: params.get(IsfsUriParam.NS) || undefined,
   };
 }
 
-export async function projectContentsFromUri(uri: vscode.Uri, flat = false): Promise<ProjectItem[]> {
+export async function projectContentsFromUri(uri: vscode.Uri, flat = false): Promise<ProjectItem[] | undefined> {
   const api = new AtelierAPI(uri);
   if (!api.active) {
     return;
@@ -125,13 +126,19 @@ export async function projectContentsFromUri(uri: vscode.Uri, flat = false): Pro
       query =
         `SELECT DISTINCT BY (${nameCol}) ${nameCol} ` +
         "Name, Type FROM %Studio.Project_ProjectItemsList(?,1) AS pil WHERE " +
-        "(Type = 'MAC' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.mac,*.int,*.inc,*.bas,*.mvi',1,1,1,1,0,1) AS sod WHERE pil.Name = sod.Name)) OR " +
-        "(Type = 'CSP' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,1,0,1) AS sod WHERE '/'||pil.Name = sod.Name)) OR " +
-        "(Type NOT IN ('CLS','PKG','MAC','CSP','DIR','GBL') AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.other',1,1,1,1,0,1) AS sod WHERE " +
-        "$PIECE(sod.Name,'.',1,$LENGTH(sod.Name,'.')-1) = $PIECE(pil.Name,'.',1,$LENGTH(pil.Name,'.')-1) AND UPPER($PIECE(sod.Name,'.',$LENGTH(sod.Name,'.'))) = $PIECE(pil.Name,'.',$LENGTH(pil.Name,'.')))) OR " +
-        "(Type = 'CLS' AND EXISTS (SELECT dcd.ID FROM %Dictionary.ClassDefinition AS dcd WHERE dcd.ID = pil.Name)) OR " +
-        "(Type = 'PKG' AND EXISTS (SELECT dcd.ID FROM %Dictionary.ClassDefinition AS dcd WHERE dcd.ID %STARTSWITH pil.Name||'.')) OR " +
-        "(Type = 'DIR' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,0,0,1) AS sod WHERE pil.Name %STARTSWITH sod.Name||'/' OR pil.Name = sod.Name))";
+        (gte(api.config.serverVersion!, "2021.1.0")
+          ? "(Type NOT IN ('CLS','PKG','DIR','GBL') AND EXISTS (SELECT Size FROM %Library.RoutineMgr_StudioOpenDialog(pil.Name,1,1,1,1,0,1))) OR " +
+            "(Type = 'CLS' AND EXISTS (SELECT dcd.ID FROM %Dictionary.ClassDefinition AS dcd WHERE dcd.ID = pil.Name)) OR " +
+            "(Type = 'PKG' AND EXISTS (SELECT TOP 1 dcd.ID FROM %Dictionary.ClassDefinition AS dcd WHERE dcd.ID %STARTSWITH pil.Name||'.')) OR " +
+            "(Type = 'DIR' AND EXISTS (SELECT TOP 1 Size FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,0,0,1,'Name %STARTSWITH '''||pil.Name||'/''')))"
+          : // Need to use slower version of query on very old servers
+            "(Type = 'MAC' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.mac,*.int,*.inc,*.bas,*.mvi',1,1,1,1,0,1) AS sod WHERE pil.Name = sod.Name)) OR " +
+            "(Type = 'CSP' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,1,0,1) AS sod WHERE '/'||pil.Name = sod.Name)) OR " +
+            "(Type NOT IN ('CLS','PKG','MAC','CSP','DIR','GBL') AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.other',1,1,1,1,0,1) AS sod WHERE " +
+            "$PIECE(sod.Name,'.',1,$LENGTH(sod.Name,'.')-1) = $PIECE(pil.Name,'.',1,$LENGTH(pil.Name,'.')-1) AND UPPER($PIECE(sod.Name,'.',$LENGTH(sod.Name,'.'))) = $PIECE(pil.Name,'.',$LENGTH(pil.Name,'.')))) OR " +
+            "(Type = 'CLS' AND EXISTS (SELECT dcd.ID FROM %Dictionary.ClassDefinition AS dcd WHERE dcd.ID = pil.Name)) OR " +
+            "(Type = 'PKG' AND EXISTS (SELECT dcd.ID FROM %Dictionary.ClassDefinition AS dcd WHERE dcd.ID %STARTSWITH pil.Name||'.')) OR " +
+            "(Type = 'DIR' AND EXISTS (SELECT sod.Size FROM %Library.RoutineMgr_StudioOpenDialog('*.cspall',1,1,1,0,0,1) AS sod WHERE pil.Name %STARTSWITH sod.Name||'/' OR pil.Name = sod.Name))");
       parameters = [project];
     }
   }
@@ -165,7 +172,7 @@ export function fileSpecFromURI(uri: vscode.Uri): string {
 export function studioOpenDialogFromURI(
   uri: vscode.Uri,
   overrides: { flat?: boolean; filter?: string } = { flat: false, filter: "" }
-): Promise<any> {
+): Promise<any> | undefined {
   const api = new AtelierAPI(uri);
   if (!api.active) return;
   const { system, generated, mapped } = isfsConfig(uri);
@@ -177,7 +184,7 @@ export function studioOpenDialogFromURI(
     overrides?.flat ? "1" : "0",
     "0", // NotStudio (0 means hide globals and OBJ files)
     generated ? "1" : "0",
-    overrides.filter,
+    overrides.filter!,
     "0", // RoundTime (0 means no rounding)
     mapped ? "1" : "0",
   ]);

@@ -514,7 +514,7 @@ async function pickAdditions(
           handleError(error, "Failed to get namespace contents.");
         });
     };
-    const expandItem = (itemIdx: number): Promise<void> => {
+    const expandItem = (itemIdx: number): Promise<void> | undefined => {
       const selected = quickPick.selectedItems;
       const item = quickPick.items[itemIdx];
       quickPick.items[itemIdx].buttons = [
@@ -1084,10 +1084,10 @@ async function handleCommandArg(
     api = new AtelierAPI(connUri);
   }
   if (!project) {
-    project = await pickProject(api);
+    project = await pickProject(api!);
     if (!project) return;
   }
-  return { node, api, project };
+  return { node, api: api!, project };
 }
 
 export async function modifyProjectMetadata(nodeOrUri: NodeBase | vscode.Uri | undefined): Promise<void> {

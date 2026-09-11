@@ -31,7 +31,7 @@ export async function analizarVersaoItem(): Promise<void> {
     return;
   }
 
-  const { username, password } = api.config;
+  const { username, password } = api.config.auth;
 
   if (typeof username !== "string" || typeof password !== "string") {
     void vscode.window.showErrorMessage("Credenciais não disponíveis para analizar versão do item.");

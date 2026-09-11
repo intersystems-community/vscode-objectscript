@@ -22,8 +22,8 @@ import { pickDocuments } from "../utils/documentPicker";
 import { NodeBase } from "../explorer/nodes";
 import { updateIndex } from "../utils/documentIndex";
 
-export function getCategory(fileName: string, addCategory: any | boolean): string {
-  const fileExt = fileName.split(".").pop().toLowerCase();
+export function getCategory(fileName: string, addCategory: any | boolean): string | null {
+  const fileExt = fileName.split(".").pop()!.toLowerCase();
   if (typeof addCategory === "object") {
     for (const pattern of Object.keys(addCategory)) {
       if (new RegExp(`^${pattern}$`).test(fileName)) {
@@ -49,11 +49,13 @@ export function getCategory(fileName: string, addCategory: any | boolean): strin
 export function getFileName(
   folder: string,
   name: string,
-  split: boolean,
-  addCategory: boolean,
-  map: {
-    [key: string]: string;
-  },
+  split: boolean | undefined,
+  addCategory: boolean | undefined,
+  map:
+    | {
+        [key: string]: string;
+      }
+    | undefined,
   sep = path.sep
 ): string {
   if (name.includes("/")) {
@@ -75,7 +77,7 @@ export function getFileName(
         }
       }
       fileNameArray = name.split(".");
-      fileExt = fileNameArray.pop().toLowerCase();
+      fileExt = fileNameArray.pop()!.toLowerCase();
     } else {
       // This is some other type of file (LUT,HL7,...)
       const lastDot = name.lastIndexOf(".");
@@ -200,7 +202,7 @@ export async function exportAll(): Promise<any> {
     } else if (filterIsValid(filter)) {
       filters.push(`Name LIKE '%${filter}%'`);
     }
-    let files: vscode.QuickPickItem[] = await api
+    let files: vscode.QuickPickItem[] | undefined = await api
       .actionQuery("SELECT Name FROM %Library.RoutineMgr_StudioOpenDialog('*',1,1,?,1,0,?,?,0,?)", [
         api.ns == "%SYS" ? "1" : "0",
         generated ? "1" : "0",
@@ -268,7 +270,7 @@ export async function exportCurrentFile(): Promise<any> {
     // Only export files opened from the explorer
     return;
   }
-  return exportList([currentFile(openDoc).name], vscode.workspace.getWorkspaceFolder(openDoc.uri));
+  return exportList([currentFile(openDoc)!.name], vscode.workspace.getWorkspaceFolder(openDoc.uri)!);
 }
 
 export async function exportDocumentsToXMLFile(): Promise<void> {
@@ -293,7 +295,7 @@ export async function exportDocumentsToXMLFile(): Promise<void> {
     }
     const api = new AtelierAPI(wsFolder.uri);
     // Make sure the server has the xml endpoints
-    if (api.config.apiVersion < 7) {
+    if (api.config.apiVersion! < 7) {
       vscode.window.showErrorMessage(
         "'Export Documents to XML File...' command requires InterSystems IRIS version 2023.2 or above.",
         "Dismiss"

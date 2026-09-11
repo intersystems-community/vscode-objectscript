@@ -29,6 +29,6 @@ export class PrioritizedDefinitionProvider implements vscode.DefinitionProvider 
       return location;
     }
 
-    return this.delegate.provideDefinition(document, position, token);
+    return (await this.delegate.provideDefinition(document, position, token)) ?? undefined;
   }
 }

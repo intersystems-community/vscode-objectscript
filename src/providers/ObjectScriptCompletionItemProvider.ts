@@ -40,7 +40,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
         );
       }
     }
-    const completions = []
+    const completions: any[] = ([] as any[])
       .concat(
         this.classes(document, position, token, context),
         this.macrolist(document, position, token, context),
@@ -99,11 +99,11 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
     const range = document.getWordRangeAtPosition(position, pattern);
     const text = range ? document.getText(range) : "";
     if (range) {
-      const [, prefix, macro = ""] = text.toLowerCase().match(pattern);
+      const [, prefix, macro = ""] = text.toLowerCase().match(pattern)!;
       const file = currentFile();
       const api = new AtelierAPI();
       return api
-        .getmacrolist(file.name, [])
+        .getmacrolist(file!.name, [])
         .then((data) => data.result.content.macros)
         .then((list) => list.filter((el) => el.toLowerCase().startsWith(macro)))
         .then((list) => list.map((el) => "$$$" + el))
@@ -174,7 +174,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
             return {
               ...el,
               label: this._formatter.function(el.label as string),
-              insertText: this._formatter.function(el.insertText),
+              insertText: this._formatter.function(el.insertText!),
               range,
             };
           }),
@@ -236,7 +236,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
     position: vscode.Position,
     token: vscode.CancellationToken,
     context: vscode.CompletionContext
-  ): vscode.CompletionItem[] {
+  ): vscode.CompletionItem[] | null {
     const range = document.getWordRangeAtPosition(position, /%?\b\w+[\w\d]*\b/);
     const kind = vscode.CompletionItemKind.Variable;
     if (context.triggerKind === vscode.CompletionTriggerKind.Invoke) {
@@ -273,14 +273,14 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
     const searchText = document.getText(range);
 
     const method = (el) => ({
-      documentation: el.desc.length ? new vscode.MarkdownString(el.desc.join("")) : null,
+      documentation: el.desc.length ? new vscode.MarkdownString(el.desc.join("")) : null!,
       insertText: new vscode.SnippetString(`${el.name}($0)`),
       kind: vscode.CompletionItemKind.Method,
       label: el.name,
     });
 
     const parameter = (el) => ({
-      documentation: el.desc.length ? new vscode.MarkdownString(el.desc.join("")) : null,
+      documentation: el.desc.length ? new vscode.MarkdownString(el.desc.join("")) : null!,
       insertText: new vscode.SnippetString(`${el.name}`),
       kind: vscode.CompletionItemKind.Constant,
       label: `${el.name}`,
@@ -288,7 +288,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
     });
 
     const property = (el) => ({
-      documentation: el.desc.length ? new vscode.MarkdownString(el.desc.join("")) : null,
+      documentation: el.desc.length ? new vscode.MarkdownString(el.desc.join("")) : null!,
       insertText: new vscode.SnippetString(`${el.name}`),
       kind: vscode.CompletionItemKind.Property,
       label: el.name,
@@ -306,10 +306,10 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       return classDef.methods("class").then((data) => data.filter(search).map(method));
     }
 
-    if (curFile.fileName.endsWith("cls")) {
+    if (curFile!.fileName.endsWith("cls")) {
       const selfRef = textBefore.match(/(?<!\.)\.\.#?$/i);
       if (selfRef) {
-        const classDef = new ClassDefinition(curFile.name);
+        const classDef = new ClassDefinition(curFile!.name);
         if (textBefore.endsWith("#")) {
           return classDef.parameters().then((data) => data.filter(search).map(parameter));
         }
@@ -333,7 +333,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
     let pattern = /##class\(([^)]*)\)/i;
     let range = document.getWordRangeAtPosition(position, pattern);
     let text = range ? document.getText(range) : "";
-    let [, className] = range ? text.match(pattern) : "";
+    let [, className] = (range ? text.match(pattern)! : "") as [string, string | undefined];
     if (!range) {
       pattern = /(\b(?:Of|As)\b (%?\b[a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z][a-zA-Z0-9]+)*\b\.?)?(?! of))/i;
       range = document.getWordRangeAtPosition(position, pattern);
@@ -353,18 +353,18 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
       className = text.split(/\s|\(/).pop();
     }
     if (range) {
-      const percent = className.startsWith("%");
-      const library = percent && className.indexOf(".") < 0;
+      const percent = className!.startsWith("%");
+      const library = percent && className!.indexOf(".") < 0;
       className = className || "";
       const searchName = className.replace(/(^%|")/, "").toLowerCase();
       const part = className.split(".").length;
-      const params = [];
+      const params: string[] = [];
 
       let sql = "";
       /// Classes from the current class's package
-      if (part === 1 && curFile.fileName.endsWith("cls")) {
-        const packageName = curFile.name.split(".").slice(0, -2).join(".");
-        const className2 = curFile.name.split(".").slice(0, -1).join(".");
+      if (part === 1 && curFile!.fileName.endsWith("cls")) {
+        const packageName = curFile!.name.split(".").slice(0, -2).join(".");
+        const className2 = curFile!.name.split(".").slice(0, -1).join(".");
         const part2 = packageName.split(".").length + 1;
         sql += `
         SELECT
@@ -442,7 +442,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
   ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
     const range = document.getWordRangeAtPosition(position, /\$system(\.\b\w+\b)?(\.\b\w+\b)?\./i);
     const text = range ? document.getText(range) : "";
-    const [, className] = text.match(/\$system(\.\b\w+\b)?(\.\b\w+\b)?\./i);
+    const [, className] = text.match(/\$system(\.\b\w+\b)?(\.\b\w+\b)?\./i)!;
 
     const api = new AtelierAPI();
     if (!className) {
@@ -466,7 +466,7 @@ export class ObjectScriptCompletionItemProvider implements vscode.CompletionItem
           .content.methods.filter((el) => !el.private)
           .filter((el) => !el.internal)
           .map((el) => ({
-            documentation: el.desc.length ? new vscode.MarkdownString(el.desc.join("")) : null,
+            documentation: el.desc.length ? new vscode.MarkdownString(el.desc.join("")) : null!,
             insertText: new vscode.SnippetString(`${el.name}($0)`),
             kind: vscode.CompletionItemKind.Method,
             label: el.name,

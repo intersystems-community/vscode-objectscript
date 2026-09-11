@@ -1,5 +1,48 @@
 # Change Log
 
+## [3.8.3] 11-Sep-2026 (Consistem)
+- Enhancements
+  - Synchronize the Consistem fork with upstream through `v3.8.6-beta.8`.
+  - Preserve Consistem navigation, conversion, namespace activation and internal unit-test integrations.
+- Fixes
+  - Incorporate upstream authentication, connection lifecycle, Podman and dependency updates.
+
+## [3.8.5] 02-Sep-2026
+- Fixes
+  - Fix crash when opening a file with no workspace folder open (#1834)
+  - Skip credential resolution for inactive connections during activation (#1835)
+  - Fix crash from unresolved auth on named-server connections (#1836)
+  - Fix intermittent issues when importing a client-side folder on Windows (#1839)
+  - Restore unauthenticated-connection support (regression from OAuth2 rewrite) (#1840)
+  - Fix server-side projects when connected to a very old server (#1842)
+  - `serverForUri()` should either return a usable server definition or `undefined` (#1843)
+  - Deprecate configuring a server host/port/credentials in `objectscript.conn` in favor of using Server Manager (#1844)
+  - Relax server-side URI validation for routines whose dotted section before the extension is only digits (#1845)
+  - Passwords stored in plaintext in `objectscript.conn` should be passed to other extensions in `serverForUri()` (#1846)
+  - Upgrade dependencies
+
+## [3.8.4] 20-Aug-2026
+- Fixes
+  - Fix issue where exported `serverForUri()` function may expose a password (#1824)
+  - Sending stale cookies can cause authorization failures (#1824)
+  - Support abstract documents when importing a client-side folder (#1827)
+  - Fix issue where user is intermittently unable to connect to server (#1830)
+  - Telemetry changes:
+    - Remove `clientSideFileSynced` event
+    - Add `usesServerManager` key to `workspaceFolder` event for client-side folders
+
+## [3.8.3] 11-Aug-2026
+- Enhancements
+  - Support OAuth2 for authorizing with InterSystems servers (#1799, #1820)
+  - Update `Open InterSystems Document...` command to show a flat list of documents (#1804)
+- Fixes
+  - Always overwrite entire class for Pull Server Changes when there's a conflict between the local copy and server copy (#1797)
+  - Improve management of web sessions when connection changes (#1808)
+  - Improve performance of server-side project query (#1809)
+  - Only timeout server connection check during extension activation (#1814)
+  - Sync server-side web app files as raw bytes (#1818)
+  - Upgrade dependencies
+
 ## [3.8.2] 04-Jun-2026
 - Enhancements
   - Add `Import Files...` command that supports many file types (#1764)

@@ -2,7 +2,7 @@
   "name": "consistem-vscode-objectscript",
   "displayName": "Consistem ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code, with integrations and internal standards adopted by Consistem.",
-  "version": "3.8.3-SNAPSHOT",
+  "version": "3.8.3",
   "icon": "images/logo.png",
   "aiKey": "InstrumentationKey=9cd75d51-697c-406c-a929-2bcf46e97c64;IngestionEndpoint=https://eastus2-4.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus2.livediagnostics.monitor.azure.com/;ApplicationId=a431c56f-8ccc-4b99-b5e9-fce3763215b1",
   "categories": [
@@ -1526,6 +1526,7 @@
               "port": {
                 "type": "integer",
                 "description": "TCP port number the web server listens on.",
+                "deprecationMessage": "It is recommended to define a server connection in `#intersystems.servers#` instead of here.",
                 "minimum": 1,
                 "maximum": 65535
               },
@@ -1890,12 +1891,12 @@
             "type": "boolean",
             "default": false
           }
-          },
-          "objectscript.insertStubContent": {
-            "description": "If true, stub content will be inserted when a blank new class or routine file is created in a client-side workspace folder.",
-            "type": "boolean",
-            "default": true
-          }
+        },
+        "objectscript.insertStubContent": {
+          "description": "If true, stub content will be inserted when a blank new class or routine file is created in a client-side workspace folder.",
+          "type": "boolean",
+          "default": true
+        }
       }
     ],
     "views": {
@@ -2048,7 +2049,7 @@
     "vscode:prepublish": "webpack --mode production",
     "webpack": "webpack --mode development",
     "webpack-dev": "webpack --mode development --watch",
-    "package": "vsce package",
+    "package": "npx @vscode/vsce package",
     "compile": "webpack --mode production && tsc -p ./",
     "test-compile": "webpack --mode development && tsc -p ./",
     "watch": "tsc -w -p ./tsconfig.json",
@@ -2061,7 +2062,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
-    "@intersystems-community/intersystems-servermanager": "^3.10.2",
+    "@intersystems-community/intersystems-servermanager": "^3.14.1",
     "@types/istextorbinary": "2.3.1",
     "@types/minimatch": "6.0.0",
     "@types/mocha": "^10.0.10",
@@ -2084,7 +2085,7 @@
     "eslint-plugin-promise": "^7.2.1",
     "glob": "^11.1.0",
     "globals": "^15.12.0",
-    "mocha": "^11.7.5",
+    "mocha": "^12.0.0",
     "path-browserify": "^1.0.1",
     "prettier": "^3.3.1",
     "ts-loader": "^9.5.1",
@@ -2096,8 +2097,8 @@
     "@vscode/debugadapter": "^1.68.0",
     "@vscode/debugprotocol": "^1.68.0",
     "@vscode/extension-telemetry": "^1.5.2",
-    "@xmldom/xmldom": "^0.9.10",
-    "axios": "^1.17.0",
+    "@xmldom/xmldom": "^0.9.12",
+    "axios": "^1.20.0",
     "core-js": "^3.41.0",
     "iconv-lite": "^0.7.2",
     "istextorbinary": "^7.0.0",

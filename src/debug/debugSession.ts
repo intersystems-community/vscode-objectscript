@@ -40,9 +40,9 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
 }
 
 /** converts a uri from VS Code to a server-side XDebug file URI with respect to source root settings */
-function convertClientPathToDebugger(uri: vscode.Uri, namespace: string): string {
+function convertClientPathToDebugger(uri: vscode.Uri, namespace: string): string | undefined {
   const { scheme, path } = uri;
-  let fileName: string;
+  let fileName: string | undefined;
   if (scheme && schemas.includes(scheme)) {
     const { ns } = isfsConfig(uri);
     if (ns) namespace = ns;
@@ -69,7 +69,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
   private _statuses = new Map<xdebug.Connection, xdebug.StatusResponse>();
 
-  private _connection: xdebug.Connection;
+  private _connection: xdebug.Connection | null | undefined;
 
   private _namespace: string;
 
@@ -91,7 +91,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
   private _evalResultProperties = new Map<number, xdebug.EvalResultProperty>();
 
-  private _workspace: string;
+  private _workspace: string | undefined;
 
   /** If this is a CSPDEBUG session */
   private _isCsp = false;
@@ -164,8 +164,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
   /** Check if the target is stopped */
   private async _isStopped(): Promise<boolean> {
-    return this._connection
-      .sendStepIntoCommand()
+    return this._connection!.sendStepIntoCommand()
       .then((resp: xdebug.StatusResponse) => {
         if (resp.status == "stopped") {
           // Target unattached, terminate session
@@ -199,16 +198,16 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     };
 
     try {
-      if (!this._api.active) {
+      if (!this._api!.active) {
         throw new Error("Connection not active");
       }
-      this._namespace = this._api.ns;
-      this._url = this._api.xdebugUrl();
+      this._namespace = this._api!.ns;
+      this._url = this._api!.xdebugUrl();
 
       const socket = new WebSocket(this._url, {
         rejectUnauthorized: vscode.workspace.getConfiguration("http").get("proxyStrictSSL"),
         headers: {
-          cookie: this._api.cookies,
+          cookie: this._api!.cookies,
         },
       });
 
@@ -216,8 +215,8 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
         if (!this._connection) {
           return;
         }
-        this.sendEvent(new ThreadEvent("exited", this._connection.id));
-        this._connection.close();
+        this.sendEvent(new ThreadEvent("exited", this._connection!.id));
+        this._connection!.close();
         this._connection = null;
       };
       this._connection = new xdebug.Connection(socket)
@@ -230,15 +229,15 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
           this.sendEvent(new OutputEvent(data, "stdout"));
         });
 
-      await this._connection.waitForInitPacket();
+      await this._connection!.waitForInitPacket();
 
-      await this._connection.sendFeatureSetCommand("max_data", 8192);
-      await this._connection.sendFeatureSetCommand("max_children", 32);
-      await this._connection.sendFeatureSetCommand("max_depth", 2);
-      await this._connection.sendFeatureSetCommand("notify_ok", 1);
-      await this._connection.sendFeatureSetCommand(
+      await this._connection!.sendFeatureSetCommand("max_data", 8192);
+      await this._connection!.sendFeatureSetCommand("max_children", 32);
+      await this._connection!.sendFeatureSetCommand("max_depth", 2);
+      await this._connection!.sendFeatureSetCommand("notify_ok", 1);
+      await this._connection!.sendFeatureSetCommand(
         "step_granularity",
-        vscode.workspace.getConfiguration("objectscript.debug").get<string>("stepGranularity")
+        vscode.workspace.getConfiguration("objectscript.debug").get<string>("stepGranularity")!
       );
 
       this.sendResponse(response);
@@ -262,7 +261,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       this._debugTargetSet = false;
       this._isLaunch = true;
       const debugTarget = `${this._namespace}:${args.program}`;
-      await this._connection.sendFeatureSetCommand("debug_target", debugTarget, true);
+      await this._connection!.sendFeatureSetCommand("debug_target", debugTarget, true);
       sendDebuggerTelemetryEvent("launch");
     } catch (error) {
       this.sendErrorResponse(response, error);
@@ -276,18 +275,18 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     try {
       this._debugTargetSet = this._isLaunch = false;
       const debugTarget =
-        args.cspDebugId != undefined ? `CSPDEBUG:${args.cspDebugId}` : `PID:${args.processId.split("@")[0]}`;
-      await this._connection.sendFeatureSetCommand("debug_target", debugTarget);
+        args.cspDebugId != undefined ? `CSPDEBUG:${args.cspDebugId}` : `PID:${args.processId!.split("@")[0]}`;
+      await this._connection!.sendFeatureSetCommand("debug_target", debugTarget);
       if (args.cspDebugId != undefined) {
         if (args.isUnitTest) {
           // Set a watchpoint so the target breaks after the unit tests have finished
-          await this._connection.sendBreakpointSetCommand(
+          await this._connection!.sendBreakpointSetCommand(
             new xdebug.Watchpoint("QQQZZZDebugWatchpointTriggerVar", this._unitTestWatchpointCondition)
           );
           this._isUnitTest = true;
         } else {
           // Set a watchpoint so the target breaks after the REST response is sent
-          await this._connection.sendBreakpointSetCommand(new xdebug.Watchpoint("ok", this._cspWatchpointCondition));
+          await this._connection!.sendBreakpointSetCommand(new xdebug.Watchpoint("ok", this._cspWatchpointCondition));
           this._isCsp = true;
         }
         this.sendResponse(response);
@@ -314,7 +313,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     args: DebugProtocol.PauseArguments
   ): Promise<void> {
     try {
-      const xdebugResponse = await this._connection.sendBreakCommand();
+      const xdebugResponse = await this._connection!.sendBreakCommand();
       this.sendResponse(response);
       this._checkStatus(xdebugResponse);
     } catch (error) {
@@ -330,15 +329,15 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       if (!this._isLaunch && !this._isCsp) {
         // The debug agent ignores the first run command
         // for non-CSP attaches, so send one right away
-        await this._connection.sendRunCommand();
+        await this._connection!.sendRunCommand();
         // Tell VS Code that we're stopped
         this.sendResponse(response);
-        const event: DebugProtocol.StoppedEvent = new StoppedEvent("entry", this._connection.id);
+        const event: DebugProtocol.StoppedEvent = new StoppedEvent("entry", this._connection!.id);
         event.body.allThreadsStopped = false;
         this.sendEvent(event);
       } else {
         // Tell the debugger to run the target process
-        const xdebugResponse = await this._connection.sendRunCommand();
+        const xdebugResponse = await this._connection!.sendRunCommand();
         this.sendResponse(response);
         this._checkStatus(xdebugResponse);
       }
@@ -357,7 +356,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       // If attach, it will detach from the target
       // If launch, it will terminate the target
       try {
-        const xdebugResponse = await this._connection.sendDetachCommand();
+        const xdebugResponse = await this._connection!.sendDetachCommand();
         this.sendResponse(response);
         this._checkStatus(xdebugResponse);
       } catch (error) {
@@ -377,13 +376,13 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
       // args.source.path is a file path if the file is local and is a stringified Uri if the file is virtual
       const uri =
-        (this._workspaceFolderUri ?? vscode.workspace.workspaceFolders[0]?.uri)?.scheme == "file"
-          ? vscode.Uri.file(args.source.path)
-          : vscode.Uri.parse(args.source.path);
+        (this._workspaceFolderUri ?? vscode.workspace.workspaceFolders![0]?.uri)?.scheme == "file"
+          ? vscode.Uri.file(args.source.path!)
+          : vscode.Uri.parse(args.source.path!);
       const wsFolder = vscode.workspace.getWorkspaceFolder(uri);
       if (!wsFolder || (this._workspaceFolderUri && wsFolder.uri.toString() != this._workspaceFolderUri.toString())) {
         response.body = {
-          breakpoints: args.breakpoints.map(() => {
+          breakpoints: args.breakpoints!.map(() => {
             return {
               verified: false,
               message: "This file is not from the same workspace folder as the debug target",
@@ -397,7 +396,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       const xdebugUri = convertClientPathToDebugger(uri, this._namespace);
       if (!xdebugUri) {
         response.body = {
-          breakpoints: args.breakpoints.map(() => {
+          breakpoints: args.breakpoints!.map(() => {
             return {
               verified: false,
               message: "Failed to determine the class or routine name of this file",
@@ -408,11 +407,11 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
         this.sendResponse(response);
         return;
       }
-      const [, fileName] = xdebugUri.match(/\|([^|]+)$/);
-      const fileExt = fileName.split(".").pop().toLowerCase();
+      const [, fileName] = xdebugUri.match(/\|([^|]+)$/)!;
+      const fileExt = fileName.split(".").pop()!.toLowerCase();
       const languageServer: boolean = vscode.extensions.getExtension(lsExtensionId)?.isActive ?? false;
 
-      const currentList = await this._connection.sendBreakpointListCommand();
+      const currentList = await this._connection!.sendBreakpointListCommand();
       currentList.breakpoints
         .filter((breakpoint) => {
           if (breakpoint instanceof xdebug.LineBreakpoint) {
@@ -421,7 +420,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
           return false;
         })
         .map((breakpoint) => {
-          this._connection.sendBreakpointRemoveCommand(breakpoint);
+          this._connection!.sendBreakpointRemoveCommand(breakpoint);
         });
 
       let xdebugBreakpoints: (xdebug.ConditionalBreakpoint | xdebug.ClassLineBreakpoint | xdebug.LineBreakpoint)[] = [];
@@ -433,11 +432,11 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
         )[0].children;
       }
       xdebugBreakpoints = await Promise.all(
-        args.breakpoints.map(async (breakpoint) => {
+        args.breakpoints!.map(async (breakpoint) => {
           const line = breakpoint.line;
           if (fileExt == "cls") {
             // Find the class member that this breakpoint is in
-            let currentSymbol: vscode.DocumentSymbol;
+            let currentSymbol: vscode.DocumentSymbol | undefined;
             for (const symbol of symbols) {
               if (symbol.range.contains(new vscode.Position(line, 0))) {
                 currentSymbol = symbol;
@@ -541,7 +540,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
                 reason: "failed",
               };
             } else {
-              await this._connection.sendBreakpointSetCommand(breakpoint);
+              await this._connection!.sendBreakpointSetCommand(breakpoint);
               vscodeBreakpoints[index] = { verified: true, line: breakpoint.line };
             }
           } catch (error) {
@@ -573,7 +572,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
   ): void {
     if (
       args.variablesReference !== undefined &&
-      [0, 1].includes(this._contexts.get(args.variablesReference).id) &&
+      [0, 1].includes(this._contexts.get(args.variablesReference)!.id) &&
       !args.name.includes("(")
     ) {
       // This is an unsubscripted private or public local variable
@@ -600,7 +599,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     try {
       await this._waitForDebugTarget();
 
-      const currentList = await this._connection.sendBreakpointListCommand();
+      const currentList = await this._connection!.sendBreakpointListCommand();
       currentList.breakpoints
         .filter((breakpoint) => {
           if (breakpoint instanceof xdebug.Watchpoint) {
@@ -609,7 +608,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
           return false;
         })
         .map((breakpoint) => {
-          this._connection.sendBreakpointRemoveCommand(breakpoint);
+          this._connection!.sendBreakpointRemoveCommand(breakpoint);
         });
 
       let xdebugWatchpoints: xdebug.Watchpoint[] = [];
@@ -623,7 +622,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       await Promise.all(
         xdebugWatchpoints.map(async (breakpoint, index) => {
           try {
-            await this._connection.sendBreakpointSetCommand(breakpoint);
+            await this._connection!.sendBreakpointSetCommand(breakpoint);
             vscodeWatchpoints[index] = { verified: true, instructionReference: breakpoint.variable };
           } catch (error) {
             vscodeWatchpoints[index] = {
@@ -651,7 +650,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
   protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
     // runtime supports now threads so just return a default thread.
     response.body = {
-      threads: [new Thread(this._connection.id, `Thread ${this._connection.id}]`)],
+      threads: [new Thread(this._connection!.id, `Thread ${this._connection!.id}]`)],
     };
     this.sendResponse(response);
   }
@@ -661,16 +660,16 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     args: DebugProtocol.StackTraceArguments
   ): Promise<void> {
     try {
-      const stack = await this._connection.sendStackGetCommand();
+      const stack = await this._connection!.sendStackGetCommand();
 
       /** Is set to true if we're at the CSP or unit test ending watchpoint.
        * We need to do this so VS Code doesn't try to open the source of
        * a stack frame before the debug session terminates. */
       let noStack = false;
       const stackFrames = await Promise.all(
-        stack.stack.map(async (stackFrame: xdebug.StackFrame, index): Promise<StackFrame> => {
+        stack.stack.map(async (stackFrame: xdebug.StackFrame, index): Promise<StackFrame | undefined> => {
           if (noStack) return; // Stack frames won't be sent
-          const [, namespace, docName] = decodeURI(stackFrame.fileUri).match(/^dbgp:\/\/\|([^|]+)\|(.*)$/);
+          const [, namespace, docName] = decodeURI(stackFrame.fileUri).match(/^dbgp:\/\/\|([^|]+)\|(.*)$/)!;
           const fileUri = DocumentContentProvider.getUri(
             docName,
             this._workspace,
@@ -678,7 +677,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
             undefined,
             this._workspaceFolderUri
           );
-          const source = new Source(docName, fileUri.toString());
+          const source = new Source(docName, fileUri!.toString());
           let line = stackFrame.line + 1;
           const place = `${stackFrame.method}+${stackFrame.methodOffset}`;
           const stackFrameId = this._stackFrameIdCounter++;
@@ -687,19 +686,19 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
             const unitTest = this._isUnitTest && source.name.startsWith("%Api.Atelier.v");
             if (csp || unitTest) {
               // Check if we're at our special watchpoint
-              const { result } = await this._connection.sendEvalCommand(
+              const { result } = await this._connection!.sendEvalCommand(
                 csp ? this._cspWatchpointCondition : this._unitTestWatchpointCondition
               );
               if (result.type == "int" && result.value == "1") {
                 // Stop the debugging session
-                const xdebugResponse = await this._connection.sendDetachCommand();
+                const xdebugResponse = await this._connection!.sendDetachCommand();
                 this._checkStatus(xdebugResponse);
                 noStack = true;
                 return;
               }
             }
           }
-          const fileText = await this._getFileText(fileUri);
+          const fileText = await this._getFileText(fileUri!);
           const hasCmdLoc = typeof stackFrame.cmdBeginLine == "number";
           if (!fileText.length) {
             // Can't get the source for the document
@@ -738,15 +737,15 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
           return {
             id: stackFrameId,
             name: place,
-            source: noSource ? null : source,
+            source: (noSource ? null : source)!,
             line,
-            column: hasCmdLoc ? stackFrame.cmdBeginPos + 1 : 0,
-            endLine: hasCmdLoc ? stackFrame.cmdEndLine + lineDiff : undefined,
+            column: hasCmdLoc ? stackFrame.cmdBeginPos! + 1 : 0,
+            endLine: hasCmdLoc ? stackFrame.cmdEndLine! + lineDiff : undefined,
             endColumn: hasCmdLoc
               ? (stackFrame.cmdEndPos == 0
                   ? // A command that ends at position zero means "rest of this line"
-                    fileText.split(/\r?\n/)[stackFrame.cmdEndLine + lineDiff - 1].length
-                  : stackFrame.cmdEndPos) + 1
+                    fileText.split(/\r?\n/)[stackFrame.cmdEndLine! + lineDiff - 1]!.length
+                  : stackFrame.cmdEndPos)! + 1
               : undefined,
           };
         })
@@ -755,7 +754,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       this._break = false;
       if (!noStack) {
         response.body = {
-          stackFrames,
+          stackFrames: stackFrames as StackFrame[],
         };
       }
       this.sendResponse(response);
@@ -805,10 +804,10 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       if (this._contexts.has(variablesReference)) {
         // VS Code is requesting the variables for a SCOPE, so we have to do a context_get
         const context = this._contexts.get(variablesReference);
-        properties = await context.getProperties();
+        properties = await context!.getProperties();
       } else if (this._properties.has(variablesReference)) {
         // VS Code is requesting the subelements for a variable, so we have to do a property_get
-        const property = this._properties.get(variablesReference);
+        const property = this._properties.get(variablesReference)!;
         if (property.hasChildren) {
           if (property.children.length === property.numberOfChildren) {
             properties = property.children;
@@ -820,7 +819,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
         }
       } else if (this._evalResultProperties.has(variablesReference)) {
         // the children of properties returned from an eval command are always inlined, so we simply resolve them
-        const property = this._evalResultProperties.get(variablesReference);
+        const property = this._evalResultProperties.get(variablesReference)!;
         properties = property.hasChildren ? property.children : [];
       } else {
         throw new Error("Unknown variable reference");
@@ -900,7 +899,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     args: DebugProtocol.ContinueArguments
   ): Promise<void> {
     try {
-      const xdebugResponse = await this._connection.sendRunCommand();
+      const xdebugResponse = await this._connection!.sendRunCommand();
       this.sendResponse(response);
       this._checkStatus(xdebugResponse);
     } catch (error) {
@@ -910,7 +909,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
   protected async nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): Promise<void> {
     try {
-      const xdebugResponse = await this._connection.sendStepOverCommand();
+      const xdebugResponse = await this._connection!.sendStepOverCommand();
       this.sendResponse(response);
       this._checkStatus(xdebugResponse);
     } catch (error) {
@@ -923,7 +922,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     args: DebugProtocol.StepInArguments
   ): Promise<void> {
     try {
-      const xdebugResponse = await this._connection.sendStepIntoCommand();
+      const xdebugResponse = await this._connection!.sendStepIntoCommand();
       this.sendResponse(response);
       this._checkStatus(xdebugResponse);
     } catch (error) {
@@ -936,7 +935,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     args: DebugProtocol.StepOutArguments
   ): Promise<void> {
     try {
-      const xdebugResponse = await this._connection.sendStepOutCommand();
+      const xdebugResponse = await this._connection!.sendStepOutCommand();
       this.sendResponse(response);
       this._checkStatus(xdebugResponse);
     } catch (error) {
@@ -949,7 +948,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
     args: DebugProtocol.EvaluateArguments
   ): Promise<void> {
     try {
-      const { result } = await this._connection.sendEvalCommand(args.expression);
+      const { result } = await this._connection!.sendEvalCommand(args.expression);
       if (result) {
         const displayValue = formatPropertyValue(result);
         let variablesReference: number;
@@ -976,18 +975,18 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
   ): Promise<void> {
     try {
       const { value, name, variablesReference } = args;
-      let property = null;
+      let property: xdebug.Property | null | undefined = null;
       if (this._contexts.has(variablesReference)) {
         // VS Code is requesting the variables for a SCOPE, so we have to do a context_get
         const context = this._contexts.get(variablesReference);
-        const properties = await context.getProperties();
+        const properties = await context!.getProperties();
         property = properties.find((el) => el.name === name);
       } else if (this._properties.has(variablesReference)) {
         // VS Code is requesting the subelements for a variable, so we have to do a property_get
         property = this._properties.get(variablesReference);
       }
-      property.value = value;
-      await this._connection.sendPropertySetCommand(property);
+      property!.value = value;
+      await this._connection!.sendPropertySetCommand(property!);
 
       response.body = {
         value: args.value,

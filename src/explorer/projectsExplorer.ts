@@ -4,8 +4,8 @@ import { handleError, notIsfs, notNull } from "../utils";
 import { NodeBase, ProjectsServerNsNode } from "./nodes";
 
 export class ProjectsExplorerProvider implements vscode.TreeDataProvider<NodeBase> {
-  public onDidChangeTreeData: vscode.Event<NodeBase>;
-  private _onDidChangeTreeData: vscode.EventEmitter<NodeBase>;
+  public onDidChangeTreeData: vscode.Event<NodeBase | null>;
+  private _onDidChangeTreeData: vscode.EventEmitter<NodeBase | null>;
 
   /** Connection info for all workspace folder roots */
   private readonly _roots: string[] = [];
@@ -13,7 +13,7 @@ export class ProjectsExplorerProvider implements vscode.TreeDataProvider<NodeBas
   private readonly _extraRoots: { wsFolder: vscode.WorkspaceFolder; ns: string; server: string }[] = [];
 
   public constructor() {
-    this._onDidChangeTreeData = new vscode.EventEmitter<NodeBase>();
+    this._onDidChangeTreeData = new vscode.EventEmitter<NodeBase | null>();
     this.onDidChangeTreeData = this._onDidChangeTreeData.event;
   }
 
@@ -60,7 +60,7 @@ export class ProjectsExplorerProvider implements vscode.TreeDataProvider<NodeBas
         title: `Pick a namespace on '${server}' to show in the Projects Explorer`,
       });
       if (ns) {
-        this._extraRoots.push({ wsFolder, ns, server });
+        this._extraRoots.push({ wsFolder, ns, server: server! });
         this.refresh();
       }
     } catch (error) {

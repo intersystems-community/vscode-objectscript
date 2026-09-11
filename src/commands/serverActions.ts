@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import {
   config,
   workspaceState,
-  checkConnection,
+  ensureConnection,
   explorerProvider,
   filesystemSchemas,
   FILESYSTEM_SCHEMA,
@@ -25,7 +25,7 @@ type ServerAction = { detail: string; id: string; label: string; rawLink?: strin
 export async function serverActions(): Promise<void> {
   const { apiTarget, configName: workspaceFolder } = connectionTarget();
   const api = new AtelierAPI(apiTarget);
-  const { active, host = "", ns = "", https, port = 0, pathPrefix, username, docker } = api.config;
+  const { active, host = "", ns = "", https, port = 0, pathPrefix, auth, docker } = api.config;
   const explorerCount = (await explorerProvider.getChildren()).length;
   if (!explorerCount && (!docker || host === "")) {
     await vscode.commands.executeCommand("ObjectScriptExplorer.focus");
@@ -57,7 +57,7 @@ export async function serverActions(): Promise<void> {
       });
     }
   }
-  const connectionActionsHandler = async (action: ServerAction): Promise<ServerAction> => {
+  const connectionActionsHandler = async (action: ServerAction): Promise<ServerAction | undefined> => {
     if (!action) {
       return;
     }
@@ -72,7 +72,7 @@ export async function serverActions(): Promise<void> {
         return connConfig.update("conn", { ...targetConfig, active: !active }, target);
       }
       case "refreshConnection": {
-        await checkConnection(true, undefined, true);
+        await ensureConnection(true, undefined, true);
         break;
       }
       case "switchNamespace": {
@@ -95,7 +95,7 @@ export async function serverActions(): Promise<void> {
         }
 
         // Filter out the current namespace
-        allNamespaces = allNamespaces.filter((ns) => ns.toLowerCase() != api.config.ns.toLowerCase());
+        allNamespaces = allNamespaces.filter((ns) => ns.toLowerCase() != api.config.ns!.toLowerCase());
         if (!allNamespaces.length) {
           vscode.window.showErrorMessage(`You don't have access to any other namespaces.`, "Dismiss");
           return;
@@ -152,7 +152,7 @@ export async function serverActions(): Promise<void> {
       .replace("${serverAuth}", "")
       .replace("${ns}", nsEncoded)
       .replace("${namespace}", ns == "%SYS" ? "sys" : nsEncoded.toLowerCase())
-      .replace("${username}", username)
+      .replace("${username}", auth.username)
       .replace("${classname}", classname)
       .replace("${classnameEncoded}", classnameEncoded)
       .replace("${project}", project);
@@ -204,7 +204,7 @@ export async function serverActions(): Promise<void> {
   }
   if (
     (!vscode.window.activeTextEditor && wsUri && filesystemSchemas.includes(wsUri.scheme)) ||
-    filesystemSchemas.includes(vscode.window.activeTextEditor?.document.uri.scheme)
+    filesystemSchemas.includes(vscode.window.activeTextEditor?.document.uri.scheme as string)
   ) {
     actions.push({
       id: "serverCommandMenu",
@@ -248,7 +248,10 @@ export async function serverActions(): Promise<void> {
             if (addin) {
               sendStudioAddinTelemetryEvent(addin.label);
               let params = `Namespace=${nsEncoded}`;
-              params += `&User=${encodeURIComponent(username)}`;
+              const username = auth.username;
+              if (!username.includes("*")) {
+                params += `&User=${encodeURIComponent(username)}`;
+              }
               if (project != "") {
                 params += `&Project=${encodeURIComponent(project)}`;
               }

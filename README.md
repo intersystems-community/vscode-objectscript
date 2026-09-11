@@ -4,14 +4,11 @@
 
 # Consistem ObjectScript extension for VS Code
 
-[![](https://img.shields.io/visual-studio-marketplace/v/consistem-sistemas.consistem-vscode-objectscript.svg)](https://marketplace.visualstudio.com/items?itemName=consistem-sistemas.consistem-vscode-objectscript)
-[![](https://img.shields.io/visual-studio-marketplace/i/consistem-sistemas.consistem-vscode-objectscript.svg)](https://marketplace.visualstudio.com/items?itemName=consistem-sistemas.consistem-vscode-objectscript)
-[![Known Vulnerabilities](https://snyk.io/test/github/intersystems-community/vscode-objectscript/badge.svg)](https://snyk.io/test/github/intersystems-community/vscode-objectscript)
+[![Visual Studio Marketplace Version](https://vsmarketplacebadges.dev/version/consistem-sistemas.consistem-vscode-objectscript.svg)](https://marketplace.visualstudio.com/items?itemName=consistem-sistemas.consistem-vscode-objectscript)
+[![Visual Studio Marketplace Installs](https://vsmarketplacebadges.dev/installs/consistem-sistemas.consistem-vscode-objectscript.svg)](https://marketplace.visualstudio.com/items?itemName=consistem-sistemas.consistem-vscode-objectscript)
 [![Consistem](https://img.shields.io/badge/Consistem-Website-brightgreen)](https://consistem.com.br/)
 
 [![](https://img.shields.io/badge/InterSystems-IRIS-blue.svg)](https://www.intersystems.com/products/intersystems-iris/)
-[![](https://img.shields.io/badge/InterSystems-Cach%C3%A9-blue.svg)](https://www.intersystems.com/products/cache/)
-[![](https://img.shields.io/badge/InterSystems-Ensemble-blue.svg)](https://www.intersystems.com/products/ensemble/)
 
 > **Note:** The best way to install and use this extension is by installing the [InterSystems ObjectScript Extension Pack](https://marketplace.visualstudio.com/items?itemName=intersystems-community.objectscript-pack)
 > and following the [documentation here](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO).
@@ -74,12 +71,8 @@ To unlock these features (optional):
 
 1. Download and install a beta version from GitHub. This is necessary because Marketplace does not allow publication of extensions that use proposed APIs.
 	- Go to https://github.com/intersystems-community/vscode-objectscript/releases
-	- Locate the beta immediately above the release you installed from Marketplace. For instance, if you installed `3.8.2`, look for `3.8.3-beta.1`. This will be functionally identical to the Marketplace version apart from being able to use proposed APIs.
-	- Download the VSIX file (for example `vscode-objectscript-3.8.3-beta.1.vsix`) and install it. One way to install a VSIX is to drag it from your download folder and drop it onto the list of extensions in the Extensions view of VS Code.
-
-   - Go to https://github.com/intersystems-community/vscode-objectscript/releases
-   - Locate the beta immediately above the release you installed from Marketplace. For instance, if you installed `3.4.0`, look for `3.4.1-beta.1`. This will be functionally identical to the Marketplace version apart from being able to use proposed APIs.
-   - Download the VSIX file (for example `vscode-objectscript-3.4.1-beta.1.vsix`) and install it. One way to install a VSIX is to drag it from your download folder and drop it onto the list of extensions in the Extensions view of VS Code.
+	- Locate the beta immediately above the release you installed from Marketplace. For instance, if you installed `3.8.5`, look for `3.8.6-beta.1`. This will be functionally identical to the Marketplace version apart from being able to use proposed APIs.
+	- Download the VSIX file (for example `vscode-objectscript-3.8.6-beta.1.vsix`) and install it. One way to install a VSIX is to drag it from your download folder and drop it onto the list of extensions in the Extensions view of VS Code.
 
 2. From [Command Palette](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_command-palette) choose `Preferences: Configure Runtime Arguments`.
 3. In the argv.json file that opens, add this line (required for both Stable and Insiders versions of VS Code):

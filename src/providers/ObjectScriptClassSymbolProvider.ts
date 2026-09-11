@@ -6,7 +6,7 @@ export class ObjectScriptClassSymbolProvider implements vscode.DocumentSymbolPro
     token: vscode.CancellationToken
   ): Thenable<vscode.DocumentSymbol[]> {
     return new Promise((resolve) => {
-      let classItSelf = null;
+      let classItSelf: vscode.DocumentSymbol | null = null;
       let symbols: vscode.DocumentSymbol[] = [];
 
       let inComment = false;
@@ -66,7 +66,7 @@ export class ObjectScriptClassSymbolProvider implements vscode.DocumentSymbolPro
             }
           }
           symbols.push({
-            children: undefined,
+            children: undefined!,
             detail: method[1],
             kind: vscode.SymbolKind.Method,
             name: method[2].replace(/"/g, ""),
@@ -78,7 +78,7 @@ export class ObjectScriptClassSymbolProvider implements vscode.DocumentSymbolPro
         const index = line.text.match(/^(Index|ForegnKey) (%?\b\w+\b)/i);
         if (index) {
           symbols.push({
-            children: undefined,
+            children: undefined!,
             detail: index[1],
             kind: vscode.SymbolKind.Key,
             name: index[2],
@@ -99,7 +99,7 @@ export class ObjectScriptClassSymbolProvider implements vscode.DocumentSymbolPro
             }
           }
           symbols.push({
-            children: undefined,
+            children: undefined!,
             detail: property[1],
             kind: vscode.SymbolKind.Property,
             name: property[2],
@@ -111,7 +111,7 @@ export class ObjectScriptClassSymbolProvider implements vscode.DocumentSymbolPro
         const parameter = line.text.match(/^(Parameter) (%?\b\w+\b)/i);
         if (parameter) {
           symbols.push({
-            children: undefined,
+            children: undefined!,
             detail: parameter[1],
             kind: vscode.SymbolKind.Constant,
             name: parameter[2],
@@ -134,7 +134,7 @@ export class ObjectScriptClassSymbolProvider implements vscode.DocumentSymbolPro
             }
           }
           symbols.push({
-            children: undefined,
+            children: undefined!,
             detail: other[1],
             kind: vscode.SymbolKind.Struct,
             name: other[2],
@@ -144,7 +144,7 @@ export class ObjectScriptClassSymbolProvider implements vscode.DocumentSymbolPro
         }
       }
 
-      resolve([classItSelf]);
+      resolve([classItSelf!]);
     });
   }
 }

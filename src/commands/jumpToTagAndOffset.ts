@@ -72,7 +72,7 @@ export async function openErrorLocation(): Promise<void> {
   if (!location) {
     return;
   }
-  const [, label, offset, routine] = location.trim().match(regex);
+  const [, label, offset, routine] = location.trim().match(regex)!;
   // Get the uri for the routine
   const uri = DocumentContentProvider.getUri(`${routine}.int`);
   if (!uri) {

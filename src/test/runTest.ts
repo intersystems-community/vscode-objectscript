@@ -16,7 +16,8 @@ async function main() {
     // The path to the workspace file
     const workspace = path.resolve("test-fixtures", "test.code-workspace");
 
-    const vscodeExecutablePath = await downloadAndUnzipVSCode("stable");
+    const vscodeExecutablePath =
+      process.env.VSCODE_EXECUTABLE_PATH ?? (await downloadAndUnzipVSCode({ version: "stable", timeout: 60_000 }));
     const [cli, ...args] = resolveCliArgsFromVSCodeExecutablePath(vscodeExecutablePath);
 
     const installExtension = (extId) =>
@@ -29,10 +30,16 @@ async function main() {
     installExtension("consistem-sistemas.consistem-servermanager");
     installExtension("consistem-sistemas.consistem-language-server");
 
-    const launchArgs = ["-n", workspace, "--enable-proposed-api", "consistem-sistemas.consistem-vscode-objectscript"];
+    const launchArgs = [workspace, "--enable-proposed-api", "consistem-sistemas.consistem-vscode-objectscript"];
 
     // Download VS Code, unzip it and run the integration test
-    await runTests({ extensionDevelopmentPath, extensionTestsPath, launchArgs });
+    await runTests({
+      vscodeExecutablePath,
+      extensionDevelopmentPath,
+      extensionTestsPath,
+      launchArgs,
+      extensionTestsEnv: { ELECTRON_RUN_AS_NODE: undefined },
+    });
   } catch (err) {
     console.error("Failed to run tests", err);
     process.exit(1);

@@ -92,7 +92,7 @@ export async function extractXMLFileContents(xmlUri?: vscode.Uri): Promise<void>
   }
   try {
     // Determine the workspace folder
-    let wsFolder: vscode.WorkspaceFolder;
+    let wsFolder: vscode.WorkspaceFolder | null | undefined;
     if (xmlUri) {
       wsFolder = vscode.workspace.getWorkspaceFolder(xmlUri);
     } else {
@@ -128,7 +128,7 @@ export async function extractXMLFileContents(xmlUri?: vscode.Uri): Promise<void>
         return;
       }
       xmlUri = uris[0];
-      if (xmlUri.path.split(".").pop().toLowerCase() != "xml") {
+      if (xmlUri.path.split(".").pop()!.toLowerCase() != "xml") {
         vscode.window.showErrorMessage("The selected file was not XML.", "Dismiss");
         return;
       }

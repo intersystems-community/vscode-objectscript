@@ -166,7 +166,7 @@ export async function loadStudioSnippets(): Promise<void> {
  * * Store the editor background color in the user `settings.json` file under `workbench.colorCustomizations`.
  * * Activate the modified theme.
  */
-export async function loadStudioColors(languageServerExt: vscode.Extension<any> | undefined): Promise<void> {
+export async function loadStudioColors(languageServerExt: vscode.Extension<any> | null | undefined): Promise<void> {
   // Check that we're on windows
   if (process.platform != "win32") {
     vscode.window.showErrorMessage("Loading Studio syntax colors is only supported on Windows.", "Dismiss");
@@ -202,7 +202,7 @@ export async function loadStudioColors(languageServerExt: vscode.Extension<any> 
         );
         await vscode.workspace.fs.writeFile(tempRoutineUri, new TextEncoder().encode("ROUTINE temp\n"));
         await vscode.workspace.openTextDocument(tempRoutineUri);
-        let legend: vscode.SemanticTokensLegend = await vscode.commands
+        let legend: vscode.SemanticTokensLegend | undefined = await vscode.commands
           .executeCommand<vscode.SemanticTokensLegend>("vscode.provideDocumentSemanticTokensLegend", tempRoutineUri)
           // Swallow any errors
           .then(
@@ -267,7 +267,7 @@ export async function loadStudioColors(languageServerExt: vscode.Extension<any> 
           }
           if (!line.startsWith(" ")) {
             // This is a header line so check if it's the start of a Language
-            const langMatch = lineTrim.split("\\").pop().match(langRegex);
+            const langMatch = lineTrim.split("\\").pop()!.match(langRegex);
             if (langMatch != null) {
               currentLanguage = Number(langMatch[1]);
             }
@@ -325,10 +325,10 @@ export async function loadStudioColors(languageServerExt: vscode.Extension<any> 
         // Modify the theme
         const editorConfig = vscode.workspace.getConfiguration("editor");
         const workbenchConfig = vscode.workspace.getConfiguration("workbench");
-        const tokensConfig = editorConfig.get("semanticTokenColorCustomizations");
+        const tokensConfig: any = editorConfig.get("semanticTokenColorCustomizations");
         tokensConfig[`[${themeName}]`] = { rules };
         await editorConfig.update("semanticTokenColorCustomizations", tokensConfig, true);
-        const colorsConfig = workbenchConfig.get("colorCustomizations");
+        const colorsConfig: any = workbenchConfig.get("colorCustomizations");
         colorsConfig[`[${themeName}]`] = { "editor.background": editorBackground };
         await workbenchConfig.update("colorCustomizations", colorsConfig, true);
 

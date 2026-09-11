@@ -35,7 +35,7 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
    * because we aren't including ranges. They will be resolved later.
    */
   private _queryResultToSymbols(data: any, wsFolder: vscode.WorkspaceFolder): any[] {
-    const result = [];
+    const result: any[] = [];
     const uris: Map<string, vscode.Uri> = new Map();
     for (const element of data.result.content) {
       const kind: vscode.SymbolKind = (() => {
@@ -68,7 +68,7 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
 
       let uri: vscode.Uri;
       if (uris.has(element.Parent)) {
-        uri = uris.get(element.Parent);
+        uri = uris.get(element.Parent)!;
       } else {
         uri = DocumentContentProvider.getUri(
           `${element.Parent}.cls`,
@@ -78,7 +78,7 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
           wsFolder.uri,
           // Only "file" scheme is fully supported for client-side editing
           wsFolder.uri.scheme != "file"
-        );
+        )!;
         uris.set(element.Parent, uri);
       }
 
@@ -97,7 +97,7 @@ export class WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
   public async provideWorkspaceSymbols(
     query: string,
     token: vscode.CancellationToken
-  ): Promise<vscode.SymbolInformation[]> {
+  ): Promise<vscode.SymbolInformation[] | undefined> {
     if (!vscode.workspace.workspaceFolders?.length) return;
     // Convert query to a LIKE compatible pattern
     const pattern = queryToFuzzyLike(query);

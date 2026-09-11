@@ -23,7 +23,7 @@ export class ObjectScriptHoverProvider implements vscode.HoverProvider {
   public dollars(document: vscode.TextDocument, position: vscode.Position): vscode.ProviderResult<vscode.Hover> {
     const word = document.getWordRangeAtPosition(position);
     const text = document.getText(
-      new vscode.Range(new vscode.Position(position.line, 0), new vscode.Position(position.line, word.end.character))
+      new vscode.Range(new vscode.Position(position.line, 0), new vscode.Position(position.line, word!.end.character))
     );
     const file = currentFile();
 
@@ -32,9 +32,9 @@ export class ObjectScriptHoverProvider implements vscode.HoverProvider {
       const range = document.getWordRangeAtPosition(position, /\^?\$+\b\w+\b$/);
       let search = dollarsMatch.shift();
       const [dollars, value] = dollarsMatch;
-      search = search.toUpperCase();
+      search = search!.toUpperCase();
       if (dollars === "$$$") {
-        return this.macro(file.name, value).then((contents) => ({
+        return this.macro(file!.name, value).then((contents) => ({
           contents: [contents.join("")],
           range,
         }));
@@ -44,7 +44,7 @@ export class ObjectScriptHoverProvider implements vscode.HoverProvider {
         found = found || structuredSystemVariables.find((el) => el.label === search || el.alias.includes(search));
         if (found) {
           return {
-            contents: [found.documentation.join(""), this.documentationLink(found.link)],
+            contents: [found.documentation.join(""), this.documentationLink(found.link)!],
             range,
           };
         }
@@ -56,7 +56,7 @@ export class ObjectScriptHoverProvider implements vscode.HoverProvider {
 
   public async macro(fileName: string, macro: string): Promise<string[]> {
     const api = new AtelierAPI();
-    let includes = [];
+    let includes: string[] = [];
     if (fileName.toLowerCase().endsWith(".cls")) {
       const classDefinition = new ClassDefinition(fileName);
       includes = await classDefinition.includeCode();
@@ -74,7 +74,7 @@ export class ObjectScriptHoverProvider implements vscode.HoverProvider {
   public commands(document: vscode.TextDocument, position: vscode.Position): vscode.ProviderResult<vscode.Hover> {
     const word = document.getWordRangeAtPosition(position);
     const text = document.getText(
-      new vscode.Range(new vscode.Position(position.line, 0), new vscode.Position(position.line, word.end.character))
+      new vscode.Range(new vscode.Position(position.line, 0), new vscode.Position(position.line, word!.end.character))
     );
     const commandMatch = text.match(/^\s+\b[a-z]+\b$/i);
     if (commandMatch) {
@@ -82,14 +82,14 @@ export class ObjectScriptHoverProvider implements vscode.HoverProvider {
       const command = commands.find((el) => el.label === search || el.alias.includes(search));
       if (search) {
         return {
-          contents: [command.documentation.join(""), this.documentationLink(command.link)],
+          contents: [command!.documentation.join(""), this.documentationLink(command!.link)!],
           range: word,
         };
       }
     }
   }
 
-  public documentationLink(link: string): string | null {
+  public documentationLink(link: string | undefined): string | null | undefined {
     if (link) {
       return `[Online documentation](${
         link.startsWith("http") ? "" : "https://docs.intersystems.com/irislatest"

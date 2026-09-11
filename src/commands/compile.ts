@@ -14,7 +14,6 @@ import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import {
   base64EncodeContent,
   compileErrorMsg,
-  cspAppsForUri,
   CurrentBinaryFile,
   currentFile,
   currentFileFromContent,
@@ -34,7 +33,7 @@ import {
 } from "../utils";
 import { StudioActions } from "./studio";
 import { NodeBase, PackageNode, RootNode } from "../explorer/nodes";
-import { getUrisForDocument, updateIndex } from "../utils/documentIndex";
+import { getUrisForDocument, updateIndex, urisInFolder } from "../utils/documentIndex";
 import { Document } from "../api/atelier";
 
 const compileWaiters = new Map<string, Set<() => void>>();
@@ -127,7 +126,7 @@ export async function importFile(
   if (!file) return;
   const api = new AtelierAPI(file.uri);
   if (!api.active) return Promise.reject();
-  if (file.name.split(".").pop().toLowerCase() === "cls" && !skipDeplCheck) {
+  if (file.name.split(".").pop()!.toLowerCase() === "cls" && !skipDeplCheck) {
     if (await isClassDeployed(file.name, api)) {
       vscode.window.showErrorMessage(`Cannot import ${file.name} because it is deployed on the server.`, "Dismiss");
       return Promise.reject();
@@ -224,7 +223,7 @@ What do you want to do?`,
           // Overwrite
           return importFile(file, willCompile, true, true);
         case "Pull Server Changes":
-          loadChanges([file]);
+          loadChanges([file], true);
           return Promise.reject();
         case "Cancel":
           return Promise.reject();
@@ -245,10 +244,10 @@ function updateOthers(others: string[], baseUri: vscode.Uri) {
   }
   others.forEach((item) => {
     const uri = DocumentContentProvider.getUri(item, undefined, undefined, undefined, workspaceFolder?.uri);
-    if (filesystemSchemas.includes(uri.scheme)) {
-      fileSystemProvider.fireFileChanged(uri);
-    } else if (uri.scheme == OBJECTSCRIPT_FILE_SCHEMA) {
-      documentContentProvider.update(uri);
+    if (filesystemSchemas.includes(uri!.scheme)) {
+      fileSystemProvider.fireFileChanged(uri!);
+    } else if (uri!.scheme == OBJECTSCRIPT_FILE_SCHEMA) {
+      documentContentProvider.update(uri!);
     }
   });
 }
@@ -272,7 +271,7 @@ export async function loadChanges(
     Promise.allSettled(
       data.result.content.map(async (doc) => {
         if (doc.status.length) return;
-        const file = files.find((f) => f.name == doc.name);
+        const file = files.find((f) => f.name == doc.name)!;
         const mtime = Number(new Date(doc.ts + "Z"));
         workspaceState.update(`${file.uniqueId}:mtime`, mtime > 0 ? mtime : undefined);
         if (notIsfs(file.uri)) {
@@ -350,8 +349,8 @@ function updateStorage(content: string[], storage: string[]): string[] {
 
 function storageToMap(storage: string[]): Map<string, string> {
   const map: Map<string, string> = new Map();
-  let k: string;
-  let v = [];
+  let k: string | undefined;
+  let v: string[] = [];
   for (const line of storage) {
     if (line.startsWith("Storage ")) {
       k = line.slice("Storage ".length, line.length);
@@ -460,7 +459,7 @@ export async function importAndCompile(document?: vscode.TextDocument, askFlags 
   }
 }
 
-export async function compileOnly(document?: vscode.TextDocument, askFlags = false): Promise<any> {
+export async function compileOnly(document?: vscode.TextDocument | null, askFlags = false): Promise<any> {
   document =
     document ||
     (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document
@@ -516,12 +515,14 @@ export async function namespaceCompile(): Promise<any> {
         .then(() => {
           // Always fetch server changes, even when compile failed or got cancelled
           const file = currentFile();
-          return loadChanges([file]);
+          return loadChanges([file!]);
         })
   );
 }
 
 async function importFiles(files: vscode.Uri[], noCompile = false) {
+  if (!files.length) return;
+  const textDecoder = new TextDecoder();
   const toCompile: (CurrentTextFile | CurrentBinaryFile)[] = [];
   const rateLimiter = new RateLimiter(50);
   await Promise.allSettled<void>(
@@ -531,7 +532,7 @@ async function importFiles(files: vscode.Uri[], noCompile = false) {
         const curFile = currentFileFromContent(
           uri,
           isText(uri.path.split("/").pop(), Buffer.from(contentBytes))
-            ? new TextDecoder().decode(contentBytes)
+            ? textDecoder.decode(contentBytes)
             : Buffer.from(contentBytes)
         );
         if (curFile) {
@@ -548,7 +549,6 @@ async function importFiles(files: vscode.Uri[], noCompile = false) {
   if (!noCompile && toCompile.length > 0) {
     await compile(toCompile);
   }
-  return;
 }
 
 export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<any> {
@@ -557,16 +557,7 @@ export async function importFolder(uri: vscode.Uri, noCompile = false): Promise<
   if ((await vscode.workspace.fs.stat(uri)).type != vscode.FileType.Directory) {
     return importFiles([uri], noCompile);
   }
-  let globpattern = "*.{cls,inc,int,mac}";
-  if (cspAppsForUri(uri).findIndex((cspApp) => uri.path.includes(cspApp + "/") || uri.path.endsWith(cspApp)) != -1) {
-    // This folder is a CSP application, so import all files
-    // We need to include eveything because CSP applications can
-    // include non-InterSystems files
-    globpattern = "*";
-  }
-  vscode.workspace
-    .findFiles(new vscode.RelativePattern(uri, `**/${globpattern}`))
-    .then((files) => importFiles(files, noCompile));
+  importFiles(urisInFolder(uri), noCompile);
 }
 
 export async function compileExplorerItems(nodes: NodeBase[]): Promise<any> {
@@ -574,7 +565,7 @@ export async function compileExplorerItems(nodes: NodeBase[]): Promise<any> {
   const conf = vscode.workspace.getConfiguration("objectscript", wsFolder);
   const api = new AtelierAPI(wsFolder.uri);
   if (namespace) api.setNamespace(namespace);
-  const docs = [];
+  const docs: string[] = [];
   for (const node of nodes) {
     if (node instanceof PackageNode) {
       switch (node.category) {
@@ -707,7 +698,7 @@ export async function importArbitraryFiles(): Promise<any> {
     });
     if (!uris?.length) return;
     // Filter out non-importable files
-    uris = uris.filter((uri) => supportedExts.includes(uri.path.split(".").pop().toLowerCase()));
+    uris = uris.filter((uri) => supportedExts.includes(uri.path.split(".").pop()!.toLowerCase()));
     if (uris.length == 0) {
       vscode.window.showErrorMessage("No selected files are importable.", "Dismiss");
       return;
@@ -737,6 +728,7 @@ export async function importArbitraryFiles(): Promise<any> {
           }
         })
         .filter(notNull)
+        .map((f) => f!)
     );
     if (filesToList.length == 0) {
       vscode.window.showErrorMessage("Failed to read the text of every selected file.", "Dismiss");
@@ -802,9 +794,9 @@ export async function importArbitraryFiles(): Promise<any> {
           }
         });
         if (readOnly.length) {
-          docsToImport = docsToImport.filter((qpi) => {
+          docsToImport = docsToImport!.filter((qpi) => {
             const nameSplit = qpi.label.split(".");
-            return !readOnly.includes(`${nameSplit.slice(0, -1).join(".")}.${nameSplit.pop().toUpperCase()}`);
+            return !readOnly.includes(`${nameSplit.slice(0, -1).join(".")}.${nameSplit.pop()!.toUpperCase()}`);
           });
         }
       });

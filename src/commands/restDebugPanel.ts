@@ -72,7 +72,7 @@ export class RESTDebugPanel {
       vscode.window.showErrorMessage("REST service debugging webview requires an active server connection.", "Dismiss");
       return;
     }
-    if (api.config.apiVersion < 2) {
+    if (api.config.apiVersion! < 2) {
       vscode.window.showErrorMessage(
         "REST service debugging webview requires Atelier API version 2 or above.",
         "Dismiss"
@@ -83,7 +83,7 @@ export class RESTDebugPanel {
     if (this.currentPanel !== undefined) {
       // Can only have one panel open at once
       if (!this.currentPanel._panel.visible) {
-        if (openEditor.document.uri.toString() == this._file.toString()) {
+        if (openEditor.document.uri.toString() == this._file!.toString()) {
           // The open panel is for this document, so show it
           this.currentPanel._panel.reveal(vscode.ViewColumn.Active);
           return;
@@ -501,8 +501,8 @@ export class RESTDebugPanel {
           form.onchange = () => sendData(false);
           button.onclick = () => sendData(true);
           // Bubble change events up to the form
-          bodyContent.onchange = headersText.onchange = 
-            paramsText.onchange = path.onchange = 
+          bodyContent.onchange = headersText.onchange =
+            paramsText.onchange = path.onchange =
             () => form.dispatchEvent(new Event("change"));
         </script>
 			</body>
@@ -522,7 +522,7 @@ export class RESTDebugPanel {
 
             // Make sure the original document is the active text editor
             this._panel.dispose();
-            await vscode.window.showTextDocument(RESTDebugPanel._file, {
+            await vscode.window.showTextDocument(RESTDebugPanel._file!, {
               preview: false,
               viewColumn: vscode.ViewColumn.Active,
             });
@@ -548,16 +548,7 @@ export class RESTDebugPanel {
                   .trim();
               }
             });
-            if (
-              headers["authorization"] == undefined &&
-              typeof api.config.username === "string" &&
-              typeof api.config.password === "string"
-            ) {
-              // Use the server connection's auth if the user didn't specify any
-              headers["authorization"] = `Basic ${Buffer.from(`${api.config.username}:${api.config.password}`).toString(
-                "base64"
-              )}`;
-            }
+            headers["authorization"] = headers["authorization"] ?? (api.config.auth.httpAuthorizationHeader || "");
             const hasBody =
               typeof message.bodyContent == "string" && message.bodyContent != "" && message.bodyType != "No Body";
             if (hasBody) {
@@ -601,7 +592,7 @@ export class RESTDebugPanel {
             await new Promise((resolve) => setTimeout(resolve, 500));
 
             // Start the debugging session
-            await vscode.debug.startDebugging(vscode.workspace.getWorkspaceFolder(RESTDebugPanel._file), {
+            await vscode.debug.startDebugging(vscode.workspace.getWorkspaceFolder(RESTDebugPanel._file!), {
               type: "objectscript",
               request: "attach",
               name: "REST",
