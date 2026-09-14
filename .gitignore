@@ -11,3 +11,6 @@ vscode*.d.ts
 # Files created by the integration tests
 test-fixtures/*/src/*
 !test-fixtures/*/src/.gitkeep
+
+# Generated per-launch workspace files (see src/test/runTest.ts)
+test-fixtures/.generated/

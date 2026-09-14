@@ -20,13 +20,31 @@ jobs:
         with:
           node-version: 24
       - run: npm install
+      - name: Install Podman Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman-compose
+      - name: Use Podman, not Docker
+        # The extension picks the first compose command that works, trying Docker before Podman; drop
+        # the runner's Docker Compose so both the container lifecycle here and the extension use Podman.
+        run: sudo apt-get remove -y docker-compose-plugin || true
       - name: Start IRIS
-        run: docker compose -f test-fixtures/client-compose/docker-compose.yml up -d --wait --wait-timeout 300
+        run: podman compose -f test-fixtures/iris/docker-compose.yml up -d
+      - name: Wait for IRIS
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf -o /dev/null -u _SYSTEM:SYS http://localhost:52799/api/atelier/ \
+              && curl -sf -o /dev/null http://localhost:52798/api/atelier/; then
+              echo "IRIS is ready"; exit 0
+            fi
+            sleep 5
+          done
+          echo "IRIS did not become ready"; podman compose -f test-fixtures/iris/docker-compose.yml logs; exit 1
       - name: Run integration tests
         run: xvfb-run npm test
       - name: IRIS logs
         if: failure()
-        run: docker compose -f test-fixtures/client-compose/docker-compose.yml logs
+        run: podman compose -f test-fixtures/iris/docker-compose.yml logs
       - name: Stop IRIS
         if: always()
-        run: docker compose -f test-fixtures/client-compose/docker-compose.yml down -v
+        run: podman compose -f test-fixtures/iris/docker-compose.yml down -v

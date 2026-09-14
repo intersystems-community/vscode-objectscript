@@ -7,7 +7,7 @@ export async function run(): Promise<void> {
     ui: "tdd",
     color: true,
     // Tests wait on a real IRIS container and on the extension's own retry/timeout logic
-    timeout: 120000,
+    timeout: 180000,
   });
 
   const testsRoot = path.resolve(__dirname, "..");
