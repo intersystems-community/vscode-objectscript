@@ -1,7 +1,7 @@
 /**
  * The connection test matrix, shared by runTest.ts (which generates one workspace file per launch)
  * and the test suite (which reads its launch back from the open workspace's file name). See
- * test-fixtures/CASES.md for the design. Pure Node, no vscode import, so runTest can use it too.
+ * test-fixtures/README.md for the design. Pure Node, no vscode import, so runTest can use it too.
  */
 
 export const SESSION_TIMEOUT_MS = 10000;

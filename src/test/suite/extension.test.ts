@@ -1,6 +1,6 @@
 /**
  * Integration tests against the IRIS containers in test-fixtures/iris/docker-compose.yml. runTest.ts
- * generates one workspace file per launch (see test-fixtures/CASES.md) and opens them one at a time;
+ * generates one workspace file per launch (see test-fixtures/README.md) and opens them one at a time;
  * this suite reads its launch back from the open workspace's file name and runs every check that applies.
  * Every check asserts that the extension used the credentials in settings without prompting: a prompt
  * would leave the connection unestablished and the test would time out.
