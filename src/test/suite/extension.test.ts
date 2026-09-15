@@ -111,7 +111,7 @@ const checks: [string, Check][] = [
 
 async function applyActive(value: boolean): Promise<void> {
   const cfg = vscode.workspace.getConfiguration("objectscript");
-  await cfg.update("conn", { ...(cfg.get("conn") as object), active: value }, vscode.ConfigurationTarget.Workspace);
+  await cfg.update("conn", { ...cfg.get<object>("conn"), active: value }, vscode.ConfigurationTarget.Workspace);
 }
 
 async function checkSMResolves(): Promise<void> {
