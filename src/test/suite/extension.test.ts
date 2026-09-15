@@ -2,25 +2,26 @@
  * One launch per case (test-fixtures/README.md), read back from the workspace file name. A credential
  * prompt anywhere fails the case: VS Code suppresses dialogs in tests, so the connection never gets made.
  */
+import { ServerManagerAPI, VSCodeObjectScriptAPI } from "@intersystems-community/intersystems-servermanager";
 import * as assert from "assert";
 import * as path from "path";
 import * as vscode from "vscode";
-import { parse, SESSION_TIMEOUT_MS, togglesActive } from "../cases";
+import { parse, SESSION_TIMEOUT_MS } from "../cases";
 
 const EXTENSION_ID = "intersystems-community.vscode-objectscript";
 const SERVER_MANAGER_ID = "intersystems-community.servermanager";
 
-const CASE = path.basename(vscode.workspace.workspaceFile!.fsPath, ".code-workspace");
-const { kind, server, active } = parse(CASE);
-const FOLDER = vscode.workspace.workspaceFolders![0];
+const caseName = path.basename(vscode.workspace.workspaceFile!.fsPath, ".code-workspace");
+const { kind, server, active } = parse(caseName);
+const folder = vscode.workspace.workspaceFolders![0];
 const isServerSide = kind === "serverSide-sm";
-const canToggle = togglesActive(kind);
-const configuredActive = canToggle ? active === true : true;
+const canToggle = active !== undefined;
+const configuredActive = active ?? true;
 /** The entry for -sm cases; the folder name (the Servers view's Current node) for -os- cases */
-const specName = kind.endsWith("-sm") ? server.serverName : FOLDER.name;
+const specName = kind.endsWith("-sm") ? server.serverName : folder.name;
 
-let osApi: any;
-let smApi: any;
+let osApi: VSCodeObjectScriptAPI;
+let smApi: ServerManagerAPI;
 let counter = 0;
 const created = new Set<string>();
 
@@ -56,11 +57,12 @@ async function restDoc(method: "GET" | "DELETE", name: string): Promise<string |
 
 async function checkOsResolves(expectActive: boolean): Promise<void> {
   const deadline = Date.now() + 30000;
-  let conn = await osApi.asyncServerForUri(FOLDER.uri);
+  let conn = await osApi.asyncServerForUri(folder.uri);
   while (conn?.active !== expectActive && Date.now() < deadline) {
     await sleep(500);
-    conn = await osApi.asyncServerForUri(FOLDER.uri);
+    conn = await osApi.asyncServerForUri(folder.uri);
   }
+  assert.ok(conn, "no connection for the folder");
   assert.strictEqual(conn.active, expectActive, `expected active=${expectActive}`);
   assert.strictEqual(conn.host, "localhost");
   assert.strictEqual(conn.port, server.port);
@@ -70,12 +72,12 @@ async function checkOsResolves(expectActive: boolean): Promise<void> {
 }
 
 async function checkRoundTrips(expectActive: boolean): Promise<void> {
-  const className = `CiTest.${CASE.replace(/[^A-Za-z0-9]/g, "")}${counter++}`;
+  const className = `CiTest.${caseName.replace(/[^A-Za-z0-9]/g, "")}${counter++}`;
   const doc = `${className}.cls`;
   const file = isServerSide
-    ? vscode.Uri.joinPath(FOLDER.uri, `${className.replace(/\./g, "/")}.cls`)
+    ? vscode.Uri.joinPath(folder.uri, `${className.replace(/\./g, "/")}.cls`)
     : // Into the existing src/: creating a directory and a file at once can lose the watcher event on Linux
-      vscode.Uri.joinPath(FOLDER.uri, "src", `${className}.cls`);
+      vscode.Uri.joinPath(folder.uri, "src", `${className}.cls`);
   const source = `Class ${className}\n{\n\nClassMethod Hello() As %String\n{\n\tQuit "hello"\n}\n\n}\n`;
   created.add(doc);
   await vscode.workspace.fs.writeFile(file, Buffer.from(source));
@@ -94,7 +96,7 @@ async function checkRoundTrips(expectActive: boolean): Promise<void> {
 }
 
 async function checkOsListsTheFolder(): Promise<void> {
-  const entries = await vscode.workspace.fs.readDirectory(FOLDER.uri);
+  const entries = await vscode.workspace.fs.readDirectory(folder.uri);
   assert.ok(entries.length > 0, "namespace listing is empty");
 }
 
@@ -124,10 +126,12 @@ async function checkSmResolves(): Promise<void> {
   assert.strictEqual(spec.auth.resolved(), server.password !== undefined);
 }
 
-suite(CASE, () => {
+suite(caseName, () => {
   suiteSetup(async () => {
-    smApi = await vscode.extensions.getExtension(SERVER_MANAGER_ID)?.activate();
-    const extension = vscode.extensions.getExtension(EXTENSION_ID);
+    const serverManager = vscode.extensions.getExtension<ServerManagerAPI>(SERVER_MANAGER_ID);
+    assert.ok(serverManager, `${SERVER_MANAGER_ID} is not installed`);
+    smApi = await serverManager.activate();
+    const extension = vscode.extensions.getExtension<VSCodeObjectScriptAPI>(EXTENSION_ID);
     assert.ok(extension, `${EXTENSION_ID} is not installed`);
     // The build under test, not the Marketplace copy Server Manager can pull in
     assert.strictEqual(extension.extensionPath, path.resolve(__dirname, "../../.."));
