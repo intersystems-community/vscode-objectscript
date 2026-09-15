@@ -19,23 +19,13 @@ jobs:
           node-version: 24
       - run: npm install
       - name: Use Podman Compose instead of Docker Compose
-        # The extension tries Docker Compose before Podman, so remove the runner's Docker Compose
+        # pipx: Ubuntu's podman-compose package predates --wait. The extension tries Docker Compose
+        # before Podman, so remove the runner's Docker Compose.
         run: |
-          sudo apt-get update
-          sudo apt-get install -y podman-compose
+          pipx install podman-compose
           sudo apt-get remove -y docker-compose-plugin
       - name: Start IRIS containers
-        run: podman-compose -f test-fixtures/iris/docker-compose.yml up -d
-      - name: Wait for IRIS containers
-        run: |
-          for i in $(seq 1 60); do
-            if curl -sf -o /dev/null -u _SYSTEM:SYS http://localhost:52799/api/atelier/ \
-              && curl -sf -o /dev/null http://localhost:52798/api/atelier/; then
-              echo "IRIS is ready"; exit 0
-            fi
-            sleep 5
-          done
-          echo "IRIS did not become ready"; podman-compose -f test-fixtures/iris/docker-compose.yml logs; exit 1
+        run: podman-compose -f test-fixtures/iris/docker-compose.yml up -d --wait --wait-timeout 300
       - name: Run integration tests
         run: xvfb-run npm test
       - name: Show IRIS logs
