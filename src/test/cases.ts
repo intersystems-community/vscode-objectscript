@@ -1,0 +1,129 @@
+/** The case matrix in test-fixtures/README.md, shared by runTest.ts and the suite. No vscode import. */
+import type { IJSONServerSpec } from "@intersystems-community/intersystems-servermanager";
+
+export const SESSION_TIMEOUT_MS = 10000;
+
+export interface Server {
+  serverName: string;
+  port: number;
+  username?: string;
+  password?: string;
+}
+export const NAMED: Server = {
+  serverName: "named",
+  port: 52799,
+  username: "_SYSTEM",
+  password: "SYS",
+};
+export const ANONYMOUS: Server = { serverName: "anonymous", port: 52798 };
+
+export type Kind = "clientSide-os-host" | "clientSide-os-docker" | "clientSide-sm" | "serverSide-sm";
+const KINDS: Kind[] = ["clientSide-os-host", "clientSide-os-docker", "clientSide-sm", "serverSide-sm"];
+
+export interface Launch {
+  name: string;
+  kind: Kind;
+  server: Server;
+  active?: boolean;
+}
+
+export function togglesActive(kind: Kind): boolean {
+  return kind === "clientSide-os-host" || kind === "clientSide-sm";
+}
+
+export function allLaunches(): Launch[] {
+  const out: Launch[] = [];
+  for (const kind of KINDS) {
+    for (const server of [NAMED, ANONYMOUS]) {
+      if (togglesActive(kind)) {
+        for (const active of [true, false]) {
+          out.push({ name: `${kind}-${server.serverName}-${active ? "active" : "inactive"}`, kind, server, active });
+        }
+      } else {
+        out.push({ name: `${kind}-${server.serverName}`, kind, server });
+      }
+    }
+  }
+  return out;
+}
+
+export function parse(name: string): Launch {
+  const launch = allLaunches().find((l) => l.name === name);
+  if (!launch) {
+    throw new Error(`Unknown case '${name}'`);
+  }
+  return launch;
+}
+
+/** The objectscript.conn setting as the cases write it */
+export interface Conn {
+  ns: string;
+  active?: boolean;
+  https?: boolean;
+  host?: string;
+  port?: number;
+  username?: string;
+  password?: string;
+  server?: string;
+  "docker-compose"?: { file: string; service: string };
+}
+
+export interface WorkspaceFile {
+  folders: ({ path: string } | { uri: string })[];
+  settings: { "objectscript.conn"?: Conn; "intersystems.servers"?: Record<string, IJSONServerSpec> };
+}
+
+/** Folder paths are relative to test-fixtures/.generated/ */
+export function workspaceFile(l: Launch): WorkspaceFile {
+  const { kind, server, active } = l;
+  const credentials = server.username ? { username: server.username, password: server.password } : {};
+  const activeConn = active ? { active: true } : {};
+  const entry: Record<string, IJSONServerSpec> = {
+    [server.serverName]: {
+      webServer: { scheme: "http", host: "localhost", port: server.port, pathPrefix: "" },
+      ...credentials,
+    },
+  };
+  switch (kind) {
+    case "clientSide-os-host":
+      return {
+        folders: [{ path: "../client" }],
+        settings: {
+          "objectscript.conn": {
+            https: false,
+            host: "localhost",
+            port: server.port,
+            ns: "USER",
+            ...credentials,
+            ...activeConn,
+          },
+        },
+      };
+    case "clientSide-os-docker":
+      // The extension only resolves a docker-compose port for an active connection
+      return {
+        folders: [{ path: "../client" }],
+        settings: {
+          "objectscript.conn": {
+            "docker-compose": { file: "../iris/docker-compose.yml", service: server.serverName },
+            ns: "USER",
+            active: true,
+            ...credentials,
+          },
+        },
+      };
+    case "clientSide-sm":
+      return {
+        folders: [{ path: "../client" }],
+        settings: {
+          "objectscript.conn": { server: server.serverName, ns: "USER", ...activeConn },
+          "intersystems.servers": entry,
+        },
+      };
+    case "serverSide-sm":
+      return {
+        folders: [{ uri: `isfs://${server.serverName}:USER/` }],
+        settings: { "intersystems.servers": entry },
+      };
+  }
+}
