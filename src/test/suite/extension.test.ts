@@ -69,7 +69,7 @@ async function checkOsResolves(expectActive: boolean): Promise<void> {
   assert.strictEqual(conn.password, server.password);
 }
 
-/** verifyDelete is off for the flip: a folder inactive at activation doesn't wire up delete-sync until reload */
+/** verifyDelete is off for the flip: deletes go through an AtelierAPI captured at indexing, whose `active` is stale */
 async function checkRoundTrips(expectActive: boolean, verifyDelete = true): Promise<void> {
   const className = `CiTest.${CASE.replace(/[^A-Za-z0-9]/g, "")}${counter++}`;
   const doc = `${className}.cls`;
