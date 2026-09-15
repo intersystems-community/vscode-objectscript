@@ -1,4 +1,4 @@
-name: Pre-release tests
+name: Integration tests
 
 on:
   pull_request:
@@ -18,15 +18,15 @@ jobs:
         with:
           node-version: 24
       - run: npm install
-      - name: Install Podman Compose
+      - name: Use Podman Compose instead of Docker Compose
         # The extension tries Docker Compose before Podman, so remove the runner's Docker Compose
         run: |
           sudo apt-get update
           sudo apt-get install -y podman-compose
           sudo apt-get remove -y docker-compose-plugin
-      - name: Start IRIS
+      - name: Start IRIS containers
         run: podman-compose -f test-fixtures/iris/docker-compose.yml up -d
-      - name: Wait for IRIS
+      - name: Wait for IRIS containers
         run: |
           for i in $(seq 1 60); do
             if curl -sf -o /dev/null -u _SYSTEM:SYS http://localhost:52799/api/atelier/ \
@@ -38,9 +38,9 @@ jobs:
           echo "IRIS did not become ready"; podman-compose -f test-fixtures/iris/docker-compose.yml logs; exit 1
       - name: Run integration tests
         run: xvfb-run npm test
-      - name: IRIS logs
+      - name: Show IRIS logs
         if: failure()
         run: podman-compose -f test-fixtures/iris/docker-compose.yml logs
-      - name: Stop IRIS
+      - name: Remove IRIS containers
         if: always()
         run: podman-compose -f test-fixtures/iris/docker-compose.yml down -v
