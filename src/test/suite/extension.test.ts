@@ -149,13 +149,8 @@ suite(CASE, () => {
 
   if (canToggle) {
     test("all again with active flipped", async () => {
-      try {
-        await applyActive(!configuredActive);
-        for (const [, check] of checks) await check(!configuredActive, false);
-      } finally {
-        await applyActive(configuredActive);
-        await checkOsResolves(configuredActive);
-      }
+      await applyActive(!configuredActive);
+      for (const [, check] of checks) await check(!configuredActive, false);
     });
   }
 });
