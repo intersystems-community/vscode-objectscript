@@ -43,15 +43,15 @@ The containers run under Podman (`podman-compose -f test-fixtures/iris/docker-co
 
 ### Checks
 
-One mocha test each, in this order; OS is the ObjectScript extension and SM Server Manager, as in the case names. Two more tests then repeat all of them: after idling past the session timeout, and (`clientSide-os-host`, `clientSide-sm` only) with `active` flipped. The repeats skip the delete in 3. A credential prompt anywhere fails the case.
+In this order, OS being the ObjectScript extension and SM Server Manager as in the case names. Each runs twice: once, then again after idling past the session timeout, so that it is the first request on a lapsed session (5 skips the delete then). `clientSide-os-host` and `clientSide-sm` cases finally run all of them once more with `active` flipped. A credential prompt anywhere fails the case.
 
 1. **OS resolves** — the ObjectScript extension's `asyncServerForUri` reports `active`, host, port, ns, username, password as configured
 2. **SM resolves** — the Server Manager extension's `getServerSpec` reports the same settings as `webServer` fields, username, password; `auth.resolved()` iff `-named`. Looked up by `<serverName>` for `*-sm`, by folder name (the Servers view's Current node) for `*-os-*`
-3. **round-trips** — depending on `active` (`serverSide-` and `clientSide-os-docker` are always active):
+3. **OS lists the folder** (`serverSide-` only) — `readDirectory` on the isfs folder root is non-empty
+4. **SM lists namespaces** (SM repo only) — `makeRESTRequest("GET", spec)` → 200 with `USER` listed, as the Servers view does
+5. **round-trips** — depending on `active` (`serverSide-` and `clientSide-os-docker` are always active):
     - active: save class → on server (direct REST) → delete → gone
     - inactive: save class → never reaches the server
-4. **OS lists the folder** (`serverSide-` only) — `readDirectory` on the isfs folder root is non-empty
-5. **SM lists namespaces** (SM repo only) — `makeRESTRequest("GET", spec)` → 200 with `USER` listed, as the Servers view does
 
 ## Running
 
