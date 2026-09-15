@@ -3,16 +3,15 @@ import type { IJSONServerSpec } from "@intersystems-community/intersystems-serve
 
 export const SESSION_TIMEOUT_MS = 10000;
 
-interface Server {
-  serverName: string;
-  port: number;
-  username?: string;
-  password?: string;
-}
-const SERVERS: Server[] = [
-  { serverName: "named", port: 52799, username: "_SYSTEM", password: "SYS" },
-  { serverName: "anonymous", port: 52798 },
-];
+/** The intersystems.servers entries, one per container */
+export const SERVERS: Record<string, IJSONServerSpec> = {
+  named: {
+    webServer: { scheme: "http", host: "localhost", port: 52799, pathPrefix: "" },
+    username: "_SYSTEM",
+    password: "SYS",
+  },
+  anonymous: { webServer: { scheme: "http", host: "localhost", port: 52798, pathPrefix: "" } },
+};
 
 type Kind = "clientSide-os-host" | "clientSide-os-docker" | "clientSide-sm" | "serverSide-sm";
 const KINDS: Kind[] = ["clientSide-os-host", "clientSide-os-docker", "clientSide-sm", "serverSide-sm"];
@@ -22,15 +21,15 @@ const TOGGLEABLE = new Set<Kind>(["clientSide-os-host", "clientSide-sm"]);
 export interface Launch {
   name: string;
   kind: Kind;
-  server: Server;
+  serverName: string;
   active?: boolean;
 }
 export const LAUNCHES: Launch[] = KINDS.flatMap((kind) =>
-  SERVERS.flatMap((server) =>
+  Object.keys(SERVERS).flatMap((serverName) =>
     (TOGGLEABLE.has(kind) ? [true, false] : [undefined]).map((active) => ({
-      name: `${kind}-${server.serverName}${active === undefined ? "" : active ? "-active" : "-inactive"}`,
+      name: `${kind}-${serverName}${active === undefined ? "" : active ? "-active" : "-inactive"}`,
       kind,
-      server,
+      serverName,
       active,
     }))
   )
@@ -63,42 +62,49 @@ export interface WorkspaceFile {
 }
 
 /** Folder paths are relative to test-fixtures/.generated/ */
-export function workspaceFile({ kind, server, active }: Launch): WorkspaceFile {
-  const credentials = server.username ? { username: server.username, password: server.password } : {};
-  const conn: Conn = { ns: "USER", ...(active && { active }) };
-  const client = { folders: [{ path: "../client" }] };
-  const servers: Record<string, IJSONServerSpec> = {
-    [server.serverName]: {
-      webServer: { scheme: "http", host: "localhost", port: server.port, pathPrefix: "" },
-      ...credentials,
-    },
-  };
+export function workspaceFile({ kind, serverName, active }: Launch): WorkspaceFile {
+  const server = SERVERS[serverName];
   switch (kind) {
     case "clientSide-os-host":
       return {
-        ...client,
+        folders: [{ path: "../client" }],
         settings: {
-          "objectscript.conn": { ...conn, https: false, host: "localhost", port: server.port, ...credentials },
+          "objectscript.conn": {
+            https: false,
+            host: server.webServer.host,
+            port: server.webServer.port,
+            ns: "USER",
+            username: server.username,
+            password: server.password,
+            ...(active && { active }),
+          },
         },
       };
     case "clientSide-os-docker":
       return {
-        ...client,
+        folders: [{ path: "../client" }],
         settings: {
           "objectscript.conn": {
-            ...conn,
+            "docker-compose": { file: "../iris/docker-compose.yml", service: serverName },
+            ns: "USER",
             active: true,
-            "docker-compose": { file: "../iris/docker-compose.yml", service: server.serverName },
-            ...credentials,
+            username: server.username,
+            password: server.password,
           },
         },
       };
     case "clientSide-sm":
       return {
-        ...client,
-        settings: { "objectscript.conn": { ...conn, server: server.serverName }, "intersystems.servers": servers },
+        folders: [{ path: "../client" }],
+        settings: {
+          "objectscript.conn": { server: serverName, ns: "USER", ...(active && { active }) },
+          "intersystems.servers": { [serverName]: server },
+        },
       };
     case "serverSide-sm":
-      return { folders: [{ uri: `isfs://${server.serverName}:USER/` }], settings: { "intersystems.servers": servers } };
+      return {
+        folders: [{ uri: `isfs://${serverName}:USER/` }],
+        settings: { "intersystems.servers": { [serverName]: server } },
+      };
   }
 }
