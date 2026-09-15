@@ -43,7 +43,7 @@ The containers run under Podman (`podman-compose -f test-fixtures/iris/docker-co
 
 ### Checks
 
-In this order, OS being the ObjectScript extension and SM Server Manager as in the case names. Each runs twice: once, then again after idling past the session timeout, so that it is the first request on a lapsed session (5 skips the delete then). `clientSide-os-host` and `clientSide-sm` cases finally run all of them once more with `active` flipped. A credential prompt anywhere fails the case.
+In this order, OS being the ObjectScript extension and SM Server Manager as in the case names. Each runs twice: once, then again after idling past the session timeout, so that it is the first request on a lapsed session. `clientSide-os-host` and `clientSide-sm` cases finally run all of them once more with `active` flipped (5 skips the delete then: delete-sync is only wired up for folders active at activation). A credential prompt anywhere fails the case.
 
 1. **OS resolves** — the ObjectScript extension's `asyncServerForUri` reports `active`, host, port, ns, username, password as configured
 2. **SM resolves** — the Server Manager extension's `getServerSpec` reports the same settings as `webServer` fields, username, password; `auth.resolved()` iff `-named`. Looked up by `<serverName>` for `*-sm`, by folder name (the Servers view's Current node) for `*-os-*`

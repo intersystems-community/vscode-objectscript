@@ -30,7 +30,9 @@ async function waitFor<T>(label: string, probe: () => Promise<T | undefined | fa
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const result = await probe();
-    if (result) return result;
+    if (result) {
+      return result;
+    }
     await sleep(1000);
   }
   throw new Error(`Timed out after ${timeoutMs} ms waiting for ${label}`);
@@ -44,7 +46,9 @@ async function restDoc(method: "GET" | "DELETE", name: string): Promise<string |
       ? { Authorization: "Basic " + Buffer.from(`${server.username}:${server.password}`).toString("base64") }
       : {},
   });
-  if (response.status === 404) return undefined;
+  if (response.status === 404) {
+    return undefined;
+  }
   assert.ok(response.ok, `${method} ${name} failed with HTTP ${response.status}`);
   const { result } = await response.json();
   return Array.isArray(result.content) ? result.content.join("\n") : undefined;
@@ -65,7 +69,7 @@ async function checkOsResolves(expectActive: boolean): Promise<void> {
   assert.strictEqual(conn.password, server.password);
 }
 
-/** A folder that was inactive at activation doesn't wire up delete-sync until reload, hence verifyDelete */
+/** verifyDelete is off for the flip: a folder inactive at activation doesn't wire up delete-sync until reload */
 async function checkRoundTrips(expectActive: boolean, verifyDelete = true): Promise<void> {
   const className = `CiTest.${CASE.replace(/[^A-Za-z0-9]/g, "")}${counter++}`;
   const doc = `${className}.cls`;
@@ -134,23 +138,26 @@ suite(CASE, () => {
   });
 
   suiteTeardown(async () => {
-    for (const doc of created) await restDoc("DELETE", doc).catch(() => undefined);
+    for (const doc of created) {
+      await restDoc("DELETE", doc).catch(() => undefined);
+    }
   });
 
-  // Each check twice, the second time as the first request on a lapsed session. No delete then:
-  // released builds don't re-wire delete-sync after a session lapse, and the SM repo runs against one.
+  // Each check twice, the second time as the first request on a lapsed session
   for (const [name, check] of checks) {
     test(name, () => check(configuredActive, true));
     test(`${name} after the session times out`, async () => {
       await sleep(SESSION_TIMEOUT_MS + 3000);
-      await check(configuredActive, false);
+      await check(configuredActive, true);
     });
   }
 
   if (canToggle) {
     test("all again with active flipped", async () => {
       await applyActive(!configuredActive);
-      for (const [, check] of checks) await check(!configuredActive, false);
+      for (const [, check] of checks) {
+        await check(!configuredActive, false);
+      }
     });
   }
 });
