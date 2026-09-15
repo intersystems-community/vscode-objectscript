@@ -45,11 +45,11 @@ The containers run under Podman (`podman-compose -f test-fixtures/iris/docker-co
 
 In this order, OS being the ObjectScript extension and SM Server Manager as in the case names. Each runs twice: once, then again after idling past the session timeout, so that it is the first request on a lapsed session. `clientSide-os-host` and `clientSide-sm` cases finally run all of them once more with `active` flipped. A credential prompt anywhere fails the case.
 
-1. **OS resolves** — the ObjectScript extension's `asyncServerForUri` reports `active`, host, port, ns, username, password as configured
-2. **SM resolves** — the Server Manager extension's `getServerSpec` reports the same settings as `webServer` fields, username, password; `auth.resolved()` iff `-named`. Looked up by `<serverName>` for `*-sm`, by folder name (the Servers view's Current node) for `*-os-*`
-3. **OS lists the folder** (`serverSide-` only) — `readDirectory` on the isfs folder root is non-empty
-4. **SM lists namespaces** (SM repo only) — `makeRESTRequest("GET", spec)` → 200 with `USER` listed, as the Servers view does
-5. **round-trips** — depending on `active` (`serverSide-` and `clientSide-os-docker` are always active):
+1. **OS resolves** (`checkOSResolves`) — the ObjectScript extension's `asyncServerForUri` reports `active`, host, port, ns, username, password as configured
+2. **SM resolves** (`checkSMResolves`) — the Server Manager extension's `getServerSpec` reports the same settings as `webServer` fields, username, password; `auth.resolved()` iff `-named`. Looked up by `<serverName>` for `*-sm`, by folder name (the Servers view's Current node) for `*-os-*`
+3. **OS lists the folder** (`checkOSListsTheFolder`; `serverSide-` only) — `readDirectory` on the isfs folder root is non-empty
+4. **SM lists namespaces** (`checkSMListsNamespaces`; SM repo only) — `makeRESTRequest("GET", spec)` → 200 with `USER` listed, as the Servers view does
+5. **round-trips** (`checkRoundTrips`) — depending on `active` (`serverSide-` and `clientSide-os-docker` are always active):
     - active: save class → on server (direct REST) → delete → gone
     - inactive: save class → never reaches the server
 
