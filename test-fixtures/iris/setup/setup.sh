@@ -1,10 +1,10 @@
 #!/bin/sh
 # Runs inside the container after IRIS starts (see docker-compose.yml).
 # Configures the instance for the integration tests, then drops a marker file the healthcheck waits for.
-# With "anon" as the argument, /api/atelier accepts only unauthenticated access; otherwise only passwords.
+# With "anonymous" as the argument, /api/atelier accepts only unauthenticated access; otherwise only passwords.
 set -e
 AUTHE=32
-[ "$1" = anon ] && AUTHE=64
+[ "$1" = anonymous ] && AUTHE=64
 
 iris session IRIS -U %SYS <<EOF
 // Predefined accounts keep their default password (SYS) but must not demand a change on first login
@@ -17,7 +17,7 @@ Write "Web app: ",##class(Security.Applications).Modify("/api/atelier",.a),!
 Halt
 EOF
 
-if [ "$1" = anon ]; then
+if [ "$1" = anonymous ]; then
 	# Unauthenticated access also needs the web gateway service to allow it, and UnknownUser to hold privileges
 	iris session IRIS -U %SYS <<'EOF'
 Do ##class(Security.Services).Get("%Service_WebGateway",.s) Set s("AutheEnabled")=96 Write "Service: ",##class(Security.Services).Modify("%Service_WebGateway",.s),!

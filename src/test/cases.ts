@@ -5,18 +5,16 @@ export const SESSION_TIMEOUT_MS = 10000;
 export interface Server {
   serverName: string;
   port: number;
-  service: string;
   username?: string;
   password?: string;
 }
 export const NAMED: Server = {
   serverName: "named",
   port: 52799,
-  service: "iris",
   username: "_SYSTEM",
   password: "SYS",
 };
-export const ANONYMOUS: Server = { serverName: "anonymous", port: 52798, service: "iris-anon" };
+export const ANONYMOUS: Server = { serverName: "anonymous", port: 52798 };
 
 export type Kind = "clientSide-os-host" | "clientSide-os-docker" | "clientSide-sm" | "serverSide-sm";
 const KINDS: Kind[] = ["clientSide-os-host", "clientSide-os-docker", "clientSide-sm", "serverSide-sm"];
@@ -88,7 +86,7 @@ export function workspaceFile(l: Launch): object {
         folders: [{ path: "../client" }],
         settings: {
           "objectscript.conn": {
-            "docker-compose": { file: "../iris/docker-compose.yml", service: server.service },
+            "docker-compose": { file: "../iris/docker-compose.yml", service: server.serverName },
             ns: "USER",
             active: true,
             ...credentials,

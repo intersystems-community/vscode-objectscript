@@ -35,6 +35,8 @@ async function main() {
 
     // Inherited from an extension-spawned terminal; would make the downloaded VS Code run as plain Node
     delete process.env.ELECTRON_RUN_AS_NODE;
+    // Docker Desktop's CLI plugins would otherwise make the extension's `podman compose` run Docker Compose
+    process.env.PODMAN_COMPOSE_PROVIDER ??= "podman-compose";
 
     // e.g. `npm test -- os-host`
     const filter = process.argv[2];

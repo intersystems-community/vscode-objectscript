@@ -6,16 +6,15 @@ against two IRIS containers ([iris/docker-compose.yml](iris/docker-compose.yml))
 
 | Container   | Port  | `/api/atelier` authentication   |
 | ----------- | ----- | ------------------------------- |
-| `iris`      | 52799 | password only (`_SYSTEM`/`SYS`) |
-| `iris-anon` | 52798 | unauthenticated only            |
+| `named`     | 52799 | password only (`_SYSTEM`/`SYS`) |
+| `anonymous` | 52798 | unauthenticated only            |
 
 Both run [iris/setup/setup.sh](iris/setup/setup.sh) after IRIS starts, which sets a 10-second
 `/api/atelier` session timeout so expired-session recovery can be tested.
 
 ## Cases
 
-One `.code-workspace` per case, one folder per workspace. `-named` connects to `iris`, `-anonymous`
-to `iris-anon`.
+One `.code-workspace` per case, one folder per workspace; `-named` and `-anonymous` pick the container.
 
 | Case                   | `folders[·]`                           | `objectscript.conn` (folder)                               | `intersystems.servers` (workspace)                                                    |
 | ---------------------- | -------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -33,7 +32,7 @@ Each case is launched once per applicable combination; the variant names are app
 - `-named`: `{ username, password }`
 - `-anonymous`: `{}`; the server must allow unauthenticated access
 
-The containers run under Podman (`podman compose -f test-fixtures/iris/docker-compose.yml up`), so `clientSide-os-docker` resolves through Podman too.
+The containers run under Podman (`podman-compose -f test-fixtures/iris/docker-compose.yml up`), so `clientSide-os-docker` resolves through Podman too.
 
 `...active` — `clientSide-os-host` and `clientSide-sm` only. A `docker-compose` connection must set `active: true` (the extension skips resolving an inactive connection), so it has no inactive variant:
 
@@ -63,7 +62,7 @@ In CI this runs from [.github/workflows/prepare-release.yml](../.github/workflow
 on PRs whose source branch starts with `prepare-` and on manual dispatch. To run locally with Podman:
 
 ```sh
-podman compose -f test-fixtures/iris/docker-compose.yml up -d --wait
+podman-compose -f test-fixtures/iris/docker-compose.yml up -d --wait
 npm test
-podman compose -f test-fixtures/iris/docker-compose.yml down -v
+podman-compose -f test-fixtures/iris/docker-compose.yml down -v
 ```
