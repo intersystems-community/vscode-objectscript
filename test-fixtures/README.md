@@ -45,8 +45,8 @@ The containers run under Podman (`podman-compose -f test-fixtures/iris/docker-co
 
 Each is a mocha test, run in this order; OS is the ObjectScript extension and SM Server Manager, as in the case names. A credential prompt anywhere fails the case.
 
-1. **OS resolves** — `asyncServerForUri` reports `active`, host, port, ns, username, password as configured
-2. **SM resolves** — `getServerSpec` reports the same settings as `webServer` fields, username, password; `auth.resolved()` iff `-named`. For `*-sm` it is looked up by `<serverName>` and is what 1 was built from; for `*-os-*` by folder name, the Servers view's Current node derived from `objectscript.conn`
+1. **OS resolves** — the ObjectScript extension's `asyncServerForUri` reports `active`, host, port, ns, username, password as configured
+2. **SM resolves** — Server Manager's `getServerSpec` reports the same settings as `webServer` fields, username, password; `auth.resolved()` iff `-named`. For `*-sm` it is looked up by `<serverName>` and is what 1 was built from; for `*-os-*` by folder name, the Servers view's Current node derived from `objectscript.conn`
 3. **round-trips** — depending on `active` (`serverSide-` and `clientSide-os-docker` are always active):
     - active: save class → on server (direct REST) → delete → gone
     - inactive: save class → never reaches the server
