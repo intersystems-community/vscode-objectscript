@@ -43,18 +43,17 @@ The containers run under Podman (`podman-compose -f test-fixtures/iris/docker-co
 
 ### Checks
 
-Every case runs 1–5 once, repeats 1–2 past the session timeout, then runs 6.
+Each is a mocha test, run in this order. A credential prompt anywhere fails the case.
 
-1. resolves — `asyncServerForUri` reports `active`, host, port, ns, username, password as configured
-2. round trip, depending on `active` (`serverSide-` and `clientSide-os-docker` are always active):
+1. **resolves** — `asyncServerForUri` reports `active`, host, port, ns, username, password as configured
+2. **round-trips** — depending on `active` (`serverSide-` and `clientSide-os-docker` are always active):
     - active: save class → on server (direct REST) → delete → gone
     - inactive: save class → never reaches the server
-3. If `serverSide-`: `readDirectory` on the folder root is non-empty
-4. Server Manager's `getServerSpec` reports `webServer` fields, username, password as configured; `auth.resolved()` iff `-named`:
-    - If `*-sm`: `getServerSpec(<serverName>)`
-    - If `*-os-*`: `getServerSpec(<folder name>)`, the Servers view's Current node
-5. Server Manager repo only: `makeRESTRequest("GET", spec)` on the result of Step 4 → 200 with `USER` listed, as the Servers view does
-6. If the case toggles `active` (`clientSide-os-host`, `clientSide-sm`): flip `active` and redo 1–2
+3. **lists the namespace** (`serverSide-` only) — `readDirectory` on the folder root is non-empty
+4. **Server Manager resolves the spec** — `getServerSpec` reports `webServer` fields, username, password as configured; `auth.resolved()` iff `-named`. Looked up by `<serverName>` for `*-sm`, by folder name (the Servers view's Current node) for `*-os-*`
+5. **Server Manager lists namespaces** (Server Manager repo only) — `makeRESTRequest("GET", spec)` → 200 with `USER` listed, as the Servers view does
+6. **still resolves and round-trips after the session times out** — 1 and 2 again after idling past the timeout, without the delete
+7. **flipping `objectscript.conn.active` is honored** (`clientSide-os-host`, `clientSide-sm` only) — 1 and 2 again with `active` flipped, then restored, without the delete
 
 ## Running
 

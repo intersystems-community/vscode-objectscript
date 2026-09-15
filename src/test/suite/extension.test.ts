@@ -50,7 +50,6 @@ async function restDoc(method: "GET" | "DELETE", name: string): Promise<string |
   return Array.isArray(result.content) ? result.content.join("\n") : undefined;
 }
 
-/** Check 1 */
 async function checkResolves(expectActive: boolean): Promise<void> {
   const deadline = Date.now() + 30000;
   let conn = await osApi.asyncServerForUri(FOLDER.uri);
@@ -66,7 +65,7 @@ async function checkResolves(expectActive: boolean): Promise<void> {
   assert.strictEqual(conn.password, server.password);
 }
 
-/** Check 2. A folder that was inactive at activation doesn't wire up delete-sync until reload, hence verifyDelete */
+/** A folder that was inactive at activation doesn't wire up delete-sync until reload, hence verifyDelete */
 async function roundTrip(expectActive: boolean, verifyDelete = true): Promise<void> {
   const className = `CiTest.${CASE.replace(/[^A-Za-z0-9]/g, "")}${counter++}`;
   const doc = `${className}.cls`;
@@ -98,7 +97,6 @@ async function applyActive(value: boolean): Promise<void> {
   await cfg.update("conn", { ...(cfg.get("conn") as object), active: value }, vscode.ConfigurationTarget.Workspace);
 }
 
-/** Check 4 */
 async function checkSpec(): Promise<void> {
   const spec = await smApi.getServerSpec(specName);
   assert.ok(spec?.auth, `no spec for '${specName}'`);
@@ -125,32 +123,27 @@ suite(CASE, () => {
     for (const doc of created) await restDoc("DELETE", doc).catch(() => undefined);
   });
 
-  // Checks 1 and 2
-  test("resolves and round-trips as configured", async () => {
-    await checkResolves(configuredActive);
-    await roundTrip(configuredActive);
-  });
+  test("resolves", () => checkResolves(configuredActive));
+  test("round-trips", () => roundTrip(configuredActive));
 
-  // Check 3
   if (isServerSide) {
-    test("lists the namespace through the folder", async () => {
+    test("lists the namespace", async () => {
       const entries = await vscode.workspace.fs.readDirectory(FOLDER.uri);
       assert.ok(entries.length > 0, "namespace listing is empty");
     });
   }
 
-  // Check 4
   test("Server Manager resolves the spec", () => checkSpec());
 
-  // Checks 1 and 2 again once the cached session has expired. Skips the delete: released builds
-  // don't re-wire delete-sync after a session lapse, and the SM repo runs this against one of those.
+  // Skips the delete: released builds don't re-wire delete-sync after a session lapse, and the SM
+  // repo runs this against one of those.
   test("still resolves and round-trips after the session times out", async () => {
     await sleep(SESSION_TIMEOUT_MS + 3000);
     await checkResolves(configuredActive);
     await roundTrip(configuredActive, false);
   });
 
-  // Check 6, last so its connection can't leak a live session into the idle check above
+  // Last, so its connection can't leak a live session into the idle check above
   if (canToggle) {
     test("flipping objectscript.conn.active is honored", async () => {
       try {
