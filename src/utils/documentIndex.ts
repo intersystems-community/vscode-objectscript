@@ -101,7 +101,6 @@ function generateCompileFn(): (doc: CurrentTextFile | CurrentBinaryFile) => void
 function generateDeleteFn(wsFolderUri: vscode.Uri): (doc: string) => void {
   let timeout: NodeJS.Timeout;
   const docs: string[] = [];
-  const api = new AtelierAPI(wsFolderUri);
 
   return (doc: string): void => {
     docs.push(doc);
@@ -113,7 +112,7 @@ function generateDeleteFn(wsFolderUri: vscode.Uri): (doc: string) => void {
     timeout = setTimeout(() => {
       const docsCopy = [...docs];
       docs.length = 0;
-      api.deleteDocs(docsCopy).then((data) => {
+      new AtelierAPI(wsFolderUri).deleteDocs(docsCopy).then((data) => {
         let failed = 0;
         const ts = tsString();
         for (const doc of data.result) {
