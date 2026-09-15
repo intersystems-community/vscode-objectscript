@@ -43,18 +43,18 @@ The containers run under Podman (`podman-compose -f test-fixtures/iris/docker-co
 
 ### Checks
 
-Every case performs the following tests once and then repeats them past the session timeout.
+Every case runs 1–5 once, repeats 1–2 past the session timeout, then runs 6.
 
 1. resolves — `asyncServerForUri` reports `active`, host, port, ns, username, password as configured
 2. round trip, depending on `active` (`serverSide-` and `clientSide-os-docker` are always active):
     - active: save class → on server (direct REST) → delete → gone
     - inactive: save class → never reaches the server
-3. If the case toggles `active` (`clientSide-os-host`, `clientSide-sm`): flip `active` and redo 1–2
-4. If `serverSide-`: `readDirectory` on the folder root is non-empty
-5. Server Manager's `getServerSpec` reports `webServer` fields, username, password as configured; `auth.resolved()` iff `-named`:
+3. If `serverSide-`: `readDirectory` on the folder root is non-empty
+4. Server Manager's `getServerSpec` reports `webServer` fields, username, password as configured; `auth.resolved()` iff `-named`:
     - If `*-sm`: `getServerSpec(<serverName>)`
     - If `*-os-*`: `getServerSpec(<folder name>)`, the Servers view's Current node
-6. Server Manager repo only: `makeRESTRequest("GET", spec)` on the result of Step 5 → 200 with `USER` listed, as the Servers view does
+5. Server Manager repo only: `makeRESTRequest("GET", spec)` on the result of Step 4 → 200 with `USER` listed, as the Servers view does
+6. If the case toggles `active` (`clientSide-os-host`, `clientSide-sm`): flip `active` and redo 1–2
 
 ## Running
 
