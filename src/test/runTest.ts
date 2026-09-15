@@ -4,7 +4,7 @@ import * as os from "os";
 import * as path from "path";
 
 import { downloadAndUnzipVSCode, resolveCliArgsFromVSCodeExecutablePath, runTests } from "@vscode/test-electron";
-import { allLaunches, workspaceFile } from "./cases";
+import { LAUNCHES, workspaceFile } from "./cases";
 
 async function main() {
   try {
@@ -18,34 +18,35 @@ async function main() {
 
     // Generated so the active-flip check can rewrite the workspace file without dirtying the repo
     const generated = path.resolve(extensionDevelopmentPath, "test-fixtures", ".generated");
-    fs.rmSync(generated, { recursive: true, force: true });
     fs.mkdirSync(generated, { recursive: true });
-    const launches = allLaunches();
-    for (const l of launches) {
+    for (const l of LAUNCHES) {
       fs.writeFileSync(path.join(generated, `${l.name}.code-workspace`), JSON.stringify(workspaceFile(l), null, "  "));
     }
 
     const vscodeExecutablePath = await downloadAndUnzipVSCode("stable");
     const [cli, ...args] = resolveCliArgsFromVSCodeExecutablePath(vscodeExecutablePath);
 
-    cp.spawnSync(cli, [...args, "--install-extension", "intersystems-community.servermanager"], {
-      encoding: "utf-8",
-      stdio: "inherit",
-    });
+    const installExtension = (extId) =>
+      cp.spawnSync(cli, [...args, "--install-extension", extId], {
+        encoding: "utf-8",
+        stdio: "inherit",
+      });
+
+    // Install dependent extensions
+    installExtension("intersystems-community.servermanager");
+    installExtension("intersystems.language-server");
 
     // Inherited from an extension-spawned terminal; would make the downloaded VS Code run as plain Node
     delete process.env.ELECTRON_RUN_AS_NODE;
     // Docker Desktop's CLI plugins would otherwise make the extension's `podman compose` run Docker Compose
     process.env.PODMAN_COMPOSE_PROVIDER ??= "podman-compose";
 
-    // e.g. `npm test -- os-host`
     const filter = process.argv[2];
     const failed: string[] = [];
-    for (const l of filter ? launches.filter((l) => l.name.includes(filter)) : launches) {
+    for (const l of filter ? LAUNCHES.filter((l) => l.name.includes(filter)) : LAUNCHES) {
       const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "vscode-objectscript-test-"));
-      const workspace = path.join(generated, `${l.name}.code-workspace`);
       const launchArgs = [
-        workspace,
+        path.join(generated, `${l.name}.code-workspace`),
         "--user-data-dir",
         userDataDir,
         "--disable-workspace-trust",
