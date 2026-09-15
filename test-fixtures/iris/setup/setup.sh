@@ -1,5 +1,8 @@
 #!/bin/sh
-# Runs inside the container after IRIS starts; "anonymous" makes /api/atelier unauthenticated-only
+# Runs inside each container once IRIS is up (docker-compose.yml passes it to iris-main via -a).
+# Un-expires the predefined passwords, gives /api/atelier a 10-second session timeout, and sets its
+# authentication: password only by default, unauthenticated only with "anonymous" as the argument.
+# Finally drops the marker file the compose healthcheck waits for.
 set -e
 AUTHE=32
 [ "$1" = anonymous ] && AUTHE=64
