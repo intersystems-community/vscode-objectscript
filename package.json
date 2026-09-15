@@ -775,6 +775,11 @@
           "command": "vscode-objectscript.ccs.atualizarConfiguracoes",
           "group": "7_config@1",
           "when": "vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.ccs.gerenciarBasesTeste",
+          "group": "8_bases@1",
+          "when": "vscode-objectscript.connectActive"
         }
       ]
     },
@@ -1096,6 +1101,12 @@
         "title": "Reativar Conexões de Namespaces",
         "category": "ObjectScript",
         "icon": "$(plug)"
+      },
+      {
+        "command": "vscode-objectscript.ccs.gerenciarBasesTeste",
+        "title": "Regerar Base de Testes",
+        "category": "Consistem",
+        "icon": "$(database)"
       },
       {
         "category": "ObjectScript",
@@ -1826,10 +1837,30 @@
             "scope": "resource"
           },
           "objectscript.unitTest.legacyRequestTimeout": {
-            "description": "Timeout in milliseconds applied to legacy unit test API calls. Set to 0 for no timeout.",
+            "description": "Timeout in milliseconds applied to each unit test class execution. Set to 0 for no timeout.",
             "type": "integer",
-            "default": 6000000,
+            "default": 600000,
             "minimum": 0,
+            "scope": "resource"
+          },
+          "objectscript.unitTest.usarExecutorAntigo": {
+            "description": "Volta ao executor de testes anterior (sempre executa no namespace TESTEUNITARIO). Temporário, apenas para rollback durante a validação do executor novo.",
+            "type": "boolean",
+            "default": false,
+            "scope": "resource"
+          },
+          "objectscript.unitTest.incluirAsserts": {
+            "description": "Quais asserts o executor de testes deve retornar. 'somenteFalhas' reduz muito o volume de dados em classes que passam.",
+            "type": "string",
+            "enum": [
+              "somenteFalhas",
+              "todos"
+            ],
+            "enumDescriptions": [
+              "Apenas os asserts que falharam, mais as mensagens de log",
+              "Todos os asserts, inclusive os que passaram"
+            ],
+            "default": "somenteFalhas",
             "scope": "resource"
           },
           "objectscript.commentToken": {

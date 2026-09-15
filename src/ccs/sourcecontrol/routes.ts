@@ -13,6 +13,19 @@ export const ROUTES = {
     `/namespaces/${encodeURIComponent(namespace)}/converterArquivoCustomizado`,
   analizarVersaoItem: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/analizarVersaoItem`,
   atualizarConfig: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/atualizarConfig`,
+  resolveUnitTests: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/unitTests/resolve`,
+  executarClasseTeste: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/unitTests/executarClasse`,
+  situacaoExecucaoTeste: (namespace: string, idExecucao: string) =>
+    `/namespaces/${encodeURIComponent(namespace)}/unitTests/execucao/${encodeURIComponent(idExecucao)}`,
+  paginaResultadoTeste: (namespace: string, idExecucao: string) =>
+    `/namespaces/${encodeURIComponent(namespace)}/unitTests/resultado/${encodeURIComponent(idExecucao)}`,
+  gerarBaseTeste: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/unitTests/gerarBase`,
+  listarBasesTeste: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/unitTests/bases`,
+  regerarBaseTeste: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/unitTests/bases/regerar`,
+  prepararAmbienteTeste: (namespace: string) =>
+    `/namespaces/${encodeURIComponent(namespace)}/unitTests/prepararAmbiente`,
+  situacaoGeracaoBase: (namespace: string, idGeracao: string) =>
+    `/namespaces/${encodeURIComponent(namespace)}/unitTests/gerarBase/${encodeURIComponent(idGeracao)}`,
 } as const;
 
 export type RouteKey = keyof typeof ROUTES;

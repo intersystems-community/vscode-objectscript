@@ -85,4 +85,12 @@ export class SourceControlApi {
   ): Promise<AxiosResponse<T>> {
     return this.client.post<T>(route, data, config);
   }
+
+  public get<T = unknown>(route: string, config?: AxiosRequestConfig<unknown>): Promise<AxiosResponse<T>> {
+    return this.client.get<T>(route, config);
+  }
+
+  public delete<T = unknown>(route: string, config?: AxiosRequestConfig<unknown>): Promise<AxiosResponse<T>> {
+    return this.client.delete<T>(route, config);
+  }
 }

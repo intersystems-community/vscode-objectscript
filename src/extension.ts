@@ -135,7 +135,7 @@ import { FileDecorationProvider } from "./providers/FileDecorationProvider";
 import { RESTDebugPanel } from "./commands/restDebugPanel";
 import { modifyWsFolder } from "./commands/addServerNamespaceToWorkspace";
 import { WebSocketTerminalProfileProvider, launchWebSocketTerminal } from "./commands/webSocketTerminal";
-import { setUpTestController } from "./commands/unitTest";
+import { setUpTestController, gerenciarBasesTeste } from "./commands/unitTest";
 import { pickDocument } from "./utils/documentPicker";
 import {
   disposeDocumentIndex,
@@ -1525,6 +1525,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
     vscode.commands.registerCommand("vscode-objectscript.explorer.project.refresh", () => {
       sendCommandTelemetryEvent("explorer.project.refresh");
       projectsExplorerProvider.refresh();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.ccs.gerenciarBasesTeste", async () => {
+      sendCommandTelemetryEvent("ccs.gerenciarBasesTeste");
+      await gerenciarBasesTeste();
     }),
     vscode.commands.registerCommand("vscode-objectscript.ccs.activateNamespaceConnections", async () => {
       sendCommandTelemetryEvent("ccs.activateNamespaceConnections");

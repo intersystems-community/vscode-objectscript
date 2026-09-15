@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="Consistem" src="https://raw.githubusercontent.com/consistem/vscode-objectscript/master/images/logo-consistem-horizontal.png" width="280" />
+  <img alt="Consistem" src="images/logo-consistem-horizontal.png" width="280" />
 </p>
 
 # Consistem ObjectScript extension for VS Code

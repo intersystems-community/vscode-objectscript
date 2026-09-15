@@ -4,6 +4,7 @@ import * as vscode from "vscode";
 import * as Atelier from "../api/atelier";
 import { clsLangId, extensionId, filesystemSchemas, lsExtensionId, sendUnitTestTelemetryEvent } from "../extension";
 import {
+  currentWorkspaceFolder,
   getFileText,
   handleError,
   methodOffsetToLine,
@@ -74,6 +75,143 @@ interface LegacyUnitTestResponse {
   console?: string[];
 }
 
+// ---------------------------------------------------------------------------------------
+// API v2 do executor Consistem: uma classe por requisicao, resultado paginado.
+//
+// Substitui LegacyUnitTestResponse. Todos os campos vem prontos do backend, que le direto o
+// ^UnitTest.Result do IRIS -- nao ha mais nada a derivar no cliente.
+// ---------------------------------------------------------------------------------------
+
+/** Situacao de um grupo de classes no plano de execucao */
+type SituacaoGrupo = "pronta" | "baseAusente" | "baseAmbigua" | "baseNaoGeravel" | "ambienteAusente";
+
+interface BaseDados {
+  id: string;
+  tipo: number;
+  tipoDescricao: string;
+  /** Versão do ERP para a qual a base foi publicada */
+  versao?: string;
+  /** A base é de uma versão maior que a desta instalação. Aviso, não impedimento. */
+  versaoIncompativel?: boolean;
+}
+
+interface GrupoExecucao {
+  /** `null` quando as classes do grupo nao usam base de dados */
+  base: BaseDados | null;
+  namespace: string;
+  namespacesCandidatos: string[];
+  situacao: SituacaoGrupo;
+  podeGerar: boolean;
+  classes: string[];
+}
+
+interface ClasseNaoExecutavel {
+  classe: string;
+  motivo: string;
+  mensagem: string;
+}
+
+interface ResolucaoResponse {
+  versao: number;
+  namespaceSolicitado: string;
+  grupos: GrupoExecucao[];
+  naoExecutaveis: ClasseNaoExecutavel[];
+}
+
+interface LocalAssert {
+  documento: string;
+  texto: string;
+  label?: string;
+  offset?: number;
+  namespace?: string;
+}
+
+interface ResultadoAssert {
+  sequencia: number;
+  status: TestStatus;
+  /** `log` sao os LogMessage do %UnitTest; `assert` e o resto */
+  nivel: "assert" | "log";
+  tipo: string;
+  mensagem: string;
+  /**
+   * `null` nos asserts customizados da Consistem (AssertEqualsTable, AssertEqualsGlobal e
+   * afins), que chamam LogAssert sem location. A mensagem TEM de aparecer mesmo assim.
+   */
+  local: LocalAssert | null;
+}
+
+interface ResultadoMetodo {
+  /** Rotulo sem o prefixo `Test` -- casa com o label do TestItem */
+  metodo: string;
+  metodoCompleto: string;
+  status: TestStatus;
+  duracaoMs: number;
+  erroAcao: string;
+  erro: string;
+  assertsPassaram: number;
+  /** `true` quando os asserts deste metodo continuam na proxima pagina */
+  parcial: boolean;
+  asserts: ResultadoAssert[];
+}
+
+interface Diagnostico {
+  nivel: string;
+  codigo: string;
+  mensagem: string;
+}
+
+interface Paginacao {
+  idExecucao: string;
+  incluirAsserts: string;
+  fim: boolean;
+  cursor: string | null;
+}
+
+interface ResultadoClasse {
+  versao: number;
+  execucao: {
+    classe: string;
+    suite?: string;
+    nomeClasse?: string;
+    namespaceExec: string;
+    idLog?: number;
+    status: TestStatus;
+    duracaoMs: number;
+    erroAcao?: string;
+    erro?: string;
+    totais?: {
+      metodos: number;
+      passou: number;
+      falhou: number;
+      ignorado: number;
+      asserts: number;
+      assertsFalharam: number;
+    };
+  };
+  metodos: ResultadoMetodo[];
+  paginacao?: Paginacao;
+  diagnosticos?: Diagnostico[];
+}
+
+interface SituacaoExecucao {
+  versao: number;
+  idExecucao: string;
+  situacao: "executando" | "concluida" | "erro";
+  codigo: string;
+  mensagem: string;
+  duracaoMs: number;
+}
+
+interface SituacaoGeracao {
+  versao: number;
+  idGeracao: string;
+  idBase: string;
+  situacao: "executando" | "concluida" | "erro";
+  namespace: string;
+  mensagem: string;
+  duracaoMs: number;
+}
+
 interface DerivedMethodSummary {
   status?: TestStatus;
   failures: { message: string; location?: TestAssertLocation }[];
@@ -104,6 +242,17 @@ const LEGACY_STATUS_REGEX = /Status:\s*(\w+)/i;
 const GLOB_PATTERN = /[*?]/;
 
 const DEFAULT_LEGACY_REQUEST_TIMEOUT = 10 * 60 * 1000; // 10 minutes
+
+/** Timeout da consulta de situacao. O default do cliente (5s) e curto demais com a maquina
+ * ocupada rodando o teste. */
+const POLL_TIMEOUT = 30 * 1000;
+
+/** Falhas de transporte seguidas toleradas antes de desistir de acompanhar uma execucao */
+const POLL_MAX_FALHAS = 10;
+
+const POLL_INTERVALO_INICIAL = 500;
+
+const POLL_INTERVALO_MAXIMO = 5000;
 
 const testResultDecorationType = vscode.window.createTextEditorDecorationType({
   after: {
@@ -264,7 +413,7 @@ function extractMethodDurations(classResult: TestResult): Map<string, string> {
 }
 
 function applyTestResultDecorations(
-  methodResults: { item: vscode.TestItem; result: TestResult; durationText?: string }[]
+  methodResults: { item: vscode.TestItem; status: TestStatus; durationText?: string }[]
 ): void {
   if (!methodResults.length) {
     return;
@@ -276,7 +425,7 @@ function applyTestResultDecorations(
     decorationsByEditor.set(editor, []);
   }
 
-  for (const { item, result, durationText } of methodResults) {
+  for (const { item, status, durationText } of methodResults) {
     const editor = vscode.window.visibleTextEditors.find(
       (e) => item.uri && e.document.uri.toString() === item.uri.toString()
     );
@@ -287,8 +436,7 @@ function applyTestResultDecorations(
     const line = item.range.start.line;
     const lineRange = editor.document.lineAt(line).range;
 
-    const statusText =
-      result.status === TestStatus.Passed ? "passed" : result.status === TestStatus.Failed ? "failed" : "skipped";
+    const statusText = status === TestStatus.Passed ? "passed" : status === TestStatus.Failed ? "failed" : "skipped";
 
     const parts: string[] = [`${item.label} ${statusText}`];
     if (durationText) {
@@ -415,12 +563,41 @@ function labelFromAssertion(assertion: LegacyAssertion): string | undefined {
   return assertion.location?.label ?? parseLegacyLabelFromText(assertion.locationText);
 }
 
+/**
+ * URI dos itens de DIRETORIO, que sao criados sem `uri`. Ver `itemUri()`.
+ *
+ * Guarda o objeto `vscode.Uri` original em vez de reconstrui-lo a partir do `id`: no Windows,
+ * `Uri.toString()` minusculiza a letra do drive (`/C:/...` -> `/c:/...`), entao um `Uri.parse(id)`
+ * devolveria um path diferente do de `folder.uri` e quebraria as comparacoes de `uriIsAncestorOf`,
+ * que sao case-sensitive.
+ */
+const uriForDirectoryItem: WeakMap<vscode.TestItem, vscode.Uri> = new WeakMap();
+
+/**
+ * URI que o `TestItem` representa.
+ *
+ * Itens de DIRETORIO (raiz do workspace e subpastas/pacotes) sao criados SEM `uri` de proposito.
+ * O VS Code, ao clicar no rotulo de um item da view Testing, executa `vscode.revealTest` quando o
+ * item ainda nao tem filhos resolvidos e tem `uri`
+ * (`!e.element.children.size && e.element.test.item.uri` em `testingExplorerView.ts`).
+ * Com `uri` de pasta, esse reveal cai no Explorer -- e so na PRIMEIRA vez, porque depois de expandida
+ * a pasta ja tem filhos e a condicao deixa de valer. Sem `uri`, o clique so expande/colapsa na Testing.
+ *
+ * Itens de classe (.cls) e de metodo mantem `uri` (+ `range`), que e o que permite abrir o fonte.
+ */
+function itemUri(item: vscode.TestItem): vscode.Uri {
+  // O parse do `id` e so uma rede de seguranca: todo item de diretorio entra em `uriForDirectoryItem`
+  // quando e criado, e o `id` e o `uri.toString()` do proprio item.
+  return item.uri ?? uriForDirectoryItem.get(item) ?? vscode.Uri.parse(item.id);
+}
+
 /** Find the root `TestItem` for `uri` */
 function rootItemForItem(testController: vscode.TestController, uri: vscode.Uri): vscode.TestItem | undefined {
   let rootItem: vscode.TestItem | undefined;
   const uriString = uri.toString();
   for (const [, i] of testController.items) {
-    if (uriIsAncestorOf(i.uri!, uri) || uriString == i.uri!.toString()) {
+    const rootUri = itemUri(i);
+    if (uriIsAncestorOf(rootUri, uri) || uriString == rootUri.toString()) {
       rootItem = i;
       break;
     }
@@ -653,7 +830,9 @@ function createRootItemsForWorkspaceFolder(
             : undefined;
 
   const rootUri = folder.uri;
-  const rootItem = testController.createTestItem(rootUri.toString(), folder.name, rootUri);
+  // Created without a `uri` on purpose: it's a directory, not a file (see `itemUri()`)
+  const rootItem = testController.createTestItem(rootUri.toString(), folder.name);
+  uriForDirectoryItem.set(rootItem, rootUri);
 
   if (notIsfs(folder.uri)) {
     const roots = relativeTestRootsForUri(folder.uri);
@@ -718,12 +897,15 @@ async function getTestItemForClass(
   const rootItem = rootItemForItem(testController, uri);
   if (rootItem && !rootItem.error) {
     // Walk the directory path until we reach a dead end or the TestItem for this class
-    let docPath = uri.path.slice(rootItem.uri!.path.length);
+    let docPath = uri.path.slice(itemUri(rootItem).path.length);
     docPath = docPath.startsWith("/") ? docPath.slice(1) : docPath;
     const docPathParts = docPath.split("/");
     item = rootItem;
     for (const part of docPathParts) {
-      const currUri = item.uri!.with({ path: `${item.uri!.path}${!item.uri!.path.endsWith("/") ? "/" : ""}${part}` });
+      const parentUri = itemUri(item);
+      const currUri = parentUri.with({
+        path: `${parentUri.path}${!parentUri.path.endsWith("/") ? "/" : ""}${part}`,
+      });
       let currItem = item.children.get(currUri.toString());
       if (!currItem && create) {
         // We're allowed to create non-existent directory TestItems as we walk the path
@@ -755,10 +937,11 @@ function replaceRootTestItems(testController: vscode.TestController): void {
 async function childrenForServerSideFolderItem(
   item: vscode.TestItem
 ): Promise<Atelier.Response<Atelier.Content<{ Name: string }[]>>> {
-  const { project, system, generated, mapped } = isfsConfig(item.uri!);
+  const uri = itemUri(item);
+  const { project, system, generated, mapped } = isfsConfig(uri);
   let query: string;
   let parameters: string[];
-  let folder = !item.uri!.path.endsWith("/") ? item.uri!.path + "/" : item.uri!.path;
+  let folder = !uri.path.endsWith("/") ? uri.path + "/" : uri.path;
   folder = folder.startsWith("/") ? folder.slice(1) : folder;
   if (folder == "/") {
     // Treat this the same as an empty folder
@@ -766,7 +949,7 @@ async function childrenForServerSideFolderItem(
   }
   folder = folder.replace(/\//g, ".");
   const folderLen = String(folder.length + 1); // Need the + 1 because SUBSTR is 1 indexed
-  const api = new AtelierAPI(item.uri!);
+  const api = new AtelierAPI(uri);
   if (project) {
     query =
       "SELECT DISTINCT CASE " +
@@ -790,7 +973,7 @@ async function childrenForServerSideFolderItem(
       folderLen,
       folderLen,
       folderLen,
-      fileSpecFromURI(item.uri!),
+      fileSpecFromURI(uri),
       "1",
       "1",
       system ? "1" : "0",
@@ -808,12 +991,16 @@ async function childrenForServerSideFolderItem(
 
 /** Create a child `TestItem` of `item` with label `child`. */
 function addChildItem(testController: vscode.TestController, item: vscode.TestItem, child: string): void {
-  const newUri = item.uri!.with({
-    path: `${item.uri!.path}${!item.uri!.path.endsWith("/") ? "/" : ""}${child}`,
+  const parentUri = itemUri(item);
+  const newUri = parentUri.with({
+    path: `${parentUri.path}${!parentUri.path.endsWith("/") ? "/" : ""}${child}`,
   });
   if (!item.children.get(newUri.toString())) {
     // Only add the item if it doesn't already exist
-    const newItem = testController.createTestItem(newUri.toString(), child, newUri);
+    // Directory items are created without a `uri` on purpose (see `itemUri()`)
+    const isClass = child.toLowerCase().endsWith(".cls");
+    const newItem = testController.createTestItem(newUri.toString(), child, isClass ? newUri : undefined);
+    if (!isClass) uriForDirectoryItem.set(newItem, newUri);
     newItem.canResolveChildren = true;
     item.children.add(newItem);
   }
@@ -967,12 +1154,12 @@ async function executeLegacyRunner(
   action: string,
   showOutput: boolean
 ): Promise<boolean> {
-  const generateBase = await promptGenerateLegacyBase(root.uri!);
+  const generateBase = await promptGenerateLegacyBase(itemUri(root));
   if (generateBase === undefined) {
     return true;
   }
 
-  const unitTestConfiguration = vscode.workspace.getConfiguration("objectscript.unitTest", root.uri!);
+  const unitTestConfiguration = vscode.workspace.getConfiguration("objectscript.unitTest", itemUri(root));
   const configuredLegacyTimeout = unitTestConfiguration.get<number>("legacyRequestTimeout");
   const legacyRequestTimeout = Number.isFinite(configuredLegacyTimeout)
     ? Math.max(0, Math.floor(configuredLegacyTimeout!))
@@ -1058,7 +1245,7 @@ async function executeLegacyRunner(
 
     const knownStatuses: WeakMap<vscode.TestItem, TestStatus> = new WeakMap();
     const classes = classesForRoot.get(root) ?? new Map<string, vscode.TestItem>();
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(root.uri!);
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(itemUri(root));
     const documentSymbols: Map<string, vscode.DocumentSymbol[]> = new Map();
     const filesText: Map<string, string> = new Map();
     const requestedMethodsByClass: Map<string, Set<string> | undefined> = new Map();
@@ -1301,7 +1488,13 @@ async function executeLegacyRunner(
         }
       }
     }
-    applyTestResultDecorations(allMethodResultsForDecorations);
+    applyTestResultDecorations(
+      allMethodResultsForDecorations.map((d) => ({
+        item: d.item,
+        status: d.result.status,
+        durationText: d.durationText,
+      }))
+    );
     uniqueClassItems.forEach((classItem) => {
       if (!knownStatuses.has(classItem)) {
         knownStatuses.set(classItem, TestStatus.Skipped);
@@ -1322,6 +1515,670 @@ async function executeLegacyRunner(
 }
 
 /** The `runHandler` function for the `TestRunProfile`s. */
+/**
+ * Resolve a posicao no fonte de um assert que trouxe `local`.
+ *
+ * Os asserts customizados da Consistem vem com `local: null` -- nesses casos nao ha posicao,
+ * mas a mensagem continua tendo de aparecer.
+ */
+async function resolverLocalAssert(
+  local: LocalAssert,
+  classes: Map<string, vscode.TestItem>,
+  workspaceFolder: vscode.WorkspaceFolder | undefined,
+  documentSymbols: Map<string, vscode.DocumentSymbol[]>,
+  filesText: Map<string, string>
+): Promise<vscode.Location | undefined> {
+  if (!workspaceFolder) return undefined;
+
+  const documento = local.documento;
+  if (!documento) return undefined;
+
+  let locationUri: vscode.Uri | null | undefined;
+  const semExtensao = documento.toLowerCase().endsWith(".cls") ? documento.slice(0, -4) : undefined;
+
+  if (semExtensao && classes.has(semExtensao)) {
+    locationUri = classes.get(semExtensao)!.uri;
+  } else {
+    locationUri = DocumentContentProvider.getUri(documento, workspaceFolder.name, local.namespace);
+  }
+  if (!locationUri) return undefined;
+
+  const chave = locationUri.toString();
+
+  if (!documentSymbols.has(chave)) {
+    const novos = await vscode.commands
+      .executeCommand<vscode.DocumentSymbol[]>("vscode.executeDocumentSymbolProvider", locationUri)
+      .then(
+        (r) => r[0]?.children,
+        () => undefined
+      );
+    if (novos != undefined) documentSymbols.set(chave, novos);
+  }
+  const simbolos = documentSymbols.get(chave);
+  if (simbolos == undefined) return undefined;
+
+  if (!filesText.has(chave)) {
+    const texto = await getFileText(locationUri).catch(() => undefined);
+    if (texto != undefined) filesText.set(chave, texto);
+  }
+  const texto = filesText.get(chave);
+  if (texto == undefined) return undefined;
+
+  const linha = methodOffsetToLine(simbolos, texto, local.label ?? "", local.offset ?? 0);
+  if (linha == undefined) return undefined;
+
+  return new vscode.Location(locationUri, new vscode.Range(linha - 1, 0, linha, 0));
+}
+
+/** Uma linha de output por assert, no mesmo espirito do que o terminal imprime */
+function formatarAssert(assert: ResultadoAssert): string {
+  if (assert.nivel === "log") {
+    return `    ${assert.mensagem}\r\n`;
+  }
+  const cor = assert.status === TestStatus.Passed ? ANSI_GREEN : ANSI_RED;
+  const situacao = assert.status === TestStatus.Passed ? "passed" : "failed";
+  return `    ${assert.tipo} - ${assert.mensagem} >> ${cor}${situacao}${ANSI_RESET}\r\n`;
+}
+
+/**
+ * Aguarda o fim de uma execucao iniciada no servidor.
+ *
+ * A execucao roda em JOB porque uma classe lenta estoura o timeout do gateway CSP: medimos
+ * 70s numa classe de producao contra o limite padrao de 60s. Aqui so se acompanha.
+ */
+async function aguardarExecucao(
+  sourceControlApi: SourceControlApi,
+  namespaceReq: string,
+  idExecucao: string,
+  token: vscode.CancellationToken,
+  signal: AbortSignal,
+  timeout: number
+): Promise<SituacaoExecucao | undefined> {
+  const inicio = Date.now();
+
+  const estado = { falhas: 0 };
+  let intervalo = POLL_INTERVALO_INICIAL;
+
+  for (;;) {
+    if (token.isCancellationRequested) return undefined;
+
+    // Falha de transporte é transitória: desistir aqui abandonaria um JOB que continua
+    // rodando e segurando o lock da base, derrubando as classes seguintes em cascata.
+    const situacao = await consultarSituacao<SituacaoExecucao>(
+      sourceControlApi,
+      ROUTES.situacaoExecucaoTeste(namespaceReq, idExecucao),
+      signal,
+      estado
+    );
+
+    if (token.isCancellationRequested) return undefined;
+
+    if (situacao?.situacao === "concluida") return situacao;
+    if (situacao?.situacao === "erro") {
+      throw new Error(situacao.mensagem || "Falha na execução do teste.");
+    }
+
+    if (timeout > 0 && Date.now() - inicio > timeout) {
+      throw new Error(`A execução excedeu ${Math.round(timeout / 1000)}s e foi abandonada pelo cliente.`);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, intervalo));
+    intervalo = Math.min(Math.round(intervalo * 1.5), POLL_INTERVALO_MAXIMO);
+  }
+}
+
+/** Percorre todas as paginas de um resultado e devolve os metodos acumulados */
+async function coletarPaginas(
+  sourceControlApi: SourceControlApi,
+  namespace: string,
+  primeira: ResultadoClasse,
+  incluirAsserts: string,
+  signal: AbortSignal,
+  timeout: number
+): Promise<ResultadoClasse> {
+  const acumulado: ResultadoClasse = { ...primeira, metodos: [...primeira.metodos] };
+
+  let paginacao = primeira.paginacao;
+
+  while (paginacao && !paginacao.fim && paginacao.cursor) {
+    const resposta = await sourceControlApi.get<ResultadoClasse>(
+      ROUTES.paginaResultadoTeste(namespace, paginacao.idExecucao),
+      { params: { cursor: paginacao.cursor, incluirAsserts }, signal, timeout }
+    );
+
+    const pagina = resposta.data;
+    if (!pagina || !Array.isArray(pagina.metodos)) break;
+
+    for (const metodo of pagina.metodos) {
+      // Um metodo partido entre paginas volta com o mesmo nome: junta os asserts
+      const anterior = acumulado.metodos.find((m) => m.metodoCompleto === metodo.metodoCompleto);
+      if (anterior) {
+        anterior.asserts.push(...metodo.asserts);
+        anterior.parcial = metodo.parcial;
+      } else {
+        acumulado.metodos.push(metodo);
+      }
+    }
+
+    paginacao = pagina.paginacao;
+  }
+
+  acumulado.paginacao = paginacao;
+  return acumulado;
+}
+
+/**
+ * O backend responde erro como `{ error: "..." }` com HTTP 200.
+ * Sem isto, qualquer falha do servidor virava "payload inválido" e a causa real sumia.
+ */
+function erroDoBackend(data: unknown): string | undefined {
+  if (typeof data === "string") {
+    return data.trim() ? `Resposta inesperada do servidor: ${data.slice(0, 400)}` : undefined;
+  }
+  if (data && typeof data === "object") {
+    const erro = (data as { error?: unknown }).error;
+    if (typeof erro === "string" && erro.trim()) return erro;
+  }
+  return undefined;
+}
+
+/**
+ * GET de consulta de situação, com timeout explícito e tolerância a falha transitória.
+ *
+ * O default do cliente é 5s, e a máquina fica saturada rodando o próprio teste (ou criando a
+ * database do TESTEUNITARIO). Desistir na primeira falha abandonaria um JOB que continua
+ * rodando no servidor -- foi assim que uma consulta lenta derrubou a operação inteira.
+ *
+ * Devolve `undefined` numa falha tolerada; só relança depois de POLL_MAX_FALHAS seguidas.
+ */
+async function consultarSituacao<T>(
+  sourceControlApi: SourceControlApi,
+  rota: string,
+  signal: AbortSignal | undefined,
+  estado: { falhas: number }
+): Promise<T | undefined> {
+  try {
+    const resposta = await sourceControlApi.get<T>(rota, { signal, timeout: POLL_TIMEOUT });
+    estado.falhas = 0;
+    return resposta.data;
+  } catch (error) {
+    estado.falhas += 1;
+    if (estado.falhas > POLL_MAX_FALHAS) throw error;
+    return undefined;
+  }
+}
+
+/** Pergunta ao usuario se quer gerar a base que falta para um grupo de classes */
+async function perguntarGerarBase(grupo: GrupoExecucao): Promise<boolean> {
+  const idBase = grupo.base?.id ?? "";
+  const incompativel = grupo.base?.versaoIncompativel === true;
+  const versao = grupo.base?.versao;
+
+  // Versão incompatível não impede gerar -- o Gerenciador de Bases do terminal apenas pede
+  // confirmação, com "N" como default. Aqui o aviso vai no detalhe e "Pular" vem primeiro.
+  const opcaoGerar = {
+    label: `Gerar a base ${idBase}`,
+    gerar: true,
+    detail: incompativel
+      ? `⚠ Base publicada para a versão ${versao}, maior que a desta instalação. Gerar mesmo assim?`
+      : `Necessária por ${grupo.classes.length} classe(s) de teste`,
+  };
+  const opcaoPular = {
+    label: "Pular estas classes",
+    gerar: false,
+    detail: "Os testes que dependem desta base ficarão ignorados",
+  };
+
+  const escolha = await vscode.window.showQuickPick(
+    incompativel ? [opcaoPular, opcaoGerar] : [opcaoGerar, opcaoPular],
+    {
+      title: "Execução de testes unitários",
+      placeHolder: incompativel
+        ? `A base ${idBase} (versão ${versao}) não está montada e é de versão incompatível.`
+        : `A base ${idBase} não está montada nesta instalação. Gerar agora?`,
+      ignoreFocusOut: true,
+    }
+  );
+  return escolha?.gerar === true;
+}
+
+/** Deixa o usuario escolher o namespace quando mais de um atende a mesma base */
+async function perguntarNamespace(grupo: GrupoExecucao): Promise<string | undefined> {
+  return vscode.window.showQuickPick(grupo.namespacesCandidatos, {
+    title: "Execução de testes unitários",
+    placeHolder: `Mais de um namespace atende a base ${grupo.base?.id ?? ""}. Escolha onde executar.`,
+    ignoreFocusOut: true,
+  });
+}
+
+/**
+ * Dispara uma operacao longa no servidor e acompanha ate concluir.
+ *
+ * Serve tanto para gerar uma base versionada quanto para montar o namespace TESTEUNITARIO.
+ * As duas dropam/criam database e namespace: dentro da requisicao HTTP estouram o gateway.
+ */
+async function aguardarOperacaoServidor(
+  sourceControlApi: SourceControlApi,
+  namespaceReq: string,
+  titulo: string,
+  rota: string,
+  corpo: unknown,
+  token: vscode.CancellationToken,
+  signal?: AbortSignal
+): Promise<string | undefined> {
+  return vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: titulo,
+      cancellable: false,
+    },
+    async (progress) => {
+      progress.report({ message: "iniciando…" });
+
+      const inicio = await sourceControlApi.post<SituacaoGeracao>(rota, corpo, {
+        signal,
+        timeout: POLL_TIMEOUT,
+      });
+
+      const erroInicio = erroDoBackend(inicio.data);
+      const idGeracao = inicio.data?.idGeracao;
+      if (erroInicio || !idGeracao) {
+        vscode.window.showErrorMessage(erroInicio ?? `Não foi possível iniciar: ${titulo}.`);
+        return undefined;
+      }
+
+      // Minutos de trabalho. Por isso o backend roda em JOB e aqui so se acompanha.
+      const estado = { falhas: 0 };
+
+      for (;;) {
+        if (token.isCancellationRequested) return undefined;
+
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+
+        const situacao = await consultarSituacao<SituacaoGeracao>(
+          sourceControlApi,
+          ROUTES.situacaoGeracaoBase(namespaceReq, idGeracao),
+          signal,
+          estado
+        );
+
+        if (situacao?.situacao === "concluida") {
+          progress.report({ message: "concluída" });
+          return situacao.namespace;
+        }
+        if (situacao?.situacao === "erro") {
+          vscode.window.showErrorMessage(`${titulo}: ${situacao.mensagem}`);
+          return undefined;
+        }
+
+        const segundos = Math.round((situacao?.duracaoMs ?? 0) / 1000);
+        progress.report({ message: `${segundos}s decorridos…` });
+      }
+    }
+  );
+}
+
+/** Marca todas as classes de um grupo como ignoradas, com o motivo */
+function marcarGrupoIgnorado(
+  testRun: vscode.TestRun,
+  classes: Map<string, vscode.TestItem>,
+  grupo: GrupoExecucao,
+  motivo: string
+): void {
+  for (const classe of grupo.classes) {
+    const clsItem = classes.get(classe);
+    if (!clsItem) continue;
+    testRun.appendOutput(`${ANSI_YELLOW}${classe}: ${motivo}${ANSI_RESET}\r\n`);
+    testRun.skipped(clsItem);
+    clsItem.children.forEach((m) => testRun.skipped(m));
+  }
+}
+
+/** Reporta o resultado de uma classe inteira na Test Explorer */
+async function reportarClasse(
+  testRun: vscode.TestRun,
+  clsItem: vscode.TestItem,
+  resultado: ResultadoClasse,
+  classes: Map<string, vscode.TestItem>,
+  workspaceFolder: vscode.WorkspaceFolder | undefined,
+  documentSymbols: Map<string, vscode.DocumentSymbol[]>,
+  filesText: Map<string, string>,
+  metodosParaDecorar: { item: vscode.TestItem; status: TestStatus; durationText?: string }[]
+): Promise<void> {
+  for (const diagnostico of resultado.diagnosticos ?? []) {
+    testRun.appendOutput(`${ANSI_RED}${diagnostico.codigo}: ${diagnostico.mensagem}${ANSI_RESET}\r\n`);
+  }
+
+  const base = resultado.execucao.namespaceExec ? ` [${resultado.execucao.namespaceExec}]` : "";
+  testRun.appendOutput(`${ANSI_BOLD}${resultado.execucao.classe}${ANSI_RESET}${base}\r\n`);
+
+  for (const metodo of resultado.metodos) {
+    const methodItem = findMethodItemByLegacyName(clsItem, metodo.metodo);
+    if (!methodItem) continue;
+
+    const cor =
+      metodo.status === TestStatus.Passed ? ANSI_GREEN : metodo.status === TestStatus.Failed ? ANSI_RED : ANSI_YELLOW;
+    const situacao =
+      metodo.status === TestStatus.Passed ? "passed" : metodo.status === TestStatus.Failed ? "failed" : "skipped";
+
+    testRun.appendOutput(
+      `  ${ANSI_BOLD}${metodo.metodo}${ANSI_RESET} | ${cor}${situacao}${ANSI_RESET} | ${metodo.duracaoMs}ms\r\n`
+    );
+    for (const assert of metodo.asserts) {
+      testRun.appendOutput(formatarAssert(assert));
+    }
+    if (metodo.assertsPassaram > 0 && !metodo.asserts.some((a) => a.status === TestStatus.Passed)) {
+      testRun.appendOutput(`    ${ANSI_GREEN}${metodo.assertsPassaram} assert(s) passaram${ANSI_RESET}\r\n`);
+    }
+
+    if (metodo.status === TestStatus.Failed) {
+      const mensagens: vscode.TestMessage[] = [];
+
+      // O erro que abortou o metodo vem antes dos asserts -- o runner antigo o descartava
+      if (metodo.erro) {
+        const rotulo = metodo.erroAcao ? `${metodo.erroAcao}: ${metodo.erro}` : metodo.erro;
+        mensagens.push(new vscode.TestMessage(new vscode.MarkdownString(markdownifyLine(rotulo))));
+      }
+
+      for (const assert of metodo.asserts) {
+        if (assert.status !== TestStatus.Failed) continue;
+
+        const texto = assert.tipo ? `${assert.tipo} - ${assert.mensagem}` : assert.mensagem;
+        const mensagem = new vscode.TestMessage(new vscode.MarkdownString(markdownifyLine(texto)));
+
+        // `local` e null nos asserts customizados da Consistem: a mensagem entra do mesmo
+        // jeito, so sem posicao no fonte. O runner antigo descartava essas falhas.
+        if (assert.local) {
+          mensagem.location = await resolverLocalAssert(
+            assert.local,
+            classes,
+            workspaceFolder,
+            documentSymbols,
+            filesText
+          );
+        }
+
+        mensagens.push(mensagem);
+      }
+
+      if (!mensagens.length) {
+        mensagens.push(new vscode.TestMessage("Teste falhou."));
+      }
+
+      testRun.failed(methodItem, mensagens, metodo.duracaoMs);
+    } else if (metodo.status === TestStatus.Passed) {
+      testRun.passed(methodItem, metodo.duracaoMs);
+    } else {
+      testRun.skipped(methodItem);
+    }
+
+    metodosParaDecorar.push({ item: methodItem, status: metodo.status, durationText: `${metodo.duracaoMs}ms` });
+  }
+
+  const execucao = resultado.execucao;
+
+  if (execucao.status === TestStatus.Failed) {
+    const falhos = resultado.metodos.filter((m) => m.status === TestStatus.Failed).map((m) => m.metodo);
+    const texto = falhos.length
+      ? `Existem métodos de teste com falha:\n${falhos.map((m) => `- ${m}`).join("\n")}`
+      : execucao.erro || "Existem métodos de teste com falha.";
+    testRun.failed(clsItem, new vscode.TestMessage(new vscode.MarkdownString(texto)), execucao.duracaoMs);
+  } else if (execucao.status === TestStatus.Passed) {
+    testRun.passed(clsItem, execucao.duracaoMs);
+  } else {
+    testRun.skipped(clsItem);
+  }
+}
+
+/**
+ * Executor de testes unitarios da Consistem.
+ *
+ * Uma classe por requisicao, agrupadas por base de dados. O resultado de cada classe e
+ * reportado assim que chega, entao a Test Explorer vai preenchendo em vez de esperar o lote
+ * inteiro -- e o cancelamento interrompe entre classes.
+ */
+async function executeConsistemRunner(
+  api: AtelierAPI,
+  request: vscode.TestRunRequest,
+  testController: vscode.TestController,
+  root: vscode.TestItem,
+  clsItemsRun: vscode.TestItem[],
+  testesSolicitados: { class: string; methods?: string[] }[],
+  token: vscode.CancellationToken,
+  action: string
+): Promise<boolean> {
+  const unitTestConfiguration = vscode.workspace.getConfiguration("objectscript.unitTest", itemUri(root));
+  const configuredTimeout = unitTestConfiguration.get<number>("legacyRequestTimeout");
+  const requestTimeout = Number.isFinite(configuredTimeout)
+    ? Math.max(0, Math.floor(configuredTimeout!))
+    : DEFAULT_LEGACY_REQUEST_TIMEOUT;
+  const incluirAsserts = unitTestConfiguration.get<string>("incluirAsserts") ?? "somenteFalhas";
+
+  let sourceControlApi: SourceControlApi;
+  try {
+    sourceControlApi = SourceControlApi.fromAtelierApi(api);
+  } catch (error) {
+    handleError(error, `Error preparing to ${action} tests.`);
+    return true;
+  }
+
+  const testRun = testController.createTestRun(request, undefined, true);
+  for (const editor of vscode.window.visibleTextEditors) {
+    editor.setDecorations(testResultDecorationType, []);
+  }
+
+  const { signal, dispose: descartarSignal } = createAbortSignal(token);
+  const classes = classesForRoot.get(root) ?? new Map<string, vscode.TestItem>();
+  const workspaceFolder = vscode.workspace.getWorkspaceFolder(itemUri(root));
+  const documentSymbols = new Map<string, vscode.DocumentSymbol[]>();
+  const filesText = new Map<string, string>();
+  const metodosParaDecorar: { item: vscode.TestItem; status: TestStatus; durationText?: string }[] = [];
+
+  const metodosSolicitados = new Map<string, string[] | undefined>();
+  for (const teste of testesSolicitados) {
+    metodosSolicitados.set(teste.class, teste.methods);
+  }
+
+  try {
+    for (const classItem of new Set(clsItemsRun)) {
+      testRun.started(classItem);
+      classItem.children.forEach((methodItem) => testRun.started(methodItem));
+    }
+
+    // 1. Plano: qual base cada classe exige e em qual namespace ela roda
+    const resolucao = await sourceControlApi.post<ResolucaoResponse>(
+      ROUTES.resolveUnitTests(api.ns),
+      { classes: [...metodosSolicitados.keys()] },
+      { signal, timeout: requestTimeout }
+    );
+
+    const plano = resolucao.data;
+    const erroPlano = erroDoBackend(plano);
+    if (erroPlano) {
+      handleError(new Error(erroPlano), `Error resolving tests to ${action}.`);
+      return true;
+    }
+    if (!plano || !Array.isArray(plano.grupos)) {
+      handleError(new Error("O executor de testes não devolveu um plano de execução válido."));
+      return true;
+    }
+
+    for (const naoExec of plano.naoExecutaveis ?? []) {
+      const clsItem = classes.get(naoExec.classe);
+      if (!clsItem) continue;
+      testRun.appendOutput(`${ANSI_YELLOW}${naoExec.classe}: ${naoExec.mensagem}${ANSI_RESET}\r\n`);
+      testRun.skipped(clsItem);
+      clsItem.children.forEach((m) => testRun.skipped(m));
+    }
+
+    // 2. Resolve o que esta ambiguo ou ausente, antes de executar qualquer coisa
+    for (const grupo of plano.grupos) {
+      if (token.isCancellationRequested) break;
+
+      if (grupo.situacao === "baseAmbigua") {
+        const escolhido = await perguntarNamespace(grupo);
+        if (!escolhido) {
+          marcarGrupoIgnorado(testRun, classes, grupo, "Namespace não escolhido.");
+          continue;
+        }
+        grupo.namespace = escolhido;
+        grupo.situacao = "pronta";
+      } else if (grupo.situacao === "baseAusente" && grupo.podeGerar) {
+        if (!(await perguntarGerarBase(grupo))) {
+          marcarGrupoIgnorado(testRun, classes, grupo, "Base não gerada.");
+          continue;
+        }
+        const idBase = grupo.base?.id ?? "";
+        const namespaceGerado = await aguardarOperacaoServidor(
+          sourceControlApi,
+          api.ns,
+          `Gerando a base ${idBase}`,
+          ROUTES.gerarBaseTeste(api.ns),
+          { idBase },
+          token,
+          signal
+        );
+        if (!namespaceGerado) {
+          marcarGrupoIgnorado(testRun, classes, grupo, "A base não foi gerada.");
+          continue;
+        }
+        grupo.namespace = namespaceGerado;
+        grupo.situacao = "pronta";
+      } else if (grupo.situacao === "ambienteAusente") {
+        // O TESTEUNITARIO e criado na primeira execucao sem base, dropando e recriando uma
+        // database e um namespace IRIS. Feito dentro da requisicao de execucao, isso devolve
+        // 504 no gateway -- por isso vira uma operacao acompanhada, igual a geração de base.
+        const namespacePreparado = await aguardarOperacaoServidor(
+          sourceControlApi,
+          api.ns,
+          "Montando o ambiente de testes sem base de dados",
+          ROUTES.prepararAmbienteTeste(api.ns),
+          {},
+          token,
+          signal
+        );
+        if (!namespacePreparado) {
+          marcarGrupoIgnorado(testRun, classes, grupo, "O ambiente de testes não foi montado.");
+          continue;
+        }
+        grupo.namespace = namespacePreparado;
+        grupo.situacao = "pronta";
+      } else if (grupo.situacao !== "pronta") {
+        marcarGrupoIgnorado(
+          testRun,
+          classes,
+          grupo,
+          `A base ${grupo.base?.id ?? ""} não está montada e não pode ser gerada nesta instalação.`
+        );
+        continue;
+      }
+
+      // 3. Executa CLASSE A CLASSE, reportando conforme cada uma termina
+      for (const classe of grupo.classes) {
+        if (token.isCancellationRequested) break;
+
+        const clsItem = classes.get(classe);
+        if (!clsItem) continue;
+
+        let idExecucaoAtual: string | undefined;
+
+        try {
+          // O POST apenas INICIA a execucao e volta na hora; o teste roda em JOB no servidor
+          const inicioExec = await sourceControlApi.post<SituacaoExecucao | ResultadoClasse>(
+            ROUTES.executarClasseTeste(api.ns),
+            {
+              namespace: grupo.namespace,
+              classe,
+              metodos: metodosSolicitados.get(classe) ?? [],
+              incluirAsserts,
+            },
+            { signal, timeout: requestTimeout }
+          );
+
+          const erroInicio = erroDoBackend(inicioExec.data);
+          if (erroInicio) {
+            throw new Error(erroInicio);
+          }
+
+          const inicioDados = inicioExec.data as Partial<SituacaoExecucao> & Partial<ResultadoClasse>;
+
+          // Impedimento detectado na validacao sincrona (base, catalogo, metodo): ja vem pronto
+          if (!inicioDados?.idExecucao) {
+            const recusa = inicioExec.data as ResultadoClasse;
+            if (!recusa || !Array.isArray(recusa.metodos)) {
+              throw new Error(`O executor não devolveu resultado para ${classe}.`);
+            }
+            await reportarClasse(
+              testRun,
+              clsItem,
+              recusa,
+              classes,
+              workspaceFolder,
+              documentSymbols,
+              filesText,
+              metodosParaDecorar
+            );
+            continue;
+          }
+
+          idExecucaoAtual = inicioDados.idExecucao;
+
+          await aguardarExecucao(sourceControlApi, api.ns, inicioDados.idExecucao, token, signal, requestTimeout);
+
+          if (token.isCancellationRequested) break;
+
+          const primeira = await sourceControlApi.get<ResultadoClasse>(
+            ROUTES.paginaResultadoTeste(api.ns, inicioDados.idExecucao),
+            { params: { incluirAsserts }, signal, timeout: requestTimeout }
+          );
+
+          let resultado = primeira.data;
+          const erroClasse = erroDoBackend(resultado);
+          if (erroClasse) {
+            throw new Error(erroClasse);
+          }
+          if (!resultado || !Array.isArray(resultado.metodos)) {
+            throw new Error(`O executor não devolveu resultado para ${classe}.`);
+          }
+
+          resultado = await coletarPaginas(sourceControlApi, api.ns, resultado, incluirAsserts, signal, requestTimeout);
+
+          await reportarClasse(
+            testRun,
+            clsItem,
+            resultado,
+            classes,
+            workspaceFolder,
+            documentSymbols,
+            filesText,
+            metodosParaDecorar
+          );
+        } catch (error) {
+          if (token.isCancellationRequested) break;
+          handleError(error, `Error running tests for ${classe}.`);
+          testRun.errored(clsItem, new vscode.TestMessage(String(error)));
+
+          // Desistir de acompanhar nao para o JOB no servidor: sem descartar, o resultado
+          // fica orfao em ^mtempUTResultado ate o expurgo.
+          if (idExecucaoAtual) {
+            await sourceControlApi.delete(ROUTES.paginaResultadoTeste(api.ns, idExecucaoAtual)).then(
+              () => undefined,
+              () => undefined
+            );
+          }
+        }
+      }
+    }
+
+    applyTestResultDecorations(metodosParaDecorar);
+  } finally {
+    descartarSignal();
+    testRun.end();
+  }
+
+  return true;
+}
+
 async function runHandler(
   request: vscode.TestRunRequest,
   token: vscode.CancellationToken,
@@ -1341,7 +2198,7 @@ async function runHandler(
     // Determine the test root for this run
     let roots: (vscode.TestItem | undefined)[];
     if (request.include?.length) {
-      roots = [...new Set(request.include.map((i) => rootItemForItem(testController, i.uri!)))];
+      roots = [...new Set(request.include.map((i) => rootItemForItem(testController, itemUri(i))))];
     } else {
       // Run was launched from controller's root level
       // Ignore any roots that have errors
@@ -1354,7 +2211,7 @@ async function runHandler(
         roots.map((i) => {
           return {
             label: i!.label,
-            detail: displayableUri(i!.uri!),
+            detail: displayableUri(itemUri(i!)),
             item: i,
           };
         }),
@@ -1374,14 +2231,16 @@ async function runHandler(
       // Need a root to continue
       return;
     }
-    sendUnitTestTelemetryEvent(root.uri!, debug);
+    sendUnitTestTelemetryEvent(itemUri(root), debug);
 
     // Add the initial items to the queue to process
     const queue: vscode.TestItem[] = [];
-    const rootUriString = root.uri!.toString();
+    const rootUri = itemUri(root);
+    const rootUriString = rootUri.toString();
     if (request.include?.length) {
       request.include.forEach((i) => {
-        if (uriIsAncestorOf(root!.uri!, i.uri!) || i.uri!.toString() == rootUriString) {
+        const iUri = itemUri(i);
+        if (uriIsAncestorOf(rootUri, iUri) || iUri.toString() == rootUriString) {
           queue.push(i);
         }
       });
@@ -1390,11 +2249,11 @@ async function runHandler(
     }
 
     // Get the autoload configuration for the root
-    const autoload = vscode.workspace.getConfiguration("objectscript.unitTest.autoload", root.uri);
+    const autoload = vscode.workspace.getConfiguration("objectscript.unitTest.autoload", rootUri);
     const autoloadFolder: string = autoload.get("folder")!;
     const autoloadXml: boolean = autoload.get("xml")!;
     const autoloadUdl: boolean = autoload.get("udl")!;
-    const autoloadEnabled: boolean = autoloadFolder != "" && (autoloadXml || autoloadUdl) && notIsfs(root.uri!);
+    const autoloadEnabled: boolean = autoloadFolder != "" && (autoloadXml || autoloadUdl) && notIsfs(rootUri);
     const autoloadProcessed: string[] = [];
 
     // Process every test that was queued
@@ -1409,8 +2268,13 @@ async function runHandler(
 
       if (autoloadEnabled) {
         // Process any autoload folders needed by this item
-        const basePath = root.uri!.path.endsWith("/") ? root.uri!.path.slice(0, -1) : root.uri!.path;
-        const directories = ["", ...test.uri!.path.slice(basePath.length + 1).split("/")];
+        const basePath = rootUri.path.endsWith("/") ? rootUri.path.slice(0, -1) : rootUri.path;
+        const directories = [
+          "",
+          ...itemUri(test)
+            .path.slice(basePath.length + 1)
+            .split("/"),
+        ];
         if (directories[directories.length - 1].toLowerCase().endsWith(".cls")) {
           // Remove the class name
           directories.pop();
@@ -1423,7 +2287,7 @@ async function runHandler(
             // Look for XML or UDL files in the autoload folder
             const files = await vscode.workspace.findFiles(
               new vscode.RelativePattern(
-                test.uri!.with({ path: `${basePath}${testPath}/${autoloadFolder}` }),
+                itemUri(test).with({ path: `${basePath}${testPath}/${autoloadFolder}` }),
                 `**/*.{${autoloadXml ? "xml,XML" : ""}${autoloadXml && autoloadUdl ? "," : ""}${
                   autoloadUdl ? "cls,CLS,mac,MAC,int,INT,inc,INC" : ""
                 }}`
@@ -1449,7 +2313,7 @@ async function runHandler(
         await testController.resolveHandler!(test);
       }
 
-      if (test.uri!.path.toLowerCase().endsWith(".cls")) {
+      if (itemUri(test).path.toLowerCase().endsWith(".cls")) {
         if (test.id.includes(methodIdSeparator)) {
           // This is a method item
           // Will only reach this code if this item is in request.include
@@ -1540,25 +2404,32 @@ async function runHandler(
     return;
   }
 
-  const unitTestConfig = vscode.workspace.getConfiguration("objectscript.unitTest", root.uri);
+  const unitTestConfig = vscode.workspace.getConfiguration("objectscript.unitTest", itemUri(root));
   const showOutputSetting = unitTestConfig.get<boolean>("showOutput");
 
   // Ignore console output at the user's request
   asyncRequest.console = showOutputSetting;
 
-  const api = new AtelierAPI(root.uri);
+  const api = new AtelierAPI(itemUri(root));
   if (!debug) {
-    await executeLegacyRunner(
-      api,
-      request,
-      testController,
-      root,
-      clsItemsRun,
-      asyncRequest,
-      token,
-      action,
-      showOutputSetting !== false
-    );
+    // Escape hatch enquanto o executor novo esta em validacao. Sera removido junto com
+    // executeLegacyRunner assim que o fluxo v2 estiver homologado.
+    if (unitTestConfig.get<boolean>("usarExecutorAntigo") === true) {
+      await executeLegacyRunner(
+        api,
+        request,
+        testController,
+        root,
+        clsItemsRun,
+        asyncRequest,
+        token,
+        action,
+        showOutputSetting !== false
+      );
+      return;
+    }
+
+    await executeConsistemRunner(api, request, testController, root, clsItemsRun, asyncRequest.tests, token, action);
     return;
   }
 
@@ -1604,7 +2475,7 @@ async function runHandler(
     let currentOutputItem: vscode.TestItem | undefined;
 
     // The workspace folder that we're running tests in
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(root.uri!);
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(itemUri(root));
 
     // A map of all documents that we've computed symbols for
     const documentSymbols: Map<string, vscode.DocumentSymbol[]> = new Map();
@@ -1839,7 +2710,7 @@ async function runHandler(
       } else if (debug && queueResp.result.content?.debugId && pollResp.result?.content?.debugReady) {
         // Make sure the activeTextEditor's document is in the same workspace folder as the test
         // root so the debugger connects to the correct server and runs in the correct namespace
-        const rootWsFolderIdx = vscode.workspace.getWorkspaceFolder(root.uri!)?.index;
+        const rootWsFolderIdx = vscode.workspace.getWorkspaceFolder(itemUri(root))?.index;
         if (
           !vscode.window.activeTextEditor?.document.uri ||
           vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri)?.index != rootWsFolderIdx
@@ -1931,32 +2802,33 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
   const testController = vscode.tests.createTestController(extensionId, "ObjectScript");
   testController.resolveHandler = async (item?: vscode.TestItem) => {
     if (!item) return; // Can't resolve "undefined"
+    const uri = itemUri(item);
     item.busy = true;
     try {
-      if (item.uri!.path.toLowerCase().endsWith(".cls")) {
+      if (uri.path.toLowerCase().endsWith(".cls")) {
         // Compute items for the Test* methods in this class
         await addTestItemsForClass(testController, item);
       } else {
-        if (notIsfs(item.uri!)) {
+        if (notIsfs(uri)) {
           // Read the local directory for non-autoload subdirectories and classes
-          const autoload = vscode.workspace.getConfiguration("objectscript.unitTest.autoload", item.uri);
+          const autoload = vscode.workspace.getConfiguration("objectscript.unitTest.autoload", uri);
           const autoloadFolder: string = autoload.get("folder")!;
           const autoloadEnabled: boolean = autoloadFolder != "" && (autoload.get("xml") || autoload.get("udl"))!;
-          const workspaceFolder = vscode.workspace.getWorkspaceFolder(item.uri!);
+          const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
           let workspaceRootItem: vscode.TestItem | undefined;
           if (workspaceFolder) {
             for (const [, root] of testController.items) {
-              if (root.uri!.toString() === workspaceFolder.uri.toString()) {
+              if (itemUri(root).toString() === workspaceFolder.uri.toString()) {
                 workspaceRootItem = root;
                 break;
               }
             }
           }
 
-          const entries = await vscode.workspace.fs.readDirectory(item.uri!);
+          const entries = await vscode.workspace.fs.readDirectory(uri);
           for (const element of entries) {
-            const childUri = item.uri!.with({
-              path: `${item.uri!.path}${!item.uri!.path.endsWith("/") ? "/" : ""}${element[0]}`,
+            const childUri = uri.with({
+              path: `${uri.path}${!uri.path.endsWith("/") ? "/" : ""}${element[0]}`,
             });
 
             // Aplica o filtro dos roots configurados
@@ -2083,7 +2955,7 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
       // Update root items if needed
       e.removed.forEach((wf) => {
         testController.items.forEach((i) => {
-          if (uriIsAncestorOf(wf.uri, i.uri!)) {
+          if (uriIsAncestorOf(wf.uri, itemUri(i))) {
             // Remove this TestItem
             classesForRoot.delete(i);
             testController.items.delete(i.id);
@@ -2102,10 +2974,11 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
       // Determine the root items that need to be replaced, if any
       const replace: vscode.TestItem[] = [];
       testController.items.forEach((item) => {
+        const uri = itemUri(item);
         if (
-          (notIsfs(item.uri!) && e.affectsConfiguration("objectscript.unitTest", item.uri)) ||
-          e.affectsConfiguration("objectscript.conn", item.uri) ||
-          e.affectsConfiguration("intersystems.servers", item.uri)
+          (notIsfs(uri) && e.affectsConfiguration("objectscript.unitTest", uri)) ||
+          e.affectsConfiguration("objectscript.conn", uri) ||
+          e.affectsConfiguration("intersystems.servers", uri)
         ) {
           replace.push(item);
         }
@@ -2114,7 +2987,7 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
       replace.forEach((item) => {
         classesForRoot.delete(item);
         testController.items.delete(item.id);
-        const folder = vscode.workspace.getWorkspaceFolder(item.uri!);
+        const folder = vscode.workspace.getWorkspaceFolder(itemUri(item));
         if (folder) {
           const newItems = createRootItemsForWorkspaceFolder(testController, folder);
           newItems.forEach((i) => {
@@ -2174,4 +3047,132 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
       }
     }),
   ];
+}
+
+/** Uma base montada que atende alguma classe de teste unitário */
+interface BaseMontada {
+  namespace: string;
+  idBase: string;
+  tipo: number;
+  tipoDescricao: string;
+  revisao: string;
+  qtdClassesUT: number;
+  usuarioGerou: string;
+  /** `null` quando a base não registrou data de geração */
+  geradaEm: string | null;
+}
+
+interface ListaBasesResponse {
+  versao: number;
+  namespaceSolicitado: string;
+  bases: BaseMontada[];
+}
+
+/** Monta o rótulo de uma base no QuickPick */
+function descreverBase(base: BaseMontada): vscode.QuickPickItem & { base: BaseMontada } {
+  const quando = base.geradaEm ? `gerada em ${base.geradaEm}` : "data de geração desconhecida";
+  const revisao = base.revisao ? ` · rev. ${base.revisao}` : "";
+  const quem = base.usuarioGerou ? ` · por ${base.usuarioGerou}` : "";
+
+  return {
+    label: `${base.namespace} — ${base.idBase}`,
+    description: base.tipoDescricao,
+    detail: `${base.qtdClassesUT} classe(s) de teste · ${quando}${revisao}${quem}`,
+    base,
+  };
+}
+
+/**
+ * Lista as bases de teste montadas e permite regerar a escolhida.
+ *
+ * Regerar EXCLUI e recria o namespace a partir do checkout, exatamente como a opção
+ * "Regerar (B)ase" do Gerenciador de Bases. Por isso a confirmação é modal e o default
+ * é cancelar, espelhando o "(S/N): N" do terminal.
+ */
+export async function gerenciarBasesTeste(): Promise<void> {
+  const folder = currentWorkspaceFolder();
+  const uri = folder ? vscode.workspace.workspaceFolders?.find((f) => f.name === folder)?.uri : undefined;
+
+  const api = new AtelierAPI(uri);
+  if (!api.active || !api.ns) {
+    vscode.window.showErrorMessage("Nenhuma conexão ativa com o servidor.", "Dismiss");
+    return;
+  }
+
+  let sourceControlApi: SourceControlApi;
+  try {
+    sourceControlApi = SourceControlApi.fromAtelierApi(api);
+  } catch (error) {
+    handleError(error, "Erro ao preparar a conexão com o servidor.");
+    return;
+  }
+
+  let bases: BaseMontada[];
+  try {
+    const resposta = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Window, title: "Consultando bases de teste…" },
+      () => sourceControlApi.get<ListaBasesResponse>(ROUTES.listarBasesTeste(api.ns), { timeout: POLL_TIMEOUT })
+    );
+
+    const erro = erroDoBackend(resposta.data);
+    if (erro) {
+      handleError(new Error(erro), "Erro ao listar as bases de teste.");
+      return;
+    }
+
+    bases = resposta.data?.bases ?? [];
+  } catch (error) {
+    handleError(error, "Erro ao listar as bases de teste.");
+    return;
+  }
+
+  if (!bases.length) {
+    vscode.window.showInformationMessage(
+      "Nenhuma base de teste montada nesta instalação.",
+      { modal: false },
+      "Dismiss"
+    );
+    return;
+  }
+
+  const escolha = await vscode.window.showQuickPick(bases.map(descreverBase), {
+    title: "Bases de teste montadas",
+    placeHolder: "Escolha a base para regerar",
+    matchOnDescription: true,
+    matchOnDetail: true,
+    ignoreFocusOut: true,
+  });
+  if (!escolha) return;
+
+  const alvo = escolha.base;
+
+  // Modal com o namespace na frente: um clique errado no QuickPick não pode derrubar uma base
+  const confirmacao = await vscode.window.showWarningMessage(
+    `Regerar a base ${alvo.idBase}?`,
+    {
+      modal: true,
+      detail:
+        `O namespace ${alvo.namespace} será EXCLUÍDO e recriado a partir do checkout.\n\n` +
+        `Todos os dados atuais dessa base serão perdidos e a operação leva alguns minutos. ` +
+        `Não há como desfazer.`,
+    },
+    "Regerar base"
+  );
+  if (confirmacao !== "Regerar base") return;
+
+  const namespaceRegerado = await aguardarOperacaoServidor(
+    sourceControlApi,
+    api.ns,
+    `Regerando a base ${alvo.idBase}`,
+    ROUTES.regerarBaseTeste(api.ns),
+    { namespace: alvo.namespace },
+    new vscode.CancellationTokenSource().token
+  );
+
+  if (namespaceRegerado) {
+    vscode.window.showInformationMessage(
+      `Base ${alvo.idBase} regerada com sucesso no namespace ${namespaceRegerado}.`,
+      "Dismiss"
+    );
+  }
 }
