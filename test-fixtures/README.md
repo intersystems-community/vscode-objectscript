@@ -1,8 +1,8 @@
 # Integration test fixtures
 
-`npm test` generates one `.code-workspace` per case into `.generated/`, opens each in a downloaded
-VS Code alongside the released Server Manager, and runs `src/test/suite` against two IRIS
-containers ([iris/docker-compose.yml](iris/docker-compose.yml)):
+`npm test` generates one `.code-workspace` per case, plus the empty client folder they share, into
+`.generated/`, opens each in a downloaded VS Code alongside the released Server Manager, and runs
+`src/test/suite` against two IRIS containers ([iris/docker-compose.yml](iris/docker-compose.yml)):
 
 | Container   | Port  | `/api/atelier` authentication   |
 | ----------- | ----- | ------------------------------- |

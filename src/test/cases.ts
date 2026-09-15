@@ -73,7 +73,7 @@ export function workspaceFile({ kind, serverName, active }: Launch): WorkspaceFi
   switch (kind) {
     case "clientSide-os-host":
       return {
-        folders: [{ path: "../client" }],
+        folders: [{ path: "client" }],
         settings: {
           "objectscript.conn": {
             https: false,
@@ -88,7 +88,7 @@ export function workspaceFile({ kind, serverName, active }: Launch): WorkspaceFi
       };
     case "clientSide-os-docker":
       return {
-        folders: [{ path: "../client" }],
+        folders: [{ path: "client" }],
         settings: {
           "objectscript.conn": {
             "docker-compose": { file: "../iris/docker-compose.yml", service: serverName },
@@ -101,7 +101,7 @@ export function workspaceFile({ kind, serverName, active }: Launch): WorkspaceFi
       };
     case "clientSide-sm":
       return {
-        folders: [{ path: "../client" }],
+        folders: [{ path: "client" }],
         settings: {
           "objectscript.conn": { server: serverName, ns: "USER", ...activeConn },
           "intersystems.servers": { [serverName]: SERVERS[serverName] },

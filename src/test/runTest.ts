@@ -18,7 +18,7 @@ async function main() {
 
     // Generated so the active-flip check can rewrite the workspace file without dirtying the repo
     const generated = path.resolve(extensionDevelopmentPath, "test-fixtures", ".generated");
-    fs.mkdirSync(generated, { recursive: true });
+    fs.mkdirSync(path.join(generated, "client", "src"), { recursive: true });
     for (const l of LAUNCHES) {
       fs.writeFileSync(path.join(generated, `${l.name}.code-workspace`), JSON.stringify(workspaceFile(l), null, "  "));
     }

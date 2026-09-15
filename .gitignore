@@ -7,6 +7,4 @@ dist/
 *.vsix
 vscode*.d.ts
 .DS_Store
-test-fixtures/*/src/*
-!test-fixtures/*/src/.gitkeep
 test-fixtures/.generated/
