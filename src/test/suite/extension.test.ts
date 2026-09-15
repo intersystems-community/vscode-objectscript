@@ -6,7 +6,7 @@ import { ServerManagerAPI, VSCodeObjectScriptAPI } from "@intersystems-community
 import * as assert from "assert";
 import * as path from "path";
 import * as vscode from "vscode";
-import { parse, SESSION_TIMEOUT_MS } from "../cases";
+import { Conn, parse, SESSION_TIMEOUT_MS } from "../cases";
 
 const EXTENSION_ID = "intersystems-community.vscode-objectscript";
 const SERVER_MANAGER_ID = "intersystems-community.servermanager";
@@ -111,7 +111,7 @@ const checks: [string, Check][] = [
 
 async function applyActive(value: boolean): Promise<void> {
   const cfg = vscode.workspace.getConfiguration("objectscript");
-  await cfg.update("conn", { ...cfg.get<object>("conn"), active: value }, vscode.ConfigurationTarget.Workspace);
+  await cfg.update("conn", { ...cfg.get<Conn>("conn"), active: value }, vscode.ConfigurationTarget.Workspace);
 }
 
 async function checkSMResolves(): Promise<void> {

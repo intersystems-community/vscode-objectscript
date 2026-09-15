@@ -1,4 +1,5 @@
 /** The case matrix in test-fixtures/README.md, shared by runTest.ts and the suite. No vscode import. */
+import type { IJSONServerSpec } from "@intersystems-community/intersystems-servermanager";
 
 export const SESSION_TIMEOUT_MS = 10000;
 
@@ -54,12 +55,30 @@ export function parse(name: string): Launch {
   return launch;
 }
 
+/** The objectscript.conn setting as the cases write it */
+export interface Conn {
+  ns: string;
+  active?: boolean;
+  https?: boolean;
+  host?: string;
+  port?: number;
+  username?: string;
+  password?: string;
+  server?: string;
+  "docker-compose"?: { file: string; service: string };
+}
+
+export interface WorkspaceFile {
+  folders: ({ path: string } | { uri: string })[];
+  settings: { "objectscript.conn"?: Conn; "intersystems.servers"?: Record<string, IJSONServerSpec> };
+}
+
 /** Folder paths are relative to test-fixtures/.generated/ */
-export function workspaceFile(l: Launch): object {
+export function workspaceFile(l: Launch): WorkspaceFile {
   const { kind, server, active } = l;
   const credentials = server.username ? { username: server.username, password: server.password } : {};
   const activeConn = active ? { active: true } : {};
-  const entry = {
+  const entry: Record<string, IJSONServerSpec> = {
     [server.serverName]: {
       webServer: { scheme: "http", host: "localhost", port: server.port, pathPrefix: "" },
       ...credentials,
