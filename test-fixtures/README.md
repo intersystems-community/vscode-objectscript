@@ -50,7 +50,7 @@ Each is a mocha test, run in this order; OS is the ObjectScript extension and SM
 3. **round-trips** — depending on `active` (`serverSide-` and `clientSide-os-docker` are always active):
     - active: save class → on server (direct REST) → delete → gone
     - inactive: save class → never reaches the server
-4. **OS lists the namespace** (`serverSide-` only) — `readDirectory` on the folder root is non-empty
+4. **OS lists the folder** (`serverSide-` only) — `readDirectory` on the isfs folder root is non-empty
 5. **SM lists namespaces** (SM repo only) — `makeRESTRequest("GET", spec)` → 200 with `USER` listed, as the Servers view does
 6. **still resolves and round-trips after the session times out** — 1 and 3 again after idling past the timeout, without the delete
 7. **flipping `objectscript.conn.active` is honored** (`clientSide-os-host`, `clientSide-sm` only) — 1 and 3 again with `active` flipped, then restored, without the delete

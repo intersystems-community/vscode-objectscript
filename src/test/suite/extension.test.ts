@@ -92,7 +92,7 @@ async function checkRoundTrips(expectActive: boolean, verifyDelete = true): Prom
   }
 }
 
-async function checkOsListsTheNamespace(): Promise<void> {
+async function checkOsListsTheFolder(): Promise<void> {
   const entries = await vscode.workspace.fs.readDirectory(FOLDER.uri);
   assert.ok(entries.length > 0, "namespace listing is empty");
 }
@@ -133,7 +133,7 @@ suite(CASE, () => {
   test("round-trips", () => checkRoundTrips(configuredActive));
 
   if (isServerSide) {
-    test("OS lists the namespace", () => checkOsListsTheNamespace());
+    test("OS lists the folder", () => checkOsListsTheFolder());
   }
 
   // Skips the delete: released builds don't re-wire delete-sync after a session lapse, and the SM
