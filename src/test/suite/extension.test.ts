@@ -103,10 +103,10 @@ async function checkOSListsTheFolder(): Promise<void> {
 type Check = (expectActive: boolean) => Promise<void>;
 /** 1–5, as they apply to the case */
 const checks: [string, Check][] = [
-  ["OS resolves", (expectActive) => checkOSResolves(expectActive)],
-  ["SM resolves", () => checkSMResolves()],
-  ...(isServerSide ? [["OS lists the folder", () => checkOSListsTheFolder()] as [string, Check]] : []),
-  ["round-trips", (expectActive) => checkRoundTrips(expectActive)],
+  ["OS resolves", checkOSResolves],
+  ["SM resolves", checkSMResolves],
+  ...(isServerSide ? [["OS lists the folder", checkOSListsTheFolder] as [string, Check]] : []),
+  ["round-trips", checkRoundTrips],
 ];
 
 async function applyActive(value: boolean): Promise<void> {
