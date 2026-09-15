@@ -1,9 +1,6 @@
 /**
- * Integration tests against the IRIS containers in test-fixtures/iris/docker-compose.yml. runTest.ts
- * generates one workspace file per launch (see test-fixtures/README.md) and opens them one at a time;
- * this suite reads its launch back from the open workspace's file name and runs every check that applies.
- * Every check asserts that the extension used the credentials in settings without prompting: a prompt
- * would leave the connection unestablished and the test would time out.
+ * One launch per case (test-fixtures/README.md), read back from the workspace file name. A credential
+ * prompt anywhere fails the case: VS Code suppresses dialogs in tests, so the connection never gets made.
  */
 import * as assert from "assert";
 import * as path from "path";
@@ -18,9 +15,8 @@ const { kind, server, active } = parse(CASE);
 const FOLDER = vscode.workspace.workspaceFolders![0];
 const isServerSide = kind === "serverSide-sm";
 const canToggle = togglesActive(kind);
-/** docker-compose and serverSide are always active; os-host and sm follow objectscript.conn.active */
 const configuredActive = canToggle ? active === true : true;
-/** getServerSpec key: the entry for the -sm cases, the folder name for the -os- cases (the Current node) */
+/** The entry for -sm cases; the folder name (the Servers view's Current node) for -os- cases */
 const specName = kind.endsWith("-sm") ? server.serverName : FOLDER.name;
 
 let osApi: any;
@@ -40,7 +36,7 @@ async function waitFor<T>(label: string, probe: () => Promise<T | undefined | fa
   throw new Error(`Timed out after ${timeoutMs} ms waiting for ${label}`);
 }
 
-/** Talks to the container directly, bypassing both extensions, to check what actually landed on the server */
+/** Direct REST to the container, bypassing both extensions */
 async function restDoc(method: "GET" | "DELETE", name: string): Promise<string | undefined> {
   const response = await fetch(`http://localhost:${server.port}/api/atelier/v1/USER/doc/${name}`, {
     method,
@@ -54,7 +50,7 @@ async function restDoc(method: "GET" | "DELETE", name: string): Promise<string |
   return Array.isArray(result.content) ? result.content.join("\n") : undefined;
 }
 
-/** Check 1: the extension resolves the folder as configured, without prompting */
+/** Check 1 */
 async function checkResolves(expectActive: boolean): Promise<void> {
   const deadline = Date.now() + 30000;
   let conn = await osApi.asyncServerForUri(FOLDER.uri);
@@ -67,22 +63,16 @@ async function checkResolves(expectActive: boolean): Promise<void> {
   assert.strictEqual(conn.port, server.port);
   assert.strictEqual(conn.namespace, "USER");
   assert.strictEqual(conn.username || "", server.username || "");
-  // A password stored in plaintext in settings must reach API consumers such as Language Server
   assert.strictEqual(conn.password, server.password);
 }
 
-/**
- * Check 2: a saved class reaches the server iff the connection is active. With verifyDelete, an active
- * connection also propagates the local delete back to the server; the flip check omits that, because a
- * folder that was inactive at activation time does not wire up delete-sync until the window reloads.
- */
+/** Check 2. A folder that was inactive at activation doesn't wire up delete-sync until reload, hence verifyDelete */
 async function roundTrip(expectActive: boolean, verifyDelete = true): Promise<void> {
   const className = `CiTest.${CASE.replace(/[^A-Za-z0-9]/g, "")}${counter++}`;
   const doc = `${className}.cls`;
   const file = isServerSide
     ? vscode.Uri.joinPath(FOLDER.uri, `${className.replace(/\./g, "/")}.cls`)
-    : // Written straight into the pre-existing src/ folder: creating a directory tree and a file in it at
-      // once can lose the file's watcher event on Linux, which is not what this is testing
+    : // Into the existing src/: creating a directory and a file at once can lose the watcher event on Linux
       vscode.Uri.joinPath(FOLDER.uri, "src", `${className}.cls`);
   const source = `Class ${className}\n{\n\nClassMethod Hello() As %String\n{\n\tQuit "hello"\n}\n\n}\n`;
   created.add(doc);
@@ -96,7 +86,6 @@ async function roundTrip(expectActive: boolean, verifyDelete = true): Promise<vo
       created.delete(doc);
     }
   } else {
-    // Give any erroneous sync time to happen before asserting it did not
     await sleep(5000);
     assert.strictEqual(await restDoc("GET", doc), undefined, "inactive connection must not reach the server");
     await vscode.workspace.fs.delete(file);
@@ -104,13 +93,12 @@ async function roundTrip(expectActive: boolean, verifyDelete = true): Promise<vo
   }
 }
 
-/** Rewrite objectscript.conn.active in the generated (gitignored) workspace file */
 async function applyActive(value: boolean): Promise<void> {
   const cfg = vscode.workspace.getConfiguration("objectscript");
   await cfg.update("conn", { ...(cfg.get("conn") as object), active: value }, vscode.ConfigurationTarget.Workspace);
 }
 
-/** Check 5: Server Manager resolves the spec as configured, without prompting */
+/** Check 5 */
 async function checkSpec(): Promise<void> {
   const spec = await smApi.getServerSpec(specName);
   assert.ok(spec?.auth, `no spec for '${specName}'`);
@@ -125,13 +113,11 @@ async function checkSpec(): Promise<void> {
 
 suite(CASE, () => {
   suiteSetup(async () => {
-    // The released Server Manager gets installed alongside; check 5 resolves specs through its API
     smApi = await vscode.extensions.getExtension(SERVER_MANAGER_ID)?.activate();
     const extension = vscode.extensions.getExtension(EXTENSION_ID);
     assert.ok(extension, `${EXTENSION_ID} is not installed`);
-    // The build under test must be the one that ends up running, not a Marketplace copy
+    // The build under test, not the Marketplace copy Server Manager can pull in
     assert.strictEqual(extension.extensionPath, path.resolve(__dirname, "../../.."));
-    // Hangs here (and fails on the mocha timeout) if activation blocks on a credential prompt
     osApi = await extension.activate();
   });
 
@@ -156,16 +142,15 @@ suite(CASE, () => {
   // Check 5
   test("Server Manager resolves the spec", () => checkSpec());
 
-  // Checks 1 and 2 again, after idling past the session timeout so a cached cookie must be renewed.
-  // Skips the delete round-trip: this proves the save reconnects, and older releases don't re-wire
-  // delete-sync after a session lapses (fixed on the dev build, so re-verifying it here would be flaky).
+  // Checks 1 and 2 again once the cached session has expired. Skips the delete: released builds
+  // don't re-wire delete-sync after a session lapse, and the SM repo runs this against one of those.
   test("still resolves and round-trips after the session times out", async () => {
     await sleep(SESSION_TIMEOUT_MS + 3000);
     await checkResolves(configuredActive);
     await roundTrip(configuredActive, false);
   });
 
-  // Check 3, last, so the connection it establishes can't leak a session into the idle check above
+  // Check 3, last so its connection can't leak a live session into the idle check above
   if (canToggle) {
     test("flipping objectscript.conn.active is honored", async () => {
       try {

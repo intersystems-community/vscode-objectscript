@@ -1,7 +1,5 @@
 name: Pre-release tests
 
-# Integration tests against a real IRIS container. Too slow to run on every PR, so they only run on
-# release-preparation PRs (source branch "prepare-*") and on demand.
 on:
   pull_request:
     branches:
@@ -21,13 +19,11 @@ jobs:
           node-version: 24
       - run: npm install
       - name: Install Podman Compose
+        # The extension tries Docker Compose before Podman, so remove the runner's Docker Compose
         run: |
           sudo apt-get update
           sudo apt-get install -y podman-compose
-      - name: Use Podman, not Docker
-        # The extension picks the first compose command that works, trying Docker before Podman; drop
-        # the runner's Docker Compose so both the container lifecycle here and the extension use Podman.
-        run: sudo apt-get remove -y docker-compose-plugin || true
+          sudo apt-get remove -y docker-compose-plugin
       - name: Start IRIS
         run: podman compose -f test-fixtures/iris/docker-compose.yml up -d
       - name: Wait for IRIS

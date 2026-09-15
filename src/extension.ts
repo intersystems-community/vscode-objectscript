@@ -215,6 +215,8 @@ export function config(setting?: string, workspaceFolderName?: string): any {
 
 let reporter: TelemetryReporter | undefined;
 
+export let checkingConnection = false;
+
 export let serverManagerApi: serverManager.ServerManagerAPI;
 
 type ConnSpec = serverManager.IServerSpec & {
@@ -373,29 +375,18 @@ export function getResolvedConnectionSpec(
 /** The `api.serverId`s of all servers that are known to be inactive */
 export const inactiveServerIds: Set<string> = new Set();
 
-/** `configName`s for which an `ensureConnection` call is currently in progress */
-const ensuringConnection: Set<string> = new Set();
-
-/**
- * Verify `uri`'s connection works, repairing it if not (may show a modal credential prompt).
- * Reflects the outcome in the status bar, `objectscript.conn.active`, and `workspaceState`.
- * No-ops if a call is already in progress.
- * @param clearState Discard cached connection details first, forcing fresh resolution.
- * @param triggerRefreshes Refresh the explorer/projects views once settled.
- * @param withTimeout Time out the check so it can't hang extension activation.
- */
-export async function ensureConnection(
+export async function checkConnection(
   clearState = false,
   uri?: vscode.Uri,
   triggerRefreshes?: boolean,
-  withTimeout = false
+  inActivate = false
 ): Promise<void> {
-  const { apiTarget, configName } = connectionTarget(uri);
-  // Do nothing if already checking this connection
-  if (ensuringConnection.has(configName)) {
+  // Do nothing if already checking the connection
+  if (checkingConnection) {
     return;
   }
 
+  const { apiTarget, configName } = connectionTarget(uri);
   const wsKey = configName.toLowerCase();
   if (clearState) {
     // clean-up cached values
@@ -408,7 +399,7 @@ export async function ensureConnection(
     await workspaceState.update(wsKey + ":docker", undefined);
     _onDidChangeConnection.fire();
   }
-  let api = new AtelierAPI(apiTarget);
+  let api = new AtelierAPI(apiTarget, false);
   const { active, host = "", port = 0, superserverPort = 0, ns = "", auth } = api.config;
   vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
   if (!panel.text) {
@@ -472,7 +463,7 @@ export async function ensureConnection(
   if (api.externalServer) {
     inactiveServerIds.delete(api.serverId);
   }
-  api = new AtelierAPI(apiTarget);
+  api = new AtelierAPI(apiTarget, false);
 
   if (!api.config.host || !api.config.port || !api.config.ns) {
     const message = "'host', 'port' and 'ns' must be specified.";
@@ -483,7 +474,7 @@ export async function ensureConnection(
     if (!api.externalServer) await setConnectionState(configName, false);
     return;
   }
-  ensuringConnection.add(configName);
+  checkingConnection = true;
 
   const username = auth.username || "UnknownUser";
   const identity = username.startsWith("*") ? `using ${username.slice(1, -1)}` : `as user \`${username}\``;
@@ -505,7 +496,7 @@ export async function ensureConnection(
   // Do the check
   // Only time out requests when called from activate()
   // Timeout is needed in that case to prevent extension activation from hanging
-  const serverInfoTimeout = withTimeout ? 5000 : undefined;
+  const serverInfoTimeout = inActivate ? 5000 : undefined;
   return api
     .serverInfo(true, serverInfoTimeout)
     .then(gotServerInfo)
@@ -533,7 +524,7 @@ export async function ensureConnection(
             if (newSpec) {
               // We were able to resolve credentials, so try again
               await workspaceState.update(wsKey + ":password", newSpec.auth?.accessToken);
-              api = new AtelierAPI(apiTarget);
+              api = new AtelierAPI(apiTarget, false);
               await api
                 .serverInfo(true, serverInfoTimeout)
                 .then(async (info) => {
@@ -546,6 +537,9 @@ export async function ensureConnection(
                   if (error?.statusCode != 401) errorMessage = undefined;
                   await workspaceState.update(wsKey + ":password", undefined);
                   success = false;
+                })
+                .finally(() => {
+                  checkingConnection = false;
                 });
             }
           } else {
@@ -578,6 +572,9 @@ export async function ensureConnection(
                         await workspaceState.update(wsKey + ":password", undefined);
                         return false;
                       })
+                      .finally(() => {
+                        checkingConnection = false;
+                      })
                   );
                 } else {
                   inactiveServerIds.add(api.serverId);
@@ -603,7 +600,7 @@ export async function ensureConnection(
       if (!api.externalServer) await setConnectionState(configName, false);
     })
     .finally(() => {
-      ensuringConnection.delete(configName);
+      checkingConnection = false;
       if (triggerRefreshes) {
         setTimeout(() => {
           explorerProvider.refresh();
@@ -951,7 +948,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
         // Necessary because we are in our activate method, so its call to the Server Manager API cannot call back to our API to do that.
         await resolveConnectionSpec(serverName, uri);
       } finally {
-        await ensureConnection(true, uri, true, true);
+        await checkConnection(true, uri, true, true);
       }
     } catch (_) {
       // Ignore any failure
@@ -1151,13 +1148,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
           await workspaceState.update("workspaceFolder", workspaceFolder);
           // Only need to check when editor is undefined because
           // we will always check when editor is defined below
-          if (!editor) await ensureConnection(false);
+          if (!editor) await checkConnection(false);
         }
       }
       if (editor) {
         const conf = vscode.workspace.getConfiguration("objectscript");
         const uriString = editor.document.uri.toString();
-        await ensureConnection(false, editor.document.uri);
+        await checkConnection(false, editor.document.uri);
         if (
           conf.get("openClassContracted") &&
           editor.document.languageId == clsLangId &&
@@ -1599,9 +1596,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
       // This should create new CSP sessions if needed
       for (const wsFolder of affectedWsFolders) {
         try {
-          await ensureConnection(true, wsFolder.uri, true);
+          await checkConnection(true, wsFolder.uri, true);
         } catch {
-          // Errors are handled by ensureConnection()
+          // Errors are handled by checkConnection()
         }
       }
       explorerProvider.refresh();
