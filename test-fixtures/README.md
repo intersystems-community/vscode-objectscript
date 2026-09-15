@@ -1,20 +1,20 @@
 # Integration test fixtures
 
 `npm test` generates one `.code-workspace` per case into `.generated/`, opens each in a downloaded
-VS Code with the released Server Manager installed alongside, and runs the suite in `src/test/suite`
-against two IRIS containers ([iris/docker-compose.yml](iris/docker-compose.yml)):
+VS Code alongside the released Server Manager, and runs `src/test/suite` against two IRIS
+containers ([iris/docker-compose.yml](iris/docker-compose.yml)):
 
 | Container   | Port  | `/api/atelier` authentication   |
 | ----------- | ----- | ------------------------------- |
 | `named`     | 52799 | password only (`_SYSTEM`/`SYS`) |
 | `anonymous` | 52798 | unauthenticated only            |
 
-Both run [iris/setup/setup.sh](iris/setup/setup.sh) after IRIS starts, which sets a 10-second
-`/api/atelier` session timeout so expired-session recovery can be tested.
+[iris/setup/setup.sh](iris/setup/setup.sh) also sets a 10-second `/api/atelier` session timeout.
 
 ## Cases
 
-One `.code-workspace` per case, one folder per workspace; `-named` and `-anonymous` pick the container.
+One folder per workspace. The `-named`/`-anonymous` suffix picks the container and supplies
+`...credentials`: `{ username, password }` or `{}`.
 
 | Case                   | `folders[·]`                           | `objectscript.conn` (folder)                               | `intersystems.servers` (workspace)                                                    |
 | ---------------------- | -------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -23,43 +23,29 @@ One `.code-workspace` per case, one folder per workspace; `-named` and `-anonymo
 | `clientSide-sm`        | `{ path }`                             | `{ server: <serverName>, ns, ...active }`                  | `{ <serverName>: { webServer: { scheme, host, port, pathPrefix }, ...credentials } }` |
 | `serverSide-sm`        | `{ uri: "isfs://<serverName>:<ns>/" }` | `{}`                                                       | `{ <serverName>: { webServer: { scheme, host, port, pathPrefix }, ...credentials } }` |
 
-### Variants
+`clientSide-os-host` and `clientSide-sm` also come as `-active` (`{ active: true }`) and `-inactive`
+(`{}`); a `docker-compose` connection is only resolved when active, so `clientSide-os-docker` has no
+variant. 12 launches in all.
 
-Each case is launched once per applicable combination; the variant names are appended to the case name.
+## Checks
 
-`...credentials` — where the case's address lives (`objectscript.conn` for `*-os-*`, the entry for `*-sm`):
+OS is the ObjectScript extension, SM Server Manager. Each check runs twice, the second time after
+idling past the session timeout; `-active`/`-inactive` cases then run them all once more with `active`
+flipped. A credential prompt fails the case.
 
-- `-named`: `{ username, password }`
-- `-anonymous`: `{}`; the server must allow unauthenticated access
-
-The containers run under Podman (`podman-compose -f test-fixtures/iris/docker-compose.yml up`), so `clientSide-os-docker` resolves through Podman too.
-
-`...active` — `clientSide-os-host` and `clientSide-sm` only. A `docker-compose` connection must set `active: true` (the extension skips resolving an inactive connection), so it has no inactive variant:
-
-- `-active`: `{ active: true }`
-- `-inactive`: `{}` (default `false`)
-
-2 × 2 × 2 + 2 × 2 = 12 launches. Both repos run all of them, each installing the other extension's Marketplace release.
-
-### Checks
-
-In this order, OS being the ObjectScript extension and SM Server Manager as in the case names. Each runs twice: once, then again after idling past the session timeout, so that it is the first request on a lapsed session. `clientSide-os-host` and `clientSide-sm` cases finally run all of them once more with `active` flipped. A credential prompt anywhere fails the case.
-
-1. **OS resolves** (`checkOSResolves`) — the ObjectScript extension's `asyncServerForUri` reports `active`, host, port, ns, username, password as configured
-2. **SM resolves** (`checkSMResolves`) — the Server Manager extension's `getServerSpec` reports the same settings as `webServer` fields, username, password; `auth.resolved()` iff `-named`. Looked up by `<serverName>` for `*-sm`, by folder name (the Servers view's Current node) for `*-os-*`
-3. **OS lists the folder** (`checkOSListsTheFolder`; `serverSide-` only) — `readDirectory` on the isfs folder root is non-empty
-4. **SM lists namespaces** (`checkSMListsNamespaces`; SM repo only) — `makeRESTRequest("GET", spec)` → 200 with `USER` listed, as the Servers view does
-5. **round-trips** (`checkRoundTrips`) — depending on `active` (`serverSide-` and `clientSide-os-docker` are always active):
-    - active: save class → on server (direct REST) → delete → gone
-    - inactive: save class → never reaches the server
+1. **OS resolves** (`checkOSResolves`) — `asyncServerForUri` reports `active`, host, port, ns and credentials as configured
+2. **SM resolves** (`checkSMResolves`) — `getServerSpec` reports the same; `auth.resolved()` iff `-named`. Keyed by `<serverName>` for `*-sm`, by folder name for `*-os-*`
+3. **OS lists the folder** (`checkOSListsTheFolder`; `serverSide-` only) — `readDirectory` on the isfs root is non-empty
+4. **SM lists namespaces** (`checkSMListsNamespaces`; SM repo only) — `makeRESTRequest("GET", spec)` → 200 listing `USER`
+5. **round-trips** (`checkRoundTrips`) — save a class; active: it appears on the server (direct REST) and goes on delete; inactive: it never arrives
 
 ## Running
 
-In CI this runs from [.github/workflows/prepare-release.yml](../.github/workflows/prepare-release.yml),
-on PRs whose source branch starts with `prepare-` and on manual dispatch. To run locally with Podman:
+CI: [prepare-release.yml](../.github/workflows/prepare-release.yml), on `prepare-*` PRs and manual
+dispatch. Locally:
 
 ```sh
 podman-compose -f test-fixtures/iris/docker-compose.yml up -d --wait
-npm test
+npm test                # or a subset: npm test -- os-host
 podman-compose -f test-fixtures/iris/docker-compose.yml down -v
 ```
