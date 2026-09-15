@@ -88,6 +88,9 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   /** The number of columns in the terminal */
   private _cols: number;
 
+  /** The echo held back for input that submits itself, until its coloring arrives */
+  private _echoHeld?: string;
+
   /** The `RegExp` used to strip ANSI color escape codes from a string */
   // eslint-disable-next-line no-control-regex
   private _colorsRegex = /\x1b[^m]*?m/g;
@@ -297,6 +300,13 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           case "color": {
             // Outdated: the input is no longer on screen
             if (this._state != "prompt") break;
+            if (this._echoHeld != undefined) {
+              // This input was never echoed, so write the colored text where the raw text would
+              // have gone. A plain write cannot be misplaced, however tall the input is.
+              this._echoHeld = undefined;
+              this._hideCursorWrite(message.text.replace(/\r\n/g, `\r\n${this.multiLinePrompt}`));
+              break;
+            }
             // Replace the input with the syntax colored text, keeping the cursor at the same spot
             let cursorLine = Math.ceil((this._cursorCol + 1) / this._cols) - 1;
             if (message.text.includes("\r\n")) {
@@ -664,14 +674,27 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           lines.unshift(firstLine);
           char = lines.join("\r\n");
         }
-        // Save the cursor position, write the text, restore the cursor position, then move the cursor manually
-        this._hideCursorWrite(`\x1b7${eraseAfterCursor}${char}\x1b8${rowStr}${colStr}`);
+        // Input that arrives with its own carriage return is submitted straight away, so its echo
+        // is never corrected by a later keystroke. Hold it back and let the `color` handler write
+        // the colored text in its place: repainting over text already on screen has to move the
+        // cursor up, and that move is unfulfillable once the input is taller than the viewport.
+        if (submit && this._state == "prompt" && this._input != "") {
+          this._echoHeld = char;
+        } else {
+          // Save the cursor position, write the text, restore the cursor position, then move the cursor manually
+          this._hideCursorWrite(`\x1b7${eraseAfterCursor}${char}\x1b8${rowStr}${colStr}`);
+        }
         if (this._input != "" && this._state == "prompt") {
           this._socket.send(JSON.stringify({ type: "color", input: this._input }));
         }
         if (submit) {
           // Let the coloring arrive before submitting moves the input off its line
           await new Promise((resolve) => setTimeout(resolve, 100));
+          if (this._echoHeld != undefined) {
+            // No coloring arrived in time, so write the raw text: uncolored, but never invisible
+            this._hideCursorWrite(this._echoHeld);
+            this._echoHeld = undefined;
+          }
           if (this._state == "prompt") {
             // Reset historyIdx
             this._historyIdx = -1;
