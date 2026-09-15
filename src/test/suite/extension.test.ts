@@ -97,6 +97,14 @@ async function checkOsListsTheFolder(): Promise<void> {
   assert.ok(entries.length > 0, "namespace listing is empty");
 }
 
+/** 1–5, as they apply to the case */
+async function checkAll(expectActive: boolean, verifyDelete: boolean): Promise<void> {
+  await checkOsResolves(expectActive);
+  await checkSmResolves();
+  await checkRoundTrips(expectActive, verifyDelete);
+  if (isServerSide) await checkOsListsTheFolder();
+}
+
 async function applyActive(value: boolean): Promise<void> {
   const cfg = vscode.workspace.getConfiguration("objectscript");
   await cfg.update("conn", { ...(cfg.get("conn") as object), active: value }, vscode.ConfigurationTarget.Workspace);
@@ -138,19 +146,17 @@ suite(CASE, () => {
 
   // Skips the delete: released builds don't re-wire delete-sync after a session lapse, and the SM
   // repo runs this against one of those.
-  test("still resolves and round-trips after the session times out", async () => {
+  test("again after the session times out", async () => {
     await sleep(SESSION_TIMEOUT_MS + 3000);
-    await checkOsResolves(configuredActive);
-    await checkRoundTrips(configuredActive, false);
+    await checkAll(configuredActive, false);
   });
 
   // Last, so its connection can't leak a live session into the idle check above
   if (canToggle) {
-    test("flipping objectscript.conn.active is honored", async () => {
+    test("again with active flipped", async () => {
       try {
         await applyActive(!configuredActive);
-        await checkOsResolves(!configuredActive);
-        await checkRoundTrips(!configuredActive, false);
+        await checkAll(!configuredActive, false);
       } finally {
         await applyActive(configuredActive);
         await checkOsResolves(configuredActive);

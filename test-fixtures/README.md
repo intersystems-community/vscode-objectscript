@@ -43,7 +43,7 @@ The containers run under Podman (`podman-compose -f test-fixtures/iris/docker-co
 
 ### Checks
 
-Each is a mocha test, run in this order; OS is the ObjectScript extension and SM Server Manager, as in the case names. A credential prompt anywhere fails the case.
+One mocha test each, in this order; OS is the ObjectScript extension and SM Server Manager, as in the case names. Two more tests then repeat all of them: after idling past the session timeout, and (`clientSide-os-host`, `clientSide-sm` only) with `active` flipped. The repeats skip the delete in 3. A credential prompt anywhere fails the case.
 
 1. **OS resolves** — the ObjectScript extension's `asyncServerForUri` reports `active`, host, port, ns, username, password as configured
 2. **SM resolves** — the Server Manager extension's `getServerSpec` reports the same settings as `webServer` fields, username, password; `auth.resolved()` iff `-named`. Looked up by `<serverName>` for `*-sm`, by folder name (the Servers view's Current node) for `*-os-*`
@@ -52,8 +52,6 @@ Each is a mocha test, run in this order; OS is the ObjectScript extension and SM
     - inactive: save class → never reaches the server
 4. **OS lists the folder** (`serverSide-` only) — `readDirectory` on the isfs folder root is non-empty
 5. **SM lists namespaces** (SM repo only) — `makeRESTRequest("GET", spec)` → 200 with `USER` listed, as the Servers view does
-6. **still resolves and round-trips after the session times out** — 1 and 3 again after idling past the timeout, without the delete
-7. **flipping `objectscript.conn.active` is honored** (`clientSide-os-host`, `clientSide-sm` only) — 1 and 3 again with `active` flipped, then restored, without the delete
 
 ## Running
 
