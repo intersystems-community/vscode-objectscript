@@ -20,8 +20,8 @@ const configuredActive = active ?? true;
 /** The entry for -sm cases; the folder name (the Servers view's Current node) for -os- cases */
 const specName = kind.endsWith("-sm") ? server.serverName : folder.name;
 
-let osApi: VSCodeObjectScriptAPI;
-let smApi: ServerManagerAPI;
+let osAPI: VSCodeObjectScriptAPI;
+let smAPI: ServerManagerAPI;
 let counter = 0;
 const created = new Set<string>();
 
@@ -55,12 +55,12 @@ async function restDoc(method: "GET" | "DELETE", name: string): Promise<string |
   return Array.isArray(result.content) ? result.content.join("\n") : undefined;
 }
 
-async function checkOsResolves(expectActive: boolean): Promise<void> {
+async function checkOSResolves(expectActive: boolean): Promise<void> {
   const deadline = Date.now() + 30000;
-  let conn = await osApi.asyncServerForUri(folder.uri);
+  let conn = await osAPI.asyncServerForUri(folder.uri);
   while (conn?.active !== expectActive && Date.now() < deadline) {
     await sleep(500);
-    conn = await osApi.asyncServerForUri(folder.uri);
+    conn = await osAPI.asyncServerForUri(folder.uri);
   }
   assert.ok(conn, "no connection for the folder");
   assert.strictEqual(conn.active, expectActive, `expected active=${expectActive}`);
@@ -72,7 +72,7 @@ async function checkOsResolves(expectActive: boolean): Promise<void> {
 }
 
 async function checkRoundTrips(expectActive: boolean): Promise<void> {
-  const className = `CiTest.${caseName.replace(/[^A-Za-z0-9]/g, "")}${counter++}`;
+  const className = `CITest.${caseName.replace(/[^A-Za-z0-9]/g, "")}${counter++}`;
   const doc = `${className}.cls`;
   const file = isServerSide
     ? vscode.Uri.joinPath(folder.uri, `${className.replace(/\./g, "/")}.cls`)
@@ -95,7 +95,7 @@ async function checkRoundTrips(expectActive: boolean): Promise<void> {
   }
 }
 
-async function checkOsListsTheFolder(): Promise<void> {
+async function checkOSListsTheFolder(): Promise<void> {
   const entries = await vscode.workspace.fs.readDirectory(folder.uri);
   assert.ok(entries.length > 0, "namespace listing is empty");
 }
@@ -103,9 +103,9 @@ async function checkOsListsTheFolder(): Promise<void> {
 type Check = (expectActive: boolean) => Promise<void>;
 /** 1–5, as they apply to the case */
 const checks: [string, Check][] = [
-  ["OS resolves", (expectActive) => checkOsResolves(expectActive)],
-  ["SM resolves", () => checkSmResolves()],
-  ...(isServerSide ? [["OS lists the folder", () => checkOsListsTheFolder()] as [string, Check]] : []),
+  ["OS resolves", (expectActive) => checkOSResolves(expectActive)],
+  ["SM resolves", () => checkSMResolves()],
+  ...(isServerSide ? [["OS lists the folder", () => checkOSListsTheFolder()] as [string, Check]] : []),
   ["round-trips", (expectActive) => checkRoundTrips(expectActive)],
 ];
 
@@ -114,8 +114,8 @@ async function applyActive(value: boolean): Promise<void> {
   await cfg.update("conn", { ...(cfg.get("conn") as object), active: value }, vscode.ConfigurationTarget.Workspace);
 }
 
-async function checkSmResolves(): Promise<void> {
-  const spec = await smApi.getServerSpec(specName);
+async function checkSMResolves(): Promise<void> {
+  const spec = await smAPI.getServerSpec(specName);
   assert.ok(spec?.auth, `no spec for '${specName}'`);
   assert.strictEqual(spec.webServer.scheme, "http");
   assert.strictEqual(spec.webServer.host, "localhost");
@@ -130,12 +130,12 @@ suite(caseName, () => {
   suiteSetup(async () => {
     const serverManager = vscode.extensions.getExtension<ServerManagerAPI>(SERVER_MANAGER_ID);
     assert.ok(serverManager, `${SERVER_MANAGER_ID} is not installed`);
-    smApi = await serverManager.activate();
+    smAPI = await serverManager.activate();
     const extension = vscode.extensions.getExtension<VSCodeObjectScriptAPI>(EXTENSION_ID);
     assert.ok(extension, `${EXTENSION_ID} is not installed`);
     // The build under test, not the Marketplace copy Server Manager can pull in
     assert.strictEqual(extension.extensionPath, path.resolve(__dirname, "../../.."));
-    osApi = await extension.activate();
+    osAPI = await extension.activate();
   });
 
   suiteTeardown(async () => {
