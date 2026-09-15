@@ -8,9 +8,8 @@ import BasicAuthorization, {
   extensionContext,
   workspaceState,
   panel,
-  checkConnection,
+  ensureConnection,
   schemas,
-  checkingConnection,
   inactiveServerIds,
 } from "../extension";
 import { currentWorkspaceFolder, outputChannel, outputConsole } from "../utils";
@@ -121,10 +120,8 @@ export class AtelierAPI {
     return filename;
   }
 
-  public constructor(wsOrFile?: string | vscode.Uri, retryAfter401 = true) {
-    if (retryAfter401) {
-      this.wsOrFile = wsOrFile;
-    }
+  public constructor(wsOrFile?: string | vscode.Uri) {
+    this.wsOrFile = wsOrFile;
     let workspaceFolderName = "";
     let namespace = "";
     if (wsOrFile) {
@@ -328,12 +325,19 @@ export class AtelierAPI {
 
   private async request(
     minVersion: number,
-    method: string,
+    method: "GET" | "HEAD" | "PUT" | "POST" | "DELETE",
     path?: string,
     body?: any,
     params?: any,
     headers?: any,
-    options?: any
+    options?: {
+      /** Abort the request if it hasn't completed within this many milliseconds. */
+      timeout?: number;
+      /** Suppress writing this request/response to the ObjectScript output channel, even when `objectscript.outputRESTTraffic` is on. */
+      noOutput?: boolean;
+      /** On a 401 response, suppress the automatic single retry with fresh credentials. */
+      _retriedAfter401?: boolean;
+    }
   ): Promise<any> {
     const { active, apiVersion, host, port, https } = this.config;
     if (!active || !port || !host) {
@@ -365,7 +369,6 @@ export class AtelierAPI {
       });
       return result.length ? "?" + result.join("&") : "";
     };
-    method = method.toUpperCase();
     if (body && !headers["Content-Type"]) {
       headers["Content-Type"] = "application/json";
     }
@@ -465,7 +468,7 @@ export class AtelierAPI {
       if (response.status === 401) {
         authRequestMap.delete(mapKey);
         cookiesMap.delete(mapKey);
-        if (this.wsOrFile && !checkingConnection) {
+        if (this.wsOrFile) {
           if (!options?._retriedAfter401) {
             return this.request(minVersion, method, originalPath, body, params, headers, {
               ...options,
@@ -473,7 +476,7 @@ export class AtelierAPI {
             });
           }
           setTimeout(() => {
-            checkConnection(
+            ensureConnection(
               this.config.auth.resolved(),
               typeof this.wsOrFile === "object" ? this.wsOrFile : undefined,
               true
@@ -596,9 +599,7 @@ export class AtelierAPI {
         panel.tooltip = "Disconnected";
         workspaceState.update(this.configName.toLowerCase() + ":host", undefined);
         workspaceState.update(this.configName.toLowerCase() + ":port", undefined);
-        if (!checkingConnection) {
-          setTimeout(() => checkConnection(false, undefined, true), 30000);
-        }
+        setTimeout(() => ensureConnection(false, undefined, true), 30000);
       }
       throw error;
     }
