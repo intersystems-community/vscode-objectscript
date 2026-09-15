@@ -129,13 +129,12 @@ suite(CASE, () => {
   });
 
   test("resolves", () => checkResolves(configuredActive));
+  test("Server Manager resolves the spec", () => checkServerManagerResolvesTheSpec());
   test("round-trips", () => checkRoundTrips(configuredActive));
 
   if (isServerSide) {
     test("lists the namespace", () => checkListsTheNamespace());
   }
-
-  test("Server Manager resolves the spec", () => checkServerManagerResolvesTheSpec());
 
   // Skips the delete: released builds don't re-wire delete-sync after a session lapse, and the SM
   // repo runs this against one of those.
