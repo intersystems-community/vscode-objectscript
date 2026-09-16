@@ -19,6 +19,7 @@ import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { SourceControlApi } from "../ccs";
 import { ROUTES } from "../ccs/sourcecontrol/routes";
 import { createAbortSignal } from "../ccs/core/http";
+import { ResumoExecucao, publicarResumo, mostrarResumoTestes } from "../ccs/features/unitTest/resumoExecucao";
 
 enum TestStatus {
   Failed = 0,
@@ -1818,20 +1819,43 @@ async function aguardarOperacaoServidor(
   );
 }
 
-/** Marca todas as classes de um grupo como ignoradas, com o motivo */
+/**
+ * Marca todas as classes de um grupo como não executadas, com o motivo.
+ *
+ * Quando o motivo é um IMPEDIMENTO do ambiente (base que não existe, ambiente que não subiu),
+ * a classe é marcada como `errored`, não como `skipped`: a Test Explorer calcula o estado do
+ * pacote pelo pior estado dos filhos, e `skipped` perde para `passed` -- ou seja, um pacote
+ * verde escondia a classe que nem rodou. `errored` sobe a árvore e fica visível colapsado.
+ * Quando o usuário é que recusou executar, `skipped` continua correto: ele já sabe.
+ */
 function marcarGrupoIgnorado(
   testRun: vscode.TestRun,
   classes: Map<string, vscode.TestItem>,
   grupo: GrupoExecucao,
-  motivo: string
+  motivo: string,
+  resumo: ResumoExecucao,
+  porEscolha = false
 ): void {
   for (const classe of grupo.classes) {
+    resumo.registrarNaoExecutou(classe, motivo, porEscolha);
     const clsItem = classes.get(classe);
     if (!clsItem) continue;
     testRun.appendOutput(`${ANSI_YELLOW}${classe}: ${motivo}${ANSI_RESET}\r\n`);
-    testRun.skipped(clsItem);
+    if (porEscolha) {
+      testRun.skipped(clsItem);
+    } else {
+      testRun.errored(clsItem, new vscode.TestMessage(motivo));
+    }
     clsItem.children.forEach((m) => testRun.skipped(m));
   }
+}
+
+/** A mensagem que melhor explica a falha de um método, para a linha do resumo */
+function detalheDaFalha(metodo: ResultadoMetodo): string {
+  if (metodo.erro) return metodo.erroAcao ? `${metodo.erroAcao}: ${metodo.erro}` : metodo.erro;
+  const assert = metodo.asserts.find((a) => a.status === TestStatus.Failed);
+  if (assert) return assert.tipo ? `${assert.tipo} - ${assert.mensagem}` : assert.mensagem;
+  return "Teste falhou.";
 }
 
 /** Reporta o resultado de uma classe inteira na Test Explorer */
@@ -1843,16 +1867,28 @@ async function reportarClasse(
   workspaceFolder: vscode.WorkspaceFolder | undefined,
   documentSymbols: Map<string, vscode.DocumentSymbol[]>,
   filesText: Map<string, string>,
-  metodosParaDecorar: { item: vscode.TestItem; status: TestStatus; durationText?: string }[]
+  metodosParaDecorar: { item: vscode.TestItem; status: TestStatus; durationText?: string }[],
+  resumo: ResumoExecucao
 ): Promise<void> {
   for (const diagnostico of resultado.diagnosticos ?? []) {
     testRun.appendOutput(`${ANSI_RED}${diagnostico.codigo}: ${diagnostico.mensagem}${ANSI_RESET}\r\n`);
+    resumo.registrarErroClasse(resultado.execucao.classe, `${diagnostico.codigo}: ${diagnostico.mensagem}`);
   }
 
   const base = resultado.execucao.namespaceExec ? ` [${resultado.execucao.namespaceExec}]` : "";
   testRun.appendOutput(`${ANSI_BOLD}${resultado.execucao.classe}${ANSI_RESET}${base}\r\n`);
 
   for (const metodo of resultado.metodos) {
+    // O resumo é alimentado antes do `continue`: um método sem TestItem correspondente no
+    // fonte local não pode sumir da contagem, senão o resumo mente sobre o que rodou.
+    if (metodo.status === TestStatus.Failed) {
+      resumo.registrarFalha(resultado.execucao.classe, metodo.metodo, detalheDaFalha(metodo));
+    } else if (metodo.status === TestStatus.Passed) {
+      resumo.registrarMetodoPassou();
+    } else {
+      resumo.registrarMetodoIgnorado();
+    }
+
     const methodItem = findMethodItemByLegacyName(clsItem, metodo.metodo);
     if (!methodItem) continue;
 
@@ -1922,6 +1958,9 @@ async function reportarClasse(
     const texto = falhos.length
       ? `Existem métodos de teste com falha:\n${falhos.map((m) => `- ${m}`).join("\n")}`
       : execucao.erro || "Existem métodos de teste com falha.";
+    // Classe reprovada sem nenhum método reprovado: o impedimento é da classe (recusa do
+    // executor, erro de compilação…) e não aparece em nenhuma linha de falha do resumo.
+    if (!falhos.length) resumo.registrarErroClasse(execucao.classe, texto);
     testRun.failed(clsItem, new vscode.TestMessage(new vscode.MarkdownString(texto)), execucao.duracaoMs);
   } else if (execucao.status === TestStatus.Passed) {
     testRun.passed(clsItem, execucao.duracaoMs);
@@ -1979,6 +2018,8 @@ async function executeConsistemRunner(
     metodosSolicitados.set(teste.class, teste.methods);
   }
 
+  const resumo = new ResumoExecucao();
+
   try {
     for (const classItem of new Set(clsItemsRun)) {
       testRun.started(classItem);
@@ -2004,6 +2045,7 @@ async function executeConsistemRunner(
     }
 
     for (const naoExec of plano.naoExecutaveis ?? []) {
+      resumo.registrarNaoExecutou(naoExec.classe, naoExec.mensagem);
       const clsItem = classes.get(naoExec.classe);
       if (!clsItem) continue;
       testRun.appendOutput(`${ANSI_YELLOW}${naoExec.classe}: ${naoExec.mensagem}${ANSI_RESET}\r\n`);
@@ -2018,14 +2060,14 @@ async function executeConsistemRunner(
       if (grupo.situacao === "baseAmbigua") {
         const escolhido = await perguntarNamespace(grupo);
         if (!escolhido) {
-          marcarGrupoIgnorado(testRun, classes, grupo, "Namespace não escolhido.");
+          marcarGrupoIgnorado(testRun, classes, grupo, "Namespace não escolhido.", resumo, true);
           continue;
         }
         grupo.namespace = escolhido;
         grupo.situacao = "pronta";
       } else if (grupo.situacao === "baseAusente" && grupo.podeGerar) {
         if (!(await perguntarGerarBase(grupo))) {
-          marcarGrupoIgnorado(testRun, classes, grupo, "Base não gerada.");
+          marcarGrupoIgnorado(testRun, classes, grupo, "Base não gerada.", resumo, true);
           continue;
         }
         const idBase = grupo.base?.id ?? "";
@@ -2039,7 +2081,7 @@ async function executeConsistemRunner(
           signal
         );
         if (!namespaceGerado) {
-          marcarGrupoIgnorado(testRun, classes, grupo, "A base não foi gerada.");
+          marcarGrupoIgnorado(testRun, classes, grupo, "A base não foi gerada.", resumo);
           continue;
         }
         grupo.namespace = namespaceGerado;
@@ -2058,7 +2100,7 @@ async function executeConsistemRunner(
           signal
         );
         if (!namespacePreparado) {
-          marcarGrupoIgnorado(testRun, classes, grupo, "O ambiente de testes não foi montado.");
+          marcarGrupoIgnorado(testRun, classes, grupo, "O ambiente de testes não foi montado.", resumo);
           continue;
         }
         grupo.namespace = namespacePreparado;
@@ -2068,7 +2110,8 @@ async function executeConsistemRunner(
           testRun,
           classes,
           grupo,
-          `A base ${grupo.base?.id ?? ""} não está montada e não pode ser gerada nesta instalação.`
+          `A base ${grupo.base?.id ?? ""} não está montada e não pode ser gerada nesta instalação.`,
+          resumo
         );
         continue;
       }
@@ -2116,7 +2159,8 @@ async function executeConsistemRunner(
               workspaceFolder,
               documentSymbols,
               filesText,
-              metodosParaDecorar
+              metodosParaDecorar,
+              resumo
             );
             continue;
           }
@@ -2151,11 +2195,13 @@ async function executeConsistemRunner(
             workspaceFolder,
             documentSymbols,
             filesText,
-            metodosParaDecorar
+            metodosParaDecorar,
+            resumo
           );
         } catch (error) {
           if (token.isCancellationRequested) break;
           handleError(error, `Error running tests for ${classe}.`);
+          resumo.registrarErroClasse(classe, String(error));
           testRun.errored(clsItem, new vscode.TestMessage(String(error)));
 
           // Desistir de acompanhar nao para o JOB no servidor: sem descartar, o resultado
@@ -2173,10 +2219,44 @@ async function executeConsistemRunner(
     applyTestResultDecorations(metodosParaDecorar);
   } finally {
     descartarSignal();
+    // O resumo é a ÚLTIMA coisa escrita: numa execução de pacote inteiro a saída tem
+    // centenas de linhas, e quem rodou não vai varrer uma a uma atrás do que quebrou.
+    if (!resumo.vazio) {
+      testRun.appendOutput(resumo.paraTerminal());
+      publicarResumo(resumo, escopoDaExecucao(clsItemsRun, testesSolicitados));
+    }
     testRun.end();
   }
 
+  if (!token.isCancellationRequested) avisarImpedimentos(resumo);
+
   return true;
+}
+
+/** Descreve o que foi executado, para identificar o resumo no canal de saída */
+function escopoDaExecucao(clsItemsRun: vscode.TestItem[], testesSolicitados: { class: string }[]): string {
+  const qtde = new Set(testesSolicitados.map((t) => t.class)).size;
+  if (qtde === 1) return testesSolicitados[0].class;
+  return `${qtde} classe(s) de teste${clsItemsRun.length ? "" : " (nenhuma resolvida)"}`;
+}
+
+/**
+ * Classe que não rodou não fica visível na árvore com o pacote colapsado, porque a Test
+ * Explorer resolve o estado do pai pelo pior filho e `skipped` perde para `passed`. Um aviso
+ * com atalho para o resumo é o que garante que o impedimento não passe batido.
+ */
+function avisarImpedimentos(resumo: ResumoExecucao): void {
+  if (!resumo.temImpedimento) return;
+  const falhas = resumo.qtdeFalhas ? ` ${resumo.qtdeFalhas} método(s) com falha.` : "";
+  vscode.window
+    .showWarningMessage(
+      `${resumo.qtdeNaoExecutaram} classe(s) de teste NÃO executada(s).${falhas}`,
+      "Ver resumo",
+      "Dismiss"
+    )
+    .then((escolha) => {
+      if (escolha === "Ver resumo") mostrarResumoTestes();
+    });
 }
 
 async function runHandler(

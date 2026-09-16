@@ -1,5 +1,11 @@
 # Change Log
 
+## [Unreleased] (Consistem)
+- Enhancements
+  - Testes unitários: resumo consolidado no fim da execução, com as falhas e as classes que não executaram, também gravado no canal de saída "Consistem: Resumo dos Testes".
+  - Testes unitários: classe que não executa por impedimento do ambiente passa a ser reportada como erro, ficando visível na árvore mesmo com o pacote colapsado.
+  - Novo comando "Consistem: Mostrar o Que Falhou nos Testes" (botão na barra de título do Test Explorer), que colapsa a árvore, ordena por situação e abre o resumo.
+
 ## [3.8.3] 11-Sep-2026 (Consistem)
 - Enhancements
   - Synchronize the Consistem fork with upstream through `v3.8.6-beta.8`.

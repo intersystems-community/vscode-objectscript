@@ -173,6 +173,8 @@ import {
   atualizarConfiguracoes,
   activateSiblingFolders,
   reactivateNamespaceConnections,
+  mostrarResumoTestes,
+  descartarCanalResumo,
 } from "./ccs";
 import { Authorization, ResolvedAuthorization } from "@intersystems-community/intersystems-servermanager";
 
@@ -1530,6 +1532,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
       sendCommandTelemetryEvent("ccs.gerenciarBasesTeste");
       await gerenciarBasesTeste();
     }),
+    vscode.commands.registerCommand("vscode-objectscript.ccs.mostrarResumoTestes", async () => {
+      sendCommandTelemetryEvent("ccs.mostrarResumoTestes");
+      await mostrarResumoTestes();
+    }),
+    new vscode.Disposable(descartarCanalResumo),
     vscode.commands.registerCommand("vscode-objectscript.ccs.activateNamespaceConnections", async () => {
       sendCommandTelemetryEvent("ccs.activateNamespaceConnections");
       await vscode.window.withProgress(

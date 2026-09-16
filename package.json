@@ -402,6 +402,11 @@
           "command": "vscode-objectscript.openISCDocument",
           "when": "view == workbench.explorer.fileView && vscode-objectscript.connectActive && workspaceFolderCount != 0",
           "group": "navigation"
+        },
+        {
+          "command": "vscode-objectscript.ccs.mostrarResumoTestes",
+          "when": "view == workbench.view.testing",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -1107,6 +1112,12 @@
         "title": "Regerar Base de Testes",
         "category": "Consistem",
         "icon": "$(database)"
+      },
+      {
+        "command": "vscode-objectscript.ccs.mostrarResumoTestes",
+        "title": "Mostrar o Que Falhou nos Testes",
+        "category": "Consistem",
+        "icon": "$(checklist)"
       },
       {
         "category": "ObjectScript",

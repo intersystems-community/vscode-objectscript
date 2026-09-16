@@ -35,3 +35,4 @@ export { analizarVersaoItem } from "./commands/analizarVersaoItem";
 export { atualizarConfiguracoes } from "./commands/atualizarConfiguracoes";
 export { activateSiblingFolders, reactivateNamespaceConnections } from "./connectionActivator";
 export type { ReactivationResult } from "./connectionActivator";
+export { mostrarResumoTestes, descartarCanalResumo } from "./features/unitTest/resumoExecucao";
