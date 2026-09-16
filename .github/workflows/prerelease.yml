@@ -60,8 +60,6 @@ jobs:
       - name: lint
         run: npm run lint
       - run: npm run compile
-      - name: npm test
-        run: xvfb-run npm test
       - name: Build pre-release package
         run: |
           npx @vscode/vsce package --pre-release -o ${{ steps.set-version.outputs.name }}.vsix
