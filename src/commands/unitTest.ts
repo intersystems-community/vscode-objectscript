@@ -4,8 +4,8 @@ import * as vscode from "vscode";
 import * as Atelier from "../api/atelier";
 import { clsLangId, extensionId, filesystemSchemas, lsExtensionId, sendUnitTestTelemetryEvent } from "../extension";
 import {
-  currentWorkspaceFolder,
   getFileText,
+  getWsFolder,
   handleError,
   methodOffsetToLine,
   notIsfs,
@@ -3090,14 +3090,32 @@ function descreverBase(base: BaseMontada): vscode.QuickPickItem & { base: BaseMo
  * é cancelar, espelhando o "(S/N): N" do terminal.
  */
 export async function gerenciarBasesTeste(): Promise<void> {
-  const folder = currentWorkspaceFolder();
-  const uri = folder ? vscode.workspace.workspaceFolders?.find((f) => f.name === folder)?.uri : undefined;
-
-  const api = new AtelierAPI(uri);
-  if (!api.active || !api.ns) {
-    vscode.window.showErrorMessage("Nenhuma conexão ativa com o servidor.", "Dismiss");
+  // O namespace da requisição decide QUAIS bases aparecem: a lista sai do `^%CSW1BASE` do
+  // namespace consultado, e um namespace de fontes que não tenha esse global devolve lista
+  // vazia sem erro. Por isso o namespace nunca é herdado em silêncio do workspace ativo —
+  // ele é perguntado, como no "Criar Item".
+  const workspaceFolder = await getWsFolder(
+    "Escolha o workspace cujo namespace será consultado",
+    false,
+    false,
+    false,
+    true
+  );
+  if (workspaceFolder === undefined) {
+    vscode.window.showErrorMessage("Nenhum workspace conectado a um servidor InterSystems.", "Dismiss");
     return;
   }
+  if (!workspaceFolder) return; // usuário fechou o QuickPick
+
+  const api = new AtelierAPI(workspaceFolder.uri);
+  if (!api.active || !api.ns) {
+    vscode.window.showErrorMessage(
+      `O workspace ${workspaceFolder.name} não tem conexão ativa com o servidor.`,
+      "Dismiss"
+    );
+    return;
+  }
+  const nsConsulta = api.ns.toUpperCase();
 
   let sourceControlApi: SourceControlApi;
   try {
@@ -3110,8 +3128,8 @@ export async function gerenciarBasesTeste(): Promise<void> {
   let bases: BaseMontada[];
   try {
     const resposta = await vscode.window.withProgress(
-      { location: vscode.ProgressLocation.Window, title: "Consultando bases de teste…" },
-      () => sourceControlApi.get<ListaBasesResponse>(ROUTES.listarBasesTeste(api.ns), { timeout: POLL_TIMEOUT })
+      { location: vscode.ProgressLocation.Window, title: `Consultando bases de teste em ${nsConsulta}…` },
+      () => sourceControlApi.get<ListaBasesResponse>(ROUTES.listarBasesTeste(nsConsulta), { timeout: POLL_TIMEOUT })
     );
 
     const erro = erroDoBackend(resposta.data);
@@ -3127,16 +3145,20 @@ export async function gerenciarBasesTeste(): Promise<void> {
   }
 
   if (!bases.length) {
-    vscode.window.showInformationMessage(
-      "Nenhuma base de teste montada nesta instalação.",
+    // Lista vazia não quer dizer "não há bases": pode ser um namespace que não registra bases.
+    const acao = await vscode.window.showInformationMessage(
+      `Nenhuma base de teste montada visível no namespace ${nsConsulta}. ` +
+        "As bases são registradas por namespace — se esperava encontrar alguma, consulte o namespace da versão correspondente.",
       { modal: false },
+      "Escolher outro namespace",
       "Dismiss"
     );
+    if (acao === "Escolher outro namespace") await gerenciarBasesTeste();
     return;
   }
 
   const escolha = await vscode.window.showQuickPick(bases.map(descreverBase), {
-    title: "Bases de teste montadas",
+    title: `Bases de teste montadas · consultado em ${nsConsulta}`,
     placeHolder: "Escolha a base para regerar",
     matchOnDescription: true,
     matchOnDetail: true,
@@ -3162,9 +3184,9 @@ export async function gerenciarBasesTeste(): Promise<void> {
 
   const namespaceRegerado = await aguardarOperacaoServidor(
     sourceControlApi,
-    api.ns,
+    nsConsulta,
     `Regerando a base ${alvo.idBase}`,
-    ROUTES.regerarBaseTeste(api.ns),
+    ROUTES.regerarBaseTeste(nsConsulta),
     { namespace: alvo.namespace },
     new vscode.CancellationTokenSource().token
   );
