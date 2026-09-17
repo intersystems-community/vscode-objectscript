@@ -19,10 +19,10 @@ jobs:
           node-version: 24
       - run: npm install
       - name: Use Podman Compose instead of Docker Compose
+        # Ubuntu's podman-compose package (1.0.6) predates the `ps --format json` the extension uses
         run: |
-          sudo apt-get update
-          sudo apt-get install -y podman-compose
-          sudo apt-get remove -y docker-compose-plugin
+          pip3 install podman-compose
+          sudo rm /usr/libexec/docker/cli-plugins/docker-compose
       - name: Start IRIS containers
         run: |
           podman-compose -f test-fixtures/iris/docker-compose.yml up -d
