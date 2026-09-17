@@ -22,7 +22,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y podman-compose
-          sudo apt-get remove -y docker-compose-plugin
+          sudo rm /usr/libexec/docker/cli-plugins/docker-compose
       - name: Start IRIS containers
         run: |
           podman-compose -f test-fixtures/iris/docker-compose.yml up -d
