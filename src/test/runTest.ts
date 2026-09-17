@@ -43,6 +43,8 @@ async function main() {
 
     const filter = process.argv[2];
     const failed: string[] = [];
+    // Each case is a collapsed group in the Actions log
+    const ci = !!process.env.GITHUB_ACTIONS;
     for (const l of filter ? LAUNCHES.filter((l) => l.name.includes(filter)) : LAUNCHES) {
       const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "vscode-objectscript-test-"));
       // Copilot Chat otherwise floods the log
@@ -57,7 +59,7 @@ async function main() {
         "--enable-proposed-api",
         "intersystems-community.vscode-objectscript",
       ];
-      console.log(`\n===== ${l.name} =====`);
+      console.log(ci ? `::group::${l.name}` : `\n===== ${l.name} =====`);
       try {
         await runTests({ vscodeExecutablePath, extensionDevelopmentPath, extensionTestsPath, launchArgs });
       } catch (err) {
@@ -66,6 +68,10 @@ async function main() {
           if (/intersystems-community\.[^/\\]+[/\\][^/\\]+\.log$/.test(log)) {
             console.error(`\n===== ${log} =====\n${fs.readFileSync(path.join(userDataDir, log), "utf-8")}`);
           }
+        }
+      } finally {
+        if (ci) {
+          console.log("::endgroup::");
         }
       }
     }
