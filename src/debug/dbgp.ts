@@ -1,10 +1,6 @@
 import { EventEmitter } from "events";
 import * as WebSocket from "ws";
-import * as iconv from "iconv-lite";
 import { DOMParser } from "@xmldom/xmldom";
-
-/** The encoding all XDebug messages are encoded with */
-export const ENCODING = "iso-8859-1";
 
 /** The two states the connection switches between */
 enum ParsingState {
@@ -22,6 +18,7 @@ export class DbgpConnection extends EventEmitter {
   private _parser: DOMParser;
   private _messages: Buffer[] = [];
   private _processingMessages = false;
+  private _textDecoder = new TextDecoder();
 
   public constructor(socket: WebSocket) {
     super();
@@ -50,7 +47,7 @@ export class DbgpConnection extends EventEmitter {
     });
   }
 
-  public write(command: Buffer): Promise<void> {
+  public write(command: Uint8Array): Promise<void> {
     return new Promise<void>((resolve): void => {
       this._socket.send(command, (): void => {
         resolve();
@@ -74,10 +71,10 @@ export class DbgpConnection extends EventEmitter {
       const separatorIndex = data.indexOf("|");
       if (separatorIndex !== -1) {
         // YES -> we received the data length and are ready to receive the response
-        const lastPiece = data.slice(0, separatorIndex);
+        const lastPiece = data.subarray(0, separatorIndex);
         this._chunks.push(lastPiece);
         this._chunksDataLength += lastPiece.length;
-        this._dataLength = parseInt(iconv.decode(Buffer.concat(this._chunks, this._chunksDataLength), ENCODING));
+        this._dataLength = parseInt(this._textDecoder.decode(Buffer.concat(this._chunks, this._chunksDataLength)));
         // reset buffered chunks
         this._chunks = [];
         this._chunksDataLength = 0;
@@ -86,11 +83,11 @@ export class DbgpConnection extends EventEmitter {
         // if data contains more info (except the NULL byte)
         if (data.length > separatorIndex + 1) {
           // handle the rest of the packet as part of the response
-          const rest = data.slice(separatorIndex + 1, this._dataLength + separatorIndex + 1);
+          const rest = data.subarray(separatorIndex + 1, this._dataLength + separatorIndex + 1);
           this._messages.unshift(rest);
           this._handleDataChunk();
           // more then one data chunk in one message
-          const restData = data.slice(this._dataLength + separatorIndex + 1);
+          const restData = data.subarray(this._dataLength + separatorIndex + 1);
           if (restData.length) {
             this._messages.unshift(restData);
             this._handleDataChunk();
@@ -106,12 +103,12 @@ export class DbgpConnection extends EventEmitter {
       if (this._chunksDataLength + data.length >= this._dataLength) {
         // YES -> we received the whole response
         // append the last piece of the response
-        const lastResponsePiece = data.slice(0, this._dataLength - this._chunksDataLength);
+        const lastResponsePiece = data.subarray(0, this._dataLength - this._chunksDataLength);
         this._chunks.push(lastResponsePiece);
         this._chunksDataLength += lastResponsePiece.length;
         const response = Buffer.concat(this._chunks, this._chunksDataLength).toString("ascii");
         // call response handler
-        const xml = iconv.decode(Buffer.from(response, "base64"), ENCODING);
+        const xml = this._textDecoder.decode(Buffer.from(response, "base64"));
         const document = this._parser.parseFromString(xml, "application/xml");
         this.emit("message", document);
         // reset buffer
@@ -122,7 +119,7 @@ export class DbgpConnection extends EventEmitter {
         // if data contains more info
         if (data.length > lastResponsePiece.length) {
           // handle the rest of the packet as data length
-          const rest = data.slice(lastResponsePiece.length);
+          const rest = data.subarray(lastResponsePiece.length);
           this._messages.unshift(rest);
           this._handleDataChunk();
         }
