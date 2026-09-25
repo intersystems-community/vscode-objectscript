@@ -1,9 +1,7 @@
-import * as iconv from "iconv-lite";
 import * as WebSocket from "ws";
 import { DbgpConnection } from "./dbgp";
 
-/** The encoding all XDebug messages are encoded with */
-const ENCODING = "iso-8859-1";
+const textEncoder = new TextEncoder();
 
 /** The first packet we receive from XDebug. Returned by waitForInitPacket() */
 export class InitPacket {
@@ -405,8 +403,8 @@ export class StackFrame {
    * @param  {Connection} connection
    */
   public constructor(stackFrameNode: Element, connection: Connection) {
-    this.method = iconv.encode(stackFrameNode.getAttribute("method")!, ENCODING) + "";
-    this.fileUri = iconv.encode(stackFrameNode.getAttribute("filename")!, ENCODING) + "";
+    this.method = stackFrameNode.getAttribute("method")!;
+    this.fileUri = stackFrameNode.getAttribute("filename")!;
     this.type = stackFrameNode.getAttribute("type")!;
     this.line = parseInt(stackFrameNode.getAttribute("lineno")!, 10);
     this.methodOffset = parseInt(stackFrameNode.getAttribute("methodoffset")!, 10);
@@ -517,7 +515,7 @@ export abstract class BaseProperty {
 
   public constructor(propertyNode: Element) {
     if (propertyNode.hasAttribute("name")) {
-      this.name = iconv.encode(propertyNode.getAttribute("name")!, ENCODING) + "";
+      this.name = propertyNode.getAttribute("name")!;
     }
     this.type = propertyNode.getAttribute("type")!;
     if (propertyNode.hasAttribute("classname")) {
@@ -527,12 +525,7 @@ export abstract class BaseProperty {
     if (this.hasChildren) {
       this.numberOfChildren = parseInt(propertyNode.getAttribute("numchildren")!, 10);
     } else {
-      const encoding = propertyNode.getAttribute("encoding")!;
-      if (encoding && encoding !== "none") {
-        this.value = iconv.encode(propertyNode.textContent!, encoding) + "";
-      } else {
-        this.value = iconv.encode(propertyNode.textContent!, ENCODING) + "";
-      }
+      this.value = propertyNode.textContent!;
     }
     if (this.value === "<UNDEFINED>") {
       this.value = undefined;
@@ -1071,7 +1064,7 @@ export class Connection extends DbgpConnection {
       commandString += " -- " + Buffer.from(command.data).toString("base64");
     }
     commandString += "\n";
-    const data = iconv.encode(commandString, ENCODING);
+    const data = textEncoder.encode(commandString);
     this._pendingCommands.set(transactionId, command);
     this._pendingExecuteCommand = command.isExecuteCommand;
     await this.write(data);
