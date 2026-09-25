@@ -1,5 +1,4 @@
 import vscode = require("vscode");
-import { isText } from "istextorbinary";
 import { AtelierAPI } from "../api";
 import {
   documentContentProvider,
@@ -474,19 +473,13 @@ export async function namespaceCompile(): Promise<any> {
 
 async function importFiles(files: vscode.Uri[], noCompile = false) {
   if (!files.length) return;
-  const textDecoder = new TextDecoder();
   const toCompile: (CurrentTextFile | CurrentBinaryFile)[] = [];
   const rateLimiter = new RateLimiter(50);
   await Promise.allSettled<void>(
     files.map((uri) =>
       rateLimiter.call(async () => {
         const contentBytes = await vscode.workspace.fs.readFile(uri);
-        const curFile = currentFileFromContent(
-          uri,
-          isText(uri.path.split("/").pop(), Buffer.from(contentBytes))
-            ? textDecoder.decode(contentBytes)
-            : Buffer.from(contentBytes)
-        );
+        const curFile = currentFileFromContent(uri, Buffer.from(contentBytes));
         if (curFile) {
           if (typeof curFile.content == "string" && isCompilable(curFile.name)) {
             toCompile.push(curFile);
