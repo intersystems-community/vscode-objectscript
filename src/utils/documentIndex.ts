@@ -14,7 +14,6 @@ import {
   isCompilable,
   uriIsAncestorOf,
 } from ".";
-import { isText } from "istextorbinary";
 import { AtelierAPI } from "../api";
 import { compile, importFile } from "../commands/compile";
 
@@ -49,19 +48,22 @@ const debounceDelay = 1000;
  */
 async function getCurrentFile(
   uri: vscode.Uri,
-  forceText = false,
   content?: string[] | Buffer
 ): Promise<CurrentTextFile | CurrentBinaryFile | null | undefined> {
-  if (content) {
-    // forceText is always true when content is passed
-    return currentFileFromContent(uri, Buffer.isBuffer(content) ? textDecoder.decode(content) : content.join("\n"));
-  }
   try {
-    const contentBytes = await vscode.workspace.fs.readFile(uri);
-    const contentBuffer = Buffer.from(contentBytes);
+    if (!content) {
+      const contentBytes = await vscode.workspace.fs.readFile(uri);
+      content = Buffer.from(contentBytes);
+    }
     return currentFileFromContent(
       uri,
-      forceText || isText(uri.path.split("/").pop(), contentBuffer) ? textDecoder.decode(contentBytes) : contentBuffer
+      isClassOrRtn(uri.path) && Buffer.isBuffer(content)
+        ? // We need the content as a string for classes and routines
+          textDecoder.decode(content)
+        : // string[] must be turned into string
+          Array.isArray(content)
+          ? content.join("\n")
+          : content
     );
   } catch (error) {
     // Either a vscode.FileSystemError from readFile()
@@ -191,7 +193,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     files.forEach((file) =>
       fsRateLimiter.call<WSFolderIndexChange | undefined>(async () => {
         if (isClassOrRtn(file.path) || isImportableLocalFile(file)) {
-          return updateIndexInternal(file, documents, uris, true);
+          return updateIndexInternal(file, documents, uris);
         }
         return undefined;
       })
@@ -257,7 +259,7 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
     const vscodeChange = touchedByVSCode.has(uriString);
     const sync = api.active && (syncLocalChanges == "all" || (syncLocalChanges == "vscodeOnly" && vscodeChange));
     touchedByVSCode.delete(uriString);
-    const change = await updateIndexInternal(uri, documents, uris, sync);
+    const change = await updateIndexInternal(uri, documents, uris);
     if (!sync || (!change.addedOrChanged && !change.removed)) return;
     if (change.addedOrChanged) {
       // Create or update the document on the server
@@ -335,19 +337,18 @@ export async function updateIndex(uri: vscode.Uri, content?: string[] | Buffer):
   if (!wsFolder) return {};
   const index = wsFolderIndex.get(wsFolder.uri.toString());
   if (!index) return {};
-  return updateIndexInternal(uri, index.documents, index.uris, true, content);
+  return updateIndexInternal(uri, index.documents, index.uris, content);
 }
 
 async function updateIndexInternal(
   uri: vscode.Uri,
   documents: WSFolderIndex["documents"],
   uris: WSFolderIndex["uris"],
-  sync: boolean,
   content?: string[] | Buffer
 ): Promise<WSFolderIndexChange> {
   const result: WSFolderIndexChange = {};
   const uriString = uri.toString();
-  const file = await getCurrentFile(uri, true, content);
+  const file = await getCurrentFile(uri, content);
   if (!file) return result;
   result.addedOrChanged = file;
   const documentUris = documents.get(file.name) ?? [];

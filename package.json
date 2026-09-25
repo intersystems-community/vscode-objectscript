@@ -1720,7 +1720,6 @@
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@intersystems-community/intersystems-servermanager": "^3.14.1",
-    "@types/istextorbinary": "2.3.1",
     "@types/minimatch": "6.0.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.13.14",
@@ -1756,7 +1755,6 @@
     "@vscode/extension-telemetry": "^1.5.2",
     "@xmldom/xmldom": "^0.9.12",
     "axios": "^1.20.0",
-    "istextorbinary": "^7.0.0",
     "minimatch": "^10.2.5",
     "node-cmd": "^5.0.0",
     "ws": "^8.21.0"
