@@ -27,7 +27,6 @@ export const incLangId = "objectscript-macros";
 export const cspLangId = "objectscript-csp";
 export const outputLangId = "vscode-objectscript-output";
 
-import * as url from "url";
 import {
   importAndCompile,
   importFolder as importFileOrFolder,
@@ -96,6 +95,7 @@ import {
   getWsFolder,
   exportedUris,
   displayableUri,
+  stringifyError,
 } from "./utils";
 import { ObjectScriptDiagnosticProvider } from "./providers/ObjectScriptDiagnosticProvider";
 import { DocumentLinkProvider } from "./providers/DocumentLinkProvider";
@@ -190,9 +190,12 @@ export function config(setting?: string, workspaceFolderName?: string): any {
   if (["conn", "export"].includes(setting!)) {
     if (workspaceFolderName && workspaceFolderName !== "") {
       if (workspaceFolderName.match(/.+:\d+$/)) {
-        const { port, hostname: host, auth, query } = url.parse("http://" + workspaceFolderName, true);
-        const { ns = "USER", https = false } = query;
-        const [username, password] = (auth || "_SYSTEM:SYS").split(":");
+        const urlObj = URL.parse("http://" + workspaceFolderName);
+        const { hostname: host, port } = urlObj!;
+        const ns = urlObj?.searchParams.get("ns") ?? "USER";
+        const https = !!urlObj?.searchParams.get("https");
+        const username = urlObj?.username || "_SYSTEM";
+        const password = urlObj?.password || "SYS";
         if (setting == "conn") {
           return {
             active: true,
@@ -462,7 +465,7 @@ export async function ensureConnection(
       handleError(error);
       workspaceState.update(wsKey + ":docker", true);
       panel.text = `${PANEL_LABEL} $(error)`;
-      panel.tooltip = error;
+      panel.tooltip = stringifyError(error);
       return;
     }
   }
