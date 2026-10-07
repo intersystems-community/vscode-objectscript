@@ -6,5 +6,5 @@ out/
 dist/
 *.vsix
 vscode*.d.ts
-test-fixtures
 .DS_Store
+test-fixtures/.generated/

@@ -1,5 +1,18 @@
 # Change Log
 
+## [3.8.6] 17-Sep-2026
+- Enhancements
+  - `objectscript.conn.docker-compose` feature supports Podman (#1859)
+  - Integration tests against an IRIS container for release-preparation PRs (#1870)
+- Fixes
+  - Fix broken Marketplace badges, drop superfluous ones in README (#1857)
+  - Fix docker-compose connections always prompting for password (#1860)
+  - Fix connection check prompting/disabling on a merely-stale session (#1864)
+  - Lite Terminal: syntax color pasted input that ends with a newline (#1866)
+  - Lite Terminal: don't repaint a pasted block taller than the viewport (#1867) (contributed by @globalerp-mhess)
+  - Send synced deletes through the current connection instead of a stale copy (#1872)
+  - Upgrade dependencies
+
 ## [3.8.5] 02-Sep-2026
 - Fixes
   - Fix crash when opening a file with no workspace folder open (#1834)

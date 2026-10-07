@@ -1,0 +1,37 @@
+name: Integration tests
+
+on:
+  pull_request:
+    branches:
+      - master
+      - prerelease
+  workflow_dispatch:
+
+jobs:
+  integration:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'prepare-')
+    timeout-minutes: 45
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - run: npm install
+      - name: Use Podman Compose instead of Docker Compose
+        # Ubuntu's podman-compose package (1.0.6) predates the `ps --format json` the extension uses
+        run: |
+          pip3 install podman-compose
+          sudo rm /usr/libexec/docker/cli-plugins/docker-compose
+      - name: Start IRIS containers
+        run: |
+          podman-compose -f test-fixtures/iris/docker-compose.yml up -d
+          podman wait --condition=healthy iris_named_1 iris_anonymous_1
+      - name: Run integration tests
+        run: xvfb-run npm test
+      - name: Show IRIS logs
+        if: failure()
+        run: podman-compose -f test-fixtures/iris/docker-compose.yml logs
+      - name: Remove IRIS containers
+        if: always()
+        run: podman-compose -f test-fixtures/iris/docker-compose.yml down -v

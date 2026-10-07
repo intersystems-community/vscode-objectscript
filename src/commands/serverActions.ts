@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import {
   config,
   workspaceState,
-  checkConnection,
+  ensureConnection,
   explorerProvider,
   filesystemSchemas,
   FILESYSTEM_SCHEMA,
@@ -72,7 +72,7 @@ export async function serverActions(): Promise<void> {
         return connConfig.update("conn", { ...targetConfig, active: !active }, target);
       }
       case "refreshConnection": {
-        await checkConnection(true, undefined, true);
+        await ensureConnection(true, undefined, true);
         break;
       }
       case "switchNamespace": {

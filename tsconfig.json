@@ -8,6 +8,7 @@
     "lib": ["esnext", "dom"],
     "sourceMap": true,
     "rootDir": "src",
+    "skipLibCheck": true,
   },
   "exclude": ["node_modules", ".vscode-test"]
 }

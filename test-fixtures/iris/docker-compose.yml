@@ -1,0 +1,23 @@
+x-iris: &iris
+  image: containers.intersystems.com/intersystems/iris-community:latest-cd
+  volumes:
+    - ./setup:/setup:ro
+  healthcheck:
+    test: ["CMD", "test", "-f", "/tmp/ci-setup-done"]
+    interval: 5s
+    timeout: 3s
+    retries: 60
+    start_period: 20s
+
+services:
+  named:
+    <<: *iris
+    command: ["-a", "sh /setup/setup.sh"]
+    ports:
+      - "52799:52773"
+  # Same image, but /api/atelier accepts only unauthenticated access
+  anonymous:
+    <<: *iris
+    command: ["-a", "sh /setup/setup.sh anonymous"]
+    ports:
+      - "52798:52773"
