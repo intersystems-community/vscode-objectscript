@@ -88,8 +88,17 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   /** The number of columns in the terminal */
   private _cols: number;
 
-  /** The echo held back for input that submits itself, until its coloring arrives */
+  /** The number of rows in the terminal */
+  private _rows: number;
+
+  /** The echo held back for pasted input, until its coloring arrives */
   private _echoHeld?: string;
+
+  /** The length of the input that was already on screen when the held echo began */
+  private _echoHeldFrom = 0;
+
+  /** Fallback timer, so a missing `color` reply can't leave pasted input invisible */
+  private _echoHeldTimer?: NodeJS.Timeout;
 
   /** The `RegExp` used to strip ANSI color escape codes from a string */
   // eslint-disable-next-line no-control-regex
@@ -107,6 +116,40 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   /** Hide the cursor, write `data` to the terminal, then show the cursor again. */
   private _hideCursorWrite(data: string): void {
     this._writeEmitter.fire(`\x1b[?25l${data}\x1b[?25h`);
+  }
+
+  /** Write the held echo raw, if there is one */
+  private _flushHeldEcho(): void {
+    if (this._echoHeld == undefined) return;
+    const echo = this._echoHeld;
+    this._clearHeldEcho();
+    this._hideCursorWrite(echo);
+  }
+
+  /** Forget the held echo and its fallback timer */
+  private _clearHeldEcho(): void {
+    this._echoHeld = undefined;
+    clearTimeout(this._echoHeldTimer);
+    this._echoHeldTimer = undefined;
+  }
+
+  /** Return `text` without its first `from` visible characters, starting in the color active there */
+  private _coloredFrom(text: string, from: number): string {
+    let visible = 0,
+      color = "",
+      i = 0;
+    while (i < text.length && visible < from) {
+      if (text[i] == "\x1b") {
+        const end = text.indexOf("m", i);
+        if (end == -1) break;
+        color = text.slice(i, end + 1);
+        i = end + 1;
+      } else {
+        visible++;
+        i++;
+      }
+    }
+    return color + text.slice(i);
   }
 
   /** Detect if `this._input` has any unmatched `{` or `(` */
@@ -204,6 +247,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
     const api = new AtelierAPI(this.targetUri);
     if (this._nsOverride) api.setNamespace(this._nsOverride);
     this._cols = initialDimensions?.columns ?? 100000;
+    this._rows = initialDimensions?.rows ?? 100000;
     try {
       // Open the WebSocket
       this._socket = new WebSocket(api.terminalUrl(), {
@@ -301,10 +345,15 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
             // Outdated: the input is no longer on screen
             if (this._state != "prompt") break;
             if (this._echoHeld != undefined) {
-              // This input was never echoed, so write the colored text where the raw text would
-              // have gone. A plain write cannot be misplaced, however tall the input is.
-              this._echoHeld = undefined;
-              this._hideCursorWrite(message.text.replace(/\r\n/g, `\r\n${this.multiLinePrompt}`));
+              // A reply for an earlier state of the input would color the wrong text; keep holding
+              if (message.text.replace(this._colorsRegex, "") != this._input) break;
+              // The pasted part was never echoed, so write its colored text where the raw text would
+              // have gone. A plain write cannot be misplaced, however tall the input is. The part
+              // typed before the paste is already on screen and is skipped.
+              this._clearHeldEcho();
+              this._hideCursorWrite(
+                this._coloredFrom(message.text, this._echoHeldFrom).replace(/\r\n/g, `\r\n${this.multiLinePrompt}`)
+              );
               break;
             }
             // Replace the input with the syntax colored text, keeping the cursor at the same spot
@@ -314,6 +363,10 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
               lines.pop();
               cursorLine += lines.reduce((sum, line) => sum + Math.ceil((line.length + 1) / this._cols), 0);
             }
+            // The repaint moves up to the prompt row, and `\x1b[nA` stops at the top of the window.
+            // For input taller than the window that move falls short and the repaint lands too low,
+            // so leave the input uncolored rather than draw it in the wrong place.
+            if (cursorLine >= this._rows) break;
             this._hideCursorWrite(
               `\x1b7${cursorLine > 0 ? `\x1b[${cursorLine}A` : ""}\r\x1b[0J${this._prompt}${message.text.replace(
                 /\r\n/g,
@@ -337,6 +390,10 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   }
 
   async handleInput(char: string): Promise<void> {
+    if (this._echoHeld != undefined && (char.length == 1 || char.startsWith("\x1b"))) {
+      // A keystroke has to land after the pasted text, so write the held echo first
+      this._flushHeldEcho();
+    }
     switch (char) {
       case keys.enter: {
         if (this._state == "eval") {
@@ -610,6 +667,7 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
         }
         // Replace all single \r with \r\n
         char = char.replace(/\r(?!\n)/g, "\r\n");
+        const inputLengthBefore = this._input.length;
         const inputArr = this._input.split("\r\n");
         let eraseAfterCursor = "",
           trailingText = "";
@@ -674,27 +732,32 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
           lines.unshift(firstLine);
           char = lines.join("\r\n");
         }
-        // Input that arrives with its own carriage return is submitted straight away, so its echo
-        // is never corrected by a later keystroke. Hold it back and let the `color` handler write
-        // the colored text in its place: repainting over text already on screen has to move the
-        // cursor up, and that move is unfulfillable once the input is taller than the viewport.
-        if (submit && this._state == "prompt" && this._input != "") {
-          this._echoHeld = char;
+        // Hold back the echo of pasted text that is appended to the input, and let the `color`
+        // handler write the colored text in its place. Coloring text that is already on screen
+        // means repainting it, which has to move the cursor up, and that move is unfulfillable
+        // once the input is taller than the viewport. A paste that arrives in several chunks
+        // keeps extending the same held echo.
+        if (this._state == "prompt" && this._input != "" && trailingText == "" && (submit || char.length > 1)) {
+          if (this._echoHeld == undefined) this._echoHeldFrom = inputLengthBefore;
+          this._echoHeld = (this._echoHeld ?? "") + char;
         } else {
+          this._flushHeldEcho();
           // Save the cursor position, write the text, restore the cursor position, then move the cursor manually
           this._hideCursorWrite(`\x1b7${eraseAfterCursor}${char}\x1b8${rowStr}${colStr}`);
         }
         if (this._input != "" && this._state == "prompt") {
           this._socket.send(JSON.stringify({ type: "color", input: this._input }));
         }
+        if (this._echoHeld != undefined && !submit) {
+          // If no coloring arrives in time, write the raw text: uncolored, but never invisible
+          clearTimeout(this._echoHeldTimer);
+          this._echoHeldTimer = setTimeout(() => this._flushHeldEcho(), 100);
+        }
         if (submit) {
           // Let the coloring arrive before submitting moves the input off its line
           await new Promise((resolve) => setTimeout(resolve, 100));
-          if (this._echoHeld != undefined) {
-            // No coloring arrived in time, so write the raw text: uncolored, but never invisible
-            this._hideCursorWrite(this._echoHeld);
-            this._echoHeld = undefined;
-          }
+          // No coloring arrived in time, so write the raw text: uncolored, but never invisible
+          this._flushHeldEcho();
           if (this._state == "prompt") {
             // Reset historyIdx
             this._historyIdx = -1;
@@ -733,6 +796,9 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   }
 
   setDimensions(dimensions: vscode.TerminalDimensions): void {
+    this._rows = dimensions.rows;
+    // The repaint below redraws the whole input, so the held part must be on screen first
+    this._flushHeldEcho();
     if (this._state != "eval" && this._input != "") {
       // Move the cursor to the correct new position
       this._moveCursor(undefined, dimensions.columns - this._cols);
