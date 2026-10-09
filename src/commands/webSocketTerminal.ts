@@ -82,14 +82,18 @@ class WebSocketTerminal implements vscode.Pseudoterminal {
   /** The leading characters for multi-line editing mode */
   public readonly multiLinePrompt = "... ";
 
+  // These next three properties are set by open() which has
+  // to be called for this project to be useful so it's safe
+  // to assert that the properties will be initialized
+
   /** The WebSocket used to talk to the server */
-  private _socket: WebSocket;
+  private _socket!: WebSocket;
 
   /** The number of columns in the terminal */
-  private _cols: number;
+  private _cols!: number;
 
   /** The number of rows in the terminal */
-  private _rows: number;
+  private _rows!: number;
 
   /** The echo held back for pasted input, until its coloring arrives */
   private _echoHeld?: string;

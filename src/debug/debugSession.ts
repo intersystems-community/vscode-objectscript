@@ -14,7 +14,7 @@ import {
   TerminatedEvent,
 } from "@vscode/debugadapter";
 import { DebugProtocol } from "@vscode/debugprotocol";
-import WebSocket = require("ws");
+import WebSocket from "ws";
 import { AtelierAPI } from "../api";
 import * as xdebug from "./xdebugConnection";
 import { lsExtensionId, schemas, sendDebuggerTelemetryEvent } from "../extension";
@@ -71,9 +71,11 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
 
   private _connection: xdebug.Connection | null | undefined;
 
-  private _namespace: string;
+  // Next two properties are set in initializeRequest() which is called right after the constructor
 
-  private _url: string;
+  private _namespace!: string;
+
+  private _url!: string;
 
   private _debugTargetSet = false;
 
@@ -263,7 +265,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       const debugTarget = `${this._namespace}:${args.program}`;
       await this._connection!.sendFeatureSetCommand("debug_target", debugTarget, true);
       sendDebuggerTelemetryEvent("launch");
-    } catch (error) {
+    } catch (error: any) {
       this.sendErrorResponse(response, error);
       return;
     }
@@ -301,7 +303,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
         }
       }
       sendDebuggerTelemetryEvent(this._isCsp ? "rest" : this._isUnitTest ? "unittest" : "attach");
-    } catch (error) {
+    } catch (error: any) {
       this.sendErrorResponse(response, error);
       return;
     }
@@ -316,7 +318,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       const xdebugResponse = await this._connection!.sendBreakCommand();
       this.sendResponse(response);
       this._checkStatus(xdebugResponse);
-    } catch (error) {
+    } catch (error: any) {
       this.sendErrorResponse(response, error);
     }
   }
@@ -341,7 +343,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
         this.sendResponse(response);
         this._checkStatus(xdebugResponse);
       }
-    } catch (error) {
+    } catch (error: any) {
       this.sendErrorResponse(response, error);
     }
   }
@@ -359,7 +361,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
         const xdebugResponse = await this._connection!.sendDetachCommand();
         this.sendResponse(response);
         this._checkStatus(xdebugResponse);
-      } catch (error) {
+      } catch (error: any) {
         this.sendErrorResponse(response, error);
       }
     } else {
@@ -543,7 +545,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
               await this._connection!.sendBreakpointSetCommand(breakpoint);
               vscodeBreakpoints[index] = { verified: true, line: breakpoint.line };
             }
-          } catch (error) {
+          } catch (error: any) {
             vscodeBreakpoints[index] = {
               verified: false,
               line: breakpoint.line,
@@ -558,7 +560,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       response.body = {
         breakpoints: vscodeBreakpoints,
       };
-    } catch (error) {
+    } catch (error: any) {
       this.sendErrorResponse(response, error);
       return;
     }
@@ -624,7 +626,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
           try {
             await this._connection!.sendBreakpointSetCommand(breakpoint);
             vscodeWatchpoints[index] = { verified: true, instructionReference: breakpoint.variable };
-          } catch (error) {
+          } catch (error: any) {
             vscodeWatchpoints[index] = {
               verified: false,
               instructionReference: breakpoint.variable,
@@ -639,7 +641,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       response.body = {
         breakpoints: vscodeWatchpoints,
       };
-    } catch (error) {
+    } catch (error: any) {
       this.sendErrorResponse(response, error);
       return;
     }
@@ -689,7 +691,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
               const { result } = await this._connection!.sendEvalCommand(
                 csp ? this._cspWatchpointCondition : this._unitTestWatchpointCondition
               );
-              if (result.type == "int" && result.value == "1") {
+              if (result && result.type == "int" && result.value == "1") {
                 // Stop the debugging session
                 const xdebugResponse = await this._connection!.sendDetachCommand();
                 this._checkStatus(xdebugResponse);
@@ -758,7 +760,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
         };
       }
       this.sendResponse(response);
-    } catch (error) {
+    } catch (error: any) {
       this.sendErrorResponse(response, error);
     }
   }
@@ -787,7 +789,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
         scopes,
       };
       this.sendResponse(response);
-    } catch (error) {
+    } catch (error: any) {
       this.sendErrorResponse(response, error);
     }
   }
@@ -856,7 +858,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
         variables,
       };
       this.sendResponse(response);
-    } catch (error) {
+    } catch (error: any) {
       this.sendErrorResponse(response, error);
     }
   }
@@ -902,7 +904,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       const xdebugResponse = await this._connection!.sendRunCommand();
       this.sendResponse(response);
       this._checkStatus(xdebugResponse);
-    } catch (error) {
+    } catch (error: any) {
       this.sendErrorResponse(response, error);
     }
   }
@@ -912,7 +914,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       const xdebugResponse = await this._connection!.sendStepOverCommand();
       this.sendResponse(response);
       this._checkStatus(xdebugResponse);
-    } catch (error) {
+    } catch (error: any) {
       this.sendErrorResponse(response, error);
     }
   }
@@ -925,7 +927,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       const xdebugResponse = await this._connection!.sendStepIntoCommand();
       this.sendResponse(response);
       this._checkStatus(xdebugResponse);
-    } catch (error) {
+    } catch (error: any) {
       this.sendErrorResponse(response, error);
     }
   }
@@ -938,7 +940,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
       const xdebugResponse = await this._connection!.sendStepOutCommand();
       this.sendResponse(response);
       this._checkStatus(xdebugResponse);
-    } catch (error) {
+    } catch (error: any) {
       this.sendErrorResponse(response, error);
     }
   }
@@ -964,7 +966,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
         response.body = { result: "no result", variablesReference: 0 };
       }
       this.sendResponse(response);
-    } catch (error) {
+    } catch (error: any) {
       this.sendErrorResponse(response, error);
     }
   }
@@ -992,7 +994,7 @@ export class ObjectScriptDebugSession extends LoggingDebugSession {
         value: args.value,
       };
       this.sendResponse(response);
-    } catch (error) {
+    } catch (error: any) {
       this.sendErrorResponse(response, error);
     }
   }

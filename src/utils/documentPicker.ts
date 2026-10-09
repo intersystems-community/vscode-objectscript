@@ -56,7 +56,7 @@ function createMultiSelectItem(
 
 function createSingleSelectItem(item: { Name: string; Type: number }): vscode.QuickPickItem {
   // Determine the icon
-  let icon = "$(symbol-file)";
+  let icon: string;
   if (item.Type == 0) {
     if (item.Name.endsWith(".inc")) {
       icon = "$(file-symlink-file)";

@@ -32,7 +32,7 @@ class File implements vscode.FileStat {
   public permissions?: vscode.FilePermission;
   public fileName: string;
   public name: string;
-  public data?: Uint8Array;
+  public data: Uint8Array;
   public constructor(name: string, fileName: string, ts: string, size: number, data: string | Buffer) {
     this.type = vscode.FileType.File;
     this.ctime = Number(new Date(ts + "Z"));
@@ -512,7 +512,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     validateUriIsCanonical(uri);
     // Use _lookup() instead of _lookupAsFile() so we send
     // our cached mtime with the GET /doc request if we have it
-    return this._lookup(uri, true).then((file: File) => file.data!);
+    return this._lookup(uri, true).then((entry) => (entry as File).data);
   }
 
   public writeFile(
@@ -542,7 +542,8 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
     // our cached mtime with the GET /doc request if we have it
     return this._lookup(uri)
       .then(
-        async (entry: File) => {
+        async (entry) => {
+          
           const contentBuffer = Buffer.from(content);
           const putContent = !csp // Web app files must always be written as raw bytes
             ? {
@@ -648,7 +649,7 @@ export class FileSystemProvider implements vscode.FileSystemProvider {
         }
       )
       .then((entry) => {
-        if (!entry) return; // entry is only empty when uri is open in a low-code editor
+        if (!(entry instanceof File)) return; // entry is only empty when uri is open in a low-code editor
         // Compile the document if required
         if (
           isCompilable(entry.fileName) &&

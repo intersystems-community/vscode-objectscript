@@ -152,7 +152,7 @@ export async function importFile(
       true
     );
     if (serverUri) documentContentProvider.update(serverUri);
-  } catch (error) {
+  } catch (error: any) {
     if (error?.statusCode == 409) {
       const choices: string[] = [];
       if (!enc) {
