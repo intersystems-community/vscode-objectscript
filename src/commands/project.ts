@@ -692,15 +692,13 @@ export async function modifyProject(
           type = ext.toUpperCase();
         }
 
-        let newAdd: ProjectItem[] = [];
-        let newRemove: ProjectItem[] = [];
         const addResult = addProjectItem(
           type == "CLS" || type == "PKG" ? pick.slice(0, -4) : type == "CSP" || type == "DIR" ? pick.slice(1) : pick,
           type,
           items
         );
-        newAdd = addResult.add;
-        newRemove = addResult.remove;
+        const newAdd: ProjectItem[] = addResult.add;
+        const newRemove: ProjectItem[] = addResult.remove;
 
         // Perform the new adds and removes
         if (newRemove.length) {
@@ -966,9 +964,8 @@ export async function addIsfsFileToProject(project: string, fileName: string, ap
   const items: ProjectItem[] = await api
     .actionQuery("SELECT Name, Type FROM %Studio.Project_ProjectItemsList(?,?) WHERE Type != 'GBL'", [project, "1"])
     .then((data) => data.result.content);
-  let add: ProjectItem[] = [];
   const addResult = addProjectItem(prjFileName, prjType, items);
-  add = addResult.add;
+  const add: ProjectItem[] = addResult.add;
 
   try {
     if (add.length) {

@@ -28,10 +28,10 @@ export class DocumaticPreviewPanel {
   private _editor: vscode.TextEditor;
 
   /** The class definition `DocumentSymbol` for `_editor`. */
-  private _rootSymbol: vscode.DocumentSymbol;
+  private _rootSymbol!: vscode.DocumentSymbol;
 
   /** The version of the `TextDocument` associated with `_editor` that `_rootSymbol` was calculated for. */
-  private _symbolVersion: number;
+  private _symbolVersion!: number;
 
   /**
    * Track the currently panel. Only allow a single panel to exist at a time.
@@ -266,7 +266,7 @@ export class DocumaticPreviewPanel {
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
     vscode.window.onDidChangeActiveTextEditor(
-      async (editor: vscode.TextEditor) => {
+      async (editor: vscode.TextEditor | undefined) => {
         if (editor !== undefined && editor.document.languageId === clsLangId) {
           // The new active editor is a class, so switch our preview to it
 

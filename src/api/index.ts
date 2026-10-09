@@ -64,9 +64,9 @@ export interface ConnectionSettings {
 }
 
 export class AtelierAPI {
-  private _config: ConnectionSettings;
-  private namespace: string;
-  public configName: string;
+  private _config!: ConnectionSettings;
+  private namespace: string | undefined;
+  public configName!: string;
 
   // when FileSystemProvider used
   public externalServer = false;
@@ -559,7 +559,7 @@ export class AtelierAPI {
       }
 
       return data;
-    } catch (error) {
+    } catch (error: any) {
       if (
         error?.message?.includes("Connection: close") &&
         path?.includes("/doc/") &&

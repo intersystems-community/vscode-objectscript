@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import * as WebSocket from "ws";
+import WebSocket from "ws";
 import { DOMParser } from "@xmldom/xmldom";
 
 /** The two states the connection switches between */
@@ -14,7 +14,7 @@ export class DbgpConnection extends EventEmitter {
   private _parsingState: ParsingState;
   private _chunksDataLength: number;
   private _chunks: Buffer[];
-  private _dataLength: number;
+  private _dataLength: number = 0;
   private _parser: DOMParser;
   private _messages: Buffer[] = [];
   private _processingMessages = false;
