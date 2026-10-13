@@ -157,7 +157,7 @@ export function fileSpecFromURI(uri: vscode.Uri): string {
         : uri.path + "/";
 
   // The filter Uri parameter is the first argument to StudioOpenDialog (Spec)
-  let specOpts = "";
+  let specOpts: string;
   if (filter) {
     // Always exclude Studio projects, BPL, and DTL since we can't do anything with them
     specOpts = filter + ",'*.prj,'*.bpl,'*.dtl";

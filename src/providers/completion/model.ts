@@ -1,4 +1,4 @@
-interface CompletionModel {
+export interface CompletionModel {
   label: string;
   alias: string[];
   deprecated?: boolean;

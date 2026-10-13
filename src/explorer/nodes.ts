@@ -150,7 +150,7 @@ export class RootNode extends NodeBase {
     flat: boolean
   ): Promise<{ Name: string; Type: string; fullName: string }[] | undefined> {
     const sql = "SELECT Name, Type FROM %Library.RoutineMgr_StudioOpenDialog(?,?,?,?,?,?,?)";
-    let spec = "";
+    let spec: string;
     switch (category) {
       case "CLS":
         spec = "*.cls";

@@ -46,7 +46,7 @@ export function registerExplorerOpen(): vscode.Disposable {
           await vscode.workspace.fs.readFile(uri);
           await vscode.commands.executeCommand("vscode.open", uri, { preview: usePreview });
         }
-      } catch (error) {
+      } catch (error: any) {
         if (Object.keys(error).length && project && fullName) {
           // This project item no longer exists on the server
           // Ask the user if they would like to remove it from the project

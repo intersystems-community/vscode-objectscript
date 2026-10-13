@@ -57,7 +57,7 @@ export async function serverActions(): Promise<void> {
       });
     }
   }
-  const connectionActionsHandler = async (action: ServerAction): Promise<ServerAction | undefined> => {
+  const connectionActionsHandler = async (action: ServerAction | undefined): Promise<ServerAction | undefined> => {
     if (!action) {
       return;
     }

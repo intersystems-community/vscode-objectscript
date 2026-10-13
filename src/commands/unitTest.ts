@@ -170,7 +170,6 @@ function createRootItemsForWorkspaceFolder(
   testController: vscode.TestController,
   folder: vscode.WorkspaceFolder
 ): vscode.TestItem[] {
-  let newItems: vscode.TestItem[] = [];
   const api = new AtelierAPI(folder.uri);
   const { csp } = isfsConfig(folder.uri);
   // Must have an active server connection to a non-%SYS namespace and Atelier API version 8 or above
@@ -192,7 +191,7 @@ function createRootItemsForWorkspaceFolder(
   } else {
     itemUris = [folder.uri];
   }
-  newItems = itemUris.map((uri) => {
+  const newItems: vscode.TestItem[] = itemUris.map((uri) => {
     const newItem = testController.createTestItem(uri.toString(), folder.name, uri);
     if (notIsfs(uri)) {
       // Add the root as the description

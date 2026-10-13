@@ -176,18 +176,18 @@ function searchMatchToLine(
             // Need to keep looping due to the possibility of keywords with multiline values
             keywordSearch = true;
           }
-          if (keywordSearch) {
-            if (content[i].includes(match.attr)) {
-              line = match.attrline ? i + match.attrline - 1 : i;
-              break;
-            } else if (
-              /^((?:Class|Client)?Method|Property|XData|Query|Trigger|Parameter|Relationship|Index|ForeignKey|Storage|Projection|\/\/\/)/.test(
-                content[i]
-              )
-            ) {
-              // Hit the beginning of the next member
-              break;
-            }
+        }
+        if (keywordSearch) {
+          if (content[i].includes(match.attr)) {
+            line = match.attrline ? i + match.attrline - 1 : i;
+            break;
+          } else if (
+            /^((?:Class|Client)?Method|Property|XData|Query|Trigger|Parameter|Relationship|Index|ForeignKey|Storage|Projection|\/\/\/)/.test(
+              content[i]
+            )
+          ) {
+            // Hit the beginning of the next member
+            break;
           }
         }
       }

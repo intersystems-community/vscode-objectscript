@@ -26,8 +26,8 @@ function getSqlQuery(document: vscode.TextDocument, startLine: number, startChar
     isParen = end == ")";
   let result = "",
     brk = false,
-    inSingleQ = false,
-    inDoubleQ = false,
+    inSingleQ: boolean,
+    inDoubleQ: boolean,
     inComment = false,
     braceCount = 1;
   for (let l = startLine; l < document.lineCount; l++) {

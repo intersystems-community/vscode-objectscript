@@ -4,8 +4,8 @@ import { config } from "../extension";
 export type WordCase = "word" | "upper" | "lower";
 
 export class Formatter {
-  private _commandCase: WordCase;
-  private _functionCase: WordCase;
+  private _commandCase!: WordCase;
+  private _functionCase!: WordCase;
 
   public constructor() {
     this.loadConfig();
