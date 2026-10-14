@@ -59,7 +59,7 @@ function getOtherStudioActionLabel(action: OtherStudioAction): string {
 }
 
 export class StudioActions {
-  private uri: vscode.Uri;
+  private uri: vscode.Uri | undefined;
   private api: AtelierAPI;
   private name: string;
   public projectEditAnswer?: string;
@@ -71,6 +71,10 @@ export class StudioActions {
       this.api = new AtelierAPI(uri);
     } else {
       this.api = new AtelierAPI();
+      // This branch is only used when fireImportUserAction()
+      // or fireProjectUserAction() are called and neither of
+      // them reference this property so this is safe
+      this.name = "";
     }
   }
 

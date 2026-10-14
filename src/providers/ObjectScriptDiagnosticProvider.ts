@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { CompletionModel } from "./completion/model";
 import commands = require("./completion/commands.json");
 import systemFunctions = require("./completion/systemFunctions.json");
 import systemVariables = require("./completion/systemVariables.json");
@@ -324,7 +325,7 @@ export class ObjectScriptDiagnosticProvider {
       }
 
       const pattern = /(?<!\$)(\$[a-z]+)/gi;
-      let functionsMatch: RegExpExecArray | null = null;
+      let functionsMatch: RegExpExecArray | null;
       while ((functionsMatch = pattern.exec(text)) !== null) {
         const [, found] = functionsMatch;
         const pos = functionsMatch.index;

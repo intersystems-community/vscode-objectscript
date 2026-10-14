@@ -122,7 +122,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
     wFolderUri?: vscode.Uri,
     forceServerCopy = false
   ): vscode.Uri | null {
-    let scheme = vfs ? FILESYSTEM_SCHEMA : OBJECTSCRIPT_FILE_SCHEMA;
+    const scheme = vfs ? FILESYSTEM_SCHEMA : OBJECTSCRIPT_FILE_SCHEMA;
     const isCsp = name.includes("/");
 
     // if wFolderUri was passed it takes precedence
@@ -155,8 +155,6 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
       uri = wFolderUri.with({
         path: !uriPath.startsWith("/") ? `/${uriPath}` : uriPath,
       });
-      vfs = true;
-      scheme = wFolderUri.scheme;
       // If this is not a CSP file, remove the CSP query param if it's present
       if (cspParam && !isCsp) {
         params.delete(IsfsUriParam.CSP);

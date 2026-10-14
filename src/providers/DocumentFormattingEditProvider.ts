@@ -231,7 +231,7 @@ export class DocumentFormattingEditProvider implements vscode.DocumentFormatting
       const line = document.lineAt(i);
 
       const pattern = /(?<!\$)(\$\b[a-z]+)\b(\()?/gi;
-      let functionsMatch: RegExpExecArray | null = null;
+      let functionsMatch: RegExpExecArray | null;
       while ((functionsMatch = pattern.exec(line.text)) !== null) {
         const [, found, isFunc] = functionsMatch;
         const pos = functionsMatch.index;
