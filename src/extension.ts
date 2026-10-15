@@ -305,12 +305,12 @@ function isUnknownUser(username: string | undefined): boolean {
   return (username || "unknownuser").toLowerCase() == "unknownuser";
 }
 
-async function resolveUsernameAndPassword(connSpec: ConnSpec): Promise<void> {
-  if (!connSpec.auth.resolved()) {
-    const scopes = [connSpec.name, connSpec.auth.username];
+async function resolveUsernameAndPassword(conn: ConnSpec): Promise<void> {
+  if (!conn.auth.resolved()) {
+    const scopes = [conn.name, conn.auth.username];
 
     // Handle Server Manager extension version < 3.8.0
-    const account = serverManagerApi.getAccount ? serverManagerApi.getAccount(connSpec) : undefined;
+    const account = serverManagerApi.getAccount ? serverManagerApi.getAccount(conn) : undefined;
 
     let session = await vscode.authentication.getSession(serverManager.AUTHENTICATION_PROVIDER, scopes, {
       silent: true,
@@ -324,8 +324,8 @@ async function resolveUsernameAndPassword(connSpec: ConnSpec): Promise<void> {
     }
     if (session) {
       // If original spec lacked username use the one obtained from the user by the authprovider (exact case)
-      connSpec.auth.resolve({
-        username: session.scopes[1] || connSpec.auth.username,
+      conn.auth.resolve({
+        username: session.scopes[1] || conn.auth.username,
         accessToken: session.accessToken,
       });
     }
