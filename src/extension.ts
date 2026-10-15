@@ -333,11 +333,14 @@ async function resolvePassword(connSpec: ConnSpec): Promise<void> {
 }
 
 /** Resolve credentials for `serverName` and returned the complete connection spec if successful */
-export async function resolveUsernameAndPassword(serverName: string, conn: ConnSpec): Promise<ConnSpec | undefined> {
-  await resolvePassword(conn);
-  if (conn.auth.resolved()) {
-    resolvedConnSpecs.set(serverName, conn);
-    return conn;
+export async function resolveUsernameAndPassword(serverName: string, oldSpec: ConnSpec): Promise<ConnSpec | undefined> {
+  const newSpec = { ...oldSpec };
+  newSpec.name = serverName;
+  newSpec.auth = newSpec.auth.clone();
+  await resolvePassword(oldSpec);
+  if (oldSpec.auth.resolved()) {
+    resolvedConnSpecs.set(serverName, oldSpec);
+    return oldSpec;
   }
 }
 
