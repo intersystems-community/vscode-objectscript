@@ -293,7 +293,7 @@ export async function resolveConnectionSpec(
     if (connSpec.auth.resolved() || isUnknownUser(connSpec.auth.username)) {
       resolvedConnSpecs.set(serverName, connSpec);
     } else {
-      await resolveAuth(connSpec);
+      await resolvePassword(connSpec);
       if (connSpec.auth.resolved()) {
         resolvedConnSpecs.set(serverName, connSpec);
       }
@@ -305,7 +305,7 @@ function isUnknownUser(username: string | undefined): boolean {
   return (username || "unknownuser").toLowerCase() == "unknownuser";
 }
 
-async function resolveAuth(conn: ConnSpec): Promise<void> {
+async function resolvePassword(conn: ConnSpec): Promise<void> {
   if (!conn.auth.resolved()) {
     const scopes = [conn.name, conn.auth.username];
 
@@ -330,8 +330,8 @@ async function resolveAuth(conn: ConnSpec): Promise<void> {
 }
 
 /** Resolve `auth` for `serverName`, then cache and return the spec if successful */
-export async function resolveAuthAndCache(serverName: string, conn: ConnSpec): Promise<ConnSpec | undefined> {
-  await resolveAuth(conn);
+export async function resolveUsernameAndPassword(serverName: string, conn: ConnSpec): Promise<ConnSpec | undefined> {
+  await resolvePassword(conn);
   if (conn.auth.resolved()) {
     resolvedConnSpecs.set(serverName, conn);
     return conn;
@@ -527,7 +527,7 @@ export async function ensureConnection(
                 .getConfiguration("intersystems.servers", uri)
                 .get<serverManager.IJSONServerSpec>(api.config.serverName)
             );
-            const newSpec = oldSpec && (await resolveAuthAndCache(api.config.serverName, oldSpec));
+            const newSpec = oldSpec && (await resolveUsernameAndPassword(api.config.serverName, oldSpec));
             if (newSpec) {
               // We were able to resolve credentials, so try again
               await workspaceState.update(wsKey + ":password", newSpec.auth.accessToken);
