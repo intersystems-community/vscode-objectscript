@@ -323,9 +323,8 @@ async function resolveAuth(conn: ConnSpec): Promise<void> {
       });
     }
     if (session) {
-      // A configured username wins; one the auth provider prompted for is adopted unless left as the UnknownUser placeholder
-      const username = conn.auth.username || session.scopes[1];
-      conn.auth.resolve({ username: isUnknownUser(username) ? undefined : username, accessToken: session.accessToken });
+      // A configured username wins over the session's, which may differ in case; an entered one is adopted
+      conn.auth.resolve({ username: conn.auth.username || session.scopes[1], accessToken: session.accessToken });
     }
   }
 }
