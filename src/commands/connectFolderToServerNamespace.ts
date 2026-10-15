@@ -5,7 +5,7 @@ import {
   resolveConnectionSpec,
   getResolvedConnectionSpec,
   serverManagerApi,
-  resolveConnSpecAndCache,
+  resolveUsernameAndPasswordAndCache,
 } from "../extension";
 import { handleError, notIsfs, displayableUri } from "../utils";
 
@@ -88,7 +88,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
     .catch(async (error) => {
       if (error?.statusCode == 401 && !api.config.auth.resolved()) {
         // Attempt to resolve username and password and try again
-        const newSpec = await resolveConnSpecAndCache(api.config.serverName, connSpec);
+        const newSpec = await resolveUsernameAndPasswordAndCache(api.config.serverName, connSpec);
         if (newSpec) {
           // We were able to resolve credentials, so try again
           api.setConnSpec(api.config.serverName, newSpec);

@@ -232,7 +232,7 @@ const resolvedConnSpecs = new Map<string, ConnSpec>();
  * Prompt for credentials if necessary.
  *
  * Best-effort only: never contacts the server, so a no-username spec is assumed unauthenticated
- * and cached as-is. If wrong, `resolveConnSpecAndCache` corrects it later on an actual 401.
+ * and cached as-is. If wrong, `resolveUsernameAndPasswordAndCache` corrects it later on an actual 401.
  * @param serverName authority element of an isfs uri, or `objectscript.conn.server` property, or the name of a root folder with an `objectscript.conn.docker-compose` property object
  * @param uri if passed, re-check the `objectscript.conn.docker-compose` case in case servermanager API couldn't do that because we're still running our own `activate` method.
  */
@@ -333,7 +333,10 @@ async function resolveConnSpec(connSpec: ConnSpec): Promise<void> {
 }
 
 /** Resolve credentials for `serverName` and returned the complete connection spec if successful */
-export async function resolveConnSpecAndCache(serverName: string, spec: ConnSpec): Promise<ConnSpec | undefined> {
+export async function resolveUsernameAndPasswordAndCache(
+  serverName: string,
+  spec: ConnSpec
+): Promise<ConnSpec | undefined> {
   await resolveConnSpec(spec);
   if (spec.auth.resolved()) {
     resolvedConnSpecs.set(serverName, spec);
@@ -525,7 +528,7 @@ export async function ensureConnection(
               api.config.serverName,
               vscode.workspace.getConfiguration("intersystems.servers", uri).get(api.config.serverName)
             );
-            const newSpec = await resolveConnSpecAndCache(api.config.serverName, oldSpec!);
+            const newSpec = await resolveUsernameAndPasswordAndCache(api.config.serverName, oldSpec!);
             if (newSpec) {
               // We were able to resolve credentials, so try again
               await workspaceState.update(wsKey + ":password", newSpec.auth?.accessToken);
