@@ -293,7 +293,7 @@ export async function resolveConnectionSpec(
     if (connSpec.auth.resolved() || isUnknownUser(connSpec.auth.username)) {
       resolvedConnSpecs.set(serverName, connSpec);
     } else {
-      await resolveConnSpec(connSpec);
+      await resolveUsernameAndPassword(connSpec);
       if (connSpec.auth.resolved()) {
         resolvedConnSpecs.set(serverName, connSpec);
       }
@@ -305,7 +305,7 @@ function isUnknownUser(username: string | undefined): boolean {
   return (username || "unknownuser").toLowerCase() == "unknownuser";
 }
 
-async function resolveConnSpec(connSpec: ConnSpec): Promise<void> {
+async function resolveUsernameAndPassword(connSpec: ConnSpec): Promise<void> {
   if (!connSpec.auth.resolved()) {
     const scopes = [connSpec.name, connSpec.auth.username];
 
@@ -337,7 +337,7 @@ export async function resolveUsernameAndPasswordAndCache(
   serverName: string,
   spec: ConnSpec
 ): Promise<ConnSpec | undefined> {
-  await resolveConnSpec(spec);
+  await resolveUsernameAndPassword(spec);
   if (spec.auth.resolved()) {
     resolvedConnSpecs.set(serverName, spec);
     return spec;
