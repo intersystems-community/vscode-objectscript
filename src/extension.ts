@@ -232,7 +232,7 @@ const resolvedConnSpecs = new Map<string, ConnSpec>();
  * Prompt for credentials if necessary.
  *
  * Best-effort only: never contacts the server, so a no-username spec is assumed unauthenticated
- * and cached as-is. If wrong, `resolveUsernameAndPasswordAndCache` corrects it later on an actual 401.
+ * and cached as-is. If wrong, `resolveAuthAndCache` corrects it later on an actual 401.
  * @param serverName authority element of an isfs uri, or `objectscript.conn.server` property, or the name of a root folder with an `objectscript.conn.docker-compose` property object
  * @param uri if passed, re-check the `objectscript.conn.docker-compose` case in case servermanager API couldn't do that because we're still running our own `activate` method.
  */
@@ -332,7 +332,7 @@ async function resolveAuth(conn: ConnSpec): Promise<void> {
   }
 }
 
-/** Resolve credentials for `serverName` and returned the complete connection spec if successful */
+/** Resolve `auth` for `serverName`, then cache and return the spec if successful */
 export async function resolveAuthAndCache(serverName: string, conn: ConnSpec): Promise<ConnSpec | undefined> {
   await resolveAuth(conn);
   if (conn.auth.resolved()) {
