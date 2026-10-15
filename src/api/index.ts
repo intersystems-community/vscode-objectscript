@@ -257,10 +257,7 @@ export class AtelierAPI {
         webServer: { scheme, host, port, pathPrefix = "" },
         auth,
         superServer,
-      } = getResolvedConnectionSpec(
-        serverName,
-        config("intersystems.servers", workspaceFolderName).get<IJSONServerSpec>(serverName)
-      )!;
+      } = getResolvedConnectionSpec(serverName, config("intersystems.servers", workspaceFolderName).get(serverName))!;
       this._config = {
         serverName,
         active: this.externalServer ? !inactiveServerIds.has(serverName) : conn.active,
