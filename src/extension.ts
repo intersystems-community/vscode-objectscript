@@ -352,9 +352,9 @@ export function getResolvedConnectionSpec(
   }
 
   // Try a case-insensitive match
-  const matchKey = resolvedConnSpecs.keys().find((oneKey) => oneKey.toLowerCase() === key.toLowerCase());
-  if (matchKey) {
-    spec = resolvedConnSpecs.get(matchKey);
+  key = resolvedConnSpecs.keys().find((oneKey) => oneKey.toLowerCase() === key.toLowerCase()) ?? "";
+  if (key) {
+    spec = resolvedConnSpecs.get(key);
     if (spec) {
       return spec;
     }
