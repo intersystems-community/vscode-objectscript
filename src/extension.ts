@@ -526,9 +526,7 @@ export async function ensureConnection(
             // Attempt to resolve a username and password
             const oldSpec = getResolvedConnectionSpec(
               api.config.serverName,
-              vscode.workspace
-                .getConfiguration("intersystems.servers", uri)
-                .get<serverManager.IJSONServerSpec>(api.config.serverName)
+              vscode.workspace.getConfiguration("intersystems.servers", uri).get(api.config.serverName)
             );
             const newSpec = oldSpec && (await resolveUsernameAndPassword(api.config.serverName, oldSpec));
             if (newSpec) {
