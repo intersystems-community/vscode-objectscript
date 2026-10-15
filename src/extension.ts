@@ -528,7 +528,7 @@ export async function ensureConnection(
             const newSpec = await resolveAuthAndCache(api.config.serverName, oldSpec!);
             if (newSpec) {
               // We were able to resolve credentials, so try again
-              await workspaceState.update(wsKey + ":password", newSpec.auth?.accessToken);
+              await workspaceState.update(wsKey + ":password", newSpec.auth.accessToken);
               api = new AtelierAPI(apiTarget);
               await api
                 .serverInfo(true, serverInfoTimeout)
