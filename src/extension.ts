@@ -334,9 +334,7 @@ async function resolvePassword(connSpec: ConnSpec): Promise<void> {
 
 /** Resolve credentials for `serverName` and returned the complete connection spec if successful */
 export async function resolveUsernameAndPassword(serverName: string, spec: ConnSpec): Promise<ConnSpec | undefined> {
-  spec = { ...spec };
-  spec.name = serverName;
-  spec.auth = spec.auth.clone();
+  spec = { ...spec, name: serverName, auth: spec.auth.clone() };
 
   await resolvePassword(spec);
   if (spec.auth.resolved()) {
@@ -350,16 +348,14 @@ export function getResolvedConnectionSpec(
   key: string,
   dflt: serverManager.IJSONServerSpec | undefined
 ): ConnSpec | undefined {
-  let spec = resolvedConnSpecs.get(key);
+  const spec = resolvedConnSpecs.get(key);
   if (spec) {
     return spec;
   }
 
   // Try a case-insensitive match
-  key = resolvedConnSpecs.keys().find((oneKey) => oneKey.toLowerCase() === key.toLowerCase()) ?? "";
-  if (key) {
-    spec = resolvedConnSpecs.get(key);
-    if (spec) {
+  for (const [oneKey, spec] of resolvedConnSpecs.entries()) {
+    if (oneKey.toLowerCase() === key.toLowerCase()) {
       return spec;
     }
   }
