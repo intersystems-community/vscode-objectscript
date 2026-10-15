@@ -337,6 +337,7 @@ export async function resolveUsernameAndPassword(serverName: string, spec: ConnS
   spec = { ...spec };
   spec.name = serverName;
   spec.auth = spec.auth.clone();
+
   await resolvePassword(spec);
   if (spec.auth.resolved()) {
     resolvedConnSpecs.set(serverName, spec);
