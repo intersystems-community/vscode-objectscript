@@ -323,7 +323,7 @@ async function resolveUsernameAndPassword(conn: ConnSpec): Promise<void> {
       });
     }
     if (session) {
-      // If original spec lacked username use the one obtained from the user by the authprovider (exact case)
+      // If original spec lacked username use the one obtained from the auth provider
       conn.auth.resolve({
         username: session.scopes[1] || conn.auth.username,
         accessToken: session.accessToken,
