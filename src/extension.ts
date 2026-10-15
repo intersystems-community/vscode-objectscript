@@ -362,7 +362,7 @@ export function getResolvedConnectionSpec(
 
   // Return the default if not found
   if (dflt) {
-    return { ...dflt, name: key, auth: new BasicAuthorization(dflt.username, dflt.password) };
+    return { ...dflt, auth: new BasicAuthorization(dflt.username, dflt.password), name: key };
   }
 }
 
