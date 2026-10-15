@@ -336,7 +336,7 @@ async function resolveAuth(conn: ConnSpec): Promise<void> {
 export async function resolveAuthAndCache(serverName: string, conn: ConnSpec): Promise<ConnSpec | undefined> {
   await resolveAuth(conn);
   if (conn.auth.resolved()) {
-    resolvedConnSpecs.set(serverName, conn);
+    resolvedConnSpecs.set(serverName, { ...conn, name: serverName });
     return conn;
   }
 }
