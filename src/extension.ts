@@ -305,12 +305,12 @@ function isUnknownUser(username: string | undefined): boolean {
   return (username || "unknownuser").toLowerCase() == "unknownuser";
 }
 
-async function resolvePassword(conn: ConnSpec): Promise<void> {
-  if (!conn.auth.resolved()) {
-    const scopes = [conn.name, conn.auth.username];
+async function resolvePassword(connSpec: ConnSpec): Promise<void> {
+  if (!connSpec.auth.resolved()) {
+    const scopes = [connSpec.name, connSpec.auth.username];
 
     // Handle Server Manager extension version < 3.8.0
-    const account = serverManagerApi.getAccount ? serverManagerApi.getAccount(conn) : undefined;
+    const account = serverManagerApi.getAccount ? serverManagerApi.getAccount(connSpec) : undefined;
 
     let session = await vscode.authentication.getSession(serverManager.AUTHENTICATION_PROVIDER, scopes, {
       silent: true,
@@ -324,7 +324,10 @@ async function resolvePassword(conn: ConnSpec): Promise<void> {
     }
     if (session) {
       // A configured username wins over the session's, which may differ in case; an entered one is adopted
-      conn.auth.resolve({ username: conn.auth.username || session.scopes[1], accessToken: session.accessToken });
+      connSpec.auth.resolve({
+        username: connSpec.auth.username || session.scopes[1],
+        accessToken: session.accessToken,
+      });
     }
   }
 }
