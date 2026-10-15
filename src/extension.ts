@@ -232,7 +232,7 @@ const resolvedConnSpecs = new Map<string, ConnSpec>();
  * Prompt for credentials if necessary.
  *
  * Best-effort only: never contacts the server, so a no-username spec is assumed unauthenticated
- * and cached as-is. If wrong, `resolveUsernameAndPassword` corrects it later on an actual 401.
+ * and cached as-is. If wrong, `resolveConnSpecAndCache` corrects it later on an actual 401.
  * @param serverName authority element of an isfs uri, or `objectscript.conn.server` property, or the name of a root folder with an `objectscript.conn.docker-compose` property object
  * @param uri if passed, re-check the `objectscript.conn.docker-compose` case in case servermanager API couldn't do that because we're still running our own `activate` method.
  */
@@ -293,8 +293,8 @@ export async function resolveConnectionSpec(
     if (connSpec.auth.resolved() || isUnknownUser(connSpec.auth.username)) {
       resolvedConnSpecs.set(serverName, connSpec);
     } else {
-      const accessToken = await resolvePassword(connSpec);
-      if (connSpec.auth.resolve({ accessToken })) {
+      await resolveConnSpec(connSpec);
+      if (connSpec.auth.resolved()) {
         resolvedConnSpecs.set(serverName, connSpec);
       }
     }
@@ -305,12 +305,12 @@ function isUnknownUser(username: string | undefined): boolean {
   return (username || "unknownuser").toLowerCase() == "unknownuser";
 }
 
-async function resolvePassword(serverSpec: serverManager.IServerSpec): Promise<string | undefined> {
-  if (!serverSpec.auth?.resolved()) {
-    const scopes = [serverSpec.name, serverSpec.auth?.username || ""];
+async function resolveConnSpec(connSpec: ConnSpec): Promise<void> {
+  if (!connSpec.auth.resolved()) {
+    const scopes = [connSpec.name, connSpec.auth.username];
 
     // Handle Server Manager extension version < 3.8.0
-    const account = serverManagerApi.getAccount ? serverManagerApi.getAccount(serverSpec) : undefined;
+    const account = serverManagerApi.getAccount ? serverManagerApi.getAccount(connSpec) : undefined;
 
     let session = await vscode.authentication.getSession(serverManager.AUTHENTICATION_PROVIDER, scopes, {
       silent: true,
@@ -323,28 +323,21 @@ async function resolvePassword(serverSpec: serverManager.IServerSpec): Promise<s
       });
     }
     if (session) {
-      return session.accessToken;
+      // If original spec lacked username use the one obtained from the user by the authprovider (exact case)
+      connSpec.auth.resolve({
+        username: session.scopes[1] || connSpec.auth.username,
+        accessToken: session.accessToken,
+      });
     }
   }
 }
 
 /** Resolve credentials for `serverName` and returned the complete connection spec if successful */
-export async function resolveUsernameAndPassword(
-  serverName: string,
-  oldSpec: serverManager.IServerSpec
-): Promise<ConnSpec | undefined> {
-  const { auth: _auth, ...newSpec } = oldSpec;
-  newSpec.name = serverName;
-  const auth = _auth?.clone();
-
-  const accessToken = await resolvePassword({ ...newSpec, auth });
-  if (auth?.resolve({ accessToken })) {
-    // Update the connection spec
-    resolvedConnSpecs.set(serverName, {
-      ...oldSpec,
-      auth,
-    });
-    return resolvedConnSpecs.get(serverName);
+export async function resolveConnSpecAndCache(serverName: string, spec: ConnSpec): Promise<ConnSpec | undefined> {
+  await resolveConnSpec(spec);
+  if (spec.auth.resolved()) {
+    resolvedConnSpecs.set(serverName, spec);
+    return spec;
   }
 }
 
@@ -532,7 +525,7 @@ export async function ensureConnection(
               api.config.serverName,
               vscode.workspace.getConfiguration("intersystems.servers", uri).get(api.config.serverName)
             );
-            const newSpec = await resolveUsernameAndPassword(api.config.serverName, oldSpec!);
+            const newSpec = await resolveConnSpecAndCache(api.config.serverName, oldSpec!);
             if (newSpec) {
               // We were able to resolve credentials, so try again
               await workspaceState.update(wsKey + ":password", newSpec.auth?.accessToken);
