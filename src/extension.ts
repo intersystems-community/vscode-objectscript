@@ -332,7 +332,7 @@ async function resolvePassword(connSpec: ConnSpec): Promise<void> {
   }
 }
 
-/** Resolve `auth` for `serverName`, then cache and return the spec if successful */
+/** Resolve credentials for `serverName` and returned the complete connection spec if successful */
 export async function resolveUsernameAndPassword(serverName: string, conn: ConnSpec): Promise<ConnSpec | undefined> {
   await resolvePassword(conn);
   if (conn.auth.resolved()) {
