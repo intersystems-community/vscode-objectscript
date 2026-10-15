@@ -18,7 +18,7 @@ const DEFAULT_API_VERSION = 1;
 const DEFAULT_SERVER_VERSION = "2016.2.0";
 import * as Atelier from "./atelier";
 import { isfsConfig } from "../utils/FileProviderUtil";
-import { Authorization, IJSONServerSpec, IServerSpec } from "@intersystems-community/intersystems-servermanager";
+import { Authorization, IServerSpec } from "@intersystems-community/intersystems-servermanager";
 
 // Map of the authRequest promises for each `username@http(s)://host:port/pathPrefix` target to avoid concurrency issues
 const authRequestMap = new Map<string, Promise<any>>();
