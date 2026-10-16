@@ -2101,12 +2101,16 @@ export async function deactivate(): Promise<void> {
 
 // A copy of the BasicAuthorization class from ServerManager
 // We use it to patch older version of getServerSpec.
-export default class BasicAuthorization implements Authorization {
+export class BasicAuthorization implements Authorization {
   #username?: string;
   #password?: string;
   constructor(username?: string, password?: string) {
     this.#username = username;
     this.#password = password;
+  }
+
+  public static isUnknownUser(username: string | undefined): boolean {
+    return username?.toLowerCase() === "unknownuser";
   }
 
   public get username(): string {
@@ -2118,20 +2122,30 @@ export default class BasicAuthorization implements Authorization {
   }
 
   public get accessToken(): string | undefined {
-    return this.#password;
+    return BasicAuthorization.isUnknownUser(this.#username) ? "" : this.#password;
   }
 
-  public get httpAuthorizationHeader(): string {
+  public get httpAuthorizationHeader(): string | undefined {
+    if (BasicAuthorization.isUnknownUser(this.#username)) {
+      return "";
+    }
     return `Basic ${Buffer.from(`${this.#username}:${this.#password}`).toString("base64")}`;
   }
 
   public resolved(): this is ResolvedAuthorization {
-    return this.username !== "" && this.#password !== undefined;
+    return BasicAuthorization.isUnknownUser(this.#username) || (this.username !== "" && !!this.#password);
   }
 
-  public resolve(param: { accessToken: string; username?: string }): this is ResolvedAuthorization {
-    this.#username = param.username ?? this.#username;
-    this.#password = param.accessToken ?? this.#password;
+  public resolve({
+    accessToken,
+    username,
+  }: {
+    accessToken?: string;
+    username?: string;
+  }): this is ResolvedAuthorization {
+    this.#username = username ?? this.#username;
+    // empty accessTokens are ignored.
+    this.#password = accessToken || this.#password;
     return this.resolved();
   }
 
@@ -2139,14 +2153,18 @@ export default class BasicAuthorization implements Authorization {
     this.#password = undefined;
   }
 
-  public get credentials(): { auth: { username: string; password: string }; headers?: Record<string, string> } {
-    return {
-      auth: {
-        username: this.username,
-        password: this.password!,
-      },
-      headers: {},
-    };
+  public get credentials(): { auth?: { username: string; password: string }; headers?: Record<string, string> } {
+    if (BasicAuthorization.isUnknownUser(this.#username)) {
+      return {};
+    } else {
+      return {
+        auth: {
+          username: this.username,
+          password: this.password!,
+        },
+        headers: {},
+      };
+    }
   }
 
   public clone(): BasicAuthorization {
