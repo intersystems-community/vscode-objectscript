@@ -548,7 +548,9 @@ export class RESTDebugPanel {
                   .trim();
               }
             });
-            headers["authorization"] = headers["authorization"] ?? (api.config.auth.httpAuthorizationHeader || "");
+            if (headers["authorization"] === undefined && api.authorizationHeader) {
+              headers["authorization"] = api.authorizationHeader;
+            }
             const hasBody =
               typeof message.bodyContent == "string" && message.bodyContent != "" && message.bodyType != "No Body";
             if (hasBody) {

@@ -2,7 +2,8 @@ import axios from "axios";
 import * as httpsModule from "https";
 import * as vscode from "vscode";
 import * as semver from "semver";
-import BasicAuthorization, {
+import {
+  BasicAuthorization,
   getResolvedConnectionSpec,
   config,
   extensionContext,
@@ -189,6 +190,12 @@ export class AtelierAPI {
 
   public get cookies(): string[] {
     return cookiesMap.get(this.mapKey()) ?? [];
+  }
+
+  /** The `Authorization` header to send, or `undefined` for unauthenticated access (`UnknownUser`, or no credentials yet) */
+  public get authorizationHeader(): string | undefined {
+    const { auth } = this.config;
+    return (auth.resolved() && auth.httpAuthorizationHeader) || undefined;
   }
 
   public xdebugUrl(): string {
@@ -391,9 +398,8 @@ export class AtelierAPI {
     let auth: Promise<any> | undefined;
     let authRequest = authRequestMap.get(mapKey);
     if (cookies.length || (method === "HEAD" && !originalPath)) {
-      // Only send basic authorization if username and password specified (including blank, for unauthenticated access)
-      if (!cookies.length && this.config.auth.resolved()) {
-        headers["Authorization"] = this.config.auth.httpAuthorizationHeader;
+      if (!cookies.length && this.authorizationHeader) {
+        headers["Authorization"] = this.authorizationHeader;
       }
       auth = Promise.resolve(cookies);
     } else if (!cookies.length) {
