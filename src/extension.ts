@@ -290,22 +290,21 @@ export async function resolveConnectionSpec(
   }
 
   if (connSpec) {
-    if (connSpec.auth.resolved() || isUnknownUser(connSpec.auth.username)) {
+    if (connSpec.auth.resolved() || !connSpec.auth.username) {
       resolvedConnSpecs.set(serverName, connSpec);
     } else {
-      const accessToken = await resolvePassword(connSpec);
-      if (connSpec.auth.resolve({ accessToken })) {
+      const credentials = await resolveCredentials(connSpec);
+      if (credentials && connSpec.auth.resolve(credentials)) {
         resolvedConnSpecs.set(serverName, connSpec);
       }
     }
   }
 }
 
-function isUnknownUser(username: string | undefined): boolean {
-  return (username || "unknownuser").toLowerCase() == "unknownuser";
-}
-
-async function resolvePassword(serverSpec: serverManager.IServerSpec): Promise<string | undefined> {
+/** Ask Server Manager's authentication provider for a session; its username may differ from the spec's if the user was prompted for one */
+async function resolveCredentials(
+  serverSpec: serverManager.IServerSpec
+): Promise<{ accessToken: string; username: string } | undefined> {
   if (!serverSpec.auth?.resolved()) {
     const scopes = [serverSpec.name, serverSpec.auth?.username || ""];
 
@@ -323,7 +322,7 @@ async function resolvePassword(serverSpec: serverManager.IServerSpec): Promise<s
       });
     }
     if (session) {
-      return session.accessToken;
+      return { accessToken: session.accessToken, username: session.scopes[1] };
     }
   }
 }
@@ -337,8 +336,8 @@ export async function resolveUsernameAndPassword(
   newSpec.name = serverName;
   const auth = _auth?.clone();
 
-  const accessToken = await resolvePassword({ ...newSpec, auth });
-  if (auth?.resolve({ accessToken })) {
+  const credentials = await resolveCredentials({ ...newSpec, auth });
+  if (credentials && auth?.resolve(credentials)) {
     // Update the connection spec
     resolvedConnSpecs.set(serverName, {
       ...oldSpec,
@@ -519,7 +518,7 @@ export async function ensureConnection(
         let success = false;
         message = "Not Authorized.";
         errorMessage = `Authorization error: Check your credentials in Settings, and that you have sufficient privileges on the /api/atelier web application on ${connInfo}`;
-        if (!api.config.auth.resolved()) {
+        if (!api.authorizationHeader) {
           vscode.window.showErrorMessage(
             `Unauthenticated access rejected by '${api.serverId}'.${
               !api.config.serverName ? " Connection has been disabled." : ""
@@ -1579,20 +1578,30 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
           affectedWsFolders.push(wsFolder);
         } else if (serverName && affectsConfiguration("intersystems.servers", wsFolder)) {
           const oldSpec = getResolvedConnectionSpec(serverName, undefined);
-          const newSpec = vscode.workspace.getConfiguration("intersystems.servers", wsFolder).get<any>(serverName);
+          const newSpec = vscode.workspace
+            .getConfiguration("intersystems.servers", wsFolder)
+            .get<serverManager.IJSONServerSpec>(serverName);
+          // The resolved spec has Server Manager's defaults applied, so apply them here too before comparing
+          const scheme = newSpec?.webServer.scheme || "http";
           if (
             !oldSpec ||
+            !newSpec ||
             !(
               oldSpec.webServer.host == newSpec.webServer.host &&
-              oldSpec.webServer.port == newSpec.webServer.port &&
-              oldSpec.webServer.scheme == newSpec.webServer.scheme &&
-              oldSpec.webServer.pathPrefix == newSpec.webServer.pathPrefix
+              oldSpec.webServer.port == (newSpec.webServer.port || (scheme == "https" ? 443 : 80)) &&
+              oldSpec.webServer.scheme == scheme &&
+              oldSpec.webServer.pathPrefix == (newSpec.webServer.pathPrefix || "")
             )
           ) {
             // Connection info changed
             resolvedConnSpecs.delete(serverName);
             affectedWsFolders.push(wsFolder);
             if (filesystemSchemas.includes(wsFolder.uri.scheme)) refreshFilesExplorer = true;
+          } else if (newSpec.username && newSpec.username.toLowerCase() != oldSpec.auth.username.toLowerCase()) {
+            // Only the user changed, e.g. Server Manager recorded 'UnknownUser' for a server that allowed unauthenticated access
+            resolvedConnSpecs.delete(serverName);
+            await resolveConnectionSpec(serverName);
+            affectedWsFolders.push(wsFolder);
           }
         }
       }
@@ -2101,12 +2110,16 @@ export async function deactivate(): Promise<void> {
 
 // A copy of the BasicAuthorization class from ServerManager
 // We use it to patch older version of getServerSpec.
-export default class BasicAuthorization implements Authorization {
+export class BasicAuthorization implements Authorization {
   #username?: string;
   #password?: string;
   constructor(username?: string, password?: string) {
     this.#username = username;
     this.#password = password;
+  }
+
+  public static isUnknownUser(username: string | undefined): boolean {
+    return username?.toLowerCase() === "unknownuser";
   }
 
   public get username(): string {
@@ -2118,20 +2131,30 @@ export default class BasicAuthorization implements Authorization {
   }
 
   public get accessToken(): string | undefined {
-    return this.#password;
+    return BasicAuthorization.isUnknownUser(this.#username) ? "" : this.#password;
   }
 
-  public get httpAuthorizationHeader(): string {
+  public get httpAuthorizationHeader(): string | undefined {
+    if (BasicAuthorization.isUnknownUser(this.#username)) {
+      return "";
+    }
     return `Basic ${Buffer.from(`${this.#username}:${this.#password}`).toString("base64")}`;
   }
 
   public resolved(): this is ResolvedAuthorization {
-    return this.username !== "" && this.#password !== undefined;
+    return BasicAuthorization.isUnknownUser(this.#username) || (this.username !== "" && !!this.#password);
   }
 
-  public resolve(param: { accessToken: string; username?: string }): this is ResolvedAuthorization {
-    this.#username = param.username ?? this.#username;
-    this.#password = param.accessToken ?? this.#password;
+  public resolve({
+    accessToken,
+    username,
+  }: {
+    accessToken?: string;
+    username?: string;
+  }): this is ResolvedAuthorization {
+    this.#username = username ?? this.#username;
+    // empty accessTokens are ignored.
+    this.#password = accessToken || this.#password;
     return this.resolved();
   }
 
@@ -2139,14 +2162,18 @@ export default class BasicAuthorization implements Authorization {
     this.#password = undefined;
   }
 
-  public get credentials(): { auth: { username: string; password: string }; headers?: Record<string, string> } {
-    return {
-      auth: {
-        username: this.username,
-        password: this.password!,
-      },
-      headers: {},
-    };
+  public get credentials(): { auth?: { username: string; password: string }; headers?: Record<string, string> } {
+    if (BasicAuthorization.isUnknownUser(this.#username)) {
+      return {};
+    } else {
+      return {
+        auth: {
+          username: this.username,
+          password: this.password!,
+        },
+        headers: {},
+      };
+    }
   }
 
   public clone(): BasicAuthorization {

@@ -13,8 +13,9 @@
 
 ## Cases
 
-One folder per workspace. The `-named`/`-anonymous` suffix picks the container and supplies
-`...credentials`: `{ username, password }` or `{}`.
+One folder per workspace. The `-named`/`-anonymous`/`-unknownuser` suffix picks the container and supplies
+`...credentials`: `{ username, password }`, `{}`, or `{ username: "UnknownUser" }` (explicit unauthenticated
+access to the `anonymous` container).
 
 | Case                   | `folders[·]`                           | `objectscript.conn` (folder)                               | `intersystems.servers` (workspace)                                                    |
 | ---------------------- | -------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -25,7 +26,7 @@ One folder per workspace. The `-named`/`-anonymous` suffix picks the container a
 
 `clientSide-os-host` and `clientSide-sm` also come as `-active` (`{ active: true }`) and `-inactive`
 (`{}`); a `docker-compose` connection is only resolved when active, so `clientSide-os-docker` has no
-variant. 12 launches in all.
+variant. 18 launches in all.
 
 ## Checks
 
@@ -34,7 +35,7 @@ idling past the session timeout; `-active`/`-inactive` cases then run them all o
 flipped. A credential prompt fails the case.
 
 1. **OS resolves** (`checkOSResolves`) — `asyncServerForUri` reports `active`, host, port, ns and credentials as configured
-2. **SM resolves** (`checkSMResolves`) — `getServerSpec` reports the same; `auth.resolved()` iff `-named`. Keyed by `<serverName>` for `*-sm`, by folder name for `*-os-*`
+2. **SM resolves** (`checkSMResolves`) — `getServerSpec` reports the same; `auth.resolved()` iff credentials are configured. Keyed by `<serverName>` for `*-sm`, by folder name for `*-os-*`. Server Manager may record `UnknownUser` for `-anonymous` once it finds the container allows unauthenticated access, so that user is accepted there too
 3. **OS lists the folder** (`checkOSListsTheFolder`; `serverSide-` only) — `readDirectory` on the isfs root is non-empty
 4. **SM lists namespaces** (`checkSMListsNamespaces`; SM repo only) — `makeRESTRequest("GET", spec)` → 200 listing `USER`
 5. **round-trips** (`checkRoundTrips`) — save a class; active: it appears on the server (direct REST) and goes on delete; inactive: it never arrives
