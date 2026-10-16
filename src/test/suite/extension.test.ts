@@ -68,8 +68,14 @@ async function checkOSResolves(expectActive: boolean): Promise<void> {
   assert.strictEqual(conn.host, "localhost");
   assert.strictEqual(conn.port, server.webServer.port);
   assert.strictEqual(conn.namespace, "USER");
-  assert.strictEqual(conn.username || "", server.username || "");
+  checkUsername(conn.username);
   assert.strictEqual(conn.password, server.password);
+}
+
+/** Server Manager may record 'UnknownUser' for the `-anonymous` server once it finds the container allows unauthenticated access */
+function checkUsername(actual: string | undefined): void {
+  const expected = server.username ? [server.username] : ["", "UnknownUser"];
+  assert.ok(expected.includes(actual || ""), `username '${actual}' is not one of '${expected.join("', '")}'`);
 }
 
 async function checkRoundTrips(expectActive: boolean): Promise<void> {
@@ -119,9 +125,12 @@ async function checkSMResolves(): Promise<void> {
   const spec = await smAPI.getServerSpec(specName);
   assert.ok(spec?.auth, `no spec for '${specName}'`);
   assert.deepStrictEqual(spec.webServer, server.webServer);
-  assert.strictEqual(spec.username || "", server.username || "");
+  checkUsername(spec.username);
   assert.strictEqual(spec.password, server.password);
-  assert.strictEqual(spec.auth.resolved(), server.password !== undefined);
+  assert.strictEqual(
+    spec.auth.resolved(),
+    server.password !== undefined || spec.username?.toLowerCase() == "unknownuser"
+  );
 }
 
 suite(caseName, () => {

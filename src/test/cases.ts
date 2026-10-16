@@ -3,14 +3,21 @@ import type { IJSONServerSpec } from "@intersystems-community/intersystems-serve
 
 export const SESSION_TIMEOUT_MS = 10000;
 
-/** The intersystems.servers entries, one per container */
-export const SERVERS: Record<string, IJSONServerSpec> = {
+/** The intersystems.servers entries and the container (docker-compose service) each reaches */
+export const SERVERS: Record<string, IJSONServerSpec & { service: string }> = {
   named: {
+    service: "named",
     webServer: { scheme: "http", host: "localhost", port: 52799, pathPrefix: "" },
     username: "_SYSTEM",
     password: "SYS",
   },
-  anonymous: { webServer: { scheme: "http", host: "localhost", port: 52798, pathPrefix: "" } },
+  anonymous: { service: "anonymous", webServer: { scheme: "http", host: "localhost", port: 52798, pathPrefix: "" } },
+  // Explicit unauthenticated access to the same container
+  unknownuser: {
+    service: "anonymous",
+    webServer: { scheme: "http", host: "localhost", port: 52798, pathPrefix: "" },
+    username: "UnknownUser",
+  },
 };
 
 type Kind = "clientSide-os-host" | "clientSide-os-docker" | "clientSide-sm" | "serverSide-sm";
@@ -63,11 +70,12 @@ export interface WorkspaceFile {
 
 /** Folder paths are relative to test-fixtures/.generated/ */
 export function workspaceFile({ kind, serverName, active }: Launch): WorkspaceFile {
+  const { service, ...spec } = SERVERS[serverName];
   const {
     webServer: { host, port },
     username,
     password,
-  } = SERVERS[serverName];
+  } = spec;
   // -inactive omits the key to exercise the default
   const activeConn = active ? { active } : {};
   switch (kind) {
@@ -91,7 +99,7 @@ export function workspaceFile({ kind, serverName, active }: Launch): WorkspaceFi
         folders: [{ path: "client" }],
         settings: {
           "objectscript.conn": {
-            "docker-compose": { file: "../../iris/docker-compose.yml", service: serverName },
+            "docker-compose": { file: "../../iris/docker-compose.yml", service },
             ns: "USER",
             active: true,
             username,
@@ -104,13 +112,13 @@ export function workspaceFile({ kind, serverName, active }: Launch): WorkspaceFi
         folders: [{ path: "client" }],
         settings: {
           "objectscript.conn": { server: serverName, ns: "USER", ...activeConn },
-          "intersystems.servers": { [serverName]: SERVERS[serverName] },
+          "intersystems.servers": { [serverName]: spec },
         },
       };
     case "serverSide-sm":
       return {
         folders: [{ uri: `isfs://${serverName}:USER/` }],
-        settings: { "intersystems.servers": { [serverName]: SERVERS[serverName] } },
+        settings: { "intersystems.servers": { [serverName]: spec } },
       };
   }
 }
