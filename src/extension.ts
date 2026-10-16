@@ -293,7 +293,7 @@ export async function resolveConnectionSpec(
     if (connSpec.auth.resolved() || isUnknownUser(connSpec.auth.username)) {
       resolvedConnSpecs.set(serverName, connSpec);
     } else {
-      await resolvePassword(connSpec);
+      await resolveAuth(connSpec);
       if (connSpec.auth.resolved()) {
         resolvedConnSpecs.set(serverName, connSpec);
       }
@@ -305,7 +305,7 @@ function isUnknownUser(username: string | undefined): boolean {
   return (username || "unknownuser").toLowerCase() == "unknownuser";
 }
 
-async function resolvePassword(connSpec: ConnSpec): Promise<void> {
+async function resolveAuth(connSpec: ConnSpec): Promise<void> {
   if (!connSpec.auth.resolved()) {
     const scopes = [connSpec.name, connSpec.auth.username];
 
@@ -333,10 +333,10 @@ async function resolvePassword(connSpec: ConnSpec): Promise<void> {
 }
 
 /** Resolve credentials for `serverName` and returned the complete connection spec if successful */
-export async function resolveUsernameAndPassword(serverName: string, spec: ConnSpec): Promise<ConnSpec | undefined> {
+export async function resolveAuthAndCache(serverName: string, spec: ConnSpec): Promise<ConnSpec | undefined> {
   spec = { ...spec, name: serverName, auth: spec.auth.clone() };
 
-  await resolvePassword(spec);
+  await resolveAuth(spec);
   if (spec.auth.resolved()) {
     resolvedConnSpecs.set(serverName, spec);
     return spec;
@@ -528,7 +528,7 @@ export async function ensureConnection(
               api.config.serverName,
               vscode.workspace.getConfiguration("intersystems.servers", uri).get(api.config.serverName)
             );
-            const newSpec = oldSpec && (await resolveUsernameAndPassword(api.config.serverName, oldSpec));
+            const newSpec = oldSpec && (await resolveAuthAndCache(api.config.serverName, oldSpec));
             if (newSpec) {
               // We were able to resolve credentials, so try again
               await workspaceState.update(wsKey + ":password", newSpec.auth.accessToken);
