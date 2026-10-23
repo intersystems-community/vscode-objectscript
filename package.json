@@ -1166,6 +1166,27 @@
           "required": [
             "active"
           ],
+          "dependencies": {
+            "password": [
+              "username"
+            ]
+          },
+          "allOf": [
+            {
+              "not": {
+                "required": [
+                  "username",
+                  "password"
+                ],
+                "properties": {
+                  "username": {
+                    "pattern": "^[Uu][Nn][Kk][Nn][Oo][Ww][Nn][Uu][Ss][Ee][Rr]$"
+                  }
+                }
+              },
+              "errorMessage": "'password' must not be set when 'username' is 'UnknownUser' (unauthenticated access)."
+            }
+          ],
           "properties": {
             "active": {
               "type": "boolean",
@@ -1207,7 +1228,7 @@
             },
             "username": {
               "type": "string",
-              "description": "Username to connect as. If not set here it must be provided when connecting."
+              "description": "Username to connect as. Set to 'UnknownUser' for unauthenticated access. If not set here it must be provided when connecting."
             },
             "password": {
               "type": "string",
@@ -1719,7 +1740,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@intersystems-community/intersystems-servermanager": "^3.14.1",
+    "@intersystems-community/intersystems-servermanager": "^3.15.0-beta.3",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.13.14",
     "@types/semver": "^7.8.0",

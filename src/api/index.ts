@@ -2,7 +2,8 @@ import axios from "axios";
 import * as httpsModule from "https";
 import * as vscode from "vscode";
 import * as semver from "semver";
-import BasicAuthorization, {
+import {
+  ConnSpec,
   getResolvedConnectionSpec,
   config,
   extensionContext,
@@ -18,7 +19,7 @@ const DEFAULT_API_VERSION = 1;
 const DEFAULT_SERVER_VERSION = "2016.2.0";
 import * as Atelier from "./atelier";
 import { isfsConfig } from "../utils/FileProviderUtil";
-import { Authorization, IServerSpec } from "@intersystems-community/intersystems-servermanager";
+import { Authorization, BasicAuthorization } from "@intersystems-community/intersystems-servermanager";
 
 // Map of the authRequest promises for each `username@http(s)://host:port/pathPrefix` target to avoid concurrency issues
 const authRequestMap = new Map<string, Promise<any>>();
@@ -165,12 +166,12 @@ export class AtelierAPI {
    * Manually set the connection spec for this object,
    * where `connSpec` is the return value of `getResolvedConnectionSpec()`.
    */
-  public setConnSpec(serverName: string, connSpec: IServerSpec): void {
+  public setConnSpec(serverName: string, connSpec: ConnSpec): void {
     const {
       webServer: { scheme, host, port, pathPrefix = "" },
       auth,
     } = connSpec;
-    this._config.auth = auth ?? new BasicAuthorization();
+    this._config.auth = auth;
     this._config.https = scheme == "https";
     this._config.host = host;
     this._config.port = port;
@@ -391,9 +392,12 @@ export class AtelierAPI {
     let auth: Promise<any> | undefined;
     let authRequest = authRequestMap.get(mapKey);
     if (cookies.length || (method === "HEAD" && !originalPath)) {
-      // Only send basic authorization if username and password specified (including blank, for unauthenticated access)
       if (!cookies.length && this.config.auth.resolved()) {
-        headers["Authorization"] = this.config.auth.httpAuthorizationHeader;
+        // UnknownUser's header is "", which we don't want to send
+        const header = this.config.auth.httpAuthorizationHeader;
+        if (header) {
+          headers["Authorization"] = header;
+        }
       }
       auth = Promise.resolve(cookies);
     } else if (!cookies.length) {

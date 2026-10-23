@@ -146,7 +146,7 @@ import { WorkspaceNode, NodeBase } from "./explorer/nodes";
 import { showPlanWebview } from "./commands/showPlanPanel";
 import { isfsConfig } from "./utils/FileProviderUtil";
 import { showAllClassMembers } from "./commands/showAllClassMembers";
-import { Authorization, ResolvedAuthorization } from "@intersystems-community/intersystems-servermanager";
+import { BasicAuthorization } from "@intersystems-community/intersystems-servermanager";
 
 const packageJson = vscode.extensions.getExtension(extensionId)!.packageJSON;
 const extensionVersion = packageJson.version;
@@ -220,7 +220,7 @@ let reporter: TelemetryReporter | undefined;
 
 export let serverManagerApi: serverManager.ServerManagerAPI;
 
-type ConnSpec = serverManager.IServerSpec & {
+export type ConnSpec = serverManager.IServerSpec & {
   auth: serverManager.Authorization;
 };
 
@@ -290,7 +290,7 @@ export async function resolveConnectionSpec(
   }
 
   if (connSpec) {
-    if (connSpec.auth.resolved() || isUnknownUser(connSpec.auth.username)) {
+    if (connSpec.auth.resolved() || !connSpec.auth.username) {
       resolvedConnSpecs.set(serverName, connSpec);
     } else {
       await resolveAuth(connSpec);
@@ -299,10 +299,6 @@ export async function resolveConnectionSpec(
       }
     }
   }
-}
-
-function isUnknownUser(username: string | undefined): boolean {
-  return (username || "unknownuser").toLowerCase() == "unknownuser";
 }
 
 async function resolveAuth(connSpec: ConnSpec): Promise<void> {
@@ -516,6 +512,7 @@ export async function ensureConnection(
         message = "Not Authorized.";
         errorMessage = `Authorization error: Check your credentials in Settings, and that you have sufficient privileges on the /api/atelier web application on ${connInfo}`;
         if (!api.config.auth.resolved()) {
+          // No credentials were sent; ask Server Manager for some, if this is one of its servers
           vscode.window.showErrorMessage(
             `Unauthenticated access rejected by '${api.serverId}'.${
               !api.config.serverName ? " Connection has been disabled." : ""
@@ -551,7 +548,16 @@ export async function ensureConnection(
             inactiveServerIds.add(api.serverId);
             if (!api.externalServer) await setConnectionState(configName, false);
           }
+        } else if (BasicAuthorization.isUnknownUser(api.config.auth.username)) {
+          // The user opted into unauthenticated access, so don't ask for credentials
+          vscode.window.showErrorMessage(
+            `Unauthenticated access rejected by '${api.serverId}'.${
+              !api.config.serverName ? " Connection has been disabled." : ""
+            }`,
+            "Dismiss"
+          );
         } else {
+          // Wrong credentials; ask for a new password
           success = await new Promise<boolean>((resolve) => {
             vscode.window
               .showInputBox({
@@ -1575,9 +1581,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
           affectedWsFolders.push(wsFolder);
         } else if (serverName && affectsConfiguration("intersystems.servers", wsFolder)) {
           const oldSpec = getResolvedConnectionSpec(serverName, undefined);
-          const newSpec = vscode.workspace.getConfiguration("intersystems.servers", wsFolder).get<any>(serverName);
+          const newSpec = await serverManagerApi.getServerSpec(serverName, wsFolder);
           if (
             !oldSpec ||
+            !newSpec ||
             !(
               oldSpec.webServer.host == newSpec.webServer.host &&
               oldSpec.webServer.port == newSpec.webServer.port &&
@@ -2093,59 +2100,4 @@ export async function deactivate(): Promise<void> {
   disposeDocumentIndex();
   // Log out of all CSP sessions
   await logoutOfSessions();
-}
-
-// A copy of the BasicAuthorization class from ServerManager
-// We use it to patch older version of getServerSpec.
-export default class BasicAuthorization implements Authorization {
-  #username?: string;
-  #password?: string;
-  constructor(username?: string, password?: string) {
-    this.#username = username;
-    this.#password = password;
-  }
-
-  public get username(): string {
-    return this.#username || "";
-  }
-
-  public get password(): string | undefined {
-    return this.#password;
-  }
-
-  public get accessToken(): string | undefined {
-    return this.#password;
-  }
-
-  public get httpAuthorizationHeader(): string {
-    return `Basic ${Buffer.from(`${this.#username}:${this.#password}`).toString("base64")}`;
-  }
-
-  public resolved(): this is ResolvedAuthorization {
-    return this.username !== "" && this.#password !== undefined;
-  }
-
-  public resolve(param: { accessToken: string; username?: string }): this is ResolvedAuthorization {
-    this.#username = param.username ?? this.#username;
-    this.#password = param.accessToken ?? this.#password;
-    return this.resolved();
-  }
-
-  public clear(): asserts this is Authorization {
-    this.#password = undefined;
-  }
-
-  public get credentials(): { auth: { username: string; password: string }; headers?: Record<string, string> } {
-    return {
-      auth: {
-        username: this.username,
-        password: this.password!,
-      },
-      headers: {},
-    };
-  }
-
-  public clone(): BasicAuthorization {
-    return new BasicAuthorization(this.#username, this.#password);
-  }
 }
