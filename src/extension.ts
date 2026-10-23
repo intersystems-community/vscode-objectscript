@@ -293,8 +293,8 @@ export async function resolveConnectionSpec(
     if (connSpec.auth.resolved() || isUnknownUser(connSpec.auth.username)) {
       resolvedConnSpecs.set(serverName, connSpec);
     } else {
-      const accessToken = await resolvePassword(connSpec);
-      if (connSpec.auth.resolve({ accessToken })) {
+      await resolveAuth(connSpec);
+      if (connSpec.auth.resolved()) {
         resolvedConnSpecs.set(serverName, connSpec);
       }
     }
@@ -305,12 +305,12 @@ function isUnknownUser(username: string | undefined): boolean {
   return (username || "unknownuser").toLowerCase() == "unknownuser";
 }
 
-async function resolvePassword(serverSpec: serverManager.IServerSpec): Promise<string | undefined> {
-  if (!serverSpec.auth?.resolved()) {
-    const scopes = [serverSpec.name, serverSpec.auth?.username || ""];
+async function resolveAuth(connSpec: ConnSpec): Promise<void> {
+  if (!connSpec.auth.resolved()) {
+    const scopes = [connSpec.name, connSpec.auth.username];
 
     // Handle Server Manager extension version < 3.8.0
-    const account = serverManagerApi.getAccount ? serverManagerApi.getAccount(serverSpec) : undefined;
+    const account = serverManagerApi.getAccount ? serverManagerApi.getAccount(connSpec) : undefined;
 
     let session = await vscode.authentication.getSession(serverManager.AUTHENTICATION_PROVIDER, scopes, {
       silent: true,
@@ -323,53 +323,46 @@ async function resolvePassword(serverSpec: serverManager.IServerSpec): Promise<s
       });
     }
     if (session) {
-      return session.accessToken;
+      // A configured username wins over the session's, which may differ in case; an entered one is adopted
+      connSpec.auth.resolve({
+        username: connSpec.auth.username || session.scopes[1],
+        accessToken: session.accessToken,
+      });
     }
   }
 }
 
 /** Resolve credentials for `serverName` and returned the complete connection spec if successful */
-export async function resolveUsernameAndPassword(
-  serverName: string,
-  oldSpec: serverManager.IServerSpec
-): Promise<ConnSpec | undefined> {
-  const { auth: _auth, ...newSpec } = oldSpec;
-  newSpec.name = serverName;
-  const auth = _auth?.clone();
+export async function resolveAuthAndCache(serverName: string, spec: ConnSpec): Promise<ConnSpec | undefined> {
+  spec = { ...spec, name: serverName, auth: spec.auth.clone() };
 
-  const accessToken = await resolvePassword({ ...newSpec, auth });
-  if (auth?.resolve({ accessToken })) {
-    // Update the connection spec
-    resolvedConnSpecs.set(serverName, {
-      ...oldSpec,
-      auth,
-    });
-    return resolvedConnSpecs.get(serverName);
+  await resolveAuth(spec);
+  if (spec.auth.resolved()) {
+    resolvedConnSpecs.set(serverName, spec);
+    return spec;
   }
 }
 
 /** Accessor for the cache of resolved connection specs */
 export function getResolvedConnectionSpec(
   key: string,
-  dflt: serverManager.IServerSpec | undefined
+  dflt: serverManager.IJSONServerSpec | undefined
 ): ConnSpec | undefined {
-  let spec = resolvedConnSpecs.get(key);
+  const spec = resolvedConnSpecs.get(key);
   if (spec) {
     return spec;
   }
 
   // Try a case-insensitive match
-  key = resolvedConnSpecs.keys().find((oneKey) => oneKey.toLowerCase() === key.toLowerCase())!;
-  if (key) {
-    spec = resolvedConnSpecs.get(key);
-    if (spec) {
+  for (const [oneKey, spec] of resolvedConnSpecs.entries()) {
+    if (oneKey.toLowerCase() === key.toLowerCase()) {
       return spec;
     }
   }
 
   // Return the default if not found
   if (dflt) {
-    return { ...dflt, auth: new BasicAuthorization(dflt.username, dflt.password) };
+    return { ...dflt, auth: new BasicAuthorization(dflt.username, dflt.password), name: key };
   }
 }
 
@@ -412,7 +405,7 @@ export async function ensureConnection(
     _onDidChangeConnection.fire();
   }
   let api = new AtelierAPI(apiTarget);
-  const { active, host = "", port = 0, superserverPort = 0, ns = "", auth } = api.config;
+  const { active, host = "", port = 0, superserverPort = 0, ns = "" } = api.config;
   vscode.commands.executeCommand("setContext", "vscode-objectscript.connectActive", active);
   if (!panel.text) {
     panel.text = `${PANEL_LABEL}`;
@@ -488,17 +481,20 @@ export async function ensureConnection(
   }
   ensuringConnection.add(configName);
 
-  const username = auth.username || "UnknownUser";
-  const identity = username.startsWith("*") ? `using ${username.slice(1, -1)}` : `as user \`${username}\``;
+  // Read lazily because the 401 retry may replace `api` with one carrying the username just entered
+  const identity = () => {
+    const username = api.config.auth.username || "UnknownUser";
+    return username.startsWith("*") ? `using ${username.slice(1, -1)}` : `as user \`${username}\``;
+  };
 
   // What we do when api.serverInfo call succeeds
   const gotServerInfo = async (info: Response<Content<ServerInfo>>) => {
     panel.text = api.connInfo;
     const { serverName, host, port, pathPrefix } = api.config;
     if (serverName) {
-      panel.tooltip = new vscode.MarkdownString(`Connected to \`${host}:${port}${pathPrefix}\` ${identity}`);
+      panel.tooltip = new vscode.MarkdownString(`Connected to \`${host}:${port}${pathPrefix}\` ${identity()}`);
     } else {
-      panel.tooltip = new vscode.MarkdownString(`Connected ${identity}`);
+      panel.tooltip = new vscode.MarkdownString(`Connected ${identity()}`);
     }
     inactiveServerIds.delete(api.serverId);
     if (!api.externalServer) await setConnectionState(configName, true);
@@ -532,10 +528,10 @@ export async function ensureConnection(
               api.config.serverName,
               vscode.workspace.getConfiguration("intersystems.servers", uri).get(api.config.serverName)
             );
-            const newSpec = await resolveUsernameAndPassword(api.config.serverName, oldSpec!);
+            const newSpec = oldSpec && (await resolveAuthAndCache(api.config.serverName, oldSpec));
             if (newSpec) {
               // We were able to resolve credentials, so try again
-              await workspaceState.update(wsKey + ":password", newSpec.auth?.accessToken);
+              await workspaceState.update(wsKey + ":password", newSpec.auth.accessToken);
               api = new AtelierAPI(apiTarget);
               await api
                 .serverInfo(true, serverInfoTimeout)
@@ -560,7 +556,7 @@ export async function ensureConnection(
             vscode.window
               .showInputBox({
                 password: true,
-                title: `Not Authorized. Enter password to connect ${identity} to ${connInfo}`,
+                title: `Not Authorized. Enter password to connect ${identity()} to ${connInfo}`,
                 prompt: !api.externalServer ? "If no password is entered the connection will be disabled." : "",
                 ignoreFocusOut: true,
               })
