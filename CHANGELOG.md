@@ -1,5 +1,17 @@
 # Change Log
 
+## [3.8.7] 04-Nov-2026
+- Enhancements
+  - Support explicit `UnknownUser` unauthenticated access (#1888)
+- Fixes
+  - Remove use of deprecated `url.parse()` (#1877)
+  - Remove unneeded dependency `istextorbinary` (#1878)
+  - Remove unneeded dependency `iconv-lite` (#1879)
+  - Lite Terminal: color pasted input without repainting it (#1881)
+  - Fix server-side projects when connected to 2021.x (#1882)
+  - Populate authorizations with session usernames (#1887)
+  - Upgrade dependencies
+
 ## [3.8.6] 17-Sep-2026
 - Enhancements
   - `objectscript.conn.docker-compose` feature supports Podman (#1859)
