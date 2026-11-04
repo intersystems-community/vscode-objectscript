@@ -124,6 +124,15 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 24
+      - name: Prepare package.json for build
+        id: set-version
+        run: |
+          VERSION=`cat meta.version`
+          echo "name=`cat meta.name`" >> $GITHUB_OUTPUT
+          tmp=$(mktemp)
+          jq --arg version "$VERSION" '.version = $version' package.json > "$tmp" && mv "$tmp" package.json
+          npm install
+          jq 'del(.enableProposedApi,.enabledApiProposals)' package.json > "$tmp" && mv "$tmp" package.json
       - name: Build package
         run: |
           npx @vscode/vsce package -o ${{ steps.set-version.outputs.name }}.vsix
@@ -142,18 +151,13 @@ jobs:
           [ -n "${{ secrets.OVSX_TOKEN }}" ] && \
             npx ovsx publish ${{ steps.set-version.outputs.name }}.vsix --pat ${{ secrets.OVSX_TOKEN }} || true
       - name: Bump version
-        id: set-version
         run: |
-          VERSION=`cat meta.version`
-          NEXT_VERSION=`cat meta.version | awk -F. '/[0-9]+\./{$NF++;print}' OFS=.`
-          echo "name=`cat meta.name`" >> $GITHUB_OUTPUT
-          tmp=$(mktemp)
           git config --global user.name 'ProjectBot'
           git config --global user.email 'bot@users.noreply.github.com'
+          git checkout -- package.json
+          NEXT_VERSION=`cat meta.version | awk -F. '/[0-9]+\./{$NF++;print}' OFS=.`
+          tmp=$(mktemp)
           jq --arg version "${NEXT_VERSION}-SNAPSHOT" '.version = $version' package.json > "$tmp" && mv "$tmp" package.json
           git add package.json
           git commit -m 'auto bump version with release'
-          jq --arg version "$VERSION" '.version = $version' package.json > "$tmp" && mv "$tmp" package.json
-          npm install
-          jq 'del(.enableProposedApi,.enabledApiProposals)' package.json > "$tmp" && mv "$tmp" package.json
           git push
