@@ -28,7 +28,7 @@ export const cspLangId = "objectscript-csp";
 export const outputLangId = "vscode-objectscript-output";
 
 import {
-  importAndCompile,
+  importAndCompileCurrentFile,
   importFolder as importFileOrFolder,
   namespaceCompile,
   compileExplorerItems,
@@ -1175,11 +1175,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
     }),
     vscode.commands.registerCommand("vscode-objectscript.compile", () => {
       sendCommandTelemetryEvent("compile");
-      importAndCompile();
+      importAndCompileCurrentFile();
     }),
     vscode.commands.registerCommand("vscode-objectscript.compileWithFlags", () => {
       sendCommandTelemetryEvent("compileWithFlags");
-      importAndCompile(undefined, true);
+      importAndCompileCurrentFile(true);
     }),
     vscode.commands.registerCommand("vscode-objectscript.compileAll", () => {
       sendCommandTelemetryEvent("compileAll");
