@@ -1,10 +1,107 @@
 import * as vscode from "vscode";
-import { makeRe } from "minimatch";
 import { AsyncSearchRequest, SearchResult, SearchMatch } from "../../api/atelier";
 import { AtelierAPI } from "../../api";
 import { DocumentContentProvider } from "../DocumentContentProvider";
 import { handleError, notNull, outputChannel, RateLimiter, stringifyError } from "../../utils";
 import { fileSpecFromURI, isfsConfig, IsfsUriParam } from "../../utils/FileProviderUtil";
+
+/** Characters with special meaning in a regular expression that need to be escaped to match literally */
+const reSpecialChars = /[.*+?^${}()|[\]\\]/g;
+
+/** Split `s` on `sep` characters that aren't nested inside a `{}` group. Throws if the braces in `s` are unbalanced. */
+function splitTopLevel(s: string, sep: string): string[] {
+  const parts: string[] = [];
+  let part = "",
+    depth = 0;
+  for (const c of s) {
+    if (c == sep && depth == 0) {
+      parts.push(part);
+      part = "";
+      continue;
+    } else if (c == "{") {
+      depth++;
+    } else if (c == "}") {
+      depth--;
+      if (depth < 0) throw new Error(`Unbalanced braces in glob pattern: ${s}`);
+    }
+    part += c;
+  }
+  if (depth != 0) throw new Error(`Unbalanced braces in glob pattern: ${s}`);
+  parts.push(part);
+  return parts;
+}
+
+/** Convert a single path segment of a glob pattern (guaranteed not to contain a top-level `/`) to a regular expression source string */
+function convertGlobSegment(segment: string): string {
+  let out = "";
+  for (let i = 0; i < segment.length; i++) {
+    const c = segment[i];
+    if (c == "*") {
+      out += "[^/]*";
+    } else if (c == "?") {
+      out += "[^/]";
+    } else if (c == "[") {
+      // A range of characters, optionally negated with a leading '!'
+      const end = segment.indexOf("]", i + 1);
+      if (end == -1) throw new Error(`Unbalanced brackets in glob pattern: ${segment}`);
+      let body = segment.slice(i + 1, end).replace(/\\/g, "\\\\");
+      if (body.startsWith("!")) body = "^" + body.slice(1);
+      else if (body.startsWith("^")) body = "\\" + body;
+      out += `[${body}]`;
+      i = end;
+    } else if (c == "{") {
+      // Find the matching closing brace, accounting for nested groups
+      let depth = 1,
+        j = i + 1;
+      while (j < segment.length && depth > 0) {
+        if (segment[j] == "{") depth++;
+        else if (segment[j] == "}") depth--;
+        if (depth > 0) j++;
+      }
+      if (depth != 0) throw new Error(`Unbalanced braces in glob pattern: ${segment}`);
+      const alts = splitTopLevel(segment.slice(i + 1, j), ",");
+      out +=
+        alts.length > 1
+          // A group of comma-separated alternatives
+          ? `(?:${alts.map(convertGlob).join("|")})`
+          // A brace group with no commas isn't valid glob syntax, so it's matched literally, braces included
+          : segment.slice(i, j + 1).replace(reSpecialChars, "\\$&");
+      i = j;
+    } else {
+      out += c.replace(reSpecialChars, "\\$&");
+    }
+  }
+  return out;
+}
+
+/** Convert a glob pattern, which may contain multiple path segments, to a regular expression source string */
+function convertGlob(glob: string): string {
+  const segments = splitTopLevel(glob, "/").map((segment) => ({
+    globstar: segment == "**",
+    regex: segment == "**" ? "" : convertGlobSegment(segment),
+  }));
+  // Collapse consecutive globstar segments into one, since they're equivalent
+  const collapsed = segments.filter((segment, idx) => !(segment.globstar && idx > 0 && segments[idx - 1].globstar));
+  // A pattern that's just a single globstar matches anything, including nothing
+  if (collapsed.length == 1 && collapsed[0].globstar) return ".*";
+  return collapsed
+    .map((segment, idx) => {
+      if (!segment.globstar) return (idx > 0 && !collapsed[idx - 1].globstar ? "/" : "") + segment.regex;
+      // A globstar matches zero or more complete path segments
+      if (idx == 0) return "(?:.*/)?";
+      return idx == collapsed.length - 1 ? "(?:/.*)?" : "(?:/.*)?/";
+    })
+    .join("");
+}
+
+/** Convert a VS Code glob pattern to a regular expression source string that matches it or `null` if `glob` isn't well-formed */
+function makeRe(glob: string): string | null {
+  try {
+    return `^${convertGlob(glob)}$`;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Convert an `attrline` in a description to a line number in document `content`.
@@ -481,21 +578,13 @@ export class TextSearchProvider implements vscode.TextSearchProvider {
       // Convert the array of glob patterns into a single regular expression
       if (options.includes.length) {
         request.include = options.includes
-          .map((e) => {
-            const re = makeRe(e);
-            if (re == false) return null;
-            return re.source;
-          })
+          .map((e) => makeRe(e))
           .filter(notNull)
           .join("|");
       }
       if (options.excludes.length) {
         request.exclude = options.excludes
-          .map((e) => {
-            const re = makeRe(e);
-            if (re == false) return null;
-            return re.source;
-          })
+          .map((e) => makeRe(e))
           .filter(notNull)
           .join("|");
       }
