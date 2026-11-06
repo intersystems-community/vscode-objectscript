@@ -1767,7 +1767,6 @@
     "@vscode/extension-telemetry": "^1.5.2",
     "@xmldom/xmldom": "^0.9.12",
     "axios": "^1.20.0",
-    "minimatch": "^10.2.6",
     "node-cmd": "^6.0.1",
     "semver": "^7.8.5",
     "ws": "^8.22.0"
