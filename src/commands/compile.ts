@@ -17,6 +17,7 @@ import {
   currentFile,
   currentFileFromContent,
   CurrentTextFile,
+  displayableUri,
   exportedUris,
   getWsServerConnection,
   handleError,
@@ -391,13 +392,23 @@ export async function compile(docs: (CurrentTextFile | CurrentBinaryFile)[], ask
     .then(loadChanges);
 }
 
-export async function importAndCompile(document?: vscode.TextDocument, askFlags = false): Promise<any> {
-  const file = currentFile(document);
+export async function importAndCompileCurrentFile(askFlags = false): Promise<any> {
+  let file: CurrentTextFile | CurrentBinaryFile | null = currentFile(); // Default is activeTextEditor
   if (!file || filesystemSchemas.includes(file.uri.scheme) || !new AtelierAPI(file.uri).active) {
     // Not for server-side URIs or folders with inactive server connections
     return;
   }
 
+  if (file.name.includes("/")) {
+    // Need to send the raw bytes from disk to the server for web app files
+    try {
+      file = currentFileFromContent(file.uri,Buffer.from(await vscode.workspace.fs.readFile(file.uri)));
+      if (!file) return;
+    } catch (error) {
+      handleError(error, "Failed to read contents of current file from disk.");
+      return;
+    }
+  }
   try {
     if (isCompilable(file.name)) {
       await importFile(file, true);
@@ -486,7 +497,7 @@ async function importFiles(files: vscode.Uri[], noCompile = false) {
           try {
             content = textDecoder.decode(contentBytes);
           } catch (error) {
-            handleError(error, `Contents of file '${uri.fsPath}' are not valid utf-8.`);
+            handleError(error, `Contents of file '${displayableUri(uri)}' are not valid utf-8.`);
             return;
           }
         }
