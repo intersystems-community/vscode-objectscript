@@ -475,15 +475,24 @@ async function importFiles(files: vscode.Uri[], noCompile = false) {
   if (!files.length) return;
   const toCompile: (CurrentTextFile | CurrentBinaryFile)[] = [];
   const rateLimiter = new RateLimiter(50);
+  const textDecoder = new TextDecoder("utf-8", { fatal: true });
   await Promise.allSettled<void>(
     files.map((uri) =>
       rateLimiter.call(async () => {
         const contentBytes = await vscode.workspace.fs.readFile(uri);
-        const curFile = currentFileFromContent(uri, Buffer.from(contentBytes));
-        if (curFile) {
-          if (typeof curFile.content == "string" && isCompilable(curFile.name)) {
-            toCompile.push(curFile);
+        let content: string | Buffer = Buffer.from(contentBytes);
+        if (isClassOrRtn(uri.path)) {
+          // Must decode the bytes into text
+          try {
+            content = textDecoder.decode(contentBytes);
+          } catch (error) {
+            handleError(error, `Contents of file '${uri.fsPath}' are not valid utf-8.`);
+            return;
           }
+        }
+        const curFile = currentFileFromContent(uri, content);
+        if (curFile) {
+          if (isCompilable(curFile.name)) toCompile.push(curFile);
           await importFile(curFile, !noCompile);
           outputChannel.appendLine("Imported file: " + curFile.fileName);
         }
