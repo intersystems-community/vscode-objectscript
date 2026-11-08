@@ -56,16 +56,22 @@ export async function checkChangedOnServer(file: CurrentTextFile | CurrentBinary
   const mtime =
     workspaceState.get(`${file.uniqueId}:mtime`, null) ||
     (await api
-      .getDoc(file.name, file.uri)
+      .getDoc(file.name, file.uri, undefined, undefined, file.name.includes("/"))
       .then((data) => data.result)
       .then(async ({ ts, content }) => {
         const serverTime = Number(new Date(ts + "Z"));
         let sameContent: boolean;
-        if (typeof file.content === "string") {
-          const fileContent = file.content.split(/\r?\n/);
-          sameContent = force
+        if (typeof file.content == "string") {
+          if (Buffer.isBuffer(content)) {
+            // Compare as Buffers
+            sameContent = force ? false : Buffer.compare(content, new TextEncoder().encode(file.content)) === 0;
+          } else {
+            // Compare as string arrays
+            const fileContent = file.content.split(/\r?\n/);
+            sameContent = force
             ? false
-            : (content as string[]).every((line, index) => line.trim() == (fileContent[index] || "").trim());
+            : (content).every((line, index) => line.trim() == (fileContent[index] || "").trim());
+          }
         } else {
           sameContent = force ? false : Buffer.compare(content as Buffer, file.content) === 0;
         }
@@ -245,7 +251,7 @@ export async function loadChanges(
               !forceRefreshClasses
             )
           ) {
-            content = (await api.getDoc(file.name, file.uri)).result.content;
+            content = (await api.getDoc(file.name, file.uri, undefined, undefined, file.name.includes("/"))).result.content;
           } else {
             // Insert/update the storage part of class definition.
             content = new TextDecoder().decode(await vscode.workspace.fs.readFile(file.uri)).split(/\r?\n/);
