@@ -13,7 +13,7 @@ import {
   schemas,
   inactiveServerIds,
 } from "../extension";
-import { currentWorkspaceFolder, outputChannel, outputConsole } from "../utils";
+import { currentWorkspaceFolder, outputChannel, outputConsole, stringifyError } from "../utils";
 
 const DEFAULT_API_VERSION = 1;
 const DEFAULT_SERVER_VERSION = "2016.2.0";
@@ -587,7 +587,7 @@ export class AtelierAPI {
         // Only output errors here if they were "hard" errors, not HTTP response errors
         outputRequest();
         outputChannel.appendLine(`+- ERROR --------------------------------------------`);
-        outputChannel.appendLine(`${JSON.stringify(error, null, 2)}`);
+        outputChannel.appendLine(stringifyError(error));
         outputChannel.appendLine(`+- END ----------------------------------------------`);
       }
       // always discard the cached authentication promise
