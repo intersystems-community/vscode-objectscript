@@ -162,9 +162,9 @@ export function cspAppsForApi(api: AtelierAPI): string[] {
 }
 
 /**
- * Get a list of Studio Abstract Document extensions in the server-namespace that `uri` is connected to.
+ * Get a list of Abstract Document extensions in the server-namespace that `uri` is connected to.
  */
-function otherDocExtsForUri(uri: vscode.Uri): string[] {
+export function otherDocExtsForUri(uri: vscode.Uri): string[] {
   const api = new AtelierAPI(uri);
   const { host, port, pathPrefix, ns } = api.config;
   return otherDocExts.get(`${host}:${port}${pathPrefix}[${ns}]`.toLowerCase()) ?? [];
@@ -210,15 +210,21 @@ export function getServerDocName(uri: vscode.Uri): string | undefined {
 /**
  * Determine if this non-ObjectScript local file is importable.
  * @param uri The file to check.
+ * @param cached Pre-fetched web app folders and document extensions for `uri`'s connection.
  */
-export function isImportableLocalFile(uri: vscode.Uri): boolean {
+export function isImportableLocalFile(
+  uri: vscode.Uri,
+  cached?: { cspApps: string[]; otherDocExts: string[] }
+): boolean {
   // A non-class or routine file is only importable
   // if it's in a web application folder or it's a
   // known Studio abstract document type within a workspace folder
   if (!vscode.workspace.getWorkspaceFolder(uri)) return false;
+  const cspAppFolders = cached?.cspApps ?? cspAppsForUri(uri);
+  const otherExts = cached?.otherDocExts ?? otherDocExtsForUri(uri);
   return (
-    cspAppsForUri(uri).some((cspApp) => uri.path.includes(cspApp + "/")) ||
-    otherDocExtsForUri(uri).includes(uri.path.split(".").pop()!.toLowerCase())
+    cspAppFolders.some((cspApp) => uri.path.includes(cspApp + "/")) ||
+    otherExts.includes(uri.path.split(".").pop()!.toLowerCase())
   );
 }
 
@@ -1156,6 +1162,8 @@ div.code-block {
 class Semaphore {
   /** Queue of tasks waiting to acquire the semaphore */
   private _tasks: (() => void)[] = [];
+  /** Index of the next task to dequeue from `_tasks` */
+  private _head = 0;
   /** Current available slots in the semaphore */
   private _counter: number;
 
@@ -1180,9 +1188,15 @@ class Semaphore {
 
   /** Release a slot in the semaphore */
   release(): void {
-    if (this._tasks.length > 0) {
-      // If there are tasks waiting, take the next task from the queue and run it
-      const nextTask = this._tasks.shift();
+    if (this._head < this._tasks.length) {
+      // If there are tasks waiting, take the next task from the queue and run it.
+      // Use a head index rather than Array.shift() so dequeuing stays O(1); periodically
+      // drop the already-dequeued prefix so the backing array doesn't grow unbounded.
+      const nextTask = this._tasks[this._head++];
+      if (this._head > 1000 && this._head * 2 > this._tasks.length) {
+        this._tasks = this._tasks.slice(this._head);
+        this._head = 0;
+      }
       if (nextTask) nextTask();
     } else {
       // If no tasks are waiting, increase the counter

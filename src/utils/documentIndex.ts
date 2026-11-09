@@ -3,12 +3,14 @@ import {
   CurrentBinaryFile,
   CurrentTextFile,
   RateLimiter,
+  cspAppsForUri,
   currentFileFromContent,
   exportedUris,
   isClassOrRtn,
   isImportableLocalFile,
   notIsfs,
   openLowCodeEditors,
+  otherDocExtsForUri,
   outputChannel,
   displayableUri,
   isCompilable,
@@ -188,16 +190,17 @@ export async function indexWorkspaceFolder(wsFolder: vscode.WorkspaceFolder): Pr
   const restRateLimiter = new RateLimiter(50);
   // A cache of the last time each file was last changed
   const lastChangeMtimes: Map<string, number> = new Map();
-  // Index classes and routines that currently exist
+  // Index classes and routines that currently exist. Determine which files are
+  // importable up front so that only files that are relevant occupy a slot in
+  // fsRateLimiter. Compute the web app folders and document extensions for this
+  // workspace folder's connection once since they're the same for every file checked here.
+  const cached = { cspApps: cspAppsForUri(wsFolder.uri), otherDocExts: otherDocExtsForUri(wsFolder.uri) };
   vscode.workspace.findFiles(new vscode.RelativePattern(wsFolder, "{**/*}")).then((files) =>
-    files.forEach((file) =>
-      fsRateLimiter.call<WSFolderIndexChange | undefined>(async () => {
-        if (isClassOrRtn(file.path) || isImportableLocalFile(file)) {
-          return updateIndexInternal(file, documents, uris);
-        }
-        return undefined;
-      })
-    )
+    files
+      .filter((file) => isClassOrRtn(file.path) || isImportableLocalFile(file, cached))
+      .forEach((file) =>
+        fsRateLimiter.call<WSFolderIndexChange | undefined>(() => updateIndexInternal(file, documents, uris))
+      )
   );
   // Watch for all file changes
   const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(wsFolder, "**/*"));
