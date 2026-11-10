@@ -102,7 +102,8 @@ async function exportFile(wsFolderUri: vscode.Uri, namespace: string, name: stri
     outputChannel.appendLine(`Export '${name}' to '${displayableUri(fileUri)}' - ${status}`);
 
   try {
-    const data = await api.getDoc(name, wsFolderUri);
+    // Web app files must always be fetched as raw bytes
+    const data = await api.getDoc(name, wsFolderUri, undefined, undefined, name.includes("/"));
     if (!data || !data.result) {
       throw new Error("Received malformed JSON object from server fetching document");
     }
