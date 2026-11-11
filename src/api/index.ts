@@ -75,6 +75,17 @@ type Connection =
   | { docker: ConnSpec | undefined }
   | Record<string, never>;
 
+/**
+ * A copy of `auth` with its secret removed. Only `settingsPassword`, the plaintext password from settings, is put back.
+ * A password from secret storage or from a prompt is not ours to pass on.
+ */
+function settingsAuth(auth: Authorization, settingsPassword: string | undefined): Authorization {
+  const copy: Authorization = auth.clone();
+  copy.clear();
+  if (settingsPassword) copy.resolve({ accessToken: settingsPassword });
+  return copy;
+}
+
 function endpointSettings({
   webServer: { scheme, host, port, pathPrefix = "" },
   superServer,
@@ -107,7 +118,7 @@ export class AtelierAPI {
     const superserverPort = this.externalServer
       ? this._config.superserverPort
       : workspaceState.get(wsKey + ":superserverPort", this._config.superserverPort);
-    auth.resolve({ accessToken: workspaceState.get(wsKey + ":password", undefined) });
+    if (!this.configOnly) auth.resolve({ accessToken: workspaceState.get(wsKey + ":password", undefined) });
     const apiVersion = workspaceState.get(wsKey + ":apiVersion", DEFAULT_API_VERSION);
     const serverVersion = workspaceState.get(wsKey + ":serverVersion", DEFAULT_SERVER_VERSION);
     const docker = workspaceState.get(wsKey + ":docker", false);
@@ -139,7 +150,14 @@ export class AtelierAPI {
     return filename;
   }
 
-  public constructor(wsOrFile?: string | vscode.Uri) {
+  public constructor(
+    wsOrFile?: string | vscode.Uri,
+    /**
+     * Set when this instance only reports the connection to another extension.
+     * It then holds no password beyond the plaintext one in settings.
+     */
+    private readonly configOnly: boolean = false
+  ) {
     this.wsOrFile = wsOrFile;
     let workspaceFolderName = "";
     let namespace = "";
@@ -175,7 +193,7 @@ export class AtelierAPI {
     }
     const name = workspaceFolderName || currentWorkspaceFolder();
     this.configName = name.toLowerCase();
-    this._config = AtelierAPI.buildConnection(name, namespace);
+    this._config = AtelierAPI.buildConnection(name, configOnly, namespace);
     // The scope's own name is the server name. Then objectscript.conn only supplies the namespace.
     this.externalServer = this.configName !== "" && this._config.serverName === this.configName;
   }
@@ -252,7 +270,11 @@ export class AtelierAPI {
     return `${auth.username}@http${https ? "s" : ""}://${host}:${port}${pathPrefix}`;
   }
 
-  private static buildConnection(workspaceFolderName: string, namespace?: string): ConnectionSettings {
+  private static buildConnection(
+    workspaceFolderName: string,
+    configOnly: boolean,
+    namespace?: string
+  ): ConnectionSettings {
     const conn = config("conn", workspaceFolderName);
     const smConfig = config("intersystems.servers", workspaceFolderName);
     const configName = workspaceFolderName.toLowerCase();
@@ -279,7 +301,7 @@ export class AtelierAPI {
         serverName,
         active,
         docker: false,
-        auth,
+        auth: configOnly ? settingsAuth(auth, jsonSpec.password) : auth,
         ...endpointSettings(spec),
         ns,
       };
@@ -289,7 +311,7 @@ export class AtelierAPI {
         active: true,
         docker: true,
         dockerService: conn["docker-compose"].service,
-        auth: connection.docker.auth,
+        auth: configOnly ? settingsAuth(connection.docker.auth, conn.password) : connection.docker.auth,
         ...endpointSettings(connection.docker),
         ns,
       };
