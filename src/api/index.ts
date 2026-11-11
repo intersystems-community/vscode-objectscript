@@ -66,7 +66,8 @@ export interface ConnectionSettings {
 
 /**
  * The connection that `buildConnection` finds in settings. One of:
- * - a named server and its settings entry: the server named like the scope, or the one objectscript.conn names
+ * - a named server and its settings entry, named by the scope itself (a workspace folder's name, or the server of an
+ *   isfs://server:ns/ authority) or by objectscript.conn.server
  * - a docker-compose connection and its resolved spec, if there is one
  * - neither, which means objectscript.conn itself
  */
