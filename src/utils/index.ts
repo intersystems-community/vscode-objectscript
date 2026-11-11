@@ -450,7 +450,9 @@ export function uriOfWorkspaceFolder(workspaceFolder: string = currentWorkspaceF
   }
   return (
     vscode.workspace.workspaceFolders.find((el): boolean => el.name.toLowerCase() === workspaceFolder.toLowerCase()) ||
-    vscode.workspace.workspaceFolders.find((el): boolean => el.uri.authority == workspaceFolder)
+    vscode.workspace.workspaceFolders.find(
+      (el): boolean => el.uri.authority.toLowerCase() == workspaceFolder.toLowerCase()
+    )
   )?.uri;
 }
 

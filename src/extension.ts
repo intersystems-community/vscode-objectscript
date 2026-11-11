@@ -224,8 +224,21 @@ export type ConnSpec = serverManager.IServerSpec & {
   auth: serverManager.Authorization;
 };
 
-/** Map of the intersystems.server connection specs we have resolved via the API to that extension */
-const resolvedConnSpecs = new Map<string, ConnSpec>();
+/** Connection specs resolved so far, keyed case-insensitively by server name, or by folder name for a docker-compose connection */
+export const resolvedConnSpecs = new (class extends Map<string, ConnSpec> {
+  get(key: string): ConnSpec | undefined {
+    return super.get(key.toLowerCase());
+  }
+  has(key: string): boolean {
+    return super.has(key.toLowerCase());
+  }
+  set(key: string, value: ConnSpec): this {
+    return super.set(key.toLowerCase(), value);
+  }
+  delete(key: string): boolean {
+    return super.delete(key.toLowerCase());
+  }
+})();
 
 /**
  * If servermanager extension is available, fetch the connection spec unless already cached.
@@ -247,12 +260,6 @@ export async function resolveConnectionSpec(
   if (resolvedConnSpecs.has(serverName)) {
     // Already resolved
     return;
-  }
-  if (!vscode.workspace.getConfiguration("intersystems.servers", scope).has(serverName)) {
-    // When not a defined server see it already resolved as a foldername that matches case-insensitively
-    if (getResolvedConnectionSpec(serverName, undefined)) {
-      return;
-    }
   }
   const rawConnSpec = await serverManagerApi.getServerSpec(serverName, scope);
   let connSpec: ConnSpec | undefined;
@@ -336,29 +343,6 @@ export async function resolveAuthAndCache(serverName: string, spec: ConnSpec): P
   if (spec.auth.resolved()) {
     resolvedConnSpecs.set(serverName, spec);
     return spec;
-  }
-}
-
-/** Accessor for the cache of resolved connection specs */
-export function getResolvedConnectionSpec(
-  key: string,
-  dflt: serverManager.IJSONServerSpec | undefined
-): ConnSpec | undefined {
-  const spec = resolvedConnSpecs.get(key);
-  if (spec) {
-    return spec;
-  }
-
-  // Try a case-insensitive match
-  for (const [oneKey, spec] of resolvedConnSpecs.entries()) {
-    if (oneKey.toLowerCase() === key.toLowerCase()) {
-      return spec;
-    }
-  }
-
-  // Return the default if not found
-  if (dflt) {
-    return { ...dflt, auth: new BasicAuthorization(dflt.username, dflt.password), name: key };
   }
 }
 
@@ -521,10 +505,8 @@ export async function ensureConnection(
           );
           if (api.config.serverName) {
             // Attempt to resolve a username and password
-            const oldSpec = getResolvedConnectionSpec(
-              api.config.serverName,
-              vscode.workspace.getConfiguration("intersystems.servers", uri).get(api.config.serverName)
-            );
+            await resolveConnectionSpec(api.config.serverName, undefined, uri);
+            const oldSpec = resolvedConnSpecs.get(api.config.serverName);
             const newSpec = oldSpec && (await resolveAuthAndCache(api.config.serverName, oldSpec));
             if (newSpec) {
               // We were able to resolve credentials, so try again
@@ -1580,7 +1562,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
           // Connection info changed
           affectedWsFolders.push(wsFolder);
         } else if (serverName && affectsConfiguration("intersystems.servers", wsFolder)) {
-          const oldSpec = getResolvedConnectionSpec(serverName, undefined);
+          const oldSpec = resolvedConnSpecs.get(serverName);
           const newSpec = await serverManagerApi.getServerSpec(serverName, wsFolder);
           if (
             !oldSpec ||

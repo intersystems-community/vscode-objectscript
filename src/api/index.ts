@@ -4,7 +4,7 @@ import * as vscode from "vscode";
 import * as semver from "semver";
 import {
   ConnSpec,
-  getResolvedConnectionSpec,
+  resolvedConnSpecs,
   config,
   extensionContext,
   workspaceState,
@@ -19,7 +19,7 @@ const DEFAULT_API_VERSION = 1;
 const DEFAULT_SERVER_VERSION = "2016.2.0";
 import * as Atelier from "./atelier";
 import { isfsConfig } from "../utils/FileProviderUtil";
-import { Authorization, BasicAuthorization } from "@intersystems-community/intersystems-servermanager";
+import { Authorization, BasicAuthorization, IJSONServerSpec } from "@intersystems-community/intersystems-servermanager";
 
 // Map of the authRequest promises for each `username@http(s)://host:port/pathPrefix` target to avoid concurrency issues
 const authRequestMap = new Map<string, Promise<any>>();
@@ -64,13 +64,31 @@ export interface ConnectionSettings {
   dockerService?: string;
 }
 
+/**
+ * The connection that `buildConnection` finds in settings. One of:
+ * - a named server and its settings entry: the server named like the scope, or the one objectscript.conn names
+ * - a docker-compose connection and its resolved spec, if there is one
+ * - neither, which means objectscript.conn itself
+ */
+type Connection =
+  | { server: { serverName: string; jsonSpec: IJSONServerSpec; active: boolean } }
+  | { docker: ConnSpec | undefined }
+  | Record<string, never>;
+
+function endpointSettings({
+  webServer: { scheme, host, port, pathPrefix = "" },
+  superServer,
+}: Pick<IJSONServerSpec, "webServer" | "superServer">) {
+  return { https: scheme === "https", host, port, pathPrefix, superserverPort: superServer?.port };
+}
+
 export class AtelierAPI {
-  private _config!: ConnectionSettings;
+  private readonly _config: ConnectionSettings;
   private namespace: string | undefined;
-  public configName!: string;
+  public readonly configName: string;
 
   // when FileSystemProvider used
-  public externalServer = false;
+  public readonly externalServer: boolean;
 
   // record of the constructor argument
   public readonly wsOrFile?: string | vscode.Uri;
@@ -83,7 +101,7 @@ export class AtelierAPI {
     const { serverName, active = false, https = false, pathPrefix = "" } = this._config;
     const auth = this._config.auth.clone();
     const ns = this.namespace || this._config.ns;
-    const wsKey = this.configName.toLowerCase();
+    const wsKey = this.configName;
     const host = this.externalServer ? this._config.host : workspaceState.get(wsKey + ":host", this._config.host);
     const port = this.externalServer ? this._config.port : workspaceState.get(wsKey + ":port", this._config.port);
     const superserverPort = this.externalServer
@@ -155,7 +173,11 @@ export class AtelierAPI {
         workspaceFolderName = wsOrFile;
       }
     }
-    this.setConnection(workspaceFolderName || currentWorkspaceFolder(), namespace);
+    const name = workspaceFolderName || currentWorkspaceFolder();
+    this.configName = name.toLowerCase();
+    this._config = AtelierAPI.buildConnection(name, namespace);
+    // The scope's own name is the server name. Then objectscript.conn only supplies the namespace.
+    this.externalServer = this.configName !== "" && this._config.serverName === this.configName;
   }
 
   public setNamespace(namespace: string): void {
@@ -164,7 +186,7 @@ export class AtelierAPI {
 
   /**
    * Manually set the connection spec for this object,
-   * where `connSpec` is the return value of `getResolvedConnectionSpec()`.
+   * where `connSpec` is an entry of `resolvedConnSpecs`.
    */
   public setConnSpec(serverName: string, connSpec: ConnSpec): void {
     const {
@@ -230,85 +252,54 @@ export class AtelierAPI {
     return `${auth.username}@http${https ? "s" : ""}://${host}:${port}${pathPrefix}`;
   }
 
-  private setConnection(workspaceFolderName: string, namespace?: string): void {
-    this.configName = workspaceFolderName;
-    const rawConn = config("conn", workspaceFolderName);
-    const conn = {
-      ...rawConn,
-      auth: new BasicAuthorization(rawConn.username, rawConn.password),
+  private static buildConnection(workspaceFolderName: string, namespace?: string): ConnectionSettings {
+    const conn = config("conn", workspaceFolderName);
+    const smConfig = config("intersystems.servers", workspaceFolderName);
+    const configName = workspaceFolderName.toLowerCase();
+    const server = (serverName: string, active: boolean) => {
+      const jsonSpec = smConfig.get<IJSONServerSpec>(serverName);
+      return jsonSpec && { server: { serverName, jsonSpec, active } };
     };
-    let serverName = workspaceFolderName.toLowerCase();
-    if (config("intersystems.servers", workspaceFolderName).has(serverName)) {
-      this.externalServer = true;
-    } else if (
-      !(conn["docker-compose"] && extensionContext.extension.extensionKind !== vscode.ExtensionKind.Workspace) &&
-      conn.server &&
-      config("intersystems.servers", workspaceFolderName).has(conn.server)
-    ) {
-      // Connect to the server named in objectscript.conn
-      // unless a docker-compose conn object exists and this extension isn't running remotely (i.e. within the dev container)
-      serverName = conn.server;
-    } else {
-      serverName = "";
-    }
-
+    const connServer: string | undefined = conn.server;
+    const connection: Connection =
+      server(configName, !inactiveServerIds.has(configName)) ??
+      (conn["docker-compose"] && extensionContext.extension.extensionKind !== vscode.ExtensionKind.Workspace
+        ? { docker: resolvedConnSpecs.get(configName) }
+        : // Connect to the server named in objectscript.conn
+          // unless a docker-compose conn object exists and this extension isn't running remotely (i.e. within the dev container)
+          (connServer && server(connServer, conn.active)) ||
+          (conn["docker-compose"] ? { docker: resolvedConnSpecs.get(configName) } : {}));
     const ns = namespace?.toUpperCase() || conn.ns?.toUpperCase();
-    if (serverName !== "") {
-      const {
-        webServer: { scheme, host, port, pathPrefix = "" },
-        auth,
-        superServer,
-      } = getResolvedConnectionSpec(serverName, config("intersystems.servers", workspaceFolderName).get(serverName))!;
-      this._config = {
+    if ("server" in connection) {
+      const { serverName, jsonSpec, active } = connection.server;
+      const resolved = resolvedConnSpecs.get(serverName);
+      const spec = resolved ?? jsonSpec;
+      const auth = resolved?.auth ?? new BasicAuthorization(jsonSpec.username, jsonSpec.password);
+      return {
         serverName,
-        active: this.externalServer ? !inactiveServerIds.has(serverName) : conn.active,
-        apiVersion: workspaceState.get(this.configName.toLowerCase() + ":apiVersion", DEFAULT_API_VERSION),
-        serverVersion: workspaceState.get(this.configName.toLowerCase() + ":serverVersion", DEFAULT_SERVER_VERSION),
-        https: scheme === "https",
-        ns,
-        host,
-        port,
-        superserverPort: superServer?.port,
-        auth,
-        pathPrefix,
+        active,
         docker: false,
-      };
-    } else if (conn["docker-compose"]) {
-      // Provided a docker-compose type connection spec has previously been resolved we can use its values
-      const resolvedSpec = getResolvedConnectionSpec(workspaceFolderName, undefined);
-      if (resolvedSpec) {
-        const {
-          webServer: { scheme, host, port, pathPrefix = "" },
-          auth,
-          superServer,
-        } = resolvedSpec;
-        this._config = {
-          serverName: "",
-          active: true,
-          apiVersion: workspaceState.get(this.configName.toLowerCase() + ":apiVersion", DEFAULT_API_VERSION),
-          serverVersion: workspaceState.get(this.configName.toLowerCase() + ":serverVersion", DEFAULT_SERVER_VERSION),
-          https: scheme === "https",
-          ns,
-          host,
-          port,
-          superserverPort: superServer?.port,
-          auth,
-          pathPrefix,
-          docker: true,
-          dockerService: conn["docker-compose"].service,
-        };
-      } else {
-        this._config = {
-          ...conn,
-          ns,
-          serverName: "",
-        };
-      }
-    } else {
-      this._config = {
-        ...conn,
+        auth,
+        ...endpointSettings(spec),
         ns,
+      };
+    } else if ("docker" in connection && connection.docker) {
+      return {
         serverName: "",
+        active: true,
+        docker: true,
+        dockerService: conn["docker-compose"].service,
+        auth: connection.docker.auth,
+        ...endpointSettings(connection.docker),
+        ns,
+      };
+    } else {
+      // objectscript.conn itself. Also used for a docker-compose connection that is not resolved yet.
+      return {
+        ...conn,
+        serverName: "",
+        auth: new BasicAuthorization(conn.username, conn.password),
+        ns,
       };
     }
   }
@@ -601,8 +592,8 @@ export class AtelierAPI {
         cookiesMap.delete(mapKey);
         panel.text = `${this.connInfo} $(debug-disconnect)`;
         panel.tooltip = "Disconnected";
-        workspaceState.update(this.configName.toLowerCase() + ":host", undefined);
-        workspaceState.update(this.configName.toLowerCase() + ":port", undefined);
+        workspaceState.update(this.configName + ":host", undefined);
+        workspaceState.update(this.configName + ":port", undefined);
         setTimeout(() => ensureConnection(false, undefined, true), 30000);
       }
       throw error;
@@ -629,8 +620,8 @@ export class AtelierAPI {
           };
         }
         return Promise.all([
-          workspaceState.update(this.configName.toLowerCase() + ":apiVersion", apiVersion),
-          workspaceState.update(this.configName.toLowerCase() + ":serverVersion", serverVersion),
+          workspaceState.update(this.configName + ":apiVersion", apiVersion),
+          workspaceState.update(this.configName + ":serverVersion", serverVersion),
         ]).then(() => info);
       }
     });
