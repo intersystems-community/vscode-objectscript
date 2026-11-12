@@ -1,5 +1,14 @@
 # Change Log
 
+## [3.8.8] 12-Nov-2026
+- Fixes
+  - Remove `minimatch` dependency (#1898)
+  - Fix importing of classes and routines through `Import and Compile` command (#1899)
+  - Sync client-side web app files as raw bytes (#1901)
+  - Improve performance of initial index of client-side workspace folders (#1903)
+  - Keep the Authorization header out of the REST traffic log on network errors (#1906)
+  - Give API clients only the chosen connection's plaintext password (#1907)
+
 ## [3.8.7] 04-Nov-2026
 - Enhancements
   - Support explicit `UnknownUser` unauthenticated access (#1888)
