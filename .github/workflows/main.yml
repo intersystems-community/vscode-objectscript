@@ -148,9 +148,7 @@ jobs:
         run: npx @vscode/vsce publish --oidc --packagePath ${{ steps.set-version.outputs.name }}.vsix
       - name: Publish to Open VSX Registry
         timeout-minutes: 5
-        run: |
-          [ -n "${{ secrets.OVSX_TOKEN }}" ] && \
-            npx ovsx publish ${{ steps.set-version.outputs.name }}.vsix --pat ${{ secrets.OVSX_TOKEN }} || true
+        run: npx ovsx publish --trusted-publishing ${{ steps.set-version.outputs.name }}.vsix
       - name: Bump version
         run: |
           git config --global user.name 'ProjectBot'
